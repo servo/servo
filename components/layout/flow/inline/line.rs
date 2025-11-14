@@ -646,6 +646,7 @@ impl LineItemLayout<'_, '_> {
                     overflow_marker_textrun_segment,
                     text_item,
                     original_inline_advance,
+                    overflow_marker_font.clone(),
                 );
             // with the current implementation, `ellipsis_textrun_segment.runs` is never empty since it is the glyph store of the ellipsis glyph.
             let overflow_marker_width = (
@@ -730,6 +731,7 @@ impl LineItemLayout<'_, '_> {
         overflow_marker_textrun_segment: TextRunSegment,
         text_item: TextRunLineItem,
         original_inline_advance: Au,
+        overflow_marker_font: FontRef,
     ) -> (LogicalRect<Au>, TextRunSegment, TextRunLineItem) {
         // 1. find the inline start corner (if horizontal, then starting x pos), denoted as `inline_start`
         // `inline_target` is the minimum value for `inline_start`.
@@ -767,13 +769,13 @@ impl LineItemLayout<'_, '_> {
         let start_corner = LogicalVec2 {
             inline: inline_start,
             block: self.current_state.baseline_offset -
-                self.layout.ifc.font_metrics[0].metrics.ascent -
+                overflow_marker_font.metrics.ascent - 
                 self.current_state.parent_offset.block,
         };
         let content_rect = LogicalRect {
             start_corner,
             size: LogicalVec2 {
-                block: self.layout.ifc.font_metrics[0].metrics.line_gap,
+                block: overflow_marker_font.metrics.line_gap,
                 inline: overflow_marker_textrun_segment.runs[0]
                     .glyph_store
                     .total_advance(),
