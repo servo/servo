@@ -173,7 +173,7 @@ impl SimpleFamily {
         let remove_if_template_matches = |template: &mut Option<FontTemplateRef>| {
             if template
                 .as_ref()
-                .is_some_and(|template| template.borrow().stylesheet.as_ref() == Some(stylesheet))
+                .is_some_and(|template| template.borrow().stylesheet() == Some(stylesheet))
             {
                 *template = None;
             }
@@ -333,7 +333,7 @@ impl FontTemplates {
     ) -> bool {
         let length_before = self.templates.len();
         self.templates
-            .retain(|template| template.borrow().stylesheet.as_ref() != Some(stylesheet));
+            .retain(|template| template.borrow().stylesheet() != Some(stylesheet));
 
         if let Some(simple_family) = self.simple_family.as_mut() {
             simple_family.remove_templates_for_stylesheet(stylesheet);
