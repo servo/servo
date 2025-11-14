@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -187,7 +187,7 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
-use crate::script_thread::{ScriptThread, with_script_thread};
+use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
@@ -461,6 +461,11 @@ pub(crate) struct Window {
     /// Visual viewport interface that is associated to this [`Window`].
     /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
     visual_viewport: MutNullableDom<VisualViewport>,
+
+    /// A weak handle to script thread
+    #[ignore_malloc_size_of = "Weak does not need to be accounted"]
+    #[no_trace]
+    weak_script_thread: Weak<ScriptThread>,
 }
 
 impl Window {
@@ -885,7 +890,11 @@ impl Window {
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
-        with_script_thread(|script_thread| script_thread.perform_a_microtask_checkpoint(can_gc));
+        if let Some(script_thread) = self.weak_script_thread.upgrade() {
+            script_thread.perform_a_microtask_checkpoint(can_gc);
+        } else {
+            info!("Script Thread was already dropped");
+        }
     }
 
     pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
@@ -3510,6 +3519,7 @@ impl Window {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         theme: Theme,
+        weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3600,6 +3610,7 @@ impl Window {
             script_window_proxies: ScriptThread::window_proxies(),
             has_pending_screenshot_readiness_request: Default::default(),
             visual_viewport: Default::default(),
+            weak_script_thread,
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
