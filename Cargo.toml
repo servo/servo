@@ -32,7 +32,7 @@ arboard = "3"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.32", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
-aws-lc-rs = { version = "1.14", default-features = false, features = ["aws-lc-sys"] }
+aws-lc-rs = { version = "1.15", default-features = false, features = ["aws-lc-sys"] }
 background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
 backtrace = "0.3"
 base = { path = "components/shared/base" }
