@@ -5,15 +5,15 @@
 use base::id::TEST_PIPELINE_ID;
 use http::header::{CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
-use net::http_cache::HttpCache;
+use net::http_cache::{CacheKey, HttpCache, refresh};
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::unbounded_channel as unbounded;
 
-#[test]
-fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
+#[tokio::test]
+async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     let response_bodies = vec![
         ResponseBody::Receiving(vec![]),
         ResponseBody::Empty,
@@ -30,23 +30,33 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     response
         .headers
         .insert(EXPIRES, HeaderValue::from_str("-10").unwrap());
-    let mut cache = HttpCache::default();
-    response_bodies.iter().for_each(|body| {
+    let cache = HttpCache::default();
+    for body in response_bodies {
         *response.body.lock() = body.clone();
         // First, store the 'normal' response.
-        cache.store(&request, &response);
+        let mut resource = {
+            let guard = cache.get_or_guard(CacheKey::new(&request)).await;
+            guard.insert(&request, &response).await;
+            cache.get_or_guard(CacheKey::new(&request)).await
+        };
         // Second, mutate the response into a 304 response, and refresh the stored one.
         response.status = StatusCode::NOT_MODIFIED.into();
         let (send, recv) = unbounded();
         let mut done_chan = Some((send, recv));
-        let refreshed_response = cache.refresh(&request, response.clone(), &mut done_chan);
+        let refreshed_response = refresh(
+            &request,
+            response.clone(),
+            &mut done_chan,
+            resource.try_as_mut().unwrap(),
+        )
+        .await;
         // Ensure a resource was found, and refreshed.
         assert!(refreshed_response.is_some());
         match body {
             ResponseBody::Receiving(_) => assert!(done_chan.is_some()),
             ResponseBody::Empty | ResponseBody::Done(_) => assert!(done_chan.is_none()),
         }
-    })
+    }
 }
 
 #[test]

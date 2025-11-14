@@ -790,7 +790,8 @@ pub async fn main_fetch(
     context
         .state
         .http_cache
-        .update_awaiting_consumers(request, &response);
+        .update_awaiting_consumers(request, &response)
+        .await;
 
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used

@@ -193,6 +193,9 @@ skip = [
 
     # usvg depends on svgtypes, which depends on old version of kurbo
     "kurbo",
+
+    # Dependency by quick_cache and other
+    "hashbrown",
 ]
 
 # github.com organizations to allow git sources for
