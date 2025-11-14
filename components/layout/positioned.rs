@@ -20,9 +20,8 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment};
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2,
-    PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, ToLogical,
-    ToLogicalWithContainingBlock,
+    AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
+    PhysicalSides, PhysicalSize, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
@@ -476,7 +475,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         // When the "static-position rect" doesn't come into play, we do not do any alignment
         // in the inline axis.
-        let inline_box_offsets = box_offset.inline_sides();
+        let inline_box_offsets = box_offset.inline_sides().percentages_relative_to(cbis);
         let inline_alignment = match inline_box_offsets.either_specified() {
             true => style.clone_justify_self().0,
             false => self.resolved_alignment.inline,
@@ -500,7 +499,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
         // against this containing block.
-        let block_box_offsets = box_offset.block_sides();
+        let block_box_offsets = box_offset.block_sides().percentages_relative_to(cbbs);
         let block_alignment = match block_box_offsets.either_specified() {
             true => style.clone_align_self().0,
             false => self.resolved_alignment.block,
@@ -702,7 +701,7 @@ impl LogicalRect<Au> {
     }
 }
 
-struct AbsoluteAxisSolver<'a> {
+struct AbsoluteAxisSolver {
     axis: Direction,
     containing_size: Au,
     padding_border_sum: Au,
@@ -710,14 +709,14 @@ struct AbsoluteAxisSolver<'a> {
     computed_margin_end: AuOrAuto,
     computed_sizes: Sizes,
     avoid_negative_margin_start: bool,
-    box_offsets: LogicalSides1D<LengthPercentageOrAuto<'a>>,
+    box_offsets: LogicalSides1D<AuOrAuto>,
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
     flip_anchor: bool,
     is_table_or_replaced: bool,
 }
 
-impl AbsoluteAxisSolver<'_> {
+impl AbsoluteAxisSolver {
     /// Returns the amount that we need to subtract from the containing block size in order to
     /// obtain the inset-modified containing block that we will use for sizing purposes.
     /// (Note that for alignment purposes, we may re-resolve auto insets to a different value.)
@@ -736,11 +735,9 @@ impl AbsoluteAxisSolver<'_> {
                     self.static_position_rect_axis.origin
                 }
             },
-            (Some(start), None) => start.to_used_value(self.containing_size),
-            (None, Some(end)) => end.to_used_value(self.containing_size),
-            (Some(start), Some(end)) => {
-                start.to_used_value(self.containing_size) + end.to_used_value(self.containing_size)
-            },
+            (Some(start), None) => start,
+            (None, Some(end)) => end,
+            (Some(start), Some(end)) => start + end,
         }
     }
 
@@ -814,27 +811,23 @@ impl AbsoluteAxisSolver<'_> {
                 None,
             ),
             (Some(start), Some(end)) => {
-                let offsets = LogicalSides1D {
-                    start: start.to_used_value(self.containing_size),
-                    end: end.to_used_value(self.containing_size),
-                };
                 let alignment_container = RectAxis {
-                    origin: offsets.start,
-                    length: self.containing_size - offsets.sum(),
+                    origin: start,
+                    length: self.containing_size - start - end,
                 };
                 (
                     alignment_container,
                     containing_block_writing_mode,
                     false,
-                    Some(offsets),
+                    Some(LogicalSides1D { start, end }),
                 )
             },
             // If a single offset is auto, for alignment purposes it resolves to the amount
             // that makes the inset-modified containing block be exactly as big as the abspos.
             // Therefore the free space is zero and the alignment value is irrelevant.
-            (Some(start), None) => return start.to_used_value(self.containing_size),
+            (Some(start), None) => return start,
             (None, Some(end)) => {
-                return self.containing_size - size - end.to_used_value(self.containing_size);
+                return self.containing_size - size - end;
             },
         };
 
