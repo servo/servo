@@ -14,8 +14,10 @@ pub fn length_percentage(val: &stylo::LengthPercentage) -> taffy::LengthPercenta
     match val.unpack() {
         stylo::UnpackedLengthPercentage::Length(len) => length(len.px()),
         stylo::UnpackedLengthPercentage::Percentage(percentage) => percent(percentage.0),
-        // TODO: Support calc
-        stylo::UnpackedLengthPercentage::Calc(_) => percent(0.0),
+        stylo::UnpackedLengthPercentage::Calc(calc_ref) => {
+            let calc_ptr = calc_ref as *const stylo::CalcLengthPercentage as *const ();
+            taffy::LengthPercentage::calc(calc_ptr)
+        },
     }
 }
 
