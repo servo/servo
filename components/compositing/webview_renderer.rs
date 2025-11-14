@@ -642,7 +642,7 @@ impl WebViewRenderer {
         let button = MouseButton::Left;
         self.dispatch_input_event_with_hit_testing(
             render_api,
-            InputEvent::MouseMove(MouseMoveEvent::new(point.into())).into(),
+            InputEvent::MouseMove(MouseMoveEvent::new_compatibility_for_touch(point.into())).into(),
         );
         self.dispatch_input_event_with_hit_testing(
             render_api,
