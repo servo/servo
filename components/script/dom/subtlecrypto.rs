@@ -2795,14 +2795,14 @@ impl NormalizedAlgorithm {
     }
 
     fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
-        match self {
-            NormalizedAlgorithm::AesCtrParams(algo) => {
+        match (self.name(), self) {
+            (ALG_AES_CTR, NormalizedAlgorithm::AesCtrParams(algo)) => {
                 aes_operation::encrypt_aes_ctr(algo, key, plaintext)
             },
-            NormalizedAlgorithm::AesCbcParams(algo) => {
+            (ALG_AES_CBC, NormalizedAlgorithm::AesCbcParams(algo)) => {
                 aes_operation::encrypt_aes_cbc(algo, key, plaintext)
             },
-            NormalizedAlgorithm::AesGcmParams(algo) => {
+            (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::encrypt_aes_gcm(algo, key, plaintext)
             },
             _ => Err(Error::NotSupported),
@@ -2810,14 +2810,14 @@ impl NormalizedAlgorithm {
     }
 
     fn decrypt(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
-        match self {
-            NormalizedAlgorithm::AesCtrParams(algo) => {
+        match (self.name(), self) {
+            (ALG_AES_CTR, NormalizedAlgorithm::AesCtrParams(algo)) => {
                 aes_operation::decrypt_aes_ctr(algo, key, ciphertext)
             },
-            NormalizedAlgorithm::AesCbcParams(algo) => {
+            (ALG_AES_CBC, NormalizedAlgorithm::AesCbcParams(algo)) => {
                 aes_operation::decrypt_aes_cbc(algo, key, ciphertext)
             },
-            NormalizedAlgorithm::AesGcmParams(algo) => {
+            (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::decrypt_aes_gcm(algo, key, ciphertext)
             },
             _ => Err(Error::NotSupported),
@@ -2825,42 +2825,46 @@ impl NormalizedAlgorithm {
     }
 
     fn sign(&self, key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
-        match self {
-            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_ED25519 => ed25519_operation::sign(key, message),
-                ALG_HMAC => hmac_operation::sign(key, message),
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_ECDSA, NormalizedAlgorithm::EcdsaParams(algo)) => {
+                ecdsa_operation::sign(algo, key, message)
             },
-            NormalizedAlgorithm::EcdsaParams(algo) => match algo.name.as_str() {
-                ALG_ECDSA => ecdsa_operation::sign(algo, key, message),
-                _ => Err(Error::NotSupported),
+            (ALG_ED25519, NormalizedAlgorithm::Algorithm(_algo)) => {
+                ed25519_operation::sign(key, message)
             },
+            (ALG_HMAC, NormalizedAlgorithm::Algorithm(_algo)) => hmac_operation::sign(key, message),
             _ => Err(Error::NotSupported),
         }
     }
 
     fn verify(&self, key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
-        match self {
-            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_ED25519 => ed25519_operation::verify(key, message, signature),
-                ALG_HMAC => hmac_operation::verify(key, message, signature),
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_ECDSA, NormalizedAlgorithm::EcdsaParams(algo)) => {
+                ecdsa_operation::verify(algo, key, message, signature)
             },
-            NormalizedAlgorithm::EcdsaParams(algo) => match algo.name.as_str() {
-                ALG_ECDSA => ecdsa_operation::verify(algo, key, message, signature),
-                _ => Err(Error::NotSupported),
+            (ALG_ED25519, NormalizedAlgorithm::Algorithm(_algo)) => {
+                ed25519_operation::verify(key, message, signature)
+            },
+            (ALG_HMAC, NormalizedAlgorithm::Algorithm(_algo)) => {
+                hmac_operation::verify(key, message, signature)
             },
             _ => Err(Error::NotSupported),
         }
     }
 
     fn digest(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
-        match self {
-            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 => {
-                    sha_operation::digest(algo, message)
-                },
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_SHA1, NormalizedAlgorithm::Algorithm(algo)) => {
+                sha_operation::digest(algo, message)
+            },
+            (ALG_SHA256, NormalizedAlgorithm::Algorithm(algo)) => {
+                sha_operation::digest(algo, message)
+            },
+            (ALG_SHA384, NormalizedAlgorithm::Algorithm(algo)) => {
+                sha_operation::digest(algo, message)
+            },
+            (ALG_SHA512, NormalizedAlgorithm::Algorithm(algo)) => {
+                sha_operation::digest(algo, message)
             },
             _ => Err(Error::NotSupported),
         }
@@ -2873,43 +2877,40 @@ impl NormalizedAlgorithm {
         usages: Vec<KeyUsage>,
         can_gc: CanGc,
     ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
-        match self {
-            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_ED25519 => ed25519_operation::generate_key(global, extractable, usages, can_gc)
-                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
-                ALG_X25519 => x25519_operation::generate_key(global, extractable, usages, can_gc)
-                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_ECDSA, NormalizedAlgorithm::EcKeyGenParams(algo)) => {
+                ecdsa_operation::generate_key(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            NormalizedAlgorithm::EcKeyGenParams(algo) => match algo.name.as_str() {
-                ALG_ECDSA => {
-                    ecdsa_operation::generate_key(global, algo, extractable, usages, can_gc)
-                        .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
-                },
-                ALG_ECDH => ecdh_operation::generate_key(global, algo, extractable, usages, can_gc)
-                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
-                _ => Err(Error::NotSupported),
+            (ALG_ECDH, NormalizedAlgorithm::EcKeyGenParams(algo)) => {
+                ecdh_operation::generate_key(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            NormalizedAlgorithm::AesKeyGenParams(algo) => match algo.name.as_str() {
-                ALG_AES_CTR => {
-                    aes_operation::generate_key_aes_ctr(global, algo, extractable, usages, can_gc)
-                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
-                },
-                ALG_AES_CBC => {
-                    aes_operation::generate_key_aes_cbc(global, algo, extractable, usages, can_gc)
-                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
-                },
-                ALG_AES_GCM => {
-                    aes_operation::generate_key_aes_gcm(global, algo, extractable, usages, can_gc)
-                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
-                },
-                ALG_AES_KW => {
-                    aes_operation::generate_key_aes_kw(global, algo, extractable, usages, can_gc)
-                        .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
-                },
-                _ => Err(Error::NotSupported),
+            (ALG_ED25519, NormalizedAlgorithm::Algorithm(_algo)) => {
+                ed25519_operation::generate_key(global, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            NormalizedAlgorithm::HmacKeyGenParams(algo) => {
+            (ALG_X25519, NormalizedAlgorithm::Algorithm(_algo)) => {
+                x25519_operation::generate_key(global, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+            },
+            (ALG_AES_CTR, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
+                aes_operation::generate_key_aes_ctr(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
+            (ALG_AES_CBC, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
+                aes_operation::generate_key_aes_cbc(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
+            (ALG_AES_GCM, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
+                aes_operation::generate_key_aes_gcm(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
+            (ALG_AES_KW, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
+                aes_operation::generate_key_aes_kw(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
+            (ALG_HMAC, NormalizedAlgorithm::HmacKeyGenParams(algo)) => {
                 hmac_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
@@ -2918,14 +2919,17 @@ impl NormalizedAlgorithm {
     }
 
     fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
-        match self {
-            NormalizedAlgorithm::EcdhKeyDeriveParams(algo) => match algo.name.as_str() {
-                ALG_ECDH => ecdh_operation::derive_bits(algo, key, length),
-                ALG_X25519 => x25519_operation::derive_bits(algo, key, length),
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_ECDH, NormalizedAlgorithm::EcdhKeyDeriveParams(algo)) => {
+                ecdh_operation::derive_bits(algo, key, length)
             },
-            NormalizedAlgorithm::HkdfParams(algo) => hkdf_operation::derive_bits(algo, key, length),
-            NormalizedAlgorithm::Pbkdf2Params(algo) => {
+            (ALG_X25519, NormalizedAlgorithm::EcdhKeyDeriveParams(algo)) => {
+                x25519_operation::derive_bits(algo, key, length)
+            },
+            (ALG_HKDF, NormalizedAlgorithm::HkdfParams(algo)) => {
+                hkdf_operation::derive_bits(algo, key, length)
+            },
+            (ALG_PBKDF2, NormalizedAlgorithm::Pbkdf2Params(algo)) => {
                 pbkdf2_operation::derive_bits(algo, key, length)
             },
             _ => Err(Error::NotSupported),
@@ -2941,66 +2945,9 @@ impl NormalizedAlgorithm {
         usages: Vec<KeyUsage>,
         can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
-        match self {
-            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_ED25519 => ed25519_operation::import_key(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                ),
-                ALG_X25519 => x25519_operation::import_key(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                ),
-                ALG_AES_CTR => aes_operation::import_key_aes_ctr(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                ),
-                ALG_AES_CBC => aes_operation::import_key_aes_cbc(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                ),
-                ALG_AES_GCM => aes_operation::import_key_aes_gcm(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                ),
-                ALG_AES_KW => aes_operation::import_key_aes_kw(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                ),
-                ALG_HKDF => {
-                    hkdf_operation::import(global, format, key_data, extractable, usages, can_gc)
-                },
-                ALG_PBKDF2 => {
-                    pbkdf2_operation::import(global, format, key_data, extractable, usages, can_gc)
-                },
-                _ => Err(Error::NotSupported),
-            },
-            NormalizedAlgorithm::EcKeyImportParams(algo) => match algo.name.as_str() {
-                ALG_ECDSA => ecdsa_operation::import_key(
+        match (self.name(), self) {
+            (ALG_ECDSA, NormalizedAlgorithm::EcKeyImportParams(algo)) => {
+                ecdsa_operation::import_key(
                     global,
                     algo,
                     format,
@@ -3008,19 +2955,9 @@ impl NormalizedAlgorithm {
                     extractable,
                     usages,
                     can_gc,
-                ),
-                ALG_ECDH => ecdh_operation::import_key(
-                    global,
-                    algo,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                ),
-                _ => Err(Error::NotSupported),
+                )
             },
-            NormalizedAlgorithm::HmacImportParams(algo) => hmac_operation::import_key(
+            (ALG_ECDH, NormalizedAlgorithm::EcKeyImportParams(algo)) => ecdh_operation::import_key(
                 global,
                 algo,
                 format,
@@ -3029,42 +2966,110 @@ impl NormalizedAlgorithm {
                 usages,
                 can_gc,
             ),
+            (ALG_ED25519, NormalizedAlgorithm::Algorithm(_algo)) => {
+                ed25519_operation::import_key(global, format, key_data, extractable, usages, can_gc)
+            },
+            (ALG_X25519, NormalizedAlgorithm::Algorithm(_algo)) => {
+                x25519_operation::import_key(global, format, key_data, extractable, usages, can_gc)
+            },
+            (ALG_AES_CTR, NormalizedAlgorithm::Algorithm(_algo)) => {
+                aes_operation::import_key_aes_ctr(
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
+            (ALG_AES_CBC, NormalizedAlgorithm::Algorithm(_algo)) => {
+                aes_operation::import_key_aes_cbc(
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
+            (ALG_AES_GCM, NormalizedAlgorithm::Algorithm(_algo)) => {
+                aes_operation::import_key_aes_gcm(
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
+            (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
+                aes_operation::import_key_aes_kw(
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
+            (ALG_HMAC, NormalizedAlgorithm::HmacImportParams(algo)) => hmac_operation::import_key(
+                global,
+                algo,
+                format,
+                key_data,
+                extractable,
+                usages,
+                can_gc,
+            ),
+            (ALG_HKDF, NormalizedAlgorithm::Algorithm(_algo)) => {
+                hkdf_operation::import_key(global, format, key_data, extractable, usages, can_gc)
+            },
+            (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
+                pbkdf2_operation::import_key(global, format, key_data, extractable, usages, can_gc)
+            },
             _ => Err(Error::NotSupported),
         }
     }
 
     fn wrap_key(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
-        match self {
-            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_AES_KW => aes_operation::wrap_key_aes_kw(key, plaintext),
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
+                aes_operation::wrap_key_aes_kw(key, plaintext)
             },
             _ => Err(Error::NotSupported),
         }
     }
 
     fn unwrap_key(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
-        match self {
-            NormalizedAlgorithm::Algorithm(algo) => match algo.name.as_str() {
-                ALG_AES_KW => aes_operation::unwrap_key_aes_kw(key, ciphertext),
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
+                aes_operation::unwrap_key_aes_kw(key, ciphertext)
             },
             _ => Err(Error::NotSupported),
         }
     }
 
     fn get_key_length(&self) -> Result<Option<u32>, Error> {
-        match self {
-            NormalizedAlgorithm::AesDerivedKeyParams(algo) => match algo.name.as_str() {
-                ALG_AES_CTR => aes_operation::get_key_length_aes_ctr(algo),
-                ALG_AES_CBC => aes_operation::get_key_length_aes_cbc(algo),
-                ALG_AES_GCM => aes_operation::get_key_length_aes_gcm(algo),
-                ALG_AES_KW => aes_operation::get_key_length_aes_kw(algo),
-                _ => Err(Error::NotSupported),
+        match (self.name(), self) {
+            (ALG_AES_CTR, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
+                aes_operation::get_key_length_aes_ctr(algo)
             },
-            NormalizedAlgorithm::HmacImportParams(algo) => hmac_operation::get_key_length(algo),
-            NormalizedAlgorithm::HkdfParams(_algo) => hkdf_operation::get_key_length(),
-            NormalizedAlgorithm::Pbkdf2Params(_algo) => pbkdf2_operation::get_key_length(),
+            (ALG_AES_CBC, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
+                aes_operation::get_key_length_aes_cbc(algo)
+            },
+            (ALG_AES_GCM, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
+                aes_operation::get_key_length_aes_gcm(algo)
+            },
+            (ALG_AES_KW, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
+                aes_operation::get_key_length_aes_kw(algo)
+            },
+            (ALG_HMAC, NormalizedAlgorithm::HmacImportParams(algo)) => {
+                hmac_operation::get_key_length(algo)
+            },
+            (ALG_HKDF, NormalizedAlgorithm::HkdfParams(_algo)) => hkdf_operation::get_key_length(),
+            (ALG_PBKDF2, NormalizedAlgorithm::Pbkdf2Params(_algo)) => {
+                pbkdf2_operation::get_key_length()
+            },
             _ => Err(Error::NotSupported),
         }
     }
@@ -3086,7 +3091,7 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
         ALG_AES_CBC => aes_operation::export_key_aes_cbc(format, key),
         ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
         ALG_AES_KW => aes_operation::export_key_aes_kw(format, key),
-        ALG_HMAC => hmac_operation::export(format, key),
+        ALG_HMAC => hmac_operation::export_key(format, key),
         _ => Err(Error::NotSupported),
     }
 }
