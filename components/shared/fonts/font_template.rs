@@ -6,13 +6,12 @@ use std::fmt::{Debug, Error, Formatter};
 use std::ops::{Deref, RangeInclusive};
 use std::sync::Arc;
 
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
-use style::servo_arc::Arc as ServoArc;
-use style::stylesheets::{DocumentStyleSheet, LockedFontFaceRule};
+use style::stylesheets::{DocumentStyleSheet, FontFaceRule};
 use style::values::computed::font::FontWeight;
 
 use crate::{CSSFontFaceDescriptors, ComputedFontStyleDescriptor, FontDescriptor, FontIdentifier};
@@ -147,7 +146,7 @@ impl FontTemplateDescriptor {
 pub struct FontFaceRuleInitiator {
     pub stylesheet: DocumentStyleSheet,
     #[ignore_malloc_size_of = "TODO"]
-    pub font_face_rule: ServoArc<LockedFontFaceRule>,
+    pub font_face_rule: FontFaceRule,
 }
 
 /// This describes all the information needed to create
@@ -164,7 +163,7 @@ pub struct FontTemplate {
     /// This is not serialized, as it's only useful in the [`super::FontContext`]
     /// that it is created in.
     #[serde(skip)]
-    pub font_face_rule: Option<FontFaceRuleInitiator>,
+    font_face_rule: Option<FontFaceRuleInitiator>,
 }
 
 impl Debug for FontTemplate {
@@ -213,6 +212,12 @@ impl FontTemplate {
     pub fn stylesheet(&self) -> Option<&DocumentStyleSheet> {
         self.font_face_rule.as_ref().map(|rule| &rule.stylesheet)
     }
+
+    pub fn font_face_rule(&self) -> Option<&FontFaceRule> {
+        self.font_face_rule
+            .as_ref()
+            .map(|rule| &rule.font_face_rule)
+    }
 }
 
 pub trait FontTemplateRefMethods {
@@ -228,6 +233,9 @@ pub trait FontTemplateRefMethods {
     /// Whether or not this character is in the unicode ranges specified in
     /// this temlates `@font-face` definition, if any.
     fn char_in_unicode_range(&self, character: char) -> bool;
+
+    /// Return the `@font-face` rule that defined this template, if any.
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRule>>;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
@@ -254,6 +262,10 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .unicode_range
             .as_ref()
             .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
+    }
+
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRule>> {
+        AtomicRef::filter_map(self.borrow(), |template| template.font_face_rule())
     }
 }
 

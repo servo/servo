@@ -559,7 +559,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             let css_font_face_descriptors = rule.into();
             let initiator = FontFaceRuleInitiator {
                 stylesheet: stylesheet.clone(),
-                font_face_rule: lock.clone(),
+                font_face_rule: rule.clone(),
             };
 
             number_loading += 1;
@@ -567,7 +567,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 Some(webview_id),
                 font_face.sources(),
                 css_font_face_descriptors,
-                WebFontLoadInitiator::Stylesheet(initiator, finished_callback.clone()),
+                WebFontLoadInitiator::Stylesheet(Box::new(initiator), finished_callback.clone()),
             );
         }
 
@@ -785,14 +785,17 @@ pub(crate) type ScriptWebFontLoadFinishedCallback =
     Box<dyn FnOnce(LowercaseFontFamilyName, Option<FontTemplate>) + Send>;
 
 pub(crate) enum WebFontLoadInitiator {
-    Stylesheet(FontFaceRuleInitiator, StylesheetWebFontLoadFinishedCallback),
+    Stylesheet(
+        Box<FontFaceRuleInitiator>,
+        StylesheetWebFontLoadFinishedCallback,
+    ),
     Script(ScriptWebFontLoadFinishedCallback),
 }
 
 impl WebFontLoadInitiator {
     pub(crate) fn stylesheet(&self) -> Option<&FontFaceRuleInitiator> {
         match self {
-            Self::Stylesheet(initiator, _) => Some(&initiator),
+            Self::Stylesheet(font_face_rule, _) => Some(font_face_rule),
             Self::Script(_) => None,
         }
     }
