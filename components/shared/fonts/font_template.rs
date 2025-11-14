@@ -6,14 +6,14 @@ use std::fmt::{Debug, Error, Formatter};
 use std::ops::{Deref, RangeInclusive};
 use std::sync::Arc;
 
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
-use style::servo_arc::Arc as ServoArc;
-use style::stylesheets::{DocumentStyleSheet, LockedFontFaceRule};
+use style::stylesheets::{DocumentStyleSheet, FontFaceRule};
 use style::values::computed::font::FontWeight;
+use webrender_api::FontVariation;
 
 use crate::{CSSFontFaceDescriptors, ComputedFontStyleDescriptor, FontDescriptor, FontIdentifier};
 
@@ -142,14 +142,6 @@ impl FontTemplateDescriptor {
     }
 }
 
-/// Data for a font load operation initiated by a `@font-face` rule.
-#[derive(Clone, MallocSizeOf)]
-pub struct FontFaceRuleInitiator {
-    pub stylesheet: DocumentStyleSheet,
-    #[ignore_malloc_size_of = "TODO"]
-    pub font_face_rule: ServoArc<LockedFontFaceRule>,
-}
-
 /// This describes all the information needed to create
 /// font instance handles. It contains a unique
 /// FontTemplateData structure that is platform specific.
@@ -164,7 +156,12 @@ pub struct FontTemplate {
     /// This is not serialized, as it's only useful in the [`super::FontContext`]
     /// that it is created in.
     #[serde(skip)]
-    pub font_face_rule: Option<FontFaceRuleInitiator>,
+    pub stylesheet: Option<DocumentStyleSheet>,
+
+    /// If this font is a web font, this is a reference to the `@font-face` rule that
+    /// created it.
+    #[serde(skip)]
+    pub font_face_rule: Option<FontFaceRule>,
 }
 
 impl Debug for FontTemplate {
@@ -181,11 +178,17 @@ impl FontTemplate {
     pub fn new(
         identifier: FontIdentifier,
         descriptor: FontTemplateDescriptor,
-        font_face_rule: Option<FontFaceRuleInitiator>,
+        stylesheet: Option<DocumentStyleSheet>,
+        font_face_rule: Option<FontFaceRule>,
     ) -> FontTemplate {
+        assert!(
+            (stylesheet.is_some() && font_face_rule.is_some()) ||
+                (stylesheet.is_none() && font_face_rule.is_none())
+        );
         FontTemplate {
             identifier,
             descriptor,
+            stylesheet,
             font_face_rule,
         }
     }
@@ -196,12 +199,14 @@ impl FontTemplate {
     pub fn new_for_local_web_font(
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
-        font_face_rule: Option<FontFaceRuleInitiator>,
+        stylesheet: Option<DocumentStyleSheet>,
+        font_face_rule: Option<FontFaceRule>,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
             .descriptor
             .override_values_with_css_font_template_descriptors(css_font_template_descriptors);
+        alias_template.stylesheet = stylesheet;
         alias_template.font_face_rule = font_face_rule;
         Ok(alias_template)
     }
@@ -210,8 +215,48 @@ impl FontTemplate {
         &self.identifier
     }
 
-    pub fn stylesheet(&self) -> Option<&DocumentStyleSheet> {
-        self.font_face_rule.as_ref().map(|rule| &rule.stylesheet)
+    /// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>
+    pub fn compute_variations(&self, descriptor: &FontDescriptor) -> Vec<FontVariation> {
+        // The steps in this algorithm are inverted order because they are listed in ascending order of precedence.
+        let mut variations: Vec<FontVariation> = vec![];
+
+        let mut add_variation = |variation: FontVariation| {
+            if !variations
+                .iter()
+                .any(|existing_variation| existing_variation.tag == variation.tag)
+            {
+                variations.push(FontVariation {
+                    tag: variation.tag,
+                    value: variation.value,
+                });
+            }
+        };
+
+        // Step 12. Font variations implied by the value of the font-variation-settings property are applied.
+        // These values should be clamped to the values that are supported by the font.
+        // NOTE: Clamping happens inside the PlatformFont.
+        descriptor
+            .variation_settings
+            .iter()
+            .copied()
+            .for_each(&mut add_variation);
+
+        if let Some(font_face_rule) = &self.font_face_rule {
+            // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
+            // descriptor in the @font-face rule are applied.
+            if let Some(variation_settings) = font_face_rule.variation_settings.as_ref() {
+                variation_settings
+                    .0
+                    .iter()
+                    .map(|variation| FontVariation {
+                        tag: variation.tag.0,
+                        value: variation.value.get(),
+                    })
+                    .for_each(&mut add_variation);
+            }
+        }
+
+        variations
     }
 }
 
@@ -228,6 +273,9 @@ pub trait FontTemplateRefMethods {
     /// Whether or not this character is in the unicode ranges specified in
     /// this temlates `@font-face` definition, if any.
     fn char_in_unicode_range(&self, character: char) -> bool;
+
+    /// Return the `@font-face` rule that defined this template, if any.
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRule>>;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
@@ -254,6 +302,10 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .unicode_range
             .as_ref()
             .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
+    }
+
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRule>> {
+        AtomicRef::filter_map(self.borrow(), |template| template.font_face_rule.as_ref())
     }
 }
 

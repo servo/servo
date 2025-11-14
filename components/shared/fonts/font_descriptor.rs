@@ -55,6 +55,15 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
     }
 }
 
+impl FontDescriptor {
+    pub fn with_variation_settings(&self, variation_settings: Vec<FontVariation>) -> Self {
+        FontDescriptor {
+            variation_settings,
+            ..*self
+        }
+    }
+}
+
 /// A version of `FontStyle` from Stylo that is serializable. Normally this is not
 /// because the specified version of `FontStyle` contains floats.
 #[derive(Clone, Debug, Deserialize, Serialize)]
