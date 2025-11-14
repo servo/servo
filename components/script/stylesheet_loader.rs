@@ -154,19 +154,22 @@ impl StylesheetContext {
         ))
     }
 
-    // Whether or not this `StylesheetContext` is for a `<link>` element that comes
-    // from a previous generation. This prevents processing of earlier stylsheet URLs
-    // when the URL has changed.
-    //
-    // TODO(mrobinson): Shouldn't we also exit early if this is an import that was originally
-    // imported from a `<link>` element that has advanced a generation as well?
-    fn is_for_a_previous_generation(&self, element: &HTMLElement) -> bool {
-        if !matches!(&self.source, StylesheetContextSource::LinkElement) {
+    fn contributes_to_the_styling_processing_model(&self, element: &HTMLElement) -> bool {
+        if !element.upcast::<Element>().is_connected() {
             return false;
         }
+
+        // Whether or not this `StylesheetContext` is for a `<link>` element that comes
+        // from a previous generation. This prevents processing of earlier stylsheet URLs
+        // when the URL has changed.
+        //
+        // TODO(mrobinson): Shouldn't we also exit early if this is an import that was originally
+        // imported from a `<link>` element that has advanced a generation as well?
+        if !matches!(&self.source, StylesheetContextSource::LinkElement) {
+            return true;
+        }
         let link = element.downcast::<HTMLLinkElement>().unwrap();
-        !self
-            .request_generation_id
+        self.request_generation_id
             .is_none_or(|generation| generation == link.get_request_generation_id())
     }
 
@@ -193,8 +196,22 @@ impl StylesheetContext {
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
 
-        if self.is_for_a_previous_generation(&element) {
+        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+        // > If `el` no longer creates an external resource link that contributes to the
+        // > styling processing model, or if, since the resource in question was fetched, it
+        // > has become appropriate to fetch it again, then:
+        // >   1. Remove el from el's node document's script-blocking style sheet set.
+        // >   2. Return.
+        if !self.contributes_to_the_styling_processing_model(&element) {
+            // Even though this load shouldn't be considered as a stylesheet load, we still need
+            // to decrement all of the counters that were incremented when it was triggered. These
+            // various counters block load and rendering.
             self.decrement_load_and_render_blockers(owner, &document);
+            document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
+
+            // Inform the owner that the load finished, but never consider it an error,
+            // since it doesn't affect whether the load is a success.
+            owner.load_finished(true);
             return;
         }
 
@@ -227,7 +244,7 @@ impl StylesheetContext {
         self.decrement_load_and_render_blockers(owner, &document);
 
         owner.set_origin_clean(self.origin_clean);
-        document.finish_load(LoadType::Stylesheet(self.url.clone()), CanGc::note());
+        document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
 
         if let Some(any_failed) = owner.load_finished(successful) {
             let event = match any_failed {
@@ -322,7 +339,13 @@ impl FetchResponseListener for StylesheetContext {
             self.data.clear();
         }
 
-        if self.is_for_a_previous_generation(&element) {
+        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+        // > If `el` no longer creates an external resource link that contributes to the
+        // > styling processing model, or if, since the resource in question was fetched, it
+        // > has become appropriate to fetch it again, then:
+        // >   1. Remove el from el's node document's script-blocking style sheet set.
+        // >   2. Return.
+        if !self.contributes_to_the_styling_processing_model(&element) {
             self.do_post_parse_tasks(successful, None);
             return;
         }
@@ -427,16 +450,16 @@ impl ElementStylesheetLoader<'_> {
             .expect("Stylesheet not loaded by <style> or <link> element!");
         let referrer_policy = owner.referrer_policy();
         owner.increment_pending_loads_count();
+
         if owner.parser_inserted() {
             document.increment_script_blocking_stylesheet_count();
-        }
 
-        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-        // > A link element of this type is implicitly potentially render-blocking if the element
-        // > was created by its node document's parser.
-        if matches!(context.source, StylesheetContextSource::LinkElement) && owner.parser_inserted()
-        {
-            document.increment_render_blocking_element_count();
+            // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
+            // > A link element of this type is implicitly potentially render-blocking if the element
+            // > was created by its node document's parser.
+            if matches!(context.source, StylesheetContextSource::LinkElement) {
+                document.increment_render_blocking_element_count();
+            }
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
