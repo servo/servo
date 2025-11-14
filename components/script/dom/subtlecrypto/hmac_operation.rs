@@ -320,7 +320,7 @@ pub(crate) fn import_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-export-key>
-pub(crate) fn export(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match format {
         KeyFormat::Raw => match key.handle() {
             Handle::Hmac(key_data) => Ok(ExportedKey::Raw(key_data.as_slice().to_vec())),

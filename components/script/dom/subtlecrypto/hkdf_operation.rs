@@ -75,7 +75,7 @@ pub(crate) fn derive_bits(
 }
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-import-key>
-pub(crate) fn import(
+pub(crate) fn import_key(
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
