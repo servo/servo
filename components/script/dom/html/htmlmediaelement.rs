@@ -2390,6 +2390,13 @@ impl HTMLMediaElement {
         }
 
         // => "Once enough of the media data has been fetched to determine the duration..."
+
+        // The following steps should be run once on the first `metadata` signal from the media
+        // engine.
+        if self.ready_state.get() != ReadyState::HaveNothing {
+            return;
+        }
+
         // TODO Step 1. Establish the media timeline for the purposes of the current playback
         // position and the earliest possible position, based on the media data.
 
@@ -2411,15 +2418,12 @@ impl HTMLMediaElement {
         // in principle infinite), update the duration attribute to the value positive Infinity.
         // Note: The user agent will queue a media element task given the media element to fire an
         // event named durationchange at the element at this point.
-        let previous_duration = self.duration.get();
-        if let Some(duration) = metadata.duration {
-            self.duration.set(duration.as_secs_f64());
-        } else {
-            self.duration.set(f64::INFINITY);
-        }
-        if previous_duration != self.duration.get() {
-            self.queue_media_element_task_to_fire_event(atom!("durationchange"));
-        }
+        self.duration.set(
+            metadata
+                .duration
+                .map_or(f64::INFINITY, |duration| duration.as_secs_f64()),
+        );
+        self.queue_media_element_task_to_fire_event(atom!("durationchange"));
 
         // Step 5. For video elements, set the videoWidth and videoHeight attributes, and queue a
         // media element task given the media element to fire an event named resize at the media
@@ -2480,6 +2484,25 @@ impl HTMLMediaElement {
                 .clone()
                 .unwrap_or(window.get_url().into_string()),
         );
+    }
+
+    fn playback_duration_changed(&self, duration: Option<Duration>) {
+        // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
+        // => "Once enough of the media data has been fetched to determine the duration..."
+
+        // Step 4. Update the duration attribute with the time of the last frame of the resource, if
+        // known, on the media timeline established above. If it is not known (e.g. a stream that is
+        // in principle infinite), update the duration attribute to the value positive Infinity.
+        // Note: The user agent will queue a media element task given the media element to fire an
+        // event named durationchange at the element at this point.
+        let duration = duration.map_or(f64::INFINITY, |duration| duration.as_secs_f64());
+
+        if duration == self.duration.get() {
+            return;
+        }
+
+        self.duration.set(duration);
+        self.queue_media_element_task_to_fire_event(atom!("durationchange"));
     }
 
     fn playback_video_frame_updated(&self) {
@@ -2619,6 +2642,7 @@ impl HTMLMediaElement {
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 self.playback_metadata_updated(metadata, can_gc)
             },
+            PlayerEvent::DurationChanged(duration) => self.playback_duration_changed(duration),
             PlayerEvent::NeedData => self.playback_need_data(),
             PlayerEvent::EnoughData => self.playback_enough_data(),
             PlayerEvent::PositionChanged(position) => self.playback_position_changed(position),
