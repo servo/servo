@@ -21,7 +21,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::option::Option;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::result::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -365,6 +365,10 @@ pub struct ScriptThread {
     /// A list of URLs that can access privileged internal APIs.
     #[no_trace]
     privileged_urls: Vec<ServoUrl>,
+
+    /// Weak Rc to itself or None if not yet initialized
+    #[no_trace]
+    script_thread_weak: Weak<ScriptThread>,
 }
 
 struct BHMExitSignal {
@@ -444,19 +448,20 @@ impl ScriptThreadFactory for ScriptThread {
                 WebViewId::install(webview_id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
                 let reporter_name = format!("script-reporter-{pipeline_id:?}");
-                let script_thread = ScriptThread::new(
-                    state,
-                    layout_factory,
-                    image_cache_factory,
-                    background_hang_monitor_register,
-                    webview_id,
-                    pipeline_id,
-                );
-
-                SCRIPT_THREAD_ROOT.with(|root| {
-                    root.set(Some(&script_thread as *const _));
+                let script_thread = Rc::new_cyclic(|weak_script_thread| {
+                    ScriptThread::new(
+                        state,
+                        layout_factory,
+                        image_cache_factory,
+                        background_hang_monitor_register,
+                        webview_id,
+                        pipeline_id,
+                        weak_script_thread.clone(),
+                    )
                 });
-
+                SCRIPT_THREAD_ROOT.with(|root| {
+                    root.set(Some(Rc::as_ptr(&script_thread)));
+                });
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
                 // TODO: Eventually this should happen as a separate message to this new `ScriptThread`.
@@ -841,6 +846,7 @@ impl ScriptThread {
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
+        script_thread_weak: Weak<ScriptThread>,
     ) -> ScriptThread {
         let (self_sender, self_receiver) = unbounded();
         let mut runtime =
@@ -980,6 +986,7 @@ impl ScriptThread {
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
             privileged_urls: state.privileged_urls,
+            script_thread_weak,
         }
     }
 
@@ -3189,6 +3196,7 @@ impl ScriptThread {
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
+            self.script_thread_weak.clone(),
         );
         self.debugger_global.fire_add_debuggee(
             can_gc,
