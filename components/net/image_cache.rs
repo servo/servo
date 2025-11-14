@@ -95,7 +95,15 @@ fn decode_bytes_sync(
     content_type: Option<Mime>,
     fontdb: Arc<fontdb::Database>,
 ) -> DecoderMsg {
-    let image = if content_type == Some(mime::IMAGE_SVG) {
+    let is_svg_document = content_type.is_some_and(|content_type| {
+        (
+            content_type.type_(),
+            content_type.subtype(),
+            content_type.suffix(),
+        ) == (mime::IMAGE, mime::SVG, Some(mime::XML))
+    });
+
+    let image = if is_svg_document {
         parse_svg_document_in_memory(bytes, fontdb)
             .ok()
             .map(|svg_tree| {
