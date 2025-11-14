@@ -777,19 +777,6 @@ impl HttpCache {
     fn invalidate_for_url(&self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
         self.entries.remove(&entry_key);
-        /*
-                if let Some(mut cached_resources) = self
-                .entries
-                .peek(&entry_key)
-                .map(|arc| std::sync::Arc::unwrap_or_clone(arc))
-                {
-                for cached_resource in cached_resources.iter_mut() {
-                    cached_resource.expires = Duration::ZERO;
-                }
-                self.entries
-                .replace(entry_key, Arc::new(cached_resources), true);
-        }
-        */
     }
 
     /// Invalidation.
