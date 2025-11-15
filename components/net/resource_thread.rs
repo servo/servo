@@ -178,6 +178,7 @@ struct ResourceChannelManager {
     cookie_listeners: FxHashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
 }
 
+/// This returns a tuple HttpState and a private HttpState.
 fn create_http_states(
     config_dir: Option<&Path>,
     ca_certificates: CACertificates,
@@ -200,7 +201,7 @@ fn create_http_states(
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
         history_states: RwLock::new(FxHashMap::default()),
-        http_cache: RwLock::new(http_cache),
+        http_cache,
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             ca_certificates.clone(),
@@ -217,7 +218,7 @@ fn create_http_states(
         cookie_jar: RwLock::new(CookieStorage::new(150)),
         auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
-        http_cache: RwLock::new(HttpCache::default()),
+        http_cache: HttpCache::default(),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             ca_certificates,
@@ -522,7 +523,7 @@ impl ResourceChannelManager {
                 }
             },
             CoreResourceMsg::ClearCache => {
-                http_state.http_cache.write().unwrap().clear();
+                http_state.http_cache.clear();
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {
