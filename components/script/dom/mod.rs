@@ -230,6 +230,10 @@ pub(crate) mod broadcastchannel;
 pub(crate) mod bytelengthqueuingstrategy;
 mod canvas;
 pub(crate) use self::canvas::*;
+pub(crate) mod byteteereadintorequest;
+pub(crate) mod byteteereadrequest;
+pub(crate) mod byteteeunderlyingsource;
+
 pub(crate) mod cdatasection;
 pub(crate) mod characterdata;
 pub(crate) mod client;
