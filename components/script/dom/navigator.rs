@@ -7,7 +7,9 @@ use std::convert::TryInto;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
+use base::IpcSend;
 use dom_struct::dom_struct;
+use embedder_traits::RegisterOrUnregister;
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::rust::MutableHandleValue;
@@ -15,7 +17,7 @@ use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
 };
-use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
+use net_traits::{CoreResourceMsg, FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -521,7 +523,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn RegisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
         // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
         // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
-        let (_normalized_scheme, _normalized_url_string) =
+        let (normalized_scheme, normalized_url_string) =
             self.normalize_protocol_handler_parameters(scheme, url)?;
         // Step 2. In parallel: register a protocol handler for normalizedScheme and normalizedURLString.
         // User agents may, within the constraints described, do whatever they like. A user agent could,
@@ -534,8 +536,15 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // the user agent should first verify that it is in an automation context (see WebDriver's security considerations).
         // The user agent should then bypass the above communication of information and gathering of user consent,
         // and instead do the following based on the value of the registerProtocolHandler() automation mode:
-        //
-        // TODO
+        let _ =
+            self.global()
+                .resource_threads()
+                .sender()
+                .send(CoreResourceMsg::ProtocolHandlerUpdate(
+                    normalized_scheme,
+                    normalized_url_string,
+                    RegisterOrUnregister::Register,
+                ));
         Ok(())
     }
 
@@ -543,11 +552,18 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn UnregisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
         // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
         // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
-        let (_normalized_scheme, _normalized_url_string) =
+        let (normalized_scheme, normalized_url_string) =
             self.normalize_protocol_handler_parameters(scheme, url)?;
         // Step 2. In parallel: unregister the handler described by normalizedScheme and normalizedURLString.
-        //
-        // TODO
+        let _ =
+            self.global()
+                .resource_threads()
+                .sender()
+                .send(CoreResourceMsg::ProtocolHandlerUpdate(
+                    normalized_scheme,
+                    normalized_url_string,
+                    RegisterOrUnregister::Unregister,
+                ));
         Ok(())
     }
 }

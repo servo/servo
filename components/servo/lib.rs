@@ -537,6 +537,13 @@ impl Servo {
                     webview.delegate().request_navigation(webview, request);
                 }
             },
+            EmbedderMsg::NotifyProtocolHandlerUpdate(scheme, url, register_or_unregister) => {
+                self.delegate().register_protocol_handler(
+                    scheme,
+                    url.into_url(),
+                    register_or_unregister,
+                );
+            },
             EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let webview_id_and_viewport_details = webview

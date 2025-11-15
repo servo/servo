@@ -4,12 +4,15 @@
 
 use base::generic_channel;
 use content_security_policy::Destination;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, WebResourceRequest, WebResourceResponseMsg};
+use embedder_traits::{
+    EmbedderMsg, EmbedderProxy, RegisterOrUnregister, WebResourceRequest, WebResourceResponseMsg,
+};
 use log::error;
 use net_traits::NetworkError;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
+use servo_url::ServoUrl;
 
 use crate::fetch::methods::FetchContext;
 
@@ -82,5 +85,19 @@ impl RequestInterceptor {
                 WebResourceResponseMsg::DoNotIntercept => break,
             }
         }
+    }
+
+    pub fn handle_protocol_handler(
+        &self,
+        scheme: String,
+        url: ServoUrl,
+        register_or_unregister: RegisterOrUnregister,
+    ) {
+        self.embedder_proxy
+            .send(EmbedderMsg::NotifyProtocolHandlerUpdate(
+                scheme,
+                url,
+                register_or_unregister,
+            ));
     }
 }

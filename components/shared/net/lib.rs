@@ -14,6 +14,7 @@ use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use embedder_traits::RegisterOrUnregister;
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
@@ -494,6 +495,8 @@ pub enum CoreResourceMsg {
     Cancel(Vec<RequestId>),
     /// Initiate a fetch in response to processing a redirection
     FetchRedirect(RequestBuilder, ResponseInit, IpcSender<FetchResponseMsg>),
+    /// Message to forward to embedder to handle protocol handlers
+    ProtocolHandlerUpdate(String, ServoUrl, RegisterOrUnregister),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL

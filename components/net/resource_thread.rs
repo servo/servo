@@ -435,6 +435,10 @@ impl ResourceChannelManager {
                     protocols,
                 )
             },
+            CoreResourceMsg::ProtocolHandlerUpdate(scheme, url, register_or_unregister) => self
+                .resource_manager
+                .request_interceptor
+                .handle_protocol_handler(scheme, url, register_or_unregister),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) => self
                 .resource_manager
                 .set_cookie_for_url(&request, cookie.into_inner().to_owned(), source, http_state),

@@ -18,9 +18,9 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, Cursor, EmbedderControl, EmbedderControlId,
     GamepadHapticEffectType, InputEventId, InputEventResult, JSValue, LoadStatus,
-    PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TraversalId,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverUserPrompt, WebView, WebViewBuilder,
-    WebViewDelegate,
+    PermissionRequest, RegisterOrUnregister, Servo, ServoDelegate, ServoError, SimpleDialog,
+    TraversalId, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverUserPrompt, WebView,
+    WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -496,6 +496,18 @@ impl ServoDelegate for ServoShellServoDelegate {
 
     fn notify_error(&self, _servo: &Servo, error: ServoError) {
         error!("Saw Servo error: {error:?}!");
+    }
+
+    fn register_protocol_handler(
+        &self,
+        scheme: String,
+        url: Url,
+        register_or_unregister: RegisterOrUnregister,
+    ) {
+        println!(
+            "Requesting to {:?} for scheme {} with url {}",
+            register_or_unregister, scheme, url
+        );
     }
 }
 
