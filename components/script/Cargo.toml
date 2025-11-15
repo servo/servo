@@ -73,6 +73,7 @@ fonts = { path = "../fonts" }
 fonts_traits = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
+hkdf = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
