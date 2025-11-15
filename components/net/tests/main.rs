@@ -149,7 +149,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(net::http_cache::HttpCache::default()),
-        http_cache_state: Mutex::new(HashMap::new()),
+        http_cache_state: tokio::sync::Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             net::connector::CACertificates::Default,
             false, /* ignore_certificate_errors */

@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
-use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
+use std::sync::{Arc as StdArc, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
@@ -64,10 +64,12 @@ use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use tokio::sync::Notify;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
+use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
@@ -95,7 +97,8 @@ pub enum HttpCacheEntryState {
     PendingStore(usize),
 }
 
-type HttpCacheState = Mutex<HashMap<CacheKey, Arc<(Mutex<HttpCacheEntryState>, Condvar)>>>;
+type HttpCacheState =
+    tokio::sync::Mutex<HashMap<CacheKey, Arc<(tokio::sync::Mutex<HttpCacheEntryState>, Notify)>>>;
 
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
@@ -1506,7 +1509,8 @@ async fn http_network_or_cache_fetch(
         done_chan,
         &mut revalidating_flag,
         &mut response,
-    );
+    )
+    .await;
 
     wait_for_cached_response(done_chan, &mut response).await;
 
@@ -1518,7 +1522,7 @@ async fn http_network_or_cache_fetch(
         if http_request.cache_mode == CacheMode::OnlyIfCached {
             // The cache will not be updated,
             // set its state to ready to construct.
-            update_http_cache_state(context, http_request);
+            update_http_cache_state(context, http_request).await;
             return Response::network_error(NetworkError::Internal(
                 "Couldn't find response in cache".into(),
             ));
@@ -1572,7 +1576,7 @@ async fn http_network_or_cache_fetch(
 
     let http_request = &mut http_fetch_params.request;
     // The cache has been updated, set its state to ready to construct.
-    update_http_cache_state(context, http_request);
+    update_http_cache_state(context, http_request).await;
 
     let mut response = response.unwrap();
 
@@ -1724,7 +1728,7 @@ async fn http_network_or_cache_fetch(
 /// Note that this is a different workflow from the one involving `wait_for_cached_response`.
 /// That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
 ///
-fn block_for_cache_ready(
+async fn block_for_cache_ready(
     context: &FetchContext,
     http_request: &mut Request,
     done_chan: &mut DoneChannel,
@@ -1733,27 +1737,26 @@ fn block_for_cache_ready(
 ) {
     let (lock, cvar) = {
         let entry_key = CacheKey::new(http_request);
-        let mut state_map = context.state.http_cache_state.lock().unwrap();
+        let mut state_map = context.state.http_cache_state.lock().await;
         &*state_map
             .entry(entry_key)
             .or_insert_with(|| {
                 Arc::new((
-                    Mutex::new(HttpCacheEntryState::ReadyToConstruct),
-                    Condvar::new(),
+                    tokio::sync::Mutex::new(HttpCacheEntryState::ReadyToConstruct),
+                    Notify::new(),
                 ))
             })
             .clone()
     };
 
     // Start of critical section on http-cache state.
-    let mut state = lock.lock().unwrap();
+    let mut state = lock.lock().await;
     while let HttpCacheEntryState::PendingStore(_) = *state {
-        let (current_state, time_out) = cvar
-            .wait_timeout(state, Duration::from_millis(500))
-            .unwrap();
-        state = current_state;
-        if time_out.timed_out() {
-            // After a timeout, ignore the pending store.
+        if timeout(Duration::from_millis(500), cvar.notified())
+            .await
+            .is_err()
+        {
+            log::info!("Timeout reached for cache, continueing with fetching");
             break;
         }
     }
@@ -1833,16 +1836,16 @@ fn block_for_cache_ready(
 /// and set the state to ready to construct,
 /// if no stores are pending.
 ///
-fn update_http_cache_state(context: &FetchContext, http_request: &Request) {
+async fn update_http_cache_state(context: &FetchContext, http_request: &Request) {
     let (lock, cvar) = {
         let entry_key = CacheKey::new(http_request);
-        let mut state_map = context.state.http_cache_state.lock().unwrap();
+        let mut state_map = context.state.http_cache_state.lock().await;
         &*state_map
             .get_mut(&entry_key)
             .expect("Entry in http-cache state to have been previously inserted")
             .clone()
     };
-    let mut state = lock.lock().unwrap();
+    let mut state = lock.lock().await;
     if let HttpCacheEntryState::PendingStore(i) = *state {
         let new = i - 1;
         if new == 0 {

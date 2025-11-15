@@ -201,7 +201,7 @@ fn create_http_states(
         auth_cache: RwLock::new(auth_cache),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(http_cache),
-        http_cache_state: Mutex::new(HashMap::new()),
+        http_cache_state: tokio::sync::Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             ca_certificates.clone(),
             ignore_certificate_errors,
@@ -218,7 +218,7 @@ fn create_http_states(
         auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(HttpCache::default()),
-        http_cache_state: Mutex::new(HashMap::new()),
+        http_cache_state: tokio::sync::Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             ca_certificates,
             ignore_certificate_errors,
