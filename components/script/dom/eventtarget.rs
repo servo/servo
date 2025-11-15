@@ -47,11 +47,10 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{
     DomGlobal, DomObject, Reflector, reflect_dom_object_with_proto,
 };
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::csp::{CspReporting, InlineCheckType};
@@ -958,7 +957,7 @@ impl EventTarget {
             // Step 6. If listener’s signal is not null, then add the following abort steps to it:
             signal.add(&AbortAlgorithm::DomEventListener(
                 RemovableDomEventListener {
-                    event_target: Trusted::new(self),
+                    event_target: Dom::from_ref(self),
                     ty: ty.clone(),
                     listener: listener.clone(),
                     options: options.parent.clone(),

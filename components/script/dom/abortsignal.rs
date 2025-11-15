@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOp
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -57,8 +57,9 @@ pub(crate) enum AbortAlgorithm {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct RemovableDomEventListener {
-    pub(crate) event_target: Trusted<EventTarget>,
+    pub(crate) event_target: Dom<EventTarget>,
     pub(crate) ty: DOMString,
     #[conditional_malloc_size_of]
     pub(crate) listener: Option<Rc<EventListener>>,
@@ -210,14 +211,11 @@ impl AbortSignal {
                 deferred_fetch_record.lock().unwrap().abort();
             },
             AbortAlgorithm::DomEventListener(removable_listener) => {
-                removable_listener
-                    .event_target
-                    .root()
-                    .remove_event_listener(
-                        removable_listener.ty.clone(),
-                        &removable_listener.listener,
-                        &removable_listener.options,
-                    );
+                removable_listener.event_target.remove_event_listener(
+                    removable_listener.ty.clone(),
+                    &removable_listener.listener,
+                    &removable_listener.options,
+                );
             },
         }
     }
