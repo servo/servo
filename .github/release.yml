@@ -1,0 +1,6 @@
+# This file allows configuring the automatic changelog generation on releases.
+# See https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes#configuring-automatically-generated-release-notes
+changelog:
+  exclude:
+    authors:
+      - dependabot[bot]
