@@ -970,11 +970,11 @@ pub(crate) fn get_attr_for_layout<'dom>(
     elem: LayoutDom<'dom, Element>,
     namespace: &Namespace,
     name: &LocalName,
-) -> Option<LayoutDom<'dom, Attr>> {
+) -> Option<&'dom AttrValue> {
     elem.attrs()
         .iter()
         .find(|attr| name == attr.local_name() && namespace == attr.namespace())
-        .cloned()
+        .map(|attr| attr.value())
 }
 
 pub(crate) trait LayoutElementHelpers<'dom> {
@@ -1039,8 +1039,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         case_sensitivity: CaseSensitivity,
     ) -> bool {
         get_attr_for_layout(self, &ns!(), attr_name).is_some_and(|attr| {
-            attr.to_tokens()
-                .unwrap()
+            attr.as_tokens()
                 .iter()
                 .any(|atom| case_sensitivity.eq_atom(atom, name))
         })
@@ -1048,13 +1047,11 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[inline]
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
-        get_attr_for_layout(self, &ns!(), &local_name!("class"))
-            .map(|attr| attr.to_tokens().unwrap())
+        get_attr_for_layout(self, &ns!(), &local_name!("class")).map(|attr| attr.as_tokens())
     }
 
     fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
-        get_attr_for_layout(self, &ns!(), &local_name!("part"))
-            .map(|attr| attr.to_tokens().unwrap())
+        get_attr_for_layout(self, &ns!(), &local_name!("part")).map(|attr| attr.as_tokens())
     }
 
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
@@ -1488,12 +1485,12 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         namespace: &Namespace,
         name: &LocalName,
     ) -> Option<&'dom AttrValue> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.value())
+        get_attr_for_layout(self, namespace, name)
     }
 
     #[inline]
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str> {
-        get_attr_for_layout(self, namespace, name).map(|attr| attr.as_str())
+        get_attr_for_layout(self, namespace, name).map(|attr| &**attr)
     }
 
     #[inline]
