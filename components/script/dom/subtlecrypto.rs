@@ -1745,30 +1745,17 @@ impl From<EcdhKeyDeriveParams> for SubtleEcdhKeyDeriveParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-AesCtrParams>
 #[derive(Clone, Debug, MallocSizeOf)]
-pub(crate) struct SubtleAesCbcParams {
-    pub(crate) name: String,
-    pub(crate) iv: Vec<u8>,
-}
+struct SubtleAesCtrParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
 
-impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
-    fn from(params: RootedTraceableBox<AesCbcParams>) -> Self {
-        let iv = match &params.iv {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-        SubtleAesCbcParams {
-            name: params.parent.name.to_string(),
-            iv,
-        }
-    }
-}
+    /// <https://w3c.github.io/webcrypto/#dfn-AesCtrParams-counter>
+    counter: Vec<u8>,
 
-#[derive(Clone, Debug, MallocSizeOf)]
-pub(crate) struct SubtleAesCtrParams {
-    pub(crate) name: String,
-    pub(crate) counter: Vec<u8>,
-    pub(crate) length: u8,
+    /// <https://w3c.github.io/webcrypto/#dfn-AesCtrParams-length>
+    length: u8,
 }
 
 impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
@@ -1781,34 +1768,6 @@ impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
             name: params.parent.name.to_string(),
             counter,
             length: params.length,
-        }
-    }
-}
-
-#[derive(Clone, Debug, MallocSizeOf)]
-pub(crate) struct SubtleAesGcmParams {
-    pub(crate) name: String,
-    pub(crate) iv: Vec<u8>,
-    pub(crate) additional_data: Option<Vec<u8>>,
-    pub(crate) tag_length: Option<u8>,
-}
-
-impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
-    fn from(params: RootedTraceableBox<AesGcmParams>) -> Self {
-        let iv = match &params.iv {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-        let additional_data = params.additionalData.as_ref().map(|data| match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        });
-
-        SubtleAesGcmParams {
-            name: params.parent.name.to_string(),
-            iv,
-            additional_data,
-            tag_length: params.tagLength,
         }
     }
 }
@@ -1870,6 +1829,65 @@ impl From<AesDerivedKeyParams> for SubtleAesDerivedKeyParams {
         SubtleAesDerivedKeyParams {
             name: params.parent.name.to_string(),
             length: params.length,
+        }
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-AesCbcParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleAesCbcParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-AesCbcParams-iv>
+    iv: Vec<u8>,
+}
+
+impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
+    fn from(params: RootedTraceableBox<AesCbcParams>) -> Self {
+        let iv = match &params.iv {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+        SubtleAesCbcParams {
+            name: params.parent.name.to_string(),
+            iv,
+        }
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-AesGcmParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleAesGcmParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-AesGcmParams-iv>
+    iv: Vec<u8>,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-AesGcmParams-additionalData>
+    additional_data: Option<Vec<u8>>,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-AesGcmParams-tagLength>
+    tag_length: Option<u8>,
+}
+
+impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
+    fn from(params: RootedTraceableBox<AesGcmParams>) -> Self {
+        let iv = match &params.iv {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+        let additional_data = params.additionalData.as_ref().map(|data| match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        });
+
+        SubtleAesGcmParams {
+            name: params.parent.name.to_string(),
+            iv,
+            additional_data,
+            tag_length: params.tagLength,
         }
     }
 }
