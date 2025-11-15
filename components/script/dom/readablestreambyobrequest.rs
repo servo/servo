@@ -54,6 +54,10 @@ impl ReadableStreamBYOBRequest {
             },
         }
     }
+
+    pub(crate) fn get_view(&self) -> HeapBufferSource<ArrayBufferViewU8> {
+        self.view.borrow().clone()
+    }
 }
 
 impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBYOBRequest {

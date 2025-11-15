@@ -18,6 +18,8 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::byteteereadintorequest::ByteTeeReadIntoRequestMicrotask;
+use crate::dom::byteteereadrequest::ByteTeeReadRequestMicrotask;
 use crate::dom::defaultteereadrequest::DefaultTeeReadRequestMicrotask;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlimageelement::ImageElementMicrotask;
@@ -44,6 +46,8 @@ pub(crate) enum Microtask {
     ImageElement(ImageElementMicrotask),
     ReadableStreamTeeReadRequest(DefaultTeeReadRequestMicrotask),
     WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask),
+    ReadableStreamByteTeeReadRequest(ByteTeeReadRequestMicrotask),
+    ReadableStreamByteTeeReadIntoRequest(ByteTeeReadIntoRequestMicrotask),
     CustomElementReaction,
     NotifyMutationObservers,
 }
@@ -153,6 +157,12 @@ impl MicrotaskQueue {
                     },
                     Microtask::NotifyMutationObservers => {
                         ScriptThread::mutation_observers().notify_mutation_observers(can_gc);
+                    },
+                    Microtask::ReadableStreamByteTeeReadRequest(ref task) => {
+                        task.microtask_chunk_steps(can_gc)
+                    },
+                    Microtask::ReadableStreamByteTeeReadIntoRequest(ref task) => {
+                        task.microtask_chunk_steps(can_gc)
                     },
                 }
             }
