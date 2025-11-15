@@ -354,7 +354,7 @@ impl CanvasState {
 
         self.send_canvas_2d_msg(Canvas2dMsg::ClearRect(
             self.size.get().to_f32().into(),
-            self.state.borrow().transform,
+            Transform2D::identity(),
         ));
     }
 
