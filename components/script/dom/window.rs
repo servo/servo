@@ -633,8 +633,8 @@ impl Window {
         &self.bluetooth_extra_permission_data
     }
 
-    pub(crate) fn css_error_reporter(&self) -> Option<&dyn ParseErrorReporter> {
-        Some(&self.error_reporter)
+    pub(crate) fn css_error_reporter(&self) -> &CSSErrorReporter {
+        &self.error_reporter
     }
 
     pub(crate) fn webgl_chan(&self) -> Option<WebGLCommandSender> {
@@ -3615,7 +3615,7 @@ impl Window {
     }
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct CSSErrorReporter {
     pub(crate) pipelineid: PipelineId,
     pub(crate) script_chan: GenericSender<ScriptThreadMessage>,

@@ -320,7 +320,7 @@ impl MimeClassifier {
         *mt == mime::TEXT_PLAIN || mt.essence_str() == "text/vtt"
     }
 
-    fn is_css(mt: &Mime) -> bool {
+    pub fn is_css(mt: &Mime) -> bool {
         mt.essence_str() == "text/css"
     }
 

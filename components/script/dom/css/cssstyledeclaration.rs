@@ -393,7 +393,7 @@ impl CSSStyleDeclaration {
                     &value.str(),
                     Origin::Author,
                     &base_url,
-                    window.css_error_reporter(),
+                    Some(window.css_error_reporter()),
                     ParsingMode::DEFAULT,
                     quirks_mode,
                     CssRuleType::Style,
@@ -612,7 +612,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
                 *pdb = parse_style_attribute(
                     &value.str(),
                     &base_url,
-                    window.css_error_reporter(),
+                    Some(window.css_error_reporter()),
                     quirks_mode,
                     CssRuleType::Style,
                 );
