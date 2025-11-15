@@ -4,18 +4,6 @@
 
 // https://w3c.github.io/webcrypto/#subtlecrypto-interface
 
-typedef (object or DOMString) AlgorithmIdentifier;
-
-typedef AlgorithmIdentifier HashAlgorithmIdentifier;
-
-dictionary Algorithm {
-  required DOMString name;
-};
-
-dictionary KeyAlgorithm {
-  required DOMString name;
-};
-
 enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
 [SecureContext,Exposed=(Window,Worker),Pref="dom_crypto_subtle_enabled"]
@@ -68,84 +56,115 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
 };
 
-// https://w3c.github.io/webcrypto/#dfn-EcdsaParams
+// https://w3c.github.io/webcrypto/#algorithm-dictionary
+
+typedef (object or DOMString) AlgorithmIdentifier;
+
+typedef AlgorithmIdentifier HashAlgorithmIdentifier;
+
+dictionary Algorithm {
+  required DOMString name;
+};
+
+// https://w3c.github.io/webcrypto/#key-algorithm-dictionary
+
+dictionary KeyAlgorithm {
+  required DOMString name;
+};
+
+// https://w3c.github.io/webcrypto/#EcdsaParams-dictionary
 dictionary EcdsaParams : Algorithm {
   required HashAlgorithmIdentifier hash;
 };
 
-// https://w3c.github.io/webcrypto/#dfn-NamedCurve
+// https://w3c.github.io/webcrypto/#EcKeyGenParams-dictionary
+
 typedef DOMString NamedCurve;
 
-// https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams
 dictionary EcKeyGenParams : Algorithm {
   required NamedCurve namedCurve;
 };
 
-// https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm
+// https://w3c.github.io/webcrypto/#EcKeyAlgorithm-dictionary
+
 dictionary EcKeyAlgorithm : KeyAlgorithm {
   required NamedCurve namedCurve;
 };
 
-// https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams
+// https://w3c.github.io/webcrypto/#EcKeyImportParams-dictionary
+
 dictionary EcKeyImportParams : Algorithm {
   required NamedCurve namedCurve;
 };
 
 // https://w3c.github.io/webcrypto/#dh-EcdhKeyDeriveParams
+
 dictionary EcdhKeyDeriveParams : Algorithm {
   required CryptoKey public;
 };
 
-// AES shared
-dictionary AesKeyAlgorithm : KeyAlgorithm {
-  required unsigned short length;
-};
+// https://w3c.github.io/webcrypto/#aes-ctr-params
 
-dictionary AesKeyGenParams : Algorithm {
-  required [EnforceRange] unsigned short length;
-};
-
-dictionary AesDerivedKeyParams : Algorithm {
-  required [EnforceRange] unsigned short length;
-};
-
-// AES_CBC
-dictionary AesCbcParams : Algorithm {
-  required BufferSource iv;
-};
-
-// AES_CTR
 dictionary AesCtrParams : Algorithm {
   required BufferSource counter;
   required [EnforceRange] octet length;
 };
 
+// https://w3c.github.io/webcrypto/#AesKeyAlgorithm-dictionary
+
+dictionary AesKeyAlgorithm : KeyAlgorithm {
+  required unsigned short length;
+};
+
+// https://w3c.github.io/webcrypto/#aes-keygen-params
+
+dictionary AesKeyGenParams : Algorithm {
+  required [EnforceRange] unsigned short length;
+};
+
+// https://w3c.github.io/webcrypto/#aes-derivedkey-params
+
+dictionary AesDerivedKeyParams : Algorithm {
+  required [EnforceRange] unsigned short length;
+};
+
+// https://w3c.github.io/webcrypto/#aes-cbc-params
+
+dictionary AesCbcParams : Algorithm {
+  required BufferSource iv;
+};
+
 // https://w3c.github.io/webcrypto/#aes-gcm-params
+
 dictionary AesGcmParams : Algorithm {
   required BufferSource iv;
   BufferSource additionalData;
   [EnforceRange] octet tagLength;
 };
 
-// https://w3c.github.io/webcrypto/#dfn-HmacImportParams
+// https://w3c.github.io/webcrypto/#hmac-importparams
+
 dictionary HmacImportParams : Algorithm {
   required HashAlgorithmIdentifier hash;
   [EnforceRange] unsigned long length;
 };
 
-// https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm
+// https://w3c.github.io/webcrypto/#HmacKeyAlgorithm-dictionary
+
 dictionary HmacKeyAlgorithm : KeyAlgorithm {
   required KeyAlgorithm hash;
   required unsigned long length;
 };
 
-// https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams
+// https://w3c.github.io/webcrypto/#hmac-keygen-params
+
 dictionary HmacKeyGenParams : Algorithm {
   required HashAlgorithmIdentifier hash;
   [EnforceRange] unsigned long length;
 };
 
 // https://w3c.github.io/webcrypto/#hkdf-params
+
 dictionary HkdfParams : Algorithm {
   required HashAlgorithmIdentifier hash;
   required BufferSource salt;
@@ -153,13 +172,15 @@ dictionary HkdfParams : Algorithm {
 };
 
 // https://w3c.github.io/webcrypto/#pbkdf2-params
+
 dictionary Pbkdf2Params : Algorithm {
   required BufferSource salt;
   required [EnforceRange] unsigned long iterations;
   required HashAlgorithmIdentifier hash;
 };
 
-// JWK
+// https://w3c.github.io/webcrypto/#JsonWebKey-dictionary
+
 dictionary RsaOtherPrimesInfo {
   // The following fields are defined in Section 6.3.2.7 of JSON Web Algorithms
   DOMString r;

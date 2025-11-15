@@ -16,7 +16,7 @@ interface CryptoKey {
   readonly attribute object usages;
 };
 
-// https://w3c.github.io/webcrypto/#dfn-CryptoKeyPair
+// https://w3c.github.io/webcrypto/#keypair
 
 dictionary CryptoKeyPair {
   CryptoKey publicKey;
