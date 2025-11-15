@@ -32,6 +32,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
+use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::script_runtime::CanGc;
 
@@ -50,6 +51,16 @@ pub struct IDBTransaction {
     active: Cell<bool>,
     // https://www.w3.org/TR/IndexedDB-2/#transaction-finish
     finished: Cell<bool>,
+    // Tracks how many IDBRequest instances are still pending for this
+    // transaction. The value is incremented when a request is added to the
+    // transaction’s request list and decremented once the request has
+    // finished.
+    pending_request_count: Cell<usize>,
+    // When the transaction belongs to a database open request (i.e. during an
+    // upgrade), the corresponding IDBOpenDBRequest is stored so we can fire its
+    // "success" event after the transaction is fully finished.
+    open_request: MutNullableDom<IDBOpenDBRequest>,
+
     // An unique identifier, used to commit and revert this transaction
     // FIXME:(rasviitanen) Replace this with a channel
     serial_number: u64,
@@ -73,6 +84,8 @@ impl IDBTransaction {
             requests: Default::default(),
             active: Cell::new(true),
             finished: Cell::new(false),
+            pending_request_count: Cell::new(0),
+            open_request: Default::default(),
             serial_number,
         }
     }
@@ -133,14 +146,23 @@ impl IDBTransaction {
             .send(IndexedDBThreadMsg::Sync(start_operation))
             .unwrap();
 
-        // Wait for transaction to complete
-        if receiver.recv().is_err() {
-            warn!("IDBtransaction failed to run");
-        };
+        // Wait for the transaction to complete
+        let _ = receiver.recv();
+        // Mark the transaction as finished and dispatch the complete event.
+        // This also takes care of firing the open request "success" event
+        // (if any) in the correct order.
+        self.finished.set(true);
+        self.dispatch_complete();
     }
 
     pub fn set_active_flag(&self, status: bool) {
-        self.active.set(status)
+        self.active.set(status);
+        // When the transaction becomes inactive and no requests are pending,
+        // it can transition to the finished state.
+        if !status && self.pending_request_count.get() == 0 && !self.finished.get() {
+            self.finished.set(true);
+            self.dispatch_complete();
+        }
     }
 
     pub fn is_active(&self) -> bool {
@@ -159,8 +181,36 @@ impl IDBTransaction {
         self.serial_number
     }
 
+    /// Associate an `IDBOpenDBRequest` with this transaction so that its
+    /// "success" event is dispatched only once the transaction has truly
+    /// finished (after the "complete" event).
+    pub fn set_open_request(&self, request: &IDBOpenDBRequest) {
+        self.open_request.set(Some(request));
+    }
+
     pub fn add_request(&self, request: &IDBRequest) {
         self.requests.borrow_mut().push(Dom::from_ref(request));
+        // Increase the number of outstanding requests so that we can detect when
+        // the transaction is allowed to finish.
+        self.pending_request_count
+            .set(self.pending_request_count.get() + 1);
+    }
+
+    /// Must be called by an `IDBRequest` when it finishes (either success or
+    /// error). When the last pending request has completed and the transaction
+    /// is no longer active, the `"complete"` event is dispatched and any
+    /// associated `IDBOpenDBRequest` `"success"` event is fired afterwards.
+    pub fn request_finished(&self) {
+        if self.pending_request_count.get() == 0 {
+            return;
+        }
+        let remaining = self.pending_request_count.get() - 1;
+        self.pending_request_count.set(remaining);
+
+        if remaining == 0 && !self.active.get() && !self.finished.get() {
+            self.finished.set(true);
+            self.dispatch_complete();
+        }
     }
 
     pub fn upgrade_db_version(&self, version: u64) {
@@ -198,6 +248,14 @@ impl IDBTransaction {
                     CanGc::note()
                 );
                 event.fire(this.upcast(), CanGc::note());
+
+                // If this transaction was created as part of an IDBOpenDBRequest,
+                // fire the "success" event for that
+                // request after the complete event to respect spec ordering.
+                if let Some(open_req) = this.open_request.get() {
+                    open_req.dispatch_success(&this.db);
+                    this.open_request.set(None);
+                }
             }),
         );
     }
