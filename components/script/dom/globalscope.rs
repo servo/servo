@@ -2725,7 +2725,28 @@ impl GlobalScope {
         })
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#report-the-error>
+    /// <https://html.spec.whatwg.org/multipage/#report-an-exception>
+    pub(crate) fn report_an_exception(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
+        // Step 1. Let notHandled be true.
+        //
+        // Handled in `report_an_error`
+
+        // Step 2. Let errorInfo be the result of extracting error information from exception.
+        // Step 3. Let script be a script found in an implementation-defined way, or null.
+        // This should usually be the running script (most notably during run a classic script).
+        // Step 4. If script is a classic script and script's muted errors is true, then set errorInfo[error] to null,
+        // errorInfo[message] to "Script error.", errorInfo[filename] to the empty string,
+        // errorInfo[lineno] to 0, and errorInfo[colno] to 0.
+        let error_info = crate::dom::bindings::error::ErrorInfo::from_value(error, cx, can_gc);
+        // Step 5. If omitError is true, then set errorInfo[error] to null.
+        //
+        // `omitError` defaults to `false`
+
+        // Steps 6-7
+        self.report_an_error(error_info, error, can_gc);
+    }
+
+    /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
         // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {
@@ -2760,12 +2781,17 @@ impl GlobalScope {
         // Step 6.3. Set global's in error reporting mode to false.
         self.in_error_reporting_mode.set(false);
 
-        // Step 7.
+        // Step 7. If notHandled is true, then:
         if not_handled {
+            // Step 7.2. If global implements DedicatedWorkerGlobalScope,
+            // queue a global task on the DOM manipulation task source with the
+            // global's associated Worker's relevant global object to run these steps:
+            //
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);
             } else if self.is::<Window>() {
+                // Step 7.3. Otherwise, the user agent may report exception to a developer console.
                 if let Some(ref chan) = self.devtools_chan {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
                         self.pipeline_id,
