@@ -48,7 +48,7 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     }
     if let Some(lower) = range.lower.as_ref() {
         let lower_bytes = bincode::serialize(lower).unwrap();
-        let query = if range.upper_open {
+        let query = if range.lower_open {
             Expr::column(object_data_model::Column::Key).gt(lower_bytes)
         } else {
             Expr::column(object_data_model::Column::Key).gte(lower_bytes)
