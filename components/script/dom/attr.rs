@@ -11,7 +11,6 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
-use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -235,8 +234,6 @@ impl Attr {
 
 pub(crate) trait AttrHelpersForLayout<'dom> {
     fn value(self) -> &'dom AttrValue;
-    fn as_str(&self) -> &'dom str;
-    fn to_tokens(self) -> Option<&'dom [Atom]>;
     fn local_name(self) -> &'dom LocalName;
     fn namespace(self) -> &'dom Namespace;
 }
@@ -246,19 +243,6 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     #[inline]
     fn value(self) -> &'dom AttrValue {
         unsafe { self.unsafe_get().value.borrow_for_layout() }
-    }
-
-    #[inline]
-    fn as_str(&self) -> &'dom str {
-        self.value()
-    }
-
-    #[inline]
-    fn to_tokens(self) -> Option<&'dom [Atom]> {
-        match *self.value() {
-            AttrValue::TokenList(_, ref tokens) => Some(tokens),
-            _ => None,
-        }
     }
 
     #[inline]
