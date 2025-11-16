@@ -111,7 +111,7 @@ check_socket() {
 
 # Find Servo binary
 find_servo() {
-    echo -e "${BLUE}🔍 Looking for Servo binary...${NC}"
+    echo -e "${BLUE}🔍 Looking for Servo binary...${NC}" >&2
 
     local servo_bin=""
     if [ -f "target/release/servo" ]; then
@@ -121,17 +121,17 @@ find_servo() {
     fi
 
     if [ -z "$servo_bin" ]; then
-        echo -e "${RED}  ✗ Servo binary not found${NC}"
-        echo
-        echo -e "${YELLOW}Build Servo first:${NC}"
-        echo -e "  ${CYAN}./mach build${NC}         # Release build (recommended)"
-        echo -e "  ${CYAN}./mach build -d${NC}      # Debug build (faster compilation)"
-        echo
+        echo -e "${RED}  ✗ Servo binary not found${NC}" >&2
+        echo >&2
+        echo -e "${YELLOW}Build Servo first:${NC}" >&2
+        echo -e "  ${CYAN}./mach build${NC}         # Release build (recommended)" >&2
+        echo -e "  ${CYAN}./mach build -d${NC}      # Debug build (faster compilation)" >&2
+        echo >&2
         exit 1
     fi
 
-    echo -e "${GREEN}  ✓ Found Servo: $servo_bin${NC}"
-    echo
+    echo -e "${GREEN}  ✓ Found Servo: $servo_bin${NC}" >&2
+    echo >&2
 
     echo "$servo_bin"
 }
