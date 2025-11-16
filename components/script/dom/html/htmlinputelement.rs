@@ -2617,7 +2617,7 @@ impl HTMLInputElement {
         TextControlSelection::new(self, &self.textinput)
     }
 
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
+    /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
     fn implicit_submission(&self, can_gc: CanGc) {
         let doc = self.owner_document();
         let node = doc.upcast::<Node>();
