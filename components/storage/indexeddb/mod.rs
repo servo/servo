@@ -241,6 +241,10 @@ impl IndexedDBManager {
                 },
             };
             match message {
+                IndexedDBThreadMsg::Sync(SyncOperation::Exit(sender)) => {
+                    let _ = sender.send(());
+                    break;
+                },
                 IndexedDBThreadMsg::Sync(operation) => {
                     self.handle_sync_operation(operation);
                 },
@@ -435,9 +439,8 @@ impl IndexedDBManager {
                     let _ = sender.send(db.serial_number_counter);
                 }
             },
-            SyncOperation::Exit(sender) => {
-                // FIXME:(rasviitanen) Nothing to do?
-                let _ = sender.send(());
+            SyncOperation::Exit(_) => {
+                unreachable!();
             },
         }
     }
