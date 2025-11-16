@@ -107,6 +107,16 @@ echo -e "  Socket path:      ${YELLOW}$SOCKET_PATH${NC}"
 echo -e "  URL:              ${YELLOW}$URL${NC}"
 echo -e "  Mode:             ${YELLOW}$([ "$HEADLESS" = "true" ] && echo "Headless" || echo "GUI")${NC}"
 echo
+echo -e "${BLUE}========================================${NC}"
+echo -e "${GREEN}✓ Server is ready!${NC}"
+echo
+echo -e "${YELLOW}To test the server manually, type this URL in Servo:${NC}"
+echo -e "${GREEN}  $URL${NC}"
+echo
+echo -e "${YELLOW}Or use curl to test:${NC}"
+echo -e "  ${BLUE}curl --unix-socket $SOCKET_PATH http://localhost/${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo
 
 echo -e "${GREEN}Launching Servo...${NC}"
 echo -e "${YELLOW}(Server logs will appear below)${NC}"
