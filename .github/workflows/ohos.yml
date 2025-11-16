@@ -98,7 +98,7 @@ jobs:
           OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
           OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
         run: |
-          ./mach build --locked --target ${{ matrix.target }} --${{ inputs.profile }}
+          ./mach build --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
       - name: Archive build timing
         uses: actions/upload-artifact@v4

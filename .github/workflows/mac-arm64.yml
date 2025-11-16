@@ -134,26 +134,26 @@ jobs:
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
         run: |
-          ./mach build --use-crown --locked --${{ inputs.profile }}  ${{ inputs.build-args }}
+          ./mach build --use-crown --locked --profile ${{ inputs.profile }}  ${{ inputs.build-args }}
           cp -r target/cargo-timings target/cargo-timings-macos-arm64
       - name: Smoketest
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
-          command: ./mach smoketest --${{ inputs.profile }}
+          command: ./mach smoketest --profile ${{ inputs.profile }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         env:
           NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
-        run: ./mach test-unit --${{ inputs.profile }}
+        run: ./mach test-unit --profile ${{ inputs.profile }}
       - name: Devtools tests
         if: ${{ false && inputs.unit-tests }} # FIXME #39273
-        run: ./mach test-devtools --${{ inputs.profile }}
+        run: ./mach test-devtools --profile ${{ inputs.profile }}
       - name: Build mach package
-        run: ./mach package --${{ inputs.profile }}
+        run: ./mach package --profile ${{ inputs.profile }}
       - name: Run DMG smoketest
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757
