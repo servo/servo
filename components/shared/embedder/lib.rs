@@ -410,6 +410,13 @@ pub enum AllowOrDeny {
     Deny,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+/// Whether a protocol handler is requested to be registered or unregistered.
+pub enum RegisterOrUnregister {
+    Register,
+    Unregister,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SelectElementOption {
     /// A unique identifier for the option that can be used to select it.
@@ -540,6 +547,10 @@ pub enum EmbedderMsg {
     ),
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
+    /// Request to register protocol handler by webpage.
+    /// First string is the scheme, second is the request handler as URL.
+    /// Last argument is whether this is a registration or unregistration request
+    NotifyProtocolHandlerUpdate(String, ServoUrl, RegisterOrUnregister),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningWebView(
         WebViewId,

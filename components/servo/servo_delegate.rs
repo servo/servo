@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use base::generic_channel;
-use embedder_traits::Notification;
+use embedder_traits::{Notification, RegisterOrUnregister};
+use url::Url;
 
 use crate::Servo;
 use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
@@ -41,6 +42,15 @@ pub trait ServoDelegate {
     /// [`WebView`].  For loads associated with a [`WebView`], Servo  will call
     /// [`crate::WebViewDelegate::load_web_resource`].
     fn load_web_resource(&self, _load: WebResourceLoad) {}
+    /// A webpage wants to register a protocol handler (e.g. `mailto:`). These protocol
+    /// handlers can be added to a [`ProtocolRegistry`] if desired, or can be discarded.
+    fn register_protocol_handler(
+        &self,
+        _scheme: String,
+        _url: Url,
+        _register_or_unregister: RegisterOrUnregister,
+    ) {
+    }
 
     /// Request to display a notification.
     fn show_notification(&self, _notification: Notification) {}
