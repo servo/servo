@@ -159,6 +159,8 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
             ),
             net::connector::ConnectorMode::Tcp,
         ),
+        unix_client: None,
+        socket_mapping: None,
         override_manager,
         embedder_proxy: Mutex::new(fc.unwrap_or_else(|| create_embedder_proxy())),
     }
