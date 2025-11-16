@@ -2070,14 +2070,18 @@ async fn http_network_fetch(
             (Decoder::detect(response, url.is_secure_scheme()), None)
         },
         _ => {
-            // Check if this is a Unix socket URL
-            let is_unix_socket = TransportUrl::parse(url.as_str())
-                .map(|t_url| t_url.transport() == &Transport::Unix)
-                .unwrap_or(false);
+            // Check if this URL should use Unix sockets
+            // Either it has explicit Unix transport, OR we have a socket mapping for this host
+            let should_use_unix = if let (Some(socket_mapping), Some(_)) =
+                (&context.state.socket_mapping, &context.state.unix_client)
+            {
+                // Check if we have a mapping for this URL
+                socket_mapping.get_socket_path_from_url(url.as_str()).is_some()
+            } else {
+                false
+            };
 
-            let (res, msg) = if is_unix_socket &&
-                context.state.unix_client.is_some() &&
-                context.state.socket_mapping.is_some()
+            let (res, msg) = if should_use_unix
             {
                 // Unix socket request path
                 debug!("Routing request to Unix socket for URL: {}", url);
