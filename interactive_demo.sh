@@ -255,16 +255,15 @@ launch_servo() {
     echo -e "${GREEN}  ✓ Found Servo: $SERVO_BIN${NC}"
     echo
 
-    # Configure environment for Unix socket mode
-    export SERVO_USE_UNIX_SOCKETS=true
-    export SERVO_SOCKET_DIR="$SOCKET_DIR"
-    export SERVO_SOCKET_MAPPINGS="localhost:$SOCKET_PATH"
+    # UDS mode is now enabled by default in Servo!
+    # No environment variables needed
     export RUST_LOG="${RUST_LOG:-net=debug}"
 
     # Show configuration
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
     echo -e "${BOLD}Demo Configuration:${NC}"
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
+    echo -e "  UDS Mode:          ${GREEN}Enabled (default)${NC}"
     echo -e "  Socket directory:  ${YELLOW}$SOCKET_DIR${NC}"
     echo -e "  Socket path:       ${YELLOW}$SOCKET_PATH${NC}"
     echo -e "  URL to load:       ${YELLOW}$URL${NC}"

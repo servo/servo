@@ -31,9 +31,14 @@ pub struct HostSocketMapping {
 impl Default for UnixSocketConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
+            enabled: true,
             socket_dir: PathBuf::from("/tmp/servo-sockets"),
-            mappings: vec![],
+            mappings: vec![
+                HostSocketMapping {
+                    host: "localhost".to_string(),
+                    socket_path: PathBuf::from("/tmp/servo-sockets/localhost.sock"),
+                },
+            ],
         }
     }
 }
@@ -86,8 +91,13 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = UnixSocketConfig::default();
-        assert!(!config.enabled);
+        assert!(config.enabled);
         assert_eq!(config.socket_dir, PathBuf::from("/tmp/servo-sockets"));
-        assert!(config.mappings.is_empty());
+        assert_eq!(config.mappings.len(), 1);
+        assert_eq!(config.mappings[0].host, "localhost");
+        assert_eq!(
+            config.mappings[0].socket_path,
+            PathBuf::from("/tmp/servo-sockets/localhost.sock")
+        );
     }
 }

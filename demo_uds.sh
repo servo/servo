@@ -95,13 +95,11 @@ fi
 echo -e "${GREEN}Using Servo: $SERVO_BIN${NC}"
 echo
 
-# Configure environment
-export SERVO_USE_UNIX_SOCKETS=true
-export SERVO_SOCKET_DIR="$SOCKET_DIR"
-export SERVO_SOCKET_MAPPINGS="localhost:$SOCKET_PATH"
+# UDS mode is now enabled by default in Servo!
 export RUST_LOG="${RUST_LOG:-net=debug}"
 
 echo -e "${BLUE}Configuration:${NC}"
+echo -e "  UDS Mode:         ${GREEN}Enabled (default)${NC}"
 echo -e "  Socket directory: ${YELLOW}$SOCKET_DIR${NC}"
 echo -e "  Socket path:      ${YELLOW}$SOCKET_PATH${NC}"
 echo -e "  URL:              ${YELLOW}$URL${NC}"

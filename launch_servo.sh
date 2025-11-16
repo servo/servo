@@ -140,15 +140,14 @@ find_servo() {
 launch_servo() {
     local servo_bin="$1"
 
-    # Configure environment for Unix socket mode
-    export SERVO_USE_UNIX_SOCKETS=true
-    export SERVO_SOCKET_DIR="$SOCKET_DIR"
-    export SERVO_SOCKET_MAPPINGS="localhost:$SOCKET_PATH"
+    # UDS mode is now enabled by default in Servo!
+    # These environment variables are optional overrides
     export RUST_LOG="${RUST_LOG:-net=debug}"
 
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
     echo -e "${BOLD}Servo Configuration:${NC}"
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
+    echo -e "  UDS Mode:          ${GREEN}Enabled (default)${NC}"
     echo -e "  Socket directory:  ${YELLOW}$SOCKET_DIR${NC}"
     echo -e "  Socket path:       ${YELLOW}$SOCKET_PATH${NC}"
     echo -e "  URL to load:       ${YELLOW}$URL${NC}"
