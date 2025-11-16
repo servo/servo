@@ -139,17 +139,19 @@ start_gunicorn() {
     echo
 }
 
-# Function to verify no TCP connections
-verify_no_tcp() {
-    echo -e "${BLUE}Verifying no TCP connections...${NC}"
+# Function to verify no IP networking (TCP, UDP, SCTP, etc.)
+verify_no_ip() {
+    echo -e "${BLUE}Verifying no IP-based networking...${NC}"
+    echo "Checking: TCP, UDP, SCTP, raw IP"
+    echo
 
-    local has_tcp=false
+    local has_ip=false
 
     # Check for TCP listeners
     if ss -tlnp 2>/dev/null | grep -q gunicorn; then
         echo -e "${RED}✗ WARNING: Found TCP listeners!${NC}"
         ss -tlnp | grep gunicorn
-        has_tcp=true
+        has_ip=true
     else
         echo -e "${GREEN}✓ No TCP listeners${NC}"
     fi
@@ -158,9 +160,27 @@ verify_no_tcp() {
     if ss -tnp 2>/dev/null | grep -q gunicorn; then
         echo -e "${RED}✗ WARNING: Found TCP connections!${NC}"
         ss -tnp | grep gunicorn
-        has_tcp=true
+        has_ip=true
     else
         echo -e "${GREEN}✓ No TCP connections${NC}"
+    fi
+
+    # Check for UDP sockets
+    if ss -unp 2>/dev/null | grep -q gunicorn; then
+        echo -e "${RED}✗ WARNING: Found UDP sockets!${NC}"
+        ss -unp | grep gunicorn
+        has_ip=true
+    else
+        echo -e "${GREEN}✓ No UDP sockets${NC}"
+    fi
+
+    # Check for any IP-based sockets
+    if ss -anp 2>/dev/null | grep -E "tcp|udp|sctp|raw" | grep -q gunicorn; then
+        echo -e "${RED}✗ WARNING: Found IP-based sockets!${NC}"
+        ss -anp | grep -E "tcp|udp|sctp|raw" | grep gunicorn
+        has_ip=true
+    else
+        echo -e "${GREEN}✓ No other IP protocols${NC}"
     fi
 
     # Check Unix socket
@@ -170,10 +190,10 @@ verify_no_tcp() {
         echo -e "${YELLOW}⚠ Could not verify Unix socket (lsof may require sudo)${NC}"
     fi
 
-    if [ "$has_tcp" = true ]; then
+    if [ "$has_ip" = true ]; then
         echo
         echo -e "${RED}=========================================="
-        echo "⚠ WARNING: TCP connections detected!"
+        echo "⚠ WARNING: IP networking detected!"
         echo "This violates the UDS-only requirement."
         echo "==========================================${NC}"
         echo
@@ -314,7 +334,7 @@ show_logs() {
 main() {
     check_dependencies
     start_gunicorn
-    verify_no_tcp
+    verify_no_ip
     test_with_curl
 
     # Keep server running

@@ -168,59 +168,28 @@ test_rust_integration() {
     rm -f /tmp/test.sock
 }
 
-# Test 5: TCP Verification (CRITICAL!)
-test_no_tcp() {
-    print_section "Test Suite 5: TCP Verification (No TCP Allowed!)"
+# Test 5: UDS-Only Verification (CRITICAL!)
+test_no_ip() {
+    print_section "Test Suite 5: UDS-Only Verification (No IP Networking Allowed!)"
 
-    # This is a critical test - we must verify NO TCP connections
+    echo "This test verifies NO IP-based networking:"
+    echo "  - No TCP (IPv4/IPv6)"
+    echo "  - No UDP (IPv4/IPv6)"
+    echo "  - No SCTP"
+    echo "  - No raw IP sockets"
+    echo
 
-    echo "Starting Gunicorn on Unix socket..."
-    cd examples
-    gunicorn --bind unix:/tmp/verify-test.sock --workers 1 --daemon --pid /tmp/gunicorn-verify.pid unix_socket_server:app 2>&1 | tee -a "$LOG_FILE"
-    cd ..
+    if [ ! -f "verify_uds_only.sh" ]; then
+        record_result "UDS-only verification" "SKIP" "verify_uds_only.sh not found"
+        return
+    fi
 
-    sleep 2
-
-    # Check for TCP listeners
-    echo "Checking for TCP listeners from Gunicorn..."
-    if ss -tlnp 2>/dev/null | grep gunicorn; then
-        record_result "No TCP listeners (Gunicorn)" "FAIL" "Found TCP listeners!"
-        ss -tlnp | grep gunicorn | tee -a "$LOG_FILE"
+    # Run comprehensive UDS-only verification
+    if bash verify_uds_only.sh 2>&1 | tee -a "$LOG_FILE"; then
+        record_result "UDS-only verification (13 protocol checks)" "PASS"
     else
-        record_result "No TCP listeners (Gunicorn)" "PASS"
+        record_result "UDS-only verification (13 protocol checks)" "FAIL" "IP networking detected!"
     fi
-
-    # Check for TCP connections
-    echo "Checking for TCP connections from Gunicorn..."
-    if ss -tnp 2>/dev/null | grep gunicorn; then
-        record_result "No TCP connections (Gunicorn)" "FAIL" "Found TCP connections!"
-        ss -tnp | grep gunicorn | tee -a "$LOG_FILE"
-    else
-        record_result "No TCP connections (Gunicorn)" "PASS"
-    fi
-
-    # Verify Unix socket is listening
-    echo "Verifying Unix socket exists..."
-    if [ -S /tmp/verify-test.sock ]; then
-        record_result "Unix socket created" "PASS"
-    else
-        record_result "Unix socket created" "FAIL" "Socket file not found"
-    fi
-
-    # Test connection via Unix socket
-    echo "Testing connection via Unix socket..."
-    if curl -s --unix-socket /tmp/verify-test.sock http://localhost/ | grep -q "Hello from Unix Socket Server"; then
-        record_result "Unix socket connection works" "PASS"
-    else
-        record_result "Unix socket connection works" "FAIL"
-    fi
-
-    # Cleanup
-    if [ -f /tmp/gunicorn-verify.pid ]; then
-        kill "$(cat /tmp/gunicorn-verify.pid)" 2>/dev/null || true
-        rm -f /tmp/gunicorn-verify.pid
-    fi
-    rm -f /tmp/verify-test.sock
 }
 
 # Test 6: Compilation Check
@@ -307,7 +276,7 @@ main() {
     test_python_integration
     test_bash_integration
     test_rust_integration
-    test_no_tcp  # CRITICAL!
+    test_no_ip  # CRITICAL!
 
     # Print summary
     print_summary

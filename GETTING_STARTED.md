@@ -15,7 +15,7 @@ This guide will help you set up, test, and run Servo with Unix Domain Socket sup
 ./launch_demo.sh
 
 # 4. Verify no TCP connections
-./verify_no_tcp.sh
+./verify_uds_only.sh
 ```
 
 ## Detailed Guide
@@ -123,41 +123,60 @@ Success rate: 100%
 
 **Logs:** Check `/tmp/servo-uds-tests-TIMESTAMP.log` for details
 
-### Step 4: Verify No TCP Connections
+### Step 4: Verify No IP-Based Networking
 
-**This is the most important test** - it verifies that the system operates in UDS-only mode with NO TCP connections, not even loopback.
+**This is the most important test** - it verifies that the system operates in UDS-only mode with **NO IP-based networking of ANY kind** - not just TCP, but UDP, SCTP, and any other IP protocols.
 
 ```bash
-./verify_no_tcp.sh
+./verify_uds_only.sh
 ```
 
 **What it checks:**
-- ✅ No TCP listeners on standard ports (80, 443, 8000, 8080, etc.)
-- ✅ No TCP listeners from Gunicorn process
-- ✅ No TCP connections from Gunicorn process
-- ✅ No loopback (127.0.0.1) TCP connections
+- ✅ No TCP IPv4/IPv6 listeners
+- ✅ No TCP IPv4/IPv6 connections
+- ✅ No UDP IPv4/IPv6 sockets
+- ✅ No SCTP sockets
+- ✅ No raw IP sockets
+- ✅ No loopback (127.0.0.1/::1) connections
+- ✅ No IP activity during HTTP requests
+- ✅ No IP socket file descriptors
+- ✅ No IP connections in /proc/net
 - ✅ Unix socket exists and is active
-- ✅ No TCP activity during HTTP requests
-- ✅ No TCP file descriptors in Gunicorn process
+
+**13 comprehensive protocol checks** ensure complete UDS-only operation!
 
 **Expected output:**
 ```
 ========================================
-VERIFICATION SUMMARY
+UDS-ONLY VERIFICATION SUMMARY
 ========================================
-Total tests: 7
-Passed: 7
+Protocol Coverage:
+  - TCP (IPv4/IPv6): Checked ✓
+  - UDP (IPv4/IPv6): Checked ✓
+  - SCTP: Checked ✓
+  - Raw IP: Checked ✓
+  - All IP protocols: Checked ✓
+
+Total tests: 13
+Passed: 13
 Failed: 0
 
 ========================================
-✓ TCP VERIFICATION PASSED!
+✓ UDS-ONLY VERIFICATION PASSED!
 ========================================
 
-No TCP connections detected.
-System is operating in UDS-only mode.
+No IP-based networking detected.
+System is operating in UDS-ONLY mode.
+
+✓ No TCP (IPv4/IPv6)
+✓ No UDP (IPv4/IPv6)
+✓ No SCTP
+✓ No raw IP sockets
+✓ No IP activity during requests
+✓ Only Unix domain sockets in use
 ```
 
-**Report file:** `/tmp/servo-tcp-verification-TIMESTAMP.txt`
+**Report file:** `/tmp/servo-uds-only-verification-TIMESTAMP.txt`
 
 ### Step 5: Launch Demo
 
@@ -285,7 +304,7 @@ pkill -f "gunicorn.*--bind 0.0.0.0"
 pkill -f "gunicorn.*--bind 127.0.0.1"
 
 # Start fresh
-./verify_no_tcp.sh
+./verify_uds_only.sh
 ```
 
 **Issue:** Python tests fail with "Module not found"
@@ -340,7 +359,7 @@ servoipc/
 ├── setup_dev_environment.sh    # Environment setup
 ├── run_all_tests.sh            # Comprehensive test runner
 ├── launch_demo.sh              # Automated demo launcher
-├── verify_no_tcp.sh            # TCP verification (CRITICAL!)
+├── verify_uds_only.sh          # UDS-only verification (CRITICAL!)
 ├── GETTING_STARTED.md          # This file
 ├── components/net/
 │   ├── transport_url.rs        # URL parser
