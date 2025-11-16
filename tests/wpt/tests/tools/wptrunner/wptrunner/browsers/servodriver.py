@@ -1,7 +1,9 @@
 # mypy: allow-untyped-defs
 
 import os
+import requests
 import tempfile
+import time
 
 from tools.serve.serve import make_hosts_file
 
@@ -79,6 +81,7 @@ def write_hosts_file(config):
 
 class ServoWebDriverBrowser(WebDriverBrowser):
     init_timeout = 300  # Large timeout for cases where we're booting an Android emulator
+    shutdown_retry_attempts = 3
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
                  server_config=None, binary_args=None,
@@ -126,8 +129,50 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         return [self.webdriver_binary, f"--webdriver={self.port}"] + self.webdriver_args
 
     def cleanup(self):
-        super().cleanup()
         os.remove(self.hosts_path)
+
+    def is_alive(self):
+        # This is broken. It is always True.
+        if not super().is_alive():
+            return False
+        try:
+            requests.get(f"http://{self.host}:{self.port}/status", timeout=3)    
+        except requests.exceptions.Timeout:
+            # FIXME: This indicates a hanged browser. Reasons need to be investigated further.
+            # It happens with ~0.1% probability in our CI runs.
+            self.logger.debug("Servo webdriver status request timed out.")
+            return True
+        except Exception as exception:
+            self.logger.debug(f"Servo has shut down normally. {exception}")
+            return False
+
+        return True
+
+    def stop(self, force=False):
+        retry_cnt = 0
+        while self.is_alive():
+            self.logger.info("Trying to shut down gracefully by extension command")
+            try:
+                requests.delete(
+                    f"http://{self.host}:{self.port}/session/dummy-session-id/servo/shutdown",
+                    timeout=3
+                )
+            except requests.exceptions.ConnectionError:
+                self.logger.debug("Browser already shut down (connection refused)")
+                break
+            except requests.exceptions.RequestException as exeception:
+                self.logger.debug(f"Request exception: {exeception}")
+                break
+            except requests.exceptions.Timeout:
+                self.logger.debug("Request timed out")
+                break
+                
+            retry_cnt += 1
+            if retry_cnt >= self.shutdown_retry_attempts:
+                self.logger.warn("Max retry exceeded to normally shut down. Killing instead.")
+                break
+            time.sleep(1)
+        super().stop(force)
 
     def find_wpt_prefs(self, logger):
         default_path = os.path.join("resources", "wpt-prefs.json")
