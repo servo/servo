@@ -668,14 +668,19 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     // Configure Unix domain sockets from CLI flags
     if cmd_args.use_unix_sockets {
-        env::set_var("SERVO_USE_UNIX_SOCKETS", "true");
+        // SAFETY: Setting environment variables during early program initialization,
+        // before any threads are spawned. This is safe as no other code can observe
+        // an inconsistent state.
+        unsafe {
+            env::set_var("SERVO_USE_UNIX_SOCKETS", "true");
 
-        if let Some(ref socket_dir) = cmd_args.socket_dir {
-            env::set_var("SERVO_SOCKET_DIR", socket_dir.to_string_lossy().as_ref());
-        }
+            if let Some(ref socket_dir) = cmd_args.socket_dir {
+                env::set_var("SERVO_SOCKET_DIR", socket_dir.to_string_lossy().as_ref());
+            }
 
-        if let Some(ref mappings) = cmd_args.socket_mappings {
-            env::set_var("SERVO_SOCKET_MAPPINGS", mappings);
+            if let Some(ref mappings) = cmd_args.socket_mappings {
+                env::set_var("SERVO_SOCKET_MAPPINGS", mappings);
+            }
         }
     }
 
