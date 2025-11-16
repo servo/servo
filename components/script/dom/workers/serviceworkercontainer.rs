@@ -10,6 +10,7 @@ use constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
 };
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
@@ -63,16 +64,16 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
     /// and <https://w3c.github.io/ServiceWorker/#start-register> - B
     fn Register(
         &self,
+        realm: &mut CurrentRealm,
         script_url: USVString,
         options: &RegistrationOptions,
-        comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // A: Step 2.
         let global = self.client.global();
 
         // A: Step 1
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_current_realm(InRealm::already(&realm.into()), can_gc);
         let USVString(ref script_url) = script_url;
 
         // A: Step 3

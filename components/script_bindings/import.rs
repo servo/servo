@@ -6,16 +6,19 @@ pub(crate) mod base {
     pub(crate) use std::ptr;
     pub(crate) use std::rc::Rc;
 
+    #[allow(unused_imports)]
+    pub(crate) use js::context::{JSContext, RawJSContext};
     pub(crate) use js::conversions::{
         ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
     };
     pub(crate) use js::error::throw_type_error;
     pub(crate) use js::jsapi::{
-        HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable, JS_NewObject, JSContext,
-        JSObject,
+        HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable, JS_NewObject, JSObject,
     };
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
+    #[allow(unused_imports)]
+    pub(crate) use js::realm::CurrentRealm;
     pub(crate) use js::rust::wrappers::Call;
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
     pub(crate) use js::typedarray::{
