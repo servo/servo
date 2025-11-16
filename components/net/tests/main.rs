@@ -17,6 +17,7 @@ mod http_loader;
 mod image_cache;
 mod resource_thread;
 mod subresource_integrity;
+mod unix_socket_tests;
 use core::convert::Infallible;
 use std::collections::HashMap;
 use std::fs::File;
@@ -150,11 +151,14 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(net::http_cache::HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(create_tls_config(
-            net::connector::CACertificates::Default,
-            false, /* ignore_certificate_errors */
-            override_manager.clone(),
-        )),
+        client: create_http_client(
+            create_tls_config(
+                net::connector::CACertificates::Default,
+                false, /* ignore_certificate_errors */
+                override_manager.clone(),
+            ),
+            net::connector::ConnectorMode::Tcp,
+        ),
         override_manager,
         embedder_proxy: Mutex::new(fc.unwrap_or_else(|| create_embedder_proxy())),
     }

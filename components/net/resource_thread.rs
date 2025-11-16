@@ -201,7 +201,7 @@ fn create_http_states(
     let unix_config = UnixSocketConfig::from_env();
     let connector_mode = if unix_config.enabled {
         debug!("Unix domain socket mode enabled");
-        let mut mapping = SocketMapping::new(unix_config.socket_dir.clone());
+        let mapping = SocketMapping::new(unix_config.socket_dir.clone());
         for host_mapping in unix_config.mappings {
             mapping.add_mapping(host_mapping.host, host_mapping.socket_path);
         }
