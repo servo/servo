@@ -72,7 +72,6 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
 use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
-use crate::transport_url::{Transport, TransportUrl};
 use crate::unix_connector::SocketMapping;
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
