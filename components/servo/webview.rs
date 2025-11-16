@@ -646,7 +646,7 @@ impl WebView {
             .request_screenshot(self.id(), rect, Box::new(callback));
     }
 
-    pub fn set_history(self, new_back_forward_list: Vec<ServoUrl>, new_index: usize) {
+    pub(crate) fn set_history(self, new_back_forward_list: Vec<ServoUrl>, new_index: usize) {
         {
             let mut inner_mut = self.inner_mut();
             inner_mut.back_forward_list_index = new_index;
