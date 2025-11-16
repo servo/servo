@@ -34,7 +34,10 @@ pub(crate) mod document_loader;
 mod dom;
 pub(crate) use dom::canvas_context;
 pub(crate) mod fetch;
-pub(crate) mod indexed_db;
+#[cfg(not(feature = "indexeddb_next"))]
+pub(crate) mod indexeddb;
+#[cfg(feature = "indexeddb_next")]
+pub(crate) mod indexeddb_next;
 mod init;
 mod layout_image;
 

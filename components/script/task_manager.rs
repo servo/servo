@@ -136,6 +136,7 @@ impl TaskManager {
     task_source_functions!(self, canvas_blob_task_source, Canvas);
     task_source_functions!(self, clipboard_task_source, Clipboard);
     task_source_functions!(self, crypto_task_source, Crypto);
+    #[cfg(not(feature = "indexeddb_next"))]
     task_source_functions!(self, database_access_task_source, DatabaseAccess);
     task_source_functions!(self, deferred_fetch_task_source, DeferredFetch);
     task_source_functions!(self, dom_manipulation_task_source, DOMManipulation);

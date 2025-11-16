@@ -12,6 +12,9 @@ autotests = false # Inhibit lookup for tests/*.rs without [[test]] sections
 name = "storage"
 path = "lib.rs"
 
+[features]
+indexeddb_next = []
+
 [dependencies]
 base = { workspace = true }
 bincode = { workspace = true }
