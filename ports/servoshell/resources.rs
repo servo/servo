@@ -9,7 +9,7 @@ use std::{env, fs};
 use cfg_if::cfg_if;
 use servo::resources::{self, Resource};
 
-static CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
+static CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new();
 
 struct ResourceReader;
 
@@ -18,6 +18,9 @@ pub fn init() {
 }
 
 pub(crate) fn resources_dir_path() -> PathBuf {
+    if let Some(custom_dir) = option_env!("SERVOSHELL_RESOURCES_DIR") {
+        return PathBuf::from(custom_dir);
+    }
     // This needs to be called before the process is sandboxed
     // as we only give permission to read inside the resources directory,
     // not the permissions the "search" for the resources directory.
