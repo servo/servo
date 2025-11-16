@@ -72,6 +72,8 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
 use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
+use crate::transport_url::{Transport, TransportUrl};
+use crate::unix_connector::SocketMapping;
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -108,6 +110,10 @@ pub struct HttpState {
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, crate::connector::BoxedBody>,
+    /// Unix domain socket client for local IPC connections
+    pub unix_client: Option<Client<hyperlocal::UnixConnector, crate::connector::BoxedBody>>,
+    /// Socket path mappings for Unix domain sockets
+    pub socket_mapping: Option<SocketMapping>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
 }

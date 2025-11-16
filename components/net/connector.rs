@@ -316,3 +316,10 @@ pub fn create_http_client(
         },
     }
 }
+
+/// Create an HTTP client for Unix domain sockets
+pub fn create_unix_http_client() -> Client<hyperlocal::UnixConnector, BoxedBody> {
+    Client::builder(TokioExecutor {})
+        .http1_title_case_headers(true)
+        .build(hyperlocal::UnixConnector)
+}
