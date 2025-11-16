@@ -37,9 +37,11 @@ def test_pointer_inside(session, mouse_chain, get_actions_origin_page):
     session.url = get_actions_origin_page(
         "width: 100px; height: 50px; background: green;"
     )
-    mouse_chain.pointer_move(start_point["x"], start_point["y"]).pointer_move(
-        offset["x"], offset["y"], origin="pointer"
-    ).perform()
+    (mouse_chain
+        .pointer_move(start_point["x"], start_point["y"])
+        .pointer_move(offset["x"], offset["y"], origin="pointer")
+        .perform()
+    )
 
     click_coords = session.execute_script("return window.coords;")
     assert click_coords["x"] == pytest.approx(start_point["x"] + offset["x"], abs=1.0)

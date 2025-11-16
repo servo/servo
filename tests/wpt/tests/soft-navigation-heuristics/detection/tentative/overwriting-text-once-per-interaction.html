@@ -31,12 +31,10 @@
         entries[0].identifier, elementId,
         `Unexpected ElementTiming entry: expected "${elementId}"`);
 
-    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
-        "soft-navigation",
-        /* minNumEntries= */ 1);
-    let icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
-        "interaction-contentful-paint",
-        /* minNumEntries= */ 1);
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+    let icpPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint");
     const {promise, resolve} = Promise.withResolvers();
 
     navigateButton.addEventListener('click', async () => {
@@ -77,9 +75,7 @@
 
 
     // Set things up for the next ICP entry.
-    icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
-        "interaction-contentful-paint",
-        /* minNumEntries= */ 1);
+    icpPromise = SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint");
     resolve();
 
     icps = await helper.withTimeoutMessage(

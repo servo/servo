@@ -1,0 +1,26 @@
+<!doctype html>
+<html style="overflow-y: scroll">
+<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+<meta name="assert" content="viewport units specified on the root element have accounted for unconditional scrollbars">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+:root {
+  padding-left: 10vw;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background-color: lightyellow;
+}
+</style>
+
+<div id="measure">Measure to left</div>
+
+<script>
+  test(() => {
+    assert_less_than(measure.getBoundingClientRect().left, 80);
+  }, "vw has had the overflow-y scrollbar width removed");
+</script>

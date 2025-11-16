@@ -33,19 +33,32 @@ def test_no_browsing_context(session, closed_frame, mouse_chain):
         mouse_chain.click().perform()
 
 
-def test_pointer_down_closes_browsing_context(
-    session, configuration, http_new_tab, inline, mouse_chain
+@pytest.mark.parametrize("mouse_up", [False, True], ids=["without up", "with up"])
+def test_down_closes_browsing_context(
+    session, configuration, inline, mouse_chain, mouse_up
 ):
-    session.url = inline(
-        """<input onpointerdown="window.close()">close</input>""")
+    # Opening a new tab/window via `window.open` is required
+    # for the script to be able to close it.
+    new_window = session.execute_script(f"return window.open()")
+    session.window_handle = new_window.id
+    session.url = inline("""<input onmousedown="window.close()">close</input>""")
+
     origin = session.find.css("input", all=False)
 
-    with pytest.raises(NoSuchWindowException):
+    if mouse_up:
+        with pytest.raises(NoSuchWindowException):
+            mouse_chain.pointer_move(0, 0, origin=origin) \
+                .pointer_down(button=0) \
+                .pause(100 * configuration["timeout_multiplier"]) \
+                .pointer_up(button=0) \
+                .perform()
+    else:
         mouse_chain.pointer_move(0, 0, origin=origin) \
             .pointer_down(button=0) \
-            .pause(100 * configuration["timeout_multiplier"]) \
-            .pointer_up(button=0) \
             .perform()
+
+    with pytest.raises(NoSuchWindowException):
+        session.url
 
 
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
@@ -74,13 +87,17 @@ def test_click_at_coordinates(session, test_actions_page, mouse_chain):
         .pointer_move(div_point["x"], div_point["y"], duration=1000) \
         .click() \
         .perform()
+
     events = get_events(session)
     assert len(events) == 4
+
     assert_move_to_coordinates(div_point, "outer", events)
+
     for e in events:
         if e["type"] != "mousedown":
             assert e["buttons"] == 0
         assert e["button"] == 0
+
     expected = [
         {"type": "mousedown", "buttons": 1},
         {"type": "mouseup", "buttons": 0},
@@ -153,8 +170,10 @@ def test_click_element_center(session, test_actions_page, mouse_chain):
     outer = session.find.css("#outer", all=False)
     center = get_inview_center(outer.rect, get_viewport_rect(session))
     mouse_chain.click(element=outer).perform()
+
     events = get_events(session)
     assert len(events) == 4
+
     event_types = [e["type"] for e in events]
     assert ["mousemove", "mousedown", "mouseup", "click"] == event_types
     for e in events:
@@ -221,29 +240,27 @@ def test_click_navigation(session, url, inline):
     wait.until(assert_page_loaded)
 
 
-@pytest.mark.parametrize("x, y, event_count", [
-    (0, 0, 0),
-    (1, 0, 1),
-    (0, 1, 1),
+@pytest.mark.parametrize("x, y", [
+    (0, 0),
+    (1, 0),
+    (0, 1),
 ], ids=["default value", "x", "y"])
-def test_move_to_position_in_viewport(
-    session, test_actions_page, mouse_chain, x, y, event_count
-):
+def test_move_to_position_in_viewport(session, test_actions_page, mouse_chain, x, y):
     mouse_chain.pointer_move(x, y).perform()
     events = get_events(session)
-    assert len(events) == event_count
+    assert len(events) == 1
 
     # Move again to check that no further mouse move event is emitted.
     mouse_chain.pointer_move(x, y).perform()
     events = get_events(session)
-    assert len(events) == event_count
+    assert len(events) == 1
 
 
 def test_move_to_fractional_position(session, inline, mouse_chain):
     session.url = inline("""
         <script>
           var allEvents = { events: [] };
-          window.addEventListener("pointermove", ev => {
+          window.addEventListener("mousemove", ev => {
             allEvents.events.push({
                 "type": event.type,
                 "pageX": event.pageX,
@@ -267,7 +284,6 @@ def test_move_to_fractional_position(session, inline, mouse_chain):
 
     # For now we are allowing any of floor, ceil, or precise values, because
     # it's unclear what the actual spec requirements really are
-    assert events[0]["type"] == "pointermove"
     assert events[0]["pageX"] == pytest.approx(target_point["x"], abs=1.0)
     assert events[0]["pageY"] == pytest.approx(target_point["y"], abs=1.0)
 

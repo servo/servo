@@ -110,7 +110,7 @@
       // Scroll outside the range; should reverse the animation.
       await waitForScrollReset(test, scroller, 0, contain_0_offset - 100);
       // Make sure the playbackRate is reflected before waiting on the promise.
-      await waitForNextFrame();
+      await waitForAnimationFrames(3)
       await animation_promise;
 
       assert_equals(getComputedStyle(target).transform, initial_transform,

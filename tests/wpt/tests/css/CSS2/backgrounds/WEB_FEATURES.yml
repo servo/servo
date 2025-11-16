@@ -1,0 +1,47 @@
+features:
+- name: background
+  files:
+  - background-0*
+  - background-1*
+  - background-2*
+  - background-3*
+  - background-alpha-*
+  - background-animated-001.xht
+  - background-applies-to-*
+  - background-body-*
+  - background-cover-*
+  - background-html-body-001.xht
+  - background-iframes-001.xht
+  - background-intrinsic-*
+  - background-reset-001.xht
+  - background-root-*
+  - "!background-root-003.xht"
+  - background-transparency-001.xht
+- name: background-attachment
+  files:
+  - background-attachment-*
+- name: background-color
+  files:
+  - background-color-*
+  - background-root-003.xht
+- name: background-image
+  files:
+  - background-006.xht
+  - background-006a.xht
+  # The following pattern matches a `background-image-cover-003.xht` which does
+  # not use the `background-image` property but which nonetheless test relevant
+  # semantics via the `background` shorthand:
+  - background-image-*
+- name: background-position
+  files:
+  # The following pattern matches a `background-position-203.xht` which does
+  # not use the `background-position` property but which nonetheless test
+  # relevant semantics via the `background` shorthand:
+  - background-position-*
+  # The following pattern matches tests which do not use the
+  # `background-position` property but which nonetheless test relevant
+  # semantics via the `background` shorthand:
+  - background-bg-pos-*
+- name: background-repeat
+  files:
+  - background-repeat-*

@@ -1,4 +1,0 @@
-features:
-- name: text-indent-each-line
-  files:
-  - text-indent.html

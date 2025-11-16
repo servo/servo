@@ -1,0 +1,61 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  // Record initial state
+  assert_equals(navigation.entries().length, start_length, "initial outer entries() length");
+  assert_equals(i.contentWindow.navigation.entries().length, 1, "initial iframe entries() length");
+
+  let initialMainURL = location.href;
+  let initialIframeURL = i.contentWindow.location.href;
+
+  // Navigate main frame
+  await navigation.navigate("#main1").committed;
+  assert_equals(navigation.entries().length, start_length + 1, "after #main1 outer entries() length");
+  assert_equals(i.contentWindow.navigation.entries().length, 1, "after #main1 iframe entries() length");
+
+  await navigation.navigate("#main2").committed;
+  assert_equals(navigation.entries().length, start_length + 2, "after #main2 outer entries() length");
+  assert_equals(i.contentWindow.navigation.entries().length, 1, "after #main2 iframe entries() length");
+
+  // Navigate iframe
+  await i.contentWindow.navigation.navigate("#iframe1").committed;
+  assert_equals(navigation.entries().length, start_length + 2, "after #iframe1 outer entries() length");
+  assert_equals(i.contentWindow.navigation.entries().length, 2, "after #iframe1 iframe entries() length");
+
+  await i.contentWindow.navigation.navigate("#iframe2").committed;
+  assert_equals(navigation.entries().length, start_length + 2, "after #iframe2 outer entries() length");
+  assert_equals(i.contentWindow.navigation.entries().length, 3, "after #iframe2 iframe entries() length");
+
+  // Verify main frame entries contain only main frame URLs
+  let mainEntries = navigation.entries().slice(start_index);
+  assert_equals(mainEntries.length, 3, "main frame should have 3 entries");
+
+  assert_true(mainEntries[0].url.includes(initialMainURL.split('#')[0]), "main entry 0 should be main frame URL");
+  assert_true(mainEntries[1].url.endsWith("#main1"), "main entry 1 should end with #main1");
+  assert_true(mainEntries[2].url.endsWith("#main2"), "main entry 2 should end with #main2");
+
+  for (let entry of mainEntries)
+    assert_false(entry.url.includes("#iframe"), "main frame entry should not contain iframe hash: " + entry.url);
+
+  // Verify iframe entries contain only iframe URLs
+  let iframeEntries = i.contentWindow.navigation.entries();
+  assert_equals(iframeEntries.length, 3, "iframe should have 3 entries");
+
+  assert_true(iframeEntries[0].url.includes(initialIframeURL.split('#')[0]), "iframe entry 0 should be iframe URL");
+  assert_true(iframeEntries[1].url.endsWith("#iframe1"), "iframe entry 1 should end with #iframe1");
+  assert_true(iframeEntries[2].url.endsWith("#iframe2"), "iframe entry 1 should end with #iframe2");
+
+  for (let entry of iframeEntries)
+    assert_false(entry.url.includes("#main"), "iframe entry should not contain main frame hash: " + entry.url);
+
+}, "navigation.entries() for main frame excludes iframe history entries");
+</script>

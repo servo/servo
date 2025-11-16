@@ -29,11 +29,8 @@
       history.pushState({}, '', URL);
     }, {once: true});
 
-    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
-      /*type=*/ "soft-navigation",
-      /*include_soft_navigation_observations=*/ false,
-      /*min_num_entries=*/ 1,
-    );
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
 
     if (test_driver) {
       test_driver.click(navigateButton);

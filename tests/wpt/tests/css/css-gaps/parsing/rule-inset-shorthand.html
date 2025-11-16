@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: rule-inset shorthands</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#propdef-rule-inset">
+<meta name="assert"
+    content="rule-inset supports the full grammar '<length-percentage> <length-percentage>? /[<length-percentage> <length-percentage>?]?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+    <script>
+        const rule_properties = {
+            'column-rule-inset': ['column-rule-edge-start-inset', 'column-rule-edge-end-inset',
+                'column-rule-interior-start-inset', 'column-rule-interior-end-inset'],
+            'row-rule-inset': ['row-rule-edge-start-inset', 'row-rule-edge-end-inset',
+                'row-rule-interior-start-inset', 'row-rule-interior-end-inset']
+        };
+        const testCases = [
+            {
+                input: '0px',
+                expected: {
+                    ruleEdgeStartInset: '0px',
+                    ruleEdgeEndInset: '0px',
+                    ruleInteriorStartInset: '0px',
+                    ruleInteriorEndInset: '0px',
+                }
+            },
+            {
+                input: '10px',
+                expected: {
+                    ruleEdgeStartInset: '10px',
+                    ruleEdgeEndInset: '10px',
+                    ruleInteriorStartInset: '10px',
+                    ruleInteriorEndInset: '10px'
+                }
+            },
+            {
+                input: '50%',
+                expected: {
+                    ruleEdgeStartInset: '50%',
+                    ruleEdgeEndInset: '50%',
+                    ruleInteriorStartInset: '50%',
+                    ruleInteriorEndInset: '50%',
+                }
+            },
+            {
+                input: '10px 20px',
+                expected: {
+                    ruleEdgeStartInset: '10px',
+                    ruleEdgeEndInset: '20px',
+                    ruleInteriorStartInset: '10px',
+                    ruleInteriorEndInset: '20px',
+                }
+            },
+            {
+                input: '10px 20px / 30px',
+                expected: {
+                    ruleEdgeStartInset: '10px',
+                    ruleEdgeEndInset: '20px',
+                    ruleInteriorStartInset: '30px',
+                    ruleInteriorEndInset: '30px',
+                }
+            },
+            {
+                input: '10px / 20px 30px',
+                expected: {
+                    ruleEdgeStartInset: '10px',
+                    ruleEdgeEndInset: '10px',
+                    ruleInteriorStartInset: '20px',
+                    ruleInteriorEndInset: '30px',
+                }
+            },
+            {
+                input: '10px 20px / 30px 40px',
+                expected: {
+                    ruleEdgeStartInset: '10px',
+                    ruleEdgeEndInset: '20px',
+                    ruleInteriorStartInset: '30px',
+                    ruleInteriorEndInset: '40px',
+                }
+            },
+        ];
+
+
+        for (rule_property in rule_properties) {
+            const test_cases = testCases;
+
+            for (const { input, expected } of test_cases) {
+                const [ruleEdgeStartInset, ruleEdgeEndInset, ruleInteriorStartInset, ruleInteriorEndInset] = rule_properties[rule_property];
+                test_shorthand_value(rule_property, input, {
+                    [ruleEdgeStartInset]: expected.ruleEdgeStartInset,
+                    [ruleEdgeEndInset]: expected.ruleEdgeEndInset,
+                    [ruleInteriorStartInset]: expected.ruleInteriorStartInset,
+                    [ruleInteriorEndInset]: expected.ruleInteriorEndInset,
+                });
+            }
+        }
+    </script>
+</body>
+</html>

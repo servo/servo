@@ -113,6 +113,12 @@ async def test_restores_to_user_contexts_when_removed(bidi_session,
 
     assert not await get_navigator_online(affected_context)
 
+    await bidi_session.emulation.set_network_conditions(
+        network_conditions=None,
+        user_contexts=[affected_user_context])
+
+    assert await get_navigator_online(affected_context)
+
 
 async def test_overrides_global(bidi_session, get_navigator_online,
         affected_user_context):
@@ -169,3 +175,7 @@ async def test_restores_to_global_when_removed(bidi_session,
         contexts=[affected_context["context"]])
 
     assert not await get_navigator_online(affected_context)
+
+    await bidi_session.emulation.set_network_conditions(network_conditions=None)
+
+    assert await get_navigator_online(affected_context)

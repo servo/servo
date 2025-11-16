@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: rule-inset shorthands getComputedStyle()</title>
+  <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/computed-testcommon.js"></script>
+  <script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <style>
+    #target {
+      font-size: 40px;
+    }
+  </style>
+  <script>
+    const properties = ["column-rule-inset", "row-rule-inset", "rule-inset"];
+    for (const property of properties) {
+      test_computed_value(property, "10px", "10px 10px / 10px 10px");
+      test_computed_value(property, "-20px", "-20px -20px / -20px -20px");
+      test_computed_value(property, "0.5em", "20px 20px / 20px 20px");
+      test_computed_value(property, "calc(10px + 0.5em)", "30px 30px / 30px 30px");
+      test_computed_value(property, "calc(10px - 0.5em)", "-10px -10px / -10px -10px");
+      test_computed_value(property, "30%", "30% 30% / 30% 30%");
+      test_computed_value(property, "calc(25% + 10px)", "calc(25% + 10px) calc(25% + 10px) / calc(25% + 10px) calc(25% + 10px)");
+      test_computed_value(property, "10px 20px", "10px 20px / 10px 20px");
+      test_computed_value(property, "10px 20px / 30px -10px");
+      test_computed_value(property, "-10px -20px / 25% 24%");
+      test_computed_value(property, "5% 10% / 15%", "5% 10% / 15% 15%");
+      test_computed_value(property, "5% / 15% 20%", "5% 5% / 15% 20%");
+    }
+  </script>
+</body>
+</html>

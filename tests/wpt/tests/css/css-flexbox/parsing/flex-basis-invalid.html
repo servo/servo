@@ -17,6 +17,8 @@ test_invalid_value("flex-basis", "auto content");
 test_invalid_value("flex-basis", "-1px");
 test_invalid_value("flex-basis", "-2%");
 test_invalid_value("flex-basis", "3px 4%");
+test_invalid_value("flex-basis", "anchor-size(--a width)");
+test_invalid_value("flex-basis", "anchor-size(--a width, 10px)");
 </script>
 </body>
 </html>

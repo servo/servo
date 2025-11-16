@@ -143,7 +143,7 @@ function test_pseudo_element_random_computed_value_in_range(property, pseudo_ele
   }, `Property ${property} value on pseudo element '${pseudo_element}' '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
 
-function test_random_computed_value_has_fixed(property, specified, minPercentage, maxPercentage, titleExtra) {
+function test_random_computed_value_has_fixed(property, specified, minPercentage, maxPercentage, expectedFixedValue = undefined, titleExtra = undefined) {
   test(() => {
     for (i = 0; i < iterations; ++i) {
       const target = document.getElementById('target');
@@ -164,8 +164,12 @@ function test_random_computed_value_has_fixed(property, specified, minPercentage
       let [fixedString, fixedValue] = fixedComponent.split(' ');
 
       assert_equals(fixedString, 'fixed', specified);
-      assert_greater_than_equal(parseFloat(fixedValue), '0', specified);
-      assert_less_than_equal(parseFloat(fixedValue), '1', specified);
+      if (expectedFixedValue) {
+        assert_equals(parseFloat(fixedValue), expectedFixedValue);
+      } else {
+        assert_greater_than_equal(parseFloat(fixedValue), 0, specified);
+        assert_less_than(parseFloat(fixedValue), 1, specified);
+      }
       assert_equals(minComponent, minPercentage, specified);
       assert_equals(maxComponent, maxPercentage, specified);
     }
@@ -245,8 +249,8 @@ test_random_computed_value(property, 'random(10, infinity, infinity)', '0');
 test_random_computed_value(property, 'calc(10 + random(10, infinity))', '0');
 test_random_computed_value(property, 'calc(10 + random(10, infinity, 10))', '0');
 test_random_computed_value(property, 'calc(10 + random(10, infinity, infinity))', '0');
-test_random_computed_value(property, 'random(10, 100, infinity)', '0');
-test_random_computed_value(property, 'calc(10 + random(10, 100, infinity))', '0');
+test_random_computed_value(property, 'random(10, 100, infinity)', '10');
+test_random_computed_value(property, 'calc(10 + random(10, 100, infinity))', '20');
 // Negative steps, even infinitely negative steps, are ignored.
 test_random_computed_value_in_range(property, 'random(10, 100, -infinity)', '10', '100');
 test_random_computed_value_in_range(property, 'calc(10 + random(10, 100, -infinity))', '20', '110');
@@ -259,6 +263,10 @@ test_pseudo_element_random_computed_value_in_range(property, '::before', 'random
 
 // Test unresolvable percentage values
 test_random_computed_value_has_fixed('translate', 'random(10%, 100%)', '10%', '100%');
+
+// Test out of range math functions for fixed value
+test_random_computed_value_has_fixed('translate', 'random(fixed random(1, 2), 10%, 100%)', '10%', '100%');
+test_random_computed_value_has_fixed('translate', 'random(fixed random(-2, -1), 10%, 100%)', '10%', '100%', 0);
 
 // Test random value sharing
 test(() => {

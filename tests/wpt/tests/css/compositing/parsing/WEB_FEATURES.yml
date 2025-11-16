@@ -1,0 +1,4 @@
+features:
+- name: background-blend-mode
+  files:
+  - background-blend-mode-*

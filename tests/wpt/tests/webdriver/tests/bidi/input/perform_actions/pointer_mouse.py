@@ -20,20 +20,27 @@ pytestmark = pytest.mark.asyncio
 CONTEXT_LOAD_EVENT = "browsingContext.load"
 
 
-async def test_pointer_down_closes_browsing_context(
-    bidi_session, configuration, get_element, new_tab, inline, subscribe_events,
-    wait_for_event
+@pytest.mark.parametrize("mouse_up", [False, True], ids=["without up", "with up"])
+async def test_down_closes_browsing_context(
+    bidi_session,
+    configuration,
+    get_element,
+    top_context,
+    inline,
+    subscribe_events,
+    wait_for_event,
+    mouse_up
 ):
-    url = inline("""<input onpointerdown="window.close()">close</input>""")
+    url = inline("""<input onmousedown="window.close()">close</input>""")
 
-    # Opening a new context via `window.open` is required for script to be able
-    # to close it.
+    # Opening a new context via `window.open` is required
+    # for the script to be able to close it.
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
     on_load = wait_for_event(CONTEXT_LOAD_EVENT)
 
     await bidi_session.script.evaluate(
         expression=f"window.open('{url}')",
-        target=ContextTarget(new_tab["context"]),
+        target=ContextTarget(top_context["context"]),
         await_promise=True
     )
     # Wait for the new context to be created and get it.
@@ -42,19 +49,34 @@ async def test_pointer_down_closes_browsing_context(
     element = await get_element("input", context=new_context)
     origin = get_element_origin(element)
 
-    actions = Actions()
-    (
-        actions.add_pointer()
-        .pointer_move(0, 0, origin=origin)
-        .pointer_down(button=0)
-        .pause(250 * configuration["timeout_multiplier"])
-        .pointer_up(button=0)
-    )
+    if mouse_up:
+        actions = Actions()
+        (
+            actions.add_pointer()
+            .pointer_move(0, 0, origin=origin)
+            .pointer_down(button=0)
+            .pause(250 * configuration["timeout_multiplier"])
+            .pointer_up(button=0)
+        )
 
-    with pytest.raises(NoSuchFrameException):
+        with pytest.raises(NoSuchFrameException):
+            await bidi_session.input.perform_actions(
+                actions=actions, context=new_context["context"]
+            )
+    else:
+        actions = Actions()
+        (
+            actions.add_pointer()
+            .pointer_move(0, 0, origin=origin)
+            .pointer_down(button=0)
+        )
+
         await bidi_session.input.perform_actions(
             actions=actions, context=new_context["context"]
         )
+
+    with pytest.raises(NoSuchFrameException):
+        await bidi_session.browsing_context.get_tree(root=new_context["context"], max_depth=0)
 
 
 async def test_click_at_coordinates(bidi_session, top_context, load_static_test_page):
@@ -361,13 +383,13 @@ async def test_click_navigation(
         assert event["url"] == destination
 
 
-@pytest.mark.parametrize("x, y, event_count", [
-    (0, 0, 0),
-    (1, 0, 1),
-    (0, 1, 1),
+@pytest.mark.parametrize("x, y", [
+    (0, 0),
+    (1, 0),
+    (0, 1),
 ], ids=["default value", "x", "y"])
 async def test_move_to_position_in_viewport(
-    bidi_session, load_static_test_page, top_context, x, y, event_count
+    bidi_session, load_static_test_page, top_context, x, y
 ):
     await load_static_test_page(page="test_actions.html")
 
@@ -379,7 +401,7 @@ async def test_move_to_position_in_viewport(
     )
 
     events = await get_events(bidi_session, top_context["context"])
-    assert len(events) == event_count
+    assert len(events) == 1
 
     # Move again to check that no further mouse move event is emitted.
     actions = Actions()
@@ -390,7 +412,7 @@ async def test_move_to_position_in_viewport(
     )
 
     events = await get_events(bidi_session, top_context["context"])
-    assert len(events) == event_count
+    assert len(events) == 1
 
 
 @pytest.mark.parametrize("origin", ["viewport", "pointer", "element"])

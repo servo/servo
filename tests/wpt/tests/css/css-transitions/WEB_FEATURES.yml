@@ -5,3 +5,13 @@ features:
 - name: transition-behavior
   files:
   - transition-behavior.html
+- name: steps-easing
+  files:
+  - transition-timing-function-010-manual.html
+- name: cubic-bezier-easing
+  files:
+  - transition-timing-function-002-manual.html
+  - transition-timing-function-003-manual.html
+  - transition-timing-function-004-manual.html
+  - transition-timing-function-005-manual.html
+  - transition-timing-function-006-manual.html

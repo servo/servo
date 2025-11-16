@@ -21,6 +21,8 @@ html,body {
   grid-template-rows: 0px 100px;
   width: 100px;
   margin-right: 20px;
+  margin-bottom: 20px;
+  vertical-align: top;
 }
 
 .subgrid {
@@ -45,10 +47,22 @@ html,body {
   </style>
 </head>
 <body>
-<!-- The subgrid's style attribute establishes an independent formatting context
-      and makes them no longer eligible as subgrids.-->
+<!-- The subgrid's style attribute establishes an independent formatting
+     context and makes them no longer eligible as subgrids.-->
 <div class="grid">
-  <div class="subgrid" style="position:absolute">
+  <div class="subgrid" style="position: absolute">
+    <div class="first"></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="subgrid" style="container-type: size">
+    <div class="first"></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="subgrid" style="container-type: inline-size">
     <div class="first"></div>
   </div>
 </div>
@@ -78,8 +92,8 @@ html,body {
 </div>
 
 <!-- Only layout and paint containment establish an independent formatting
-      context. These tests validate that other types of containment maintain
-      subgrid layout.-->
+     context. These tests validate that other types of containment maintain
+     subgrid layout.-->
 <div class="grid">
   <div class="subgrid" style="contain: none">
     <div class="second"></div>

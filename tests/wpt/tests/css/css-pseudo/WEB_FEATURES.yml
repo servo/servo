@@ -24,3 +24,7 @@ features:
 - name: first-line
   files:
   - first-line-*
+- name: backdrop
+  files:
+  - backdrop-animate-002.html
+  - backdrop-animate.html

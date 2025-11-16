@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>ScrollTimeline snapshotting</title>
-<link rel="help" href="https://wicg.github.io/scroll-animations/#avoiding-cycles">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#event-loop">
+<link rel="help" href="https://github.com/whatwg/html/pull/11613">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -9,6 +10,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/web-animations/testcommon.js"></script>
 <script src="./testcommon.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
 
 <style>
   body {
@@ -30,13 +32,17 @@ promise_test(async t => {
 
   scroller.scrollBy({top: 100, behavior: 'smooth'});
   // Wait for the scroll to change.
-  const startScroll = scroller.scrollTop;
-  do {
-    await waitForNextFrame();
-  } while(scroller.scrollTop == startScroll);
+  await waitForScrollEvent(document);
+  // The next frame the scroll changes, the scroll-timelines should not be
+  // updated before the scroll events are dispatched. Store the scroll position
+  // from the previous frame to compare the timeline to.
+  let scroll_percentage = (scroller.scrollTop / maxScroll) * 100;
+
+  await waitForScrollEvent(document);
+
   assert_percents_equal(
       timeline.currentTime,
-      (scroller.scrollTop / maxScroll) * 100,
+      scroll_percentage,
       'Scroll timeline current time corresponds to the scroll position.');
 }, 'ScrollTimeline current time is updated after programmatic animated ' +
    'scroll.');

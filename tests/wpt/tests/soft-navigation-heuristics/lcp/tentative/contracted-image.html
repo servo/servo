@@ -39,22 +39,14 @@
   promise_test(async (t) => {
     assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     const helper = new SoftNavigationTestHelper(t);
-    const lcpEntries = await helper.getBufferedPerformanceEntriesWithTimeout(
-      /*type=*/ "largest-contentful-paint",
-      /*minNumEntries=*/ 1,
-    );
+    const lcpEntries =
+        await helper.getBufferedPerformanceEntriesWithTimeout("largest-contentful-paint");
     assert_equals(lcpEntries.length, 1);
     assert_equals(lcpEntries[0].id, "click-target", "The first entry should be the button");
 
     const promises = Promise.all([
-      SoftNavigationTestHelper.getPerformanceEntries(
-        /*type=*/ "soft-navigation",
-        /*minNumEntries=*/ 1,
-      ),
-      SoftNavigationTestHelper.getPerformanceEntries(
-        /*type=*/ "interaction-contentful-paint",
-        /*minNumEntries=*/ 1,
-      ),
+      SoftNavigationTestHelper.getPerformanceEntries("soft-navigation"),
+      SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint"),
     ]);
     const beforeLoad = performance.now();
     if (test_driver) {

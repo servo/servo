@@ -8,3 +8,6 @@ features:
 - name: background-clip-text
   files:
   - clip-text-*
+- name: background-clip-border-area
+  files:
+  - clip-border-area*

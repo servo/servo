@@ -1,7 +1,31 @@
 features:
+- name: background
+  files:
+  - background-shorthand-serialization.html
 - name: background-clip
   files:
   - background-clip-*
 - name: border-image
   files:
   - border-image-*
+- name: background-attachment
+  files:
+  - background-attachment-*
+- name: background-color
+  files:
+  - background-color-*
+- name: background-image
+  files:
+  - background-image-*
+- name: background-origin
+  files:
+  - background-origin-*
+- name: background-position
+  files:
+  - background-position-*
+- name: background-repeat
+  files:
+  - background-repeat-*
+- name: background-size
+  files:
+  - background-size-*

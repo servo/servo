@@ -23,5 +23,21 @@ test(() => {
   assert_equals(result, 'url("' + resolved + '")');
 }, 'url values are made absolute');
 
+test(() => {
+  const target = document.getElementById('target');
+  target.style['marker'] = 'none';
+  target.style['marker-start'] = 'url("https://example.com/")';
+  const result = getComputedStyle(target)['marker'];
+  assert_equals(result, '');
+}, 'Setting a single marker value results in empty marker computed value');
+
+test(() => {
+  const target = document.getElementById('target');
+  target.style['marker'] = 'url("https://example.com/")';
+  target.style['marker-start'] = 'none';
+  const result = getComputedStyle(target)['marker'];
+  assert_equals(result, '');
+}, 'Setting a single marker value to "none" results in empty marker computed value');
+
   ]]></script>
 </svg>

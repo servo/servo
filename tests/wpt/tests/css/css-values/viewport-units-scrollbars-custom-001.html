@@ -1,0 +1,25 @@
+<!doctype html>
+<html style="overflow-x: auto; overflow-y: scroll;">
+<link rel="help"
+  href="https://drafts.csswg.org/css-values-4/#:~:text=reserved%20for%20them)%20unconditionally">
+<link rel="match"
+  href="viewport-units-scrollbars-custom-001-ref.html">
+<meta name="assert" content="Viewport units do not respect custom scrollbars">
+
+<style>
+  html::-webkit-scrollbar {
+    width: 300px;
+  }
+  html::-webkit-scrollbar-thumb {
+    background-color: black;
+  }
+  html::-webkit-scrollbar-track:vertical {
+    background-color: hotpink;
+  }
+</style>
+
+<body style="margin: 0; padding: 0;">
+  <div style="width: 100vw; height: 100px; background: orange;"></div>
+</body>
+
+</html>

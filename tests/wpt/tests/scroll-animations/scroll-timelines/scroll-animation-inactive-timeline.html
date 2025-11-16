@@ -36,6 +36,7 @@ promise_test(async t => {
     // Wait for new animation frame which allows the timeline to compute new
     // current time.
     await waitForNextFrame();
+    await waitForNextFrame();
     assert_equals(animation.timeline.currentTime, null,
                   'Sanity check the timeline is inactive.');
     // Play the animation when the timeline is inactive.
@@ -61,6 +62,7 @@ promise_test(async t => {
     scroller.style.overflow = 'visible';
     // Wait for new animation frame which allows the timeline to compute new
     // current time.
+    await waitForNextFrame();
     await waitForNextFrame();
     assert_equals(animation.timeline.currentTime, null,
                   'Sanity check the timeline is inactive.');
@@ -90,6 +92,7 @@ promise_test(async t => {
     scroller.scrollTop;
     // Wait for new animation frame which allows the timeline to compute new
     // current time.
+    await waitForNextFrame();
     await waitForNextFrame();
     assert_equals(animation.timeline.currentTime, null,
                   'Sanity check the timeline is inactive.');
@@ -137,6 +140,7 @@ promise_test(async t => {
     // Make the scroll timeline inactive.
     scroller.style.overflow = 'visible';
     scroller.scrollTop;
+    await waitForNextFrame();
     await waitForNextFrame();
     assert_equals(animation.timeline.currentTime, null,
                   'Sanity check the timeline is inactive.');

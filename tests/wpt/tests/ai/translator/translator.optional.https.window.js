@@ -49,6 +49,34 @@ promise_test(async () => {
 promise_test(async () => {
   const translator =
       await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});
+  const streamingResponse = translator.translateStreaming('Welcome. Nice to meet you.');
+  assert_equals(
+      Object.prototype.toString.call(streamingResponse),
+      '[object ReadableStream]');
+  let result = '';
+  for await (const chunk of streamingResponse) {
+    result += chunk;
+  }
+  assert_equals(result, 'ようこそ。 はじめまして。');
+}, 'Multiple sentence Translator.translateStreaming() call');
+
+promise_test(async () => {
+  const translator =
+      await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});
+  const streamingResponse = translator.translateStreaming('Hello, Dr. Sanders. Nice to meet you.');
+  assert_equals(
+      Object.prototype.toString.call(streamingResponse),
+      '[object ReadableStream]');
+  let result = '';
+  for await (const chunk of streamingResponse) {
+    result += chunk;
+  }
+  assert_equals(result, 'こんにちは、サンダース博士です。 はじめまして。');
+}, 'Multiple sentence Translator.translateStreaming() call with honorific');
+
+promise_test(async () => {
+  const translator =
+      await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja'});
   const streamingResponse = translator.translateStreaming('hello');
   garbageCollect();
   assert_equals(Object.prototype.toString.call(streamingResponse),

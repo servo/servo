@@ -20,7 +20,7 @@ const url_prefix = manifest_origin + '/fedcm/support/';
 
 fedcm_test(async t => {
   let test_options =
-    request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error.json");
+    request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error_format.json");
   await select_manifest(t, test_options);
 
   try {
@@ -31,14 +31,14 @@ fedcm_test(async t => {
   } catch (e) {
     assert_true(e instanceof DOMException);
     assert_equals(e.name, "IdentityCredentialError");
-    assert_equals(e.code, "unauthorized_client");
+    assert_equals(e.error, "unauthorized_client");
     assert_equals(e.url, url_prefix + "error.html");
   }
 }, 'Test that the promise is rejected with proper error details when dialog is dismissed');
 
 fedcm_test(async t => {
   let test_options =
-    request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error.json");
+    request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error_format.json");
   await select_manifest(t, test_options);
 
   try {
@@ -49,14 +49,14 @@ fedcm_test(async t => {
   } catch (e) {
     assert_true(e instanceof DOMException);
     assert_equals(e.name, "IdentityCredentialError");
-    assert_equals(e.code, "unauthorized_client");
+    assert_equals(e.error, "unauthorized_client");
     assert_equals(e.url, url_prefix + "error.html");
   }
 }, 'Test that the promise is rejected with proper error details when got it is clicked');
 
 fedcm_test(async t => {
   let test_options =
-    request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error.json");
+    request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error_format.json");
   await select_manifest(t, test_options);
 
   try {
@@ -67,7 +67,7 @@ fedcm_test(async t => {
   } catch (e) {
     assert_true(e instanceof DOMException);
     assert_equals(e.name, "IdentityCredentialError");
-    assert_equals(e.code, "unauthorized_client");
+    assert_equals(e.error, "unauthorized_client");
     assert_equals(e.url, url_prefix + "error.html");
   }
 }, 'Test that the promise is rejected with proper error details when more details is clicked');

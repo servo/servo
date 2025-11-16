@@ -26,7 +26,7 @@ fedcm_test(async t => {
     assert_true(e instanceof DOMException);
     assert_equals(e.name, "IdentityCredentialError");
     // 308 should not produce a valid error code
-    assert_equals(e.code, "");
+    assert_equals(e.error, "");
   }
 }, 'Test that token endpoint does not follow redirects');
   </script>

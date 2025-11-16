@@ -1,0 +1,34 @@
+<!doctype html>
+<html style="overflow-y: scroll">
+<meta name="assert" content="width still equals 100vw after the unconditional root scrollbar changes the value of vw">
+<link rel="help"
+  href="https://drafts.csswg.org/css-values-4/#:~:text=and%20always%20in%20the%20case%20of%20media%20queries">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+
+#square {
+  width: 100px;
+  background: green;
+}
+
+@media (width = 100vw) {
+  #square {
+    height: 100px;
+  }
+}
+
+</style>
+
+<p>
+  Pass condition: 100x100 green square below.
+</p>
+
+<div id="square" data-expected-height="100"></div>
+
+<script>
+  checkLayout("#square");
+</script>

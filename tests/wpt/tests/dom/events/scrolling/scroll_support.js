@@ -84,6 +84,27 @@ function waitForScrollEndFallbackToDelayWithoutScrollEvent(eventTargets) {
   });
 }
 
+// Waits for the end of scrolling, but resolves after the given timeout if no
+// scroll event occurs.
+function waitForScrollEndOrTimeout(eventTarget, timeout) {
+  const rafTimeout = new Promise(resolve => {
+    const startTime = performance.now();
+    const tick = () => {
+      if (performance.now() - startTime >= timeout) {
+        resolve();
+      } else {
+        requestAnimationFrame(tick);
+      }
+    };
+    requestAnimationFrame(tick);
+  });
+
+  return Promise.race([
+    waitForScrollEndFallbackToDelayWithoutScrollEvent(eventTarget),
+    rafTimeout
+  ]);
+}
+
 async function waitForPointercancelEvent(test, target, timeoutMs = 500) {
   return waitForEvent("pointercancel", test, target, timeoutMs);
 }
@@ -344,4 +365,24 @@ function scrollElementLeft(element, scroll_amount) {
   let actions = new test_driver.Actions()
   .scroll(x, y, delta_x, delta_y, {origin: element});
   return  actions.send();
+}
+
+async function scrollElementByKeyboard(key) {
+  const KEY_CODE_MAP = {
+    'ArrowLeft':  '\uE012',
+    'ArrowUp':    '\uE013',
+    'ArrowRight': '\uE014',
+    'ArrowDown':  '\uE015',
+  };
+
+  if (!KEY_CODE_MAP.hasOwnProperty(key)) {
+    return Promise.reject(`Invalid key for scrollElementByKeyboard: ${key}`);
+  }
+  const code = KEY_CODE_MAP[key];
+  for (let i = 0; i < 10; i++) {
+    await new test_driver.Actions()
+      .keyDown(code)
+      .keyUp(code)
+      .send();
+  }
 }

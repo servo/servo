@@ -13,4 +13,5 @@ make_message_test = (url, message) =>
     assert_not_equals(popup_window, null, "Popup windows not allowed?");
     window.addEventListener('message', message_listener(t, message));
     popup_window.location = url;
+    t.add_cleanup(popup_window.close);
   }

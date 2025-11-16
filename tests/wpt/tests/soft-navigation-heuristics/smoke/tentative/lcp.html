@@ -30,11 +30,8 @@
 
         // Wait for the initial LCP entry, prior to clicking, so that
         // we may later observe the soft navigation LCP entry in addition.
-        const initial_lcp = await helper.getBufferedPerformanceEntriesWithTimeout(
-          /*type=*/ "largest-contentful-paint",
-          /*min_num_entries=*/ 1,
-        );
-
+        const initial_lcp =
+            await helper.getBufferedPerformanceEntriesWithTimeout("largest-contentful-paint");
         assert_equals(initial_lcp.length, 1, "There's one initial LCP entry.");
         assert_equals(
           initial_lcp[0].id,
@@ -49,14 +46,8 @@
         // Now that we've clicked, we expect to see a soft navigation,
         // and a soft navigation LCP entry;
         const results = await Promise.allSettled([
-          helper.getBufferedPerformanceEntriesWithTimeout(
-            /*type=*/ "soft-navigation",
-            /*min_num_entries=*/ 1,
-          ),
-          helper.getBufferedPerformanceEntriesWithTimeout(
-            /*type=*/ "interaction-contentful-paint",
-            /*min_num_entries=*/ 1,
-          ),
+          helper.getBufferedPerformanceEntriesWithTimeout("soft-navigation"),
+          helper.getBufferedPerformanceEntriesWithTimeout("interaction-contentful-paint"),
         ]);
 
         // If either or both of soft nav entry or soft nav LCP are missing,

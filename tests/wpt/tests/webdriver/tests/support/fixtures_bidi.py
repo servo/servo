@@ -644,6 +644,7 @@ def fetch(bidi_session, top_context, configuration):
         post_data=None,
         context=top_context,
         timeout_in_seconds=3,
+        sandbox_name=None
     ):
         if method is None:
             method = "GET" if post_data is None else "POST"
@@ -683,7 +684,7 @@ def fetch(bidi_session, top_context, configuration):
         # Wait for fetch() to resolve a response and for response.text() to
         # resolve as well to make sure the request/response is completed when
         # the helper returns.
-        await bidi_session.script.evaluate(
+        return await bidi_session.script.evaluate(
             expression=f"""
                  {{
                    const controller = new AbortController();
@@ -695,7 +696,7 @@ def fetch(bidi_session, top_context, configuration):
                      signal: controller.signal,
                    }}).then(response => response.text());
                  }}""",
-            target=ContextTarget(context["context"]),
+            target=ContextTarget(context["context"], sandbox=sandbox_name),
             await_promise=True,
         )
 
@@ -1152,3 +1153,29 @@ async def assert_file_dialog_not_canceled(bidi_session, inline, top_context,
         cancel_event_future.cancel()
 
     yield assert_file_dialog_not_canceled
+
+
+@pytest_asyncio.fixture
+async def get_fetch_headers(url, fetch):
+    async def get_fetch_headers(context, sandbox_name=None):
+        result = await fetch(
+            url=url("webdriver/tests/support/http_handlers/headers_echo.py"),
+            context=context,
+            sandbox_name=sandbox_name
+        )
+
+        return (json.JSONDecoder().decode(result["value"]))["headers"]
+
+    return get_fetch_headers
+
+
+@pytest_asyncio.fixture
+async def assert_header_present(get_fetch_headers):
+    async def assert_header_present(context, header_name, header_value, sandbox_name=None):
+        actual_headers = await get_fetch_headers(context, sandbox_name)
+        assert header_name in actual_headers, \
+            f"header '{header_name}' should be present"
+        assert [header_value] == actual_headers[header_name], \
+            f"header '{header_name}' should have value '{header_value}'"
+
+    return assert_header_present

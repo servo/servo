@@ -20,11 +20,8 @@
 
   // We start this promise early, so that it can observe the initial LCP,
   // which is expected to be the div just below.
-  const firstLcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
-    /*type=*/ "largest-contentful-paint",
-    /*include_soft_navigation_observations=*/ false,
-    /*min_num_entries=*/ 1,
-  );
+  const firstLcpPromise =
+      SoftNavigationTestHelper.getPerformanceEntries("largest-contentful-paint");
 </script>
 <div id="click-target" onclick="clickHandler()">Click here!</div>
 
@@ -36,17 +33,10 @@
     assert_equals(firstLcp[0].id, "click-target", "LCP should be click target.");
 
     // Set up promises for soft navigation and LCP entries, before the click.
-    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
-      /*type=*/ "soft-navigation",
-      /*include_soft_navigation_observations=*/ false,
-      /*min_num_entries=*/ 1,
-      /*timeout_ms=*/ 3000,
-    );
-    const icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
-      /*type=*/ "interaction-contentful-paint",
-      /*include_soft_navigation_observations=*/ true,
-      /*min_num_entries=*/ 1,
-    );
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
+    const icpPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("interaction-contentful-paint");
     if (test_driver) {
       test_driver.click(document.getElementById("click-target"));
     }

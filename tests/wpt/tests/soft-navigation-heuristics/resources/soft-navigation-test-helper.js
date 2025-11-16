@@ -54,12 +54,13 @@ class SoftNavigationTestHelper {
    * optionally including soft navigation observations, with a timeout message.
    * @param {string} type The type of the entries to wait for.
    * @param {number} minNumEntries The minimum number of entries to wait for.
+   *     Defaults to 1.
    * @param {number=} timeout The timeout in milliseconds. Defaults to 1000.
    * @return {!Promise} The promise, which either resolves with the entries or
    *     rejects with a timeout message.
    */
   async getBufferedPerformanceEntriesWithTimeout(
-      type, minNumEntries, timeout = 1000) {
+      type, minNumEntries = 1, timeout = 1000) {
     let observer;
     return this
         .newPromiseWithTimeoutMessage(
@@ -88,10 +89,10 @@ class SoftNavigationTestHelper {
    * optionally including soft navigation observations.
    * @param {string} type The type of the entries to wait for.
    * @param {number} minNumEntries The minimum number of entries to wait for.
+   *     Defaults to 1.
    * @return {!Promise} The promise, which resolves with the entries.
    */
-  static getPerformanceEntries(
-      type, minNumEntries) {
+  static getPerformanceEntries(type, minNumEntries = 1) {
     return new Promise((resolve) => {
       const entries = [];
       const observer = new PerformanceObserver((list) => {

@@ -37,6 +37,13 @@
   </menulist>
 </div>
 
+<style>
+  [popover] {
+    width: 400px;
+    height: 400px;
+  }
+</style>
+
 <script>
 promise_test(async () => {
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover starts closed");
@@ -118,15 +125,17 @@ promise_test(async (t) => {
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover starts closed");
   let clickCount = 0;
   normalmenuitem.addEventListener('click',() => (++clickCount));
-  const actions = new test_driver.Actions();
-  await actions.addPointer('mouse', 'mouse')
+  await new test_driver.Actions()
+    .addPointer('mouse', 'mouse')
     .pointerMove(0, 0, {origin: menubarmenuitem})
     .pointerDown()
     .send();
   await waitForRender();
   assert_true(mainmenu.matches(":popover-open"), "mainmenu popover should be open while mouse is down");
   assert_equals(clickCount,0, "no clicks yet");
-  await actions.pointerMove(0, 0, {origin: normalmenuitem})
+  await new test_driver.Actions()
+    .addPointer('mouse', 'mouse')
+    .pointerMove(0, 0, {origin: normalmenuitem})
     .pointerUp()
     .send();
   await waitForRender();
@@ -139,15 +148,17 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover starts closed");
   assert_false(submenu.matches(":popover-open"), "submenu popover starts closed");
-  const actions = new test_driver.Actions();
-  await actions.addPointer('mouse', 'mouse')
+  await new test_driver.Actions()
+    .addPointer('mouse', 'mouse')
     .pointerMove(0, 0, {origin: menubarmenuitem})
     .pointerDown()
     .send();
   await waitForRender();
   assert_true(mainmenu.matches(":popover-open"), "mainmenu popover should be open while mouse is down");
   assert_false(submenu.matches(":popover-open"), "submenu shouldn't be open yet");
-  await actions.pointerMove(0, 0, {origin: mainmenuitem})
+  await new test_driver.Actions()
+    .addPointer('mouse', 'mouse')
+    .pointerMove(0, 0, {origin: mainmenuitem})
     .pointerUp()
     .send();
   await waitForRender();
