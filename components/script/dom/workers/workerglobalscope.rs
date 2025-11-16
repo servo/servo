@@ -795,6 +795,12 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         self.upcast::<GlobalScope>().crypto(CanGc::note())
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
+    fn ReportError(&self, cx: JSContext, error: HandleValue, can_gc: CanGc) {
+        self.upcast::<GlobalScope>()
+            .report_an_exception(cx, error, can_gc);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
     fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)

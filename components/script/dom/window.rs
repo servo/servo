@@ -1329,6 +1329,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         Some(DomRoot::from_ref(container))
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
+    fn ReportError(&self, cx: JSContext, error: HandleValue, can_gc: CanGc) {
+        self.as_global_scope()
+            .report_an_exception(cx, error, can_gc);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator>
     fn Navigator(&self) -> DomRoot<Navigator> {
         self.navigator
