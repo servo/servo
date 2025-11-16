@@ -40,6 +40,7 @@ http-body-util = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2"] }
 hyper-rustls = { workspace = true }
 hyper-util = { workspace = true }
+hyperlocal = "0.9"
 hyper_serde = { workspace = true }
 imsz = { workspace = true }
 ipc-channel = { workspace = true }

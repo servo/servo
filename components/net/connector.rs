@@ -23,20 +23,39 @@ use tower_service::Service;
 
 use crate::async_runtime::spawn_task;
 use crate::hosts::replace_host;
+use crate::unix_connector::{ServoUnixConnector, SocketMapping};
 
 pub const BUF_SIZE: usize = 32768;
 
+/// Configuration for the connector mode
 #[derive(Clone)]
-pub struct ServoHttpConnector {
-    inner: HyperHttpConnector,
+pub enum ConnectorMode {
+    /// Use TCP connections (default)
+    Tcp,
+    /// Use Unix domain sockets only
+    UnixOnly(SocketMapping),
+}
+
+/// HTTP connector that supports both TCP and Unix domain sockets
+#[derive(Clone)]
+pub enum ServoHttpConnector {
+    Tcp(HyperHttpConnector),
+    Unix(ServoUnixConnector),
 }
 
 impl ServoHttpConnector {
-    fn new() -> ServoHttpConnector {
-        let mut inner = HyperHttpConnector::new();
-        inner.enforce_http(false);
-        inner.set_happy_eyeballs_timeout(None);
-        ServoHttpConnector { inner }
+    fn new(mode: ConnectorMode) -> ServoHttpConnector {
+        match mode {
+            ConnectorMode::Tcp => {
+                let mut inner = HyperHttpConnector::new();
+                inner.enforce_http(false);
+                inner.set_happy_eyeballs_timeout(None);
+                ServoHttpConnector::Tcp(inner)
+            },
+            ConnectorMode::UnixOnly(mapping) => {
+                ServoHttpConnector::Unix(ServoUnixConnector::new(mapping))
+            },
+        }
     }
 }
 
@@ -46,29 +65,38 @@ impl Service<Destination> for ServoHttpConnector {
     type Future = <HyperHttpConnector as Service<Destination>>::Future;
 
     fn call(&mut self, dest: Destination) -> Self::Future {
-        // Perform host replacement when making the actual TCP connection.
-        let mut new_dest = dest.clone();
-        let mut parts = dest.into_parts();
+        match self {
+            ServoHttpConnector::Tcp(connector) => {
+                // Perform host replacement when making the actual TCP connection.
+                let mut new_dest = dest.clone();
+                let mut parts = dest.into_parts();
 
-        if let Some(auth) = parts.authority {
-            let host = auth.host();
-            let host = replace_host(host);
+                if let Some(auth) = parts.authority {
+                    let host = auth.host();
+                    let host = replace_host(host);
 
-            let authority = if let Some(port) = auth.port() {
-                format!("{}:{}", host, port.as_str())
-            } else {
-                (*host).to_string()
-            };
+                    let authority = if let Some(port) = auth.port() {
+                        format!("{}:{}", host, port.as_str())
+                    } else {
+                        (*host).to_string()
+                    };
 
-            if let Ok(authority) = Authority::from_maybe_shared(authority) {
-                parts.authority = Some(authority);
-                if let Ok(dest) = Destination::from_parts(parts) {
-                    new_dest = dest
+                    if let Ok(authority) = Authority::from_maybe_shared(authority) {
+                        parts.authority = Some(authority);
+                        if let Ok(dest) = Destination::from_parts(parts) {
+                            new_dest = dest
+                        }
+                    }
                 }
-            }
-        }
 
-        self.inner.call(new_dest)
+                connector.call(new_dest)
+            },
+            ServoHttpConnector::Unix(connector) => {
+                // For Unix sockets, pass the destination as-is
+                // The UnixConnector will handle the URI conversion
+                connector.call(dest)
+            },
+        }
     }
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -158,7 +186,7 @@ pub fn create_tls_config(
 }
 
 #[derive(Clone)]
-struct TokioExecutor {}
+pub struct TokioExecutor {}
 
 impl<F> Executor<F> for TokioExecutor
 where
@@ -268,13 +296,16 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 
-pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, BoxedBody> {
+pub fn create_http_client(
+    tls_config: TlsConfig,
+    mode: ConnectorMode,
+) -> Client<Connector, BoxedBody> {
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
         .enable_http2()
-        .wrap_connector(ServoHttpConnector::new());
+        .wrap_connector(ServoHttpConnector::new(mode));
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)

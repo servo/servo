@@ -46,8 +46,11 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::async_runtime::{init_async_runtime, spawn_task};
 use crate::connector::{
-    CACertificates, CertificateErrorOverrideManager, create_http_client, create_tls_config,
+    CACertificates, CertificateErrorOverrideManager, ConnectorMode, create_http_client,
+    create_tls_config,
 };
+use crate::unix_config::UnixSocketConfig;
+use crate::unix_connector::SocketMapping;
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
@@ -194,6 +197,19 @@ fn create_http_states(
         base::read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
+    // Check for Unix socket configuration from environment
+    let unix_config = UnixSocketConfig::from_env();
+    let connector_mode = if unix_config.enabled {
+        debug!("Unix domain socket mode enabled");
+        let mut mapping = SocketMapping::new(unix_config.socket_dir.clone());
+        for host_mapping in unix_config.mappings {
+            mapping.add_mapping(host_mapping.host, host_mapping.socket_path);
+        }
+        ConnectorMode::UnixOnly(mapping)
+    } else {
+        ConnectorMode::Tcp
+    };
+
     let override_manager = CertificateErrorOverrideManager::new();
     let http_state = HttpState {
         hsts_list: RwLock::new(hsts_list),
@@ -202,11 +218,14 @@ fn create_http_states(
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(create_tls_config(
-            ca_certificates.clone(),
-            ignore_certificate_errors,
-            override_manager.clone(),
-        )),
+        client: create_http_client(
+            create_tls_config(
+                ca_certificates.clone(),
+                ignore_certificate_errors,
+                override_manager.clone(),
+            ),
+            connector_mode.clone(),
+        ),
         override_manager,
         embedder_proxy: Mutex::new(embedder_proxy.clone()),
     };
@@ -219,11 +238,14 @@ fn create_http_states(
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: RwLock::new(HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(create_tls_config(
-            ca_certificates,
-            ignore_certificate_errors,
-            override_manager.clone(),
-        )),
+        client: create_http_client(
+            create_tls_config(
+                ca_certificates,
+                ignore_certificate_errors,
+                override_manager.clone(),
+            ),
+            connector_mode,
+        ),
         override_manager,
         embedder_proxy: Mutex::new(embedder_proxy),
     };
