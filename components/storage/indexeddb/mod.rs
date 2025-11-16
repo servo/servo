@@ -440,7 +440,7 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::Exit(_) => {
-                unreachable!();
+                unreachable!("We must've already broken out of event loop.");
             },
         }
     }
