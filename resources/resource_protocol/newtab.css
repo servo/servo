@@ -53,7 +53,7 @@ button {
   line-height: 1;
 }
 
-.search-button:hover {
+button:hover {
   cursor: pointer;
 }
 
@@ -85,16 +85,16 @@ a:hover {
     background: #f9f9f9;
   }
 
-  .search-input {
+  input {
     background-color: white;
   }
 
-  .search-button {
+  button {
     background-color: var(--theme-color-secondary);
     color: white;
   }
 
-  .search-button:hover {
+  button:hover {
     background-color: #3baa59;
   }
 }
@@ -109,17 +109,17 @@ a:hover {
     color: hsl(0, 0%, 96%);
   }
 
-  .search-input {
+  input {
     background-color: #333;
     color: white;
   }
 
-  .search-button {
+  button {
     background-color: #333;
     color: var(--theme-color-secondary);
   }
 
-  .search-button:hover {
+  button:hover {
     background-color: #292929;
   }
 }
