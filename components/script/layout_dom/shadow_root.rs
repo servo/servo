@@ -64,4 +64,8 @@ impl<'dom> ServoShadowRoot<'dom> {
                 .flush_stylesheets::<ServoLayoutElement>(stylist, guard)
         }
     }
+
+    pub fn is_ua_widget(&self) -> bool {
+        self.shadow_root.is_ua_widget()
+    }
 }
