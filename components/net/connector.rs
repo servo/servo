@@ -23,8 +23,18 @@ use tower_service::Service;
 
 use crate::async_runtime::spawn_task;
 use crate::hosts::replace_host;
+use crate::unix_connector::SocketMapping;
 
 pub const BUF_SIZE: usize = 32768;
+
+/// Configuration for the connector mode
+#[derive(Clone)]
+pub enum ConnectorMode {
+    /// Use TCP connections (default)
+    Tcp,
+    /// Use Unix domain sockets only
+    UnixOnly(SocketMapping),
+}
 
 #[derive(Clone)]
 pub struct ServoHttpConnector {
@@ -77,6 +87,7 @@ impl Service<Destination> for ServoHttpConnector {
 }
 
 pub type Connector = HyperRustlsHttpsConnector<ServoHttpConnector>;
+pub type UnixConnector = hyperlocal::UnixConnector;
 pub type TlsConfig = ClientConfig;
 
 #[derive(Clone, Debug, Default)]
@@ -158,7 +169,7 @@ pub fn create_tls_config(
 }
 
 #[derive(Clone)]
-struct TokioExecutor {}
+pub struct TokioExecutor {}
 
 impl<F> Executor<F> for TokioExecutor
 where
@@ -268,15 +279,47 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 
-pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, BoxedBody> {
-    let connector = hyper_rustls::HttpsConnectorBuilder::new()
-        .with_tls_config(tls_config)
-        .https_or_http()
-        .enable_http1()
-        .enable_http2()
-        .wrap_connector(ServoHttpConnector::new());
+pub fn create_http_client(
+    tls_config: TlsConfig,
+    mode: ConnectorMode,
+) -> Client<Connector, BoxedBody> {
+    // For Unix socket mode, we'll use UnixConnector directly without TLS wrapping
+    // For now, TCP is the default and Unix sockets are TODO
+    match mode {
+        ConnectorMode::Tcp => {
+            let connector = hyper_rustls::HttpsConnectorBuilder::new()
+                .with_tls_config(tls_config)
+                .https_or_http()
+                .enable_http1()
+                .enable_http2()
+                .wrap_connector(ServoHttpConnector::new());
 
+            Client::builder(TokioExecutor {})
+                .http1_title_case_headers(true)
+                .build(connector)
+        },
+        ConnectorMode::UnixOnly(_mapping) => {
+            // For Unix sockets, create a client without TLS
+            // Note: This currently uses TCP connector but should be replaced
+            // with Unix socket connector implementation
+            warn!("Unix socket mode requested but not fully implemented - using TCP");
+            let connector = hyper_rustls::HttpsConnectorBuilder::new()
+                .with_tls_config(tls_config)
+                .https_or_http()
+                .enable_http1()
+                .enable_http2()
+                .wrap_connector(ServoHttpConnector::new());
+
+            Client::builder(TokioExecutor {})
+                .http1_title_case_headers(true)
+                .build(connector)
+        },
+    }
+}
+
+/// Create an HTTP client for Unix domain sockets
+pub fn create_unix_http_client() -> Client<hyperlocal::UnixConnector, BoxedBody> {
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
-        .build(connector)
+        .build(hyperlocal::UnixConnector)
 }

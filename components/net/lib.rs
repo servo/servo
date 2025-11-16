@@ -20,6 +20,9 @@ pub mod protocols;
 pub mod request_interceptor;
 pub mod resource_thread;
 pub mod subresource_integrity;
+pub mod transport_url;
+pub mod unix_config;
+pub mod unix_connector;
 mod websocket_loader;
 
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)

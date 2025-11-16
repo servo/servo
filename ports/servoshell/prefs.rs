@@ -560,6 +560,20 @@ struct CmdArgs {
     #[bpaf(argument::<String>("1024x740"), parse(parse_resolution_string), fallback(None))]
     window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
 
+    /// Use Unix domain sockets for HTTP connections instead of TCP.
+    #[bpaf(long("unix-sockets"))]
+    use_unix_sockets: bool,
+
+    ///
+    ///  Directory for Unix socket files (default: /tmp/servo-sockets).
+    #[bpaf(long("socket-dir"), argument("/tmp/servo-sockets"))]
+    socket_dir: Option<PathBuf>,
+
+    ///
+    ///  Map hostnames to socket paths (format: host1:/path1,host2:/path2).
+    #[bpaf(long("socket-mapping"), argument("localhost:/tmp/app.sock"))]
+    socket_mappings: Option<String>,
+
     /// The url we should load.
     #[bpaf(positional("URL"), fallback(String::from("https://www.servo.org")))]
     url: String,
@@ -650,6 +664,19 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         let mut path = PathBuf::from(time_profiler_trace_path);
         path.pop();
         fs::create_dir_all(&path).expect("Error in creating profiler trace path");
+    }
+
+    // Configure Unix domain sockets from CLI flags
+    if cmd_args.use_unix_sockets {
+        env::set_var("SERVO_USE_UNIX_SOCKETS", "true");
+
+        if let Some(ref socket_dir) = cmd_args.socket_dir {
+            env::set_var("SERVO_SOCKET_DIR", socket_dir.to_string_lossy().as_ref());
+        }
+
+        if let Some(ref mappings) = cmd_args.socket_mappings {
+            env::set_var("SERVO_SOCKET_MAPPINGS", mappings);
+        }
     }
 
     let mut preferences = get_preferences(&cmd_args.prefs_file, &config_dir);

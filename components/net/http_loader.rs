@@ -72,6 +72,8 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
 use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
+use crate::transport_url::{Transport, TransportUrl};
+use crate::unix_connector::SocketMapping;
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -108,6 +110,10 @@ pub struct HttpState {
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, crate::connector::BoxedBody>,
+    /// Unix domain socket client for local IPC connections
+    pub unix_client: Option<Client<hyperlocal::UnixConnector, crate::connector::BoxedBody>>,
+    /// Socket path mappings for Unix domain sockets
+    pub socket_mapping: Option<SocketMapping>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
 }
@@ -2064,30 +2070,114 @@ async fn http_network_fetch(
             (Decoder::detect(response, url.is_secure_scheme()), None)
         },
         _ => {
-            let response_future = obtain_response(
-                &context.state.client,
-                &url,
-                &request.method,
-                &mut request.headers,
-                body,
-                request
-                    .body
-                    .as_ref()
-                    .is_some_and(|body| body.source_is_null()),
-                &request.pipeline_id,
-                Some(&request_id),
-                request.destination,
-                is_xhr,
-                context,
-                fetch_terminated_sender,
-                browsing_context_id,
-            );
+            // Check if this is a Unix socket URL
+            let is_unix_socket = TransportUrl::parse(url.as_str())
+                .map(|t_url| t_url.transport() == &Transport::Unix)
+                .unwrap_or(false);
 
-            // This will only get the headers, the body is read later
-            let (res, msg) = match response_future.await {
-                Ok(wrapped_response) => wrapped_response,
-                Err(error) => return Response::network_error(error),
+            let (res, msg) = if is_unix_socket &&
+                context.state.unix_client.is_some() &&
+                context.state.socket_mapping.is_some()
+            {
+                // Unix socket request path
+                debug!("Routing request to Unix socket for URL: {}", url);
+
+                let unix_client = context.state.unix_client.as_ref().unwrap();
+                let socket_mapping = context.state.socket_mapping.as_ref().unwrap();
+
+                // Get socket path from URL
+                let socket_path = match socket_mapping.get_socket_path_from_url(url.as_str()) {
+                    Some(path) => path,
+                    None => {
+                        warn!("Could not determine socket path for URL: {}", url);
+                        return Response::network_error(NetworkError::Internal(
+                            "Cannot determine Unix socket path".into(),
+                        ));
+                    },
+                };
+
+                debug!("Using Unix socket: {}", socket_path.display());
+
+                // Construct hyperlocal URI
+                let unix_uri: http::Uri = hyperlocal::Uri::new(&socket_path, url.path()).into();
+
+                // Build the HTTP request body
+                // (This is simplified - in full implementation, would handle streaming like obtain_response does)
+                let request_body = if body.is_some() {
+                    // For now, simple implementation without streaming
+                    // TODO: Implement full streaming support for Unix sockets
+                    warn!("Request body streaming not yet implemented for Unix sockets");
+                    http_body_util::Empty::new()
+                        .map_err(|_| unreachable!())
+                        .boxed()
+                } else {
+                    http_body_util::Empty::new()
+                        .map_err(|_| unreachable!())
+                        .boxed()
+                };
+
+                // Build the HTTP request
+                let hyper_request = match HyperRequest::builder()
+                    .method(&request.method)
+                    .uri(unix_uri)
+                    .body(request_body)
+                {
+                    Ok(req) => req,
+                    Err(e) => {
+                        warn!("Failed to build Unix socket request: {}", e);
+                        return Response::network_error(NetworkError::Internal(
+                            format!("Failed to build request: {}", e),
+                        ));
+                    },
+                };
+
+                // Make the request
+                match unix_client.request(hyper_request).await {
+                    Ok(response) => {
+                        debug!("Unix socket request succeeded with status: {}", response.status());
+
+                        // Convert response body to BoxedBody
+                        let (parts, body) = response.into_parts();
+                        let boxed_body = body.map_err(Into::into).boxed();
+                        let response = HyperResponse::from_parts(parts, boxed_body);
+
+                        (Decoder::detect(response, false), None)
+                    },
+                    Err(e) => {
+                        warn!("Unix socket request failed: {}", e);
+                        return Response::network_error(NetworkError::Internal(
+                            format!("Unix socket request failed: {}", e),
+                        ));
+                    },
+                }
+            } else {
+                // Standard TCP request path
+                let response_future = obtain_response(
+                    &context.state.client,
+                    &url,
+                    &request.method,
+                    &mut request.headers,
+                    body,
+                    request
+                        .body
+                        .as_ref()
+                        .is_some_and(|body| body.source_is_null()),
+                    &request.pipeline_id,
+                    Some(&request_id),
+                    request.destination,
+                    is_xhr,
+                    context,
+                    fetch_terminated_sender,
+                    browsing_context_id,
+                );
+
+                // This will only get the headers, the body is read later
+                match response_future.await {
+                    Ok(wrapped_response) => wrapped_response,
+                    Err(error) => return Response::network_error(error),
+                }
             };
+
             (res, msg)
         },
     };
