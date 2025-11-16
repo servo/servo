@@ -374,12 +374,12 @@ impl WebViewRenderer {
         wheel_event: WheelEvent,
         event_and_id: InputEventAndId,
     ) {
-        self.dispatch_input_event_with_hit_testing(render_api, event_and_id);
-
-        // A scroll delta for a wheel event is the inverse of the wheel delta.
-        let scroll_delta =
-            DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
-        self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
+        if self.dispatch_input_event_with_hit_testing(render_api, event_and_id) {
+            // A scroll delta for a wheel event is the inverse of the wheel delta.
+            let scroll_delta =
+                DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
+            self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
+        }
     }
 
     fn send_touch_event(
