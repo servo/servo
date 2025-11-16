@@ -178,4 +178,122 @@ mod unix_connector_tests {
             PathBuf::from("/tmp/host2.sock")
         );
     }
+
+    // Tests for get_socket_path_from_url()
+
+    #[test]
+    fn test_get_socket_path_from_url_explicit() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp/sockets"));
+
+        // Explicit Unix socket URL should extract the socket path directly
+        let url = "http::unix///tmp/explicit.sock";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, Some(PathBuf::from("/tmp/explicit.sock")));
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_with_path() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp/sockets"));
+
+        // Unix socket URL with URL path
+        let url = "http::unix///tmp/app.sock/api/data";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, Some(PathBuf::from("/tmp/app.sock")));
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_hostname_mapped() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp/sockets"));
+        mapping.add_mapping("localhost".to_string(), PathBuf::from("/var/run/local.sock"));
+
+        // Standard URL should use hostname mapping
+        let url = "http://localhost/path";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, Some(PathBuf::from("/var/run/local.sock")));
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_hostname_default() {
+        let mapping = SocketMapping::new(PathBuf::from("/custom/dir"));
+
+        // Unmapped hostname should use default directory
+        let url = "http://example.com/path";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, Some(PathBuf::from("/custom/dir/example.com.sock")));
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_malformed() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp"));
+
+        // Malformed URL should return None
+        let url = "not-a-valid-url";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, None);
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_priority() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp/default"));
+        mapping.add_mapping("localhost".to_string(), PathBuf::from("/tmp/mapped.sock"));
+
+        // Explicit path should have highest priority, even with hostname mapping
+        let explicit_url = "http::unix///tmp/explicit.sock";
+        let explicit_path = mapping.get_socket_path_from_url(explicit_url);
+        assert_eq!(explicit_path, Some(PathBuf::from("/tmp/explicit.sock")));
+
+        // Hostname mapping should be used when no explicit path
+        let hostname_url = "http://localhost/path";
+        let hostname_path = mapping.get_socket_path_from_url(hostname_url);
+        assert_eq!(hostname_path, Some(PathBuf::from("/tmp/mapped.sock")));
+
+        // Default should be used when neither explicit nor mapped
+        let default_url = "http://unmapped.com/path";
+        let default_path = mapping.get_socket_path_from_url(default_url);
+        assert_eq!(
+            default_path,
+            Some(PathBuf::from("/tmp/default/unmapped.com.sock"))
+        );
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_relative_path() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp"));
+
+        // Relative socket path
+        let url = "http::unix//var/run/app.sock";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, Some(PathBuf::from("var/run/app.sock")));
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_with_query() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp"));
+
+        // URL with query parameters should still extract socket path
+        let url = "http::unix///tmp/test.sock/path?param=value";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, Some(PathBuf::from("/tmp/test.sock")));
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_tcp_transport() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp"));
+
+        // Explicit TCP transport should use hostname mapping, not socket path
+        let url = "http::tcp//localhost:8080/path";
+        let path = mapping.get_socket_path_from_url(url);
+        // Should use hostname mapping for localhost
+        assert_eq!(path, Some(PathBuf::from("/tmp/localhost.sock")));
+    }
+
+    #[test]
+    fn test_get_socket_path_from_url_empty_url() {
+        let mapping = SocketMapping::new(PathBuf::from("/tmp"));
+
+        // Empty URL should return None
+        let url = "";
+        let path = mapping.get_socket_path_from_url(url);
+        assert_eq!(path, None);
+    }
 }

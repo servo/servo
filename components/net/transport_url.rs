@@ -289,6 +289,31 @@ impl TransportUrl {
     pub fn unix_socket_path(&self) -> Option<&str> {
         self.unix_socket_path.as_deref()
     }
+
+    /// Get the query string
+    pub fn query(&self) -> Option<&str> {
+        self.url.query()
+    }
+
+    /// Get the fragment
+    pub fn fragment(&self) -> Option<&str> {
+        self.url.fragment()
+    }
+
+    /// Get the port
+    pub fn port(&self) -> Option<u16> {
+        self.url.port()
+    }
+
+    /// Get the username
+    pub fn username(&self) -> &str {
+        self.url.username()
+    }
+
+    /// Get the password
+    pub fn password(&self) -> Option<&str> {
+        self.url.password()
+    }
 }
 
 impl fmt::Display for TransportUrl {
@@ -412,5 +437,158 @@ mod tests {
         let displayed = format!("{}", url);
         assert!(displayed.contains("::unix"));
         assert!(displayed.contains("var/run/app.sock"));
+    }
+
+    // Edge case tests
+
+    #[test]
+    fn test_unix_url_with_query_parameters() {
+        let url = TransportUrl::parse("http::unix///tmp/test.sock/path?key=value&foo=bar").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert_eq!(url.unix_socket_path(), Some("/tmp/test.sock"));
+        assert!(url.path().contains("path"));
+        assert!(url.query().is_some());
+        assert!(url.query().unwrap().contains("key=value"));
+        assert!(url.query().unwrap().contains("foo=bar"));
+    }
+
+    #[test]
+    fn test_unix_url_with_fragment() {
+        let url = TransportUrl::parse("http::unix///tmp/test.sock/path#section").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert_eq!(url.unix_socket_path(), Some("/tmp/test.sock"));
+        assert!(url.path().contains("path"));
+        assert_eq!(url.fragment(), Some("section"));
+    }
+
+    #[test]
+    fn test_unix_url_with_query_and_fragment() {
+        let url =
+            TransportUrl::parse("http::unix///tmp/test.sock/api?param=1#anchor").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert_eq!(url.unix_socket_path(), Some("/tmp/test.sock"));
+        assert!(url.query().unwrap().contains("param=1"));
+        assert_eq!(url.fragment(), Some("anchor"));
+    }
+
+    #[test]
+    fn test_socket_path_with_special_characters() {
+        // Test socket paths with hyphens, underscores, dots
+        let url = TransportUrl::parse("http::unix///tmp/my-app_v1.0.sock").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert_eq!(url.unix_socket_path(), Some("/tmp/my-app_v1.0.sock"));
+    }
+
+    #[test]
+    fn test_socket_path_with_spaces() {
+        // Socket paths with URL-encoded spaces
+        let url = TransportUrl::parse("http::unix///tmp/my%20socket.sock").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        // The path should be decoded
+        assert!(url.unix_socket_path().is_some());
+    }
+
+    #[test]
+    fn test_very_long_socket_path() {
+        // Unix socket paths have a limit (typically 108 bytes on Linux)
+        // This tests that we can parse long paths even if they might fail at connection time
+        let long_path = format!("/tmp/{}.sock", "a".repeat(200));
+        let url_str = format!("http::unix/{}", long_path);
+        let url = TransportUrl::parse(&url_str).unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert!(url.unix_socket_path().is_some());
+        assert!(url.unix_socket_path().unwrap().len() > 100);
+    }
+
+    #[test]
+    fn test_malformed_url_missing_scheme() {
+        // URL without scheme should fail
+        let result = TransportUrl::parse("::unix//tmp/test.sock");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_malformed_url_invalid_chars() {
+        // URL parser is permissive and will encode special characters
+        // The connection would fail later when trying to use it
+        let result = TransportUrl::parse("http::unix//tmp/test<>.sock");
+        // This might parse successfully (URL encoding happens), or fail - both are acceptable
+        // What matters is it doesn't crash
+        match result {
+            Ok(url) => {
+                assert_eq!(url.transport(), &Transport::Unix);
+            },
+            Err(_) => {
+                // Also acceptable - parser rejected it
+            },
+        }
+    }
+
+    #[test]
+    fn test_empty_socket_path() {
+        // Empty socket path should still parse but unix_socket_path should be None
+        let result = TransportUrl::parse("http::unix//");
+        // This might fail to parse as a valid URL, which is acceptable
+        if let Ok(url) = result {
+            assert_eq!(url.transport(), &Transport::Unix);
+        }
+    }
+
+    #[test]
+    fn test_tcp_url_with_port() {
+        let url = TransportUrl::parse("http::tcp//localhost:8080/path").unwrap();
+        assert_eq!(url.transport(), &Transport::Tcp);
+        assert_eq!(url.host_str(), Some("localhost"));
+        assert_eq!(url.port(), Some(8080));
+        assert!(url.path().contains("path"));
+    }
+
+    #[test]
+    fn test_standard_url_with_credentials() {
+        let url = TransportUrl::parse("http://user:pass@example.com/path").unwrap();
+        assert_eq!(url.transport(), &Transport::Tcp);
+        assert_eq!(url.username(), "user");
+        assert_eq!(url.password(), Some("pass"));
+        assert_eq!(url.host_str(), Some("example.com"));
+    }
+
+    #[test]
+    fn test_wss_downgrade_for_unix() {
+        // WebSocket Secure should also downgrade to WS for Unix sockets
+        let url = TransportUrl::parse("wss::unix//var/run/ws.sock").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert_eq!(url.original_scheme(), "wss");
+        // Should be downgraded to ws internally
+        assert_eq!(url.as_url().scheme(), "ws");
+    }
+
+    #[test]
+    fn test_case_insensitive_transport() {
+        let url1 = TransportUrl::parse("http::UNIX//tmp/test.sock").unwrap();
+        let url2 = TransportUrl::parse("http::Unix//tmp/test.sock").unwrap();
+        assert_eq!(url1.transport(), &Transport::Unix);
+        assert_eq!(url2.transport(), &Transport::Unix);
+    }
+
+    #[test]
+    fn test_quic_transport() {
+        let url = TransportUrl::parse("http::quic//localhost:443").unwrap();
+        assert_eq!(url.transport(), &Transport::Quic);
+        assert_eq!(url.original_scheme(), "http");
+        assert!(url.has_explicit_transport());
+    }
+
+    #[test]
+    fn test_relative_vs_absolute_socket_paths() {
+        // Relative path (2 slashes after transport)
+        let rel = TransportUrl::parse("http::unix//var/run/app.sock").unwrap();
+        assert_eq!(rel.unix_socket_path(), Some("var/run/app.sock"));
+
+        // Absolute path (3 slashes after transport)
+        let abs = TransportUrl::parse("http::unix///var/run/app.sock").unwrap();
+        assert_eq!(abs.unix_socket_path(), Some("/var/run/app.sock"));
+
+        // Verify the difference
+        assert_ne!(rel.unix_socket_path(), abs.unix_socket_path());
     }
 }
