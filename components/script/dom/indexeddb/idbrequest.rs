@@ -245,6 +245,8 @@ impl RequestListener {
                 .upcast::<Event>()
                 .fire(request.upcast(), CanGc::note());
             transaction.set_active_flag(false);
+            // Notify the transaction that this request has finished.
+            transaction.request_finished();
         } else {
             // FIXME:(arihant2math) dispatch correct error
             // Substep 2
@@ -288,6 +290,8 @@ impl RequestListener {
             .upcast::<Event>()
             .fire(request.upcast(), CanGc::note());
         transaction.set_active_flag(false);
+        // Notify the transaction that this request has finished.
+        transaction.request_finished();
     }
 }
 

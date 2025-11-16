@@ -155,6 +155,10 @@ impl IDBOpenDBRequest {
         // Step 3
         connection.set_transaction(&transaction);
 
+        // Associate the open request with the upgrade transaction so that
+        // its "success" event is dispatched only once the transaction finishes.
+        transaction.set_open_request(self);
+
         // Step 4
         transaction.set_active_flag(false);
 
@@ -205,10 +209,10 @@ impl IDBOpenDBRequest {
                 // Step 8.6
                 txn.set_active_flag(false);
 
-                // Implementation specific: we fire the success on db here
-                // to make sure the success event occurs after the upgrade event.
+                // Wait for the upgrade transaction to finish; its completion
+                // handler will now dispatch the open request's "success" event
+                // after all other queued request success events.
                 txn.wait();
-                this.dispatch_success(&conn);
             }),
         );
 
