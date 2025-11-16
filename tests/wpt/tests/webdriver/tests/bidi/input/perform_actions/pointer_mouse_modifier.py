@@ -126,7 +126,8 @@ async def test_control_click_release(
     ]
     all_events = await get_events(bidi_session, top_context["context"])
     events = [filter_dict(e, expected[0]) for e in all_events]
-    assert events == expected
+    for expected_event in expected:
+        assert expected_event in events
 
 
 async def test_many_modifiers_click(

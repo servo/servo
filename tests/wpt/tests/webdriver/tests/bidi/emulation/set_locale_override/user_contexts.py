@@ -7,9 +7,9 @@ async def test_user_contexts(
     bidi_session,
     create_user_context,
     new_tab,
-    some_locale,
     assert_locale_against_default,
     assert_locale_against_value,
+    some_locale,
 ):
     user_context = await create_user_context()
     context_in_user_context = await bidi_session.browsing_context.create(
@@ -41,9 +41,9 @@ async def test_set_to_default_user_context(
     bidi_session,
     new_tab,
     create_user_context,
-    some_locale,
     assert_locale_against_default,
     assert_locale_against_value,
+    some_locale,
 ):
     user_context = await create_user_context()
     context_in_user_context = await bidi_session.browsing_context.create(
@@ -76,8 +76,8 @@ async def test_set_to_default_user_context(
 async def test_set_to_multiple_user_contexts(
     bidi_session,
     create_user_context,
-    some_locale,
     assert_locale_against_value,
+    some_locale,
 ):
     user_context_1 = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(
@@ -98,10 +98,10 @@ async def test_set_to_multiple_user_contexts(
 async def test_set_to_user_context_and_then_to_context(
     bidi_session,
     create_user_context,
-    some_locale,
     another_locale,
     assert_locale_against_default,
     assert_locale_against_value,
+    some_locale,
 ):
     user_context = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(
@@ -155,10 +155,10 @@ async def test_set_to_user_context_and_then_to_context(
 async def test_set_to_context_and_then_to_user_context(
     bidi_session,
     create_user_context,
-    some_locale,
     another_locale,
     assert_locale_against_default,
     assert_locale_against_value,
+    some_locale,
 ):
     user_context = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(

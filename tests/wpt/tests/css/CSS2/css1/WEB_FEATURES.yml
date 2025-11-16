@@ -1,0 +1,17 @@
+features:
+- name: background
+  files:
+  - c537-bgfxps-000.xht
+- name: background-attachment
+  files:
+  - c535-bg-fixd-000.xht
+- name: background-image
+  files:
+  - c533-bgimage-*
+- name: background-position
+  files:
+  - c536-bgpos-*
+- name: background-repeat
+  files:
+  - c534-bgre-*
+  - c534-bgreps-*

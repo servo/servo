@@ -99,14 +99,46 @@ async def default_navigator_languages(get_current_navigator_languages, top_conte
 
 
 @pytest_asyncio.fixture
+async def default_accept_language(bidi_session, get_fetch_headers, top_context, url):
+    """
+    Returns default value of `Accept-Language` header.
+    """
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url("/webdriver/tests/bidi/browsing_context/support/empty.html"),
+        wait="complete"
+    )
+    headers = await get_fetch_headers(top_context)
+    return headers["accept-language"][0] if "accept-language" in headers else None
+
+
+@pytest_asyncio.fixture
+async def assert_accept_language(bidi_session, assert_header_present, url):
+    """
+    Assert value of `Accept-Language` header.
+    """
+    async def assert_accept_language(context, value, sandbox_name=None):
+        await bidi_session.browsing_context.navigate(
+            context=context["context"],
+            url=url("/webdriver/tests/bidi/browsing_context/support/empty.html"),
+            wait="complete"
+        )
+        await assert_header_present(context, "accept-language", value, sandbox_name)
+
+    return assert_accept_language
+
+
+@pytest_asyncio.fixture
 async def assert_locale_against_default(
     top_context,
-    get_current_locale,
-    get_current_navigator_language,
-    get_current_navigator_languages,
+    assert_accept_language,
     default_locale,
     default_navigator_language,
     default_navigator_languages,
+    default_accept_language,
+    get_current_locale,
+    get_current_navigator_language,
+    get_current_navigator_languages,
 ):
     """
     Assert JS locale and navigator.language/s against default values.
@@ -130,6 +162,7 @@ async def assert_locale_against_default(
             await get_current_navigator_languages(context, sandbox_name)
             == default_navigator_languages
         )
+        await assert_accept_language(context, default_accept_language, sandbox_name)
 
     return assert_locale_against_default
 
@@ -137,6 +170,7 @@ async def assert_locale_against_default(
 @pytest_asyncio.fixture
 async def assert_locale_against_value(
     top_context,
+    assert_accept_language,
     get_current_locale,
     get_current_navigator_language,
     get_current_navigator_languages,
@@ -153,6 +187,7 @@ async def assert_locale_against_value(
         assert await get_current_locale(context, sandbox_name) == value
         assert await get_current_navigator_language(context, sandbox_name) == value
         assert await get_current_navigator_languages(context, sandbox_name) == [value]
+        await assert_accept_language(context, value)
 
     return assert_locale_against_value
 

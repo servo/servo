@@ -1,42 +1,25 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: border-width: inherit</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/border/width/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-style-properties"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties"/>
+  <link rel="help" href="https://www.w3.org/Style/css2-updates/REC-CSS2-20110607-errata.html#s.6.2.1"/>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2768"/>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11494"/>
+  <link rel="match" href="border-width-011-ref.xht" />
 
-<html xmlns="http://www.w3.org/1999/xhtml">
-
- <head>
-
-  <title>CSS Test: Border-width: inherit - border-style: hidden</title>
-
-  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
-  <link rel="help" title="Section 8.5.1 Border width" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
-  <link rel="match" href="../reference/ref-if-there-is-no-red.xht" />
-
-  <meta content="The border-width computed value is '0' if the border style is 'none' or 'hidden'." name="assert" />
-
-  <style type="text/css"><![CDATA[
-  #parent
-  {
-  border-color: red;
-  border-style: hidden;
-  border-width: 50px;
-  }
-
-  #child
-  {
-  border-color: red;
-  border-style: solid;
-  border-width: inherit;
-  }
-  ]]></style>
-
+  <style type="text/css">
+   /* this results in a specified value of 2em  */
+   body { border-width: 2em; border-style: hidden; }
+   /* this then inherits from the above border-width, and checks the computed value is inherited */
+   p { border-width: inherit; border-style: solid; border-color: green; color: green; }
+  </style>
  </head>
-
  <body>
-
-  <p>Test passes if there is <strong>no red</strong>.</p>
-
-  <div id="parent">
-    <div id="child"></div>
-  </div>
-
- </body>
+  <p>This text should be green.</p>
+</body>
 </html>

@@ -2,3 +2,6 @@ features:
 - name: preserves-pitch
   files:
   - preserves-pitch.html
+- name: audio
+  files:
+  - audio_*

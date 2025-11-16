@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .grid {
+    display: grid;
+    grid-template: repeat(3, 100px) / repeat(3, 100px);
+    gap: 20px;
+    position: relative;
+  }
+  .item {
+    width: 100%;
+    height: 100%;
+    background: lightgray;
+    opacity: 0.8;
+  }
+  .col-gaps {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 107px;
+    column-gap: 114px;
+  }
+  .col-gap-1-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 340px;
+  }
+  .col-gap {
+    background: blue;
+    width: 6px;
+    height: 120px;
+  }
+  .col-gap-2-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    height: 340px;
+  }
+  .row-gaps {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 107px;
+    left: 0px;
+    row-gap: 114px;
+  }
+  .row-gap-1-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    width: 340px;
+  }
+  .row-gap {
+    background: red;
+    width: 110px;
+    height: 6px;
+  }
+  .row-gap-2-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    column-gap: 20px;
+    height: 340px;
+  }
+</style>
+<div class="grid">
+  <div class="item" style="grid-area: 1 / 1 / 2 / 3"></div>
+  <div class="item" style="grid-area: 1 / 3 / 4 / 4"></div>
+  <div class="item" style="grid-area: 2 / 1 / 3 / 2"></div>
+
+  <div class="col-gaps">
+    <div class="col-gap-1-group">
+      <div class="col-gap" style="height: 100px;"></div>
+    </div>
+
+    <div class="col-gap-2-group">
+      <div class="col-gap"></div>
+      <div class="col-gap"></div>
+      <div class="col-gap"></div>
+    </div>
+  </div>
+
+  <div class="row-gaps">
+    <div class="row-gap-1-group">
+      <div class="row-gap"></div>
+      <div class="row-gap"></div>
+    </div>
+
+    <div class="row-gap-2-group">
+      <div class="row-gap" style="width: 100px;"></div>
+    </div>
+  </div>
+</div>

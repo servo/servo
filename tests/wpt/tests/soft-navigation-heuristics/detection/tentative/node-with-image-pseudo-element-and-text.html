@@ -27,9 +27,8 @@
     const url = 'soft-nav-1';
 
     navigateButton.addEventListener('click', async () => {
-      const firstIcpPromise = SoftNavigationTestHelper.getPerformanceEntries(
-        'interaction-contentful-paint',
-        /* minNumEntries= */ 1);
+      const firstIcpPromise =
+        SoftNavigationTestHelper.getPerformanceEntries('interaction-contentful-paint');
 
       container.innerHTML = `<div><div id="content">Text</div></div>`;
       history.pushState({}, '', url);
@@ -44,9 +43,8 @@
 
     // Set up the PerformanceObservers before clicking to avoid races,
     // and use unbuffered here so we don't get duplicate entries.
-    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
-        'soft-navigation',
-        /* minNumEntries= */ 1);
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries('soft-navigation');
     const icpPromise = SoftNavigationTestHelper.getPerformanceEntries(
         'interaction-contentful-paint',
         /* minNumEntries= */ 2);

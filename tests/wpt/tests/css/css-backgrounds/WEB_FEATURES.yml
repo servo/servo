@@ -1,4 +1,8 @@
 features:
+- name: background
+  files:
+  - background-3*
+  - background_color_padding_box.htm
 - name: background-clip
   files:
   - background-clip*
@@ -7,3 +11,58 @@ features:
   files:
   - border-image*
   - css3-border-image*
+- name: background-attachment
+  files:
+  - background-attachment-*
+  - local-attachment-content-box-scroll.html
+  - table-cell-background-local*
+- name: background-color
+  files:
+  - background-color-*
+  # The above pattern matches a number of tests which do not use the
+  # `background-color` property but which nonetheless test relevant semantics
+  # via the `background` shorthand:
+  # - background-color-body-propagation-004.html
+  # - background-color-body-propagation-005.html
+  # - background-color-body-propagation-006.html
+  # - background-color-body-propagation-007.html
+  # - background-color-root-propagation-001.html
+  # - background-color-root-propagation-002.html
+  - background-none-none-and-color.html
+  - background_color_padding_box.htm
+  - bg-color-with-gradient.html
+  - color-behind-images.htm
+- name: background-image
+  files:
+  # The presence of a number of unrelated test files whose name begins with
+  # `background-color-` makes the `0` in following pattern the most
+  # stable/concise way to express this classifier.
+  - background-image-0*
+  - background-image-first-letter.html
+  - background-image-first-line.html
+  - background-image-large-with-auto.html
+  - background-image-shared-stylesheet.html
+  - background-image-table-cells-straddling-no-repeat.html
+  - background-image-table-cells-zoomed.html
+  - color-behind-images.htm
+  - none-as-image-layer.htm
+  - order-of-images.htm
+  - scroll-positioned-multiple-background-images.html
+- name: background-origin
+  files:
+  - background-origin-*
+  - css3-background-origin-*
+- name: background-position
+  files:
+  - background-position-*
+  - scroll-positioned-multiple-background-images.html
+- name: background-repeat
+  files:
+  - background-repeat-*
+  - background_repeat_*
+- name: background-size
+  files:
+  - background-image-cover-zoomed-1.html
+  - background-image-large-with-auto.html
+  - background-size-*
+  - css3-background-size*

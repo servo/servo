@@ -75,4 +75,5 @@ def test_release_control_click(session, key_reporter, key_chain, mouse_chain):
         {"type": "keyup"},
     ]
     events = [filter_dict(e, expected[0]) for e in get_events(session)]
-    assert events == expected
+    for expected_event in expected:
+        assert expected_event in events

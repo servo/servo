@@ -6,10 +6,10 @@ pytestmark = pytest.mark.asyncio
 async def test_locale_set_override_and_reset(
     bidi_session,
     new_tab,
-    some_locale,
     another_locale,
     assert_locale_against_default,
     assert_locale_against_value,
+    some_locale,
 ):
     await assert_locale_against_default(new_tab)
 

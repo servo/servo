@@ -56,10 +56,8 @@
           // Now, click almost_soft_nav_div, and observe that time image
           // was rendered but no soft nav was triggered.
           {
-            const element_timing_promise = helper.getBufferedPerformanceEntriesWithTimeout(
-              /*type=*/ "element",
-              /*minNumEntries=*/ 1,
-            );
+            const element_timing_promise =
+                helper.getBufferedPerformanceEntriesWithTimeout("element");
             if (test_driver) {
               test_driver.click(almost_soft_nav_div);
             }
@@ -77,10 +75,8 @@
 
           // Now, click soft_nav_div, and observe the detected soft navigation.
           {
-            const soft_nav_promise = helper.getBufferedPerformanceEntriesWithTimeout(
-              /*type=*/ "soft-navigation",
-              /*minNumEntries=*/ 1,
-            );
+            const soft_nav_promise =
+                helper.getBufferedPerformanceEntriesWithTimeout("soft-navigation");
             if (test_driver) {
               test_driver.click(soft_nav_div);
             }

@@ -25,10 +25,6 @@ def main(request, response):
   start_on_s = f"'{start_on[0]}'" if start_on else "null"
 
   headers = [("Content-Type", "text/html")]
-  # We always permit partitioned popins to be loaded for testing.
-  # See https://explainers-by-googlers.github.io/partitioned-popins/
-  if request.headers.get(b"Sec-Popin-Context") == b"partitioned":
-    headers.append((b'Popin-Policy', b"partitioned=*"))
 
   # This sets a base href so that even if this content e.g. data or blob URLs
   # document, relative URLs will resolve.

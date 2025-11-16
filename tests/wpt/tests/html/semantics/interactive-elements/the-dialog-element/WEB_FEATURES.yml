@@ -14,3 +14,11 @@ features:
   files:
   - dialog-requestclose.html
   - dialog-requestclose-*
+- name: backdrop
+  files:
+  - backdrop-*
+  - dialogs-with-no-backdrop.html
+  - modal-dialog-backdrop.html
+  - modal-dialog-backdrop-opacity.html
+  - modal-dialog-display-contents.html
+  - modal-dialog-generated-content.html

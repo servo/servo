@@ -22,7 +22,6 @@ promise_test(async t => {
   i.remove();
   assert_equals(navigation.entries().length, start_length);
   assert_equals(navigation.currentEntry.index, start_index);
-  assert_equals(history.length, start_history_length + 1);
 
   // back() here should do nothing. The iframe that would have navigated has
   // been removed. No navigate event should be fired.

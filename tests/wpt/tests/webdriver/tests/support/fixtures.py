@@ -330,7 +330,7 @@ def iframe(inline):
 
 @pytest.fixture
 def get_actions_origin_page(inline):
-    """Create a test pagefor action origin tests, recording mouse coordinates
+    """Create a test page for action origin tests, recording mouse coordinates
     automatically on window.coords."""
 
     def get_actions_origin_page(inner_style, outer_style=""):

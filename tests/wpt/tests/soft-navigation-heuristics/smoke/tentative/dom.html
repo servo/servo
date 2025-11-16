@@ -103,10 +103,8 @@
     <script>
       function test_template(test_id, description) {
         promise_test(async (t) => {
-          const promise = SoftNavigationTestHelper.getPerformanceEntries(
-            "soft-navigation",
-            /* minNumEntries= */ 1,
-          );
+          const promise =
+              SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
           if (test_driver) {
             test_driver.click(document.getElementById(test_id));
           }

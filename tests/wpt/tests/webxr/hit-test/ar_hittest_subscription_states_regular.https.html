@@ -20,8 +20,8 @@ const fakeDeviceInitParams = {
 // |endSession| - true if the test case should call session.end() prior to requesting hit test
 // |expectedError| - expected error name that should be returned in case shouldSucceed is false
 const testFunctionGeneratorRegular = function(shouldSucceed, endSession, expectedError) {
-  const testFunction = function(session, fakeDeviceController, t) {
-    session.requestReferenceSpace('viewer').then((viewerRefSpace) => {
+  const testFunction = async function(session, fakeDeviceController, t) {
+      const viewerRefSpace = await session.requestReferenceSpace('viewer');
 
       const hitTestOptionsInit = {
         space: viewerRefSpace,
@@ -32,20 +32,20 @@ const testFunctionGeneratorRegular = function(shouldSucceed, endSession, expecte
         session.end();
       }
 
-      return session.requestHitTestSource(hitTestOptionsInit).then((hitTestSource) => {
-        t.step(() => {
-          assert_true(shouldSucceed,
-            "`requestHitTestSource` succeeded when it was expected to fail");
-        });
-      }).catch((error) => {
-        t.step(() => {
-          assert_false(shouldSucceed,
-            "`requestHitTestSource` failed when it was expected to succeed, error: " + error);
-          assert_equals(error.name, expectedError,
-            "`requestHitTestSource` failed with unexpected error name");
-        });
-      });
-    });
+      try {
+          const hitTestSource = await session.requestHitTestSource(hitTestOptionsInit);
+          t.step(() => {
+              assert_true(shouldSucceed,
+                  "`requestHitTestSource` succeeded when it was expected to fail");
+          });
+      } catch(error) {
+          t.step(() => {
+              assert_false(shouldSucceed,
+                  "`requestHitTestSource` failed when it was expected to succeed, error: " + error);
+              assert_equals(error.name, expectedError,
+                  "`requestHitTestSource` failed with unexpected error name");
+          });
+      };
   };
 
   return testFunction;

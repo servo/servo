@@ -29,11 +29,8 @@ Notes:
   let t = async_test(
     "Only expose element attribute for fully active documents (after soft navigation)",
   );
-  const softNavigationPromise = SoftNavigationTestHelper.getPerformanceEntries(
-    /*type=*/ "largest-contentful-paint",
-    /*include_soft_navigation=*/ true,
-    /*min_entries=*/ 1,
-  );
+  const softNavigationPromise =
+      SoftNavigationTestHelper.getPerformanceEntries("largest-contentful-paint");
   if (test_driver) {
     test_driver.click(document.getElementById("click-target"));
   }

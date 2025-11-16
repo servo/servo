@@ -24,6 +24,9 @@ test_valid_value('width', 'random(element-shared --foo, 0px, 100px, 50px)', 'ran
 test_valid_value('width', 'random(element-shared auto, 0px, 100px, 50px)', 'random(element-shared, 0px, 100px, 50px)');
 test_valid_value('width', 'random(fixed 0.5, 0px, 100px, 50px)');
 
+// Test consistent types
+test_valid_value('width', 'random(10px, 20%)');
+
 // Test out of order.
 test_valid_value('width', 'random(100px, 0px)');
 

@@ -1,0 +1,4 @@
+features:
+- name: background-image
+  files:
+  - root-element-background-image-*

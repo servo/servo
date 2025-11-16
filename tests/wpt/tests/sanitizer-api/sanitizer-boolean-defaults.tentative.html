@@ -25,20 +25,25 @@ test(t => {
     return div.innerHTML.includes("<!--");
   }
 
-  assert_false(new Sanitizer().get().comments, "1");
-  assert_true(new Sanitizer({}).get().comments, "2");
-  assert_true(new Sanitizer({comments: true}).get().comments, "3");
-  assert_false(new Sanitizer({comments: false}).get().comments, "4");
+  // Parameter-less constructor.
+  assert_false(new Sanitizer().get().comments);
+  assert_true(try_unsafe());
+  assert_false(try_safe());
 
-  assert_true(try_unsafe(), "5");
-  assert_true(try_unsafe({sanitizer:{}}), "6");
-  assert_true(try_unsafe({sanitizer:{comments:true}}), "7");
-  assert_false(try_unsafe({sanitizer:{comments:false}}), "8");
+  // Constructed from empty dictionary.
+  assert_true(new Sanitizer({}).get().comments);
+  assert_true(try_unsafe({sanitizer:{}}));
+  assert_false(try_safe({sanitizer:{}}));
 
-  assert_false(try_safe(), "9");
-  assert_false(try_safe({sanitizer:{}}), "10");
-  assert_true(try_safe({sanitizer:{comments:true}}), "11");
-  assert_false(try_safe({sanitizer:{comments:false}}), "12");
+  // Explicitly set to true.
+  assert_true(new Sanitizer({comments: true}).get().comments);
+  assert_true(try_unsafe({sanitizer:{comments:true}}));
+  assert_true(try_safe({sanitizer:{comments:true}}));
+
+  // Explicitly set to false.
+  assert_false(new Sanitizer({comments: false}).get().comments);
+  assert_false(try_unsafe({sanitizer:{comments:false}}));
+  assert_false(try_safe({sanitizer:{comments:false}}));
 }, "comments");
 
 // Data Attributes:
@@ -54,20 +59,37 @@ test(t => {
     return div.innerHTML.includes("data-foo");
   }
 
-  assert_false(new Sanitizer().get().dataAttributes, "1");
-  assert_true(new Sanitizer({}).get().dataAttributes, "2");
-  assert_true(new Sanitizer({dataAttributes: true}).get().dataAttributes, "3");
-  assert_false(new Sanitizer({dataAttributes: false}).get().dataAttributes, "4");
+  // Parameter-less constructor.
+  assert_false(new Sanitizer().get().dataAttributes);
+  assert_true(try_unsafe());
+  assert_false(try_safe());
 
-  assert_true(try_unsafe(), "5");
-  assert_true(try_unsafe({sanitizer:{}}), "6");
-  assert_true(try_unsafe({sanitizer:{dataAttributes:true}}), "7");
-  assert_false(try_unsafe({sanitizer:{dataAttributes:false}}), "8");
+  // Constructed from empty dictionary: Canonicalization removes dataAttributes.
+  assert_equals(undefined, new Sanitizer({}).get().dataAttributes);
+  assert_true(try_unsafe({sanitizer:{}}));
+  assert_true(try_safe({sanitizer:{}}));
 
-  assert_false(try_safe(), "9");
-  assert_false(try_safe({sanitizer:{}}), "10");
-  assert_true(try_safe({sanitizer:{dataAttributes:true}}), "11");
-  assert_false(try_safe({sanitizer:{dataAttributes:false}}), "12");
+  // Explicitly set to true.
+  const dataAttributes_is_true = {attributes:[], dataAttributes: true};
+  assert_true(new Sanitizer(dataAttributes_is_true).get().dataAttributes);
+  assert_true(try_unsafe({sanitizer:dataAttributes_is_true}));
+  assert_true(try_safe({sanitizer:dataAttributes_is_true}));
+
+  // Explicitly set to false.
+  const dataAttributes_is_false = {attributes:[], dataAttributes: false};
+  assert_false(new Sanitizer(dataAttributes_is_false).get().dataAttributes);
+  assert_false(try_unsafe({sanitizer:dataAttributes_is_false}));
+  assert_false(try_safe({sanitizer:dataAttributes_is_false}));
+
+  // dataAttributes not set.
+  // (This case is different from the "empty dictionary" case above, because
+  // constructing from an empty dictionary adds a removeAttributes key and thus
+  // dataAttributes is removed, too. But this case has an explicit attributes
+  // key and thus dataAttributes should be added by the canonicalization.)
+  const dataAttributes_is_not_set = {attributes:[]};
+  assert_true(new Sanitizer(dataAttributes_is_not_set).get().dataAttributes);
+  assert_true(try_unsafe({sanitizer:dataAttributes_is_not_set}));
+  assert_false(try_safe({sanitizer:dataAttributes_is_not_set}));
 }, "data attributes");
 
 </script>

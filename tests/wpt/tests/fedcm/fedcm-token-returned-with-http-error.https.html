@@ -26,7 +26,7 @@ fedcm_test(async t => {
   } catch (e) {
     assert_true(e instanceof DOMException);
     assert_equals(e.name, "IdentityCredentialError");
-    assert_equals(e.code, "");
+    assert_equals(e.error, "");
     assert_equals(e.url, "");
   }
 }, 'Test that the promise will be rejected if the response has http error');

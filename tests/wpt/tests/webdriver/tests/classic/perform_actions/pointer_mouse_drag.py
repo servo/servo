@@ -33,11 +33,11 @@ def test_drag_and_drop(session,
         .pointer_move(80, 50, duration=100, origin="pointer") \
         .perform()
 
-    # mouseup that ends the drag is at the expected destination
-    e = get_events(session)[1]
-    assert e["type"] == "mouseup"
-    assert e["pageX"] == pytest.approx(initial_center["x"] + dx, abs=1.0)
-    assert e["pageY"] == pytest.approx(initial_center["y"] + dy, abs=1.0)
+    # `mouseup` that ends the drag is at the expected destination
+    events = get_events(session)
+    assert events[1]["type"] == "mouseup"
+    assert events[1]["pageX"] == pytest.approx(initial_center["x"] + dx, abs=1.0)
+    assert events[1]["pageY"] == pytest.approx(initial_center["y"] + dy, abs=1.0)
 
     def check_final_position(_):
         assert drag_target.rect["x"] == pytest.approx(
@@ -70,12 +70,12 @@ def test_drag_and_drop_with_draggable_element(session_new_window,
         .pointer_move(80, 50, duration=100, origin="pointer") \
         .perform()
     # mouseup that ends the drag is at the expected destination
-    e = get_events(new_session)
-    assert len(e) >= 5
-    assert e[1]["type"] == "dragstart", "Events captured were {}".format(e)
-    assert e[2]["type"] == "dragover", "Events captured were {}".format(e)
+    events = get_events(session_new_window)
+    assert len(events) >= 5
+    assert events[1]["type"] == "dragstart", "Events captured were {}".format(events)
+    assert events[2]["type"] == "dragover", "Events captured were {}".format(events)
     drag_events_captured = [
-        ev["type"] for ev in e if ev["type"].startswith("drag") or ev["type"].startswith("drop")
+        ev["type"] for ev in events if ev["type"].startswith("drag") or ev["type"].startswith("drop")
     ]
     assert "dragend" in drag_events_captured
     assert "dragenter" in drag_events_captured

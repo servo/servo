@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: rule-inset shorthands</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#propdef-rule-inset">
+<meta name="assert"
+    content="rule-inset supports the full grammar '<length-percentage> <length-percentage>? /[<length-percentage> <length-percentage>?]?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+    <script>
+        const rule_properties = {
+            'rule-inset': ['column-rule-edge-start-inset', 'column-rule-edge-end-inset',
+                'column-rule-interior-start-inset', 'column-rule-interior-end-inset',
+                'row-rule-edge-start-inset', 'row-rule-edge-end-inset',
+                'row-rule-interior-start-inset', 'row-rule-interior-end-inset']
+        };
+
+        const bidirectionalTestCases = [
+            {
+                input: '0px',
+                expected: {
+                    columnRuleEdgeStartInset: '0px',
+                    columnRuleEdgeEndInset: '0px',
+                    columnRuleInteriorStartInset: '0px',
+                    columnRuleInteriorEndInset: '0px',
+                    rowRuleEdgeStartInset: '0px',
+                    rowRuleEdgeEndInset: '0px',
+                    rowRuleInteriorStartInset: '0px',
+                    rowRuleInteriorEndInset: '0px'
+                }
+            },
+            {
+                input: '10px',
+                expected: {
+                    columnRuleEdgeStartInset: '10px',
+                    columnRuleEdgeEndInset: '10px',
+                    columnRuleInteriorStartInset: '10px',
+                    columnRuleInteriorEndInset: '10px',
+                    rowRuleEdgeStartInset: '10px',
+                    rowRuleEdgeEndInset: '10px',
+                    rowRuleInteriorStartInset: '10px',
+                    rowRuleInteriorEndInset: '10px'
+                }
+            },
+            {
+                input: '50%',
+                expected: {
+                    columnRuleEdgeStartInset: '50%',
+                    columnRuleEdgeEndInset: '50%',
+                    columnRuleInteriorStartInset: '50%',
+                    columnRuleInteriorEndInset: '50%',
+                    rowRuleEdgeStartInset: '50%',
+                    rowRuleEdgeEndInset: '50%',
+                    rowRuleInteriorStartInset: '50%',
+                    rowRuleInteriorEndInset: '50%',
+                }
+            },
+            {
+                input: '10px 20px',
+                expected: {
+                    columnRuleEdgeStartInset: '10px',
+                    columnRuleEdgeEndInset: '20px',
+                    columnRuleInteriorStartInset: '10px',
+                    columnRuleInteriorEndInset: '20px',
+                    rowRuleEdgeStartInset: '10px',
+                    rowRuleEdgeEndInset: '20px',
+                    rowRuleInteriorStartInset: '10px',
+                    rowRuleInteriorEndInset: '20px',
+                }
+            },
+            {
+                input: '10px 20px / 30px',
+                expected: {
+                    columnRuleEdgeStartInset: '10px',
+                    columnRuleEdgeEndInset: '20px',
+                    columnRuleInteriorStartInset: '30px',
+                    columnRuleInteriorEndInset: '30px',
+                    rowRuleEdgeStartInset: '10px',
+                    rowRuleEdgeEndInset: '20px',
+                    rowRuleInteriorStartInset: '30px',
+                    rowRuleInteriorEndInset: '30px',
+                }
+            },
+            {
+                input: '10px / 20px 30px',
+                expected: {
+                    columnRuleEdgeStartInset: '10px',
+                    columnRuleEdgeEndInset: '10px',
+                    columnRuleInteriorStartInset: '20px',
+                    columnRuleInteriorEndInset: '30px',
+                    rowRuleEdgeStartInset: '10px',
+                    rowRuleEdgeEndInset: '10px',
+                    rowRuleInteriorStartInset: '20px',
+                    rowRuleInteriorEndInset: '30px',
+                }
+            },
+            {
+                input: '10px 20px / 30px 40px',
+                expected: {
+                    columnRuleEdgeStartInset: '10px',
+                    columnRuleEdgeEndInset: '20px',
+                    columnRuleInteriorStartInset: '30px',
+                    columnRuleInteriorEndInset: '40px',
+                    rowRuleEdgeStartInset: '10px',
+                    rowRuleEdgeEndInset: '20px',
+                    rowRuleInteriorStartInset: '30px',
+                    rowRuleInteriorEndInset: '40px',
+                }
+            },
+
+        ];
+
+
+        for (rule_property in rule_properties) {
+            const test_cases = bidirectionalTestCases;
+
+            for (const { input, expected } of test_cases) {
+                const [columnRuleEdgeStartInset, columnRuleEdgeEndInset, columnRuleInteriorStartInset, columnRuleInteriorEndInset, rowRuleEdgeStartInset, rowRuleEdgeEndInset, rowRuleInteriorStartInset, rowRuleInteriorEndInset] = rule_properties[rule_property];
+
+                test_shorthand_value(rule_property, input, {
+                    [columnRuleEdgeStartInset]: expected.columnRuleEdgeStartInset,
+                    [columnRuleEdgeEndInset]: expected.columnRuleEdgeEndInset,
+                    [columnRuleInteriorStartInset]: expected.columnRuleInteriorStartInset,
+                    [columnRuleInteriorEndInset]: expected.columnRuleInteriorEndInset,
+                    [rowRuleEdgeStartInset]: expected.rowRuleEdgeStartInset,
+                    [rowRuleEdgeEndInset]: expected.rowRuleEdgeEndInset,
+                    [rowRuleInteriorStartInset]: expected.rowRuleInteriorStartInset,
+                    [rowRuleInteriorEndInset]: expected.rowRuleInteriorEndInset,
+                });
+            }
+        }
+    </script>
+</body>
+</html>

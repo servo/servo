@@ -38,8 +38,8 @@
   });
 
   promise_test(async t => {
-    const softNavPromise = SoftNavigationTestHelper.getPerformanceEntries(
-        "soft-navigation", /* minNumEntries= */ 1);
+    const softNavPromise =
+        SoftNavigationTestHelper.getPerformanceEntries("soft-navigation");
     const helper = new SoftNavigationTestHelper(t);
     const softNavs = await helper.withTimeoutMessage(
         softNavPromise, "Soft navigation not detected.", /*timeout=*/ 3000);
