@@ -14,6 +14,7 @@ pub use base::generic_channel::GenericReceiver as WebGLReceiver;
 pub use base::generic_channel::GenericSender as WebGLSender;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use base::generic_channel::SendResult as WebGLSendResult;
+use base::id::PainterId;
 use euclid::default::{Rect, Size2D};
 use glow::{
     self as gl, NativeBuffer, NativeFence, NativeFramebuffer, NativeProgram, NativeQuery,
@@ -90,6 +91,7 @@ impl WebGLThreads {
 pub enum WebGLMsg {
     /// Creates a new WebGLContext.
     CreateContext(
+        PainterId,
         WebGLVersion,
         Size2D<u32>,
         GLContextAttributes,

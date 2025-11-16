@@ -6,7 +6,6 @@ use std::collections::HashMap;
 
 use glow as gl;
 use glow::{Context as Gl, HasContext};
-use surfman::Device as SurfmanDevice;
 use webxr_api::{ContextId, GLContexts, LayerId};
 
 use crate::SurfmanGL;
@@ -89,7 +88,6 @@ impl GlClearer {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn clear(
         &mut self,
-        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         layer_id: LayerId,
@@ -97,7 +95,7 @@ impl GlClearer {
         color_target: u32,
         depth_stencil: Option<glow::NativeTexture>,
     ) {
-        let gl = match contexts.bindings(device, context_id) {
+        let gl = match contexts.bindings(context_id) {
             None => return,
             Some(gl) => gl,
         };
@@ -158,12 +156,11 @@ impl GlClearer {
 
     pub(crate) fn destroy_layer(
         &mut self,
-        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         layer_id: LayerId,
     ) {
-        let gl = match contexts.bindings(device, context_id) {
+        let gl = match contexts.bindings(context_id) {
             None => return,
             Some(gl) => gl,
         };

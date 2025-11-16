@@ -105,7 +105,7 @@ impl Drop for SurfmanRenderingContext {
 
 impl SurfmanRenderingContext {
     fn new(connection: &Connection, adapter: &Adapter) -> Result<Self, Error> {
-        let mut device = connection.create_device(adapter)?;
+        let device = connection.create_device(adapter)?;
 
         let flags = ContextAttributeFlags::ALPHA |
             ContextAttributeFlags::DEPTH |
@@ -441,7 +441,7 @@ impl WindowRenderingContext {
         window_handle: WindowHandle,
         size: PhysicalSize<u32>,
     ) -> Result<(), Error> {
-        let mut device = self.surfman_context.device.borrow_mut();
+        let device = self.surfman_context.device.borrow_mut();
         let mut context = self.surfman_context.context.borrow_mut();
 
         let native_widget = device

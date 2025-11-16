@@ -213,9 +213,9 @@ impl HeadlessDevice {
         }
         let swap_chains = SwapChains::new();
         let viewports = self.viewports();
-        let layer_manager = self.grand_manager.create_layer_manager(move |_, _| {
-            Ok(SurfmanLayerManager::new(viewports, swap_chains))
-        })?;
+        let layer_manager = self
+            .grand_manager
+            .create_layer_manager(move |_| Ok(SurfmanLayerManager::new(viewports, swap_chains)))?;
         self.layer_manager = Some(layer_manager);
         Ok(self.layer_manager.as_mut().unwrap())
     }

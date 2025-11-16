@@ -12,13 +12,13 @@ use std::sync::{Arc, Mutex};
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PainterId, PipelineId, WebViewId};
-use canvas_traits::webgl::{GlType, WebGLThreads};
+use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{
-    CompositorProxy, ImageUpdate, PipelineExitSource, SendableFrameTree,
+    CompositorProxy, ImageUpdate, PainterSurfmanDetailsMap, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageHandlers, WebRenderExternalImageRegistry, WebRenderImageHandlerType,
     WebViewTrait,
 };
@@ -152,6 +152,7 @@ impl Drop for Painter {
 }
 
 impl Painter {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         rendering_context: Rc<dyn RenderingContext>,
         compositor_proxy: CompositorProxy,
@@ -159,6 +160,7 @@ impl Painter {
         refresh_driver: Option<Rc<dyn RefreshDriver>>,
         shader_path: Option<PathBuf>,
         embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
+        painter_surfman_details_map: PainterSurfmanDetailsMap,
         #[cfg(feature = "webxr")] webxr_registry: Box<dyn webxr::WebXrRegistry>,
     ) -> Self {
         let webrender_gl = rendering_context.gleam_gl_api();
@@ -168,12 +170,6 @@ impl Painter {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
-
-        // Create the webgl thread
-        let gl_type = match webrender_gl.get_type() {
-            gleam::gl::GlType::Gl => GlType::Gl,
-            gleam::gl::GlType::Gles => GlType::Gles,
-        };
 
         let (external_image_handlers, webrender_external_images) =
             WebRenderExternalImageHandlers::new();
@@ -188,7 +184,7 @@ impl Painter {
             rendering_context.clone(),
             compositor_proxy.cross_process_compositor_api.clone(),
             webrender_external_images.clone(),
-            gl_type,
+            painter_surfman_details_map,
         );
 
         // Set webrender external image handler for WebGL textures
