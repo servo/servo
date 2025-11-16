@@ -80,6 +80,24 @@ install_packages() {
         python3-venv
 
     echo -e "${GREEN}✓ System packages installed${NC}"
+
+    # Ubuntu 25.10+ workaround: Create missing libudev.pc file
+    if [ ! -f /usr/lib/x86_64-linux-gnu/pkgconfig/libudev.pc ]; then
+        echo -e "${BLUE}Creating libudev.pc workaround for Ubuntu 25.10+...${NC}"
+        sudo tee /usr/lib/x86_64-linux-gnu/pkgconfig/libudev.pc > /dev/null <<'EOF'
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+
+Name: libudev
+Description: libudev - systemd udev library
+Version: 257.9
+Libs: -L${libdir} -ludev
+Cflags: -I${includedir}
+EOF
+        echo -e "${GREEN}✓ libudev.pc created${NC}"
+    fi
     echo
 }
 

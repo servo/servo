@@ -1,0 +1,10 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib/x86_64-linux-gnu
+includedir=${prefix}/include
+
+Name: libudev
+Description: libudev - systemd udev library
+Version: 257.9
+Libs: -L${libdir} -ludev
+Cflags: -I${includedir}
