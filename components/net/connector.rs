@@ -23,7 +23,7 @@ use tower_service::Service;
 
 use crate::async_runtime::spawn_task;
 use crate::hosts::replace_host;
-use crate::unix_connector::{ServoUnixConnector, SocketMapping};
+use crate::unix_connector::SocketMapping;
 
 pub const BUF_SIZE: usize = 32768;
 

@@ -58,6 +58,30 @@ impl SocketMapping {
                 socket_path
             })
     }
+
+    /// Get socket path from a URL, checking explicit path first, then hostname mappings
+    pub fn get_socket_path_from_url(&self, url_str: &str) -> Option<PathBuf> {
+        use crate::transport_url::TransportUrl;
+
+        // Parse URL to check if it has explicit socket path
+        if let Ok(transport_url) = TransportUrl::parse(url_str) {
+            // If URL has explicit socket path, use it directly
+            if let Some(socket_path) = transport_url.unix_socket_path() {
+                debug!("Using explicit socket path from URL: {}", socket_path);
+                return Some(PathBuf::from(socket_path));
+            }
+
+            // Otherwise, try to map hostname to socket path
+            if let Some(host) = transport_url.host_str() {
+                let path = self.get_socket_path(host);
+                debug!("Mapped hostname '{}' to socket: {}", host, path.display());
+                return Some(path);
+            }
+        }
+
+        debug!("Could not determine socket path from URL: {}", url_str);
+        None
+    }
 }
 
 /// A connector that uses Unix domain sockets instead of TCP
