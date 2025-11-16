@@ -818,7 +818,17 @@ impl FontGroupFamily {
                 }
 
                 if !member.loaded {
-                    member.font = font_context.font(member.template.clone(), font_descriptor);
+                    if servo_config::pref!(layout_variable_fonts_enabled) {
+                        let variation_settings =
+                            apply_font_variations(&member.template, font_descriptor);
+                        let descriptor_with_variations =
+                            font_descriptor.with_variation_settings(variation_settings);
+                        member.font =
+                            font_context.font(member.template.clone(), &descriptor_with_variations);
+                    } else {
+                        member.font = font_context.font(member.template.clone(), font_descriptor)
+                    }
+
                     member.loaded = true;
                 }
                 if matches!(&member.font, Some(font) if font_predicate(font)) {
@@ -849,6 +859,53 @@ impl FontGroupFamily {
 
         members.iter_mut()
     }
+}
+
+/// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>
+fn apply_font_variations(
+    template: &FontTemplateRef,
+    descriptor: &FontDescriptor,
+) -> Vec<FontVariation> {
+    // The steps in this algorithm are inverted order because they are listed in ascending order of precedence.
+    let mut variations: Vec<FontVariation> = vec![];
+
+    let mut add_variation = |variation: FontVariation| {
+        if !variations
+            .iter()
+            .any(|existing_variation| existing_variation.tag == variation.tag)
+        {
+            variations.push(FontVariation {
+                tag: variation.tag,
+                value: variation.value,
+            });
+        }
+    };
+
+    // Step 12. Font variations implied by the value of the font-variation-settings property are applied.
+    // These values should be clamped to the values that are supported by the font.
+    // NOTE: Clamping happens inside the PlatformFont.
+    descriptor
+        .variation_settings
+        .iter()
+        .copied()
+        .for_each(&mut add_variation);
+
+    if let Some(font_face_rule) = template.font_face_rule() {
+        // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
+        // descriptor in the @font-face rule are applied.
+        if let Some(variation_settings) = font_face_rule.variation_settings.as_ref() {
+            variation_settings
+                .0
+                .iter()
+                .map(|variation| FontVariation {
+                    tag: variation.tag.0,
+                    value: variation.value.get(),
+                })
+                .for_each(&mut add_variation);
+        }
+    }
+
+    variations
 }
 
 /// The scope within which we will look for a font.
