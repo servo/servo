@@ -8,9 +8,13 @@
 //! specifications using the syntax: `scheme::transport//authority`
 //!
 //! Examples:
-//! - `http::unix//var/run/app.sock` - HTTP over Unix domain socket
+//! - `http::unix//var/run/app.sock` - HTTP over Unix socket (relative path)
+//! - `http::unix///tmp/app.sock` - HTTP over Unix socket (absolute path, 3 slashes)
 //! - `https://example.com` - HTTPS over TCP (implied transport)
 //! - `http::tcp//localhost:8080` - HTTP over TCP (explicit transport)
+//!
+//! Note: For absolute Unix socket paths starting with `/`, use three slashes
+//! (like file:/// URLs). For relative paths, use two slashes.
 
 use std::fmt;
 
@@ -90,12 +94,15 @@ impl TransportUrl {
         let after_scheme = &url_str[scheme_end + 1..];
 
         // Step 2: Check for explicit transport (::) vs standard (://)
+        // Note: after_scheme already has the first ':' stripped, so we check for:
+        //   - "//" for standard URLs (e.g., "http://example.com")
+        //   - ":" for explicit transport (e.g., "http::unix//path")
         let (transport, explicit, authority_and_path, unix_socket_path) =
-            if after_scheme.starts_with("://") {
+            if after_scheme.starts_with("//") {
                 // Case 2: Standard URL with implied transport
                 let implied = Self::implied_transport_for_scheme(scheme);
                 debug!("  Implied transport for '{}': {}", scheme, implied);
-                (implied, false, &after_scheme[3..], None)
+                (implied, false, &after_scheme[2..], None)
             } else if after_scheme.starts_with(':') {
                 // Case 1: Explicit transport specification
                 let after_double_colon = &after_scheme[1..];
@@ -116,14 +123,40 @@ impl TransportUrl {
                 // For Unix sockets, extract the socket path
                 let unix_path = if transport == Transport::Unix {
                     // The authority for Unix sockets is the socket path
-                    // Extract up to the first '/' that starts the URL path (if any)
-                    let (socket_path, _url_path) = if let Some(path_start) =
-                        authority_and_path.find('/').filter(|&i| i > 0)
-                    {
-                        authority_and_path.split_at(path_start)
+                    // For absolute paths: /tmp/test.sock/api -> socket: /tmp/test.sock, path: /api
+                    // For relative paths: var/run/app.sock/api -> socket: var/run/app.sock, path: /api
+                    //
+                    // Strategy: Look for socket file extensions (.sock, .socket) and split after them.
+                    // This allows us to distinguish socket path from URL path.
+
+                    let socket_path = if let Some(sock_pos) = authority_and_path.find(".sock") {
+                        // Split after .sock or .socket
+                        if authority_and_path[sock_pos..].starts_with(".socket") {
+                            let end = sock_pos + 7; // ".socket" is 7 chars
+                            // Check if there's a '/' after .socket
+                            if authority_and_path.len() > end
+                                && authority_and_path.as_bytes()[end] == b'/'
+                            {
+                                &authority_and_path[..end]
+                            } else {
+                                authority_and_path
+                            }
+                        } else {
+                            let end = sock_pos + 5; // ".sock" is 5 chars
+                            // Check if there's a '/' after .sock
+                            if authority_and_path.len() > end
+                                && authority_and_path.as_bytes()[end] == b'/'
+                            {
+                                &authority_and_path[..end]
+                            } else {
+                                authority_and_path
+                            }
+                        }
                     } else {
-                        (authority_and_path, "")
+                        // No socket extension found - use entire string as socket path
+                        authority_and_path
                     };
+
                     Some(socket_path.to_string())
                 } else {
                     None
@@ -290,6 +323,27 @@ mod tests {
         assert!(url.has_explicit_transport());
         assert!(url.is_unix_socket());
         assert_eq!(url.unix_socket_path(), Some("var/run/app.sock"));
+    }
+
+    #[test]
+    fn test_parse_unix_socket_url_absolute() {
+        // Test absolute path with three slashes
+        let url = TransportUrl::parse("http::unix///tmp/test.sock").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert_eq!(url.original_scheme(), "http");
+        assert!(url.has_explicit_transport());
+        assert!(url.is_unix_socket());
+        assert_eq!(url.unix_socket_path(), Some("/tmp/test.sock"));
+    }
+
+    #[test]
+    fn test_parse_unix_socket_url_absolute_with_path() {
+        // Test absolute socket path with URL path
+        let url = TransportUrl::parse("http::unix///tmp/test.sock/api/data").unwrap();
+        assert_eq!(url.transport(), &Transport::Unix);
+        assert!(url.is_unix_socket());
+        assert_eq!(url.unix_socket_path(), Some("/tmp/test.sock"));
+        assert!(url.path().contains("api/data"));
     }
 
     #[test]

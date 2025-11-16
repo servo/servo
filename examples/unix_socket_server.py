@@ -132,7 +132,7 @@ def index():
         user_agent=request.headers.get('User-Agent', 'Unknown')
     )
 
-@app.route('/api/data')
+@app.route('/api/data', methods=['GET', 'POST'])
 def api_data():
     return jsonify({
         'status': 'success',
