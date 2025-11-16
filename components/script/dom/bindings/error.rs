@@ -20,7 +20,7 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ErrorFromException, JS_GetPendingException, JS_SetPendingException};
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue, describe_scripted_caller};
 use libc::c_uint;
 use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
@@ -236,11 +236,12 @@ impl ErrorInfo {
 
     fn from_dom_exception(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
         let exception = unsafe { root_from_object::<DOMException>(object.get(), *cx).ok()? };
+        let scripted_caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
         Some(ErrorInfo {
-            filename: "".to_string(),
             message: exception.stringifier().into(),
-            lineno: 0,
-            column: 0,
+            filename: scripted_caller.filename,
+            lineno: scripted_caller.line,
+            column: scripted_caller.col + 1,
         })
     }
 
@@ -254,6 +255,7 @@ impl ErrorInfo {
         None
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#extract-error>
     pub(crate) fn from_value(value: HandleValue, cx: SafeJSContext, can_gc: CanGc) -> ErrorInfo {
         if value.is_object() {
             rooted!(in(*cx) let object = value.to_object());
@@ -263,11 +265,14 @@ impl ErrorInfo {
         }
 
         match USVString::safe_from_jsval(cx, value, (), can_gc) {
-            Ok(ConversionResult::Success(USVString(string))) => ErrorInfo {
-                message: format!("uncaught exception: {}", string),
-                filename: String::new(),
-                lineno: 0,
-                column: 0,
+            Ok(ConversionResult::Success(USVString(string))) => {
+                let scripted_caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
+                ErrorInfo {
+                    message: format!("uncaught exception: {}", string),
+                    filename: scripted_caller.filename,
+                    lineno: scripted_caller.line,
+                    column: scripted_caller.col + 1,
+                }
             },
             _ => {
                 panic!("uncaught exception: failed to stringify primitive");

@@ -10,6 +10,8 @@ typedef (TrustedScript or DOMString or Function) TimerHandler;
 interface mixin WindowOrWorkerGlobalScope {
   [Replaceable] readonly attribute USVString origin;
 
+  undefined reportError(any e);
+
   // base64 utility methods
   [Throws] DOMString btoa(DOMString data);
   [Throws] DOMString atob(DOMString data);

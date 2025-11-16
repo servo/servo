@@ -637,15 +637,17 @@ impl DedicatedWorkerGlobalScope {
         true
     }
 
-    // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
+    /// Step 7.2 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
+        // Step 7.2.1. Let workerObject be the Worker object associated with global.
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(forward_error_to_worker_object: move || {
             let worker = worker.root();
             let global = worker.global();
 
-            // Step 1.
+            // Step 7.2.2. Set notHandled to the result of firing an event named error at workerObject, using ErrorEvent,
+            // with the cancelable attribute initialized to true, and additional attributes initialized according to errorInfo.
             let event = ErrorEvent::new(
                 &global,
                 atom!("error"),
@@ -659,7 +661,7 @@ impl DedicatedWorkerGlobalScope {
                 CanGc::note(),
             );
 
-            // Step 2.
+            // Step 7.2.3. If notHandled is true, then report exception for workerObject's relevant global object with omitError set to true.
             if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note()) {
                 global.report_an_error(error_info, HandleValue::null(), CanGc::note());
             }
