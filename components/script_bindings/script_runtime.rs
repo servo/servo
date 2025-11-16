@@ -22,6 +22,16 @@ impl JSContext {
     pub unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
         JSContext(raw_js_context)
     }
+
+    /// For compatibility with [js::context::JSContext]
+    pub fn raw_cx(&self) -> *mut RawJSContext {
+        self.0
+    }
+
+    /// For compatibility with [js::context::JSContext]
+    pub fn raw_cx_no_gc(&self) -> *mut RawJSContext {
+        self.0
+    }
 }
 
 impl Deref for JSContext {
