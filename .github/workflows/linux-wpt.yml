@@ -81,7 +81,7 @@ jobs:
           mkdir -p wpt-full-logs/linux
           ./mach test-wpt \
             $WPT_ALWAYS_SUCCEED_ARG \
-            --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
+            --profile ${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
