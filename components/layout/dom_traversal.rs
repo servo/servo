@@ -126,6 +126,9 @@ fn traverse_children_of<'dom>(
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
+    parent_element_info
+        .node
+        .set_uses_content_attribute_with_attr(false);
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
 
     // TODO(stevennovaryo): In the past we are rendering text input as a normal element,
@@ -378,6 +381,9 @@ fn generate_pseudo_element_content(
                             false => &*attr.attribute,
                         };
 
+                        pseudo_element_info
+                            .node
+                            .set_uses_content_attribute_with_attr(true);
                         let attr_val =
                             element.get_attr(&attr.namespace_url, &LocalName::from(attr_name));
                         vec.push(PseudoElementContentItem::Text(
