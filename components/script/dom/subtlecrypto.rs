@@ -3084,8 +3084,8 @@ impl NormalizedAlgorithm {
             (ALG_HMAC, NormalizedAlgorithm::HmacImportParams(algo)) => {
                 hmac_operation::get_key_length(algo)
             },
-            (ALG_HKDF, NormalizedAlgorithm::HkdfParams(_algo)) => hkdf_operation::get_key_length(),
-            (ALG_PBKDF2, NormalizedAlgorithm::Pbkdf2Params(_algo)) => {
+            (ALG_HKDF, NormalizedAlgorithm::Algorithm(_algo)) => hkdf_operation::get_key_length(),
+            (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::get_key_length()
             },
             _ => Err(Error::NotSupported),
