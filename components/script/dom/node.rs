@@ -244,6 +244,9 @@ bitflags! {
         /// Whether this node resides in UA shadow DOM. Element within UA Shadow DOM
         /// will have a different style computation behavior
         const IS_IN_UA_WIDGET = 1 << 12;
+
+        /// Whether this node has a pseudo-element style which uses `attr()` in the `content` attribute.
+        const USES_ATTR_IN_CONTENT_ATTRIBUTE = 1 << 13;
     }
 }
 

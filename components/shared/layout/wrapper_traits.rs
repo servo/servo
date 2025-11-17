@@ -246,6 +246,15 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     }
 
     fn with_pseudo_element_chain(&self, pseudo_element_chain: PseudoElementChain) -> Self;
+
+    /// Set whether or not this node has an active pseudo-element style with a `content`
+    /// attribute that uses `attr`.
+    ///
+    /// # Safety
+    ///
+    /// This function accesses and modifies the underlying DOM object and should
+    /// not be used by more than a single thread at once.
+    fn set_uses_content_attribute_with_attr(&self, _uses_content_attribute_with_attr: bool);
 }
 
 pub trait ThreadSafeLayoutElement<'dom>:
