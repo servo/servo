@@ -465,6 +465,15 @@ impl SourceChildrenPointer {
     }
 }
 
+/// Generally the presence of the loop attribute should be considered to mean playback has not
+/// "ended", as "ended" and "looping" are mutually exclusive.
+/// <https://html.spec.whatwg.org/multipage/#ended-playback>
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum LoopCondition {
+    Included,
+    Ignored,
+}
+
 #[dom_struct]
 #[allow(non_snake_case)]
 pub(crate) struct HTMLMediaElement {
@@ -705,7 +714,12 @@ impl HTMLMediaElement {
 
         // Step 2. If the playback has ended and the direction of playback is forwards, seek to the
         // earliest possible position of the media resource.
-        if self.ended_playback() && self.direction_of_playback() == PlaybackDirection::Forwards {
+        // Generally "ended" and "looping" are exclusive. Here, the loop attribute is ignored to
+        // seek back to start in case loop was set after playback ended.
+        // <https://github.com/whatwg/html/issues/4487>
+        if self.ended_playback(LoopCondition::Ignored) &&
+            self.direction_of_playback() == PlaybackDirection::Forwards
+        {
             self.seek(
                 self.earliest_possible_position(),
                 /* approximate_for_speed */ false,
@@ -1590,7 +1604,7 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#potentially-playing>
     fn is_potentially_playing(&self) -> bool {
         !self.paused.get() &&
-            !self.ended_playback() &&
+            !self.ended_playback(LoopCondition::Included) &&
             self.error.get().is_none() &&
             !self.is_blocked_media_element()
     }
@@ -2148,7 +2162,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ended-playback>
-    fn ended_playback(&self) -> bool {
+    fn ended_playback(&self, loop_condition: LoopCondition) -> bool {
         // A media element is said to have ended playback when:
 
         // The element's readyState attribute is HAVE_METADATA or greater, and
@@ -2162,7 +2176,10 @@ impl HTMLMediaElement {
             // Either: The current playback position is the end of the media resource, and the
             // direction of playback is forwards, and the media element does not have a loop
             // attribute specified.
-            PlaybackDirection::Forwards => playback_position >= self.Duration() && !self.Loop(),
+            PlaybackDirection::Forwards => {
+                playback_position >= self.Duration() &&
+                    (loop_condition == LoopCondition::Ignored || !self.Loop())
+            },
             // Or: The current playback position is the earliest possible position, and the
             // direction of playback is backwards.
             PlaybackDirection::Backwards => playback_position <= self.earliest_possible_position(),
@@ -2205,7 +2222,7 @@ impl HTMLMediaElement {
 
                 // Step 3.2. If the media element has ended playback, the direction of playback is
                 // forwards, and paused is false, then:
-                if this.ended_playback() &&
+                if this.ended_playback(LoopCondition::Included) &&
                     this.direction_of_playback() == PlaybackDirection::Forwards &&
                     !this.Paused() {
                     // Step 3.2.1. Set the paused attribute to true.
@@ -3106,7 +3123,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-ended>
     fn Ended(&self) -> bool {
-        self.ended_playback() && self.direction_of_playback() == PlaybackDirection::Forwards
+        self.ended_playback(LoopCondition::Included) &&
+            self.direction_of_playback() == PlaybackDirection::Forwards
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-fastseek>
