@@ -72,6 +72,7 @@ use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
 use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
+use crate::transport_url::{Transport, TransportUrl};
 use crate::unix_connector::SocketMapping;
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
@@ -2069,18 +2070,15 @@ async fn http_network_fetch(
             (Decoder::detect(response, url.is_secure_scheme()), None)
         },
         _ => {
-            // Check if this URL should use Unix sockets
-            // Either it has explicit Unix transport, OR we have a socket mapping for this host
-            let should_use_unix = if let (Some(socket_mapping), Some(_)) =
-                (&context.state.socket_mapping, &context.state.unix_client)
-            {
-                // Check if we have a mapping for this URL
-                socket_mapping.get_socket_path_from_url(url.as_str()).is_some()
-            } else {
-                false
-            };
+            // Check if this URL explicitly uses Unix socket transport syntax
+            // e.g., http::unix//localhost or http::unix///tmp/path.sock
+            let is_unix_socket = TransportUrl::parse(url.as_str())
+                .map(|t_url| t_url.transport() == &Transport::Unix)
+                .unwrap_or(false);
 
-            let (res, msg) = if should_use_unix
+            let (res, msg) = if is_unix_socket &&
+                context.state.unix_client.is_some() &&
+                context.state.socket_mapping.is_some()
             {
                 // Unix socket request path
                 debug!("Routing request to Unix socket for URL: {}", url);

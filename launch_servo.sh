@@ -17,7 +17,7 @@ set -e
 # Configuration
 SOCKET_DIR="${SERVO_SOCKET_DIR:-/tmp/servo-sockets}"
 SOCKET_PATH="$SOCKET_DIR/localhost.sock"
-DEFAULT_URL="http://localhost/"
+DEFAULT_URL="http::unix//localhost/"
 MODE="gui"
 URL=""
 
@@ -42,7 +42,7 @@ show_help() {
     echo "  $0 [URL] [OPTIONS]"
     echo
     echo -e "${BOLD}Arguments:${NC}"
-    echo "  URL           URL to load (default: http://localhost/)"
+    echo "  URL           Unix socket URL to load (default: http::unix//localhost/)"
     echo
     echo -e "${BOLD}Options:${NC}"
     echo "  --headless    Run in headless mode (screenshot)"
@@ -55,11 +55,15 @@ show_help() {
     echo "  The UDS server must be running first!"
     echo "  Start it with: ${GREEN}./start_uds_server.sh${NC}"
     echo
+    echo -e "${BOLD}URL Syntax:${NC}"
+    echo "  ${CYAN}http::unix//localhost/path${NC}        Use hostname mapping"
+    echo "  ${CYAN}http::unix///tmp/path.sock/page${NC}   Use explicit socket path"
+    echo
     echo -e "${BOLD}Examples:${NC}"
-    echo "  ./launch_servo.sh                         # Load http://localhost/"
-    echo "  ./launch_servo.sh http://localhost/test   # Load /test page"
-    echo "  ./launch_servo.sh http://localhost/about  # Load /about page"
-    echo "  ./launch_servo.sh --headless              # Take screenshot"
+    echo "  ./launch_servo.sh                              # Load http::unix//localhost/"
+    echo "  ./launch_servo.sh http::unix//localhost/test   # Load /test page"
+    echo "  ./launch_servo.sh http::unix//localhost/about  # Load /about page"
+    echo "  ./launch_servo.sh --headless                   # Take screenshot"
     echo
     exit 0
 }
@@ -176,8 +180,9 @@ launch_servo() {
         echo -e "${GREEN}🌐 Launching Servo browser...${NC}"
         echo
         echo -e "${YELLOW}Navigation tips:${NC}"
-        echo -e "  • You can type URLs in the address bar: ${GREEN}http://localhost/test${NC}"
-        echo -e "  • Try these pages: ${GREEN}/${NC}, ${GREEN}/test${NC}, ${GREEN}/about${NC}, ${GREEN}/api/data${NC}"
+        echo -e "  • Use Unix socket URL syntax in the address bar:"
+        echo -e "    ${GREEN}http::unix//localhost/test${NC}"
+        echo -e "  • Try these pages: ${GREEN}/test${NC}, ${GREEN}/about${NC}, ${GREEN}/api/data${NC}"
         echo -e "  • Press ${BOLD}Ctrl+C${NC} to close the browser"
         echo
         echo -e "${CYAN}════════════════════════════════════════════════${NC}"

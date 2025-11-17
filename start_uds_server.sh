@@ -258,7 +258,11 @@ show_info() {
     echo -e "   ${GREEN}./launch_servo.sh${NC}"
     echo
     echo -e "   ${BOLD}Or type this URL in Servo:${NC}"
-    echo -e "   ${GREEN}http://localhost/${NC}"
+    echo -e "   ${GREEN}http::unix//localhost/${NC}"
+    echo
+    echo -e "   ${BOLD}URL Syntax:${NC}"
+    echo -e "   ${CYAN}http::unix//localhost/path${NC}        - Hostname mapping"
+    echo -e "   ${CYAN}http::unix///tmp/path.sock/page${NC}   - Explicit socket path"
     echo
     echo -e "${YELLOW}2. Using curl:${NC}"
     echo -e "   ${BLUE}curl --unix-socket $SOCKET_PATH http://localhost/${NC}"

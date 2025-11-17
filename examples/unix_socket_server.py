@@ -217,10 +217,25 @@ HTML_TEMPLATE = '''
             <h2>⚙️ How It Works</h2>
             <ol style="margin-left: 20px;">
                 <li>Gunicorn binds to <span class="inline-code">/tmp/servo-sockets/localhost.sock</span></li>
+                <li>You use special URL syntax: <span class="inline-code">http::unix//localhost/</span></li>
                 <li>Servo maps <span class="inline-code">localhost</span> → socket file</li>
-                <li>When you visit <span class="inline-code">http://localhost/</span>, Servo connects to the socket</li>
                 <li>HTTP flows over Unix IPC instead of TCP/IP!</li>
             </ol>
+            <h3 style="margin-top: 20px;">URL Syntax</h3>
+            <table>
+                <tr>
+                    <th>Syntax</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><span class="inline-code">http::unix//localhost/path</span></td>
+                    <td>Use hostname mapping (localhost → socket file)</td>
+                </tr>
+                <tr>
+                    <td><span class="inline-code">http::unix///tmp/path.sock/page</span></td>
+                    <td>Use explicit socket path (3 slashes for absolute path)</td>
+                </tr>
+            </table>
         </div>
     </div>
 </body>

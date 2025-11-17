@@ -17,7 +17,7 @@ set -e
 # Configuration
 SOCKET_DIR="${SERVO_SOCKET_DIR:-/tmp/servo-sockets}"
 SOCKET_PATH="$SOCKET_DIR/localhost.sock"
-URL="${URL:-http://localhost/}"
+URL="${URL:-http::unix//localhost/}"
 MODE="${1:-gui}"
 
 # Colors for pretty output
@@ -59,12 +59,12 @@ show_help() {
     echo
     echo -e "${BOLD}Environment Variables:${NC}"
     echo "  SERVO_SOCKET_DIR   Socket directory (default: /tmp/servo-sockets)"
-    echo "  URL                URL to load (default: http://localhost/)"
+    echo "  URL                URL to load (default: http::unix//localhost/)"
     echo
     echo -e "${BOLD}Examples:${NC}"
-    echo "  ./interactive_demo.sh                    # Interactive GUI demo"
-    echo "  ./interactive_demo.sh --headless         # Headless screenshot"
-    echo "  URL=http://localhost/test ./interactive_demo.sh   # Load /test page"
+    echo "  ./interactive_demo.sh                                  # Interactive GUI demo"
+    echo "  ./interactive_demo.sh --headless                       # Headless screenshot"
+    echo "  URL=http::unix//localhost/test ./interactive_demo.sh   # Load /test page"
     echo
     exit 0
 }

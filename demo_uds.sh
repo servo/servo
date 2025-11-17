@@ -13,7 +13,7 @@ set -e
 SOCKET_DIR="${SERVO_SOCKET_DIR:-/tmp/servo-sockets}"
 SOCKET_PATH="$SOCKET_DIR/localhost.sock"
 HEADLESS="${HEADLESS:-false}"
-URL="${1:-http://localhost/}"
+URL="${1:-http::unix//localhost/}"
 
 # Colors
 GREEN='\033[0;32m'
@@ -110,6 +110,10 @@ echo -e "${GREEN}✓ Server is ready!${NC}"
 echo
 echo -e "${YELLOW}To test the server manually, type this URL in Servo:${NC}"
 echo -e "${GREEN}  $URL${NC}"
+echo
+echo -e "${YELLOW}URL Syntax for Unix Sockets:${NC}"
+echo -e "  ${BLUE}http::unix//localhost/${NC}          - Uses hostname mapping"
+echo -e "  ${BLUE}http::unix///tmp/path.sock/${NC}    - Uses explicit socket path"
 echo
 echo -e "${YELLOW}Or use curl to test:${NC}"
 echo -e "  ${BLUE}curl --unix-socket $SOCKET_PATH http://localhost/${NC}"
