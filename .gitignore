@@ -11,6 +11,7 @@
 /python/_virtualenv*
 /python/_venv*
 /python/tidy/servo_tidy.egg-info
+/venv
 /tests/wpt/sync
 /tests/wpt/**/**/.cache/
 /tests/dromaeo/dromaeo
