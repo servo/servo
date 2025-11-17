@@ -12,6 +12,7 @@ use num_traits::ToPrimitive;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
+use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -31,7 +32,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{BindContext, Node};
+use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{LinkRelations, follow_hyperlink};
 use crate::script_runtime::CanGc;
@@ -76,6 +77,14 @@ impl HTMLAnchorElement {
             proto,
             can_gc,
         )
+    }
+
+    /// Get the full URL of the `href` attribute of this `<a>` element, returning `None` if
+    /// the URL could not be joined with the `Document` URL.
+    pub(crate) fn full_href_url_for_user_interface(&self) -> Option<ServoUrl> {
+        self.upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("href"))?;
+        self.owner_document().base_url().join(&self.Href()).ok()
     }
 }
 

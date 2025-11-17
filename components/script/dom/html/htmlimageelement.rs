@@ -1439,6 +1439,15 @@ impl HTMLImageElement {
         self.current_request.borrow_mut().image = Some(Image::Raster(broken_image_icon));
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
+
+    /// Get the full URL of the current image of this `<img>` element, returning `None` if the URL
+    /// could not be joined with the `Document` URL.
+    pub(crate) fn full_image_url_for_user_interface(&self) -> Option<ServoUrl> {
+        self.owner_document()
+            .base_url()
+            .join(&self.CurrentSrc())
+            .ok()
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]

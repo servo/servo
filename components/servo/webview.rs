@@ -726,6 +726,7 @@ impl WebView {
                     id: control_id,
                     position,
                     items: context_menu_request.items,
+                    element_info: context_menu_request.element_info,
                     constellation_proxy,
                     response_sent: false,
                 })

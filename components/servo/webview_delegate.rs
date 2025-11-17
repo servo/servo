@@ -8,10 +8,10 @@ use base::generic_channel::{GenericSender, SendResult};
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuAction, ContextMenuItem, Cursor,
-    EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
-    GamepadHapticEffectType, InputEventId, InputEventResult, InputMethodType, LoadStatus,
-    MediaSessionEvent, Notification, PermissionFeature, RgbColor, ScreenGeometry,
+    AllowOrDeny, AuthenticationResponse, ContextMenuAction, ContextMenuElementInformation,
+    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
+    FilterPattern, GamepadHapticEffectType, InputEventId, InputEventResult, InputMethodType,
+    LoadStatus, MediaSessionEvent, Notification, PermissionFeature, RgbColor, ScreenGeometry,
     SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
     WebResourceResponse, WebResourceResponseMsg,
 };
@@ -338,6 +338,7 @@ pub struct ContextMenu {
     pub(crate) id: EmbedderControlId,
     pub(crate) position: DeviceIntRect,
     pub(crate) items: Vec<ContextMenuItem>,
+    pub(crate) element_info: ContextMenuElementInformation,
     pub(crate) response_sent: bool,
     pub(crate) constellation_proxy: ConstellationProxy,
 }
@@ -353,6 +354,12 @@ impl ContextMenu {
     /// The embedder should use this value to position the prompt that is shown to the user.
     pub fn position(&self) -> DeviceIntRect {
         self.position
+    }
+
+    /// A [`ContextMenuElementInformation`] giving details about the element that this [`ContextMenu`]
+    /// was activated on.
+    pub fn element_info(&self) -> &ContextMenuElementInformation {
+        &self.element_info
     }
 
     /// Resolve the context menu by activating the given context menu action.
