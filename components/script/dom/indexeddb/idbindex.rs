@@ -5,6 +5,7 @@ use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::str::DOMString;
 
+use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -55,6 +56,13 @@ impl IDBIndex {
             global,
             can_gc,
         )
+    }
+
+    /// If the object store has been deleted, throw an "InvalidStateError" DOMException.
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
+        // TODO: Not implemented yet.
+        // It should be similar to IDBObjectStore::verify_not_deleted.
+        Ok(())
     }
 }
 

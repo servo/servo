@@ -331,6 +331,10 @@ impl IDBRequest {
         self.ready_state.set(IDBRequestReadyState::Done);
     }
 
+    pub(crate) fn set_ready_state(&self, ready_state: IDBRequestReadyState) {
+        self.ready_state.set(ready_state);
+    }
+
     pub fn set_result(&self, result: HandleValue) {
         self.result.set(result.get());
     }
