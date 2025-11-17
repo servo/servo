@@ -3219,8 +3219,18 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = self.owner_window();
-                        let index = window
-                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped());
+                        let shadow_tree = self.shadow_tree.borrow();
+                        let query_node = shadow_tree
+                            .as_ref()
+                            .and_then(|shadow_tree| {
+                                let ShadowTree::Text(tree) = shadow_tree else {
+                                    return None;
+                                };
+                                tree.text_container.upcast::<Node>().GetFirstChild()
+                            })
+                            .unwrap_or_else(|| DomRoot::from_ref(self.upcast::<Node>()));
+                        let index =
+                            window.text_index_query(&query_node, point_in_target.to_untyped());
                         // Position the caret at the click position or at the end of the current
                         // value.
                         let edit_point_index = match index {

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{OnceCell, RefCell};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use app_units::{AU_PER_PX, Au};
@@ -122,6 +123,61 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The collector for calculating Largest Contentful Paint
     lcp_candidate_collector: Option<&'a mut LargestContentfulPaintCandidateCollector>,
+
+    /// All text fragments encountered while building the display list.
+    indexable_text: &'a mut IndexableText,
+}
+
+pub(crate) struct IndexableTextItem {
+    /// The placement of the text item on the plane.
+    pub(crate) origin: Point2D<Au, StyloCSSPixel>,
+    /// The glyph runs.
+    pub(crate) glyph_runs: Vec<Arc<GlyphStore>>,
+    /// The position of the start of the baseline of this text.
+    pub(crate) baseline_origin: Point2D<Au, StyloCSSPixel>,
+    /// Extra space to add for each justification opportunity.
+    pub(crate) justification_adjustment: Au,
+}
+
+#[derive(Default)]
+pub(crate) struct IndexableText {
+    inner: HashMap<OpaqueNode, Vec<IndexableTextItem>>,
+}
+
+impl IndexableText {
+    fn insert(&mut self, node: OpaqueNode, item: IndexableTextItem) {
+        let entries = self.inner.entry(node).or_default();
+        entries.push(item);
+    }
+
+    /// Returns the text index within a node for the point of interest.
+    pub(crate) fn text_index(
+        &self,
+        node: OpaqueNode,
+        point_in_item: Point2D<Au, StyloCSSPixel>,
+    ) -> Option<usize> {
+        let item = self.inner.get(&node)?;
+        // TODO(#20020): access all elements
+        for item in item {
+            let point = point_in_item + item.origin.to_vector();
+            let offset = point - item.baseline_origin;
+            let mut target_advance = offset.x;
+            let mut cumulative_index = 0;
+            for glyph_run in &item.glyph_runs {
+                let (index, advance) = glyph_run.range_index_of_advance(
+                    &ServoRange::new(fonts::ByteIndex(0), glyph_run.len()),
+                    target_advance,
+                    item.justification_adjustment,
+                );
+                if advance > target_advance {
+                    return Some(cumulative_index + index);
+                }
+                target_advance -= advance;
+                cumulative_index += index;
+            }
+        }
+        None
+    }
 }
 
 struct InspectorHighlight {
@@ -171,6 +227,7 @@ impl DisplayListBuilder<'_> {
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DebugOptions,
         lcp_candidate_collector: Option<&mut LargestContentfulPaintCandidateCollector>,
+        indexable_text: &mut IndexableText,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let compositor_info = &mut stacking_context_tree.compositor_info;
@@ -202,6 +259,7 @@ impl DisplayListBuilder<'_> {
             image_resolver,
             device_pixel_ratio,
             lcp_candidate_collector,
+            indexable_text,
         };
 
         builder.add_all_spatial_nodes();
@@ -746,6 +804,16 @@ impl Fragment {
         );
         if glyphs.is_empty() {
             return;
+        }
+
+        if let Some(tag) = fragment.base.tag {
+            let indexable_text = IndexableTextItem {
+                origin: rect.origin,
+                glyph_runs: fragment.glyphs.clone(),
+                baseline_origin,
+                justification_adjustment: fragment.justification_adjustment,
+            };
+            builder.indexable_text.insert(tag.node, indexable_text);
         }
 
         let parent_style = fragment.inline_styles.style.borrow();

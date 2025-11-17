@@ -44,7 +44,7 @@ use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::ArcRefCell;
-use crate::display_list::StackingContextTree;
+use crate::display_list::{IndexableText, StackingContextTree};
 use crate::dom::NodeExt;
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
@@ -1247,8 +1247,12 @@ fn rendered_text_collection_steps(
     items
 }
 
-pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> Option<usize> {
-    None
+pub fn process_text_index_request(
+    node: OpaqueNode,
+    point: euclid::Point2D<Au, style_traits::CSSPixel>,
+    indexable_text: &IndexableText,
+) -> Option<usize> {
+    indexable_text.text_index(node, point)
 }
 
 pub fn process_resolved_font_style_query<'dom, E>(

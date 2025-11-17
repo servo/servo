@@ -88,7 +88,8 @@ use webrender_api::units::{DevicePixel, LayoutVector2D};
 
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{
-    DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
+    DisplayListBuilder, HitTest, IndexableText, LargestContentfulPaintCandidateCollector,
+    StackingContextTree,
 };
 use crate::query::{
     get_the_text_steps, process_box_area_request, process_box_areas_request,
@@ -202,6 +203,9 @@ pub struct LayoutThread {
 
     /// The collector for calculating Largest Contentful Paint
     lcp_candidate_collector: RefCell<Option<LargestContentfulPaintCandidateCollector>>,
+
+    /// All text fragments ecountered while building the most recent display list.
+    indexable_text: RefCell<IndexableText>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -444,7 +448,7 @@ impl Layout for LayoutThread {
             Au::from_f32_px(point_in_node.x),
             Au::from_f32_px(point_in_node.y),
         );
-        process_text_index_request(node, point_in_node)
+        process_text_index_request(node, point_in_node, &self.indexable_text.borrow())
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -712,6 +716,7 @@ impl LayoutThread {
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
             lcp_candidate_collector: Default::default(),
+            indexable_text: Default::default(),
         }
     }
 
@@ -1266,6 +1271,9 @@ impl LayoutThread {
             *lcp_candidate_collector = None;
         }
 
+        let mut indexable_text = self.indexable_text.borrow_mut();
+        *indexable_text = Default::default();
+
         let built_display_list = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
@@ -1274,6 +1282,7 @@ impl LayoutThread {
             reflow_request.highlighted_dom_node,
             &self.debug,
             lcp_candidate_collector.as_mut(),
+            &mut indexable_text,
         );
         self.compositor_api.send_display_list(
             self.webview_id,
