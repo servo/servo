@@ -5,6 +5,7 @@
 //! An implementation of layer management using surfman
 
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use euclid::{Point2D, Rect, Size2D};
 use glow::{self as gl, Context as Gl, HasContext, PixelUnpackData};
@@ -21,7 +22,7 @@ use crate::gl_utils::GlClearer;
 pub enum SurfmanGL {}
 
 impl GLTypes for SurfmanGL {
-    type Device = SurfmanDevice;
+    type Device = Rc<SurfmanDevice>;
     type Context = SurfmanContext;
     type Bindings = Gl;
 }
@@ -58,7 +59,6 @@ impl SurfmanLayerManager {
 impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
     fn create_layer(
         &mut self,
-        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         init: LayerInit,
@@ -72,9 +72,10 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
             LayerInit::WebGLLayer { stencil, depth, .. } => stencil | depth,
             LayerInit::ProjectionLayer { stencil, depth, .. } => stencil | depth,
         };
+        let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
         if has_depth_stencil {
             let gl = contexts
-                .bindings(device, context_id)
+                .bindings(context_id)
                 .ok_or(Error::NoMatchingDevice)?;
             let depth_stencil_texture = unsafe { gl.create_texture().ok() };
             unsafe {
@@ -95,10 +96,10 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
                 .insert(layer_id, depth_stencil_texture);
         }
         let context = contexts
-            .context(device, context_id)
+            .context(context_id)
             .ok_or(Error::NoMatchingDevice)?;
         self.swap_chains
-            .create_detached_swap_chain(layer_id, size, device, context, access)
+            .create_detached_swap_chain(layer_id, size, &device, context, access)
             .map_err(|err| Error::BackendSpecific(format!("{:?}", err)))?;
         self.layers.push((context_id, layer_id));
         Ok(layer_id)
@@ -106,22 +107,22 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
 
     fn destroy_layer(
         &mut self,
-        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         layer_id: LayerId,
     ) {
-        self.clearer
-            .destroy_layer(device, contexts, context_id, layer_id);
-        let context = match contexts.context(device, context_id) {
-            Some(context) => context,
-            None => return,
+        self.clearer.destroy_layer(contexts, context_id, layer_id);
+        let Some(device) = contexts.device(context_id) else {
+            return;
+        };
+        let Some(context) = contexts.context(context_id) else {
+            return;
         };
         self.layers.retain(|&ids| ids != (context_id, layer_id));
-        let _ = self.swap_chains.destroy(layer_id, device, context);
+        let _ = self.swap_chains.destroy(layer_id, &device, context);
         self.surface_textures.remove(&layer_id);
         if let Some(depth_stencil_texture) = self.depth_stencil_textures.remove(&layer_id) {
-            let gl = contexts.bindings(device, context_id).unwrap();
+            let gl = contexts.bindings(context_id).unwrap();
             if let Some(depth_stencil_texture) = depth_stencil_texture {
                 unsafe {
                     gl.delete_texture(depth_stencil_texture);
@@ -136,15 +137,15 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
 
     fn begin_frame(
         &mut self,
-        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<Vec<SubImages>, Error> {
         layers
             .iter()
             .map(|&(context_id, layer_id)| {
+                let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
                 let context = contexts
-                    .context(device, context_id)
+                    .context(context_id)
                     .ok_or(Error::NoMatchingDevice)?;
                 let swap_chain = self
                     .swap_chains
@@ -152,7 +153,7 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
                     .ok_or(Error::NoMatchingDevice)?;
                 let surface_size = Size2D::from_untyped(swap_chain.size());
                 let surface_texture = swap_chain
-                    .take_surface_texture(device, context)
+                    .take_surface_texture(&device, context)
                     .map_err(|_| Error::NoMatchingDevice)?;
                 let color_texture = device.surface_texture_object(&surface_texture);
                 let color_target = device.surface_gl_texture_target();
@@ -182,7 +183,6 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
                     .collect();
                 self.surface_textures.insert(layer_id, surface_texture);
                 self.clearer.clear(
-                    device,
                     contexts,
                     context_id,
                     layer_id,
@@ -201,19 +201,19 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
 
     fn end_frame(
         &mut self,
-        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<(), Error> {
         for &(context_id, layer_id) in layers {
             let gl = contexts
-                .bindings(device, context_id)
+                .bindings(context_id)
                 .ok_or(Error::NoMatchingDevice)?;
             unsafe {
                 gl.flush();
             }
+            let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
             let context = contexts
-                .context(device, context_id)
+                .context(context_id)
                 .ok_or(Error::NoMatchingDevice)?;
             let surface_texture = self
                 .surface_textures
@@ -223,11 +223,12 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
                 .swap_chains
                 .get(layer_id)
                 .ok_or(Error::NoMatchingDevice)?;
+
             swap_chain
-                .recycle_surface_texture(device, context, surface_texture)
+                .recycle_surface_texture(&device, context, surface_texture)
                 .map_err(|err| Error::BackendSpecific(format!("{:?}", err)))?;
             swap_chain
-                .swap_buffers(device, context, PreserveBuffer::No)
+                .swap_buffers(&device, context, PreserveBuffer::No)
                 .map_err(|err| Error::BackendSpecific(format!("{:?}", err)))?;
         }
         Ok(())
