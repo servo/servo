@@ -4454,7 +4454,7 @@ impl VirtualMethods for Element {
             },
         };
 
-        // TODO: This should really only take into account the actual attribute that are used
+        // TODO: This should really only take into account the actual attributes that are used
         // for the content attribute property.
         if self
             .upcast::<Node>()
