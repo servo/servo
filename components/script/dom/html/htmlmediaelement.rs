@@ -946,6 +946,12 @@ impl HTMLMediaElement {
 
         // => "If the new ready state is HAVE_ENOUGH_DATA"
         if ready_state == ReadyState::HaveEnoughData {
+            // The user agent must queue a media element task given the media element to fire an
+            // event named canplaythrough at the element.
+            self.queue_media_element_task_to_fire_event(atom!("canplaythrough"));
+
+            // If the element is eligible for autoplay, then the user agent may run the following
+            // substeps:
             if self.eligible_for_autoplay() {
                 // Step 1. Set the paused attribute to false.
                 self.paused.set(false);
@@ -964,10 +970,6 @@ impl HTMLMediaElement {
                 // Step 4. Notify about playing for the element.
                 self.notify_about_playing();
             }
-
-            // FIXME(nox): According to the spec, this should come *before* the
-            // "play" event.
-            self.queue_media_element_task_to_fire_event(atom!("canplaythrough"));
         }
     }
 
