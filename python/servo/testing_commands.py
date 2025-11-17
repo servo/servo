@@ -165,16 +165,20 @@ class MachCommands(CommandBase):
     )
     @CommandArgument("--code-coverage", default=False, action="store_true", help="Run in code coverage mode")
     @CommandArgument("--llvm-cov-option", default=None, action="append", help="Additional options for llvm-cov")
+    @CommandArgument("--nextest-profile", default=None, help="Specify the Nextest profile to use")
+    @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Cargo nextest")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def test_unit(
         self,
         build_type: BuildType,
         test_name: list[str] | None = None,
+        params: list[str] | None = None,
         package: str | None = None,
         bench: bool = False,
         code_coverage: bool = False,
         llvm_cov_option: Optional[List[str]] = None,
         nocapture: bool = False,
+        nextest_profile: str | None = None,
         **kwargs: Any,
     ) -> int:
         if test_name is None:
@@ -247,7 +251,7 @@ class MachCommands(CommandBase):
         if len(packages) == 0 and len(in_crate_packages) == 0:
             return 0
 
-        args: list[str] = []
+        args: list[str] = params or []
 
         if build_type.is_release():
             args += ["--release"]
@@ -255,6 +259,9 @@ class MachCommands(CommandBase):
             pass  # there is no argument for debug
         else:
             args += ["--cargo-profile", build_type.profile]
+
+        if nextest_profile is not None:
+            args += ["--profile", nextest_profile]
 
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
