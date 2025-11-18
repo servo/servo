@@ -16,7 +16,7 @@ use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -185,6 +185,11 @@ impl Attr {
         self.value.borrow()
     }
 
+    #[allow(unsafe_code)]
+    pub(crate) unsafe fn value_for_layout(&self) -> &AttrValue {
+        unsafe { self.value.borrow_for_layout() }
+    }
+
     fn set_value(&self, value: DOMString) {
         *self.value.borrow_mut() = AttrValue::String(value.into());
     }
@@ -229,30 +234,6 @@ impl Attr {
             Some(ref prefix) => DOMString::from(format!("{}:{}", prefix, &**self.local_name())),
             None => DOMString::from(&**self.local_name()),
         }
-    }
-}
-
-pub(crate) trait AttrHelpersForLayout<'dom> {
-    fn value(self) -> &'dom AttrValue;
-    fn local_name(self) -> &'dom LocalName;
-    fn namespace(self) -> &'dom Namespace;
-}
-
-#[expect(unsafe_code)]
-impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
-    #[inline]
-    fn value(self) -> &'dom AttrValue {
-        unsafe { self.unsafe_get().value.borrow_for_layout() }
-    }
-
-    #[inline]
-    fn local_name(self) -> &'dom LocalName {
-        &self.unsafe_get().identifier.local_name.0
-    }
-
-    #[inline]
-    fn namespace(self) -> &'dom Namespace {
-        &self.unsafe_get().identifier.namespace.0
     }
 }
 

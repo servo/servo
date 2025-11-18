@@ -42,7 +42,6 @@ use style::values::{AtomIdent, AtomString};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
-use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId,
     NodeTypeId, TextTypeId,
@@ -307,13 +306,11 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     #[inline(always)]
-    fn each_attr_name<F>(&self, mut callback: F)
+    fn each_attr_name<F>(&self, callback: F)
     where
         F: FnMut(&style::LocalName),
     {
-        for attr in self.element.attrs() {
-            callback(style::values::GenericAtomIdent::cast(attr.local_name()))
-        }
+        self.element.for_each_attr_name(callback);
     }
 
     fn each_part<F>(&self, mut callback: F)
