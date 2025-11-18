@@ -43,6 +43,7 @@ pub(crate) struct IndependentFormattingContext {
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum IndependentFormattingContextContents {
     Replaced(ReplacedContents),
+    ReplacedWithWidget(ReplacedContents, BlockFormattingContext),
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
     Grid(TaffyContainer),
@@ -87,6 +88,26 @@ impl IndependentFormattingContext {
                 return Self {
                     base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
                     contents: IndependentFormattingContextContents::Replaced(contents),
+                };
+            },
+            Contents::ReplacedWithWidget(replaced_contents, non_replaced_contents) => {
+                base_fragment_info
+                    .flags
+                    .insert(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET);
+                // For replaced with widget, use block formatting context since the display inside is always flow.
+                let bfc = BlockFormattingContext::construct(
+                    context,
+                    node_and_style_info,
+                    non_replaced_contents,
+                    propagated_data,
+                    false, /* is_list_item */
+                );
+                return Self {
+                    base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+                    contents: IndependentFormattingContextContents::ReplacedWithWidget(
+                        replaced_contents,
+                        bfc,
+                    ),
                 };
             },
             Contents::Widget(non_replaced_contents) => {
@@ -223,6 +244,12 @@ impl IndependentFormattingContext {
         self.base.repair_style(new_style);
         match &mut self.contents {
             IndependentFormattingContextContents::Replaced(..) => {},
+            IndependentFormattingContextContents::ReplacedWithWidget(
+                _,
+                block_formatting_context,
+            ) => {
+                block_formatting_context.repair_style(node, new_style);
+            },
             IndependentFormattingContextContents::Flow(block_formatting_context) => {
                 block_formatting_context.repair_style(node, new_style);
             },
@@ -277,6 +304,22 @@ impl IndependentFormattingContext {
                 &self.base,
                 lazy_block_size,
             ),
+            IndependentFormattingContextContents::ReplacedWithWidget(replaced, bfc) => {
+                let mut replaced_layout = replaced.layout(
+                    layout_context,
+                    containing_block_for_children,
+                    preferred_aspect_ratio,
+                    &self.base,
+                    lazy_block_size,
+                );
+                let mut flow_layout = bfc.layout(
+                    layout_context,
+                    positioning_context,
+                    containing_block_for_children,
+                );
+                replaced_layout.fragments.append(&mut flow_layout.fragments);
+                replaced_layout
+            },
             IndependentFormattingContextContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
@@ -358,6 +401,10 @@ impl IndependentFormattingContext {
     pub(crate) fn layout_style(&self) -> LayoutStyle<'_> {
         match &self.contents {
             IndependentFormattingContextContents::Replaced(fc) => fc.layout_style(&self.base),
+            IndependentFormattingContextContents::ReplacedWithWidget(_, fc) => {
+                // For replaced with widget, we use the block formatting context's layout style.
+                fc.layout_style(&self.base)
+            },
             IndependentFormattingContextContents::Flow(fc) => fc.layout_style(&self.base),
             IndependentFormattingContextContents::Flex(fc) => fc.layout_style(),
             IndependentFormattingContextContents::Grid(fc) => fc.layout_style(),
@@ -388,6 +435,9 @@ impl ComputeInlineContentSizes for IndependentFormattingContextContents {
     ) -> InlineContentSizesResult {
         match self {
             Self::Replaced(inner) => {
+                inner.compute_inline_content_sizes(layout_context, constraint_space)
+            },
+            Self::ReplacedWithWidget(inner, _) => {
                 inner.compute_inline_content_sizes(layout_context, constraint_space)
             },
             Self::Flow(inner) => inner

@@ -84,6 +84,8 @@ pub(super) enum Contents {
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContents),
+    /// Example: an `<video controls> element.`
+    ReplacedWithWidget(ReplacedContents, NonReplacedContents),
 }
 
 #[derive(Debug)]
@@ -287,6 +289,13 @@ impl Contents {
         context: &LayoutContext,
     ) -> Self {
         if let Some(replaced) = ReplacedContents::for_element(node, context) {
+            if let Some(element) = node.as_element() {
+                if let Some(shadow_root) = element.shadow_root() {
+                    if shadow_root.is_ua_widget() {
+                        return Self::ReplacedWithWidget(replaced, NonReplacedContents::OfElement);
+                    }
+                }
+            }
             return Self::Replaced(replaced);
         }
         let is_widget = matches!(
@@ -310,7 +319,9 @@ impl Contents {
 
     pub(crate) fn non_replaced_contents(self) -> Option<NonReplacedContents> {
         match self {
-            Self::NonReplaced(contents) | Self::Widget(contents) => Some(contents),
+            Self::NonReplaced(contents) |
+            Self::Widget(contents) |
+            Self::ReplacedWithWidget(_, contents) => Some(contents),
             Self::Replaced(_) => None,
         }
     }
