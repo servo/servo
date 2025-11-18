@@ -291,8 +291,7 @@ impl CSSStyleSheet {
 
         self.will_modify();
 
-        #[cfg(feature = "tracing")]
-        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
+        let _span = profile_traits::trace_span!("ParseStylesheet").entered();
         let sheet = self.style_stylesheet();
         let new_contents = StylesheetContents::from_str(
             &text,

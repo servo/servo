@@ -1055,8 +1055,7 @@ impl LayoutThread {
         let recalc_style_traversal;
         let dirty_root;
         {
-            #[cfg(feature = "tracing")]
-            let _span = tracing::trace_span!("Styling", servo_profiling = true).entered();
+            let _span = profile_traits::trace_span!("Styling").entered();
 
             let original_dirty_root = unsafe {
                 ServoLayoutNode::new(&restyle.dirty_root.unwrap())

@@ -190,9 +190,7 @@ impl DisplayListBuilder<'_> {
             webrender_display_list_builder.dump_serialized_display_list();
         }
 
-        #[cfg(feature = "tracing")]
-        let _span =
-            tracing::trace_span!("DisplayListBuilder::build", servo_profiling = true).entered();
+        let _span = profile_traits::trace_span!("DisplayListBuilder::build").entered();
         let mut builder = DisplayListBuilder {
             current_scroll_node_id: compositor_info.root_reference_frame_id,
             current_reference_frame_scroll_node_id: compositor_info.root_reference_frame_id,
