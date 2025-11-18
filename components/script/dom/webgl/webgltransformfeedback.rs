@@ -50,10 +50,6 @@ impl WebGLTransformFeedback {
 }
 
 impl WebGLTransformFeedback {
-    pub(crate) fn context(&self) -> &WebGLRenderingContext {
-        self.upcast::<WebGLObject>().context()
-    }
-
     pub(crate) fn bind(&self, context: &WebGLRenderingContext, target: u32) {
         context.send_command(WebGLCommand::BindTransformFeedback(target, self.id()));
         self.has_been_bound.set(true);
@@ -109,12 +105,10 @@ impl WebGLTransformFeedback {
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if self.is_valid() && self.id() != 0 {
             self.marked_for_deletion.set(true);
-            let context = self.upcast::<WebGLObject>().context();
-            let cmd = WebGLCommand::DeleteTransformFeedback(self.id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
+            self.upcast().send_with_fallibility(
+                WebGLCommand::DeleteTransformFeedback(self.id),
+                operation_fallibility,
+            );
         }
     }
 

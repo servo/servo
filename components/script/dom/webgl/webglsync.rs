@@ -51,10 +51,6 @@ impl WebGLSync {
 }
 
 impl WebGLSync {
-    pub(crate) fn context(&self) -> &WebGLRenderingContext {
-        self.upcast::<WebGLObject>().context()
-    }
-
     pub(crate) fn client_wait_sync(
         &self,
         context: &WebGLRenderingContext,
@@ -90,12 +86,10 @@ impl WebGLSync {
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if self.is_valid() {
             self.marked_for_deletion.set(true);
-            let context = self.upcast::<WebGLObject>().context();
-            let cmd = WebGLCommand::DeleteSync(self.sync_id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
+            self.upcast().send_with_fallibility(
+                WebGLCommand::DeleteSync(self.sync_id),
+                operation_fallibility,
+            );
         }
     }
 

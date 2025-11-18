@@ -180,8 +180,7 @@ impl WebGLBuffer {
         self.capacity.set(data.len());
         self.usage.set(usage);
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::BufferData(target, receiver, usage));
         sender.send(data).unwrap();
         Ok(())

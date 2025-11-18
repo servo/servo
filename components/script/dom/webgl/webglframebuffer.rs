@@ -260,12 +260,10 @@ impl WebGLFramebuffer {
         }
 
         self.target.set(Some(target));
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::BindFramebuffer(
-                target,
-                WebGLFramebufferBindingRequest::Explicit(self.id()),
-            ));
+        self.upcast().send_command(WebGLCommand::BindFramebuffer(
+            target,
+            WebGLFramebufferBindingRequest::Explicit(self.id()),
+        ));
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
@@ -588,9 +586,11 @@ impl WebGLFramebuffer {
                     }
                 }
             }
-            self.upcast::<WebGLObject>()
-                .context()
-                .initialize_framebuffer(clear_bits);
+
+            if let Some(context) = self.upcast().context() {
+                context.initialize_framebuffer(clear_bits);
+            }
+
             self.is_initialized.set(true);
         }
 
@@ -628,8 +628,7 @@ impl WebGLFramebuffer {
             _ => None,
         };
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::FramebufferRenderbuffer(
                 self.target.get().unwrap(),
                 attachment,
@@ -687,11 +686,11 @@ impl WebGLFramebuffer {
         self.validate_transparent()?;
 
         let reattach = |attachment: &WebGLFramebufferAttachment, attachment_point| {
-            let context = self.upcast::<WebGLObject>().context();
+            let webgl_object = self.upcast();
             match *attachment {
                 WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
                     rb.attach_to_framebuffer(self);
-                    context.send_command(WebGLCommand::FramebufferRenderbuffer(
+                    webgl_object.send_command(WebGLCommand::FramebufferRenderbuffer(
                         self.target.get().unwrap(),
                         attachment_point,
                         constants::RENDERBUFFER,
@@ -700,7 +699,7 @@ impl WebGLFramebuffer {
                 },
                 WebGLFramebufferAttachment::Texture { ref texture, level } => {
                     texture.attach_to_framebuffer(self);
-                    context.send_command(WebGLCommand::FramebufferTexture2D(
+                    webgl_object.send_command(WebGLCommand::FramebufferTexture2D(
                         self.target.get().unwrap(),
                         attachment_point,
                         texture.target().expect("missing texture target"),
@@ -776,7 +775,9 @@ impl WebGLFramebuffer {
                 _ => return Err(WebGLError::InvalidOperation),
             }
 
-            let context = self.upcast::<WebGLObject>().context();
+            let Some(context) = self.upcast().context() else {
+                return Err(WebGLError::ContextLost);
+            };
             let max_tex_size = if is_cube {
                 context.limits().max_cube_map_tex_size
             } else {
@@ -816,8 +817,7 @@ impl WebGLFramebuffer {
             _ => None,
         };
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::FramebufferTexture2D(
                 self.target.get().unwrap(),
                 attachment,
@@ -846,7 +846,9 @@ impl WebGLFramebuffer {
             .attachment_binding(attachment)
             .ok_or(WebGLError::InvalidEnum)?;
 
-        let context = self.upcast::<WebGLObject>().context();
+        let Some(context) = self.upcast().context() else {
+            return Err(WebGLError::ContextLost);
+        };
 
         let tex_id = match texture {
             Some(texture) => {
@@ -1018,7 +1020,9 @@ impl WebGLFramebuffer {
     }
 
     pub(crate) fn set_read_buffer(&self, buffer: u32) -> WebGLResult<()> {
-        let context = self.upcast::<WebGLObject>().context();
+        let Some(context) = self.upcast().context() else {
+            return Err(WebGLError::ContextLost);
+        };
 
         match buffer {
             constants::NONE => {},
@@ -1032,7 +1036,9 @@ impl WebGLFramebuffer {
     }
 
     pub(crate) fn set_draw_buffers(&self, buffers: Vec<u32>) -> WebGLResult<()> {
-        let context = self.upcast::<WebGLObject>().context();
+        let Some(context) = self.upcast().context() else {
+            return Err(WebGLError::ContextLost);
+        };
 
         if buffers.len() > context.limits().max_draw_buffers as usize {
             return Err(WebGLError::InvalidValue);

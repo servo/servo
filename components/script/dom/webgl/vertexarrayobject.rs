@@ -7,6 +7,7 @@ use std::cell::Cell;
 use canvas_traits::webgl::{
     ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVersion, WebGLVertexArrayId,
 };
+use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
@@ -18,7 +19,7 @@ use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext}
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct VertexArrayObject {
-    context: Dom<WebGLRenderingContext>,
+    context: WeakRef<WebGLRenderingContext>,
     #[no_trace]
     id: Option<WebGLVertexArrayId>,
     ever_bound: Cell<bool>,
@@ -31,7 +32,7 @@ impl VertexArrayObject {
     pub(crate) fn new(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> Self {
         let max_vertex_attribs = context.limits().max_vertex_attribs as usize;
         Self {
-            context: Dom::from_ref(context),
+            context: WeakRef::new(context),
             id,
             ever_bound: Default::default(),
             is_deleted: Default::default(),
@@ -54,10 +55,12 @@ impl VertexArrayObject {
             return;
         }
         self.is_deleted.set(true);
-        let cmd = WebGLCommand::DeleteVertexArray(self.id.unwrap());
-        match operation_fallibility {
-            Operation::Fallible => self.context.send_command_ignored(cmd),
-            Operation::Infallible => self.context.send_command(cmd),
+
+        if let Some(context) = self.context.root() {
+            context.send_with_fallibility(
+                WebGLCommand::DeleteVertexArray(self.id.unwrap()),
+                operation_fallibility,
+            );
         }
 
         for attrib_data in &**self.vertex_attribs.borrow() {
@@ -117,8 +120,11 @@ impl VertexArrayObject {
             return Err(WebGLError::InvalidValue);
         }
 
-        let is_webgl2 = matches!(self.context.webgl_version(), WebGLVersion::WebGL2);
+        let Some(context) = self.context.root() else {
+            return Err(WebGLError::ContextLost);
+        };
 
+        let is_webgl2 = matches!(context.webgl_version(), WebGLVersion::WebGL2);
         let bytes_per_component: i32 = match type_ {
             constants::BYTE | constants::UNSIGNED_BYTE => 1,
             constants::SHORT | constants::UNSIGNED_SHORT => 2,
@@ -138,7 +144,7 @@ impl VertexArrayObject {
             return Err(WebGLError::InvalidOperation);
         }
 
-        let buffer = self.context.array_buffer();
+        let buffer = context.array_buffer();
         match buffer {
             Some(ref buffer) => buffer.increment_attached_counter(),
             None if offset != 0 => {
@@ -147,7 +153,7 @@ impl VertexArrayObject {
             },
             _ => {},
         }
-        self.context.send_command(WebGLCommand::VertexAttribPointer(
+        context.send_command(WebGLCommand::VertexAttribPointer(
             index,
             size,
             type_,
