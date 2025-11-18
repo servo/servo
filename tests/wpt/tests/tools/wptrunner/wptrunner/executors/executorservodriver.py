@@ -2,7 +2,13 @@
 
 import os
 
-from .executorwebdriver import WebDriverProtocol, WebDriverTestharnessExecutor, WebDriverRefTestExecutor, WebDriverCrashtestExecutor
+from .executorwebdriver import (
+    WebDriverProtocol,
+    WebDriverTestharnessExecutor,
+    WebDriverTestharnessProtocolPart,
+    WebDriverRefTestExecutor,
+    WebDriverCrashtestExecutor,
+)
 
 webdriver = None
 ServoCommandExtensions = None
@@ -56,10 +62,23 @@ def parse_pref_value(value):
         return value
 
 
+class ServoDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
+    def reset_browser_state(self):
+        self.parent.cookies.delete_all_cookies()
+
+
 class ServoWebDriverProtocol(WebDriverProtocol):
+    implements = [
+        ServoDriverTestharnessProtocolPart,
+    ]
+    for base_part in WebDriverProtocol.implements:
+        if base_part.name not in {part.name for part in implements}:
+            implements.append(base_part)
+
     def __init__(self, executor, browser, capabilities, **kwargs):
         do_delayed_imports()
-        WebDriverProtocol.__init__(self, executor, browser, capabilities, **kwargs)
+        self.implements = list(ServoWebDriverProtocol.implements)
+        super().__init__(executor, browser, capabilities, **kwargs)
 
     def connect(self):
         """Connect to browser via WebDriver and crete a WebDriver session."""
