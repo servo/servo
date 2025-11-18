@@ -13,9 +13,8 @@ mod poll_thread;
 mod wgpu_thread;
 
 use std::borrow::Cow;
-use std::sync::{Arc, Mutex};
 
-use compositing_traits::{CrossProcessCompositorApi, WebRenderExternalImageRegistry};
+use compositing_traits::{CrossProcessCompositorApi, WebRenderExternalImageIdManager};
 use ipc_channel::ipc::{self, IpcReceiver};
 use servo_config::pref;
 
@@ -23,7 +22,7 @@ pub mod canvas_context;
 
 pub fn start_webgpu_thread(
     compositor_api: CrossProcessCompositorApi,
-    external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    webrender_external_image_id_manager: WebRenderExternalImageIdManager,
     wgpu_image_map: WGPUImageMap,
 ) -> Option<(WebGPU, IpcReceiver<WebGPUMsg>)> {
     if !pref!(dom_webgpu_enabled) {
@@ -60,7 +59,7 @@ pub fn start_webgpu_thread(
                 sender_clone,
                 script_sender,
                 compositor_api,
-                external_images,
+                webrender_external_image_id_manager,
                 wgpu_image_map,
             )
             .run();

@@ -963,7 +963,7 @@ fn create_constellation(
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
         webgl_threads: Some(compositor.webgl_threads()),
-        webrender_external_images: compositor.webrender_external_images(),
+        webrender_external_image_id_manager: compositor.webrender_external_image_id_manager(),
         #[cfg(feature = "webgpu")]
         wgpu_image_map: compositor.webgpu_image_map(),
         user_content_manager,

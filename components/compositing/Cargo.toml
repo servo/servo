@@ -39,6 +39,7 @@ libc = { workspace = true }
 log = { workspace = true }
 media = { path = "../media" }
 malloc_size_of = { workspace = true }
+parking_lot = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
@@ -49,6 +50,7 @@ servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 smallvec = { workspace = true }
 stylo_traits = { workspace = true }
+surfman = { workspace = true }
 timers = { path = "../timers" }
 tracing = { workspace = true, optional = true }
 webgl = { path = "../webgl" }

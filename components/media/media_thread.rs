@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
 use std::thread;
 
-use compositing_traits::{WebRenderExternalImageRegistry, WebRenderImageHandlerType};
+use compositing_traits::{WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use ipc_channel::ipc::{IpcSender, channel};
 use log::{trace, warn};
 use rustc_hash::FxHashMap;
@@ -22,25 +21,25 @@ pub struct GLPlayerThread {
     players: FxHashMap<u64, IpcSender<GLPlayerMsgForward>>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new players.
-    external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+    external_image_id_manager: WebRenderExternalImageIdManager,
 }
 
 impl GLPlayerThread {
-    pub fn new(external_images: Arc<Mutex<WebRenderExternalImageRegistry>>) -> Self {
+    pub fn new(external_image_id_manager: WebRenderExternalImageIdManager) -> Self {
         GLPlayerThread {
             players: Default::default(),
-            external_images,
+            external_image_id_manager,
         }
     }
 
     pub fn start(
-        external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
+        external_image_id_manager: WebRenderExternalImageIdManager,
     ) -> IpcSender<GLPlayerMsg> {
         let (sender, receiver) = channel().unwrap();
         thread::Builder::new()
             .name("GLPlayer".to_owned())
             .spawn(move || {
-                let mut renderer = GLPlayerThread::new(external_images);
+                let mut renderer = GLPlayerThread::new(external_image_id_manager);
                 loop {
                     let msg = receiver.recv().unwrap();
                     let exit = renderer.handle_msg(msg);
@@ -61,19 +60,13 @@ impl GLPlayerThread {
         match msg {
             GLPlayerMsg::RegisterPlayer(sender) => {
                 let id = self
-                    .external_images
-                    .lock()
-                    .unwrap()
-                    .next_id(WebRenderImageHandlerType::Media)
-                    .0;
-                self.players.insert(id, sender.clone());
-                sender.send(GLPlayerMsgForward::PlayerId(id)).unwrap();
+                    .external_image_id_manager
+                    .next_id(WebRenderImageHandlerType::Media);
+                self.players.insert(id.0, sender.clone());
+                sender.send(GLPlayerMsgForward::PlayerId(id.0)).unwrap();
             },
             GLPlayerMsg::UnregisterPlayer(id) => {
-                self.external_images
-                    .lock()
-                    .unwrap()
-                    .remove(&ExternalImageId(id));
+                self.external_image_id_manager.remove(&ExternalImageId(id));
                 if self.players.remove(&id).is_none() {
                     warn!("Tried to remove an unknown player");
                 }
