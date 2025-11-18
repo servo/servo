@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
-use std::sync::{Arc as StdArc, Mutex, RwLock};
+use std::sync::Arc as StdArc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
@@ -59,7 +59,7 @@ use net_traits::{
     RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
     ResourceTimeValue,
 };
-use parking_lot::{Condvar, Mutex, RwLock};
+use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use rustc_hash::FxHashMap;
@@ -70,7 +70,6 @@ use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
-use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
@@ -83,7 +82,7 @@ use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
-use crate::http_cache::{CacheKey, HttpCache};
+use crate::http_cache::{CacheGuard, CacheKey, CachedResourcesOrGuard, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
 
@@ -289,8 +288,8 @@ fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) 
         let host_b_reg = reg_suffix(&host_b);
 
         // Step 2.2-2.3
-        (site_a.host() == site_b.host() && host_a_reg.is_empty()) ||
-            (host_a_reg == host_b_reg && !host_a_reg.is_empty())
+        (site_a.host() == site_b.host() && host_a_reg.is_empty())
+            || (host_a_reg == host_b_reg && !host_a_reg.is_empty())
     } else {
         // Step 3
         false
@@ -893,11 +892,11 @@ pub async fn http_fetch(
             // nothing to do, since actual_response is a function on response
 
             // Subsubstep 3
-            if (res.response_type == ResponseType::Opaque && request.mode != RequestMode::NoCors) ||
-                (res.response_type == ResponseType::OpaqueRedirect &&
-                    request.redirect_mode != RedirectMode::Manual) ||
-                (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow) ||
-                res.is_network_error()
+            if (res.response_type == ResponseType::Opaque && request.mode != RequestMode::NoCors)
+                || (res.response_type == ResponseType::OpaqueRedirect
+                    && request.redirect_mode != RedirectMode::Manual)
+                || (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow)
+                || res.is_network_error()
             {
                 return Response::network_error(NetworkError::Internal("Request failed".into()));
             }
@@ -913,11 +912,11 @@ pub async fn http_fetch(
         if cors_preflight_flag {
             let method_cache_match = cache.match_method(request, request.method.clone());
 
-            let method_mismatch = !method_cache_match &&
-                (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
+            let method_mismatch = !method_cache_match
+                && (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|(name, value)| {
-                !cache.match_header(request, name) &&
-                    !is_cors_safelisted_request_header(&name, &value)
+                !cache.match_header(request, name)
+                    && !is_cors_safelisted_request_header(&name, &value)
             });
 
             // Sub-substep 1
@@ -1162,8 +1161,8 @@ pub async fn http_redirect_fetch(
 
     // Step 11: If internalResponse’s status is not 303, request’s body is non-null, and request’s
     // body’s source is null, then return a network error.
-    if response.actual_response().status != StatusCode::SEE_OTHER &&
-        request.body.as_ref().is_some_and(|b| b.source_is_null())
+    if response.actual_response().status != StatusCode::SEE_OTHER
+        && request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
     }
@@ -1174,11 +1173,11 @@ pub async fn http_redirect_fetch(
         .status
         .try_code()
         .is_some_and(|code| {
-            ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND) &&
-                request.method == Method::POST) ||
-                (code == StatusCode::SEE_OTHER &&
-                    request.method != Method::HEAD &&
-                    request.method != Method::GET)
+            ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND)
+                && request.method == Method::POST)
+                || (code == StatusCode::SEE_OTHER
+                    && request.method != Method::HEAD
+                    && request.method != Method::GET)
         })
     {
         // Step 12.1
@@ -1269,9 +1268,9 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616): Step 8. Run these steps, but abort when fetchParams is canceled:
     // Step 8.1. If request’s traversable for user prompts is "no-traversable"
     // and request’s redirect mode is "error", then set httpFetchParams to fetchParams and httpRequest to request.
-    let http_request = if fetch_params.request.traversable_for_user_prompts ==
-        TraversableForUserPrompts::NoTraversable &&
-        fetch_params.request.redirect_mode == RedirectMode::Error
+    let http_request = if fetch_params.request.traversable_for_user_prompts
+        == TraversableForUserPrompts::NoTraversable
+        && fetch_params.request.redirect_mode == RedirectMode::Error
     {
         http_fetch_params = fetch_params;
         &mut http_fetch_params.request
@@ -1341,8 +1340,8 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.11: If httpRequest’s referrer is a URL, then:
     match http_request.referrer {
-        Referrer::ReferrerUrl(ref http_request_referrer) |
-        Referrer::Client(ref http_request_referrer) => {
+        Referrer::ReferrerUrl(ref http_request_referrer)
+        | Referrer::Client(ref http_request_referrer) => {
             // Step 8.11.1: Let referrerValue be httpRequest’s referrer, serialized and isomorphic
             // encoded.
             if let Ok(referer) = http_request_referrer.as_str().parse::<Referer>() {
@@ -1465,9 +1464,9 @@ async fn http_network_or_cache_fetch(
             }
 
             // Substep 5
-            if authentication_fetch_flag &&
-                authorization_value.is_none() &&
-                has_credentials(&current_url)
+            if authentication_fetch_flag
+                && authorization_value.is_none()
+                && has_credentials(&current_url)
             {
                 authorization_value = Some(Authorization::basic(
                     current_url.username(),
@@ -1484,7 +1483,7 @@ async fn http_network_or_cache_fetch(
 
     // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
-    block_for_cache_ready(
+    let cache_guard = block_for_cache_ready(
         context,
         http_request,
         done_chan,
@@ -1503,7 +1502,6 @@ async fn http_network_or_cache_fetch(
         if http_request.cache_mode == CacheMode::OnlyIfCached {
             // The cache will not be updated,
             // set its state to ready to construct.
-            update_http_cache_state(context, http_request).await;
             return Response::network_error(NetworkError::Internal(
                 "Couldn't find response in cache".into(),
             ));
@@ -1522,18 +1520,19 @@ async fn http_network_or_cache_fetch(
             context
                 .state
                 .http_cache
-                .invalidate(http_request, &forward_response);
+                .invalidate(http_request, &forward_response)
+                .await;
         }
 
         // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
         if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
             // Ensure done_chan is None,
             // since the network response will be replaced by the revalidated stored one.
-            response =
-                context
-                    .state
-                    .http_cache
-                    .refresh(http_request, forward_response.clone(), done_chan);
+            response = context
+                .state
+                .http_cache
+                .refresh(http_request, forward_response.clone(), done_chan)
+                .await;
             *done_chan = None;
 
             wait_for_cached_response(done_chan, &mut response).await;
@@ -1552,25 +1551,30 @@ async fn http_network_or_cache_fetch(
             if http_request.cache_mode != CacheMode::NoStore {
                 // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
                 //             "Storing Responses in Caches" chapter of HTTP Caching.
-                context
-                    .state
-                    .http_cache
-                    .store(http_request, forward_response);
+                cache_guard
+                    .insert(http_request, forward_response, &context.state.http_cache)
+                    .await;
             }
         }
-    }
+    };
+
+    //=-=----------------------------------------------------------------------------------------
+    //=-=----------------------------------------------------------------------------------------
+    //=-=----------------------------------------------------------------------------------------
+    //=-=----------------------------------------------------------------------------------------
+    //=-=----------------------------------------------------------------------------------------
+    //=-=----------------------------------------------------------------------------------------
+    //=-=----------------------------------------------------------------------------------------
+    //=-=----------------------------------------------------------------------------------------
 
     let http_request = &mut http_fetch_params.request;
-    // The cache has been updated, set its state to ready to construct.
-    update_http_cache_state(context, http_request).await;
-
     let mut response = response.unwrap();
 
     // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
     // tests fail. Where should we do it instead? See also #33615
-    if http_request.response_tainting != ResponseTainting::CorsTainting &&
-        cross_origin_resource_policy_check(http_request, &response) ==
-            CrossOriginResourcePolicy::Blocked
+    if http_request.response_tainting != ResponseTainting::CorsTainting
+        && cross_origin_resource_policy_check(http_request, &response)
+            == CrossOriginResourcePolicy::Blocked
     {
         return Response::network_error(NetworkError::Internal(
             "Cross-origin resource policy check failed".into(),
@@ -1591,10 +1595,10 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616): Figure out what to do with request window objects
     // NOTE: Requiring a WWW-Authenticate header here is ad-hoc, but seems to match what other browsers are
     // doing. See Step 14.1.
-    if response.status.try_code() == Some(StatusCode::UNAUTHORIZED) &&
-        !cors_flag &&
-        include_credentials &&
-        response.headers.contains_key(WWW_AUTHENTICATE)
+    if response.status.try_code() == Some(StatusCode::UNAUTHORIZED)
+        && !cors_flag
+        && include_credentials
+        && response.headers.contains_key(WWW_AUTHENTICATE)
     {
         // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
@@ -1705,7 +1709,6 @@ async fn http_network_or_cache_fetch(
     // Step 18. Return response.
     response
 }
-
 /// If the cache is not ready to construct a response, wait.
 ///
 /// The cache is not ready if a previous fetch checked the cache, found nothing,
@@ -1714,135 +1717,85 @@ async fn http_network_or_cache_fetch(
 /// Note that this is a different workflow from the one involving `wait_for_cached_response`.
 /// That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
 ///
-async fn block_for_cache_ready(
-    context: &FetchContext,
+async fn block_for_cache_ready<'a>(
+    context: &'a FetchContext,
     http_request: &mut Request,
     done_chan: &mut DoneChannel,
     revalidating_flag: &mut bool,
     response: &mut Option<Response>,
-) {
-    let (lock, cvar) = {
-        let entry_key = CacheKey::new(http_request);
-        let mut state_map = context.state.http_cache_state.lock().await;
-        &*state_map
-            .entry(entry_key)
-            .or_insert_with(|| {
-                Arc::new((
-                    tokio::sync::Mutex::new(HttpCacheEntryState::ReadyToConstruct),
-                    Notify::new(),
-                ))
-            })
-            .clone()
-    };
-
-    // Start of critical section on http-cache state.
-    let mut state = lock.lock().await;
-    while let HttpCacheEntryState::PendingStore(_) = *state {
-        if timeout(Duration::from_millis(500), cvar.notified())
-            .await
-            .is_err()
-        {
-            log::info!("Timeout reached for cache, continueing with fetching");
-            break;
-        }
-    }
-
-    // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
-    // HTTP cache partition, given httpRequest.
-    // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
-    //              possibly needing validation, as per the "Constructing Responses from Caches"
-    //              chapter of HTTP Caching, if any.
-    let stored_response = context
+) -> CacheGuard<'a> {
+    let entry_key = CacheKey::new(http_request);
+    let guard_result = context
         .state
         .http_cache
-        .construct_response(http_request, done_chan);
+        .get_or_guard(entry_key.clone())
+        .await;
 
-    // Step 8.25.2 If storedResponse is non-null, then:
-    if let Some(response_from_cache) = stored_response {
-        let response_headers = response_from_cache.response.headers.clone();
-        // Substep 1, 2, 3, 4
-        let (cached_response, needs_revalidation) =
-            match (http_request.cache_mode, &http_request.mode) {
-                (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
-                (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
-                    (Some(response_from_cache.response), false)
-                },
-                (CacheMode::OnlyIfCached, _) | (CacheMode::NoStore, _) | (CacheMode::Reload, _) => {
-                    (None, false)
-                },
-                (_, _) => (
-                    Some(response_from_cache.response),
-                    response_from_cache.needs_validation,
-                ),
-            };
-
-        if needs_revalidation {
-            *revalidating_flag = true;
-            // Substep 5
-            if let Some(http_date) = response_headers.typed_get::<LastModified>() {
-                let http_date: SystemTime = http_date.into();
-                http_request
-                    .headers
-                    .typed_insert(IfModifiedSince::from(http_date));
-            }
-            if let Some(entity_tag) = response_headers.get(header::ETAG) {
-                http_request
-                    .headers
-                    .insert(header::IF_NONE_MATCH, entity_tag.clone());
-            }
-        } else {
-            // Substep 6
-            *response = cached_response;
-            if let Some(response) = response {
-                response.cache_state = CacheState::Local;
-            }
-        }
-        if response.is_none() {
-            // Ensure the done chan is not set if we're not using the cached response,
-            // as the cache might have set it to Some if it constructed a pending response.
+    match guard_result {
+        CachedResourcesOrGuard::Guard(guard) => {
             *done_chan = None;
+            CacheGuard::new_guard(guard)
+        },
+        CachedResourcesOrGuard::Value(cached_resources) => {
+            // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
+            // HTTP cache partition, given httpRequest.
+            // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
+            //              possibly needing validation, as per the "Constructing Responses from Caches"
+            //              chapter of HTTP Caching, if any.
+            let cached_resources = cached_resources.read().await;
+            let stored_response = context
+                .state
+                .http_cache
+                .construct_response(http_request, done_chan, cached_resources)
+                .await;
+            // Step 8.25.2 If storedResponse is non-null, then:
+            if let Some(response_from_cache) = stored_response {
+                let response_headers = response_from_cache.response.headers.clone();
+                // Substep 1, 2, 3, 4
+                let (cached_response, needs_revalidation) =
+                    match (http_request.cache_mode, &http_request.mode) {
+                        (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
+                        (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
+                            (Some(response_from_cache.response), false)
+                        },
+                        (CacheMode::OnlyIfCached, _)
+                        | (CacheMode::NoStore, _)
+                        | (CacheMode::Reload, _) => (None, false),
+                        (_, _) => (
+                            Some(response_from_cache.response),
+                            response_from_cache.needs_validation,
+                        ),
+                    };
 
-            // Update the cache state, incrementing the pending store count,
-            // or starting the count.
-            if let HttpCacheEntryState::PendingStore(i) = *state {
-                let new = i + 1;
-                *state = HttpCacheEntryState::PendingStore(new);
-            } else {
-                *state = HttpCacheEntryState::PendingStore(1);
+                if needs_revalidation {
+                    *revalidating_flag = true;
+                    // Substep 5
+                    if let Some(http_date) = response_headers.typed_get::<LastModified>() {
+                        let http_date: SystemTime = http_date.into();
+                        http_request
+                            .headers
+                            .typed_insert(IfModifiedSince::from(http_date));
+                    }
+                    if let Some(entity_tag) = response_headers.get(header::ETAG) {
+                        http_request
+                            .headers
+                            .insert(header::IF_NONE_MATCH, entity_tag.clone());
+                    }
+                } else {
+                    // Substep 6
+                    *response = cached_response;
+                    if let Some(response) = response {
+                        response.cache_state = CacheState::Local;
+                    }
+                }
+                if response.is_none() {
+                    // Ensure the done chan is not set if we're not using the cached response,
+                    // as the cache might have set it to Some if it constructed a pending response.
+                    *done_chan = None;
+                }
             }
-        }
-    }
-
-    // Notify the next thread waiting in line, if there is any.
-    if *state == HttpCacheEntryState::ReadyToConstruct {
-        cvar.notify_one();
-    }
-    // End of critical section on http-cache state.
-}
-
-/// Decrement the number of pending stores,
-/// and set the state to ready to construct,
-/// if no stores are pending.
-///
-async fn update_http_cache_state(context: &FetchContext, http_request: &Request) {
-    let (lock, cvar) = {
-        let entry_key = CacheKey::new(http_request);
-        let mut state_map = context.state.http_cache_state.lock().await;
-        &*state_map
-            .get_mut(&entry_key)
-            .expect("Entry in http-cache state to have been previously inserted")
-            .clone()
-    };
-    let mut state = lock.lock().await;
-    if let HttpCacheEntryState::PendingStore(i) = *state {
-        let new = i - 1;
-        if new == 0 {
-            *state = HttpCacheEntryState::ReadyToConstruct;
-            // Notify the next thread waiting in line, if there is any.
-            cvar.notify_one();
-        } else {
-            *state = HttpCacheEntryState::PendingStore(new);
-        }
+            CacheGuard::new_append_guard(entry_key)
+        },
     }
 }
 
@@ -1920,9 +1873,9 @@ fn cross_origin_resource_policy_check(
     // Step 5
     if let Origin::Origin(ref request_origin) = request.origin {
         let schemeless_same_origin = is_schemelessy_same_site(request_origin, &current_url_origin);
-        if schemeless_same_origin &&
-            (request_origin.scheme() == Some("https") ||
-                response.https_state == HttpsState::None)
+        if schemeless_same_origin
+            && (request_origin.scheme() == Some("https")
+                || response.https_state == HttpsState::None)
         {
             return CrossOriginResourcePolicy::Allowed;
         }
@@ -2407,10 +2360,10 @@ async fn cors_preflight_fetch(
         // and request’s credentials mode is "include" or methods does not contain `*`, then return a network error.
         if methods
             .iter()
-            .all(|method| *method.as_str() != *request.method.as_ref()) &&
-            !is_cors_safelisted_method(&request.method) &&
-            (request.credentials_mode == CredentialsMode::Include ||
-                methods.iter().all(|method| method.as_ref() != "*"))
+            .all(|method| *method.as_str() != *request.method.as_ref())
+            && !is_cors_safelisted_method(&request.method)
+            && (request.credentials_mode == CredentialsMode::Include
+                || methods.iter().all(|method| method.as_ref() != "*"))
         {
             return Response::network_error(NetworkError::Internal(
                 "CORS method check failed".into(),
@@ -2425,8 +2378,8 @@ async fn cors_preflight_fetch(
         // Step 7.6 If one of request’s header list’s names is a CORS non-wildcard request-header name
         // and is not a byte-case-insensitive match for an item in headerNames, then return a network error.
         if request.headers.iter().any(|(name, _)| {
-            is_cors_non_wildcard_request_header_name(name) &&
-                header_names.iter().all(|header_name| header_name != name)
+            is_cors_non_wildcard_request_header_name(name)
+                && header_names.iter().all(|header_name| header_name != name)
         }) {
             return Response::network_error(NetworkError::Internal(
                 "CORS authorization check failed".into(),
@@ -2442,9 +2395,9 @@ async fn cors_preflight_fetch(
             .iter()
             .any(|header_name| header_name.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
-            if !header_names_set.contains(unsafe_name) &&
-                (request.credentials_mode == CredentialsMode::Include ||
-                    !header_names_contains_star)
+            if !header_names_set.contains(unsafe_name)
+                && (request.credentials_mode == CredentialsMode::Include
+                    || !header_names_contains_star)
             {
                 return Response::network_error(NetworkError::Internal(
                     "CORS headers check failed".into(),
@@ -2501,8 +2454,8 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     let origin = origin.ok_or(())?;
 
     // Step 3
-    if request.credentials_mode != CredentialsMode::Include &&
-        origin == AccessControlAllowOrigin::ANY
+    if request.credentials_mode != CredentialsMode::Include
+        && origin == AccessControlAllowOrigin::ANY
     {
         return Ok(());
     }
@@ -2543,22 +2496,22 @@ fn has_credentials(url: &ServoUrl) -> bool {
 }
 
 fn is_no_store_cache(headers: &HeaderMap) -> bool {
-    headers.contains_key(header::IF_MODIFIED_SINCE) |
-        headers.contains_key(header::IF_NONE_MATCH) |
-        headers.contains_key(header::IF_UNMODIFIED_SINCE) |
-        headers.contains_key(header::IF_MATCH) |
-        headers.contains_key(header::IF_RANGE)
+    headers.contains_key(header::IF_MODIFIED_SINCE)
+        | headers.contains_key(header::IF_NONE_MATCH)
+        | headers.contains_key(header::IF_UNMODIFIED_SINCE)
+        | headers.contains_key(header::IF_MATCH)
+        | headers.contains_key(header::IF_RANGE)
 }
 
 /// <https://fetch.spec.whatwg.org/#redirect-status>
 fn is_redirect_status(status: StatusCode) -> bool {
     matches!(
         status,
-        StatusCode::MOVED_PERMANENTLY |
-            StatusCode::FOUND |
-            StatusCode::SEE_OTHER |
-            StatusCode::TEMPORARY_REDIRECT |
-            StatusCode::PERMANENT_REDIRECT
+        StatusCode::MOVED_PERMANENTLY
+            | StatusCode::FOUND
+            | StatusCode::SEE_OTHER
+            | StatusCode::TEMPORARY_REDIRECT
+            | StatusCode::PERMANENT_REDIRECT
     )
 }
 
@@ -2641,8 +2594,8 @@ fn append_a_request_origin_header(request: &mut Request) {
 
     // Step 3. If request’s response tainting is "cors" or request’s mode is "websocket",
     //         then append (`Origin`, serializedOrigin) to request’s header list.
-    if request.response_tainting == ResponseTainting::CorsTainting ||
-        matches!(request.mode, RequestMode::WebSocket { .. })
+    if request.response_tainting == ResponseTainting::CorsTainting
+        || matches!(request.mode, RequestMode::WebSocket { .. })
     {
         request.headers.typed_insert(serialized_origin);
     }
@@ -2655,9 +2608,9 @@ fn append_a_request_origin_header(request: &mut Request) {
                     // Set serializedOrigin to `null`.
                     serialized_origin = headers::Origin::NULL;
                 },
-                ReferrerPolicy::NoReferrerWhenDowngrade |
-                ReferrerPolicy::StrictOrigin |
-                ReferrerPolicy::StrictOriginWhenCrossOrigin => {
+                ReferrerPolicy::NoReferrerWhenDowngrade
+                | ReferrerPolicy::StrictOrigin
+                | ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
                     if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
