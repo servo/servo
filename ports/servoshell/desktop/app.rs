@@ -626,11 +626,7 @@ impl ApplicationHandler<AppEvent> for App {
         }
 
         // Block until the window gets an event
-        if !self.animating() || self.suspended.get() {
-            event_loop.set_control_flow(ControlFlow::Wait);
-        } else {
-            event_loop.set_control_flow(ControlFlow::Poll);
-        }
+        event_loop.set_control_flow(ControlFlow::Wait);
 
         // Consume and handle any events from the servoshell UI.
         self.handle_servoshell_ui_events();
