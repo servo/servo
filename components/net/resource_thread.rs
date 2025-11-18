@@ -187,7 +187,6 @@ fn create_http_states(
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::default();
     let mut auth_cache = AuthCache::default();
-    let http_cache = HttpCache::default();
     let mut cookie_jar = CookieStorage::new(150);
     if let Some(config_dir) = config_dir {
         base::read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
@@ -201,7 +200,7 @@ fn create_http_states(
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
         history_states: RwLock::new(FxHashMap::default()),
-        http_cache: http_cache,
+        http_cache: HttpCache::default(),
         http_cache_state: tokio::sync::Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             ca_certificates.clone(),
