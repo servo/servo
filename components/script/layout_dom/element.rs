@@ -789,7 +789,6 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             NamespaceConstraint::Any => self
                 .element
                 .get_attr_vals_for_layout(local_name)
-                .iter()
                 .any(|value| value.eval_selector(operation)),
         }
     }
@@ -1211,7 +1210,6 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
                 .element
                 .element
                 .get_attr_vals_for_layout(local_name)
-                .iter()
                 .any(|v| v.eval_selector(operation)),
         }
     }
