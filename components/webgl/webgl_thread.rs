@@ -441,12 +441,21 @@ impl WebGLThread {
         self.webxr_bridge.replace(webxr_bridge);
     }
 
-    pub(crate) fn device_for_context(&self, context_id: WebGLContextId) -> Rc<Device> {
+    fn device_for_context(&self, context_id: WebGLContextId) -> Rc<Device> {
+        self.maybe_device_for_context(context_id)
+            .expect("Should be called with a valid WebGLContextId")
+    }
+
+    /// A function like `Self::device_for_context`, except that it does not panic if the context
+    /// cannot be found. This is useful for WebXR, which might try to access WebGL contexts after
+    /// they have been cleaned up.
+    pub(crate) fn maybe_device_for_context(
+        &self,
+        context_id: WebGLContextId,
+    ) -> Option<Rc<Device>> {
         self.contexts
             .get(&context_id)
-            .expect("Should be called with a valid WebGLContextId")
-            .device
-            .clone()
+            .map(|context| context.device.clone())
     }
 
     /// Handles a WebGLCommand for a specific WebGLContext
@@ -714,23 +723,29 @@ impl WebGLThread {
             self.compositor_api.delete_image(image_key);
         }
 
+        if !self.contexts.contains_key(&context_id) {
+            return;
+        };
+
         // We need to make the context current so its resources can be disposed of.
         self.make_current_if_needed(context_id);
 
-        // Release GL context.
-        let mut data = match self.contexts.remove(&context_id) {
-            Some(data) => data,
-            None => return,
-        };
-
+        // Destroy WebXR layers associated with this context
         #[cfg(feature = "webxr")]
         {
-            // Destroy WebXR layers associated with this context
-            let webxr_context_id = webxr_api::ContextId::from(context_id);
-            if let Some(mut webxr_bridge) = self.webxr_bridge.take() {
-                webxr_bridge.destroy_all_layers(self, webxr_context_id);
+            // We must temporarily take the WebXRBridge, as we are passing self to a
+            // method on the bridge.
+            let mut webxr_bridge = self.webxr_bridge.take();
+            if let Some(webxr_bridge) = &mut webxr_bridge {
+                webxr_bridge.destroy_all_layers(self, context_id.into());
             }
+            self.webxr_bridge = webxr_bridge;
         }
+
+        // Release GL context.
+        let Some(mut data) = self.contexts.remove(&context_id) else {
+            return;
+        };
 
         // Destroy the swap chains
         self.webrender_swap_chains
