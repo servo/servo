@@ -317,12 +317,8 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         };
 
         let (descriptor, data) = {
-            #[cfg(feature = "tracing")]
-            let _span = tracing::trace_span!(
-                "image_descriptor_and_serializable_data",
-                servo_profiling = true,
-            )
-            .entered();
+            let _span =
+                profile_traits::trace_span!("image_descriptor_and_serializable_data",).entered();
             self.draw_target.image_descriptor_and_serializable_data()
         };
 

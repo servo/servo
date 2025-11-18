@@ -119,9 +119,7 @@ impl SystemFontService {
         loop {
             let msg = self.port.recv().unwrap();
 
-            #[cfg(feature = "tracing")]
-            let _span =
-                tracing::trace_span!("SystemFontServiceMessage", servo_profiling = true).entered();
+            let _span = profile_traits::trace_span!("SystemFontServiceMessage").entered();
             match msg {
                 SystemFontServiceMessage::GetFontTemplates(
                     font_descriptor,

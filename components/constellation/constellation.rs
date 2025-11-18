@@ -1250,9 +1250,7 @@ where
             let oper = sel.select();
             let index = oper.index();
 
-            #[cfg(feature = "tracing")]
-            let _span =
-                tracing::trace_span!("handle_request::select", servo_profiling = true).entered();
+            let _span = profile_traits::trace_span!("handle_request::select").entered();
             match index {
                 0 => oper
                     .recv(&self.namespace_receiver)

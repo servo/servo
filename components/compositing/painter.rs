@@ -1026,12 +1026,8 @@ impl Painter {
             },
             display_list_descriptor,
         );
-        #[cfg(feature = "tracing")]
-        let _span = tracing::trace_span!(
-            "ScriptToCompositorMsg::BuiltDisplayList",
-            servo_profiling = true,
-        )
-        .entered();
+        let _span =
+            profile_traits::trace_span!("ScriptToCompositorMsg::BuiltDisplayList",).entered();
         let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };

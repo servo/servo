@@ -137,8 +137,7 @@ impl StylesheetContext {
             .as_ref()
             .expect("Should never call parse without metadata.");
 
-        #[cfg(feature = "tracing")]
-        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true).entered();
+        let _span = profile_traits::trace_span!("ParseStylesheet").entered();
         Arc::new(Stylesheet::from_bytes(
             &self.data,
             UrlExtraData(metadata.final_url.get_arc()),

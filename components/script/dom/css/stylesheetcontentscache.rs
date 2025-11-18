@@ -105,9 +105,7 @@ impl StylesheetContentsCache {
                 },
                 Entry::Vacant(vacant_entry) => {
                     let contents = {
-                        #[cfg(feature = "tracing")]
-                        let _span = tracing::trace_span!("ParseStylesheet", servo_profiling = true)
-                            .entered();
+                        let _span = profile_traits::trace_span!("ParseStylesheet").entered();
                         StylesheetContents::from_str(
                             stylesheet_text,
                             url_data,
