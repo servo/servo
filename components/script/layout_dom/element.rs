@@ -623,6 +623,16 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
                 return true;
             }
 
+            // Only consider changes to the `quotes` attribute if they actually apply to this
+            // style (if it is a pseudo-element that supports it).
+            if matches!(
+                new.pseudo(),
+                Some(PseudoElement::Before | PseudoElement::After | PseudoElement::Marker),
+            ) && old.get_list().quotes != new.get_list().quotes
+            {
+                return true;
+            }
+
             // NOTE: This should be kept in sync with the checks in `impl
             // StyleExt::establishes_block_formatting_context` for `ComputedValues` in
             // `components/layout/style_ext.rs`.
