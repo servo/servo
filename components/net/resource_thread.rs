@@ -400,8 +400,14 @@ impl ResourceChannelManager {
                     cancellation_listener.cancel();
                 }
             },
-            CoreResourceMsg::DeleteCookies(request) => {
-                http_state.cookie_jar.write().clear_storage(&request);
+            CoreResourceMsg::DeleteCookies(request, sender) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .clear_storage(request.as_ref());
+                if let Some(sender) = sender {
+                    let _ = sender.send(());
+                }
                 return true;
             },
             CoreResourceMsg::DeleteCookie(request, name) => {
