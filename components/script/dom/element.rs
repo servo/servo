@@ -1012,7 +1012,7 @@ pub(crate) trait LayoutElementHelpers<'dom> {
         name: &LocalName,
     ) -> Option<&'dom AttrValue>;
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
-    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue>;
+    fn get_attr_vals_for_layout(self, name: &LocalName) -> impl Iterator<Item = &'dom AttrValue>;
     fn each_custom_state<F>(self, callback: F)
     where
         F: FnMut(&AtomIdent);
@@ -1494,17 +1494,14 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue> {
-        self.attrs()
-            .iter()
-            .filter_map(|attr| {
-                if name == attr.local_name() {
-                    Some(attr.value())
-                } else {
-                    None
-                }
-            })
-            .collect()
+    fn get_attr_vals_for_layout(self, name: &LocalName) -> impl Iterator<Item = &'dom AttrValue> {
+        self.attrs().iter().filter_map(move |attr| {
+            if name == attr.local_name() {
+                Some(attr.value())
+            } else {
+                None
+            }
+        })
     }
 
     fn each_custom_state<F>(self, callback: F)
