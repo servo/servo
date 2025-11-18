@@ -35,8 +35,19 @@ fn show_webview_and_wait_for_rendering_to_be_ready(
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
-    // Wait for at least one frame after the load completes.
     delegate.reset();
+
+    // Trigger a change to the display of the document, so that we get at last one
+    // new frame after load is complete.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "requestAnimationFrame(() => { \
+           document.body.style.background = 'green'; \
+        });",
+    );
+
+    // Wait for at least one frame after the load completes.
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.new_frame_ready.get());
 }
