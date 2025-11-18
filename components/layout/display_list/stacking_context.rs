@@ -1470,6 +1470,21 @@ impl BoxFragment {
             parent_clip_id,
         );
 
+        // if the scrollable overflow area fits within the padding box, no scroll frame needed.
+        // it can reduce the number of scroll tree nodes and stacking context contents created.
+        //
+        // TODO: This will not be the case once scrollbars are implemented.
+        if self
+            .padding_rect()
+            .size
+            .contains(self.scrollable_overflow().size)
+        {
+            return Some(OverflowFrameData {
+                clip_id,
+                scroll_frame_data: None,
+            });
+        }
+
         let tag = self.base.tag?;
         let external_scroll_id = wr::ExternalScrollId(
             tag.to_display_list_fragment_id(),
