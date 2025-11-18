@@ -12,6 +12,7 @@ use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectDynamic, UnwrapObje
 use js::jsapi::{
     CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSContext, JSObject,
 };
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::{DomHelpers, Interface};
@@ -175,7 +176,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         &PRINCIPALS_CALLBACKS
     }
 
-    fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+    fn is_platform_object_same_origin(cx: &CurrentRealm, obj: RawHandleObject) -> bool {
         unsafe { is_platform_object_same_origin(cx, obj) }
     }
 

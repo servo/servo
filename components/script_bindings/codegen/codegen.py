@@ -6209,11 +6209,13 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         indexedGetter = self.descriptor.operations['IndexedGetter']
 
         get = "let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+        get += "let mut cx = CurrentRealm::assert(&mut cx);\n"
+        get += "let cx = &mut cx;\n"
 
         if self.descriptor.isMaybeCrossOriginObject():
             get += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(SafeJSContext::from_ptr(cx.raw_cx()), proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     if !proxyhandler::cross_origin_get_own_property_helper(
                         SafeJSContext::from_ptr(cx.raw_cx()), proxy, CROSS_ORIGIN_PROPERTIES.get(), id, desc, &mut *is_none
                     ) {
@@ -6226,7 +6228,8 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 }
 
                 // Safe to enter the Realm of proxy now.
-                let _ac = JSAutoRealm::new(cx.raw_cx(), proxy.get());
+                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
+                let cx = &mut cx;
                 """)
 
         if indexedGetter:
@@ -6331,16 +6334,20 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
     def getBody(self) -> str:
         set = "let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+        set += "let mut cx = CurrentRealm::assert(&mut cx);\n"
+        set += "let cx = &mut cx;\n"
+
 
         if self.descriptor.isMaybeCrossOriginObject():
             set += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(SafeJSContext::from_ptr(cx.raw_cx()), proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::report_cross_origin_denial::<D>(SafeJSContext::from_ptr(cx.raw_cx()), id, "define");
                 }
 
                 // Safe to enter the Realm of proxy now.
-                let _ac = JSAutoRealm::new(cx.raw_cx(), proxy.get());
+                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
+                let cx = &mut cx;
                 """)
 
         indexedSetter = self.descriptor.operations['IndexedSetter']
@@ -6390,16 +6397,19 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
 
     def getBody(self) -> str:
         set = "let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+        set += "let mut cx = CurrentRealm::assert(&mut cx);\n"
+        set += "let cx = &mut cx;\n"
 
         if self.descriptor.isMaybeCrossOriginObject():
             set += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(SafeJSContext::from_ptr(cx.raw_cx()), proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::report_cross_origin_denial::<D>(SafeJSContext::from_ptr(cx.raw_cx()), id, "delete");
                 }
 
                 // Safe to enter the Realm of proxy now.
-                let _ac = JSAutoRealm::new(cx.raw_cx(), proxy.get());
+                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
+                let cx = &mut cx;
                 """)
 
         if self.descriptor.operations['NamedDeleter']:
@@ -6427,20 +6437,23 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
         body = dedent(
             """
             let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+            let mut cx = CurrentRealm::assert(&mut cx);
+            let cx = &mut cx;
             let unwrapped_proxy = UnwrapProxy::<D>(proxy);
             """)
 
         if self.descriptor.isMaybeCrossOriginObject():
             body += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(SafeJSContext::from_ptr(cx.raw_cx()), proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_own_property_keys(
                         SafeJSContext::from_ptr(cx.raw_cx()), proxy, CROSS_ORIGIN_PROPERTIES.get(), props
                     );
                 }
 
                 // Safe to enter the Realm of proxy now.
-                let _ac = JSAutoRealm::new(cx.raw_cx(), proxy.get());
+                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
+                let cx = &mut cx;
                 """)
 
         if self.descriptor.operations['IndexedGetter']:
@@ -6501,18 +6514,21 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
             """
             let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
             let unwrapped_proxy = UnwrapProxy::<D>(proxy);
+            let mut cx = CurrentRealm::assert(&mut cx);
+            let cx = &mut cx;
             """)
 
         if self.descriptor.isMaybeCrossOriginObject():
             body += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(SafeJSContext::from_ptr(cx.raw_cx()), proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     // There are no enumerable cross-origin props, so we're done.
                     return true;
                 }
 
                 // Safe to enter the Realm of proxy now.
-                let _ac = JSAutoRealm::new(cx.raw_cx(), proxy.get());
+                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
+                let cx = &mut cx;
                 """)
 
         if self.descriptor.operations['IndexedGetter']:
@@ -6552,19 +6568,24 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
     def getBody(self) -> str:
         indexedGetter = self.descriptor.operations['IndexedGetter']
-        indexed = "let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+        indexed = dedent("""
+                         let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+                         let mut cx = CurrentRealm::assert(&mut cx);
+                         let cx = &mut cx;
+                         """)
 
         if self.descriptor.isMaybeCrossOriginObject():
             indexed += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(SafeJSContext::from_ptr(cx.raw_cx()), proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_has_own(
                         SafeJSContext::from_ptr(cx.raw_cx()), proxy, CROSS_ORIGIN_PROPERTIES.get(), id, bp
                     );
                 }
 
                 // Safe to enter the Realm of proxy now.
-                let _ac = JSAutoRealm::new(cx.raw_cx(), proxy.get());
+                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
+                let cx = &mut cx;
                 """)
 
         if indexedGetter:
@@ -6630,12 +6651,13 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             maybeCrossOriginGet = dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(SafeJSContext::from_ptr(cx.raw_cx()), proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_get::<D>(SafeJSContext::from_ptr(cx.raw_cx()), proxy, receiver, id, vp);
                 }
 
                 // Safe to enter the Realm of proxy now.
-                let _ac = JSAutoRealm::new(cx.raw_cx(), proxy.get());
+                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
+                let cx = &mut cx;
                 """)
         else:
             maybeCrossOriginGet = ""
@@ -6693,6 +6715,8 @@ if !expando.is_null() {
 //MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
 //"Should not have a XrayWrapper here");
 let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+let mut cx = CurrentRealm::assert(&mut cx);
+let cx = &mut cx;
 
 {maybeCrossOriginGet}
 
@@ -6730,7 +6754,8 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
         return dedent(
             """
             let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
-            proxyhandler::maybe_cross_origin_get_prototype::<D>(SafeJSContext::from_ptr(cx.raw_cx()), proxy, GetProtoObject::<D>, proto)
+            let mut realm = CurrentRealm::assert(&mut cx);
+            proxyhandler::maybe_cross_origin_get_prototype::<D>(&mut realm, proxy, GetProtoObject::<D>, proto)
             """)
 
     def definition_body(self) -> CGThing:

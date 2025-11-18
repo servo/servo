@@ -41,6 +41,7 @@ use js::jsapi::{
 };
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
+use js::realm::CurrentRealm;
 use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{
     CompileOptionsWrapper, CustomAutoRooter, CustomAutoRooterGuard, HandleValue,
@@ -2319,6 +2320,15 @@ impl GlobalScope {
         unsafe { global_scope_from_global(global, cx) }
     }
 
+    /// Return global scope asociated with current realm
+    ///
+    /// Eventually we could return Handle here as global is already rooted by realm.
+    #[expect(unsafe_code)]
+    pub(crate) fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
+        let global = realm.global();
+        unsafe { global_scope_from_global(global.get(), realm.raw_cx_no_gc()) }
+    }
+
     /// Returns the global scope for the given SafeJSContext
     #[expect(unsafe_code)]
     pub(crate) fn from_safe_context(cx: SafeJSContext, realm: InRealm) -> DomRoot<Self> {
@@ -3654,6 +3664,10 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_context(cx, realm) }
+    }
+
+    fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
+        GlobalScope::from_current_realm(realm)
     }
 
     fn get_cx() -> SafeJSContext {

@@ -7,6 +7,7 @@ use std::thread::LocalKey;
 
 use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSContext as RawJSContext, JSObject};
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -49,7 +50,7 @@ pub trait DomHelpers<D: DomTypes> {
 
     fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
 
-    fn is_platform_object_same_origin(cx: JSContext, obj: RawHandleObject) -> bool;
+    fn is_platform_object_same_origin(cx: &CurrentRealm, obj: RawHandleObject) -> bool;
 
     fn interface_map() -> &'static phf::Map<&'static [u8], Interface>;
 
@@ -67,6 +68,7 @@ pub trait DomHelpers<D: DomTypes> {
 /// Operations that must be invoked from the generated bindings.
 #[expect(unsafe_code)]
 pub trait GlobalScopeHelpers<D: DomTypes> {
+    fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<D::GlobalScope>;
     /// # Safety
     /// `cx` must point to a valid, non-null RawJSContext.
     unsafe fn from_context(cx: *mut RawJSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;

@@ -18,7 +18,7 @@ pub(crate) mod base {
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
     #[allow(unused_imports)]
-    pub(crate) use js::realm::CurrentRealm;
+    pub(crate) use js::realm::{AutoRealm, CurrentRealm};
     pub(crate) use js::rust::wrappers::Call;
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
     pub(crate) use js::typedarray::{
