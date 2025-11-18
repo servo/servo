@@ -549,13 +549,12 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
     let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
     let mut realm = js::realm::CurrentRealm::assert(&mut cx);
     let proxy_handle = unsafe { HandleObject::from_raw(proxy) };
-    let id = unsafe { Handle::from_raw(id) };
 
     if !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, proxy) {
         return cross_origin_set::<D>(
             SafeJSContext::from_ptr(realm.raw_cx()),
             proxy,
-            id.into_handle(),
+            id,
             v,
             receiver,
             result,
@@ -569,24 +568,24 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
     // <https://tc39.es/ecma262/#sec-ordinaryset>
     rooted!(&in(&mut realm) let mut own_desc = PropertyDescriptor::default());
     let mut is_none = false;
-    if !js::rust::wrappers2::InvokeGetOwnPropertyDescriptor(
+    if !js::glue::InvokeGetOwnPropertyDescriptor(
         GetProxyHandler(*proxy),
-        &mut realm,
-        proxy_handle,
+        realm.raw_cx(),
+        proxy,
         id,
-        own_desc.handle_mut(),
+        own_desc.handle_mut().into(),
         &mut is_none,
     ) {
         return false;
     }
 
-    let own_desc_handle = own_desc.handle();
-    js::rust::wrappers2::SetPropertyIgnoringNamedGetter(
-        &mut realm,
-        proxy_handle,
+    let own_desc_handle = own_desc.handle().into();
+    js::jsapi::SetPropertyIgnoringNamedGetter(
+        realm.raw_cx(),
+        proxy,
         id,
-        Handle::from_raw(v),
-        Handle::from_raw(receiver),
+        v,
+        receiver,
         if is_none {
             ptr::null()
         } else {
