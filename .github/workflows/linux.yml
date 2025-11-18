@@ -195,8 +195,9 @@ jobs:
       # We upload the test-results to Codecov to help us identify flaky unit-tests.
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+        uses: codecov/codecov-action@v5
         with:
+          report_type: test_results
           files: target/nextest/ci/junit.xml
           disable_search: true
           flags: unittests,unittests-linux,unittests-linux-${{ inputs.profile }}
