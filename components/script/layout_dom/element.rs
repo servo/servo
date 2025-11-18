@@ -1005,6 +1005,44 @@ impl<'dom> ServoThreadSafeLayoutElement<'dom> {
     pub fn slotted_nodes(&self) -> &[ServoLayoutNode<'dom>] {
         self.element.slotted_nodes()
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#replaced-elements>
+    fn is_replaced_content(&self) -> bool {
+        if !self.has_namespace(&ns!(html)) {
+            return false;
+        }
+
+        let node = self.as_node();
+
+        if self.has_local_name(&local_name!("embed")) ||
+            self.has_local_name(&local_name!("iframe")) ||
+            self.has_local_name(&local_name!("video"))
+        {
+            return true;
+        }
+
+        if self.has_local_name(&local_name!("canvas")) {
+            return node.canvas_data().is_some();
+        }
+
+        if self.has_local_name(&local_name!("object")) {
+            return node.image_data().is_some() || node.iframe_pipeline_id().is_some();
+        }
+
+        if self.has_local_name(&local_name!("audio")) {
+            return node.media_data().is_some();
+        }
+
+        if self.has_local_name(&local_name!("img")) {
+            return node.image_data().is_some();
+        }
+
+        if self.has_local_name(&local_name!("input")) {
+            return true;
+        }
+
+        false
+    }
 }
 
 impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> {
@@ -1028,7 +1066,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
             Also as with regular child elements, the ::before and ::after pseudo-elements
             are suppressed when their parent, the originating element, is replaced.
         */
-        if self.has_local_name(&local_name!("video")) && pseudo_element.is_before_or_after() {
+        if self.is_replaced_content() && pseudo_element.is_before_or_after() {
             return None;
         }
 
