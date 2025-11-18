@@ -25,9 +25,6 @@ PyGithub == 1.58.1
 # For Python3 compatibility
 six == 1.16
 
-# For sending build notifications.
-notify-py == 0.3.43
-
 # For wpt scripts and their tests.
 flask
 requests
