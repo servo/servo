@@ -15,12 +15,13 @@ pub trait GraphicsProviderMethods<G: Graphics> {
     fn enable_graphics_extensions(exts: &mut ExtensionSet);
     fn pick_format(formats: &[u32]) -> u32;
     fn create_session(
+        device: &SurfmanDevice,
         instance: &Instance,
         system: SystemId,
     ) -> Result<(Session<G>, FrameWaiter, FrameStream<G>), Error>;
     fn surface_texture_from_swapchain_texture(
         image: <G as Graphics>::SwapchainImage,
-        device: &SurfmanDevice,
+        device: &mut SurfmanDevice,
         context: &mut SurfmanContext,
         size: &Size2D<i32, UnknownUnit>,
     ) -> Result<SurfaceTexture, SurfmanError>;

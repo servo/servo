@@ -4,7 +4,6 @@
 
 //! The interface to the `compositing` crate.
 
-use std::collections::HashMap;
 use std::fmt::{Debug, Error, Formatter};
 
 use base::Epoch;
@@ -16,7 +15,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use strum_macros::IntoStaticStr;
-use surfman::{Adapter, Connection};
 use webrender_api::{DocumentId, FontVariation};
 
 pub mod display_list;
@@ -485,28 +483,6 @@ impl CrossProcessCompositorApi {
             pipeline_id,
             source,
         ));
-    }
-}
-
-#[derive(Clone)]
-pub struct PainterSurfmanDetails {
-    pub connection: Connection,
-    pub adapter: Adapter,
-}
-
-#[derive(Clone, Default)]
-pub struct PainterSurfmanDetailsMap(Arc<Mutex<HashMap<PainterId, PainterSurfmanDetails>>>);
-
-impl PainterSurfmanDetailsMap {
-    pub fn get(&self, painter_id: PainterId) -> Option<PainterSurfmanDetails> {
-        let map = self.0.lock().expect("poisoned");
-        map.get(&painter_id).cloned()
-    }
-
-    pub fn insert(&mut self, painter_id: PainterId, details: PainterSurfmanDetails) {
-        let mut map = self.0.lock().expect("poisoned");
-        let existing = map.insert(painter_id, details);
-        assert!(existing.is_none())
     }
 }
 

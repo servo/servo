@@ -11,8 +11,8 @@ use openxr::{
     ExtensionSet, FormFactor, FrameStream, FrameWaiter, Graphics, Instance, Session, SystemId,
 };
 use surfman::{
-    Adapter as SurfmanAdapter, Connection as SurfmanConnection, Context as SurfmanContext,
-    Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
+    Adapter as SurfmanAdapter, Context as SurfmanContext, Device as SurfmanDevice,
+    Error as SurfmanError, SurfaceTexture,
 };
 use webxr_api::Error;
 use winapi::Interface;
@@ -22,6 +22,7 @@ use winapi::um::d3d11::ID3D11Texture2D;
 use wio::com::ComPtr;
 
 use crate::openxr::graphics::{GraphicsProvider, GraphicsProviderMethods};
+use crate::openxr::{AppInfo, create_instance};
 
 pub type Backend = D3D11;
 
@@ -50,19 +51,22 @@ impl GraphicsProviderMethods<D3D11> for GraphicsProvider {
     }
 
     fn create_session(
+        device: &SurfmanDevice,
         instance: &Instance,
         system: SystemId,
     ) -> Result<(Session<D3D11>, FrameWaiter, FrameStream<D3D11>), Error> {
-        // FIXME: We should ensure that the OpenXR runtime's texture will be shareable with
-        // surfman's surfaces by validating the requirements of the XR runtime and ensuring that
-        // the WebGL context can use the same device when `makeXRCompatible` is called.
-        let adapter = create_surfman_adapter(instance).ok_or(Error::NoMatchingDevice)?;
-        let connection = SurfmanConnection::new().map_err(|_| Error::NoMatchingDevice)?;
-        let device = connection
-            .create_device(&adapter)
-            .map_err(|_| Error::NoMatchingDevice)?;
+        // Get the current surfman device and extract its D3D device. This will ensure
+        // that the OpenXR runtime's texture will be shareable with surfman's surfaces.
         let native_device = device.native_device();
         let d3d_device = native_device.d3d11_device;
+
+        // FIXME: we should be using these graphics requirements to drive the actual
+        //        d3d device creation, rather than assuming the device that surfman
+        //        already created is appropriate. OpenXR returns a validation error
+        //        unless we call this method, so we call it and ignore the results
+        //        in the short term.
+        let _requirements = D3D11::requirements(instance, system)
+            .map_err(|e| Error::BackendSpecific(format!("D3D11::requirements {:?}", e)))?;
 
         unsafe {
             instance
@@ -78,7 +82,7 @@ impl GraphicsProviderMethods<D3D11> for GraphicsProvider {
 
     fn surface_texture_from_swapchain_texture(
         image: <D3D11 as Graphics>::SwapchainImage,
-        device: &SurfmanDevice,
+        device: &mut SurfmanDevice,
         context: &mut SurfmanContext,
         size: &Size2D<i32, UnknownUnit>,
     ) -> Result<SurfaceTexture, SurfmanError> {
@@ -125,10 +129,14 @@ fn get_matching_adapter(
 }
 
 #[expect(unused)]
-pub fn create_surfman_adapter(instance: &Instance) -> Option<SurfmanAdapter> {
-    let system = instance.system(FormFactor::HEAD_MOUNTED_DISPLAY).ok()?;
+pub fn create_surfman_adapter() -> Option<SurfmanAdapter> {
+    let instance = create_instance(false, false, false, &AppInfo::default()).ok()?;
+    let system = instance
+        .instance
+        .system(FormFactor::HEAD_MOUNTED_DISPLAY)
+        .ok()?;
 
-    let requirements = D3D11::requirements(instance, system).ok()?;
+    let requirements = D3D11::requirements(&instance.instance, system).ok()?;
     let adapter = get_matching_adapter(&requirements).ok()?;
     Some(SurfmanAdapter::from_dxgi_adapter(adapter.up()))
 }

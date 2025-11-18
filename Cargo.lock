@@ -1477,7 +1477,6 @@ dependencies = [
  "base",
  "bincode",
  "bitflags 2.10.0",
- "canvas_traits",
  "crossbeam-channel",
  "dpi",
  "embedder_traits",
@@ -8701,9 +8700,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "surfman"
-version = "0.11.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04d3973284ef0dc7362cdaee41c2356c4c39a5a5ebd8490c5163ebf21a7adc02"
+checksum = "ab6d64f9d99bbbab83405a1aa65ac373e4f98440df9912ea8a3640bf164da234"
 dependencies = [
  "bitflags 2.10.0",
  "cfg_aliases",
@@ -8714,6 +8713,7 @@ dependencies = [
  "glow",
  "libc",
  "log",
+ "mach2",
  "objc2 0.6.3",
  "objc2-app-kit 0.3.2",
  "objc2-core-foundation",

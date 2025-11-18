@@ -237,13 +237,7 @@ impl WebGLRenderingContext {
 
         let (sender, receiver) = webgl_channel().unwrap();
         webgl_chan
-            .send(WebGLMsg::CreateContext(
-                window.webview_id().into(),
-                webgl_version,
-                size,
-                attrs,
-                sender,
-            ))
+            .send(WebGLMsg::CreateContext(webgl_version, size, attrs, sender))
             .unwrap();
         let result = receiver.recv().unwrap();
 

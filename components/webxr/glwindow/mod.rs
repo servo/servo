@@ -279,7 +279,7 @@ impl DeviceAPI for GlWindowDevice {
             Some(target_swap_chain) => {
                 // Rendering to a surfman swap chain
                 target_swap_chain
-                    .swap_buffers(&self.device, &mut self.context, PreserveBuffer::No)
+                    .swap_buffers(&mut self.device, &mut self.context, PreserveBuffer::No)
                     .unwrap();
             },
             None => {
@@ -465,9 +465,9 @@ impl GlWindowDevice {
         }
         let swap_chains = self.swap_chains.clone();
         let viewports = self.viewports();
-        let layer_manager = self
-            .grand_manager
-            .create_layer_manager(move |_| Ok(SurfmanLayerManager::new(viewports, swap_chains)))?;
+        let layer_manager = self.grand_manager.create_layer_manager(move |_, _| {
+            Ok(SurfmanLayerManager::new(viewports, swap_chains))
+        })?;
         self.layer_manager = Some(layer_manager);
         Ok(self.layer_manager.as_mut().unwrap())
     }

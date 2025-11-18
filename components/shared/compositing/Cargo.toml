@@ -18,7 +18,6 @@ no-wgl = ["surfman/sm-angle-default"]
 base = { workspace = true }
 bincode = { workspace = true }
 bitflags = { workspace = true }
-canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
 embedder_traits = { workspace = true }
