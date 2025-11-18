@@ -5,11 +5,11 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use canvas_traits::webgl::{GlType, WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
+use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CrossProcessCompositorApi, ExternalImageSource, WebRenderExternalImageApi,
-    WebRenderExternalImageRegistry,
+    CrossProcessCompositorApi, ExternalImageSource, PainterSurfmanDetailsMap,
+    WebRenderExternalImageApi, WebRenderExternalImageRegistry,
 };
 use euclid::default::Size2D;
 use log::debug;
@@ -36,7 +36,7 @@ impl WebGLComm {
         rendering_context: Rc<dyn RenderingContext>,
         compositor_api: CrossProcessCompositorApi,
         external_images: Arc<Mutex<WebRenderExternalImageRegistry>>,
-        api_type: GlType,
+        painter_surfman_details_map: PainterSurfmanDetailsMap,
     ) -> WebGLComm {
         debug!("WebGLThreads::new()");
         let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
@@ -45,12 +45,6 @@ impl WebGLComm {
         let webxr_init = crate::webxr::WebXRBridgeInit::new(sender.clone());
         #[cfg(feature = "webxr")]
         let webxr_layer_grand_manager = webxr_init.layer_grand_manager();
-        let connection = rendering_context
-            .connection()
-            .expect("Failed to get connection");
-        let adapter = connection
-            .create_adapter()
-            .expect("Failed to create adapter");
 
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let init = WebGLThreadInit {
@@ -59,11 +53,9 @@ impl WebGLComm {
             sender: sender.clone(),
             receiver,
             webrender_swap_chains: webrender_swap_chains.clone(),
-            connection,
-            adapter,
-            api_type,
             #[cfg(feature = "webxr")]
             webxr_init,
+            painter_surfman_details_map,
         };
 
         let external = WebGLExternalImages::new(rendering_context, webrender_swap_chains);
