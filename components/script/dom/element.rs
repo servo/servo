@@ -55,7 +55,7 @@ use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
+use style::values::{AtomIdent, AtomString, CSSFloat, GenericAtomIdent, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
@@ -65,7 +65,7 @@ use xml5ever::serialize::TraversalScope::{
 
 use crate::conversions::Convert;
 use crate::dom::activation::Activatable;
-use crate::dom::attr::{Attr, AttrHelpersForLayout, is_relevant_attribute};
+use crate::dom::attr::{Attr, is_relevant_attribute};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -966,19 +966,19 @@ pub(crate) fn is_valid_shadow_host_name(name: &LocalName) -> bool {
 }
 
 #[inline]
+#[allow(unsafe_code)]
 pub(crate) fn get_attr_for_layout<'dom>(
     elem: LayoutDom<'dom, Element>,
     namespace: &Namespace,
     name: &LocalName,
 ) -> Option<&'dom AttrValue> {
-    elem.attrs()
+    unsafe { elem.unsafe_get().attrs.borrow_for_layout() }
         .iter()
         .find(|attr| name == attr.local_name() && namespace == attr.namespace())
-        .map(|attr| attr.value())
+        .map(|attr| unsafe { attr.value_for_layout() })
 }
 
 pub(crate) trait LayoutElementHelpers<'dom> {
-    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
     fn has_class_or_part_for_layout(
         self,
         name: &AtomIdent,
@@ -1016,6 +1016,9 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     fn each_custom_state<F>(self, callback: F)
     where
         F: FnMut(&AtomIdent);
+    fn for_each_attr_name<F>(&self, callback: F)
+    where
+        F: FnMut(&style::LocalName);
 }
 
 impl LayoutDom<'_, Element> {
@@ -1025,12 +1028,6 @@ impl LayoutDom<'_, Element> {
 }
 
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
-    #[expect(unsafe_code)]
-    #[inline]
-    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
-        unsafe { LayoutDom::to_layout_slice(self.unsafe_get().attrs.borrow_for_layout()) }
-    }
-
     #[inline]
     fn has_class_or_part_for_layout(
         self,
@@ -1494,12 +1491,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
+    #[allow(unsafe_code)]
     fn get_attr_vals_for_layout(self, name: &LocalName) -> Vec<&'dom AttrValue> {
-        self.attrs()
+        unsafe { self.unsafe_get().attrs.borrow_for_layout() }
             .iter()
             .filter_map(|attr| {
                 if name == attr.local_name() {
-                    Some(attr.value())
+                    Some(unsafe { attr.value_for_layout() })
                 } else {
                     None
                 }
@@ -1512,6 +1510,16 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         F: FnMut(&AtomIdent),
     {
         self.unsafe_get().each_custom_state(callback)
+    }
+
+    fn for_each_attr_name<F>(&self, mut callback: F)
+    where
+        F: FnMut(&style::LocalName),
+    {
+        self.unsafe_get()
+            .attrs()
+            .iter()
+            .for_each(|attr| callback(GenericAtomIdent::cast(attr.local_name())));
     }
 }
 
