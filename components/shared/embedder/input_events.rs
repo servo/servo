@@ -199,11 +199,22 @@ pub enum MouseButtonAction {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct MouseMoveEvent {
     pub point: WebViewPoint,
+    pub is_compatibility_event_for_touch: bool,
 }
 
 impl MouseMoveEvent {
     pub fn new(point: WebViewPoint) -> Self {
-        Self { point }
+        Self {
+            point,
+            is_compatibility_event_for_touch: false,
+        }
+    }
+
+    pub fn new_compatibility_for_touch(point: WebViewPoint) -> Self {
+        Self {
+            point,
+            is_compatibility_event_for_touch: true,
+        }
     }
 }
 

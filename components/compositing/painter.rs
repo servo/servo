@@ -1381,10 +1381,13 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
             match &event.event {
                 InputEvent::MouseMove(event) => {
-                    let event_point = event
-                        .point
-                        .as_device_point(webview_renderer.device_pixels_per_page_pixel());
-                    self.last_mouse_move_position = Some(event_point);
+                    // We only track the last mouse move position for non-touch events.
+                    if !event.is_compatibility_event_for_touch {
+                        let event_point = event
+                            .point
+                            .as_device_point(webview_renderer.device_pixels_per_page_pixel());
+                        self.last_mouse_move_position = Some(event_point);
+                    }
                 },
                 InputEvent::MouseLeftViewport(_) => {
                     self.last_mouse_move_position = None;
