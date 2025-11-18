@@ -446,7 +446,7 @@ impl OpenXrLayer {
 
     fn get_surface_texture(
         &mut self,
-        device: &SurfmanDevice,
+        device: &mut SurfmanDevice,
         context: &mut SurfmanContext,
         index: usize,
     ) -> Result<&SurfaceTexture, SurfmanError> {
@@ -471,6 +471,7 @@ impl OpenXrLayer {
 impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
     fn create_layer(
         &mut self,
+        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         init: LayerInit,
@@ -509,7 +510,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         };
         let depth_stencil_texture = if has_depth_stencil {
             let gl = contexts
-                .bindings(context_id)
+                .bindings(device, context_id)
                 .ok_or(Error::NoMatchingDevice)?;
             unsafe {
                 let depth_stencil_texture = gl.create_texture().ok();
@@ -540,21 +541,22 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
     fn destroy_layer(
         &mut self,
+        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         context_id: ContextId,
         layer_id: LayerId,
     ) {
-        self.clearer.destroy_layer(contexts, context_id, layer_id);
+        self.clearer
+            .destroy_layer(device, contexts, context_id, layer_id);
         self.layers.retain(|&ids| ids != (context_id, layer_id));
         if let Some(mut layer) = self.openxr_layers.remove(&layer_id) {
             if let Some(depth_stencil_texture) = layer.depth_stencil_texture {
-                let gl = contexts.bindings(context_id).unwrap();
+                let gl = contexts.bindings(device, context_id).unwrap();
                 unsafe { gl.delete_texture(depth_stencil_texture) };
             }
-            let device = contexts
-                .device(context_id)
-                .expect("missing device for context");
-            let context = contexts.context(context_id).expect("missing GL context");
+            let context = contexts
+                .context(device, context_id)
+                .expect("missing GL context");
             for surface_texture in mem::replace(&mut layer.surface_textures, vec![]) {
                 if let Some(surface_texture) = surface_texture {
                     let mut surface = device
@@ -572,6 +574,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
     fn end_frame(
         &mut self,
+        _device: &mut SurfmanDevice,
         _contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<(), Error> {
@@ -724,6 +727,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
 
     fn begin_frame(
         &mut self,
+        device: &mut SurfmanDevice,
         contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<Vec<SubImages>, Error> {
@@ -737,9 +741,8 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         layers
             .iter()
             .map(|&(context_id, layer_id)| {
-                let device = contexts.device(context_id).ok_or(Error::NoMatchingDevice)?;
                 let context = contexts
-                    .context(context_id)
+                    .context(device, context_id)
                     .ok_or(Error::NoMatchingDevice)?;
                 let openxr_layer = openxr_layers
                     .get_mut(&layer_id)
@@ -757,7 +760,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                 openxr_layer.waited = true;
 
                 let color_surface_texture = openxr_layer
-                    .get_surface_texture(&device, context, image as usize)
+                    .get_surface_texture(device, context, image as usize)
                     .map_err(|e| {
                         Error::BackendSpecific(format!("Layer::get_surface_texture {:?}", e))
                     })?;
@@ -785,6 +788,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                     })
                     .collect();
                 clearer.clear(
+                    device,
                     contexts,
                     context_id,
                     layer_id,
@@ -840,9 +844,9 @@ impl OpenXrDevice {
         let shared_data_clone = shared_data.clone();
         let mut data = shared_data.lock().unwrap();
 
-        let layer_manager = grand_manager.create_layer_manager(move |_| {
+        let layer_manager = grand_manager.create_layer_manager(move |device, _| {
             let (session, frame_waiter, frame_stream) =
-                GraphicsProvider::create_session(&instance_clone, system)?;
+                GraphicsProvider::create_session(device, &instance_clone, system)?;
             let (passthrough, passthrough_layer) = if supports_passthrough {
                 let flags = PassthroughFlagsFB::IS_RUNNING_AT_CREATION;
                 let purpose = PassthroughLayerPurposeFB::RECONSTRUCTION;

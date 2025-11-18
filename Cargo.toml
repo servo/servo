@@ -162,7 +162,7 @@ stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
-surfman = { version = "0.11.0", features = ["chains"] }
+surfman = { version = "0.10.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.9", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }

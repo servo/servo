@@ -14,10 +14,7 @@ use base::generic_channel::RoutedReceiver;
 use base::id::{PainterId, WebViewId};
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLThreads;
-use compositing_traits::{
-    CompositorMsg, PainterSurfmanDetails, PainterSurfmanDetailsMap, WebRenderExternalImageRegistry,
-    WebViewTrait,
-};
+use compositing_traits::{CompositorMsg, WebRenderExternalImageRegistry, WebViewTrait};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
@@ -73,10 +70,6 @@ pub struct IOCompositor {
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
-
-    /// A hashmap of painter ids to the surfman types (like Device, Adapter) that
-    /// are specific to that painter.
-    _painter_surfman_details_map: PainterSurfmanDetailsMap,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -104,8 +97,6 @@ impl IOCompositor {
             CompositorMsg::CollectMemoryReport,
         );
 
-        let mut painter_surfman_details_map = PainterSurfmanDetailsMap::default();
-
         let compositor = Rc::new(RefCell::new(IOCompositor {
             painters: Default::default(),
             shutdown_state: state.shutdown_state,
@@ -113,34 +104,18 @@ impl IOCompositor {
             embedder_to_constellation_sender: state.embedder_to_constellation_sender.clone(),
             time_profiler_chan: state.time_profiler_chan,
             _mem_profiler_registration: registration,
-            _painter_surfman_details_map: painter_surfman_details_map.clone(),
         }));
 
         let painter = Painter::new(
-            state.rendering_context.clone(),
+            state.rendering_context,
             state.compositor_proxy,
             state.event_loop_waker,
             state.refresh_driver,
             state.shaders_path,
             compositor.borrow().embedder_to_constellation_sender.clone(),
-            painter_surfman_details_map.clone(),
             #[cfg(feature = "webxr")]
             state.webxr_registry,
         );
-
-        let connection = state
-            .rendering_context
-            .connection()
-            .expect("Failed to get connection");
-        let adapter = connection
-            .create_adapter()
-            .expect("Failed to create adapter");
-
-        let painter_surfman_details = PainterSurfmanDetails {
-            connection,
-            adapter,
-        };
-        painter_surfman_details_map.insert(painter.painter_id, painter_surfman_details);
 
         compositor
             .borrow_mut()
