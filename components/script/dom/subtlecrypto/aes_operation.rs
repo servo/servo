@@ -409,7 +409,7 @@ pub(crate) fn encrypt_aes_gcm(
             log::warn!(
                 "Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV"
             );
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         },
     };
 
@@ -527,7 +527,7 @@ pub(crate) fn decrypt_aes_gcm(
             log::warn!(
                 "Missing AES-GCM decryption implementation with {key_length}-byte key and {iv_length}-byte IV"
             );
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         },
     };
     if result.is_err() {
@@ -924,7 +924,7 @@ fn import_key_aes(
         // Otherwise:
         _ => {
             // throw a NotSupportedError
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         },
     };
 
@@ -1061,7 +1061,7 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         },
     };
 

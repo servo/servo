@@ -200,7 +200,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     if mode != XRSessionMode::Inline {
                         self.pending_immersive_session.set(false);
                     }
-                    promise.reject_error(Error::NotSupported, can_gc);
+                    promise.reject_error(Error::NotSupported(None), can_gc);
                     return promise;
                 }
             }
@@ -288,7 +288,7 @@ impl XRSystem {
                 if mode != XRSessionMode::Inline {
                     self.pending_immersive_session.set(false);
                 }
-                promise.reject_error(Error::NotSupported, can_gc);
+                promise.reject_error(Error::NotSupported(None), can_gc);
                 return;
             },
         };

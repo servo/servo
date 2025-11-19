@@ -83,7 +83,7 @@ impl OfflineAudioContext {
             length == 0 ||
             !(MIN_SAMPLE_RATE..=MAX_SAMPLE_RATE).contains(&sample_rate)
         {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         let pipeline_id = window.pipeline_id();
         let context =

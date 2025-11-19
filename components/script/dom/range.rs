@@ -491,7 +491,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     fn CompareBoundaryPoints(&self, how: u16, other: &Range) -> Fallible<i16> {
         if how > RangeConstants::END_TO_START {
             // Step 1.
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         let this_root = self
             .start_container()

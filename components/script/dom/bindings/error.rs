@@ -132,7 +132,10 @@ pub(crate) fn create_dom_exception(
             return new_custom_exception(DOMErrorName::InvalidCharacterError, custom_message);
         },
         Error::InvalidCharacter(None) => DOMErrorName::InvalidCharacterError,
-        Error::NotSupported => DOMErrorName::NotSupportedError,
+        Error::NotSupported(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::NotSupportedError, custom_message);
+        },
+        Error::NotSupported(None) => DOMErrorName::NotSupportedError,
         Error::InUseAttribute => DOMErrorName::InUseAttributeError,
         Error::InvalidState(Some(custom_message)) => {
             return new_custom_exception(DOMErrorName::InvalidStateError, custom_message);

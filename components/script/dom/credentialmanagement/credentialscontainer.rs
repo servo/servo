@@ -58,7 +58,7 @@ impl CredentialsContainer {
         if options.signal.as_ref().is_some_and(|s| s.aborted()) {
             return Err(Error::Abort);
         }
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-store-a-credential>
@@ -71,7 +71,7 @@ impl CredentialsContainer {
         if !global.as_window().Document().is_fully_active() {
             return Err(Error::InvalidState(None));
         }
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-create-a-credential>
@@ -90,7 +90,7 @@ impl CredentialsContainer {
         if !document.is_fully_active() {
             return Err(Error::InvalidState(None));
         }
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 }
 
@@ -112,6 +112,6 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
     fn PreventSilentAccess(&self) -> Fallible<Rc<Promise>> {
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 }

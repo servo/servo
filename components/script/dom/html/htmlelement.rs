@@ -633,7 +633,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         let element = self.as_element();
         // Step 1: If this's is value is not null, then throw a "NotSupportedError" DOMException
         if element.get_is().is_some() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 2: Let definition be the result of looking up a custom element definition
@@ -646,18 +646,18 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
         let definition = match definition {
             Some(definition) => definition,
-            None => return Err(Error::NotSupported),
+            None => return Err(Error::NotSupported(None)),
         };
 
         // Step 4: If definition's disable internals is true, then throw a "NotSupportedError" DOMException
         if definition.disable_internals {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
         let internals = element.ensure_element_internals(can_gc);
         if internals.attached() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 6: If this's custom element state is not "precustomized" or "custom",
@@ -666,7 +666,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             element.get_custom_element_state(),
             CustomElementState::Precustomized | CustomElementState::Custom
         ) {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         if self.is_form_associated_custom_element() {

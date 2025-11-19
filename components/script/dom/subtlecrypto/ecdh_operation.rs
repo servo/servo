@@ -84,7 +84,7 @@ pub(crate) fn generate_key(
                 Handle::P521PublicKey(public_key),
             )
         },
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
 
     // Step 4. Let algorithm be a new EcKeyAlgorithm object.
@@ -238,7 +238,7 @@ pub(crate) fn derive_bits(
                 .raw_secret_bytes()
                 .to_vec()
         },
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
 
     // Step 8.
@@ -369,7 +369,7 @@ pub(crate) fn import_key(
                     // Step 2.10.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support applicable specifications.
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 },
             };
 
@@ -509,7 +509,7 @@ pub(crate) fn import_key(
                     // Step 2.10.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support applicable specifications.
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 },
             };
 
@@ -746,7 +746,7 @@ pub(crate) fn import_key(
                     // Step 2.10.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support applicable specifications.
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 };
 
             // Step 2.11. If the key value is not a valid point on the Elliptic Curve identified by
@@ -829,7 +829,7 @@ pub(crate) fn import_key(
                 // Step. 2.3.2. If an error occured or there are no applicable specifications,
                 // throw a DataError.
                 // NOTE: We currently do not support applicable specifications.
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             };
 
             // Step 2.4. Let algorithm be a new EcKeyAlgorithm object.
@@ -1075,7 +1075,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                         Handle::P256PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         Handle::P384PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         Handle::P521PrivateKey(private_key) => private_key.to_bytes().to_vec(),
-                        _ => return Err(Error::NotSupported),
+                        _ => return Err(Error::NotSupported(None)),
                     };
                     jwk.d = Some(Base64UrlUnpadded::encode_string(&d).into());
                 }
@@ -1138,7 +1138,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     _ => return Err(Error::Operation),
                 }
             } else {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             };
 
             // Step 3.3. Let result be data.

@@ -50,7 +50,7 @@ pub(crate) fn derive_bits(
         ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,
         ALG_SHA512 => pbkdf2::PBKDF2_HMAC_SHA512,
         _ => {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         },
     };
 
@@ -88,7 +88,7 @@ pub(crate) fn import_key(
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If format is not "raw", throw a NotSupportedError
     if format != KeyFormat::Raw {
-        return Err(Error::NotSupported);
+        return Err(Error::NotSupported(None));
     }
 
     // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.

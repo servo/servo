@@ -1549,7 +1549,7 @@ impl HTMLMediaElement {
     fn queue_dedicated_media_source_failure_steps(&self) {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
-        self.take_pending_play_promises(Err(Error::NotSupported));
+        self.take_pending_play_promises(Err(Error::NotSupported(None)));
         self.owner_global()
             .task_manager()
             .media_element_task_source()
@@ -3009,7 +3009,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             .get()
             .is_some_and(|e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
         {
-            promise.reject_error(Error::NotSupported, can_gc);
+            promise.reject_error(Error::NotSupported(None), can_gc);
             return promise;
         }
 
@@ -3051,7 +3051,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let min_allowed = -64.0;
         let max_allowed = 64.0;
         if *value < min_allowed || *value > max_allowed {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         if *value != self.defaultPlaybackRate.get() {
@@ -3072,7 +3072,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let min_allowed = -64.0;
         let max_allowed = 64.0;
         if *value < min_allowed || *value > max_allowed {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         if *value != self.playbackRate.get() {

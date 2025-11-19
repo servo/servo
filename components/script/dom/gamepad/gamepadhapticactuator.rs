@@ -209,7 +209,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         }
 
         if !self.effects.contains(&type_) {
-            playing_effect_promise.reject_error(Error::NotSupported, can_gc);
+            playing_effect_promise.reject_error(Error::NotSupported(None), can_gc);
             return playing_effect_promise;
         }
 

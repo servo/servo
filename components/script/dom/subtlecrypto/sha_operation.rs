@@ -34,7 +34,7 @@ pub(crate) fn digest(
         ALG_SHA384 => digest::digest(&digest::SHA384, message).as_ref().to_vec(),
         ALG_SHA512 => digest::digest(&digest::SHA512, message).as_ref().to_vec(),
         _ => {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         },
     };
 

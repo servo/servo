@@ -5054,7 +5054,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<DomRoot<CDATASection>> {
         // Step 1
         if self.is_html_document {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 2
@@ -5096,7 +5096,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn ImportNode(&self, node: &Node, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() || node.is::<ShadowRoot>() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 2.
@@ -5113,7 +5113,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn AdoptNode(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 2.
@@ -5184,7 +5184,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 &self.window,
                 can_gc,
             ))),
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 

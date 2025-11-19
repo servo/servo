@@ -168,7 +168,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 5.1.
         if !self.Properties().Read() {
-            p.reject_error(NotSupported, can_gc);
+            p.reject_error(NotSupported(None), can_gc);
             return p;
         }
 
@@ -220,7 +220,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
             self.Properties().WriteWithoutResponse() ||
             self.Properties().AuthenticatedSignedWrites())
         {
-            p.reject_error(NotSupported, can_gc);
+            p.reject_error(NotSupported(None), can_gc);
             return p;
         }
 
@@ -255,7 +255,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 5.
         if !(self.Properties().Notify() || self.Properties().Indicate()) {
-            p.reject_error(NotSupported, can_gc);
+            p.reject_error(NotSupported(None), can_gc);
             return p;
         }
 

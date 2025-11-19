@@ -24,7 +24,7 @@ pub enum Error {
     /// InvalidCharacterError DOMException
     InvalidCharacter(Option<String>),
     /// NotSupportedError DOMException
-    NotSupported,
+    NotSupported(Option<String>),
     /// InUseAttributeError DOMException
     InUseAttribute,
     /// InvalidStateError DOMException

@@ -71,10 +71,10 @@ impl PannerNode {
             ChannelInterpretation::Speakers,
         );
         if node_options.mode == ChannelCountMode::Max {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         if node_options.count > 2 || node_options.count == 0 {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         if *options.maxDistance <= 0. {
             return Err(Error::Range("maxDistance should be positive".into()));

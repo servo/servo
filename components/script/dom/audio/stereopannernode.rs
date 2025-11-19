@@ -46,10 +46,10 @@ impl StereoPannerNode {
             ChannelInterpretation::Speakers,
         );
         if node_options.mode == ChannelCountMode::Max {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         if node_options.count > 2 || node_options.count == 0 {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         let pan = *options.pan;
         let source_node = AudioScheduledSourceNode::new_inherited(

@@ -34,9 +34,9 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
             ALG_SHA256 => hmac::HMAC_SHA256,
             ALG_SHA384 => hmac::HMAC_SHA384,
             ALG_SHA512 => hmac::HMAC_SHA512,
-            _ => return Err(Error::NotSupported),
+            _ => return Err(Error::NotSupported(None)),
         },
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
     let sign_key = hmac::Key::new(hash_function, key.handle().as_bytes());
     let mac = hmac::sign(&sign_key, message);
@@ -57,9 +57,9 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
             ALG_SHA256 => hmac::HMAC_SHA256,
             ALG_SHA384 => hmac::HMAC_SHA384,
             ALG_SHA512 => hmac::HMAC_SHA512,
-            _ => return Err(Error::NotSupported),
+            _ => return Err(Error::NotSupported(None)),
         },
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
     let sign_key = hmac::Key::new(hash_function, key.handle().as_bytes());
     let mac = hmac::sign(&sign_key, message);
@@ -240,7 +240,7 @@ pub(crate) fn import_key(
                     // Perform any key import steps defined by other applicable specifications,
                     // passing format, jwk and hash and obtaining hash
                     // NOTE: Currently not support applicable specification.
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 },
             }
 
@@ -264,7 +264,7 @@ pub(crate) fn import_key(
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         },
     }
 
@@ -337,9 +337,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     ALG_SHA256 => "HS256",
                     ALG_SHA384 => "HS384",
                     ALG_SHA512 => "HS512",
-                    _ => return Err(Error::NotSupported),
+                    _ => return Err(Error::NotSupported(None)),
                 },
-                _ => return Err(Error::NotSupported),
+                _ => return Err(Error::NotSupported(None)),
             };
 
             // Step 7. Set the key_ops attribute of jwk to the usages attribute of key.
@@ -364,7 +364,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
             Ok(ExportedKey::Jwk(Box::new(jwk)))
         },
-        _ => Err(Error::NotSupported),
+        _ => Err(Error::NotSupported(None)),
     }
 }
 

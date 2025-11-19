@@ -45,7 +45,7 @@ impl IIRFilterNode {
         if !(1..=20).contains(&options.feedforward.len()) ||
             !(1..=20).contains(&options.feedback.len())
         {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         if options.feedforward.iter().all(|v| **v == 0.0) || *options.feedback[0] == 0.0 {
             return Err(Error::InvalidState(None));

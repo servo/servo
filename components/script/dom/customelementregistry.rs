@@ -388,7 +388,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 3. If this's custom element definition set contains an item with name name,
         // then throw a "NotSupportedError" DOMException.
         if self.definitions.borrow().contains_key(&name) {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 4. If this's custom element definition set contains an
@@ -399,7 +399,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             .iter()
             .any(|(_, def)| def.constructor == constructor_)
         {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 6. Let extends be options["extends"] if it exists; otherwise null.
@@ -411,14 +411,14 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
             // Step 7.2 If extends is a valid custom element name, then throw a "NotSupportedError" DOMException.
             if is_valid_custom_element_name(&extended_name.str()) {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             }
 
             // Step 7.3 If the element interface for extends and the HTML namespace is HTMLUnknownElement
             // (e.g., if extends does not indicate an element definition in this specification)
             // then throw a "NotSupportedError" DOMException.
             if !is_extendable_element_interface(&extended_name.str()) {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             }
 
             // Step 7.4 Set localName to extends.
@@ -430,7 +430,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 8
         if self.element_definition_is_running.get() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 9
@@ -798,7 +798,7 @@ impl CustomElementDefinition {
             *element.namespace() != ns!(html) ||
             *element.local_name() != self.local_name
         {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 4.1.10. Set result’s namespace prefix to prefix.
@@ -946,7 +946,7 @@ fn run_upgrade_constructor(
         // Step 9.1. If definition's disable shadow is true and element's shadow root is non-null,
         // then throw a "NotSupportedError" DOMException.
         if definition.disable_shadow && element.is_shadow_host() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Go into the constructor's realm
