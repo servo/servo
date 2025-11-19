@@ -2,6 +2,13 @@
  "items": {
   "crashtest": {
    "mozilla": {
+    "audioContext_createMediaElementSource-crash.html": [
+     "e70316d3e6d880d8ec9600ff157e81f6047871a4",
+     [
+      null,
+      {}
+     ]
+    ],
     "cache_old_response-crash.html": [
      "d14e7c830f52bb77e81d91b533e0ce6d4a1ede82",
      [
