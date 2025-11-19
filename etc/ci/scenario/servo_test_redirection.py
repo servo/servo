@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Copyright 2025 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
 #

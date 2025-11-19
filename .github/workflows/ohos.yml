@@ -356,7 +356,6 @@ jobs:
 
   scenario-test-harmonyos:
     name: Test Function servo
-    # We will not need block servos Merge queue on this job failing,because network will expect.
     continue-on-error: true
     runs-on: hos-runner
     if: github.repository == 'servo/servo'
