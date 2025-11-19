@@ -192,8 +192,8 @@ impl ElementInternals {
             !self.satisfies_constraints(can_gc)
     }
 
-    pub(crate) fn custom_states(&self) -> Option<DomRoot<CustomStateSet>> {
-        self.states.get()
+    pub(crate) fn custom_states(&self) -> &MutNullableDom<CustomStateSet> {
+        &self.states
     }
 }
 
