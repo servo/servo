@@ -35,15 +35,11 @@ def operator():
     print("finding components ...")
     goal_css_selector1 = "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"
     WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located(
-            (By.CSS_SELECTOR, goal_css_selector1)
-        )
+        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, goal_css_selector1))
     )
     goal_css_selector1 = "#homeHero > div.hero-body > div.container > h1"
     WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located(
-            (By.CSS_SELECTOR, goal_css_selector1)
-        )
+        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, goal_css_selector1))
     )
     print("find components successful!")
 

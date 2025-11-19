@@ -87,8 +87,11 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
         except Exception as e:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
             time.sleep(1)
-    print(f"Established Webdriver connection in {time.time() - start_time}s", )
+    print(
+        f"Established Webdriver connection in {time.time() - start_time}s",
+    )
     return driver
+
 
 def setup_hdc_forward(timeout: int = 5):
     """
@@ -128,10 +131,10 @@ def setup_hdc_forward(timeout: int = 5):
             raise
     raise TimeoutError("HDC port forwarding timed out")
 
+
 def stop_servo():
-    """ stop servo application """
+    """stop servo application"""
     print("Prepare to stop Test Application...")
     cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     print("Stop Test Application successful!")
-    

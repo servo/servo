@@ -38,16 +38,12 @@ def operator():
     popup_css_selector = "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view:nth-child(5) > uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid > uni-view > uni-view > uni-button:nth-child(1)"
     print("Waiting for popup to appear ...")
     WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located(
-            (By.CSS_SELECTOR, popup_css_selector)
-        )
+        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
     )
     time.sleep(1)
 
     # Step 2. Click to close the pop-up
-    popup = driver.find_element(
-        By.CSS_SELECTOR, popup_css_selector
-    )
+    popup = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
     popup.click()
     print("Closed the popup.")
 
@@ -68,10 +64,7 @@ def operator():
     birthday_.click()
 
     print("Waiting for page to finish loading")
-    WebDriverWait(driver, 10).until(
-        lambda driver: driver.execute_script("return document.readyState")
-                       == "complete"
-    )
+    WebDriverWait(driver, 10).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
     print("document.readyState == complete")
     # Todo: Inspect the webpage and find better mechanism of waiting for the page to be fully loaded.
     print("Waiting another 10 seconds ...")

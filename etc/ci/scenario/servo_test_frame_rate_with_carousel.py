@@ -39,15 +39,11 @@ def operator():
     popup_css_selector = "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view:nth-child(5) > uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid > uni-view > uni-view > uni-button:nth-child(1)"
     print("Waiting for popup to appear ...")
     WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located(
-            (By.CSS_SELECTOR, popup_css_selector)
-        )
+        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
     )
 
     # Step 2. Click to close the pop-up
-    popup = driver.find_element(
-        By.CSS_SELECTOR, popup_css_selector
-    )
+    popup = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
     popup.click()
     print("Closed the popup.")
 
@@ -61,10 +57,7 @@ def operator():
     time.sleep(5)
 
     print("Waiting for page to finish loading...")
-    WebDriverWait(driver, 10).until(
-        lambda driver: driver.execute_script("return document.readyState")
-                       == "complete"
-    )
+    WebDriverWait(driver, 10).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
     print("document.readyState == complete")
 
     # Step 4. Click on the first product
