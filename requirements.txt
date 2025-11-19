@@ -1,6 +1,0 @@
-Jinja2==3.1.6
-lxml==6.0.2
-numpy==2.2.6
-opencv-python==4.12.0.88
-selenium==4.38.0
-urllib3==2.5.0
