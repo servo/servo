@@ -27,7 +27,9 @@ SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 def calculate_frame_rate():
     """
     Pull trace from device and calculate frame rate through trace
-    calculate frame rate: When there are elements moving on the page, H: EndCommands will be printed to indicate that the frame is being sent out. After capturing the trace, the frame rate can be obtained by calculating the number of frames printed per unit time (per second).
+    calculate frame rate: When there are elements moving on the page, H: EndCommands will be printed
+    to indicate that the frame is being sent out. After capturing the trace, the frame rate can be obtained
+    by calculating the number of frames per second.
     :return: frame rate
     """
     print("Prepare to create local dir to put trace file...")
