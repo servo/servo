@@ -25,7 +25,8 @@ use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, AnimationState, EmbedderMsg, FocusSequenceNumber, Image, LoadStatus,
+    AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, FocusSequenceNumber,
+    Image, LoadStatus,
 };
 use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
@@ -601,6 +602,10 @@ pub(crate) struct Document {
 
     /// <https://html.spec.whatwg.org/multipage/#details-name-group>
     details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#registerprotocolhandler()-automation-mode>
+    #[no_trace]
+    protocol_handler_automation_mode: RefCell<CustomHandlersAutomationMode>,
 }
 
 impl Document {
@@ -878,6 +883,10 @@ impl Document {
 
     pub(crate) fn origin(&self) -> &MutableOrigin {
         &self.origin
+    }
+
+    pub(crate) fn set_protocol_handler_automation_mode(&self, mode: CustomHandlersAutomationMode) {
+        *self.protocol_handler_automation_mode.borrow_mut() = mode;
     }
 
     /// <https://dom.spec.whatwg.org/#concept-document-url>
@@ -3540,6 +3549,7 @@ impl Document {
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
             details_name_groups: Default::default(),
+            protocol_handler_automation_mode: Default::default(),
         }
     }
 

@@ -11,8 +11,9 @@ use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
-    JSValue, JavaScriptEvaluationError, JavaScriptEvaluationResultSerializationError,
-    WebDriverFrameId, WebDriverJSResult, WebDriverLoadStatus,
+    CustomHandlersAutomationMode, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationResultSerializationError, WebDriverFrameId, WebDriverJSResult,
+    WebDriverLoadStatus,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -2209,4 +2210,14 @@ fn scroll_into_view(
     });
     // Step 2. Run scrollIntoView
     element.ScrollIntoView(options);
+}
+
+pub(crate) fn set_protocol_handler_automation_mode(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    mode: CustomHandlersAutomationMode,
+) {
+    if let Some(document) = documents.find_document(pipeline) {
+        document.set_protocol_handler_automation_mode(mode);
+    }
 }
