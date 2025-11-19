@@ -121,10 +121,6 @@ pub(crate) struct Painter {
     /// `ScriptThread` display list construction.
     pub(crate) frame_delayer: FrameDelayer,
 
-    #[cfg(feature = "webgpu")]
-    /// The WebGPU image map for this renderer.
-    pub(crate) webgpu_image_map: webgpu::canvas_context::WGPUImageMap,
-
     /// The channel on which messages can be sent to the constellation.
     embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
 
@@ -169,15 +165,12 @@ impl Painter {
         external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::WebGl);
 
         #[cfg(feature = "webgpu")]
-        let webgpu_image_map = {
-            let webgpu_image_handler = webgpu::WGPUExternalImages::default();
-            let webgpu_image_map = webgpu_image_handler.images.clone();
-            external_image_handlers.set_handler(
-                Box::new(webgpu_image_handler),
-                WebRenderImageHandlerType::WebGpu,
-            );
-            webgpu_image_map
-        };
+        external_image_handlers.set_handler(
+            Box::new(webgpu::WebGpuExternalImages::new(
+                compositor.webgpu_image_map(),
+            )),
+            WebRenderImageHandlerType::WebGpu,
+        );
 
         WindowGLContext::initialize_image_handler(&mut external_image_handlers);
 
@@ -277,8 +270,6 @@ impl Painter {
             webrender_gl,
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
-            #[cfg(feature = "webgpu")]
-            webgpu_image_map,
             lcp_calculator: LargestContentfulPaintCalculator::new(),
         };
         painter.assert_gl_framebuffer_complete();

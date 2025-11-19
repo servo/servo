@@ -39,6 +39,8 @@ use surfman::Device;
 use surfman::chains::SwapChains;
 use webgl::WebGLComm;
 use webgl::webgl_thread::WebGLContextBusyMap;
+#[cfg(feature = "webgpu")]
+use webgpu::canvas_context::WebGpuExternalImageMap;
 use webrender::{CaptureBits, MemoryReport};
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
 
@@ -92,16 +94,20 @@ pub struct IOCompositor {
     /// The shared [`SwapChains`] used by [`WebGLThreads`] for this renderer.
     pub(crate) swap_chains: SwapChains<WebGLContextId, Device>,
 
-    #[cfg(feature = "webxr")]
-    /// Some XR devices want to run on the main thread.
-    webxr_main_thread: RefCell<webxr::MainThreadRegistry>,
-
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
 
     /// A handle to the memory profiler which will automatically unregister
     /// when it's dropped.
     _mem_profiler_registration: ProfilerRegistration,
+
+    /// Some XR devices want to run on the main thread.
+    #[cfg(feature = "webxr")]
+    webxr_main_thread: RefCell<webxr::MainThreadRegistry>,
+
+    /// An map of external images shared between all `WebGpuExternalImages`.
+    #[cfg(feature = "webgpu")]
+    webgpu_image_map: std::cell::OnceCell<WebGpuExternalImageMap>,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -168,12 +174,14 @@ impl IOCompositor {
             webrender_external_image_id_manager,
             webgl_threads,
             swap_chains,
-            #[cfg(feature = "webxr")]
-            webxr_main_thread: RefCell::new(webxr_main_thread),
             time_profiler_chan: state.time_profiler_chan,
             _mem_profiler_registration: registration,
             painter_surfman_details_map,
             busy_webgl_contexts_map: busy_webgl_context_map,
+            #[cfg(feature = "webxr")]
+            webxr_main_thread: RefCell::new(webxr_main_thread),
+            #[cfg(feature = "webgpu")]
+            webgpu_image_map: Default::default(),
         };
 
         let painter = Painter::new(
@@ -251,8 +259,8 @@ impl IOCompositor {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn webgpu_image_map(&self) -> webgpu::canvas_context::WGPUImageMap {
-        self.painter().webgpu_image_map.clone()
+    pub fn webgpu_image_map(&self) -> WebGpuExternalImageMap {
+        self.webgpu_image_map.get_or_init(Default::default).clone()
     }
 
     pub fn webviews_needing_repaint(&self) -> Vec<WebViewId> {

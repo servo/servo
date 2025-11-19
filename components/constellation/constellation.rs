@@ -171,7 +171,7 @@ use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
-use webgpu::canvas_context::WGPUImageMap;
+use webgpu::canvas_context::WebGpuExternalImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
 use webrender_api::ExternalScrollId;
@@ -234,7 +234,7 @@ struct WebRenderWGPU {
     webrender_external_image_id_manager: WebRenderExternalImageIdManager,
 
     /// WebGPU data that supplied to Webrender for rendering
-    wgpu_image_map: WGPUImageMap,
+    wgpu_image_map: WebGpuExternalImageMap,
 }
 
 /// A browsing context group.
@@ -547,7 +547,7 @@ pub struct InitialConstellationState {
     pub webxr_registry: Option<webxr_api::Registry>,
 
     #[cfg(feature = "webgpu")]
-    pub wgpu_image_map: WGPUImageMap,
+    pub wgpu_image_map: WebGpuExternalImageMap,
 
     /// User content manager
     pub user_content_manager: UserContentManager,

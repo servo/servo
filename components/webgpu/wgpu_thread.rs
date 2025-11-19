@@ -36,7 +36,7 @@ use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
-use crate::canvas_context::WGPUImageMap;
+use crate::canvas_context::WebGpuExternalImageMap;
 use crate::poll_thread::Poller;
 
 #[derive(Eq, Hash, PartialEq)]
@@ -106,7 +106,7 @@ pub(crate) struct WGPU {
     error_command_encoders: FxHashMap<id::CommandEncoderId, String>,
     pub(crate) compositor_api: CrossProcessCompositorApi,
     pub(crate) webrender_external_image_id_manager: WebRenderExternalImageIdManager,
-    pub(crate) wgpu_image_map: WGPUImageMap,
+    pub(crate) wgpu_image_map: WebGpuExternalImageMap,
     /// Provides access to poller thread
     pub(crate) poller: Poller,
     /// Store compute passes
@@ -122,7 +122,7 @@ impl WGPU {
         script_sender: IpcSender<WebGPUMsg>,
         compositor_api: CrossProcessCompositorApi,
         webrender_external_image_id_manager: WebRenderExternalImageIdManager,
-        wgpu_image_map: WGPUImageMap,
+        wgpu_image_map: WebGpuExternalImageMap,
     ) -> Self {
         let backend_pref = pref!(dom_webgpu_wgpu_backend);
         let backends = if backend_pref.is_empty() {
