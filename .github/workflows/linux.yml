@@ -194,7 +194,7 @@ jobs:
         run: ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
       # We upload the test-results to Codecov to help us identify flaky unit-tests.
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && inputs.unit-tests }}
         uses: codecov/codecov-action@v5
         with:
           report_type: test_results
@@ -376,7 +376,7 @@ jobs:
           else
             # github hosted runners don't have enough diskspace for the dev profile.
             CARGO_PROFILE=coverage
-          fi 
+          fi
           echo "cargo_profile=${CARGO_PROFILE}" | tee $GITHUB_OUTPUT
       # We can remove this after upgrading to Rust 1.90, but for now
       # installing lld is the easiest way to get it in path.
