@@ -687,7 +687,10 @@ impl Painter {
                     else {
                         continue;
                     };
-
+                    // Skip scroll offsets that are zero, as they are the default.
+                    if offset == LayoutVector2D::zero() {
+                        continue;
+                    }
                     transaction.set_scroll_offsets(
                         external_id,
                         vec![SampledScrollOffset {
