@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_context::WGPUImageMap;
-pub use canvas_context::{ContextData, WGPUExternalImages};
+use canvas_context::WebGpuExternalImageMap;
+pub use canvas_context::{ContextData, WebGpuExternalImages};
 use log::warn;
 use webgpu_traits::{WebGPU, WebGPUMsg};
 use wgpu_thread::WGPU;
@@ -23,7 +23,7 @@ pub mod canvas_context;
 pub fn start_webgpu_thread(
     compositor_api: CrossProcessCompositorApi,
     webrender_external_image_id_manager: WebRenderExternalImageIdManager,
-    wgpu_image_map: WGPUImageMap,
+    wgpu_image_map: WebGpuExternalImageMap,
 ) -> Option<(WebGPU, IpcReceiver<WebGPUMsg>)> {
     if !pref!(dom_webgpu_enabled) {
         return None;

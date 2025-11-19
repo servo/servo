@@ -40,7 +40,7 @@ use wgpu_types::{
     TextureAspect,
 };
 
-pub type WGPUImageMap = Arc<Mutex<FxHashMap<WebGPUContextId, ContextData>>>;
+pub type WebGpuExternalImageMap = Arc<Mutex<FxHashMap<WebGPUContextId, ContextData>>>;
 
 const fn image_data(context_id: WebGPUContextId) -> ExternalImageData {
     ExternalImageData {
@@ -308,17 +308,25 @@ impl Drop for StagingBuffer {
     }
 }
 
-#[derive(Default)]
-pub struct WGPUExternalImages {
-    pub images: WGPUImageMap,
+pub struct WebGpuExternalImages {
+    pub image_map: WebGpuExternalImageMap,
     pub locked_ids: FxHashMap<WebGPUContextId, PresentationStagingBuffer>,
 }
 
-impl WebRenderExternalImageApi for WGPUExternalImages {
+impl WebGpuExternalImages {
+    pub fn new(image_map: WebGpuExternalImageMap) -> Self {
+        Self {
+            image_map,
+            locked_ids: Default::default(),
+        }
+    }
+}
+
+impl WebRenderExternalImageApi for WebGpuExternalImages {
     fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         let id = WebGPUContextId(id);
         let presentation = {
-            let mut webgpu_contexts = self.images.lock().unwrap();
+            let mut webgpu_contexts = self.image_map.lock().unwrap();
             webgpu_contexts
                 .get_mut(&id)
                 .and_then(|context_data| context_data.presentation.clone())
@@ -343,7 +351,7 @@ impl WebRenderExternalImageApi for WGPUExternalImages {
         let Some(presentation) = self.locked_ids.remove(&id) else {
             return;
         };
-        let mut webgpu_contexts = self.images.lock().unwrap();
+        let mut webgpu_contexts = self.image_map.lock().unwrap();
         if let Some(context_data) = webgpu_contexts.get_mut(&id) {
             // We use this to return staging buffer if a newer one exists.
             presentation.maybe_destroy(context_data);
