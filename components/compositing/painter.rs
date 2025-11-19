@@ -161,8 +161,10 @@ impl Painter {
 
         // Set WebRender external image handler for WebGL textures.
         let image_handler = Box::new(WebGLExternalImages::new(
+            compositor.webgl_threads(),
             rendering_context.clone(),
             compositor.swap_chains.clone(),
+            compositor.busy_webgl_contexts_map.clone(),
         ));
         external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::WebGl);
 

@@ -27,7 +27,7 @@ use embedder_traits::{
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
 use ipc_channel::ipc::{self};
-use log::debug;
+use log::{debug, warn};
 use profile_traits::mem::{
     ProcessReports, ProfilerRegistration, Report, ReportKind, perform_memory_report,
 };
@@ -38,6 +38,7 @@ use style_traits::CSSPixel;
 use surfman::Device;
 use surfman::chains::SwapChains;
 use webgl::WebGLComm;
+use webgl::webgl_thread::WebGLContextBusyMap;
 use webrender::{CaptureBits, MemoryReport};
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
 
@@ -76,9 +77,14 @@ pub struct IOCompositor {
     /// The [`WebRenderExternalImageIdManager`] used to generate new `ExternalImageId`s.
     webrender_external_image_id_manager: WebRenderExternalImageIdManager,
 
-    /// A hashmap of painter ids to the surfman types (like Device, Adapter) that
-    /// are specific to that painter.
+    /// A [`HashMap`] of [`PainterId`] to the Surfaman types (`Device`, `Adapter`) that
+    /// are specific to a particular [`Painter`].
     pub(crate) painter_surfman_details_map: PainterSurfmanDetailsMap,
+
+    /// A [`HashMap`] of `WebGLContextId` to a usage count. This count indicates when
+    /// WebRender is still rendering the context. This is used to ensure properly clean
+    /// up of all Surfman `Surface`s.
+    pub(crate) busy_webgl_contexts_map: WebGLContextBusyMap,
 
     /// The [`WebGLThreads`] for this renderer.
     webgl_threads: WebGLThreads,
@@ -128,6 +134,7 @@ impl IOCompositor {
         let WebGLComm {
             webgl_threads,
             swap_chains,
+            busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_layer_grand_manager,
         } = WebGLComm::new(
@@ -166,6 +173,7 @@ impl IOCompositor {
             time_profiler_chan: state.time_profiler_chan,
             _mem_profiler_registration: registration,
             painter_surfman_details_map,
+            busy_webgl_contexts_map: busy_webgl_context_map,
         };
 
         let painter = Painter::new(
@@ -258,6 +266,16 @@ impl IOCompositor {
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another thread from finishing (i.e. SetFrameTree).
         while self.compositor_receiver.try_recv().is_ok() {}
+
+        let (webgl_exit_sender, webgl_exit_receiver) =
+            ipc::channel().expect("Failed to create IPC channel!");
+        if !self
+            .webgl_threads
+            .exit(webgl_exit_sender)
+            .is_ok_and(|_| webgl_exit_receiver.recv().is_ok())
+        {
+            warn!("Could not exit WebGLThread.");
+        }
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         if let Ok((sender, receiver)) = ipc::channel() {
