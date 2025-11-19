@@ -1581,8 +1581,8 @@ impl HTMLMediaElement {
                     this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
                     if let Some(ref player) = *this.player.borrow() {
-                        if let Err(e) = player.lock().unwrap().stop() {
-                            error!("Could not stop player {:?}", e);
+                        if let Err(err) = player.lock().unwrap().stop() {
+                            error!("Could not stop player {:?}", err);
                         }
                     }
 
@@ -2124,8 +2124,8 @@ impl HTMLMediaElement {
         }
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.lock().unwrap().stop() {
-                error!("Could not stop player {:?}", e);
+            if let Err(err) = player.lock().unwrap().stop() {
+                error!("Could not stop player {:?}", err);
             }
         }
 
@@ -2807,10 +2807,19 @@ impl HTMLMediaElement {
         can_gc: CanGc,
     ) {
         *self.audio_renderer.borrow_mut() = Some(audio_renderer);
-        if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.lock().unwrap().stop() {
-                error!("Could not stop player {:?}", e);
+
+        let had_player = {
+            if let Some(ref player) = *self.player.borrow() {
+                if let Err(err) = player.lock().unwrap().stop() {
+                    error!("Could not stop player {:?}", err);
+                }
+                true
+            } else {
+                false
             }
+        };
+
+        if had_player {
             self.media_element_load_algorithm(can_gc);
         }
     }
@@ -2830,8 +2839,8 @@ impl HTMLMediaElement {
 
     pub(crate) fn reset(&self) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.lock().unwrap().stop() {
-                error!("Could not stop player {:?}", e);
+            if let Err(err) = player.lock().unwrap().stop() {
+                error!("Could not stop player {:?}", err);
             }
         }
     }
