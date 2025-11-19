@@ -7,6 +7,7 @@
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr;
+use std::ptr::NonNull;
 
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::glue::{
@@ -17,19 +18,19 @@ use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
     HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue,
     JS_AtomizeAndPinString, JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById,
-    JS_IsExceptionPending, JSAutoRealm, JSContext, JSErrNum, JSFunctionSpec, JSObject,
-    JSPropertySpec, MutableHandle as RawMutableHandle,
-    MutableHandleIdVector as RawMutableHandleIdVector,
+    JS_IsExceptionPending, JSContext, JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec,
+    MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
 use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
+use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
     AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
     RUST_INTERNED_STRING_TO_JSID, SetDataPropertyDescriptor,
 };
-use js::rust::{Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject};
+use js::rust::{Handle, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject};
 use js::{jsapi, rooted};
 
 use crate::DomTypes;
@@ -545,22 +546,31 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
     receiver: RawHandleValue,
     result: *mut ObjectOpResult,
 ) -> bool {
-    let cx = SafeJSContext::from_ptr(cx);
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let mut realm = js::realm::CurrentRealm::assert(&mut cx);
+    let proxy_handle = unsafe { HandleObject::from_raw(proxy) };
 
-    if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-        return cross_origin_set::<D>(cx, proxy, id, v, receiver, result);
+    if !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, proxy) {
+        return cross_origin_set::<D>(
+            SafeJSContext::from_ptr(realm.raw_cx()),
+            proxy,
+            id,
+            v,
+            receiver,
+            result,
+        );
     }
 
     // Safe to enter the Realm of proxy now.
-    let _ac = JSAutoRealm::new(*cx, proxy.get());
+    let mut realm = js::realm::AutoRealm::new_from_handle(&mut realm, proxy_handle);
 
     // OrdinarySet
     // <https://tc39.es/ecma262/#sec-ordinaryset>
-    rooted!(in(*cx) let mut own_desc = PropertyDescriptor::default());
+    rooted!(&in(&mut realm) let mut own_desc = PropertyDescriptor::default());
     let mut is_none = false;
-    if !InvokeGetOwnPropertyDescriptor(
+    if !js::glue::InvokeGetOwnPropertyDescriptor(
         GetProxyHandler(*proxy),
-        *cx,
+        realm.raw_cx(),
         proxy,
         id,
         own_desc.handle_mut().into(),
@@ -571,7 +581,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
 
     let own_desc_handle = own_desc.handle().into();
     js::jsapi::SetPropertyIgnoringNamedGetter(
-        *cx,
+        realm.raw_cx(),
         proxy,
         id,
         v,
@@ -589,18 +599,22 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
 pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
-    cx: SafeJSContext,
+    cx: &mut CurrentRealm,
     proxy: RawHandleObject,
     get_proto_object: fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
     proto: RawMutableHandleObject,
 ) -> bool {
+    let proxy = unsafe { Handle::from_raw(proxy) };
     // > 1. If ! IsPlatformObjectSameOrigin(this) is true, then return ! OrdinaryGetPrototypeOf(this).
-    if <D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-        let ac = JSAutoRealm::new(*cx, proxy.get());
-        let global = unsafe { D::GlobalScope::from_context(*cx, InRealm::Entered(&ac)) };
-        get_proto_object(cx, global.reflector().get_jsobject(), unsafe {
-            MutableHandleObject::from_raw(proto)
-        });
+    if <D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into_handle()) {
+        let mut realm = AutoRealm::new_from_handle(cx, proxy);
+        let mut realm = realm.current_realm();
+        let global = D::GlobalScope::from_current_realm(&realm);
+        get_proto_object(
+            unsafe { SafeJSContext::from_ptr(realm.raw_cx()) },
+            global.reflector().get_jsobject(),
+            unsafe { MutableHandleObject::from_raw(proto) },
+        );
         return !proto.is_null();
     }
 

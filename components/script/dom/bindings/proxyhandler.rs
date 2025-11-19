@@ -7,18 +7,16 @@
 #![deny(missing_docs)]
 
 use js::jsapi::{GetObjectRealmOrNull, GetRealmPrincipals, HandleObject as RawHandleObject};
-use js::rust::get_context_realm;
+use js::realm::CurrentRealm;
 use script_bindings::principals::ServoJSPrincipalsRef;
 pub(crate) use script_bindings::proxyhandler::*;
 
-use crate::script_runtime::JSContext as SafeJSContext;
-
 /// <https://html.spec.whatwg.org/multipage/#isplatformobjectsameorigin-(-o-)>
 pub(crate) unsafe fn is_platform_object_same_origin(
-    cx: SafeJSContext,
+    realm: &CurrentRealm,
     obj: RawHandleObject,
 ) -> bool {
-    let subject_realm = unsafe { get_context_realm(*cx) };
+    let subject_realm = realm.realm().as_ptr();
     let obj_realm = unsafe { GetObjectRealmOrNull(*obj) };
     assert!(!obj_realm.is_null());
 
