@@ -261,6 +261,9 @@ pub trait RefreshDriver {
     /// Servo will call this method when it wants to be informed of the next frame start
     /// time. Implementors should call the callback when it is time to start preparing
     /// the new frame.
+    ///
+    /// Multiple callbacks may be registered for the same frame. It is up to the implementation
+    /// to call *all* callbacks that have been registered since the last frame.
     fn observe_next_frame(&self, start_frame_callback: Box<dyn Fn() + Send + 'static>);
 }
 

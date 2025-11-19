@@ -331,25 +331,24 @@ impl WebViewDelegate for RunningAppState {
 
 #[derive(Default)]
 pub(crate) struct VsyncRefreshDriver {
-    start_frame_callback: RefCell<Option<Box<dyn Fn() + Send>>>,
+    start_frame_callbacks: RefCell<Vec<Box<dyn Fn() + Send>>>,
 }
 
 impl VsyncRefreshDriver {
     fn notify_vsync(&self) {
-        let Some(start_frame_callback) = self.start_frame_callback.borrow_mut().take() else {
-            return;
-        };
-        start_frame_callback();
+        let start_frame_callbacks: Vec<_> =
+            self.start_frame_callbacks.borrow_mut().drain(..).collect();
+        for start_frame_callback in start_frame_callbacks {
+            start_frame_callback()
+        }
     }
 }
 
 impl RefreshDriver for VsyncRefreshDriver {
     fn observe_next_frame(&self, new_start_frame_callback: Box<dyn Fn() + Send + 'static>) {
-        let mut start_frame_callback = self.start_frame_callback.borrow_mut();
-        if start_frame_callback.is_some() {
-            warn!("Already observing the next frame.");
-        }
-        *start_frame_callback = Some(new_start_frame_callback);
+        self.start_frame_callbacks
+            .borrow_mut()
+            .push(new_start_frame_callback);
     }
 }
 

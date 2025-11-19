@@ -179,7 +179,6 @@ impl IOCompositor {
         let painter = Painter::new(
             state.rendering_context.clone(),
             state.compositor_proxy,
-            state.refresh_driver,
             state.shaders_path,
             &compositor,
         );

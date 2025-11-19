@@ -181,11 +181,13 @@ pub fn init(
 
     let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
 
+    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
     let rendering_context = Rc::new(
-        WindowRenderingContext::new(
+        WindowRenderingContext::new_with_refresh_driver(
             display_handle,
             window_handle,
             PhysicalSize::new(window_size.width as u32, window_size.height as u32),
+            refresh_driver.clone(),
         )
         .expect("Could not create RenderingContext"),
     );
@@ -197,12 +199,10 @@ pub fn init(
         RefCell::new(coordinates),
     ));
 
-    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
     let servo = ServoBuilder::new(rendering_context.clone())
         .opts(opts)
         .preferences(preferences)
         .event_loop_waker(waker.clone())
-        .refresh_driver(refresh_driver.clone())
         .build();
 
     // Initialize WebDriver server if port is specified
