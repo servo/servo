@@ -290,7 +290,6 @@ impl Servo {
             rendering_context: builder.rendering_context,
             shutdown_state: shutdown_state.clone(),
             event_loop_waker,
-            refresh_driver: builder.refresh_driver,
             shaders_path: opts.shaders_path.clone(),
             #[cfg(feature = "webxr")]
             webxr_registry: builder.webxr_registry,
@@ -1141,7 +1140,6 @@ pub struct ServoBuilder {
     event_loop_waker: Box<dyn EventLoopWaker>,
     user_content_manager: UserContentManager,
     protocol_registry: ProtocolRegistry,
-    refresh_driver: Option<Rc<dyn RefreshDriver>>,
     #[cfg(feature = "webxr")]
     webxr_registry: Box<dyn webxr::WebXrRegistry>,
 }
@@ -1155,7 +1153,6 @@ impl ServoBuilder {
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             user_content_manager: UserContentManager::default(),
             protocol_registry: ProtocolRegistry::default(),
-            refresh_driver: None,
             #[cfg(feature = "webxr")]
             webxr_registry: Box::new(DefaultWebXrRegistry),
         }
@@ -1177,11 +1174,6 @@ impl ServoBuilder {
 
     pub fn event_loop_waker(mut self, event_loop_waker: Box<dyn EventLoopWaker>) -> Self {
         self.event_loop_waker = event_loop_waker;
-        self
-    }
-
-    pub fn refresh_driver(mut self, refresh_driver: Rc<dyn RefreshDriver>) -> Self {
-        self.refresh_driver = Some(refresh_driver);
         self
     }
 

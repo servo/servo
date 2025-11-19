@@ -75,11 +75,13 @@ pub fn init(
     };
 
     let size = init_opts.coordinates.viewport.size;
+    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
     let rendering_context = Rc::new(
-        WindowRenderingContext::new(
+        WindowRenderingContext::new_with_refresh_driver(
             display_handle,
             window_handle,
             PhysicalSize::new(size.width as u32, size.height as u32),
+            refresh_driver.clone(),
         )
         .expect("Could not create RenderingContext"),
     );
@@ -89,12 +91,10 @@ pub fn init(
         RefCell::new(init_opts.coordinates),
     ));
 
-    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
     let servo_builder = ServoBuilder::new(rendering_context.clone())
         .opts(opts)
         .preferences(preferences)
-        .event_loop_waker(waker.clone())
-        .refresh_driver(refresh_driver.clone());
+        .event_loop_waker(waker.clone());
 
     #[cfg(feature = "webxr")]
     let servo_builder = servo_builder.webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(

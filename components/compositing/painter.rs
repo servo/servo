@@ -25,7 +25,7 @@ use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId, InputEventResult,
-    RefreshDriver, ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint, WebViewRect,
+    ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Scale};
 use gleam::gl::RENDERER;
@@ -144,7 +144,6 @@ impl Painter {
     pub(crate) fn new(
         rendering_context: Rc<dyn RenderingContext>,
         compositor_proxy: CompositorProxy,
-        refresh_driver: Option<Rc<dyn RefreshDriver>>,
         shader_path: Option<PathBuf>,
         compositor: &IOCompositor,
     ) -> Self {
@@ -182,7 +181,7 @@ impl Painter {
         let embedder_to_constellation_sender = compositor.embedder_to_constellation_sender.clone();
         let refresh_driver = Rc::new(BaseRefreshDriver::new(
             compositor.event_loop_waker.clone_box(),
-            refresh_driver,
+            rendering_context.refresh_driver(),
         ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
             embedder_to_constellation_sender.clone(),

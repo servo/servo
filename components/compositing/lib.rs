@@ -13,7 +13,7 @@ use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{CompositorMsg, CompositorProxy};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
-use embedder_traits::{EventLoopWaker, RefreshDriver, ShutdownState};
+use embedder_traits::{EventLoopWaker, ShutdownState};
 use profile_traits::{mem, time};
 #[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;
@@ -56,8 +56,6 @@ pub struct InitialCompositorState {
     /// An [`EventLoopWaker`] used in order to wake up the embedder when it is
     /// time to paint.
     pub event_loop_waker: Box<dyn EventLoopWaker>,
-    /// An optional [`RefreshDriver`] provided by the embedder.
-    pub refresh_driver: Option<Rc<dyn RefreshDriver>>,
     /// A [`PathBuf`] which can be used to override WebRender shaders.
     pub shaders_path: Option<PathBuf>,
     /// If WebXR is enabled, a [`WebXrRegistry`] to register WebXR threads.
