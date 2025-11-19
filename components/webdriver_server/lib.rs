@@ -29,9 +29,10 @@ use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, after, select, unbounded};
 use embedder_traits::{
-    EventLoopWaker, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationResultSerializationError, MouseButton, WebDriverCommandMsg,
-    WebDriverFrameId, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
+    CustomHandlersAutomationMode, EventLoopWaker, ImeEvent, InputEvent, JSValue,
+    JavaScriptEvaluationError, JavaScriptEvaluationResultSerializationError, MouseButton,
+    WebDriverCommandMsg, WebDriverFrameId, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
@@ -98,6 +99,12 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
             Method::DELETE,
             "/session/{sessionId}/servo/shutdown",
             ServoExtensionRoute::Shutdown,
+        ),
+        // <https://html.spec.whatwg.org/multipage/#set-rph-registration-mode>
+        (
+            Method::POST,
+            "/session/{sessionId}/custom-handlers/set-mode",
+            ServoExtensionRoute::CustomHandlersSetMode,
         ),
     ]
 }
@@ -185,6 +192,7 @@ enum ServoExtensionRoute {
     /// We have to either use our own fork, or relies on the current workaround:
     /// passing any dummy sessionID.
     Shutdown,
+    CustomHandlersSetMode,
 }
 
 impl WebDriverExtensionRoute for ServoExtensionRoute {
@@ -208,6 +216,11 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
                 let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
                 ServoExtensionCommand::ResetPrefs(parameters)
             },
+            ServoExtensionRoute::CustomHandlersSetMode => {
+                let parameters: CustomHandlersSetModeParameters =
+                    serde_json::from_value(body_data.clone())?;
+                ServoExtensionCommand::CustomHandlersSetMode(parameters)
+            },
             ServoExtensionRoute::Shutdown => ServoExtensionCommand::Shutdown,
         };
         Ok(WebDriverCommand::Extension(command))
@@ -220,6 +233,7 @@ enum ServoExtensionCommand {
     GetPrefs(GetPrefsParameters),
     SetPrefs(SetPrefsParameters),
     ResetPrefs(GetPrefsParameters),
+    CustomHandlersSetMode(CustomHandlersSetModeParameters),
     Shutdown,
 }
 
@@ -229,6 +243,7 @@ impl WebDriverExtensionCommand for ServoExtensionCommand {
             ServoExtensionCommand::GetPrefs(ref x) => serde_json::to_value(x).ok(),
             ServoExtensionCommand::SetPrefs(ref x) => serde_json::to_value(x).ok(),
             ServoExtensionCommand::ResetPrefs(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommand::CustomHandlersSetMode(ref x) => serde_json::to_value(x).ok(),
             ServoExtensionCommand::Shutdown => None,
         }
     }
@@ -356,6 +371,11 @@ struct GetPrefsParameters {
 struct SetPrefsParameters {
     #[serde(deserialize_with = "map_to_vec")]
     prefs: Vec<(String, WebDriverPrefValue)>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+struct CustomHandlersSetModeParameters {
+    mode: String,
 }
 
 fn map_to_vec<'de, D>(de: D) -> Result<Vec<(String, WebDriverPrefValue)>, D::Error>
@@ -2405,6 +2425,34 @@ impl Handler {
         )))
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#set-rph-registration-mode>
+    fn handle_custom_handlers_set_mode(
+        &self,
+        parameters: &CustomHandlersSetModeParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
+        // Step 2. Let mode be the result of getting a property named "mode" from parameters.
+        // Step 3. If mode is not "autoAccept", "autoReject", or "none", return a WebDriver error with WebDriver error code invalid argument.
+        let mode = match parameters.mode.as_str() {
+            "autoAccept" => CustomHandlersAutomationMode::AutoAccept,
+            "autoReject" => CustomHandlersAutomationMode::AutoReject,
+            "none" => CustomHandlersAutomationMode::None,
+            _ => {
+                return Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "invalid argument",
+                ));
+            },
+        };
+        // Step 4. Let document be the current browsing context's active document.
+        // Step 5. Set document's registerProtocolHandler() automation mode to mode.
+        self.top_level_script_command(
+            WebDriverScriptCommand::SetProtocolHandlerAutomationMode(mode),
+            VerifyBrowsingContextIsOpen::Yes,
+        )?;
+        // Step 6. Return success with data null.
+        Ok(WebDriverResponse::Void)
+    }
+
     fn handle_get_prefs(
         &self,
         parameters: &GetPrefsParameters,
@@ -2629,6 +2677,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
                 ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
                 ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
+                ServoExtensionCommand::CustomHandlersSetMode(ref x) => {
+                    self.handle_custom_handlers_set_mode(x)
+                },
                 ServoExtensionCommand::Shutdown => self.handle_shutdown(),
             },
             _ => Err(WebDriverError::new(

@@ -15,6 +15,7 @@ use euclid::{Rect, Size2D};
 use hyper_serde::Serde;
 use image::RgbaImage;
 use ipc_channel::ipc::IpcSender;
+use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentIntRect;
@@ -67,6 +68,15 @@ impl WebDriverUserPromptAction {
             _ => None,
         }
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#registerprotocolhandler()-automation-mode>
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum CustomHandlersAutomationMode {
+    AutoAccept,
+    AutoReject,
+    #[default]
+    None,
 }
 
 /// Messages to the constellation originating from the WebDriver server.
@@ -211,6 +221,7 @@ pub enum WebDriverScriptCommand {
     WillSendKeys(String, String, bool, IpcSender<Result<bool, ErrorStatus>>),
     AddLoadStatusSender(WebViewId, GenericSender<WebDriverLoadStatus>),
     RemoveLoadStatusSender(WebViewId),
+    SetProtocolHandlerAutomationMode(CustomHandlersAutomationMode),
 }
 
 pub type WebDriverJSResult = Result<JSValue, JavaScriptEvaluationError>;

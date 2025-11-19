@@ -2434,6 +2434,13 @@ impl ScriptThread {
                 drop(documents);
                 webdriver_handlers::handle_execute_async_script(window, script, reply, can_gc);
             },
+            WebDriverScriptCommand::SetProtocolHandlerAutomationMode(mode) => {
+                webdriver_handlers::set_protocol_handler_automation_mode(
+                    &documents,
+                    pipeline_id,
+                    mode,
+                )
+            },
         }
     }
 
