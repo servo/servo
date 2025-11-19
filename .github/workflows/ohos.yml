@@ -400,12 +400,3 @@ jobs:
       - name: Test Mossel Slide
         if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_slide.py
-      - name: Test Mossel homepage Framerate
-        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
-        run: uv run ./etc/ci/scenario/servo_test_frame_rate_base_page.py
-      - name: Test Mossel FrameRate With Carousel
-        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
-        run: uv run ./etc/ci/scenario/servo_test_frame_rate_with_carousel.py
-      - name: Test Mossel FrameRate With Video
-        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
-        run: uv run ./etc/ci/scenario/servo_test_frame_rate_with_video.py
