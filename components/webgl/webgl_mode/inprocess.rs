@@ -14,11 +14,12 @@ use webxr::SurfmanGL as WebXRSurfman;
 #[cfg(feature = "webxr")]
 use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
 
-use crate::webgl_thread::{WebGLThread, WebGLThreadInit};
+use crate::webgl_thread::{WebGLContextBusyMap, WebGLThread, WebGLThreadInit};
 
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
     pub swap_chains: SwapChains<WebGLContextId, Device>,
+    pub busy_webgl_context_map: WebGLContextBusyMap,
     #[cfg(feature = "webxr")]
     pub webxr_layer_grand_manager: WebXRLayerGrandManager<WebXRSurfman>,
 }
@@ -33,6 +34,7 @@ impl WebGLComm {
         debug!("WebGLThreads::new()");
         let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
         let swap_chains = SwapChains::new();
+        let busy_webgl_context_map = WebGLContextBusyMap::default();
 
         #[cfg(feature = "webxr")]
         let webxr_init = crate::webxr::WebXRBridgeInit::new(sender.clone());
@@ -46,9 +48,10 @@ impl WebGLComm {
             sender: sender.clone(),
             receiver,
             webrender_swap_chains: swap_chains.clone(),
+            painter_surfman_details_map,
+            busy_webgl_context_map: busy_webgl_context_map.clone(),
             #[cfg(feature = "webxr")]
             webxr_init,
-            painter_surfman_details_map,
         };
 
         WebGLThread::run_on_own_thread(init);
@@ -56,6 +59,7 @@ impl WebGLComm {
         WebGLComm {
             webgl_threads: WebGLThreads(sender),
             swap_chains,
+            busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_layer_grand_manager,
         }

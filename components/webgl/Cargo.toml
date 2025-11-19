@@ -28,6 +28,7 @@ half = "2"
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
+parking_lot = { workspace = true }
 pixels = { path = "../pixels" }
 rustc-hash = { workspace = true }
 surfman = { workspace = true }

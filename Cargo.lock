@@ -10052,6 +10052,7 @@ dependencies = [
  "ipc-channel",
  "itertools 0.14.0",
  "log",
+ "parking_lot",
  "pixels",
  "rustc-hash 2.1.1",
  "surfman",

@@ -4,8 +4,10 @@
 #![allow(unsafe_code)]
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::num::NonZeroU32;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::{slice, thread};
 
 use base::Epoch;
@@ -39,6 +41,7 @@ use half::f16;
 use ipc_channel::ipc::IpcSharedMemory;
 use itertools::Itertools;
 use log::{debug, error, trace, warn};
+use parking_lot::RwLock;
 use pixels::{self, PixelFormat, SnapshotAlphaMode, unmultiply_inplace};
 use rustc_hash::FxHashMap;
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
@@ -62,12 +65,21 @@ fn native_uniform_location(location: i32) -> Option<NativeUniformLocation> {
     location.try_into().ok().map(NativeUniformLocation)
 }
 
+/// A map which tracks whether a given WebGL context is "busy" ie whether WebRender has
+/// currently taken a surface from its [`SwapChain`] for rendering purposes. Contexts will
+/// only be deleted once no WebRender instance is using it for rendering. This ensures
+/// that all Surfman `Surface`s can be released properly on the [`WebGLThread`].
+pub type WebGLContextBusyMap = Arc<RwLock<HashMap<WebGLContextId, usize>>>;
+
 pub(crate) struct GLContextData {
     pub(crate) ctx: Context,
     pub(crate) gl: Rc<glow::Context>,
     device: Rc<Device>,
     state: GLState,
     attributes: GLContextAttributes,
+    /// The context should be removed, but the [`WebGLThread`] is currently waiting on
+    /// WebRender to finish rendering to the context in order to delete it.
+    marked_for_deletion: bool,
 }
 
 #[derive(Debug)]
@@ -226,6 +238,9 @@ pub(crate) struct WebGLThread {
     webrender_swap_chains: SwapChains<WebGLContextId, Device>,
     /// The per-painter details of the underlying surfman connection.
     painter_surfman_details_map: PainterSurfmanDetailsMap,
+    /// A usage map used to delay the deletion of WebGL contexts until all WebRender
+    /// rendering is finished, so that any existing `Surface`s can be properly released.
+    busy_webgl_context_map: WebGLContextBusyMap,
 
     #[cfg(feature = "webxr")]
     /// The bridge to WebXR
@@ -240,6 +255,7 @@ pub(crate) struct WebGLThreadInit {
     pub receiver: WebGLReceiver<WebGLMsg>,
     pub webrender_swap_chains: SwapChains<WebGLContextId, Device>,
     pub painter_surfman_details_map: PainterSurfmanDetailsMap,
+    pub busy_webgl_context_map: WebGLContextBusyMap,
     #[cfg(feature = "webxr")]
     pub webxr_init: WebXRBridgeInit,
 }
@@ -257,6 +273,7 @@ impl WebGLThread {
             receiver,
             webrender_swap_chains,
             painter_surfman_details_map,
+            busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_init,
         }: WebGLThreadInit,
@@ -271,9 +288,10 @@ impl WebGLThread {
             sender,
             receiver: receiver.route_preserving_errors(),
             webrender_swap_chains,
+            painter_surfman_details_map,
+            busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_bridge: Some(WebXRBridge::new(webxr_init)),
-            painter_surfman_details_map,
         }
     }
 
@@ -368,6 +386,9 @@ impl WebGLThread {
             },
             WebGLMsg::SwapBuffers(swap_ids, canvas_epoch, sent_time) => {
                 self.handle_swap_buffers(canvas_epoch, swap_ids, sent_time);
+            },
+            WebGLMsg::FinishedRenderingToContext(context_id) => {
+                self.handle_finished_rendering_to_context(context_id);
             },
             WebGLMsg::Exit(sender) => {
                 // Call remove_context functions in order to correctly delete WebRender image keys.
@@ -643,6 +664,7 @@ impl WebGLThread {
                 gl,
                 state,
                 attributes,
+                marked_for_deletion: false,
             },
         );
 
@@ -709,8 +731,39 @@ impl WebGLThread {
         Ok(())
     }
 
+    /// Note that rendering has finished in WebRender for this context. If the context
+    /// is marked for deletion, it will now be deleted.
+    fn handle_finished_rendering_to_context(&mut self, context_id: WebGLContextId) {
+        let marked_for_deletion = self
+            .contexts
+            .get(&context_id)
+            .is_some_and(|context_data| context_data.marked_for_deletion);
+        if marked_for_deletion {
+            self.remove_webgl_context(context_id);
+        }
+    }
+
     /// Removes a WebGLContext and releases attached resources.
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
+        {
+            let mut busy_webgl_context_map = self.busy_webgl_context_map.write();
+            let entry = busy_webgl_context_map.entry(context_id);
+            match entry {
+                Entry::Vacant(..) => {},
+                Entry::Occupied(occupied_entry) if *occupied_entry.get() > 0 => {
+                    // WebRender is in the process of rendering this WebGL context, so wait until it
+                    // finishes in order to release it.
+                    if let Some(context_data) = self.contexts.get_mut(&context_id) {
+                        context_data.marked_for_deletion = true;
+                    }
+                    return;
+                },
+                Entry::Occupied(occupied_entry) => {
+                    occupied_entry.remove();
+                },
+            }
+        }
+
         // Release webrender image keys.
         if let Some(image_key) = self
             .cached_context_info

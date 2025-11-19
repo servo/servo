@@ -79,10 +79,15 @@ impl WebGLThreads {
     }
 
     /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
-    pub fn exit(&self, sender: IpcSender<()>) -> Result<(), &'static str> {
+    pub fn exit(&self, sender: IpcSender<()>) -> WebGLSendResult {
+        self.0.send(WebGLMsg::Exit(sender))
+    }
+
+    /// Inform the WebGLThreads that WebRender has finished rendering a particular WebGL context,
+    /// and if it was marked for deletion, it can now be released.
+    pub fn finished_rendering_to_context(&self, context_id: WebGLContextId) -> WebGLSendResult {
         self.0
-            .send(WebGLMsg::Exit(sender))
-            .map_err(|_| "Failed to send Exit message")
+            .send(WebGLMsg::FinishedRenderingToContext(context_id))
     }
 }
 
@@ -114,6 +119,10 @@ pub enum WebGLMsg {
     /// was initiated. The u64 in the second field will be the time the
     /// request is fulfilled
     SwapBuffers(Vec<WebGLContextId>, Option<Epoch>, u64),
+    /// Called when a [`Surface`] is returned from being used in WebRender and isn't
+    /// readily releaseable via the `SwapChain`. This can happen when the context is
+    /// released in the WebGLThread while the contents are being rendered by WebRender.
+    FinishedRenderingToContext(WebGLContextId),
     /// Frees all resources and closes the thread.
     Exit(IpcSender<()>),
 }
