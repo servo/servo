@@ -562,7 +562,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     where
         F: FnMut(&AtomIdent),
     {
-        self.element.each_custom_state(callback);
+        self.element.each_custom_state_for_layout(callback);
     }
 
     /// Returns the implicit scope root for given sheet index and host.
@@ -976,7 +976,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     fn has_custom_state(&self, name: &AtomIdent) -> bool {
         let mut has_state = false;
         self.element
-            .each_custom_state(|state| has_state |= state == name);
+            .each_custom_state_for_layout(|state| has_state |= state == name);
 
         has_state
     }
