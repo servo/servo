@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os.path
 # Copyright 2025 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
 #
@@ -9,6 +8,7 @@ import os.path
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import os.path
 import sys
 import time
 import subprocess
@@ -22,7 +22,8 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    # Step 1. Open mossel
+    # Step 1. Start test application
+    print("Starting mossel ...")
     cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     cmd = [
@@ -33,31 +34,32 @@ def operator():
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     common_function_for_servo_test.setup_hdc_forward()
     driver = common_function_for_servo_test.create_driver()
+
     popup_css_selector = "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view:nth-child(5) > uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid > uni-view > uni-view > uni-button:nth-child(1)"
     print("Waiting for popup to appear ...")
-    # Wait for the pop-up
     WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
         expected_conditions.presence_of_element_located(
-           (By.CSS_SELECTOR, popup_css_selector)
+            (By.CSS_SELECTOR, popup_css_selector)
         )
     )
     time.sleep(1)
 
     # Step 2. Click to close the pop-up
-    birthday_ = driver.find_element(
+    popup = driver.find_element(
         By.CSS_SELECTOR, popup_css_selector
     )
-    birthday_.click()
-    print("Closed the popup")
+    popup.click()
+    print("Closed the popup.")
 
     driver.implicitly_wait(10)
     time.sleep(5)
+
     # Step 3. Click on 'Birthday Benefits'
     print("Scrolling down to 'Birthday Benefits'")
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(5)
-    print("Searching for 'Birthday Benefits' element")
+    print("Searching for 'Birthday Benefits' element ...")
     birthday_ = driver.find_element(
         By.CSS_SELECTOR,
         "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view.idx-swiper.m-bgWhite.m-main > uni-scroll-view:nth-child(1) > div > div > div > uni-view:nth-child(4) > uni-view:nth-child(2)",
@@ -66,7 +68,6 @@ def operator():
     birthday_.click()
 
     print("Waiting for page to finish loading")
-
     WebDriverWait(driver, 10).until(
         lambda driver: driver.execute_script("return document.readyState")
                        == "complete"
@@ -86,7 +87,7 @@ def operator():
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(5)
 
-    print("Swiping!")
+    print("Swiping ...")
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 770 30"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=2)
 
@@ -101,9 +102,6 @@ def operator():
     frame_rate = common_function_for_servo_test.calculate_frame_rate()
     print(f"framerate is {frame_rate}")
 
-    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
     if frame_rate < 115:
         raise RuntimeError(f"Actual frame rate is {frame_rate}, expected >= 115")
 
@@ -114,3 +112,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Scenario test {os.path.basename(__file__)} failed with error: {e} (exception: {type(e)})")
         sys.exit(1)
+
+    common_function_for_servo_test.stop_servo()

@@ -15,10 +15,8 @@ import pathlib
 import subprocess
 import time
 from decimal import Decimal
-from http.client import RemoteDisconnected
 
 from selenium import webdriver
-from selenium.common import TimeoutException
 from selenium.webdriver.common.options import ArgOptions
 from urllib3.exceptions import ProtocolError
 
@@ -32,19 +30,25 @@ def calculate_frame_rate():
     calculate frame rate: When there are elements moving on the page, H: EndCommands will be printed to indicate that the frame is being sent out. After capturing the trace, the frame rate can be obtained by calculating the number of frames printed per unit time (per second).
     :return: frame rate
     """
+    print("Prepare to create local dir to put trace file...")
     target_path = os.path.join(pathlib.Path(os.path.dirname(__file__)).parent.parent.parent, "target")
     os.makedirs(target_path, exist_ok=True)
     ci_testing_path = os.path.join(target_path, "ci_testing")
     os.makedirs(ci_testing_path, exist_ok=True)
+    print("Create local dir success.")
 
     file_name = os.path.join(ci_testing_path, "my_trace.html")
     cmd = ["hdc", "file", "recv", "/data/local/tmp/my_trace.html", f"{file_name}"]
+    print("Pulling trace file from device...")
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    print(f"Pull trace file to {file_name} success.")
 
     trace_key = "H:ReceiveVsync"
     check_list = []
     with open(file_name, "r") as f:
         lines = f.readlines()
+        if "TouchHandler::FlingStart" not in lines:
+            raise RuntimeError("No 'TouchHandler::FlingStart' signals found in the trace file.")
         for line in range(len(lines)):
             if "TouchHandler::FlingStart" in lines[line]:
                 check_list = []
@@ -57,6 +61,8 @@ def calculate_frame_rate():
         for line in range(len(check_list))
         if (trace_key in check_list[line]) and ("render_service" in check_list[line])
     ]
+    if len(matching_lines) == 0:
+        raise RuntimeError("No 'H:ReceiveVsync' signals found in the trace file.")
     start_time = matching_lines[0].split()[5].split(":")[0]
     end_time = matching_lines[-1].split()[5].split(":")[0]
     interval_time = Decimal(end_time) - Decimal(start_time)
@@ -121,3 +127,10 @@ def setup_hdc_forward(timeout: int = 5):
             print(f"failed to setup HDC forwarding: {e}")
             raise
     raise TimeoutError("HDC port forwarding timed out")
+
+def stop_servo():
+    """ stop servo application """
+    print("Prepare to stop Test Application...")
+    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    print("Stop Test Application successful!")
