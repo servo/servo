@@ -213,8 +213,7 @@ impl WebGLShader {
                 // NOTE: At this point we should be pretty sure that the compilation in the paint thread
                 // will succeed.
                 // It could be interesting to retrieve the info log from the paint thread though
-                self.upcast::<WebGLObject>()
-                    .context()
+                self.upcast()
                     .send_command(WebGLCommand::CompileShader(self.id, translated_source));
                 self.compilation_status
                     .set(ShaderCompilationStatus::Succeeded);
@@ -236,12 +235,8 @@ impl WebGLShader {
     pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
-            let context = self.upcast::<WebGLObject>().context();
-            let cmd = WebGLCommand::DeleteShader(self.id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
+            self.upcast()
+                .send_with_fallibility(WebGLCommand::DeleteShader(self.id), operation_fallibility);
         }
     }
 

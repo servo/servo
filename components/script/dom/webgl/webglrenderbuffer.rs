@@ -94,16 +94,13 @@ impl WebGLRenderbuffer {
 
     pub(crate) fn bind(&self, target: u32) {
         self.ever_bound.set(true);
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-
-            let context = self.upcast::<WebGLObject>().context();
 
             /*
             If a renderbuffer object is deleted while its image is attached to one or more
@@ -114,18 +111,20 @@ impl WebGLRenderbuffer {
             in that frame-buffer object.
             - GLES 3.0, 4.4.2.3, "Attaching Renderbuffer Images to a Framebuffer"
             */
-            if let Some(fb) = context.get_draw_framebuffer_slot().get() {
-                let _ = fb.detach_renderbuffer(self);
-            }
-            if let Some(fb) = context.get_read_framebuffer_slot().get() {
-                let _ = fb.detach_renderbuffer(self);
+            let webgl_object = self.upcast();
+            if let Some(context) = webgl_object.context() {
+                if let Some(fb) = context.get_draw_framebuffer_slot().get() {
+                    let _ = fb.detach_renderbuffer(self);
+                }
+                if let Some(fb) = context.get_read_framebuffer_slot().get() {
+                    let _ = fb.detach_renderbuffer(self);
+                }
             }
 
-            let cmd = WebGLCommand::DeleteRenderbuffer(self.id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
+            webgl_object.send_with_fallibility(
+                WebGLCommand::DeleteRenderbuffer(self.id),
+                operation_fallibility,
+            );
         }
     }
 
@@ -145,8 +144,12 @@ impl WebGLRenderbuffer {
         width: i32,
         height: i32,
     ) -> WebGLResult<()> {
+        let Some(context) = self.upcast().context() else {
+            return Err(WebGLError::ContextLost);
+        };
+
+        let webgl_version = context.webgl_version();
         let is_gles = api_type == GlType::Gles;
-        let webgl_version = self.upcast().context().webgl_version();
 
         // Validate the internal_format, and save it for completeness
         // validation.
@@ -206,9 +209,7 @@ impl WebGLRenderbuffer {
             },
             EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
             EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
-                if !self
-                    .upcast()
-                    .context()
+                if !context
                     .extension_manager()
                     .is_half_float_buffer_renderable()
                 {
@@ -217,12 +218,7 @@ impl WebGLRenderbuffer {
                 internal_format
             },
             WEBGLColorBufferFloatConstants::RGBA32F_EXT => {
-                if !self
-                    .upcast()
-                    .context()
-                    .extension_manager()
-                    .is_float_buffer_renderable()
-                {
+                if !context.extension_manager().is_float_buffer_renderable() {
                     return Err(WebGLError::InvalidEnum);
                 }
                 internal_format
@@ -232,14 +228,13 @@ impl WebGLRenderbuffer {
 
         if webgl_version != WebGLVersion::WebGL1 {
             let (sender, receiver) = webgl_channel().unwrap();
-            self.upcast::<WebGLObject>().context().send_command(
-                WebGLCommand::GetInternalFormatIntVec(
+            self.upcast()
+                .send_command(WebGLCommand::GetInternalFormatIntVec(
                     constants::RENDERBUFFER,
                     internal_format,
                     InternalFormatIntVec::Samples,
                     sender,
-                ),
-            );
+                ));
             let samples = receiver.recv().unwrap();
             if sample_count < 0 || sample_count > samples.first().cloned().unwrap_or(0) {
                 return Err(WebGLError::InvalidOperation);
@@ -268,7 +263,7 @@ impl WebGLRenderbuffer {
                 height,
             ),
         };
-        self.upcast::<WebGLObject>().context().send_command(command);
+        self.upcast().send_command(command);
 
         self.size.set(Some((width, height)));
         Ok(())

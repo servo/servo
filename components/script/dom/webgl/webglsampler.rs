@@ -98,13 +98,10 @@ impl WebGLSampler {
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
-
-            let command = WebGLCommand::DeleteSampler(self.gl_id);
-            let context = self.upcast::<WebGLObject>().context();
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(command),
-                Operation::Infallible => context.send_command(command),
-            }
+            self.upcast().send_with_fallibility(
+                WebGLCommand::DeleteSampler(self.gl_id),
+                operation_fallibility,
+            );
         }
     }
 

@@ -24,7 +24,6 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgl::webglframebuffer::WebGLFramebuffer;
-use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgl::webgltexture::WebGLTexture;
 use crate::dom::window::Window;
@@ -139,13 +138,14 @@ impl XRWebGLLayer {
     pub(crate) fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
         debug!("XRWebGLLayer begin frame");
         let framebuffer = self.framebuffer.as_ref()?;
-        let context = framebuffer.upcast::<WebGLObject>().context();
         let sub_images = frame.get_sub_images(self.layer_id()?)?;
         let session = self.session();
+        let context = framebuffer.upcast().context()?;
+
         // TODO: Cache this texture
         let color_texture_id = WebGLTextureId::new(sub_images.sub_image.as_ref()?.color_texture?);
         let color_texture =
-            WebGLTexture::new_webxr(context, color_texture_id, session, CanGc::note());
+            WebGLTexture::new_webxr(&context, color_texture_id, session, CanGc::note());
         let target = self.texture_target();
 
         // Save the current bindings
@@ -180,7 +180,7 @@ impl XRWebGLLayer {
             // TODO: Cache this texture
             let depth_stencil_texture_id = WebGLTextureId::new(id);
             let depth_stencil_texture =
-                WebGLTexture::new_webxr(context, depth_stencil_texture_id, session, CanGc::note());
+                WebGLTexture::new_webxr(&context, depth_stencil_texture_id, session, CanGc::note());
             framebuffer
                 .texture2d_even_if_opaque(
                     constants::DEPTH_STENCIL_ATTACHMENT,
@@ -219,7 +219,11 @@ impl XRWebGLLayer {
                 0,
             )
             .ok()?;
-        framebuffer.upcast::<WebGLObject>().context().Flush();
+
+        if let Some(context) = framebuffer.upcast().context() {
+            context.Flush();
+        }
+
         Some(())
     }
 

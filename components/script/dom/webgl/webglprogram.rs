@@ -12,7 +12,6 @@ use canvas_traits::webgl::{
 };
 use dom_struct::dom_struct;
 
-use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -99,22 +98,14 @@ impl WebGLProgram {
         self.id
     }
 
-    pub(crate) fn context(&self) -> &WebGLRenderingContext {
-        self.upcast::<WebGLObject>().context()
-    }
-
     /// glDeleteProgram
     pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if self.marked_for_deletion.get() {
             return;
         }
         self.marked_for_deletion.set(true);
-        let cmd = WebGLCommand::DeleteProgram(self.id);
-        let context = self.upcast::<WebGLObject>().context();
-        match operation_fallibility {
-            Operation::Fallible => context.send_command_ignored(cmd),
-            Operation::Infallible => context.send_command(cmd),
-        }
+        self.upcast()
+            .send_with_fallibility(WebGLCommand::DeleteProgram(self.id), operation_fallibility);
         if self.is_deleted() {
             self.detach_shaders();
         }
@@ -178,8 +169,7 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::LinkProgram(self.id, sender));
         let link_info = receiver.recv().unwrap();
 
@@ -241,8 +231,7 @@ impl WebGLProgram {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::ValidateProgram(self.id));
         Ok(())
     }
@@ -268,8 +257,7 @@ impl WebGLProgram {
         shader_slot.set(Some(shader));
         shader.increment_attached_counter();
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::AttachShader(self.id, shader.id()));
 
         Ok(())
@@ -297,8 +285,7 @@ impl WebGLProgram {
         shader_slot.set(None);
         shader.decrement_attached_counter();
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::DetachShader(self.id, shader.id()));
 
         Ok(())
@@ -317,13 +304,11 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::BindAttribLocation(
-                self.id,
-                index,
-                name.into(),
-            ));
+        self.upcast().send_command(WebGLCommand::BindAttribLocation(
+            self.id,
+            index,
+            name.into(),
+        ));
         Ok(())
     }
 
@@ -407,8 +392,7 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::GetFragDataLocation(
                 self.id,
                 name.into(),
@@ -456,15 +440,13 @@ impl WebGLProgram {
         };
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::GetUniformLocation(
-                self.id,
-                name.into(),
-                sender,
-            ));
+        self.upcast().send_command(WebGLCommand::GetUniformLocation(
+            self.id,
+            name.into(),
+            sender,
+        ));
         let location = receiver.recv().unwrap();
-        let context_id = self.upcast::<WebGLObject>().context().context_id();
+        let context_id = self.upcast().context_id();
 
         Ok(Some(WebGLUniformLocation::new(
             self.global().as_window(),
@@ -488,8 +470,7 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::GetUniformBlockIndex(
                 self.id,
                 name.into(),
@@ -515,8 +496,7 @@ impl WebGLProgram {
             .collect::<Vec<_>>();
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::GetUniformIndices(self.id, names, sender));
         Ok(receiver.recv().unwrap())
     }
@@ -546,11 +526,9 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::GetActiveUniforms(
-                self.id, indices, pname, sender,
-            ));
+        self.upcast().send_command(WebGLCommand::GetActiveUniforms(
+            self.id, indices, pname, sender,
+        ));
         Ok(receiver.recv().unwrap())
     }
 
@@ -578,9 +556,13 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::GetActiveUniformBlockParameter(self.id, block_index, pname, sender),
-        );
+        self.upcast()
+            .send_command(WebGLCommand::GetActiveUniformBlockParameter(
+                self.id,
+                block_index,
+                pname,
+                sender,
+            ));
         Ok(receiver.recv().unwrap())
     }
 
@@ -594,9 +576,12 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::GetActiveUniformBlockName(self.id, block_index, sender),
-        );
+        self.upcast()
+            .send_command(WebGLCommand::GetActiveUniformBlockName(
+                self.id,
+                block_index,
+                sender,
+            ));
         Ok(receiver.recv().unwrap())
     }
 
@@ -614,8 +599,7 @@ impl WebGLProgram {
             active_uniforms[block_binding as usize].bind_index = Some(block_binding);
         }
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::UniformBlockBinding(
                 self.id,
                 block_index,
@@ -639,8 +623,7 @@ impl WebGLProgram {
             }
         }
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::GetProgramInfoLog(self.id, sender));
         Ok(receiver.recv().unwrap())
     }

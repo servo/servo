@@ -166,8 +166,7 @@ impl WebGLTexture {
             self.target.set(Some(target));
         }
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::BindTexture(target, Some(self.id)));
 
         Ok(())
@@ -226,8 +225,7 @@ impl WebGLTexture {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.upcast()
             .send_command(WebGLCommand::GenerateMipmap(target));
 
         if self.base_mipmap_level + base_image_info.get_max_mimap_levels() == 0 {
@@ -241,7 +239,6 @@ impl WebGLTexture {
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let context = self.upcast::<WebGLObject>().context();
 
             /*
             If a texture object is deleted while its image is attached to one or more attachment
@@ -251,11 +248,14 @@ impl WebGLTexture {
             all attachment points in a currently bound framebuffer.
             - GLES 3.0, 4.4.2.3, "Attaching Texture Images to a Framebuffer"
             */
-            if let Some(fb) = context.get_draw_framebuffer_slot().get() {
-                let _ = fb.detach_texture(self);
-            }
-            if let Some(fb) = context.get_read_framebuffer_slot().get() {
-                let _ = fb.detach_texture(self);
+            let webgl_object = self.upcast();
+            if let Some(context) = webgl_object.context() {
+                if let Some(fb) = context.get_draw_framebuffer_slot().get() {
+                    let _ = fb.detach_texture(self);
+                }
+                if let Some(fb) = context.get_read_framebuffer_slot().get() {
+                    let _ = fb.detach_texture(self);
+                }
             }
 
             // We don't delete textures owned by WebXR
@@ -264,11 +264,8 @@ impl WebGLTexture {
                 return;
             }
 
-            let cmd = WebGLCommand::DeleteTexture(self.id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
+            webgl_object
+                .send_with_fallibility(WebGLCommand::DeleteTexture(self.id), operation_fallibility);
         }
     }
 
@@ -314,7 +311,9 @@ impl WebGLTexture {
             TexParameterValue::Bool(_) => unreachable!("no settable tex params should be booleans"),
         };
 
-        let context = self.upcast::<WebGLObject>().context();
+        let Some(context) = self.upcast().context() else {
+            return Err(WebGLError::ContextLost);
+        };
         let is_webgl2 = context.webgl_version() == WebGLVersion::WebGL2;
 
         let update_filter = |filter: &Cell<u32>| {
@@ -358,8 +357,7 @@ impl WebGLTexture {
                 },
                 constants::TEXTURE_WRAP_R => match int_value as u32 {
                     constants::CLAMP_TO_EDGE | constants::MIRRORED_REPEAT | constants::REPEAT => {
-                        self.upcast::<WebGLObject>()
-                            .context()
+                        self.upcast()
                             .send_command(WebGLCommand::TexParameteri(target, param, int_value));
                         return Ok(());
                     },
@@ -559,7 +557,7 @@ impl WebGLTexture {
             },
             _ => unreachable!(), // handled by the caller
         };
-        self.upcast::<WebGLObject>().context().send_command(command);
+        self.upcast().send_command(command);
 
         let mut width = width;
         let mut height = height;

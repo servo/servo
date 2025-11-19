@@ -103,13 +103,10 @@ impl WebGLQuery {
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
-
-            let context = self.upcast::<WebGLObject>().context();
-            let command = WebGLCommand::DeleteQuery(self.gl_id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(command),
-                Operation::Infallible => context.send_command(command),
-            }
+            self.upcast().send_with_fallibility(
+                WebGLCommand::DeleteQuery(self.gl_id),
+                operation_fallibility,
+            );
         }
     }
 

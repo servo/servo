@@ -394,14 +394,25 @@ impl WebGLRenderingContext {
     }
 
     #[inline]
+    pub(crate) fn sender(&self) -> &WebGLMsgSender {
+        &self.webgl_sender
+    }
+
+    #[inline]
+    pub(crate) fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        let result = self.webgl_sender.send(command, capture_webgl_backtrace());
+        if matches!(fallibility, Operation::Infallible) {
+            result.expect("Operation failed");
+        }
+    }
+
+    #[inline]
     pub(crate) fn send_command(&self, command: WebGLCommand) {
-        self.webgl_sender
-            .send(command, capture_webgl_backtrace())
-            .unwrap();
+        self.send_with_fallibility(command, Operation::Infallible);
     }
 
     pub(crate) fn send_command_ignored(&self, command: WebGLCommand) {
-        let _ = self.webgl_sender.send(command, capture_webgl_backtrace());
+        self.send_with_fallibility(command, Operation::Fallible);
     }
 
     pub(crate) fn webgl_error(&self, err: WebGLError) {
@@ -452,8 +463,11 @@ impl WebGLRenderingContext {
     where
         T: DerivedFrom<WebGLObject>,
     {
-        if self != object.upcast().context() {
-            return Err(InvalidOperation);
+        let Some(context) = object.upcast().context() else {
+            return Err(WebGLError::InvalidOperation);
+        };
+        if !std::ptr::eq(self, &*context) {
+            return Err(WebGLError::InvalidOperation);
         }
         Ok(())
     }
