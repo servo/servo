@@ -355,7 +355,7 @@ jobs:
         run: exit 1
 
   scenario-test-harmonyos:
-    name: Test Function servo
+    name: Mossel Scenario test
     continue-on-error: true
     runs-on: hos-runner
     if: github.repository == 'servo/servo'
