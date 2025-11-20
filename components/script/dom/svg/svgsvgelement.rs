@@ -3,13 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base64::Engine as _;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
+use style::context::QuirksMode;
+use style::parser::ParserContext;
 use style::str::char_is_whitespace;
+use style::stylesheets::{CssRuleType, Origin};
+use style::values::specified::Length;
+use style_traits::ParsingMode;
+use url::Url;
 use xml5ever::serialize::TraversalScope;
 
 use crate::dom::attr::Attr;
@@ -233,7 +240,29 @@ impl VirtualMethods for SVGSVGElement {
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
             // TODO: This should accept lengths in arbitrary units instead of assuming px.
-            local_name!("width") | local_name!("height") => AttrValue::from_i32(value.into(), -1),
+            local_name!("width") | local_name!("height") => {
+                let value = &value.str();
+                let parser_input = &mut ParserInput::new(value);
+                let parser = &mut Parser::new(parser_input);
+                let url = Url::parse("about:blank").unwrap().into();
+                let context = ParserContext::new(
+                    Origin::Author,
+                    &url,
+                    Some(CssRuleType::Style),
+                    ParsingMode::ALLOW_UNITLESS_LENGTH,
+                    QuirksMode::NoQuirks,
+                    /* namespaces = */ Default::default(),
+                    None,
+                    None,
+                );
+                let val = Length::parse_non_negative_quirky(
+                    &context,
+                    parser,
+                    style::values::specified::AllowQuirks::No,
+                );
+                eprintln!("parsed val is {:?}", val);
+                return AttrValue::Length(value.to_string(), Some(val.unwrap()));
+            },
             _ => self
                 .super_type()
                 .unwrap()
