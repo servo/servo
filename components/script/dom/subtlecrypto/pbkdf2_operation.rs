@@ -26,15 +26,15 @@ pub(crate) fn derive_bits(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If length is null or is not a multiple of 8, then throw an OperationError.
     let Some(length) = length else {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
     if length % 8 != 0 {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
 
     // Step 2. If the iterations member of normalizedAlgorithm is zero, then throw an OperationError.
     let Ok(iterations) = NonZero::<u32>::try_from(normalized_algorithm.iterations) else {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
 
     // Step 3. If length is zero, return an empty byte sequence.

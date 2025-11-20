@@ -1192,7 +1192,7 @@ impl HTMLImageElement {
         if !self.owner_document().is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_error(Error::Encoding, can_gc);
+            promise.reject_error(Error::Encoding(None), can_gc);
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
@@ -1205,7 +1205,7 @@ impl HTMLImageElement {
             // Note: Despite being not explicitly stated in the specification but if current
             // request's state is unavailable and current URL is empty string (<img> without "src"
             // and "srcset" attributes) then reject promise with an "EncodingError" DOMException.
-            promise.reject_error(Error::Encoding, can_gc);
+            promise.reject_error(Error::Encoding(None), can_gc);
         } else {
             self.image_decode_promises.borrow_mut().push(promise);
         }
@@ -1261,7 +1261,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move || {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(Error::Encoding, CanGc::note());
+                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::note());
                 }
             }));
     }

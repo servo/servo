@@ -215,7 +215,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, &limit.str(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
-                    promise.reject_error(Error::Operation, can_gc);
+                    promise.reject_error(Error::Operation(None), can_gc);
                     return promise;
                 }
             }
@@ -244,7 +244,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             })
             .is_err()
         {
-            promise.reject_error(Error::Operation, can_gc);
+            promise.reject_error(Error::Operation(None), can_gc);
         }
         // Step 5
         promise
@@ -305,7 +305,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     "{}",
                     wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
                 );
-                promise.reject_error(Error::Operation, can_gc)
+                promise.reject_error(Error::Operation(None), can_gc)
             },
             // 3. user agent otherwise cannot fulfill the request
             (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {

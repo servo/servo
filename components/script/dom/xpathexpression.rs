@@ -80,7 +80,7 @@ impl XPathExpression {
             &self.parsed_expression,
             DomRoot::from_ref(context_node).into(),
         )
-        .map_err(|_| Error::Operation)?;
+        .map_err(|_| Error::Operation(None))?;
 
         // Cast the result to the type we wanted
         let result_value: Value = match result_type {

@@ -121,7 +121,7 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
 
         // Step 5. If lowerKey is greater than upperKey, throw a "DataError" DOMException.
         if lower_key > upper_key {
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         }
 
         // Step 6. Create and return a new key range with lower bound set to lowerKey, lower open

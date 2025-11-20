@@ -313,7 +313,7 @@ where
         };
         // Step 2.
         if uuid_is_blocklisted(canonicalized.as_ref(), Blocklist::All) {
-            p.reject_error(Security, can_gc);
+            p.reject_error(Security(None), can_gc);
             return p;
         }
         Some(canonicalized)
@@ -323,7 +323,7 @@ where
 
     // Step 3 - 4.
     if !connected {
-        p.reject_error(Network, can_gc);
+        p.reject_error(Network(None), can_gc);
         return p;
     }
 
@@ -378,7 +378,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 
                 // Step 3.4.
                 if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
-                    return Err(Security);
+                    return Err(Security(None));
                 }
 
                 services_vec.push(uuid);
@@ -472,7 +472,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 
                 // Step 9.5.
                 if uuid_is_blocklisted(service.as_ref(), Blocklist::All) {
-                    return Err(Security);
+                    return Err(Security(None));
                 }
 
                 // Step 9.6: No need to convert to IDL values since this is only used by native code.
@@ -528,10 +528,10 @@ impl Convert<Error> for BluetoothError {
     fn convert(self) -> Error {
         match self {
             BluetoothError::Type(message) => Error::Type(message),
-            BluetoothError::Network => Error::Network,
+            BluetoothError::Network => Error::Network(None),
             BluetoothError::NotFound => Error::NotFound(None),
             BluetoothError::NotSupported => Error::NotSupported(None),
-            BluetoothError::Security => Error::Security,
+            BluetoothError::Security => Error::Security(None),
             BluetoothError::InvalidState => Error::InvalidState(None),
         }
     }

@@ -86,7 +86,7 @@ impl From<PutItemResult> for IdbResult {
     fn from(value: PutItemResult) -> Self {
         match value {
             PutItemResult::Success => Self::None,
-            PutItemResult::CannotOverwrite => Self::Error(Error::Constraint),
+            PutItemResult::CannotOverwrite => Self::Error(Error::Constraint(None)),
         }
     }
 }
@@ -151,7 +151,7 @@ impl RequestListener {
                 },
                 IdbResult::Value(serialized_data) => {
                     let result = bincode::deserialize(&serialized_data)
-                        .map_err(|_| Error::Data)
+                        .map_err(|_| Error::Data(None))
                         .and_then(|data| {
                             structuredclone::read(&global, data, answer.handle_mut(), can_gc)
                         });
@@ -166,7 +166,7 @@ impl RequestListener {
                     for serialized_data in serialized_values.into_iter() {
                         rooted!(in(*cx) let mut val = UndefinedValue());
                         let result = bincode::deserialize(&serialized_data)
-                            .map_err(|_| Error::Data)
+                            .map_err(|_| Error::Data(None))
                             .and_then(|data| {
                                 structuredclone::read(&global, data, val.handle_mut(), can_gc)
                             });
@@ -250,7 +250,7 @@ impl RequestListener {
         } else {
             // FIXME:(arihant2math) dispatch correct error
             // Substep 2
-            Self::handle_async_request_error(&global, cx, request, Error::Data);
+            Self::handle_async_request_error(&global, cx, request, Error::Data(None));
         }
     }
 
@@ -367,7 +367,7 @@ impl IDBRequest {
 
         // Step 2: Assert: transaction is active.
         if !transaction.is_active() {
-            return Err(Error::TransactionInactive);
+            return Err(Error::TransactionInactive(None));
         }
 
         // Step 3: If request was not given, let request be a new request with source as source.

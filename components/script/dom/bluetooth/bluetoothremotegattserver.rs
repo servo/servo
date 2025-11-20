@@ -156,7 +156,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                     if let Err(e) = self.Device().garbage_collect_the_connection(can_gc) {
                         return promise.reject_error(e, can_gc);
                     }
-                    return promise.reject_error(Error::Network, can_gc);
+                    return promise.reject_error(Error::Network(None), can_gc);
                 }
 
                 // Step 5.2.4.

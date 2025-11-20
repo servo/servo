@@ -51,7 +51,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         // Step 3: if origin is an opaque origin,
         // throw a "SecurityError" DOMException and abort these steps.
         if let ImmutableOrigin::Opaque(_) = origin.immutable() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 4: Let request be a new open request.
@@ -59,7 +59,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 5: Runs in parallel
         if request.open_database(name, version).is_err() {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
 
         // Step 6
@@ -76,7 +76,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         // Step 2: if origin is an opaque origin,
         // throw a "SecurityError" DOMException and abort these steps.
         if let ImmutableOrigin::Opaque(_) = origin.immutable() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 3: Let request be a new open request
@@ -84,7 +84,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 4: Runs in parallel
         if request.delete_database(name.to_string()).is_err() {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
 
         // Step 5: Return request

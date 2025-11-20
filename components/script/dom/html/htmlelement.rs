@@ -545,7 +545,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn SetOuterText(&self, input: DOMString, can_gc: CanGc) -> Fallible<()> {
         // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {
-            return Err(Error::NoModificationAllowed);
+            return Err(Error::NoModificationAllowed(None));
         };
 
         let node = self.upcast::<Node>();

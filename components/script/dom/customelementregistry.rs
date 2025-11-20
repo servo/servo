@@ -371,7 +371,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         if unwrapped_constructor.is_null() {
             // We do not have permission to access the unwrapped constructor.
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         if unsafe { !IsConstructor(unwrapped_constructor.get()) } {

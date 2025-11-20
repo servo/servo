@@ -136,7 +136,10 @@ pub(crate) fn create_dom_exception(
             return new_custom_exception(DOMErrorName::NotSupportedError, custom_message);
         },
         Error::NotSupported(None) => DOMErrorName::NotSupportedError,
-        Error::InUseAttribute => DOMErrorName::InUseAttributeError,
+        Error::InUseAttribute(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::InUseAttributeError, custom_message);
+        },
+        Error::InUseAttribute(None) => DOMErrorName::InUseAttributeError,
         Error::InvalidState(Some(custom_message)) => {
             return new_custom_exception(DOMErrorName::InvalidStateError, custom_message);
         },
@@ -145,22 +148,58 @@ pub(crate) fn create_dom_exception(
             return new_custom_exception(DOMErrorName::SyntaxError, custom_message);
         },
         Error::Syntax(None) => DOMErrorName::SyntaxError,
-        Error::Namespace => DOMErrorName::NamespaceError,
-        Error::InvalidAccess => DOMErrorName::InvalidAccessError,
-        Error::Security => DOMErrorName::SecurityError,
-        Error::Network => DOMErrorName::NetworkError,
-        Error::Abort => DOMErrorName::AbortError,
-        Error::Timeout => DOMErrorName::TimeoutError,
-        Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
+        Error::Namespace(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::NamespaceError, custom_message);
+        },
+        Error::Namespace(None) => DOMErrorName::NamespaceError,
+        Error::InvalidAccess(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::InvalidAccessError, custom_message);
+        },
+        Error::InvalidAccess(None) => DOMErrorName::InvalidAccessError,
+        Error::Security(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::SecurityError, custom_message);
+        },
+        Error::Security(None) => DOMErrorName::SecurityError,
+        Error::Network(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::NetworkError, custom_message);
+        },
+        Error::Network(None) => DOMErrorName::NetworkError,
+        Error::Abort(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::AbortError, custom_message);
+        },
+        Error::Abort(None) => DOMErrorName::AbortError,
+        Error::Timeout(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::TimeoutError, custom_message);
+        },
+        Error::Timeout(None) => DOMErrorName::TimeoutError,
+        Error::InvalidNodeType(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::InvalidNodeTypeError, custom_message);
+        },
+        Error::InvalidNodeType(None) => DOMErrorName::InvalidNodeTypeError,
         Error::DataClone(Some(custom_message)) => {
             return new_custom_exception(DOMErrorName::DataCloneError, custom_message);
         },
         Error::DataClone(None) => DOMErrorName::DataCloneError,
-        Error::Data => DOMErrorName::DataError,
-        Error::TransactionInactive => DOMErrorName::TransactionInactiveError,
-        Error::ReadOnly => DOMErrorName::ReadOnlyError,
-        Error::Version => DOMErrorName::VersionError,
-        Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
+        Error::Data(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::DataError, custom_message);
+        },
+        Error::Data(None) => DOMErrorName::DataError,
+        Error::TransactionInactive(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::TransactionInactiveError, custom_message);
+        },
+        Error::TransactionInactive(None) => DOMErrorName::TransactionInactiveError,
+        Error::ReadOnly(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::ReadOnlyError, custom_message);
+        },
+        Error::ReadOnly(None) => DOMErrorName::ReadOnlyError,
+        Error::Version(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::VersionError, custom_message);
+        },
+        Error::Version(None) => DOMErrorName::VersionError,
+        Error::NoModificationAllowed(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::NoModificationAllowedError, custom_message);
+        },
+        Error::NoModificationAllowed(None) => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded { quota, requested } => {
             return Ok(DomRoot::upcast(QuotaExceededError::new(
                 global,
@@ -170,13 +209,34 @@ pub(crate) fn create_dom_exception(
                 can_gc,
             )));
         },
-        Error::TypeMismatch => DOMErrorName::TypeMismatchError,
-        Error::InvalidModification => DOMErrorName::InvalidModificationError,
-        Error::NotReadable => DOMErrorName::NotReadableError,
-        Error::Operation => DOMErrorName::OperationError,
-        Error::NotAllowed => DOMErrorName::NotAllowedError,
-        Error::Encoding => DOMErrorName::EncodingError,
-        Error::Constraint => DOMErrorName::ConstraintError,
+        Error::TypeMismatch(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::TypeMismatchError, custom_message);
+        },
+        Error::TypeMismatch(None) => DOMErrorName::TypeMismatchError,
+        Error::InvalidModification(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::InvalidModificationError, custom_message);
+        },
+        Error::InvalidModification(None) => DOMErrorName::InvalidModificationError,
+        Error::NotReadable(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::NotReadableError, custom_message);
+        },
+        Error::NotReadable(None) => DOMErrorName::NotReadableError,
+        Error::Operation(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::OperationError, custom_message);
+        },
+        Error::Operation(None) => DOMErrorName::OperationError,
+        Error::NotAllowed(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::NotAllowedError, custom_message);
+        },
+        Error::NotAllowed(None) => DOMErrorName::NotAllowedError,
+        Error::Encoding(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::EncodingError, custom_message);
+        },
+        Error::Encoding(None) => DOMErrorName::EncodingError,
+        Error::Constraint(Some(custom_message)) => {
+            return new_custom_exception(DOMErrorName::ConstraintError, custom_message);
+        },
+        Error::Constraint(None) => DOMErrorName::ConstraintError,
         Error::Type(message) => return Err(JsEngineError::Type(message)),
         Error::Range(message) => return Err(JsEngineError::Range(message)),
         Error::JSFailed => return Err(JsEngineError::JSFailed),

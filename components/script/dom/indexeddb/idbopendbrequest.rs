@@ -57,7 +57,7 @@ impl OpenRequestListener {
 
         // Step 7
         if request_version < db_version {
-            return (Err(Error::Version), false);
+            return (Err(Error::Version(None)), false);
         }
 
         // Step 8-9

@@ -154,13 +154,13 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
-            p.reject_error(Security, can_gc);
+            p.reject_error(Security(None), can_gc);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt(can_gc).Connected() {
-            p.reject_error(Network, can_gc);
+            p.reject_error(Network(None), can_gc);
             return p;
         }
 
@@ -192,7 +192,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Writes) {
-            p.reject_error(Security, can_gc);
+            p.reject_error(Security(None), can_gc);
             return p;
         }
 
@@ -203,13 +203,13 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         };
 
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(InvalidModification, can_gc);
+            p.reject_error(InvalidModification(None), can_gc);
             return p;
         }
 
         // Step 4.
         if !self.Service().Device().get_gatt(can_gc).Connected() {
-            p.reject_error(Network, can_gc);
+            p.reject_error(Network(None), can_gc);
             return p;
         }
 
@@ -243,13 +243,13 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
-            p.reject_error(Security, can_gc);
+            p.reject_error(Security(None), can_gc);
             return p;
         }
 
         // Step 2.
         if !self.Service().Device().get_gatt(can_gc).Connected() {
-            p.reject_error(Network, can_gc);
+            p.reject_error(Network(None), can_gc);
             return p;
         }
 

@@ -100,7 +100,7 @@ pub(crate) fn generate_key(
         // Otherwise:
         _ => {
             // throw an OperationError.
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         },
     };
 
@@ -190,7 +190,7 @@ pub(crate) fn import_key(
 
             // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
@@ -198,8 +198,8 @@ pub(crate) fn import_key(
             // NOTE: Done by Step 2.4 and 2.6.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data)?.str())
-                .map_err(|_| Error::Data)?;
+            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data(None))?.str())
+                .map_err(|_| Error::Data(None))?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
             hash = normalized_algorithm.hash.clone();
@@ -210,28 +210,28 @@ pub(crate) fn import_key(
                 ALG_SHA1 => {
                     // If the alg field of jwk is present and is not "HS1", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS1") {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                 },
                 // If the name attribute of hash is "SHA-256":
                 ALG_SHA256 => {
                     // If the alg field of jwk is present and is not "HS256", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS256") {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                 },
                 // If the name attribute of hash is "SHA-384":
                 ALG_SHA384 => {
                     // If the alg field of jwk is present and is not "HS384", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS384") {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                 },
                 // If the name attribute of hash is "SHA-512":
                 ALG_SHA512 => {
                     // If the alg field of jwk is present and is not "HS512", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS512") {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                 },
                 // Otherwise,
@@ -247,7 +247,7 @@ pub(crate) fn import_key(
             // Step 2.7. If usages is non-empty and the use field of jwk is present and is not
             // "sig", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sig") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.8. If the key_ops field of jwk is present, and is invalid according to
@@ -258,7 +258,7 @@ pub(crate) fn import_key(
             // Step 2.9. If the ext field of jwk is present and has the value false and
             // extractable is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
         },
         // Otherwise:
@@ -273,7 +273,7 @@ pub(crate) fn import_key(
 
     // Step 6. If length is zero then throw a DataError.
     if length == 0 {
-        return Err(Error::Data);
+        return Err(Error::Data(None));
     }
 
     // Step 7. If the length member of normalizedAlgorithm is present:
@@ -281,7 +281,7 @@ pub(crate) fn import_key(
         //  If the length member of normalizedAlgorithm is greater than length:
         if given_length > length {
             // throw a DataError.
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         }
         // Otherwise:
         else {
@@ -324,7 +324,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
     match format {
         KeyFormat::Raw => match key.handle() {
             Handle::Hmac(key_data) => Ok(ExportedKey::Raw(key_data.as_slice().to_vec())),
-            _ => Err(Error::Operation),
+            _ => Err(Error::Operation(None)),
         },
         KeyFormat::Jwk => {
             let key_data = key.handle().as_bytes();

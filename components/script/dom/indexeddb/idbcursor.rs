@@ -485,7 +485,7 @@ pub(crate) fn iterate_cursor(
         // Step 13.2. Set cursor’s value to ! StructuredDeserialize(serialized, targetRealm)
         rooted!(in(*cx) let mut new_cursor_value = UndefinedValue());
         bincode::deserialize(&found_record.value)
-            .map_err(|_| Error::Data)
+            .map_err(|_| Error::Data(None))
             .and_then(|data| {
                 structuredclone::read(global, data, new_cursor_value.handle_mut(), can_gc)
             })?;

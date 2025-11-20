@@ -367,7 +367,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
     fn GetCssRules(&self, can_gc: CanGc) -> Fallible<DomRoot<CSSRuleList>> {
         if !self.origin_clean.get() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
         Ok(self.rulelist(can_gc))
     }
@@ -376,12 +376,12 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     fn InsertRule(&self, rule: DOMString, index: u32, can_gc: CanGc) -> Fallible<u32> {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
         if self.disallow_modification() {
-            return Err(Error::NotAllowed);
+            return Err(Error::NotAllowed(None));
         }
 
         self.rulelist(can_gc)
@@ -392,12 +392,12 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     fn DeleteRule(&self, index: u32, can_gc: CanGc) -> ErrorResult {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 2. If the disallow modification flag is set, throw a NotAllowedError DOMException.
         if self.disallow_modification() {
-            return Err(Error::NotAllowed);
+            return Err(Error::NotAllowed(None));
         }
         self.rulelist(can_gc).remove_rule(index)
     }
@@ -453,7 +453,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         // Step 2. If the constructed flag is not set, or the disallow modification flag is set,
         // reject promise with a NotAllowedError DOMException and return promise.
         if !self.is_constructed() || self.disallow_modification() {
-            return Err(Error::NotAllowed);
+            return Err(Error::NotAllowed(None));
         }
 
         // Step 3. Set the disallow modification flag.
@@ -487,7 +487,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         // Step 1. If the constructed flag is not set, or the disallow modification flag is set,
         // throw a NotAllowedError DOMException.
         if !self.is_constructed() || self.disallow_modification() {
-            return Err(Error::NotAllowed);
+            return Err(Error::NotAllowed(None));
         }
         self.do_replace_sync(text);
         Ok(())

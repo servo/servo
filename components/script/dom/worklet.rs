@@ -712,7 +712,7 @@ impl WorkletThread {
             debug!("Failed to load script.");
             let old_counter = pending_tasks_struct.set_counter_to(-1);
             if old_counter > 0 {
-                self.run_in_script_thread(promise.reject_task(Error::Abort));
+                self.run_in_script_thread(promise.reject_task(Error::Abort(None)));
             }
         } else {
             // Step 5.

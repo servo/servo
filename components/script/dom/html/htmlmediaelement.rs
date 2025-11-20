@@ -800,7 +800,7 @@ impl HTMLMediaElement {
             self.paused.set(true);
 
             // Step 2.2. Take pending play promises and let promises be the result.
-            self.take_pending_play_promises(Err(Error::Abort));
+            self.take_pending_play_promises(Err(Error::Abort(None)));
 
             // Step 2.3. Queue a media element task given the media element and the following steps:
             let this = Trusted::new(self);
@@ -1703,7 +1703,7 @@ impl HTMLMediaElement {
 
                 // Step 7.6.2. Take pending play promises and reject pending play promises with the
                 // result and an "AbortError" DOMException.
-                self.take_pending_play_promises(Err(Error::Abort));
+                self.take_pending_play_promises(Err(Error::Abort(None)));
                 self.fulfill_in_flight_play_promises(|| ());
             }
 
@@ -2233,7 +2233,7 @@ impl HTMLMediaElement {
 
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
                     // the result and an "AbortError" DOMException.
-                    this.take_pending_play_promises(Err(Error::Abort));
+                    this.take_pending_play_promises(Err(Error::Abort(None)));
                     this.fulfill_in_flight_play_promises(|| ());
                 }
 

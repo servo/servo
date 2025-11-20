@@ -61,7 +61,7 @@ pub(crate) fn encrypt_aes_ctr(
         normalized_algorithm.length == 0 ||
         normalized_algorithm.length > 128
     {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 3. Let ciphertext be the result of performing the CTR Encryption operation described in
@@ -85,7 +85,7 @@ pub(crate) fn encrypt_aes_ctr(
             let key_data = GenericArray::from_slice(data);
             Aes256Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
         },
-        _ => return Err(Error::Data),
+        _ => return Err(Error::Data(None)),
     };
 
     // Step 3. Return ciphertext.
@@ -167,7 +167,7 @@ pub(crate) fn encrypt_aes_cbc(
     // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
     // throw an OperationError.
     if normalized_algorithm.iv.len() != 16 {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 2. Let paddedPlaintext be the result of adding padding octets to plaintext according to
@@ -190,7 +190,7 @@ pub(crate) fn encrypt_aes_cbc(
             let key_data = GenericArray::from_slice(data);
             Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
         },
-        _ => return Err(Error::Data),
+        _ => return Err(Error::Data(None)),
     };
 
     // Step 4. Return ciphertext.
@@ -206,13 +206,13 @@ pub(crate) fn decrypt_aes_cbc(
     // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
     // throw an OperationError.
     if normalized_algorithm.iv.len() != 16 {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 2. If the length of ciphertext is zero or is not a multiple of 16 bytes, then throw an
     // OperationError.
     if ciphertext.is_empty() || ciphertext.len() % 16 != 0 {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 3. Let paddedPlaintext be the result of performing the CBC Decryption operation
@@ -229,21 +229,21 @@ pub(crate) fn decrypt_aes_cbc(
             let key_data = GenericArray::from_slice(data);
             Aes128CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation)?
+                .map_err(|_| Error::Operation(None))?
         },
         Handle::Aes192(data) => {
             let key_data = GenericArray::from_slice(data);
             Aes192CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation)?
+                .map_err(|_| Error::Operation(None))?
         },
         Handle::Aes256(data) => {
             let key_data = GenericArray::from_slice(data);
             Aes256CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation)?
+                .map_err(|_| Error::Operation(None))?
         },
-        _ => return Err(Error::Data),
+        _ => return Err(Error::Data(None)),
     };
 
     // Step 7. Return plaintext.
@@ -314,7 +314,7 @@ pub(crate) fn encrypt_aes_gcm(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an OperationError.
     if plaintext.len() as u64 > (2 << 39) - 256 {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
@@ -328,7 +328,7 @@ pub(crate) fn encrypt_aes_gcm(
         .as_ref()
         .is_some_and(|data| data.len() > u64::MAX as usize)
     {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 4.
@@ -342,7 +342,7 @@ pub(crate) fn encrypt_aes_gcm(
         None => 128,
         Some(length) if matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128) => length,
         _ => {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         },
     };
 
@@ -437,14 +437,14 @@ pub(crate) fn decrypt_aes_gcm(
         None => 128,
         Some(length) if matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128) => length as usize,
         _ => {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         },
     };
 
     // Step 2. If ciphertext has a length in bits less than tagLength, then throw an
     // OperationError.
     if ciphertext.len() * 8 < tag_length {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 3. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
@@ -531,7 +531,7 @@ pub(crate) fn decrypt_aes_gcm(
         },
     };
     if result.is_err() {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     Ok(plaintext)
@@ -597,7 +597,7 @@ pub(crate) fn get_key_length_aes_gcm(
 pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If plaintext is not a multiple of 64 bits in length, then throw an OperationError.
     if plaintext.len() % 8 != 0 {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 2. Let ciphertext be the result of performing the Key Wrap operation described in
@@ -610,7 +610,7 @@ pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u
             let kek = KekAes128::new(key_array);
             match kek.wrap_vec(plaintext) {
                 Ok(key) => key,
-                Err(_) => return Err(Error::Operation),
+                Err(_) => return Err(Error::Operation(None)),
             }
         },
         24 => {
@@ -618,7 +618,7 @@ pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u
             let kek = KekAes192::new(key_array);
             match kek.wrap_vec(plaintext) {
                 Ok(key) => key,
-                Err(_) => return Err(Error::Operation),
+                Err(_) => return Err(Error::Operation(None)),
             }
         },
         32 => {
@@ -626,10 +626,10 @@ pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u
             let kek = KekAes256::new(key_array);
             match kek.wrap_vec(plaintext) {
                 Ok(key) => key,
-                Err(_) => return Err(Error::Operation),
+                Err(_) => return Err(Error::Operation(None)),
             }
         },
-        _ => return Err(Error::Operation),
+        _ => return Err(Error::Operation(None)),
     };
 
     // Step 3. Return ciphertext.
@@ -649,7 +649,7 @@ pub(crate) fn unwrap_key_aes_kw(key: &CryptoKey, ciphertext: &[u8]) -> Result<Ve
             let kek = KekAes128::new(key_array);
             match kek.unwrap_vec(ciphertext) {
                 Ok(key) => key,
-                Err(_) => return Err(Error::Operation),
+                Err(_) => return Err(Error::Operation(None)),
             }
         },
         24 => {
@@ -657,7 +657,7 @@ pub(crate) fn unwrap_key_aes_kw(key: &CryptoKey, ciphertext: &[u8]) -> Result<Ve
             let kek = KekAes192::new(key_array);
             match kek.unwrap_vec(ciphertext) {
                 Ok(key) => key,
-                Err(_) => return Err(Error::Operation),
+                Err(_) => return Err(Error::Operation(None)),
             }
         },
         32 => {
@@ -665,10 +665,10 @@ pub(crate) fn unwrap_key_aes_kw(key: &CryptoKey, ciphertext: &[u8]) -> Result<Ve
             let kek = KekAes256::new(key_array);
             match kek.unwrap_vec(ciphertext) {
                 Ok(key) => key,
-                Err(_) => return Err(Error::Operation),
+                Err(_) => return Err(Error::Operation(None)),
             }
         },
-        _ => return Err(Error::Operation),
+        _ => return Err(Error::Operation(None)),
     };
 
     // Step 3. Return plaintext.
@@ -749,7 +749,7 @@ fn generate_key_aes(
     // Step 2. If the length member of normalizedAlgorithm is not equal to one of 128, 192 or 256,
     // then throw an OperationError.
     if !matches!(normalized_algorithm.length, 128 | 192 | 256) {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 3. Generate an AES key of length equal to the length member of normalizedAlgorithm.
@@ -763,7 +763,7 @@ fn generate_key_aes(
         128 => Handle::Aes128(rand),
         192 => Handle::Aes192(rand),
         256 => Handle::Aes256(rand),
-        _ => return Err(Error::Operation),
+        _ => return Err(Error::Operation(None)),
     };
 
     // Step 6. Let algorithm be a new AesKeyAlgorithm.
@@ -829,7 +829,7 @@ fn import_key_aes(
 
             // Step 2.2. If the length in bits of data is not 128, 192 or 256 then throw a DataError.
             if !matches!(data.len() * 8, 128 | 192 | 256) {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
         },
         // If format is "jwk":
@@ -841,7 +841,7 @@ fn import_key_aes(
 
             // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
@@ -849,8 +849,8 @@ fn import_key_aes(
             // NOTE: Done by Step 2.4 and 2.5.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data)?.str())
-                .map_err(|_| Error::Data)?;
+            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data(None))?.str())
+                .map_err(|_| Error::Data(None))?;
 
             // NOTE: This function is shared by AES-CBC, AES-CTR, AES-GCM and AES-KW.
             // Different static texts are used in different AES types, in the following step.
@@ -872,7 +872,7 @@ fn import_key_aes(
                     // If the alg field of jwk is present, and is not "A128KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[0]) {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                 },
                 // If the length in bits of data is 192:
@@ -883,7 +883,7 @@ fn import_key_aes(
                     // If the alg field of jwk is present, and is not "A192KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[1]) {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                 },
                 // If the length in bits of data is 256:
@@ -894,20 +894,20 @@ fn import_key_aes(
                     // If the alg field of jwk is present, and is not "A256KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[2]) {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                 },
                 // Otherwise:
                 _ => {
                     // throw a DataError.
-                    return Err(Error::Data);
+                    return Err(Error::Data(None));
                 },
             }
 
             // Step 2.6. If usages is non-empty and the use field of jwk is present and is not
             // "enc", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.7. If the key_ops field of jwk is present, and is invalid according to the
@@ -918,7 +918,7 @@ fn import_key_aes(
             // Step 2.8. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
         },
         // Otherwise:
@@ -944,7 +944,7 @@ fn import_key_aes(
         192 => Handle::Aes192(data.to_vec()),
         256 => Handle::Aes256(data.to_vec()),
         _ => {
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         },
     };
     let key = CryptoKey::new(
@@ -1080,7 +1080,7 @@ pub(crate) fn get_key_length_aes(
     // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256, then
     // throw a OperationError.
     if !matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256) {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
 
     // Step 2. Return the length member of normalizedDerivedKeyAlgorithm.

@@ -310,14 +310,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that
                 // is "encrypt", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Encrypt) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -400,14 +400,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that
                 // is "decrypt", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Decrypt) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -490,14 +490,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that
                 // is "sign", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Sign) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -587,14 +587,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 11. If the [[usages]] internal slot of key does not contain an entry that
                 // is "verify", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Verify) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -867,14 +867,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of baseKey then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != base_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 13. If the [[usages]] internal slot of baseKey does not contain an entry
                 // that is "deriveKey", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveKey) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -990,14 +990,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of baseKey then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != base_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 9. If the [[usages]] internal slot of baseKey does not contain an entry
                 // that is "deriveBits", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveBits) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -1212,7 +1212,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 7. If the [[extractable]] internal slot of key is false, then throw an
                 // InvalidAccessError.
                 if !key.Extractable() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -1311,14 +1311,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of wrappingKey then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != wrapping_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of wrappingKey does not contain an
                 // entry that is "wrapKey", then throw an InvalidAccessError.
                 if !wrapping_key.usages().contains(&KeyUsage::WrapKey) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -1337,7 +1337,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. If the [[extractable]] internal slot of key is false, then throw an
                 // InvalidAccessError.
                 if !key.Extractable() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -1490,14 +1490,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // attribute of the [[algorithm]] internal slot of unwrappingKey then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != unwrapping_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
                 // Step 13. If the [[usages]] internal slot of unwrappingKey does not contain an
                 // entry that is "unwrapKey", then throw an InvalidAccessError.
                 if !unwrapping_key.usages().contains(&KeyUsage::UnwrapKey) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess);
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
 
@@ -2123,7 +2123,7 @@ trait RsaOtherPrimesInfoExt {
 impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
     fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error> {
         let serde_json::Value::Object(object) = value else {
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         };
 
         let mut rsa_other_primes_info: RsaOtherPrimesInfo = Default::default();
@@ -2131,15 +2131,15 @@ impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
             match key.as_str() {
                 "r" => {
                     rsa_other_primes_info.r =
-                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data(None))?))
                 },
                 "d" => {
                     rsa_other_primes_info.d =
-                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data(None))?))
                 },
                 "t" => {
                     rsa_other_primes_info.t =
-                        Some(DOMString::from(value.as_str().ok_or(Error::Data)?))
+                        Some(DOMString::from(value.as_str().ok_or(Error::Data(None))?))
                 },
                 _ => {
                     // Additional members can be present in the JWK; if not understood by
@@ -2197,7 +2197,7 @@ impl JsonWebKeyExt for JsonWebKey {
 
         // Step 6. If the kty field of key is not defined, then throw a DataError.
         if key.kty.is_none() {
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         }
 
         // Step 7. Result key.
@@ -2217,14 +2217,14 @@ impl JsonWebKeyExt for JsonWebKey {
 
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
         let mut usages = vec![];
-        for op in self.key_ops.as_ref().ok_or(Error::Data)? {
-            usages.push(KeyUsage::from_str(&op.str()).map_err(|_| Error::Data)?);
+        for op in self.key_ops.as_ref().ok_or(Error::Data(None))? {
+            usages.push(KeyUsage::from_str(&op.str()).map_err(|_| Error::Data(None))?);
         }
         Ok(usages)
     }
 
     fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error> {
-        self.oth.as_deref().ok_or(Error::Data)
+        self.oth.as_deref().ok_or(Error::Data(None))
     }
 
     /// If the key_ops field of jwk is present, and is invalid according to the requirements of
@@ -2241,13 +2241,13 @@ impl JsonWebKeyExt for JsonWebKey {
                 .len() <
                 key_ops.len()
             {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
             // 2. The "use" and "key_ops" JWK members SHOULD NOT be used together; however, if both
             //    are used, the information they convey MUST be consistent.
             if let Some(ref use_) = self.use_ {
                 if key_ops.iter().any(|op| op != use_) {
-                    return Err(Error::Data);
+                    return Err(Error::Data(None));
                 }
             }
 
@@ -2257,7 +2257,7 @@ impl JsonWebKeyExt for JsonWebKey {
                 .iter()
                 .all(|specified_usage| key_ops_as_usages.contains(specified_usage))
             {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
         }
 

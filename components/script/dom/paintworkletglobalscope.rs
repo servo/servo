@@ -511,7 +511,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Step 2-3.
         if self.paint_definitions.borrow().contains_key(&name) {
-            return Err(Error::InvalidModification);
+            return Err(Error::InvalidModification(None));
         }
 
         // Step 4-6.
@@ -550,7 +550,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Step 19.
         let Some(context) = PaintRenderingContext2D::new(self, CanGc::note()) else {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         };
         let definition = PaintDefinition::new(
             paint_val.handle(),

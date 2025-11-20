@@ -29,14 +29,14 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess);
+        return Err(Error::InvalidAccess(None));
     }
 
     // Step 2. Let result be the result of performing the Ed25519 signing process, as specified in
     // [RFC8032], Section 5.1.6, with message as M, using the Ed25519 private key associated with
     // key.
     let key_pair = Ed25519KeyPair::from_seed_unchecked(key.handle().as_bytes())
-        .map_err(|_| Error::Operation)?;
+        .map_err(|_| Error::Operation(None))?;
     let result = key_pair.sign(message).as_ref().to_vec();
 
     // Step 3. Return result.
@@ -48,7 +48,7 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess);
+        return Err(Error::InvalidAccess(None));
     }
 
     // Step 2. If the key data of key represents an invalid point or a small-order element on the
@@ -93,9 +93,10 @@ pub(crate) fn generate_key(
     // Step 2. Generate an Ed25519 key pair, as defined in [RFC8032], section 5.1.5.
     let mut seed = vec![0u8; ED25519_SEED_LENGTH];
     if OsRng.try_fill_bytes(&mut seed).is_err() {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     }
-    let key_pair = Ed25519KeyPair::from_seed_unchecked(&seed).map_err(|_| Error::Operation)?;
+    let key_pair =
+        Ed25519KeyPair::from_seed_unchecked(&seed).map_err(|_| Error::Operation(None))?;
 
     // Step 3. Let algorithm be a new KeyAlgorithm object.
     // Step 4. Set the name attribute of algorithm to "Ed25519".
@@ -186,7 +187,8 @@ pub(crate) fn import_key(
             // is present, then throw a DataError.
             // Step 2.6. Let publicKey be the Ed25519 public key identified by the subjectPublicKey
             // field of spki.
-            let public_key = ParsedPublicKey::new(&ED25519, key_data).map_err(|_| Error::Data)?;
+            let public_key =
+                ParsedPublicKey::new(&ED25519, key_data).map_err(|_| Error::Data(None))?;
 
             // Step 2.9. Let algorithm be a new KeyAlgorithm.
             // Step 2.10. Set the name attribute of algorithm to "Ed25519".
@@ -223,7 +225,8 @@ pub(crate) fn import_key(
             // Step 2.5. If the parameters field of the privateKeyAlgorithm
             // PrivateKeyAlgorithmIdentifier field of privateKeyInfo is present, then throw a
             // DataError.
-            let private_key_info = Ed25519KeyPair::from_pkcs8(key_data).map_err(|_| Error::Data)?;
+            let private_key_info =
+                Ed25519KeyPair::from_pkcs8(key_data).map_err(|_| Error::Data(None))?;
 
             // Step 2.6. Let curvePrivateKey be the result of performing the parse an ASN.1
             // structure algorithm, with data as the privateKey field of privateKeyInfo, structure
@@ -232,9 +235,9 @@ pub(crate) fn import_key(
             // Step 2.7. If an error occurred while parsing, then throw a DataError.
             let curve_private_key = private_key_info
                 .seed()
-                .map_err(|_| Error::Data)?
+                .map_err(|_| Error::Data(None))?
                 .as_be_bytes()
-                .map_err(|_| Error::Data)?
+                .map_err(|_| Error::Data(None))?
                 .as_ref()
                 .to_vec();
 
@@ -277,12 +280,12 @@ pub(crate) fn import_key(
 
             // Step 2.3 If the kty field of jwk is not "OKP", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "OKP") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.4 If the crv field of jwk is not "Ed25519", then throw a DataError.
             if jwk.crv.as_ref().is_none_or(|crv| crv != ALG_ED25519) {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.5 If the alg field of jwk is present and is not "Ed25519" or "EdDSA", then
@@ -292,13 +295,13 @@ pub(crate) fn import_key(
                 .as_ref()
                 .is_some_and(|alg| !matches!(alg.str().as_ref(), ALG_ED25519 | "EdDSA"))
             {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.6 If usages is non-empty and the use field of jwk is present and is not
             // "sig", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sig") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.7 If the key_ops field of jwk is present, and is invalid according to the
@@ -309,7 +312,7 @@ pub(crate) fn import_key(
             // Step 2.8 If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.as_ref().is_some_and(|ext| !ext) && extractable {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
@@ -324,21 +327,21 @@ pub(crate) fn import_key(
                 Some(d) => {
                     // Step 2.9.1. If jwk does not meet the requirements of the JWK private key
                     // format described in Section 2 of [RFC8037], then throw a DataError.
-                    let x = jwk.x.ok_or(Error::Data)?;
+                    let x = jwk.x.ok_or(Error::Data(None))?;
 
                     // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519
                     // private key identified by interpreting jwk according to Section
                     // 2 of [RFC8037]
                     // Step 2.9.3. Set the [[type]] internal slot of Key to "private".
                     let public_key_bytes =
-                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data)?;
+                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data(None))?;
                     let private_key_bytes =
-                        Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data)?;
+                        Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data(None))?;
                     let _ = Ed25519KeyPair::from_seed_and_public_key(
                         &private_key_bytes,
                         &public_key_bytes,
                     )
-                    .map_err(|_| Error::Data)?;
+                    .map_err(|_| Error::Data(None))?;
                     CryptoKey::new(
                         global,
                         KeyType::Private,
@@ -353,14 +356,14 @@ pub(crate) fn import_key(
                 None => {
                     // Step 2.9.1. If jwk does not meet the requirements of the JWK public key
                     // format described in Section 2 of [RFC8037], then throw a DataError.
-                    let x = jwk.x.ok_or(Error::Data)?;
+                    let x = jwk.x.ok_or(Error::Data(None))?;
 
                     // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519
                     // public key identified by interpreting jwk according to Section 2 of
                     // [RFC8037].
                     // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
                     let public_key_bytes =
-                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data)?;
+                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data(None))?;
                     CryptoKey::new(
                         global,
                         KeyType::Public,
@@ -385,7 +388,7 @@ pub(crate) fn import_key(
 
             // Step 2.2. If the length in bits of keyData is not 256 then throw a DataError.
             if key_data.len() * 8 != 256 {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.3. Let algorithm be a new KeyAlgorithm object.
@@ -431,7 +434,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess);
+                return Err(Error::InvalidAccess(None));
             }
 
             // Step 3.2. Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure
@@ -441,12 +444,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //         Set the algorithm object identifier to the id-Ed25519 OID defined in
             //         [RFC8410].
             //     Set the subjectPublicKey field to keyData.
-            let data = ParsedPublicKey::new(&ED25519, key_data).map_err(|_| Error::Operation)?;
+            let data =
+                ParsedPublicKey::new(&ED25519, key_data).map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
             ExportedKey::Raw(
                 data.as_der()
-                    .map_err(|_| Error::Operation)?
+                    .map_err(|_| Error::Operation(None))?
                     .as_ref()
                     .to_vec(),
             )
@@ -456,7 +460,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess);
+                return Err(Error::InvalidAccess(None));
             }
 
             // Step 3.2. Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in
@@ -470,9 +474,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     type, as defined in Section 7 of [RFC8410], that represents the Ed25519 private
             //     key represented by the [[handle]] internal slot of key
             let data = Ed25519KeyPair::from_seed_unchecked(key_data)
-                .map_err(|_| Error::Operation)?
+                .map_err(|_| Error::Operation(None))?
                 .to_pkcs8v1()
-                .map_err(|_| Error::Operation)?;
+                .map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
             ExportedKey::Raw(data.as_ref().to_vec())
@@ -489,8 +493,8 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     (Some(DOMString::from(public_key)), None)
                 },
                 KeyType::Private => {
-                    let key_pair =
-                        Ed25519KeyPair::from_seed_unchecked(key_data).map_err(|_| Error::Data)?;
+                    let key_pair = Ed25519KeyPair::from_seed_unchecked(key_data)
+                        .map_err(|_| Error::Data(None))?;
                     let public_key =
                         Base64UrlUnpadded::encode_string(key_pair.public_key().as_ref());
                     let private_key = Base64UrlUnpadded::encode_string(key_data);
@@ -500,7 +504,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     )
                 },
                 KeyType::Secret => {
-                    return Err(Error::Data);
+                    return Err(Error::Data(None));
                 },
             };
 
@@ -536,7 +540,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess);
+                return Err(Error::InvalidAccess(None));
             }
 
             // Step 3.2. Let data be a byte sequence representing the Ed25519 public key

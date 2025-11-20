@@ -240,7 +240,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         if let Some(node) = node {
             if node.is_doctype() {
                 // w3c/selection-api#118
-                return Err(Error::InvalidNodeType);
+                return Err(Error::InvalidNodeType(None));
             }
             if offset > node.len() {
                 // Step 2
@@ -308,7 +308,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         if let Some(range) = self.range.get() {
             if node.is_doctype() {
                 // w3c/selection-api#118
-                return Err(Error::InvalidNodeType);
+                return Err(Error::InvalidNodeType(None));
             }
 
             if offset > node.len() {
@@ -382,7 +382,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 1
         if anchor_node.is_doctype() || focus_node.is_doctype() {
             // w3c/selection-api#118
-            return Err(Error::InvalidNodeType);
+            return Err(Error::InvalidNodeType(None));
         }
 
         if anchor_offset > anchor_node.len() || focus_offset > focus_node.len() {
@@ -430,7 +430,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn SelectAllChildren(&self, node: &Node, can_gc: CanGc) -> ErrorResult {
         if node.is_doctype() {
             // w3c/selection-api#118
-            return Err(Error::InvalidNodeType);
+            return Err(Error::InvalidNodeType(None));
         }
         if !self.is_same_root(node) {
             return Ok(());

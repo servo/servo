@@ -408,7 +408,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // output bitmap's origin-clean flag is set to false, then return a
         // promise rejected with a "SecurityError" DOMException.
         if !self.origin_is_clean() {
-            promise.reject_error(Error::Security, can_gc);
+            promise.reject_error(Error::Security(None), can_gc);
             return promise;
         }
 
@@ -449,7 +449,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
                 if snapshot.encode_for_mime_type(&image_type, quality, &mut encoded).is_err() {
                     // Step 7.2.1. If file is null, then reject result with an
                     // "EncodingError" DOMException.
-                    promise.reject_error(Error::Encoding, CanGc::note());
+                    promise.reject_error(Error::Encoding(None), CanGc::note());
                     return;
                 };
 
