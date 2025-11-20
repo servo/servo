@@ -5,10 +5,11 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use js::rust::Runtime;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
+use script_bindings::script_runtime::{CanGc, JSContext};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
@@ -16,10 +17,14 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 
 /// A helper struct for mutation observers used in `ScriptThread`
 /// Since the Rc is always stored in ScriptThread, it's always reachable by the GC.
-#[derive(JSTraceable, Default)]
+#[derive(JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ScriptMutationObservers {
+    /// The [`JSContext`] that this [`ScriptMutationObservers`] uses.
+    #[no_trace]
+    context: JSContext,
+
     /// Microtask Queue for adding support for mutation observer microtasks
     mutation_observer_microtask_queued: Cell<bool>,
 
@@ -28,6 +33,18 @@ pub(crate) struct ScriptMutationObservers {
 
     /// <https://dom.spec.whatwg.org/#signal-slot-list>
     signal_slots: DomRefCell<Vec<Dom<HTMLSlotElement>>>,
+}
+
+impl Default for ScriptMutationObservers {
+    fn default() -> Self {
+        Self {
+            #[expect(unsafe_code)]
+            context: unsafe { JSContext::from_ptr(Runtime::get().unwrap().as_ptr()) },
+            mutation_observer_microtask_queued: Default::default(),
+            mutation_observers: Default::default(),
+            signal_slots: Default::default(),
+        }
+    }
 }
 
 impl ScriptMutationObservers {
@@ -95,9 +112,7 @@ impl ScriptMutationObservers {
         self.mutation_observer_microtask_queued.set(true);
 
         // Step 3. Queue a microtask to notify mutation observers.
-        crate::script_thread::with_script_thread(|script_thread| {
-            microtask_queue.enqueue(Microtask::NotifyMutationObservers, script_thread.get_cx());
-        });
+        microtask_queue.enqueue(Microtask::NotifyMutationObservers, self.context);
     }
 
     pub(crate) fn add_signal_slot(&self, observer: &HTMLSlotElement) {

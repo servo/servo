@@ -88,7 +88,6 @@ use crate::dom::svg::svgimageelement::SVGImageElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 fn create_svg_element(
     name: QualName,
@@ -155,7 +154,7 @@ fn create_html_element(
                 },
                 // Step 4.4. Otherwise, enqueue a custom element upgrade reaction given result and definition.
                 CustomElementCreationMode::Asynchronous => {
-                    ScriptThread::enqueue_upgrade_reaction(&element, definition)
+                    element.enqueue_upgrade_reaction(definition)
                 },
             }
             return element;
@@ -215,7 +214,7 @@ fn create_html_element(
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
                     // Step 4.2.2. Enqueue a custom element upgrade reaction given result and definition.
-                    ScriptThread::enqueue_upgrade_reaction(&result, definition);
+                    result.enqueue_upgrade_reaction(definition);
                     return result;
                 },
             }

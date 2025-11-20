@@ -49,7 +49,7 @@ use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
-use crate::script_thread::{ScriptThread, with_script_thread};
+use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 
 #[derive(PartialEq)]
@@ -228,9 +228,7 @@ impl HTMLIFrameElement {
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
-                with_script_thread(|script_thread| {
-                    script_thread.spawn_pipeline(new_pipeline_info);
-                });
+                window.script_thread().spawn_pipeline(new_pipeline_info);
             },
             PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
@@ -489,7 +487,7 @@ impl HTMLIFrameElement {
             sandboxing_flag_set: Cell::new(None),
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
-            script_window_proxies: ScriptThread::window_proxies(),
+            script_window_proxies: document.window().script_thread().window_proxies(),
             pending_navigation: Default::default(),
         }
     }
@@ -741,7 +739,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         // Step 2-3.
         // Note that this lookup will fail if the document is dissimilar-origin,
         // so we should return None in that case.
-        let document = ScriptThread::find_document(pipeline_id)?;
+        let document = self.script_thread().find_document(pipeline_id)?;
 
         // Step 4.
         let current = GlobalScope::current()
@@ -938,7 +936,8 @@ impl VirtualMethods for HTMLIFrameElement {
         // when the `PipelineExit` message arrives.
         for exited_pipeline_id in exited_pipeline_ids {
             // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-            if let Some(exited_document) = ScriptThread::find_document(exited_pipeline_id) {
+            if let Some(exited_document) = window.script_thread().find_document(exited_pipeline_id)
+            {
                 debug!(
                     "Discarding browsing context for pipeline {}",
                     exited_pipeline_id
