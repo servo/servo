@@ -258,9 +258,9 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
             let size = session
                 .with_session(|session| session.recommended_framebuffer_resolution())
-                .ok_or(Error::Operation)?;
+                .ok_or(Error::Operation(None))?;
             let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size, can_gc)
-                .ok_or(Error::Operation)?;
+                .ok_or(Error::Operation(None))?;
 
             // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
             // including GPU accessible memory buffers, as required to support the compositing of layer."
@@ -268,7 +268,7 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             let layer_init: LayerInit = init.convert();
             let layer_id = session
                 .with_session(|session| session.create_layer(context_id, layer_init))
-                .map_err(|_| Error::Operation)?;
+                .map_err(|_| Error::Operation(None))?;
 
             // Step 9.4: "If layer’s resources were unable to be created for any reason,
             // throw an OperationError and abort these steps."

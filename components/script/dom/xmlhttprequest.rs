@@ -168,7 +168,7 @@ pub(crate) enum XHRProgress {
     Loading(GenerationId, Vec<u8>),
     /// Loading is done
     Done(GenerationId),
-    /// There was an error (only Error::Abort, Error::Timeout or Error::Network is used)
+    /// There was an error (only Error::Abort(None), Error::Timeout(None) or Error::Network(None) is used)
     Errored(GenerationId, Error),
 }
 
@@ -352,8 +352,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
         match maybe_method {
             // Step 4
-            Some(Method::CONNECT) | Some(Method::TRACE) => Err(Error::Security),
-            Some(ref t) if t.as_str() == "TRACK" => Err(Error::Security),
+            Some(Method::CONNECT) | Some(Method::TRACE) => Err(Error::Security(None)),
+            Some(ref t) if t.as_str() == "TRACK" => Err(Error::Security(None)),
             Some(parsed_method) => {
                 // Step 3
                 if !is_token(&method) {
@@ -385,7 +385,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                     if !self.timeout.get().is_zero() ||
                         self.response_type.get() != XMLHttpRequestResponseType::_empty
                     {
-                        return Err(Error::InvalidAccess);
+                        return Err(Error::InvalidAccess(None));
                     }
                 }
                 // Step 11 - abort existing requests
@@ -478,7 +478,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     fn SetTimeout(&self, timeout: u32) -> ErrorResult {
         // Step 1
         if self.sync_in_window() {
-            return Err(Error::InvalidAccess);
+            return Err(Error::InvalidAccess(None));
         }
 
         // Step 2
@@ -779,7 +779,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             state == XMLHttpRequestState::Loading
         {
             let gen_id = self.generation_id.get();
-            self.process_partial_response(XHRProgress::Errored(gen_id, Error::Abort), can_gc);
+            self.process_partial_response(XHRProgress::Errored(gen_id, Error::Abort(None)), can_gc);
             // If open was called in one of the handlers invoked by the
             // above call then we should terminate the abort sequence
             if self.generation_id.get() != gen_id {
@@ -904,7 +904,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             _ => {
                 if self.sync_in_window() {
                     // Step 3
-                    Err(Error::InvalidAccess)
+                    Err(Error::InvalidAccess(None))
                 } else {
                     // Step 4
                     self.response_type.set(response_type);
@@ -1016,13 +1016,16 @@ impl XMLHttpRequest {
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => m,
                     FilteredMetadata::Cors(m) => m,
-                    FilteredMetadata::Opaque => return Err(Error::Network),
-                    FilteredMetadata::OpaqueRedirect(_) => return Err(Error::Network),
+                    FilteredMetadata::Opaque => return Err(Error::Network(None)),
+                    FilteredMetadata::OpaqueRedirect(_) => return Err(Error::Network(None)),
                 },
             },
             Err(_) => {
-                self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network), can_gc);
-                return Err(Error::Network);
+                self.process_partial_response(
+                    XHRProgress::Errored(gen_id, Error::Network(None)),
+                    can_gc,
+                );
+                return Err(Error::Network(None));
             },
         };
 
@@ -1056,8 +1059,11 @@ impl XMLHttpRequest {
                 Ok(())
             },
             Err(_) => {
-                self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network), can_gc);
-                Err(Error::Network)
+                self.process_partial_response(
+                    XHRProgress::Errored(gen_id, Error::Network(None)),
+                    can_gc,
+                );
+                Err(Error::Network(None))
             },
         }
     }
@@ -1190,8 +1196,8 @@ impl XMLHttpRequest {
                 return_if_fetch_was_terminated!();
 
                 let errormsg = match e {
-                    Error::Abort => "abort",
-                    Error::Timeout => "timeout",
+                    Error::Abort(None) => "abort",
+                    Error::Timeout(None) => "timeout",
                     _ => "error",
                 };
 
@@ -1592,7 +1598,7 @@ impl XMLHttpRequest {
             loop {
                 if !global.process_event(script_port.recv().unwrap(), can_gc) {
                     // We're exiting.
-                    return Err(Error::Abort);
+                    return Err(Error::Abort(None));
                 }
                 if let Some(ref status) = *sync_status.borrow() {
                     return status.clone();
@@ -1661,7 +1667,7 @@ impl XHRTimeoutCallback {
         let xhr = self.xhr.root();
         if xhr.ready_state.get() != XMLHttpRequestState::Done {
             xhr.process_partial_response(
-                XHRProgress::Errored(self.generation_id, Error::Timeout),
+                XHRProgress::Errored(self.generation_id, Error::Timeout(None)),
                 can_gc,
             );
         }

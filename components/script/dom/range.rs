@@ -256,7 +256,7 @@ impl Range {
         }
         if node.is_doctype() {
             // Step 2.
-            return Err(Error::InvalidNodeType);
+            return Err(Error::InvalidNodeType(None));
         }
         if offset > node.len() {
             // Step 3.
@@ -355,7 +355,7 @@ impl Range {
     ) -> ErrorResult {
         // Step 1. If node is a doctype, then throw an "InvalidNodeTypeError" DOMException.
         if node.is_doctype() {
-            return Err(Error::InvalidNodeType);
+            return Err(Error::InvalidNodeType(None));
         }
 
         // Step 2. If offset is greater than node’s length, then throw an "IndexSizeError" DOMException.
@@ -428,25 +428,25 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstartbefore>
     fn SetStartBefore(&self, node: &Node) -> ErrorResult {
-        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
         self.SetStart(&parent, node.index())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstartafter>
     fn SetStartAfter(&self, node: &Node) -> ErrorResult {
-        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
         self.SetStart(&parent, node.index() + 1)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setendbefore>
     fn SetEndBefore(&self, node: &Node) -> ErrorResult {
-        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
         self.SetEnd(&parent, node.index())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setendafter>
     fn SetEndAfter(&self, node: &Node) -> ErrorResult {
-        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
         self.SetEnd(&parent, node.index() + 1)
     }
 
@@ -462,7 +462,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     /// <https://dom.spec.whatwg.org/#dom-range-selectnode>
     fn SelectNode(&self, node: &Node) -> ErrorResult {
         // Steps 1, 2.
-        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
         // Step 3.
         let index = node.index();
         // Step 4.
@@ -476,7 +476,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     fn SelectNodeContents(&self, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
-            return Err(Error::InvalidNodeType);
+            return Err(Error::InvalidNodeType(None));
         }
         // Step 2.
         let length = node.len();
@@ -1036,7 +1036,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             NodeTypeId::Document(_) |
             NodeTypeId::DocumentType |
             NodeTypeId::DocumentFragment(_) => {
-                return Err(Error::InvalidNodeType);
+                return Err(Error::InvalidNodeType(None));
             },
             _ => (),
         }

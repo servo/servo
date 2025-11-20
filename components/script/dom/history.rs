@@ -72,7 +72,7 @@ impl History {
 impl History {
     fn traverse_history(&self, direction: TraversalDirection) -> ErrorResult {
         if !self.window.Document().is_fully_active() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
         let msg = ScriptToConstellationMessage::TraverseHistory(direction);
         let _ = self
@@ -196,7 +196,7 @@ impl History {
 
         // Step 2
         if !document.is_fully_active() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // TODO: Step 3 Optionally abort these steps
@@ -215,13 +215,13 @@ impl History {
                 // relative to the relevant settings object of history.
                 let Ok(url) = ServoUrl::parse_with_base(Some(&document_url), &urlstring.0) else {
                     // Step 6.2 If newURL is failure, then throw a "SecurityError" DOMException.
-                    return Err(Error::Security);
+                    return Err(Error::Security(None));
                 };
 
                 // Step 6.3 If document cannot have its URL rewritten to newURL,
                 // then throw a "SecurityError" DOMException.
                 if !Self::can_have_url_rewritten(&document_url, &url) {
-                    return Err(Error::Security);
+                    return Err(Error::Security(None));
                 }
 
                 url
@@ -335,7 +335,7 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
     /// <https://html.spec.whatwg.org/multipage/#dom-history-state>
     fn GetState(&self, _cx: JSContext, mut retval: MutableHandleValue) -> Fallible<()> {
         if !self.window.Document().is_fully_active() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
         retval.set(self.state.get());
         Ok(())
@@ -344,7 +344,7 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
     /// <https://html.spec.whatwg.org/multipage/#dom-history-length>
     fn GetLength(&self) -> Fallible<u32> {
         if !self.window.Document().is_fully_active() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
         let (sender, recv) = channel(self.global().time_profiler_chan().clone())
             .expect("Failed to create channel to send jsh length.");

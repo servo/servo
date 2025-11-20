@@ -511,7 +511,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // Step 1: If this canvas element's bitmap's origin-clean flag is set to false,
         // then throw a "SecurityError" DOMException.
         if !self.origin_is_clean() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 2: If this canvas element's bitmap has no pixels (i.e. either its
@@ -562,7 +562,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // If this canvas element's bitmap's origin-clean flag is set to false, then throw a
         // "SecurityError" DOMException.
         if !self.origin_is_clean() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 2. Let result be null.

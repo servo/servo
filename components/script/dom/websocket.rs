@@ -449,7 +449,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         if let Some(code) = code {
             // Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
             if code != close_code::NORMAL && !(3000..=4999).contains(&code) {
-                return Err(Error::InvalidAccess);
+                return Err(Error::InvalidAccess(None));
             }
         }
         if let Some(ref reason) = reason {

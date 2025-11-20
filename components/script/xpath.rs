@@ -311,7 +311,7 @@ pub(crate) fn parse_expression(
 ) -> Fallible<xpath::Expression> {
     xpath::parse(expression, resolver.map(XPathWrapper), is_in_html_document).map_err(|error| {
         match error {
-            xpath::ParserError::FailedToResolveNamespacePrefix => Error::Namespace,
+            xpath::ParserError::FailedToResolveNamespacePrefix => Error::Namespace(None),
             _ => Error::Syntax(Some(format!("Failed to parse XPath expression: {error:?}"))),
         }
     })

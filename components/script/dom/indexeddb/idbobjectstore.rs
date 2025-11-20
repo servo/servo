@@ -160,7 +160,7 @@ impl IDBObjectStore {
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
         if !transaction.is_active() {
-            return Err(Error::TransactionInactive);
+            return Err(Error::TransactionInactive(None));
         }
 
         Ok(())
@@ -176,7 +176,7 @@ impl IDBObjectStore {
         self.check_transaction_active()?;
 
         if let IDBTransactionMode::Readonly = transaction.get_mode() {
-            return Err(Error::ReadOnly);
+            return Err(Error::ReadOnly(None));
         }
         Ok(())
     }
@@ -202,13 +202,13 @@ impl IDBObjectStore {
 
         // Step 6: If store uses in-line keys and key was given, throw a "DataError" DOMException.
         if !key.is_undefined() && self.uses_inline_keys() {
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         }
 
         // Step 7: If store uses out-of-line keys and has no key generator
         // and key was not given, throw a "DataError" DOMException.
         if !self.uses_inline_keys() && !self.has_key_generator() && key.is_undefined() {
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         }
 
         // Step 8: If key was given, then: convert a value to a key with key
@@ -231,7 +231,7 @@ impl IDBObjectStore {
                     // Step 11.4.1. If store does not have a key generator, throw
                     // a "DataError" DOMException.
                     if !self.has_key_generator() {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
                     // Step 11.4.2. Otherwise, if the steps to check that a key could
                     // be injected into a value with clone and store’s key path return
@@ -242,7 +242,7 @@ impl IDBObjectStore {
                 // Step 11.1. Rethrow any exceptions.
                 Some(extraction_result) => match extraction_result? {
                     // Step 11.2. If kpk is invalid, throw a "DataError" DOMException.
-                    ExtractionResult::Invalid => return Err(Error::Data),
+                    ExtractionResult::Invalid => return Err(Error::Data(None)),
                     // Step 11.3. If kpk is not failure, let key be kpk.
                     ExtractionResult::Key(kpk) => serialized_key = Some(kpk),
                     ExtractionResult::Failure => unreachable!(),

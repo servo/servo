@@ -124,14 +124,14 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         } else {
             (data_size as GPUSize64)
                 .checked_sub(data_offset)
-                .ok_or(Error::Operation)?
+                .ok_or(Error::Operation(None))?
         };
 
         // Step 4
         let valid = data_offset + content_size <= data_size as u64 &&
             content_size * sizeof_element as u64 % wgpu_types::COPY_BUFFER_ALIGNMENT == 0;
         if !valid {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
 
         // Step 5&6
@@ -147,7 +147,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             data: contents,
         }) {
             warn!("Failed to send WriteBuffer({:?}) ({})", buffer.id(), e);
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
 
         Ok(())
@@ -168,7 +168,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         let valid = data_layout.offset <= len;
 
         if !valid {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
 
         let texture_cv = destination.try_convert()?;
@@ -189,7 +189,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
                 destination.texture.id().0,
                 e
             );
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
 
         Ok(())

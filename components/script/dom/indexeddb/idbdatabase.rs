@@ -203,7 +203,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 3
         if !upgrade_transaction.is_active() {
-            return Err(Error::TransactionInactive);
+            return Err(Error::TransactionInactive(None));
         }
 
         // Step 4
@@ -218,7 +218,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 6
         if self.object_store_names.borrow().contains(&name) {
-            return Err(Error::Constraint);
+            return Err(Error::Constraint(None));
         }
 
         // Step 7
@@ -229,11 +229,11 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             match key_path {
                 Some(StringOrStringSequence::String(path)) => {
                     if path.is_empty() {
-                        return Err(Error::InvalidAccess);
+                        return Err(Error::InvalidAccess(None));
                     }
                 },
                 Some(StringOrStringSequence::StringSequence(_)) => {
-                    return Err(Error::InvalidAccess);
+                    return Err(Error::InvalidAccess(None));
                 },
                 None => {},
             }
@@ -294,7 +294,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 3
         if !transaction.is_active() {
-            return Err(Error::TransactionInactive);
+            return Err(Error::TransactionInactive(None));
         }
 
         // Step 4

@@ -119,7 +119,7 @@ impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
     ) -> Result<(), Error> {
         let len = frequency_hz.len();
         if len != mag_response.len() || len != phase_response.len() {
-            return Err(Error::InvalidAccess);
+            return Err(Error::InvalidAccess(None));
         }
         let feedforward: Vec<f64> = (self.feedforward.iter().map(|v| **v).collect_vec()).to_vec();
         let feedback: Vec<f64> = (self.feedback.iter().map(|v| **v).collect_vec()).to_vec();

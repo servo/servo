@@ -117,7 +117,7 @@ fn html_constructor(
 
     rooted!(in(*cx) let callee = unsafe { UnwrapObjectStatic(call_args.callee()) });
     if callee.is_null() {
-        throw_dom_exception(cx, global, Error::Security, can_gc);
+        throw_dom_exception(cx, global, Error::Security(None), can_gc);
         return Err(());
     }
 

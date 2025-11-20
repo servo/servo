@@ -145,7 +145,7 @@ impl ConversionResult {
     pub fn into_result(self) -> Result<IndexedDBKeyType, Error> {
         match self {
             ConversionResult::Valid(key) => Ok(key),
-            ConversionResult::Invalid => Err(Error::Data),
+            ConversionResult::Invalid => Err(Error::Data(None)),
         }
     }
 }
@@ -198,7 +198,7 @@ pub fn convert_value_to_key(
                     return Err(Error::JSFailed);
                 }
                 if f.is_nan() {
-                    return Err(Error::Data);
+                    return Err(Error::Data(None));
                 }
                 return Ok(ConversionResult::Valid(IndexedDBKeyType::Date(f)));
             }
@@ -280,7 +280,7 @@ pub fn convert_value_to_key_range(
     // disallowed flag is set, or return an unbounded key range otherwise.
     if input.get().is_undefined() || input.get().is_null() {
         if null_disallowed.is_some_and(|flag| flag) {
-            return Err(Error::Data);
+            return Err(Error::Data(None));
         } else {
             return Ok(IndexedDBKeyRange {
                 lower: None,

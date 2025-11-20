@@ -716,7 +716,7 @@ impl FileListener {
             Err(_) => match self.state.take() {
                 Some(FileListenerState::Receiving(_, target)) |
                 Some(FileListenerState::Empty(target)) => {
-                    let error = Err(Error::Network);
+                    let error = Err(Error::Network(None));
 
                     match target {
                         FileListenerTarget::Promise(trusted_promise, callback) => {

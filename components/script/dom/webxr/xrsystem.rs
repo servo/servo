@@ -172,7 +172,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                         "The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR."
                     );
                 } else {
-                    promise.reject_error(Error::Security, can_gc);
+                    promise.reject_error(Error::Security(None), can_gc);
                     return promise;
                 }
             }

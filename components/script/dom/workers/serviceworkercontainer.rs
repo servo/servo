@@ -216,7 +216,7 @@ impl RegisterJobResultHandler {
                                 );
                             },
                             JobError::SecurityError => {
-                                promise.reject_error(Error::Security, CanGc::note());
+                                promise.reject_error(Error::Security(None), CanGc::note());
                             },
                         }
 

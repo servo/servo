@@ -54,7 +54,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
             .send(ScriptToConstellationMessage::ReportMemory(sender))
             .is_err()
         {
-            promise.reject_error(Error::Operation, can_gc);
+            promise.reject_error(Error::Operation(None), can_gc);
         }
         promise
     }
@@ -64,7 +64,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         if let PrefValue::Bool(b) = prefs::get().get_value(&name) {
             return Ok(b);
         }
-        Err(Error::TypeMismatch)
+        Err(Error::TypeMismatch(None))
     }
 
     /// <https://servo.org/internal-no-spec>
@@ -72,7 +72,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         if let PrefValue::Int(i) = prefs::get().get_value(&name) {
             return Ok(i);
         }
-        Err(Error::TypeMismatch)
+        Err(Error::TypeMismatch(None))
     }
 
     /// <https://servo.org/internal-no-spec>
@@ -80,7 +80,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         if let PrefValue::Str(s) = prefs::get().get_value(&name) {
             return Ok(s.into());
         }
-        Err(Error::TypeMismatch)
+        Err(Error::TypeMismatch(None))
     }
 
     /// <https://servo.org/internal-no-spec>

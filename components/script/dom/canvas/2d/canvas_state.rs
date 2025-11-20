@@ -1784,7 +1784,7 @@ impl CanvasState {
         }
 
         if !self.origin_is_clean() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));

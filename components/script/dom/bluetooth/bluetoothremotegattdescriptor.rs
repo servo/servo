@@ -102,7 +102,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
-            p.reject_error(Security, can_gc);
+            p.reject_error(Security(None), can_gc);
             return p;
         }
 
@@ -114,7 +114,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .get_gatt(can_gc)
             .Connected()
         {
-            p.reject_error(Network, can_gc);
+            p.reject_error(Network(None), can_gc);
             return p;
         }
 
@@ -139,7 +139,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Writes) {
-            p.reject_error(Security, can_gc);
+            p.reject_error(Security(None), can_gc);
             return p;
         }
 
@@ -149,7 +149,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(ab) => ab.to_vec(),
         };
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error(InvalidModification, can_gc);
+            p.reject_error(InvalidModification(None), can_gc);
             return p;
         }
 
@@ -161,7 +161,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .get_gatt(can_gc)
             .Connected()
         {
-            p.reject_error(Network, can_gc);
+            p.reject_error(Network(None), can_gc);
             return p;
         }
 

@@ -26,56 +26,56 @@ pub enum Error {
     /// NotSupportedError DOMException
     NotSupported(Option<String>),
     /// InUseAttributeError DOMException
-    InUseAttribute,
+    InUseAttribute(Option<String>),
     /// InvalidStateError DOMException
     InvalidState(Option<String>),
     /// SyntaxError DOMException
     Syntax(Option<String>),
     /// NamespaceError DOMException
-    Namespace,
+    Namespace(Option<String>),
     /// InvalidAccessError DOMException
-    InvalidAccess,
+    InvalidAccess(Option<String>),
     /// SecurityError DOMException
-    Security,
+    Security(Option<String>),
     /// NetworkError DOMException
-    Network,
+    Network(Option<String>),
     /// AbortError DOMException
-    Abort,
+    Abort(Option<String>),
     /// TimeoutError DOMException
-    Timeout,
+    Timeout(Option<String>),
     /// InvalidNodeTypeError DOMException
-    InvalidNodeType,
+    InvalidNodeType(Option<String>),
     /// DataCloneError DOMException
     DataClone(Option<String>),
     /// TransactionInactiveError DOMException
-    TransactionInactive,
+    TransactionInactive(Option<String>),
     /// ReadOnlyError DOMException
-    ReadOnly,
+    ReadOnly(Option<String>),
     /// VersionError DOMException
-    Version,
+    Version(Option<String>),
     /// NoModificationAllowedError DOMException
-    NoModificationAllowed,
+    NoModificationAllowed(Option<String>),
     /// QuotaExceededError DOMException
     QuotaExceeded {
         quota: Option<Finite<f64>>,
         requested: Option<Finite<f64>>,
     },
     /// TypeMismatchError DOMException
-    TypeMismatch,
+    TypeMismatch(Option<String>),
     /// InvalidModificationError DOMException
-    InvalidModification,
+    InvalidModification(Option<String>),
     /// NotReadableError DOMException
-    NotReadable,
+    NotReadable(Option<String>),
     /// DataError DOMException
-    Data,
+    Data(Option<String>),
     /// OperationError DOMException
-    Operation,
+    Operation(Option<String>),
     /// NotAllowedError DOMException
-    NotAllowed,
+    NotAllowed(Option<String>),
     /// EncodingError DOMException
-    Encoding,
+    Encoding(Option<String>),
     /// ConstraintError DOMException
-    Constraint,
+    Constraint(Option<String>),
 
     /// TypeError JavaScript Error
     Type(String),

@@ -116,7 +116,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         input: u32,
     ) -> Fallible<DomRoot<AudioNode>> {
         if self.context != destination.context {
-            return Err(Error::InvalidAccess);
+            return Err(Error::InvalidAccess(None));
         }
 
         if output >= self.NumberOfOutputs() || input >= destination.NumberOfInputs() {
@@ -140,7 +140,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-connect-destinationparam-output>
     fn Connect_(&self, dest: &AudioParam, output: u32) -> Fallible<()> {
         if self.context != dest.context() {
-            return Err(Error::InvalidAccess);
+            return Err(Error::InvalidAccess(None));
         }
 
         if output >= self.NumberOfOutputs() {

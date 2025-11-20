@@ -151,7 +151,7 @@ impl Location {
     }
 
     /// Get this `Location` object's [relevant `Document`][1], or
-    /// `Err(Error::Security)` if it's non-null and its origin is not same
+    /// `Err(Error::Security(None))` if it's non-null and its origin is not same
     /// origin-domain with the entry setting object's origin.
     ///
     /// In the specification's terms:
@@ -190,7 +190,7 @@ impl Location {
             }) {
                 Ok(Some(document))
             } else {
-                Err(Error::Security)
+                Err(Error::Security(None))
             }
         } else {
             // The browsing context is null
@@ -199,7 +199,7 @@ impl Location {
     }
 
     /// Get this `Location` object's [relevant url][1] or
-    /// `Err(Error::Security)` if the [relevant `Document`][2] if it's non-null
+    /// `Err(Error::Security(None))` if the [relevant `Document`][2] if it's non-null
     /// and its origin is not same origin-domain with the entry setting object's
     /// origin.
     ///

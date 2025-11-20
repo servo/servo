@@ -2436,7 +2436,7 @@ impl Element {
         // throw an "InUseAttributeError" DOMException.
         if let Some(owner) = attr.GetOwnerElement() {
             if &*owner != self {
-                return Err(Error::InUseAttribute);
+                return Err(Error::InUseAttribute(None));
             }
         }
 
@@ -3650,7 +3650,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         let parent = match context_parent.type_id() {
             // Step 4: If parent is a Document, throw a "NoModificationAllowedError" DOMException.
-            NodeTypeId::Document(_) => return Err(Error::NoModificationAllowed),
+            NodeTypeId::Document(_) => return Err(Error::NoModificationAllowed(None)),
 
             // Step 5: If parent is a DocumentFragment, set parent to the result of
             // creating an element given this's node document, "body", and the HTML namespace.
@@ -3859,9 +3859,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 match self.upcast::<Node>().GetParentNode() {
                     // Step 3.2: If context is null or a Document, throw a "NoModificationAllowedError" DOMException.
                     Some(ref node) if node.is::<Document>() => {
-                        return Err(Error::NoModificationAllowed);
+                        return Err(Error::NoModificationAllowed(None));
                     },
-                    None => return Err(Error::NoModificationAllowed),
+                    None => return Err(Error::NoModificationAllowed(None)),
                     // Step 3.1: Set context to this's parent.
                     Some(node) => node,
                 }

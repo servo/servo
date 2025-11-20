@@ -344,7 +344,7 @@ impl CSSStyleDeclaration {
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
-            return Err(Error::NoModificationAllowed);
+            return Err(Error::NoModificationAllowed(None));
         }
 
         let id = match id {
@@ -529,7 +529,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     fn RemoveProperty(&self, property: DOMString, can_gc: CanGc) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowed);
+            return Err(Error::NoModificationAllowed(None));
         }
 
         let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
@@ -601,7 +601,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         // Step 1
         if self.readonly {
-            return Err(Error::NoModificationAllowed);
+            return Err(Error::NoModificationAllowed(None));
         }
 
         let quirks_mode = window.Document().quirks_mode();

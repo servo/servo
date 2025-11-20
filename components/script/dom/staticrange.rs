@@ -80,13 +80,13 @@ impl StaticRangeMethods<crate::DomTypeHolder> for StaticRange {
     ) -> Fallible<DomRoot<StaticRange>> {
         match init.startContainer.type_id() {
             NodeTypeId::DocumentType | NodeTypeId::Attr => {
-                return Err(Error::InvalidNodeType);
+                return Err(Error::InvalidNodeType(None));
             },
             _ => (),
         }
         match init.endContainer.type_id() {
             NodeTypeId::DocumentType | NodeTypeId::Attr => {
-                return Err(Error::InvalidNodeType);
+                return Err(Error::InvalidNodeType(None));
             },
             _ => (),
         }

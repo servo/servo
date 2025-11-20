@@ -193,7 +193,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     fn Unmap(&self) {
         // Step 1
         if let Some(promise) = self.pending_map.borrow_mut().take() {
-            promise.reject_error(Error::Abort, CanGc::note());
+            promise.reject_error(Error::Abort(None), CanGc::note());
         }
         // Step 2
         let mut mapping = self.mapping.borrow_mut().take();
@@ -251,7 +251,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 2
         if self.pending_map.borrow().is_some() {
-            promise.reject_error(Error::Operation, can_gc);
+            promise.reject_error(Error::Operation(None), can_gc);
             return promise;
         }
         // Step 4
@@ -309,14 +309,14 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         };
         // Step 2: validation
         let mut mapping = self.mapping.borrow_mut();
-        let mapping = mapping.as_mut().ok_or(Error::Operation)?;
+        let mapping = mapping.as_mut().ok_or(Error::Operation(None))?;
 
         let valid = offset % wgpu_types::MAP_ALIGNMENT == 0 &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;
         if !valid {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
 
         // Step 4
@@ -327,7 +327,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .data
             .view(rebased_offset..rebased_offset + range_size as usize, can_gc)
             .map(|view| view.array_buffer())
-            .map_err(|()| Error::Operation)
+            .map_err(|()| Error::Operation(None))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
@@ -377,9 +377,9 @@ impl GPUBuffer {
         pending_map.take();
         // Step 4
         if self.device.is_lost() {
-            p.reject_error(Error::Abort, can_gc);
+            p.reject_error(Error::Abort(None), can_gc);
         } else {
-            p.reject_error(Error::Operation, can_gc);
+            p.reject_error(Error::Operation(None), can_gc);
         }
     }
 

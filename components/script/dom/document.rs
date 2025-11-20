@@ -4758,7 +4758,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn SetDomain(&self, value: DOMString) -> ErrorResult {
         // Step 1.
         if !self.has_browsing_context {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 2. If this Document object's active sandboxing flag set has its sandboxed
@@ -4766,18 +4766,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if self.has_active_sandboxing_flag(
             SandboxingFlagSet::SANDBOXED_DOCUMENT_DOMAIN_BROWSING_CONTEXT_FLAG,
         ) {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Steps 3-4.
         let effective_domain = match self.origin.effective_domain() {
             Some(effective_domain) => effective_domain,
-            None => return Err(Error::Security),
+            None => return Err(Error::Security(None)),
         };
 
         // Step 5
         let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain) {
-            None => return Err(Error::Security),
+            None => return Err(Error::Security(None)),
             Some(host) => host,
         };
 
@@ -5540,7 +5540,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         if !self.origin.is_tuple() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         let url = self.url();
@@ -5561,7 +5561,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         if !self.origin.is_tuple() {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         if !cookie.is_valid_for_cookie() {
@@ -5827,7 +5827,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 4
         if !self.origin.same_origin(&entry_responsible_document.origin) {
-            return Err(Error::Security);
+            return Err(Error::Security(None));
         }
 
         // Step 5
@@ -5937,7 +5937,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
-            .ok_or(Error::InvalidAccess)?
+            .ok_or(Error::InvalidAccess(None))?
             .open(url, target, features, can_gc)
     }
 
@@ -6018,7 +6018,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
         match self.media_controls.borrow().get(&*id.str()) {
             Some(m) => Ok(DomRoot::from_ref(m)),
-            None => Err(Error::InvalidAccess),
+            None => Err(Error::InvalidAccess(None)),
         }
     }
 

@@ -529,7 +529,12 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
         if !JS_IsExceptionPending(*cx) {
             let global = D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
             // TODO: include `id` and `access` in the exception message
-            <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security, CanGc::note());
+            <D as DomHelpers<D>>::throw_dom_exception(
+                cx,
+                &global,
+                Error::Security(None),
+                CanGc::note(),
+            );
         }
     }
     false

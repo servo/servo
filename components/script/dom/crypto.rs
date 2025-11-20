@@ -56,7 +56,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
         let array_type = input.get_array_type();
 
         if !is_integer_buffer(array_type) {
-            Err(Error::TypeMismatch)
+            Err(Error::TypeMismatch(None))
         } else {
             let data = unsafe { input.as_mut_slice() };
             if data.len() > 65536 {

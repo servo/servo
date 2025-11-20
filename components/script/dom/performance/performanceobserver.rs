@@ -183,12 +183,12 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             },
             ObserverType::Single => {
                 if options.entryTypes.is_some() {
-                    return Err(Error::InvalidModification);
+                    return Err(Error::InvalidModification(None));
                 }
             },
             ObserverType::Multiple => {
                 if options.type_.is_some() {
-                    return Err(Error::InvalidModification);
+                    return Err(Error::InvalidModification(None));
                 }
             },
         }

@@ -47,7 +47,7 @@ impl FileReaderSync {
     }
 
     fn get_blob_bytes(blob: &Blob) -> Result<Vec<u8>, Error> {
-        blob.get_bytes().map_err(|_| Error::NotReadable)
+        blob.get_bytes().map_err(|_| Error::NotReadable(None))
     }
 }
 

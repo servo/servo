@@ -56,7 +56,7 @@ impl CredentialsContainer {
         }
         // Step 5. If options.signal is aborted, then return a promise rejected with options.signal’s abort reason.
         if options.signal.as_ref().is_some_and(|s| s.aborted()) {
-            return Err(Error::Abort);
+            return Err(Error::Abort(None));
         }
         Err(Error::NotSupported(None))
     }

@@ -142,7 +142,7 @@ impl AbortSignal {
             self.abort_reason.set(abort_reason);
         } else {
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            Error::Abort.to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
+            Error::Abort(None).to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
             self.abort_reason.set(rooted_error.get())
         }
 
@@ -373,7 +373,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
             signal.abort_reason.set(abort_reason);
         } else {
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            Error::Abort.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
+            Error::Abort(None).to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
             signal.abort_reason.set(rooted_error.get())
         }
 
@@ -412,7 +412,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
                     let cx = GlobalScope::get_cx();
                     rooted!(in(*cx) let mut reason = UndefinedValue());
-                    Error::Timeout.to_jsval(
+                    Error::Timeout(None).to_jsval(
                         cx,
                         &signal_for_task.global(),
                         reason.handle_mut(),

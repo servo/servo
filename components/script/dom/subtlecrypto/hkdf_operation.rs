@@ -26,15 +26,15 @@ pub(crate) fn derive_bits(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If length is null or is not a multiple of 8, then throw an OperationError.
     let Some(length) = length else {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
     if length % 8 != 0 {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
 
     // Step 2. Let keyDerivationKey be the secret represented by the [[handle]] internal slot of key.
     let Handle::HkdfSecret(key_derivation_key) = key.handle() else {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
 
     // Step 3. Let result be the result of performing the HKDF extract and then the HKDF expand
@@ -49,17 +49,17 @@ pub(crate) fn derive_bits(
     match normalized_algorithm.hash.name.as_str() {
         ALG_SHA1 => Hkdf::<Sha1>::new(Some(&normalized_algorithm.salt), key_derivation_key)
             .expand(&normalized_algorithm.info, &mut result)
-            .map_err(|_| Error::Operation)?,
+            .map_err(|_| Error::Operation(None))?,
         ALG_SHA256 => Hkdf::<Sha256>::new(Some(&normalized_algorithm.salt), key_derivation_key)
             .expand(&normalized_algorithm.info, &mut result)
-            .map_err(|_| Error::Operation)?,
+            .map_err(|_| Error::Operation(None))?,
         ALG_SHA384 => Hkdf::<Sha384>::new(Some(&normalized_algorithm.salt), key_derivation_key)
             .expand(&normalized_algorithm.info, &mut result)
-            .map_err(|_| Error::Operation)?,
+            .map_err(|_| Error::Operation(None))?,
         ALG_SHA512 => Hkdf::<Sha512>::new(Some(&normalized_algorithm.salt), key_derivation_key)
             .expand(&normalized_algorithm.info, &mut result)
-            .map_err(|_| Error::Operation)?,
-        _ => return Err(Error::Operation),
+            .map_err(|_| Error::Operation(None))?,
+        _ => return Err(Error::Operation(None)),
     }
 
     // Step 5. Return result.

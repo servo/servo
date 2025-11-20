@@ -50,7 +50,7 @@ pub(crate) fn sign(
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess);
+        return Err(Error::InvalidAccess(None));
     }
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
@@ -87,7 +87,7 @@ pub(crate) fn sign(
     //     and d and resulting in result.
     // NOTE: We currently do not support other applicable specifications.
     let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
     let result = match algorithm.named_curve.as_str() {
         NAMED_CURVE_P256 => {
@@ -96,12 +96,12 @@ pub(crate) fn sign(
             let m = expand_prehash(m, P256_PREHASH_LENGTH);
 
             let Handle::P256PrivateKey(d) = key.handle() else {
-                return Err(Error::Operation);
+                return Err(Error::Operation(None));
             };
             let signing_key = SigningKey::<NistP256>::from(d);
             let signature: Signature<NistP256> = signing_key
                 .sign_prehash_with_rng(&mut OsRng, m.as_slice())
-                .map_err(|_| Error::Operation)?;
+                .map_err(|_| Error::Operation(None))?;
             signature.to_vec()
         },
         NAMED_CURVE_P384 => {
@@ -110,12 +110,12 @@ pub(crate) fn sign(
             let m = expand_prehash(m, P384_PREHASH_LENGTH);
 
             let Handle::P384PrivateKey(d) = key.handle() else {
-                return Err(Error::Operation);
+                return Err(Error::Operation(None));
             };
             let signing_key = SigningKey::<NistP384>::from(d);
             let signature: Signature<NistP384> = signing_key
                 .sign_prehash_with_rng(&mut OsRng, m.as_slice())
-                .map_err(|_| Error::Abort)?;
+                .map_err(|_| Error::Abort(None))?;
             signature.to_vec()
         },
         NAMED_CURVE_P521 => {
@@ -124,13 +124,13 @@ pub(crate) fn sign(
             let m = expand_prehash(m, P521_PREHASH_LENGTH);
 
             let Handle::P521PrivateKey(d) = key.handle() else {
-                return Err(Error::Operation);
+                return Err(Error::Operation(None));
             };
             let signing_key = p521::ecdsa::SigningKey::from_slice(d.to_bytes().as_slice())
-                .map_err(|_| Error::Operation)?;
+                .map_err(|_| Error::Operation(None))?;
             let signature: Signature<NistP521> = signing_key
                 .sign_prehash_with_rng(&mut OsRng, m.as_slice())
-                .map_err(|_| Error::Operation)?;
+                .map_err(|_| Error::Operation(None))?;
             signature.to_vec()
         },
         _ => return Err(Error::NotSupported(None)),
@@ -150,7 +150,7 @@ pub(crate) fn verify(
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess);
+        return Err(Error::InvalidAccess(None));
     }
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
@@ -188,7 +188,7 @@ pub(crate) fn verify(
     // false otherwise.
     // NOTE: We currently do not support other applicable specifications.
     let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
-        return Err(Error::Operation);
+        return Err(Error::Operation(None));
     };
     let result = match algorithm.named_curve.as_str() {
         NAMED_CURVE_P256 => {
@@ -197,7 +197,7 @@ pub(crate) fn verify(
             let m = expand_prehash(m, P256_PREHASH_LENGTH);
 
             let Handle::P256PublicKey(q) = key.handle() else {
-                return Err(Error::Operation);
+                return Err(Error::Operation(None));
             };
             match Signature::<NistP256>::from_slice(signature) {
                 Ok(signature) => {
@@ -213,7 +213,7 @@ pub(crate) fn verify(
             let m = expand_prehash(m, P384_PREHASH_LENGTH);
 
             let Handle::P384PublicKey(q) = key.handle() else {
-                return Err(Error::Operation);
+                return Err(Error::Operation(None));
             };
             match Signature::<NistP384>::from_slice(signature) {
                 Ok(signature) => {
@@ -229,7 +229,7 @@ pub(crate) fn verify(
             let m = expand_prehash(m, P521_PREHASH_LENGTH);
 
             let Handle::P521PublicKey(q) = key.handle() else {
-                return Err(Error::Operation);
+                return Err(Error::Operation(None));
             };
             match (
                 Signature::<NistP521>::from_slice(signature),
@@ -392,13 +392,13 @@ pub(crate) fn import_key(
             // algorithm over keyData
             // Step 2.3. If an error occurred while parsing, then throw a DataError.
             let spki = SubjectPublicKeyInfo::<_, BitString>::from_der(key_data)
-                .map_err(|_| Error::Data)?;
+                .map_err(|_| Error::Data(None))?;
 
             // Step 2.4. If the algorithm object identifier field of the algorithm
             // AlgorithmIdentifier field of spki is not equal to the id-ecPublicKey object
             // identifier defined in [RFC5480], then throw a DataError.
             if spki.algorithm.oid != elliptic_curve::ALGORITHM_OID {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.5. If the parameters field of the algorithm AlgorithmIdentifier field of spki
@@ -408,7 +408,7 @@ pub(crate) fn import_key(
             // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
             let Some(params): Option<EcParameters> = spki.algorithm.parameters else {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             };
 
             // Step 2.8. Let namedCurve be a string whose initial value is undefined.
@@ -438,21 +438,24 @@ pub(crate) fn import_key(
                     // format and a compressed point is provided, throw a DataError.
                     // Step 2.10.4. If a decode error occurs or an identity point is found, throw a
                     // DataError.
-                    let sec1_bytes = spki.subject_public_key.as_bytes().ok_or(Error::Data)?;
+                    let sec1_bytes = spki
+                        .subject_public_key
+                        .as_bytes()
+                        .ok_or(Error::Data(None))?;
                     match curve {
                         NAMED_CURVE_P256 => {
                             let public_key = p256::PublicKey::from_sec1_bytes(sec1_bytes)
-                                .map_err(|_| Error::Data)?;
+                                .map_err(|_| Error::Data(None))?;
                             Handle::P256PublicKey(public_key)
                         },
                         NAMED_CURVE_P384 => {
                             let public_key = p384::PublicKey::from_sec1_bytes(sec1_bytes)
-                                .map_err(|_| Error::Data)?;
+                                .map_err(|_| Error::Data(None))?;
                             Handle::P384PublicKey(public_key)
                         },
                         NAMED_CURVE_P521 => {
                             let public_key = p521::PublicKey::from_sec1_bytes(sec1_bytes)
-                                .map_err(|_| Error::Data)?;
+                                .map_err(|_| Error::Data(None))?;
                             Handle::P521PublicKey(public_key)
                         },
                         _ => unreachable!(),
@@ -468,14 +471,14 @@ pub(crate) fn import_key(
                     // Step 2.10.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support other applicable specifications.
-                    return Err(Error::Data);
+                    return Err(Error::Data(None));
                 },
             };
 
             // Step 2.11. If namedCurve is defined, and not equal to the namedCurve member of
             // normalizedAlgorithm, throw a DataError.
             if named_curve.is_some_and(|curve| curve != normalized_algorithm.named_curve) {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.12. If the key value is not a valid point on the Elliptic Curve identified by
@@ -513,13 +516,14 @@ pub(crate) fn import_key(
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
             // Step 2.3. If an error occurs while parsing, throw a DataError.
-            let private_key_info = PrivateKeyInfo::from_der(key_data).map_err(|_| Error::Data)?;
+            let private_key_info =
+                PrivateKeyInfo::from_der(key_data).map_err(|_| Error::Data(None))?;
 
             // Step 2.4. If the algorithm object identifier field of the privateKeyAlgorithm
             // PrivateKeyAlgorithm field of privateKeyInfo is not equal to the id-ecPublicKey
             // object identifier defined in [RFC5480], throw a DataError.
             if private_key_info.algorithm.oid != elliptic_curve::ALGORITHM_OID {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.5. If the parameters field of the privateKeyAlgorithm
@@ -530,9 +534,9 @@ pub(crate) fn import_key(
             // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
             let params: EcParameters = if let Some(params) = private_key_info.algorithm.parameters {
-                params.decode_as().map_err(|_| Error::Data)?
+                params.decode_as().map_err(|_| Error::Data(None))?
             } else {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             };
 
             // Step 2.8. Let namedCurve be a string whose initial value is undefined.
@@ -560,7 +564,7 @@ pub(crate) fn import_key(
                     // [RFC5915], and exactData set to true.
                     // Step 2.10.2. If an error occurred while parsing, then throw a DataError.
                     let ec_private_key = EcPrivateKey::try_from(private_key_info.private_key)
-                        .map_err(|_| Error::Data)?;
+                        .map_err(|_| Error::Data(None))?;
 
                     // Step 2.10.3. If the parameters field of ecPrivateKey is present, and is not
                     // an instance of the namedCurve ASN.1 type defined in [RFC5480], or does not
@@ -571,7 +575,7 @@ pub(crate) fn import_key(
                         .parameters
                         .is_some_and(|parameters| parameters != params)
                     {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
 
                     // Step 2.10.4. Let key be a new CryptoKey that represents the Elliptic Curve
@@ -581,17 +585,17 @@ pub(crate) fn import_key(
                     match curve {
                         NAMED_CURVE_P256 => {
                             let private_key = p256::SecretKey::try_from(ec_private_key)
-                                .map_err(|_| Error::Data)?;
+                                .map_err(|_| Error::Data(None))?;
                             Handle::P256PrivateKey(private_key)
                         },
                         NAMED_CURVE_P384 => {
                             let private_key = p384::SecretKey::try_from(ec_private_key)
-                                .map_err(|_| Error::Data)?;
+                                .map_err(|_| Error::Data(None))?;
                             Handle::P384PrivateKey(private_key)
                         },
                         NAMED_CURVE_P521 => {
                             let private_key = p521::SecretKey::try_from(ec_private_key)
-                                .map_err(|_| Error::Data)?;
+                                .map_err(|_| Error::Data(None))?;
                             Handle::P521PrivateKey(private_key)
                         },
                         _ => unreachable!(),
@@ -605,14 +609,14 @@ pub(crate) fn import_key(
                     // Step 2.10.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support other applicable specifications.
-                    return Err(Error::Data);
+                    return Err(Error::Data(None));
                 },
             };
 
             // Step 2.11. If namedCurve is defined, and not equal to the namedCurve member of
             // normalizedAlgorithm, throw a DataError.
             if named_curve.is_some_and(|curve| curve != normalized_algorithm.named_curve) {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.12. If the private key value is not a valid point on the Elliptic Curve
@@ -660,13 +664,13 @@ pub(crate) fn import_key(
 
             // Step 2.3. If the kty field of jwk is not "EC", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "EC") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.4. If usages is non-empty and the use field of jwk is present and is not
             // "sig", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sig") {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.5. If the key_ops field of jwk is present, and is invalid according to the
@@ -677,7 +681,7 @@ pub(crate) fn import_key(
             // Step 2.6. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.7. Let namedCurve be a string whose value is equal to the crv field of jwk.
@@ -687,7 +691,7 @@ pub(crate) fn import_key(
                 .crv
                 .filter(|crv| *crv == normalized_algorithm.named_curve)
                 .map(|crv| crv.to_string())
-                .ok_or(Error::Data)?;
+                .ok_or(Error::Data(None))?;
 
             // Step 2.9.
             let (handle, key_type) =
@@ -714,13 +718,13 @@ pub(crate) fn import_key(
                         Some("ES256") => Some(NAMED_CURVE_P256),
                         Some("ES384") => Some(NAMED_CURVE_P384),
                         Some("ES521") => Some(NAMED_CURVE_P521),
-                        _ => return Err(Error::Data),
+                        _ => return Err(Error::Data(None)),
                     };
 
                     // Step 9.3. If algNamedCurve is defined, and is not equal to namedCurve, throw
                     // a DataError.
                     if alg_named_curve.is_some_and(|alg_named_curve| alg_named_curve != named_curve) {
-                        return Err(Error::Data);
+                        return Err(Error::Data(None));
                     }
 
                     match jwk.d {
@@ -730,16 +734,16 @@ pub(crate) fn import_key(
                             // JSON Web Algorithms [JWA], then throw a DataError.
                             let x = match jwk.x {
                                 Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
-                                    .map_err(|_| Error::Data)?,
-                                None => return Err(Error::Data),
+                                    .map_err(|_| Error::Data(None))?,
+                                None => return Err(Error::Data(None)),
                             };
                             let y = match jwk.y {
                                 Some(y) => Base64UrlUnpadded::decode_vec(&y.str())
-                                    .map_err(|_| Error::Data)?,
-                                None => return Err(Error::Data),
+                                    .map_err(|_| Error::Data(None))?,
+                                None => return Err(Error::Data(None)),
                             };
                             let d =
-                                Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data)?;
+                                Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data(None))?;
 
                             // Step 2.9.2. Let key be a new CryptoKey object that represents the
                             // Elliptic Curve private key identified by interpreting jwk according to
@@ -748,38 +752,38 @@ pub(crate) fn import_key(
                             let handle = match named_curve.as_str() {
                                 NAMED_CURVE_P256 => {
                                     let private_key =
-                                        p256::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
+                                        p256::SecretKey::from_slice(&d).map_err(|_| Error::Data(None))?;
                                     let mut sec1_bytes = vec![4u8];
                                     sec1_bytes.extend_from_slice(&x);
                                     sec1_bytes.extend_from_slice(&y);
                                     let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     NistP256::validate_public_key(&private_key, &encoded_point)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     Handle::P256PrivateKey(private_key)
                                 },
                                 NAMED_CURVE_P384 => {
                                     let private_key =
-                                        p384::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
+                                        p384::SecretKey::from_slice(&d).map_err(|_| Error::Data(None))?;
                                     let mut sec1_bytes = vec![4u8];
                                     sec1_bytes.extend_from_slice(&x);
                                     sec1_bytes.extend_from_slice(&y);
                                     let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     NistP384::validate_public_key(&private_key, &encoded_point)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     Handle::P384PrivateKey(private_key)
                                 },
                                 NAMED_CURVE_P521 => {
                                     let private_key =
-                                        p521::SecretKey::from_slice(&d).map_err(|_| Error::Data)?;
+                                        p521::SecretKey::from_slice(&d).map_err(|_| Error::Data(None))?;
                                     let mut sec1_bytes = vec![4u8];
                                     sec1_bytes.extend_from_slice(&x);
                                     sec1_bytes.extend_from_slice(&y);
                                     let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     NistP521::validate_public_key(&private_key, &encoded_point)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     Handle::P521PrivateKey(private_key)
                                 },
                                 _ => unreachable!(),
@@ -796,13 +800,13 @@ pub(crate) fn import_key(
                             // JSON Web Algorithms [JWA], then throw a DataError.
                             let x = match jwk.x {
                                 Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
-                                    .map_err(|_| Error::Data)?,
-                                None => return Err(Error::Data),
+                                    .map_err(|_| Error::Data(None))?,
+                                None => return Err(Error::Data(None)),
                             };
                             let y = match jwk.y {
                                 Some(y) => Base64UrlUnpadded::decode_vec(&y.str())
-                                    .map_err(|_| Error::Data)?,
-                                None => return Err(Error::Data),
+                                    .map_err(|_| Error::Data(None))?,
+                                None => return Err(Error::Data(None)),
                             };
 
                             // Step 2.9.2. Let key be a new CryptoKey object that represents the
@@ -815,11 +819,11 @@ pub(crate) fn import_key(
                                     sec1_bytes.extend_from_slice(&x);
                                     sec1_bytes.extend_from_slice(&y);
                                     let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     let public_key =
                                         p256::PublicKey::from_encoded_point(&encoded_point)
                                             .into_option()
-                                            .ok_or(Error::Data)?;
+                                            .ok_or(Error::Data(None))?;
                                     Handle::P256PublicKey(public_key)
                                 },
                                 NAMED_CURVE_P384 => {
@@ -827,11 +831,11 @@ pub(crate) fn import_key(
                                     sec1_bytes.extend_from_slice(&x);
                                     sec1_bytes.extend_from_slice(&y);
                                     let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     let public_key =
                                         p384::PublicKey::from_encoded_point(&encoded_point)
                                             .into_option()
-                                            .ok_or(Error::Data)?;
+                                            .ok_or(Error::Data(None))?;
                                     Handle::P384PublicKey(public_key)
                                 },
                                 NAMED_CURVE_P521 => {
@@ -839,11 +843,11 @@ pub(crate) fn import_key(
                                     sec1_bytes.extend_from_slice(&x);
                                     sec1_bytes.extend_from_slice(&y);
                                     let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                        .map_err(|_| Error::Data)?;
+                                        .map_err(|_| Error::Data(None))?;
                                     let public_key =
                                         p521::PublicKey::from_encoded_point(&encoded_point)
                                             .into_option()
-                                            .ok_or(Error::Data)?;
+                                            .ok_or(Error::Data(None))?;
                                     Handle::P521PublicKey(public_key)
                                 },
                                 _ => unreachable!(),
@@ -863,7 +867,7 @@ pub(crate) fn import_key(
                     // Step 2.9.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support other applicable specifications.
-                    return Err(Error::Data);
+                    return Err(Error::Data(None));
                 };
 
             // Step 2.10. If the key value is not a valid point on the Elliptic Curve identified by
@@ -896,7 +900,7 @@ pub(crate) fn import_key(
                 .iter()
                 .any(|&supported_curve| supported_curve == normalized_algorithm.named_curve)
             {
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             }
 
             // Step 2.2. If usages contains a value which is not "verify" then throw a SyntaxError.
@@ -920,18 +924,18 @@ pub(crate) fn import_key(
                 // DataError.
                 match normalized_algorithm.named_curve.as_str() {
                     NAMED_CURVE_P256 => {
-                        let q =
-                            p256::PublicKey::from_sec1_bytes(key_data).map_err(|_| Error::Data)?;
+                        let q = p256::PublicKey::from_sec1_bytes(key_data)
+                            .map_err(|_| Error::Data(None))?;
                         Handle::P256PublicKey(q)
                     },
                     NAMED_CURVE_P384 => {
-                        let q =
-                            p384::PublicKey::from_sec1_bytes(key_data).map_err(|_| Error::Data)?;
+                        let q = p384::PublicKey::from_sec1_bytes(key_data)
+                            .map_err(|_| Error::Data(None))?;
                         Handle::P384PublicKey(q)
                     },
                     NAMED_CURVE_P521 => {
-                        let q =
-                            p521::PublicKey::from_sec1_bytes(key_data).map_err(|_| Error::Data)?;
+                        let q = p521::PublicKey::from_sec1_bytes(key_data)
+                            .map_err(|_| Error::Data(None))?;
                         Handle::P521PublicKey(q)
                     },
                     _ => unreachable!(),
@@ -947,7 +951,7 @@ pub(crate) fn import_key(
                 // Step. 2.3.2. If an error occured or there are no applicable specifications,
                 // throw a DataError.
                 // NOTE: We currently do not support other applicable specifications.
-                return Err(Error::Data);
+                return Err(Error::Data(None));
             };
 
             // Step 2.4. Let algorithm be a new EcKeyAlgorithm object.
@@ -992,7 +996,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess);
+                return Err(Error::InvalidAccess(None));
             }
 
             // Step 3.2.
@@ -1034,9 +1038,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 Handle::P256PublicKey(public_key) => public_key.to_public_key_der(),
                 Handle::P384PublicKey(public_key) => public_key.to_public_key_der(),
                 Handle::P521PublicKey(public_key) => public_key.to_public_key_der(),
-                _ => return Err(Error::Operation),
+                _ => return Err(Error::Operation(None)),
             }
-            .map_err(|_| Error::Operation)?;
+            .map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
             ExportedKey::Raw(data.to_vec())
@@ -1046,7 +1050,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess);
+                return Err(Error::InvalidAccess(None));
             }
 
             // Step 3.2.
@@ -1095,9 +1099,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 Handle::P256PrivateKey(private_key) => private_key.to_pkcs8_der(),
                 Handle::P384PrivateKey(private_key) => private_key.to_pkcs8_der(),
                 Handle::P521PrivateKey(private_key) => private_key.to_pkcs8_der(),
-                _ => return Err(Error::Operation),
+                _ => return Err(Error::Operation(None)),
             }
-            .map_err(|_| Error::Operation)?;
+            .map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
             ExportedKey::Raw(data.as_bytes().to_vec())
@@ -1113,7 +1117,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
             // Step 3.3.
             let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
-                return Err(Error::Operation);
+                return Err(Error::Operation(None));
             };
             // If the namedCurve attribute of the [[algorithm]] internal slot of key is "P-256",
             // "P-384" or "P-521":
@@ -1141,49 +1145,49 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     Handle::P256PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
                         )
                     },
                     Handle::P384PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
                         )
                     },
                     Handle::P521PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
                         )
                     },
                     Handle::P256PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
                         )
                     },
                     Handle::P384PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
                         )
                     },
                     Handle::P521PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation)?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation)?.to_vec(),
+                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
                         )
                     },
-                    _ => return Err(Error::Operation),
+                    _ => return Err(Error::Operation(None)),
                 };
                 jwk.x = Some(Base64UrlUnpadded::encode_string(&x).into());
                 jwk.y = Some(Base64UrlUnpadded::encode_string(&y).into());
@@ -1231,7 +1235,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess);
+                return Err(Error::InvalidAccess(None));
             }
 
             // Step 3.2.
@@ -1249,7 +1253,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 if let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() {
                     algorithm.named_curve.as_str()
                 } else {
-                    return Err(Error::Operation);
+                    return Err(Error::Operation(None));
                 };
             let data = if matches!(
                 named_curve,
@@ -1259,7 +1263,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     Handle::P256PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
                     Handle::P384PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
                     Handle::P521PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
-                    _ => return Err(Error::Operation),
+                    _ => return Err(Error::Operation(None)),
                 }
             } else {
                 return Err(Error::NotSupported(None));
