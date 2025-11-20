@@ -9,6 +9,7 @@ mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
+mod sha3_operation;
 mod sha_operation;
 mod x25519_operation;
 
@@ -51,47 +52,56 @@ use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 
-// String constants for algorithms/curves
-const ALG_AES_CBC: &str = "AES-CBC";
+// Regconized algorithm name from <https://w3c.github.io/webcrypto/>
+const ALG_RSASSA_PKCS1: &str = "RSASSA-PKCS1-v1_5";
+const ALG_RSA_PSS: &str = "RSA-PSS";
+const ALG_RSA_OAEP: &str = "RSA-OAEP";
+const ALG_ECDSA: &str = "ECDSA";
+const ALG_ECDH: &str = "ECDH";
+const ALG_ED25519: &str = "Ed25519";
+const ALG_X25519: &str = "X25519";
 const ALG_AES_CTR: &str = "AES-CTR";
+const ALG_AES_CBC: &str = "AES-CBC";
 const ALG_AES_GCM: &str = "AES-GCM";
 const ALG_AES_KW: &str = "AES-KW";
+const ALG_HMAC: &str = "HMAC";
 const ALG_SHA1: &str = "SHA-1";
 const ALG_SHA256: &str = "SHA-256";
 const ALG_SHA384: &str = "SHA-384";
 const ALG_SHA512: &str = "SHA-512";
-const ALG_HMAC: &str = "HMAC";
 const ALG_HKDF: &str = "HKDF";
 const ALG_PBKDF2: &str = "PBKDF2";
-const ALG_RSASSA_PKCS1: &str = "RSASSA-PKCS1-v1_5";
-const ALG_RSA_OAEP: &str = "RSA-OAEP";
-const ALG_RSA_PSS: &str = "RSA-PSS";
-const ALG_ECDH: &str = "ECDH";
-const ALG_ECDSA: &str = "ECDSA";
-const ALG_ED25519: &str = "Ed25519";
-const ALG_X25519: &str = "X25519";
+
+// Regconized algorithm name from <https://wicg.github.io/webcrypto-modern-algos/>
+const ALG_SHA3_256: &str = "SHA3-256";
+const ALG_SHA3_384: &str = "SHA3-384";
+const ALG_SHA3_512: &str = "SHA3-512";
 
 static SUPPORTED_ALGORITHMS: &[&str] = &[
-    ALG_AES_CBC,
+    ALG_RSASSA_PKCS1,
+    ALG_RSA_PSS,
+    ALG_RSA_OAEP,
+    ALG_ECDSA,
+    ALG_ECDH,
+    ALG_ED25519,
+    ALG_X25519,
     ALG_AES_CTR,
+    ALG_AES_CBC,
     ALG_AES_GCM,
     ALG_AES_KW,
+    ALG_HMAC,
     ALG_SHA1,
     ALG_SHA256,
     ALG_SHA384,
     ALG_SHA512,
-    ALG_HMAC,
     ALG_HKDF,
     ALG_PBKDF2,
-    ALG_RSASSA_PKCS1,
-    ALG_RSA_OAEP,
-    ALG_RSA_PSS,
-    ALG_ECDH,
-    ALG_ECDSA,
-    ALG_ED25519,
-    ALG_X25519,
+    ALG_SHA3_256,
+    ALG_SHA3_384,
+    ALG_SHA3_512,
 ];
 
+// Named elliptic curves
 const NAMED_CURVE_P256: &str = "P-256";
 const NAMED_CURVE_P384: &str = "P-384";
 const NAMED_CURVE_P521: &str = "P-521";
@@ -2782,6 +2792,26 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
 
+                // <https://wicg.github.io/webcrypto-modern-algos/#sha3-registration>
+                (ALG_SHA3_256, Operation::Digest) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_SHA3_384, Operation::Digest) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_SHA3_512, Operation::Digest) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 _ => return Err(Error::NotSupported(None)),
             };
 
@@ -2883,6 +2913,15 @@ impl NormalizedAlgorithm {
             },
             (ALG_SHA512, NormalizedAlgorithm::Algorithm(algo)) => {
                 sha_operation::digest(algo, message)
+            },
+            (ALG_SHA3_256, NormalizedAlgorithm::Algorithm(algo)) => {
+                sha3_operation::digest(algo, message)
+            },
+            (ALG_SHA3_384, NormalizedAlgorithm::Algorithm(algo)) => {
+                sha3_operation::digest(algo, message)
+            },
+            (ALG_SHA3_512, NormalizedAlgorithm::Algorithm(algo)) => {
+                sha3_operation::digest(algo, message)
             },
             _ => Err(Error::NotSupported(None)),
         }
