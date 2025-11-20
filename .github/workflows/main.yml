@@ -35,7 +35,7 @@ jobs:
         run: |
           {
             echo 'result<<EOF'
-            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'fail-fast full macos bencher production-bencher coverage' || 'fail-fast full macos-arm-unit-tests' }}
+            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'full macos bencher production-bencher coverage' || 'fail-fast full macos-arm-unit-tests' }}
             echo EOF
            } >> $GITHUB_OUTPUT
 
