@@ -158,7 +158,7 @@ mod media_platform {
             ) {
                 Ok(b) => b,
                 Err(e) => {
-                    eprintln!("Error initializing GStreamer: {:?}", e);
+                    log::error!("Error initializing GStreamer: {:?}", e);
                     std::process::exit(1);
                 },
             }

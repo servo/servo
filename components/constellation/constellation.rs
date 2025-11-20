@@ -2752,7 +2752,7 @@ where
         if self.hard_fail {
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
-            println!("Pipeline failed in hard-fail mode.  Crashing!");
+            error!("Pipeline failed in hard-fail mode.  Crashing!");
             process::exit(1);
         }
 

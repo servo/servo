@@ -1131,7 +1131,7 @@ impl HTMLFormElement {
 
         for elem in unhandled_invalid_controls {
             if let Some(validatable) = elem.as_maybe_validatable() {
-                println!("Validation error: {}", validatable.validation_message());
+                error!("Validation error: {}", validatable.validation_message());
             }
             if first {
                 if let Some(html_elem) = elem.downcast::<HTMLElement>() {

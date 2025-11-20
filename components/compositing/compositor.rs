@@ -675,11 +675,11 @@ impl IOCompositor {
             .find(|val| create_dir_all(val).is_ok());
 
         let Some(capture_path) = available_path else {
-            eprintln!("Couldn't create a path for WebRender captures.");
+            log::error!("Couldn't create a path for WebRender captures.");
             return;
         };
 
-        println!("Saving WebRender capture to {capture_path:?}");
+        log::info!("Saving WebRender capture to {capture_path:?}");
         self.painter()
             .webrender_api
             .save_capture(capture_path.clone(), CaptureBits::all());

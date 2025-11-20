@@ -377,7 +377,7 @@ impl ServiceWorkerGlobalScope {
                     CanGc::note(),
                 ) {
                     Err(_) => {
-                        println!("error loading script {}", serialized_worker_url);
+                        error!("error loading script {}", serialized_worker_url);
                         worker_scope.clear_js_runtime();
                         return;
                     },
