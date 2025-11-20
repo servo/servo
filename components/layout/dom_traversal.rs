@@ -84,8 +84,6 @@ pub(super) enum Contents {
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContents),
-    /// Example: an `<video controls> element.`
-    ReplacedWithWidget(ReplacedContents, NonReplacedContents),
 }
 
 #[derive(Debug)]
@@ -131,7 +129,11 @@ fn traverse_children_of<'dom>(
     parent_element_info
         .node
         .set_uses_content_attribute_with_attr(false);
-    traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
+
+    let is_element = parent_element_info.pseudo_element_chain().is_empty();
+    if is_element {
+        traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
+    }
 
     // TODO(stevennovaryo): In the past we are rendering text input as a normal element,
     //                      and the processing of text is happening here. Remove this
@@ -159,7 +161,9 @@ fn traverse_children_of<'dom>(
         }
     }
 
-    traverse_eager_pseudo_element(PseudoElement::After, parent_element_info, context, handler);
+    if is_element {
+        traverse_eager_pseudo_element(PseudoElement::After, parent_element_info, context, handler);
+    }
 }
 
 fn traverse_element<'dom>(
@@ -289,13 +293,6 @@ impl Contents {
         context: &LayoutContext,
     ) -> Self {
         if let Some(replaced) = ReplacedContents::for_element(node, context) {
-            if let Some(element) = node.as_element() {
-                if let Some(shadow_root) = element.shadow_root() {
-                    if shadow_root.is_ua_widget() {
-                        return Self::ReplacedWithWidget(replaced, NonReplacedContents::OfElement);
-                    }
-                }
-            }
             return Self::Replaced(replaced);
         }
         let is_widget = matches!(
@@ -319,9 +316,7 @@ impl Contents {
 
     pub(crate) fn non_replaced_contents(self) -> Option<NonReplacedContents> {
         match self {
-            Self::NonReplaced(contents) |
-            Self::Widget(contents) |
-            Self::ReplacedWithWidget(_, contents) => Some(contents),
+            Self::NonReplaced(contents) | Self::Widget(contents) => Some(contents),
             Self::Replaced(_) => None,
         }
     }
