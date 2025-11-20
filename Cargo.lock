@@ -5447,7 +5447,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.2"
-source = "git+https://github.com/jschwe/mozjs?branch=flag_disable_jit2#352f50127e73ef1c1b31cae445b33411ef2759a5"
+source = "git+https://github.com/servo/mozjs#e1f9c3a3e5e2ebd78bbff7ed8ce4f2d9ee991b46"
 dependencies = [
  "bindgen 0.72.1",
  "cc",
@@ -5460,7 +5460,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.140.5-3"
-source = "git+https://github.com/jschwe/mozjs?branch=flag_disable_jit2#352f50127e73ef1c1b31cae445b33411ef2759a5"
+source = "git+https://github.com/servo/mozjs#e1f9c3a3e5e2ebd78bbff7ed8ce4f2d9ee991b46"
 dependencies = [
  "bindgen 0.72.1",
  "cc",
