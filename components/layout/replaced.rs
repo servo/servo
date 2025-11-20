@@ -204,9 +204,9 @@ impl ReplacedContents {
                     _ => unreachable!("SVG element can't contain a raster image."),
                 });
                 let natural_size = NaturalSizes {
-                    width: svg_data.width.map(Au::from_px),
-                    height: svg_data.height.map(Au::from_px),
-                    ratio: svg_data.ratio,
+                    width: svg_data.width.map(|_| todo!()),
+                    height: svg_data.height.map(|_| todo!()),
+                    ratio: todo!(),
                 };
                 (ReplacedContentKind::SVGElement(vector_image), natural_size)
             } else {

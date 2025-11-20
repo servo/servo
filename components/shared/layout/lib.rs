@@ -45,6 +45,7 @@ use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
+use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::data::ElementData;
 use style::dom::OpaqueNode;
@@ -132,12 +133,11 @@ pub struct HTMLCanvasData {
     pub height: u32,
 }
 
-pub struct SVGElementData {
+pub struct SVGElementData<'dom> {
     /// The SVG's XML source represented as a base64 encoded `data:` url.
     pub source: Option<Result<ServoUrl, ()>>,
-    pub width: Option<i32>,
-    pub height: Option<i32>,
-    pub ratio: Option<f32>,
+    pub width: Option<&'dom AttrValue>,
+    pub height: Option<&'dom AttrValue>,
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
