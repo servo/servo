@@ -16,12 +16,15 @@ use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
+use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
+use style::rule_cache::RuleCacheConditions;
 use style::servo::url::ComputedUrl;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
+use style::values::computed::{Context, ToComputedValue};
 use url::Url;
 use webrender_api::ImageKey;
 
@@ -203,10 +206,36 @@ impl ReplacedContents {
                     Image::Vector(vector_image) => vector_image,
                     _ => unreachable!("SVG element can't contain a raster image."),
                 });
+
+                // TODO: are these two correct?
+                let rule_cache_conditions = &mut RuleCacheConditions::default();
+                let context = Context::new_for_initial_at_property_value(
+                    context.style_context.stylist,
+                    rule_cache_conditions,
+                );
+                let attr_val_to_computed_au = |attr_val: &AttrValue| {
+                    if let AttrValue::Length(_, length) = attr_val {
+                        length
+                            .to_computed_value(&context)
+                            .map(|csspx| Au::new(csspx.to_i32_au()))
+                    } else {
+                        // TODO: or zero??
+                        None
+                    }
+                };
+                let width = svg_data.width.and_then(attr_val_to_computed_au);
+                let height = svg_data.width.and_then(attr_val_to_computed_au);
+
+                eprintln!(
+                    "svg width: {:?}, svg height: {:?}",
+                    svg_data.width, svg_data.height
+                );
+                eprintln!("computed width: {:?}, computed height: {:?}", width, height);
+
                 let natural_size = NaturalSizes {
-                    width: svg_data.width.map(|_| todo!()),
-                    height: svg_data.height.map(|_| todo!()),
-                    ratio: todo!(),
+                    width,
+                    height,
+                    ratio: Some(1.0),
                 };
                 (ReplacedContentKind::SVGElement(vector_image), natural_size)
             } else {
