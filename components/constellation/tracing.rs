@@ -170,6 +170,8 @@ mod from_script {
                 Self::PipelineExited => target!("PipelineExited"),
                 Self::ForwardDOMMessage(..) => target!("ForwardDOMMessage"),
                 Self::ScheduleJob(..) => target!("ScheduleJob"),
+                Self::MatchRegistration { .. } => target!("MatchRegistration"),
+                Self::GetRegistrations { .. } => target!("GetRegistrations"),
                 Self::MediaSessionEvent(..) => target!("MediaSessionEvent"),
                 #[cfg(feature = "webgpu")]
                 Self::RequestAdapter(..) => target!("RequestAdapter"),

@@ -10,13 +10,16 @@ use constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
 };
 use dom_struct::dom_struct;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
@@ -180,6 +183,164 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             .send(ScriptToConstellationMessage::ScheduleJob(job));
 
         // A: Step 7
+        promise
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistration>
+    fn GetRegistration(&self, client_url: USVString) -> Rc<Promise> {
+        let global = self.global();
+        // Step 1. Let client be this’s service worker client.
+        // self.client is the client.
+        // Step 2. Let storage key be the result of running obtain a storage key given client.
+        let storage_key = match self.client.obtain_storage_key() {
+            Ok(key) => key,
+            Err(()) => {
+                let promise = Promise::new(&global, CanGc::note());
+                promise.reject_error(Error::InvalidAccess, CanGc::note());
+                return promise;
+            },
+        };
+        // Step 3. Let clientURL be the result of parsing clientURL with this’s relevant settings object’s API base URL.
+        let mut client_url = match global.api_base_url().join(client_url.0.as_str()) {
+            Ok(url) => url,
+            Err(_) => {
+                // Step 4. If clientURL is failure, return a promise rejected with a TypeError.
+                let promise = Promise::new(&global, CanGc::note());
+                promise.reject_error(Error::Type("Invalid URL".to_string()), CanGc::note());
+                return promise;
+            },
+        };
+        // Step 5. Set clientURL’s fragment to null.
+        client_url.set_fragment(None);
+        // Step 6. If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
+        if client_url.origin() != self.client.creation_url().origin() {
+            let promise = Promise::new(&global, CanGc::note());
+            promise.reject_error(Error::Security, CanGc::note());
+            return promise;
+        }
+        // Step 7. Let promise be a new promise.
+        let promise = Promise::new(&global, CanGc::note());
+        // Step 8. Run the following substeps in parallel:
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        let (sender, receiver) = ipc::channel().unwrap();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        // Step 8.1. Let registration be the result of running Match Service Worker Registration given storage key and clientURL.
+        let message = ScriptToConstellationMessage::MatchRegistration {
+            storage_key,
+            url: client_url,
+            sender: sender.clone(),
+        };
+        let _ = script_to_constellation_chan.send(message);
+        ROUTER.add_typed_route(
+            receiver,
+            Box::new({
+                let mut trusted_promise = Some(TrustedPromise::new(promise.clone()));
+                let creation_url = self.client.creation_url();
+                let trusted_self = Trusted::new(self);
+
+                move |message| {                    // FIXME(arihant2math): Can be made more ergonomic once servo/ipc-channel#418 is merged.
+                    let creation_url = creation_url.clone();
+                    let trusted_self = trusted_self.clone();
+                    let trusted_promise = trusted_promise
+                        .take()
+                        .expect("router handler is only called once");
+
+                    task_source.queue(task!(resolve_promise: move || {
+                    let message = message.unwrap_or(None);
+                    // Step 8.2. If registration is null, resolve promise with undefined and abort these steps.
+                    match message {
+                        Some(id) => {
+                            let registration = trusted_self.root().global().get_serviceworker_registration(
+                                &creation_url,
+                                &creation_url,
+                                id,
+                                None,
+                                None,
+                                None,
+                                CanGc::note(),
+                            );
+                            trusted_promise.root().resolve_native(&registration, CanGc::note());
+                        }
+                        None => {
+                            trusted_promise.root().resolve_native(&UndefinedValue(), CanGc::note());
+                        }
+                    }
+                    }));
+                    // Step 8.3. Resolve promise with the result of getting the service worker registration object that represents registration in promise’s relevant settings object.
+                }
+            })
+        );
+        // Step 9. Return promise.
+        promise
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-getRegistrations>
+    #[allow(unsafe_code)]
+    fn GetRegistrations(&self) -> Rc<Promise> {
+        let global = self.global();
+        // Step 1. Let client be this’s service worker client.
+        // Step 2. Let client storage key be the result of running obtain a storage key given client.
+        let storage_key = match self.client.obtain_storage_key() {
+            Ok(key) => key,
+            Err(()) => {
+                let promise = Promise::new(&global, CanGc::note());
+                promise.reject_error(Error::InvalidAccess, CanGc::note());
+                return promise;
+            },
+        };
+        // Step 3. Let promise be a new promise.
+        let promise = Promise::new(&global, CanGc::note());
+        // Step 4. Run the following steps in parallel:
+        let (sender, receiver) = ipc::channel().unwrap();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        let message = ScriptToConstellationMessage::GetRegistrations {
+            storage_key,
+            sender,
+        };
+        let _ = script_to_constellation_chan.send(message);
+
+        ROUTER.add_typed_route(
+            receiver,
+            Box::new({
+                let mut trusted_promise = Some(TrustedPromise::new(promise.clone()));
+                let creation_url = self.client.creation_url();
+                let trusted_self = Trusted::new(self);
+
+                move |message| {
+                    let creation_url = creation_url.clone();
+                    // FIXME(arihant2math): Can be made more ergonomic once servo/ipc-channel#418 is merged.
+                    let trusted_self = trusted_self.clone();
+                    let trusted_promise = trusted_promise
+                        .take()
+                        .expect("router handler is only called once");
+
+                    task_source.queue(task!(resolve_promise: move || {
+                        let registration_ids = message.unwrap_or_default();
+                        let mut registrations = Vec::with_capacity(registration_ids.len());
+                        for registration in registration_ids {
+                            let reg = trusted_self.root().global().get_serviceworker_registration(
+                                &creation_url,
+                                &creation_url,
+                                registration,
+                                None,
+                                None,
+                                None,
+                                CanGc::note(),
+                            );
+                            registrations.push(reg);
+                        }
+                        trusted_promise.root().resolve_native(&registrations, CanGc::note())
+                    }));
+                }
+            }),
+        );
         promise
     }
 }
