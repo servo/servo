@@ -475,7 +475,6 @@ enum LoopCondition {
 }
 
 #[dom_struct]
-#[allow(non_snake_case)]
 pub(crate) struct HTMLMediaElement {
     htmlelement: HTMLElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -497,9 +496,9 @@ pub(crate) struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-media-paused>
     paused: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
-    defaultPlaybackRate: Cell<f64>,
+    default_playback_rate: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
-    playbackRate: Cell<f64>,
+    playback_rate: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#attr-media-autoplay>
     autoplaying: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
@@ -612,8 +611,8 @@ impl HTMLMediaElement {
             fired_loadeddata_event: Cell::new(false),
             error: Default::default(),
             paused: Cell::new(true),
-            defaultPlaybackRate: Cell::new(1.0),
-            playbackRate: Cell::new(1.0),
+            default_playback_rate: Cell::new(1.0),
+            playback_rate: Cell::new(1.0),
             muted: Cell::new(false),
             load_state: Cell::new(LoadState::NotLoaded),
             source_children_pointer: DomRefCell::new(None),
@@ -667,11 +666,11 @@ impl HTMLMediaElement {
 
     fn play_media(&self) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.lock().unwrap().set_rate(self.playbackRate.get()) {
-                warn!("Could not set the playback rate {:?}", e);
+            if let Err(err) = player.lock().unwrap().set_rate(self.playback_rate.get()) {
+                warn!("Could not set the playback rate {:?}", err);
             }
-            if let Err(e) = player.lock().unwrap().play() {
-                warn!("Could not play media {:?}", e);
+            if let Err(err) = player.lock().unwrap().play() {
+                warn!("Could not play media {:?}", err);
             }
         }
     }
@@ -693,14 +692,15 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
     fn time_marches_on(&self) {
-        // Step 6.
+        // Step 6. If the time was reached through the usual monotonic increase of the current
+        // playback position during normal playback, and if the user agent has not fired a
+        // timeupdate event at the element in the past 15 to 250ms and is not still running event
+        // handlers for such an event, then the user agent must queue a media element task given the
+        // media element to fire an event named timeupdate at the element.
         if Instant::now() > self.next_timeupdate_event.get() {
-            self.owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("timeupdate"));
+            self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
             self.next_timeupdate_event
-                .set(Instant::now() + Duration::from_millis(350));
+                .set(Instant::now() + Duration::from_millis(250));
         }
     }
 
@@ -1727,7 +1727,7 @@ impl HTMLMediaElement {
         }
 
         // Step 8. Set the playbackRate attribute to the value of the defaultPlaybackRate attribute.
-        self.playbackRate.set(self.defaultPlaybackRate.get());
+        self.playback_rate.set(self.default_playback_rate.get());
 
         // Step 9. Set the error attribute to null and the can autoplay flag to true.
         self.error.set(None);
@@ -2023,18 +2023,13 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     pub(crate) fn set_poster_frame(&self, image: Option<Arc<RasterImage>>) {
-        let queue_postershown_event = pref!(media_testing_enabled) && image.is_some();
+        if pref!(media_testing_enabled) && image.is_some() {
+            self.queue_media_element_task_to_fire_event(atom!("postershown"));
+        }
 
         self.video_renderer.lock().unwrap().set_poster_frame(image);
 
         self.upcast::<Node>().dirty(NodeDamage::Other);
-
-        if queue_postershown_event {
-            self.owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("postershown"));
-        }
     }
 
     fn create_media_player(&self, resource: &Resource) -> Result<(), ()> {
@@ -2154,7 +2149,7 @@ impl HTMLMediaElement {
     fn direction_of_playback(&self) -> PlaybackDirection {
         // If the element's playbackRate is positive or zero, then the direction of playback is
         // forwards. Otherwise, it is backwards.
-        if self.playbackRate.get() >= 0. {
+        if self.playback_rate.get() >= 0. {
             PlaybackDirection::Forwards
         } else {
             PlaybackDirection::Backwards
@@ -2595,7 +2590,7 @@ impl HTMLMediaElement {
         self.time_marches_on();
 
         let media_position_state =
-            MediaPositionState::new(self.duration.get(), self.playbackRate.get(), position);
+            MediaPositionState::new(self.duration.get(), self.playback_rate.get(), position);
         debug!(
             "Sending media session event set position state {:?}",
             media_position_state
@@ -2925,15 +2920,20 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             return;
         }
 
+        self.muted.set(value);
+
         if let Some(ref player) = *self.player.borrow() {
-            let _ = player.lock().unwrap().set_mute(value);
+            if let Err(err) = player.lock().unwrap().set_mute(value) {
+                warn!("Could not set mute state {:?}", err);
+            }
         }
 
-        self.muted.set(value);
-        self.owner_global()
-            .task_manager()
-            .media_element_task_source()
-            .queue_simple_event(self.upcast(), atom!("volumechange"));
+        // The user agent must queue a media element task given the media element to fire an event
+        // named volumechange at the media element.
+        self.queue_media_element_task_to_fire_event(atom!("volumechange"));
+
+        // Then, if the media element is not allowed to play, the user agent must run the internal
+        // pause steps for the media element.
         if !self.is_allowed_to_play() {
             self.internal_pause_steps();
         }
@@ -3043,49 +3043,68 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
     fn GetDefaultPlaybackRate(&self) -> Fallible<Finite<f64>> {
-        Ok(Finite::wrap(self.defaultPlaybackRate.get()))
+        Ok(Finite::wrap(self.default_playback_rate.get()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
     fn SetDefaultPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+        // If the given value is not supported by the user agent, then throw a "NotSupportedError"
+        // DOMException.
         let min_allowed = -64.0;
         let max_allowed = 64.0;
         if *value < min_allowed || *value > max_allowed {
             return Err(Error::NotSupported(None));
         }
 
-        if *value != self.defaultPlaybackRate.get() {
-            self.defaultPlaybackRate.set(*value);
-            self.queue_media_element_task_to_fire_event(atom!("ratechange"));
+        if self.default_playback_rate.get() == *value {
+            return Ok(());
         }
+
+        self.default_playback_rate.set(*value);
+
+        // The user agent must queue a media element task given the media element to fire an event
+        // named ratechange at the media element.
+        self.queue_media_element_task_to_fire_event(atom!("ratechange"));
 
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
     fn GetPlaybackRate(&self) -> Fallible<Finite<f64>> {
-        Ok(Finite::wrap(self.playbackRate.get()))
+        Ok(Finite::wrap(self.playback_rate.get()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
     fn SetPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+        // The attribute is mutable: on setting, the user agent must follow these steps:
+
+        // Step 1. If the given value is not supported by the user agent, then throw a
+        // "NotSupportedError" DOMException.
         let min_allowed = -64.0;
         let max_allowed = 64.0;
         if *value < min_allowed || *value > max_allowed {
             return Err(Error::NotSupported(None));
         }
 
-        if *value != self.playbackRate.get() {
-            self.playbackRate.set(*value);
-            self.queue_media_element_task_to_fire_event(atom!("ratechange"));
-            if self.is_potentially_playing() {
-                if let Some(ref player) = *self.player.borrow() {
-                    if let Err(e) = player.lock().unwrap().set_rate(*value) {
-                        warn!("Could not set the playback rate {:?}", e);
-                    }
+        if self.playback_rate.get() == *value {
+            return Ok(());
+        }
+
+        // Step 2. Set playbackRate to the new value, and if the element is potentially playing,
+        // change the playback speed.
+        self.playback_rate.set(*value);
+
+        if self.is_potentially_playing() {
+            if let Some(ref player) = *self.player.borrow() {
+                if let Err(err) = player.lock().unwrap().set_rate(*value) {
+                    warn!("Could not set the playback rate {:?}", err);
                 }
             }
         }
+
+        // The user agent must queue a media element task given the media element to fire an event
+        // named ratechange at the media element.
+        self.queue_media_element_task_to_fire_event(atom!("ratechange"));
 
         Ok(())
     }
@@ -3223,24 +3242,34 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-volume>
     fn SetVolume(&self, value: Finite<f64>) -> ErrorResult {
+        // If the new value is outside the range 0.0 to 1.0 inclusive, then, on setting, an
+        // "IndexSizeError" DOMException must be thrown instead.
         let minimum_volume = 0.0;
         let maximum_volume = 1.0;
         if *value < minimum_volume || *value > maximum_volume {
             return Err(Error::IndexSize(None));
         }
 
-        if *value != self.volume.get() {
-            self.volume.set(*value);
-            if let Some(player) = self.player.borrow().as_ref() {
-                let _ = player.lock().unwrap().set_volume(*value);
+        if self.volume.get() == *value {
+            return Ok(());
+        }
+
+        self.volume.set(*value);
+
+        if let Some(ref player) = *self.player.borrow() {
+            if let Err(err) = player.lock().unwrap().set_volume(*value) {
+                warn!("Could not set the volume {:?}", err);
             }
-            self.owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("volumechange"));
-            if !self.is_allowed_to_play() {
-                self.internal_pause_steps();
-            }
+        }
+
+        // The user agent must queue a media element task given the media element to fire an event
+        // named volumechange at the media element.
+        self.queue_media_element_task_to_fire_event(atom!("volumechange"));
+
+        // Then, if the media element is not allowed to play, the user agent must run the internal
+        // pause steps for the media element.
+        if !self.is_allowed_to_play() {
+            self.internal_pause_steps();
         }
 
         Ok(())
@@ -3259,6 +3288,9 @@ impl VirtualMethods for HTMLMediaElement {
 
         match *attr.local_name() {
             local_name!("muted") => {
+                // <https://html.spec.whatwg.org/multipage/#dom-media-muted>
+                // When a media element is created, if the element has a muted content attribute
+                // specified, then the muted IDL attribute should be set to true.
                 if let AttributeMutation::Set(
                     _,
                     AttributeMutationReason::ByCloning | AttributeMutationReason::ByParser,
@@ -3711,14 +3743,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             }
         }
 
-        // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
-        // => "If mode is remote" step 2
+        // <https://html.spec.whatwg.org/multipage/#concept-media-load-resource>
+        // While the load is not suspended (see below), every 350ms (±200ms) or for every byte
+        // received, whichever is least frequent, queue a media element task given the media element
+        // to fire an event named progress at the element.
         if Instant::now() > self.next_progress_event {
-            element
-                .owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .queue_simple_event(element.upcast(), atom!("progress"));
+            element.queue_media_element_task_to_fire_event(atom!("progress"));
             self.next_progress_event = Instant::now() + Duration::from_millis(350);
         }
     }
