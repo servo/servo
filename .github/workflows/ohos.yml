@@ -353,3 +353,49 @@ jobs:
       - name: Failure
         if: contains(steps.*.outcome, 'failure') || contains(steps.*.outcome, 'cancelled')
         run: exit 1
+
+  scenario-test-harmonyos:
+    name: Mossel Scenario test
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: build-harmonyos-aarch64
+    env:
+      # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
+      UV_PROJECT: 'etc/ci/scenario'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+          ls -la
+          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        id: install_hap
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
+      - name: Checkout scenario scripts
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            etc/ci/scenario
+      - name: Test loading servo.org
+        run: uv run ./etc/ci/scenario/servo_test_open_page_servo.py
+      - name: Test loading Mossel homepage
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
+        run: uv run ./etc/ci/scenario/servo_test_open_page_base.py
+      - name: Test Mossel Redirect
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
+        run: uv run ./etc/ci/scenario/servo_test_redirection.py
+      - name: Test Mossel Slide
+        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
+        run: uv run ./etc/ci/scenario/servo_test_slide.py
