@@ -34,7 +34,6 @@ use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct XRSystem {
@@ -166,7 +165,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
         if mode != XRSessionMode::Inline {
-            if !ScriptThread::is_user_interacting() {
+            if !window.script_thread().is_user_interacting() {
                 if pref!(dom_webxr_unsafe_assume_user_intent) {
                     warn!(
                         "The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR."
@@ -322,7 +321,7 @@ impl XRSystem {
                 task!(fire_sessionavailable_event: move || {
                     // The sessionavailable event indicates user intent to enter an XR session
                     let xr = xr.root();
-                        let _guard = ScriptThread::user_interacting_guard();
+                        let _guard = xr.global().as_window().script_thread().user_interacting_guard();
                         xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::note());
                 })
             );

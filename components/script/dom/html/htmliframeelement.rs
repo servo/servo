@@ -49,7 +49,7 @@ use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
-use crate::script_thread::{ScriptThread, with_script_thread};
+use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 
 #[derive(PartialEq)]
@@ -229,9 +229,7 @@ impl HTMLIFrameElement {
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
-                with_script_thread(|script_thread| {
-                    script_thread.spawn_pipeline(new_pipeline_info);
-                });
+                window.script_thread().spawn_pipeline(new_pipeline_info);
             },
             PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
@@ -495,7 +493,7 @@ impl HTMLIFrameElement {
             sandboxing_flag_set: Cell::new(None),
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
-            script_window_proxies: ScriptThread::window_proxies(),
+            script_window_proxies: document.window().script_thread().window_proxies(),
             pending_navigation: Default::default(),
         }
     }
@@ -637,7 +635,7 @@ impl HTMLIFrameElement {
             return;
         };
         // Step 4.2. Destroy a document and its descendants given childNavigable's active document and incrementDestroyed.
-        if let Some(exited_document) = ScriptThread::find_document(pipeline_id) {
+        if let Some(exited_document) = self.script_thread().find_document(pipeline_id) {
             exited_document.destroy_document_and_its_descendants(can_gc);
         }
         self.destroy_nested_browsing_context();
@@ -682,7 +680,7 @@ impl HTMLIFrameElement {
         let Some(pipeline_id) = pipeline_id else {
             return;
         };
-        if let Some(exited_document) = ScriptThread::find_document(pipeline_id) {
+        if let Some(exited_document) = self.script_thread().find_document(pipeline_id) {
             exited_document.destroy_document_and_its_descendants(can_gc);
         }
 
@@ -818,7 +816,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         // Step 2-3.
         // Note that this lookup will fail if the document is dissimilar-origin,
         // so we should return None in that case.
-        let document = ScriptThread::find_document(pipeline_id)?;
+        let document = self.script_thread().find_document(pipeline_id)?;
 
         // Step 4.
         let current = GlobalScope::current()

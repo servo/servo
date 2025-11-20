@@ -106,7 +106,6 @@ use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
 /// A CSS file to style the media controls.
@@ -1058,7 +1057,8 @@ impl HTMLMediaElement {
         // method from below, if microtasks were trait objects, we would be able
         // to put the code directly in this method, without the boilerplate
         // indirections.
-        ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        self.script_thread()
+            .await_stable_state(Microtask::MediaElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
@@ -1281,7 +1281,8 @@ impl HTMLMediaElement {
             generation_id: self.generation_id.get(),
         };
 
-        ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        self.script_thread()
+            .await_stable_state(Microtask::MediaElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
@@ -1887,7 +1888,8 @@ impl HTMLMediaElement {
             generation_id: self.generation_id.get(),
         };
 
-        ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        self.script_thread()
+            .await_stable_state(Microtask::MediaElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
@@ -2738,7 +2740,8 @@ impl HTMLMediaElement {
             generation_id: self.generation_id.get(),
         };
 
-        ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        self.script_thread()
+            .await_stable_state(Microtask::MediaElement(task));
     }
 
     fn playback_state_changed(&self, state: &PlaybackState) {
@@ -3408,7 +3411,8 @@ impl VirtualMethods for HTMLMediaElement {
             let task = MediaElementMicrotask::PauseIfNotInDocument {
                 elem: DomRoot::from_ref(self),
             };
-            ScriptThread::await_stable_state(Microtask::MediaElement(task));
+            self.script_thread()
+                .await_stable_state(Microtask::MediaElement(task));
         }
     }
 

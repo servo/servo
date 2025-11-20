@@ -15,7 +15,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::types::{Document, Window};
-use crate::script_thread::with_script_thread;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -130,13 +129,11 @@ impl IFrameCollection {
                 // to filter asynchronously through the `Constellation`. This allows the new value
                 // to be reflected immediately in layout.
                 let viewport_details = iframe_size.viewport_details;
-                with_script_thread(|script_thread| {
-                    script_thread.handle_resize_message(
-                        iframe_size.pipeline_id,
-                        viewport_details,
-                        WindowSizeType::Resize,
-                    );
-                });
+                window.script_thread().handle_resize_message(
+                    iframe_size.pipeline_id,
+                    viewport_details,
+                    WindowSizeType::Resize,
+                );
 
                 let old_viewport_details =
                     self.set_viewport_details(browsing_context_id, viewport_details);

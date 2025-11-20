@@ -48,7 +48,6 @@ use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
-use crate::script_thread::ScriptThread;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
 #[derive(Clone, Copy, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -587,7 +586,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 *candidate.namespace() == ns!(html) &&
                 (extends.is_none() || is.as_ref() == Some(&name))
             {
-                ScriptThread::enqueue_upgrade_reaction(&candidate, definition.clone());
+                candidate.enqueue_upgrade_reaction(definition.clone());
             }
         }
 
@@ -867,13 +866,11 @@ pub(crate) fn upgrade_element(
     // Step 4. For each attribute in element's attribute list, in order, enqueue a custom element callback reaction
     // with element, callback name "attributeChangedCallback", and « attribute's local name, null, attribute's value,
     // attribute's namespace ».
-    let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
     for attr in element.attrs().iter() {
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();
-        custom_element_reaction_stack.enqueue_callback_reaction(
-            element,
+        element.enqueue_callback_reaction(
             CallbackReaction::AttributeChanged(local_name, None, Some(value), namespace),
             Some(definition.clone()),
         );
@@ -882,11 +879,7 @@ pub(crate) fn upgrade_element(
     // Step 5. If element is connected, then enqueue a custom element callback reaction with element,
     // callback name "connectedCallback", and « ».
     if element.is_connected() {
-        ScriptThread::enqueue_callback_reaction(
-            element,
-            CallbackReaction::Connected,
-            Some(definition.clone()),
-        );
+        element.enqueue_callback_reaction(CallbackReaction::Connected, Some(definition.clone()));
     }
 
     // Step 6. Add element to the end of definition's construction stack.
@@ -948,8 +941,7 @@ pub(crate) fn upgrade_element(
             // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
             // with element.
             if element.disabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    element,
+                element.enqueue_callback_reaction(
                     CallbackReaction::FormDisabled(true),
                     Some(definition.clone()),
                 )
@@ -1043,7 +1035,7 @@ pub(crate) fn try_upgrade_element(element: &Element) {
     {
         // Step 2. If definition is not null, then enqueue a custom element upgrade reaction given
         // element and definition.
-        ScriptThread::enqueue_upgrade_reaction(element, definition);
+        element.enqueue_upgrade_reaction(definition);
     }
 }
 
@@ -1167,7 +1159,9 @@ impl CustomElementReactionStack {
                 .set(BackupElementQueueFlag::Processing);
 
             // Step 4
-            ScriptThread::enqueue_microtask(Microtask::CustomElementReaction);
+            element
+                .script_thread()
+                .enqueue_microtask(Microtask::CustomElementReaction);
         }
     }
 

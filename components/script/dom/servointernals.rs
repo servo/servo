@@ -22,7 +22,6 @@ use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct ServoInternals {
@@ -122,8 +121,13 @@ impl ServoInternalsHelpers for ServoInternals {
             let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
             let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
             let url = global_scope.get_url();
-            (url.scheme() == "about" && url.as_str() != "about:blank") ||
-                ScriptThread::is_servo_privileged(url)
+            if url.scheme() == "about" && url.as_str() != "about:blank" {
+                return true;
+            }
+            global_scope
+                .as_window()
+                .script_thread()
+                .is_servo_privileged(url)
         }
     }
 }

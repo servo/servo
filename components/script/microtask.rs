@@ -8,7 +8,7 @@
 
 use std::cell::Cell;
 use std::mem;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 use base::id::PipelineId;
 use js::jsapi::{JSAutoRealm, JobQueueIsEmpty, JobQueueMayNotBeEmpty};
@@ -32,6 +32,9 @@ use crate::script_thread::ScriptThread;
 /// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct MicrotaskQueue {
+    #[no_trace]
+    #[ignore_malloc_size_of = "ScriptThreads measure their own memory"]
+    script_thread: Option<Weak<ScriptThread>>,
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
     microtask_queue: DomRefCell<Vec<Microtask>>,
     /// <https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint>
@@ -108,6 +111,8 @@ impl MicrotaskQueue {
 
         debug!("Now performing a microtask checkpoint");
 
+        let script_thread = self.script_thread.as_ref().and_then(Weak::upgrade);
+
         // Step 3. While the event loop's microtask queue is not empty:
         while !self.microtask_queue.borrow().is_empty() {
             rooted_vec!(let mut pending_queue);
@@ -121,7 +126,9 @@ impl MicrotaskQueue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let _guard = ScriptThread::user_interacting_guard();
+                            let _guard = script_thread
+                                .as_ref()
+                                .map(|script_thread| script_thread.user_interacting_guard());
                             let _realm = enter_realm(&*target);
                             let _ = job
                                 .callback
@@ -153,10 +160,16 @@ impl MicrotaskQueue {
                         task.handler(can_gc);
                     },
                     Microtask::CustomElementReaction => {
-                        ScriptThread::invoke_backup_element_queue(can_gc);
+                        if let Some(script_thread) = script_thread.as_ref() {
+                            script_thread.invoke_backup_element_queue(can_gc);
+                        }
                     },
                     Microtask::NotifyMutationObservers => {
-                        ScriptThread::mutation_observers().notify_mutation_observers(can_gc);
+                        if let Some(script_thread) = script_thread.as_ref() {
+                            script_thread
+                                .mutation_observers()
+                                .notify_mutation_observers(can_gc);
+                        }
                     },
                     Microtask::ReadableStreamByteTeeReadRequest(ref task) => {
                         task.microtask_chunk_steps(can_gc)

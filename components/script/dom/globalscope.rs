@@ -152,7 +152,6 @@ use crate::script_module::{
     ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
-use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
@@ -2593,10 +2592,13 @@ impl GlobalScope {
     /// Every Worker has its own scheduler, which handles events in the Worker event loop,
     /// but `Window`s use a shared scheduler associated with their [`ScriptThread`].
     pub(crate) fn schedule_timer(&self, request: TimerEventRequest) -> Option<TimerId> {
-        match self.downcast::<WorkerGlobalScope>() {
-            Some(worker_global) => Some(worker_global.timer_scheduler().schedule_timer(request)),
-            _ => with_script_thread(|script_thread| Some(script_thread.schedule_timer(request))),
+        if let Some(worker_global) = self.downcast::<WorkerGlobalScope>() {
+            return Some(worker_global.timer_scheduler().schedule_timer(request));
         }
+        if let Some(window_global) = self.downcast::<Window>() {
+            return Some(window_global.script_thread().schedule_timer(request));
+        }
+        None
     }
 
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
@@ -2723,6 +2725,14 @@ impl GlobalScope {
     /// Extract a `Window`, panic if the global object is not a `Window`.
     pub(crate) fn as_window(&self) -> &Window {
         self.downcast::<Window>().expect("expected a Window scope")
+    }
+
+    /// If this [`GlobalScope`] is a [`Window`], run the following callback or return `None`.
+    pub(crate) fn map_window<ReturnValue>(
+        &self,
+        callback: impl FnOnce(&Window) -> ReturnValue,
+    ) -> Option<ReturnValue> {
+        self.downcast::<Window>().map(callback)
     }
 
     /// Returns a policy that should be used for fetches initiated from this global.
@@ -3001,8 +3011,8 @@ impl GlobalScope {
     /// Returns a boolean indicating whether the event-loop
     /// where this global is running on can continue running JS.
     pub(crate) fn can_continue_running(&self) -> bool {
-        if self.is::<Window>() {
-            return ScriptThread::can_continue_running();
+        if let Some(window) = self.downcast::<Window>() {
+            return window.script_thread().can_continue_running();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return !worker.is_closing();
@@ -3034,8 +3044,8 @@ impl GlobalScope {
 
     /// Enqueue a microtask for subsequent execution.
     pub(crate) fn enqueue_microtask(&self, job: Microtask) {
-        if self.is::<Window>() {
-            ScriptThread::enqueue_microtask(job);
+        if let Some(window) = self.downcast::<Window>() {
+            window.script_thread().enqueue_microtask(job);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.enqueue_microtask(job);
         }
@@ -3062,8 +3072,8 @@ impl GlobalScope {
         msg: CommonScriptMsg,
         cx: &mut js::context::JSContext,
     ) -> bool {
-        if self.is::<Window>() {
-            return ScriptThread::process_event(msg, cx);
+        if let Some(window) = self.downcast::<Window>() {
+            return window.script_thread().process_event(msg, cx);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg);
@@ -3072,8 +3082,8 @@ impl GlobalScope {
     }
 
     pub(crate) fn runtime_handle(&self) -> ParentRuntime {
-        if self.is::<Window>() {
-            ScriptThread::runtime_handle()
+        if let Some(window) = self.downcast::<Window>() {
+            window.script_thread().runtime_handle()
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.runtime_handle()
         } else {

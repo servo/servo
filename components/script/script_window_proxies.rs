@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::ScriptToConstellationMessage;
 use ipc_channel::ipc;
@@ -10,6 +12,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
 
+use crate::ScriptThread;
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::trace::HashMapTracedValues;
@@ -65,6 +68,7 @@ impl ScriptWindowProxies {
     // to the `window_proxies` map, and return it.
     pub(crate) fn remote_window_proxy(
         &self,
+        script_thread: Rc<ScriptThread>,
         senders: &ScriptThreadSenders,
         global_to_clone: &GlobalScope,
         webview_id: WebViewId,
@@ -78,7 +82,14 @@ impl ScriptWindowProxies {
         }
 
         let parent_browsing_context = parent_pipeline_id.and_then(|parent_id| {
-            self.remote_window_proxy(senders, global_to_clone, webview_id, parent_id, opener)
+            self.remote_window_proxy(
+                script_thread.clone(),
+                senders,
+                global_to_clone,
+                webview_id,
+                parent_id,
+                opener,
+            )
         });
 
         let opener_browsing_context = opener.and_then(|id| self.find_window_proxy(id));
@@ -89,6 +100,7 @@ impl ScriptWindowProxies {
         );
 
         let window_proxy = WindowProxy::new_dissimilar_origin(
+            script_thread,
             global_to_clone,
             browsing_context_id,
             webview_id,
@@ -129,9 +141,14 @@ impl ScriptWindowProxies {
         });
         let parent_browsing_context = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(iframe.owner_window().window_proxy()),
-            (Some(parent_id), _) => {
-                self.remote_window_proxy(senders, window.upcast(), webview_id, parent_id, opener)
-            },
+            (Some(parent_id), _) => self.remote_window_proxy(
+                window.script_thread(),
+                senders,
+                window.upcast(),
+                webview_id,
+                parent_id,
+                opener,
+            ),
             _ => None,
         };
 

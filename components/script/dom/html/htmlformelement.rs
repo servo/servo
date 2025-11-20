@@ -85,7 +85,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target};
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct HTMLFormElement {
@@ -1382,11 +1381,9 @@ impl HTMLFormElement {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
                     let html_element = child.downcast::<HTMLElement>().unwrap();
                     if html_element.is_form_associated_custom_element() {
-                        ScriptThread::enqueue_callback_reaction(
-                            html_element.upcast::<Element>(),
-                            CallbackReaction::FormReset,
-                            None,
-                        )
+                        html_element
+                            .upcast::<Element>()
+                            .enqueue_callback_reaction(CallbackReaction::FormReset, None)
                     }
                 },
                 _ => {},
@@ -1653,8 +1650,7 @@ pub(crate) trait FormControl: DomObject {
             // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
             if let Some(html_elem) = elem.downcast::<HTMLElement>() {
                 if html_elem.is_form_associated_custom_element() {
-                    ScriptThread::enqueue_callback_reaction(
-                        elem,
+                    elem.enqueue_callback_reaction(
                         CallbackReaction::FormAssociated(
                             new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
                         ),

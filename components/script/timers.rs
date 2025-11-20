@@ -40,7 +40,6 @@ use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
 type TimerKey = i32;
@@ -696,7 +695,9 @@ impl JsTimers {
             source,
             callback,
             is_interval,
-            is_user_interacting: ScriptThread::is_user_interacting(),
+            is_user_interacting: global
+                .map_window(|window| window.script_thread().is_user_interacting())
+                .unwrap_or_default(),
             nesting_level: 0,
             duration: Duration::ZERO,
         };
@@ -779,7 +780,9 @@ impl JsTimerTask {
         // prep for step ? in nested set_timeout_or_interval calls
         timers.nesting_level.set(self.nesting_level);
 
-        let _guard = ScriptThread::user_interacting_guard();
+        let _guard = this
+            .global()
+            .map_window(|window| window.script_thread().user_interacting_guard());
         match self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 // Step 6.4. Let settings object be global's relevant settings object.

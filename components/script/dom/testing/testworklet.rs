@@ -21,7 +21,6 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct TestWorklet {
@@ -70,8 +69,10 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
 
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
         let id = self.worklet.worklet_id();
-        let pool = ScriptThread::worklet_thread_pool(self.global().image_cache());
-        pool.test_worklet_lookup(id, String::from(key))
+        let script_thread = self.global().map_window(|window| window.script_thread())?;
+        script_thread
+            .worklet_thread_pool(self.global().image_cache())
+            .test_worklet_lookup(id, String::from(key))
             .map(DOMString::from)
     }
 }

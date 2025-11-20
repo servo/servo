@@ -57,7 +57,6 @@ use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, Runtime, ScriptThreadEventCategory};
-use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
@@ -158,7 +157,11 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
 
         self.droppable_field
             .thread_pool
-            .get_or_init(|| ScriptThread::worklet_thread_pool(self.global().image_cache()))
+            .get_or_init(|| {
+                self.window
+                    .script_thread()
+                    .worklet_thread_pool(self.global().image_cache())
+            })
             .fetch_and_invoke_a_worklet_script(
                 self.window.webview_id(),
                 self.window.pipeline_id(),

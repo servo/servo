@@ -15,7 +15,6 @@ use js::jsval::JSVal;
 use profile_traits::ipc;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
-use crate::ScriptThread;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -180,7 +179,11 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn SimulateUserActivation(&self, f: Rc<Function>, can_gc: CanGc) {
-        let _guard = ScriptThread::user_interacting_guard();
+        let _guard = self
+            .global()
+            .as_window()
+            .script_thread()
+            .user_interacting_guard();
         rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
         let _ = f.Call__(
             vec![],

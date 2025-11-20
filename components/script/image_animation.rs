@@ -16,7 +16,6 @@ use timers::{TimerEventRequest, TimerId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_thread::with_script_thread;
 
 #[derive(Clone, Default, JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -94,24 +93,23 @@ impl ImageAnimationManager {
     }
 
     fn maybe_schedule_update(&self, window: &Window, now: f64) {
-        with_script_thread(|script_thread| {
-            if let Some(current_timer_id) = self.callback_timer_id.take() {
-                self.callback_timer_id.set(None);
-                script_thread.cancel_timer(current_timer_id);
-            }
+        let script_thread = window.script_thread();
+        if let Some(current_timer_id) = self.callback_timer_id.take() {
+            self.callback_timer_id.set(None);
+            script_thread.cancel_timer(current_timer_id);
+        }
 
-            if let Some(duration) = self.duration_to_next_frame(now) {
-                let trusted_window = Trusted::new(window);
-                let timer_id = script_thread.schedule_timer(TimerEventRequest {
-                    callback: Box::new(move || {
-                        let window = trusted_window.root();
-                        window.Document().set_has_pending_animated_image_update();
-                    }),
-                    duration,
-                });
-                self.callback_timer_id.set(Some(timer_id));
-            }
-        })
+        if let Some(duration) = self.duration_to_next_frame(now) {
+            let trusted_window = Trusted::new(window);
+            let timer_id = script_thread.schedule_timer(TimerEventRequest {
+                callback: Box::new(move || {
+                    let window = trusted_window.root();
+                    window.Document().set_has_pending_animated_image_update();
+                }),
+                duration,
+            });
+            self.callback_timer_id.set(Some(timer_id));
+        }
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {

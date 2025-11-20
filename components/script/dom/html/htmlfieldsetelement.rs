@@ -26,7 +26,6 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct HTMLFieldSetElement {
@@ -216,8 +215,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 .downcast::<HTMLElement>()
                                 .is_some_and(|h| h.is_form_associated_custom_element())
                             {
-                                ScriptThread::enqueue_callback_reaction(
-                                    element,
+                                element.enqueue_callback_reaction(
                                     CallbackReaction::FormDisabled(true),
                                     None,
                                 );
@@ -237,8 +235,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                     .downcast::<HTMLElement>()
                                     .is_some_and(|h| h.is_form_associated_custom_element())
                             {
-                                ScriptThread::enqueue_callback_reaction(
-                                    element,
+                                element.enqueue_callback_reaction(
                                     CallbackReaction::FormDisabled(false),
                                     None,
                                 );
