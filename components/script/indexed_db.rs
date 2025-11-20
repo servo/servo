@@ -161,10 +161,11 @@ pub fn convert_value_to_key(
     let mut seen = seen.unwrap_or_default();
 
     // Step 2: If seen contains input, then return invalid.
-    // FIXME:(arihant2math) implement this
-    // Check if we have seen this key
-    // Does not currently work with HandleValue,
-    // as it does not implement PartialEq
+    for s in &seen {
+        if s.get() == input.get() {
+            return Ok(ConversionResult::Invalid);
+        }
+    }
 
     // Step 3
     // FIXME:(arihant2math) Accept array as well
