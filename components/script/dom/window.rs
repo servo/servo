@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -180,12 +180,13 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
+use crate::js::rust::CustomTrace;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
-use crate::script_thread::ScriptThread;
+use crate::script_thread::{ScriptThread, WeakScriptHandle};
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
@@ -454,10 +455,9 @@ pub(crate) struct Window {
     /// Whether or not this [`Window`] has a pending screenshot readiness request.
     has_pending_screenshot_readiness_request: Cell<bool>,
 
-    /// A weak reference to the [`ScriptThread`] that owns this window.
+    /// A weak handle to script thread
     #[ignore_malloc_size_of = "Weak does not need to be accounted"]
-    #[no_trace]
-    weak_script_thread: Weak<ScriptThread>,
+    weak_script_thread: WeakScriptHandle,
 }
 
 impl Window {
@@ -3402,7 +3402,7 @@ impl Window {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         theme: Theme,
-        weak_script_thread: Weak<ScriptThread>,
+        weak_script_thread: WeakScriptHandle,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,

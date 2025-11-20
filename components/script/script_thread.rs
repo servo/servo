@@ -60,6 +60,7 @@ use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::gc::CustomTrace;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSContext as UnsafeJSContext, JSTracer};
 use js::jsval::UndefinedValue;
@@ -218,6 +219,26 @@ impl Drop for ScriptUserInteractingGuard {
     }
 }
 
+#[derive(Clone)]
+/// A weak handle to the current script thread.
+/// Get an Rc to it with the upgrade method.
+/// Use #[custom_tracer] in your structure.
+pub struct WeakScriptHandle(Weak<ScriptThread>);
+
+impl WeakScriptHandle {
+    pub fn upgrade(&self) -> Option<Rc<ScriptThread>> {
+        self.0.upgrade()
+    }
+}
+
+unsafe impl CustomTrace for WeakScriptHandle {
+    /// While the ScriptThread is always rooted, it
+    /// can get destroyed and a Rc upgraded from a weak being the only reference alive.
+    fn trace(&self, trc: *mut JSTracer) {
+        unsafe { self.0.upgrade().trace(trc) }
+    }
+}
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -368,7 +389,7 @@ pub struct ScriptThread {
 
     /// Weak Rc to itself or None if not yet initialized
     #[no_trace]
-    script_thread_weak: Weak<ScriptThread>,
+    script_thread_handle: WeakScriptHandle,
 }
 
 struct BHMExitSignal {
@@ -986,7 +1007,7 @@ impl ScriptThread {
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
             privileged_urls: state.privileged_urls,
-            script_thread_weak,
+            script_thread_handle: WeakScriptHandle(script_thread_weak),
         }
     }
 
@@ -3196,7 +3217,7 @@ impl ScriptThread {
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
-            self.script_thread_weak.clone(),
+            self.script_thread_handle.clone(),
         );
         self.debugger_global.fire_add_debuggee(
             can_gc,
