@@ -395,7 +395,9 @@ impl IndependentFormattingContext {
     #[inline]
     pub(crate) fn layout_style(&self) -> LayoutStyle<'_> {
         match &self.contents {
-            IndependentFormattingContextContents::Replaced(fc, _) => fc.layout_style(&self.base),
+            IndependentFormattingContextContents::Replaced(replaced, _) => {
+                replaced.layout_style(&self.base)
+            },
             IndependentFormattingContextContents::Flow(fc) => fc.layout_style(&self.base),
             IndependentFormattingContextContents::Flex(fc) => fc.layout_style(),
             IndependentFormattingContextContents::Grid(fc) => fc.layout_style(),
