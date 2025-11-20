@@ -9,15 +9,16 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 
+use devtools_traits::DevtoolScriptControlMsg;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::{DescriptorTraits, RootActor};
 use crate::actors::watcher::{WatcherActor, WatcherActorMsg};
 use crate::protocol::ClientRequest;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -85,6 +86,8 @@ impl Actor for TabDescriptorActor {
     ///
     /// - `getWatcher`: Returns a `WatcherActor` linked to the tab's `BrowsingContext`. It is used
     ///   to describe the debugging capabilities of this tab.
+    ///
+    /// - `reloadDescriptor`: Causes the page to reload.
     fn handle_message(
         &self,
         request: ClientRequest,
@@ -117,6 +120,17 @@ impl Actor for TabDescriptorActor {
                     from: self.name(),
                     watcher: watcher.encodable(),
                 })?
+            },
+            "reloadDescriptor" => {
+                // There is an extra bypassCache parameter that we don't currently use.
+                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+                let pipeline = ctx_actor.active_pipeline_id.get();
+                ctx_actor
+                    .script_chan
+                    .send(DevtoolScriptControlMsg::Reload(pipeline))
+                    .map_err(|_| ActorError::Internal)?;
+
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };

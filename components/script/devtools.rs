@@ -577,12 +577,6 @@ pub(crate) fn handle_request_animation_frame(
     }
 }
 
-pub(crate) fn handle_reload(documents: &DocumentCollection, id: PipelineId, can_gc: CanGc) {
-    if let Some(win) = documents.find_window(id) {
-        win.Location().reload_without_origin_check(can_gc);
-    }
-}
-
 pub(crate) fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
     let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
         .iter()
