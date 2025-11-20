@@ -375,9 +375,7 @@ impl TouchHandler {
             return None;
         };
         if velocity.length().abs() < FLING_MIN_SCREEN_PX {
-            #[cfg(feature = "tracing")]
-            let _span =
-                profile_traits::info_span!("TouchHandler::FlingEnd", servo_profiling = true,);
+            let _span = profile_traits::info_span!("TouchHandler::FlingEnd").entered();
             touch_sequence.state = Finished;
             // If we were flinging previously, there could still be a touch_up event result
             // coming in after we stopped flinging
@@ -390,7 +388,8 @@ impl TouchHandler {
             let _span = profile_traits::info_span!(
                 "TouchHandler::Flinging",
                 velocity = ?velocity,
-            );
+            )
+            .entered();
             debug_assert!(velocity.length() <= FLING_MAX_SCREEN_PX);
             Some(FlingAction {
                 delta: DeviceVector2D::new(velocity.x, velocity.y),
@@ -444,7 +443,8 @@ impl TouchHandler {
                     let _span = profile_traits::info_span!(
                         "TouchHandler::ScrollBegin",
                         delta = ?delta,
-                    );
+                    )
+                    .entered();
                     touch_sequence.state = Panning {
                         velocity: Vector2D::new(delta.x, delta.y),
                     };
@@ -527,7 +527,8 @@ impl TouchHandler {
                     let _span = profile_traits::info_span!(
                         "TouchHandler::FlingStart",
                         velocity = ?velocity,
-                    );
+                    )
+                    .entered();
                     // TODO: point != old. Not sure which one is better to take as cursor for flinging.
                     debug!(
                         "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
@@ -549,7 +550,7 @@ impl TouchHandler {
                         TouchMoveAllowed::Prevented => touch_sequence.state = Finished,
                     }
                 } else {
-                    let _span = profile_traits::info_span!("TouchHandler::ScrollEnd");
+                    let _span = profile_traits::info_span!("TouchHandler::ScrollEnd").entered();
                     touch_sequence.state = Finished;
                 }
             },
