@@ -394,12 +394,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 7. Let operation be an algorithm to run delete records from an object store with store and range.
         // Step 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         let (sender, receiver) = indexed_db::create_channel(self.global());
-        serialized_query.and_then(|q| {
+        serialized_query.and_then(|key_range| {
             IDBRequest::execute_async(
                 self,
                 AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
                     sender,
-                    key_range: q,
+                    key_range,
                 }),
                 receiver,
                 None,
