@@ -41,6 +41,7 @@ use xcomponent_sys::{
 
 use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;
+use crate::running_app_state::RunningAppStateTrait;
 
 mod resources;
 mod simpleservo;
@@ -212,7 +213,7 @@ impl ServoAction {
                 if let Some(native_webview_components) =
                     NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
                 {
-                    if servo.active_webview().id() != native_webview_components.id {
+                    if servo.active_webview_or_panic().id() != native_webview_components.id {
                         servo.focus_webview(native_webview_components.id);
                         servo.pause_compositor();
                         let (window_handle, _, coordinates) = simpleservo::get_raw_window_handle(
@@ -221,7 +222,7 @@ impl ServoAction {
                         );
                         servo.resume_compositor(window_handle, coordinates);
                         let url = servo
-                            .active_webview()
+                            .active_webview_or_panic()
                             .url()
                             .map(|u| u.to_string())
                             .unwrap_or(String::from("about:blank"));
@@ -326,7 +327,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
                 .lock()
                 .unwrap()
                 .push(NativeWebViewComponents {
-                    id: servo.active_webview().id(),
+                    id: servo.active_webview_or_panic().id(),
                     xcomponent: xc,
                     window,
                 });

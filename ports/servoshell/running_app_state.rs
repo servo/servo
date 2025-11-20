@@ -24,7 +24,118 @@ use url::Url;
 
 use crate::prefs::ServoShellPreferences;
 
+pub struct WebViewCollection {
+    /// List of top-level browsing contexts.
+    /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
+    /// and we exit if it ever becomes empty.
+    webviews: HashMap<WebViewId, WebView>,
+
+    /// The order in which the webviews were created.
+    creation_order: Vec<WebViewId>,
+
+    /// The webview that is currently focused.
+    /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
+    focused_webview_id: Option<WebViewId>,
+}
+
+impl WebViewCollection {
+    pub fn new() -> Self {
+        Self {
+            webviews: HashMap::new(),
+            creation_order: Vec::new(),
+            focused_webview_id: None,
+        }
+    }
+
+    pub fn add(&mut self, webview: WebView) {
+        let id = webview.id();
+        self.creation_order.push(id);
+        self.webviews.insert(id, webview);
+    }
+
+    /// Removes a webview from the collection by ID.
+    /// If the removed webview was focused, clears the focus.
+    /// Returns the removed webview, if it existed.
+    pub fn remove(&mut self, id: WebViewId) -> Option<WebView> {
+        self.creation_order.retain(|&webview_id| webview_id != id);
+        if self.focused_webview_id == Some(id) {
+            self.focused_webview_id = None;
+        }
+        self.webviews.remove(&id)
+    }
+
+    pub fn get(&self, id: WebViewId) -> Option<&WebView> {
+        self.webviews.get(&id)
+    }
+
+    pub fn contains(&self, id: WebViewId) -> bool {
+        self.webviews.contains_key(&id)
+    }
+
+    pub fn focused(&self) -> Option<&WebView> {
+        self.focused_webview_id
+            .and_then(|id| self.webviews.get(&id))
+    }
+
+    pub fn focused_id(&self) -> Option<WebViewId> {
+        self.focused_webview_id
+    }
+
+    pub fn set_focused(&mut self, id: Option<WebViewId>) {
+        self.focused_webview_id = id;
+    }
+
+    /// Gets a reference to the most recently created webview, if any.
+    pub fn newest(&self) -> Option<&WebView> {
+        self.creation_order
+            .last()
+            .and_then(|id| self.webviews.get(id))
+    }
+
+    /// Gets the "active" webview: the focused webview if there is one,
+    /// otherwise the most recently created webview.
+    #[allow(dead_code)]
+    pub fn active(&self) -> Option<&WebView> {
+        self.focused().or_else(|| self.newest())
+    }
+
+    pub fn all_in_creation_order(&self) -> impl Iterator<Item = (WebViewId, &WebView)> {
+        self.creation_order
+            .iter()
+            .filter_map(move |id| self.webviews.get(id).map(|webview| (*id, webview)))
+    }
+
+    pub fn clear(&mut self) {
+        self.webviews.clear();
+        self.creation_order.clear();
+        self.focused_webview_id = None;
+    }
+
+    /// Returns an iterator over all webview references (in arbitrary order).
+    pub fn values(&self) -> impl Iterator<Item = &WebView> {
+        self.webviews.values()
+    }
+
+    pub fn len(&self) -> usize {
+        self.webviews.len()
+    }
+
+    /// Returns true if the collection contains no webviews.
+    #[allow(dead_code)]
+    pub fn is_empty(&self) -> bool {
+        self.webviews.is_empty()
+    }
+}
+
+impl Default for WebViewCollection {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct RunningAppStateBase {
+    pub(crate) webview_collection: RefCell<WebViewCollection>,
+
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
 
     /// A [`HashMap`] of pending WebDriver events. It is the WebDriver embedder's responsibility
@@ -54,6 +165,7 @@ impl RunningAppStateBase {
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     ) -> Self {
         Self {
+            webview_collection: RefCell::new(WebViewCollection::new()),
             webdriver_senders: RefCell::default(),
             pending_webdriver_events: Default::default(),
             webdriver_receiver,
@@ -81,6 +193,53 @@ pub trait RunningAppStateTrait {
 
     fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
         self.base().webdriver_receiver.as_ref()
+    }
+
+    fn webview_collection(&self) -> std::cell::Ref<'_, WebViewCollection> {
+        self.base().webview_collection.borrow()
+    }
+
+    fn webview_collection_mut(&self) -> std::cell::RefMut<'_, WebViewCollection> {
+        self.base().webview_collection.borrow_mut()
+    }
+
+    /// Returns all webviews in creation order.
+    fn webviews(&self) -> Vec<(WebViewId, WebView)> {
+        self.webview_collection()
+            .all_in_creation_order()
+            .map(|(id, webview)| (id, webview.clone()))
+            .collect()
+    }
+
+    fn add_webview(&self, webview: WebView) {
+        let webview_id = webview.id();
+        self.webview_collection_mut().add(webview);
+        let total = self.webview_collection().len();
+        info!("Added webview with ID: {webview_id:?}, total webviews: {total}");
+    }
+
+    fn focused_webview(&self) -> Option<WebView> {
+        self.webview_collection().focused().cloned()
+    }
+
+    #[allow(dead_code)]
+    fn newest_webview(&self) -> Option<WebView> {
+        self.webview_collection().newest().cloned()
+    }
+
+    /// Gets the "active" webview: the focused webview if there is one,
+    /// otherwise the most recently created webview.
+    #[allow(dead_code)]
+    fn active_webview(&self) -> Option<WebView> {
+        self.webview_collection().active().cloned()
+    }
+
+    /// Gets the "active" webview, panicking if there is none.
+    /// This is a convenience method for platforms that assume there's always an active webview.
+    #[allow(dead_code)]
+    fn active_webview_or_panic(&self) -> WebView {
+        self.active_webview()
+            .expect("Should always have an active WebView")
     }
 
     fn set_pending_traversal(
