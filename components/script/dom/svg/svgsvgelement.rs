@@ -119,6 +119,7 @@ impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
         let element = self.upcast::<Element>();
         let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
         let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
+        let view_box = element.get_attr_for_layout(&ns!(), &local_name!("viewBox"));
         SVGElementData {
             source: self
                 .unsafe_get()
@@ -127,6 +128,7 @@ impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
                 .clone(),
             width,
             height,
+            view_box,
         }
     }
 }
