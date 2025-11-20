@@ -63,20 +63,20 @@ impl From<StringOrStringSequence> for KeyPath {
     }
 }
 
-impl From<net_traits::indexeddb_thread::KeyPath> for KeyPath {
-    fn from(value: net_traits::indexeddb_thread::KeyPath) -> Self {
+impl From<indexeddb_thread::KeyPath> for KeyPath {
+    fn from(value: indexeddb_thread::KeyPath) -> Self {
         match value {
-            net_traits::indexeddb_thread::KeyPath::String(s) => {
+            indexeddb_thread::KeyPath::String(s) => {
                 KeyPath::String(DOMString::from_string(s))
             },
-            net_traits::indexeddb_thread::KeyPath::Sequence(ss) => {
+            indexeddb_thread::KeyPath::Sequence(ss) => {
                 KeyPath::StringSequence(ss.into_iter().map(DOMString::from_string).collect())
             },
         }
     }
 }
 
-impl From<KeyPath> for net_traits::indexeddb_thread::KeyPath {
+impl From<KeyPath> for indexeddb_thread::KeyPath {
     fn from(item: KeyPath) -> Self {
         match item {
             KeyPath::String(s) => Self::String(s.to_string()),
@@ -721,7 +721,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         let key_path: KeyPath = key_path.into();
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // TODO: Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
         // Step 5. If transaction is not active, throw a "TransactionInactiveError" DOMException.
@@ -779,7 +779,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn DeleteIndex(&self, name: DOMString) -> Fallible<()> {
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
-            return Err(Error::InvalidState);
+            return Err(Error::InvalidState(None));
         }
         // TODO: Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
         // Step 5. If transaction is not active, throw a "TransactionInactiveError" DOMException.
@@ -787,7 +787,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Let index be the index named name in store if one exists,
         // or throw a "NotFoundError" DOMException otherwise.
         if !self.index_names.borrow().contains(&name) {
-            return Err(Error::NotFound);
+            return Err(Error::NotFound(None));
         }
         // Step 7. Remove index from this object store handle's index set.
         self.index_names.borrow_mut().retain(|n| n != &name);
