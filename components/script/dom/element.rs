@@ -606,7 +606,9 @@ impl Element {
         // Step 1. If element’s namespace is not the HTML namespace,
         // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Cannot attach shadow roots to elements with non-HTML namespaces".to_owned(),
+            )));
         }
 
         // Step 2. If element’s local name is not a valid shadow host name,
@@ -614,7 +616,11 @@ impl Element {
         if !is_valid_shadow_host_name(self.local_name()) {
             // UA shadow roots may be attached to anything
             if is_ua_widget != IsUserAgentWidget::Yes {
-                return Err(Error::NotSupported(None));
+                let error_message = format!(
+                    "Cannot attach shadow roots to <{}> elements",
+                    *self.local_name()
+                );
+                return Err(Error::NotSupported(Some(error_message)));
             }
         }
 
@@ -628,7 +634,11 @@ impl Element {
             // Step 3.2. If definition is not null and definition’s disable shadow
             //  is true, then throw a "NotSupportedError" DOMException.
             if definition.is_some_and(|definition| definition.disable_shadow) {
-                return Err(Error::NotSupported(None));
+                let error_message = format!(
+                    "The custom element constructor of <{}> disabled attachment of shadow roots",
+                    self.local_name()
+                );
+                return Err(Error::NotSupported(Some(error_message)));
             }
         }
 
@@ -641,7 +651,9 @@ impl Element {
             if !current_shadow_root.is_declarative() ||
                 current_shadow_root.shadow_root_mode() != mode
             {
-                return Err(Error::NotSupported(None));
+                return Err(Error::NotSupported(Some(
+                    "Cannot attach a second shadow root to the same element".into(),
+                )));
             }
 
             // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
