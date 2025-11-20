@@ -309,6 +309,16 @@ impl Font {
         })
     }
 
+    /// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>
+    fn compute_variations_for_descriptor(&self, descriptor: &FontDescriptor) -> Vec<FontVariation> {
+        // TODO: Consider all the other possible sources of variations
+
+        // Step 12. Font variations implied by the value of the font-variation-settings property are applied.
+        // These values should be clamped to the values that are supported by the font.
+        // NOTE: Clamping happens inside the PlatformFont.
+        descriptor.variation_settings.to_owned()
+    }
+
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> FontIdentifier {
         self.template.identifier()
@@ -818,10 +828,41 @@ impl FontGroupFamily {
                 }
 
                 if !member.loaded {
-                    member.font = font_context.font(member.template.clone(), font_descriptor);
+                    // The initial lookup is done without variations!
+                    // This is because the variations that should be applied depend on the font,
+                    // so two lookups are needed.
+                    let descriptor_without_variations =
+                        font_descriptor.with_variation_settings(vec![]);
+                    member.font =
+                        font_context.font(member.template.clone(), &descriptor_without_variations);
                     member.loaded = true;
+
+                    if let Some(chosen_font) =
+                        member.font.as_ref().filter(|font| font_predicate(font))
+                    {
+                        // We know that this is the font we're going to choose, so now is the time to
+                        // apply variations to it.
+                        if !servo_config::pref!(layout_variable_fonts_enabled) {
+                            return member.font.clone();
+                        }
+
+                        let variations_to_apply =
+                            chosen_font.compute_variations_for_descriptor(font_descriptor);
+                        if variations_to_apply.is_empty() {
+                            return member.font.clone();
+                        }
+
+                        // TODO: Skip this second lookup if the selected font does not support variations.
+                        // That requires something like "supports_variations()" on PlatformFontMethods.
+                        let descriptor_with_variations =
+                            font_descriptor.with_variation_settings(variations_to_apply);
+                        member.font =
+                            font_context.font(member.template.clone(), &descriptor_with_variations);
+                        return member.font.clone();
+                    }
                 }
-                if matches!(&member.font, Some(font) if font_predicate(font)) {
+
+                if member.font.as_ref().is_some_and(font_predicate) {
                     return member.font.clone();
                 }
 
