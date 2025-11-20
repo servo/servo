@@ -1120,6 +1120,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Required to obtain the global, so we do this first. Shouldn't be an
         // observable difference.
         let node = self.start_container();
+
         // Step 1. Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, "Range createContextualFragment", and "script".
@@ -1129,18 +1130,17 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             "Range createContextualFragment",
             can_gc,
         )?;
+
         let owner_doc = node.owner_doc();
+
+        // Step 3. Let element be null.
+        // Step 4. If node implements Element, set element to node.
+        // Step 5. Otherwise, if node implements Text or Comment, set element to node's parent element.
         let element = match node.type_id() {
-            // Step 3. Let element be null.
-            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) => None,
-            // Step 4. If node implements Element, set element to node.
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
-            // Step 5. Otherwise, if node implements Text or Comment, set element to node's parent element.
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
-            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
-            NodeTypeId::DocumentType => unreachable!(),
-            NodeTypeId::Attr => unreachable!(),
+            _ => None,
         };
 
         // Step 6. If element is null or all of the following are true:
