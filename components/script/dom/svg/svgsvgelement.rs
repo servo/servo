@@ -160,8 +160,8 @@ impl SVGSVGElement {
     }
 }
 
-pub(crate) trait LayoutSVGSVGElementHelpers {
-    fn data(self) -> SVGElementData;
+pub(crate) trait LayoutSVGSVGElementHelpers<'dom> {
+    fn data(self) -> SVGElementData<'dom>;
 }
 
 fn ratio_from_view_box(view_box: &AttrValue) -> Option<f32> {
@@ -180,25 +180,11 @@ fn ratio_from_view_box(view_box: &AttrValue) -> Option<f32> {
     iter.next().is_none().then(|| width as f32 / height as f32)
 }
 
-impl LayoutSVGSVGElementHelpers for LayoutDom<'_, SVGSVGElement> {
-    fn data(self) -> SVGElementData {
+impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
+    fn data(self) -> SVGElementData<'dom> {
         let element = self.upcast::<Element>();
-        let get_size = |attr| {
-            element
-                .get_attr_for_layout(&ns!(), &attr)
-                .map(|val| val.as_int())
-                .filter(|val| *val >= 0)
-        };
-        let width = get_size(local_name!("width"));
-        let height = get_size(local_name!("height"));
-        let ratio = match (width, height) {
-            (Some(width), Some(height)) if width != 0 && height != 0 => {
-                Some(width as f32 / height as f32)
-            },
-            _ => element
-                .get_attr_for_layout(&ns!(), &local_name!("viewBox"))
-                .and_then(ratio_from_view_box),
-        };
+        let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
+        let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
         SVGElementData {
             source: self
                 .unsafe_get()
@@ -207,7 +193,6 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<'_, SVGSVGElement> {
                 .clone(),
             width,
             height,
-            ratio,
         }
     }
 }
@@ -259,7 +244,7 @@ impl VirtualMethods for SVGSVGElement {
                     style::values::specified::AllowQuirks::No,
                 );
                 eprintln!("parsed val is {:?}", val);
-                return AttrValue::Length(value.to_string(), Some(val.unwrap()));
+                AttrValue::Length(value.to_string(), Some(val.unwrap()))
             },
             _ => self
                 .super_type()
