@@ -405,9 +405,9 @@ fn report_error(
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
             if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
                 if let Some(stack) = js_backtrace {
-                    eprintln!("JS backtrace:\n{}", stack);
+                    error!("JS backtrace:\n{}", stack);
                 }
-                eprintln!("Rust backtrace:\n{}", rust_backtrace);
+                error!("Rust backtrace:\n{}", rust_backtrace);
             }
         });
     }
