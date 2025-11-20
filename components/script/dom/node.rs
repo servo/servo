@@ -1738,7 +1738,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn showing_broken_image_icon(self) -> bool;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
-    fn svg_data(self) -> Option<SVGElementData>;
+    fn svg_data(self) -> Option<SVGElementData<'dom>>;
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
     fn opaque(self) -> OpaqueNode;
@@ -2033,7 +2033,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .map(|media| media.data())
     }
 
-    fn svg_data(self) -> Option<SVGElementData> {
+    fn svg_data(self) -> Option<SVGElementData<'dom>> {
         self.downcast::<SVGSVGElement>().map(|svg| svg.data())
     }
 
