@@ -94,6 +94,14 @@ class BuildType:
     def as_cargo_arg(self) -> List[str]:
         return ["--profile", self.profile]
 
+    def from_string(profile: str) -> BuildType:
+        if profile == "dev":
+            return BuildType.dev()
+        elif profile == "release":
+            return BuildType.release()
+        else:
+            return BuildType.custom(profile)
+
     def __eq__(self, other: object) -> bool:
         raise Exception("BUG: do not compare BuildType with ==")
 
@@ -773,7 +781,7 @@ class CommandBase(object):
         elif prod:
             return BuildType.prod()
         else:
-            return BuildType.custom(profile)
+            return BuildType.from_string(profile)
 
     def configure_build_target(self, kwargs: dict[str, Any], suppress_log: bool = False) -> None:
         if hasattr(self.context, "target"):
