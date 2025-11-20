@@ -138,6 +138,7 @@ pub struct SVGElementData<'dom> {
     pub source: Option<Result<ServoUrl, ()>>,
     pub width: Option<&'dom AttrValue>,
     pub height: Option<&'dom AttrValue>,
+    pub view_box: Option<&'dom AttrValue>,
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
