@@ -2584,6 +2584,14 @@ impl Node {
         };
 
         let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
+
+        // Step 10. Let staticNodeList be a list of nodes, initially « ».
+        let mut static_node_list: SmallVec<[_; 4]> = Default::default();
+
+        let parent_shadow_root = parent.downcast::<Element>().and_then(Element::shadow_root);
+        let parent_in_shadow_tree = parent.is_in_a_shadow_tree();
+        let parent_as_slot = parent.downcast::<HTMLSlotElement>();
+
         // Step 7. For each node in nodes, in tree order:
         for kid in new_nodes {
             // Step 7.1. Adopt node into parent’s node document.
@@ -2595,7 +2603,7 @@ impl Node {
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
             // and node is a slottable, then assign a slot for node.
-            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
+            if let Some(ref shadow_root) = parent_shadow_root {
                 if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
                     let cx = GlobalScope::get_cx();
                     if kid.is::<Element>() || kid.is::<Text>() {
@@ -2607,8 +2615,8 @@ impl Node {
 
             // Step 7.5 If parent’s root is a shadow root, and parent is a slot whose assigned nodes
             // is the empty list, then run signal a slot change for parent.
-            if parent.is_in_a_shadow_tree() {
-                if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
+            if parent_in_shadow_tree {
+                if let Some(slot_element) = parent_as_slot {
                     if !slot_element.has_assigned_nodes() {
                         slot_element.signal_a_slot_change();
                     }
@@ -2621,25 +2629,30 @@ impl Node {
 
             // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
             // in shadow-including tree order:
-            for descendant in kid
-                .traverse_preorder(ShadowIncluding::Yes)
-                .filter_map(DomRoot::downcast::<Element>)
-            {
+            for descendant in kid.traverse_preorder(ShadowIncluding::Yes) {
+                // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
+                //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
+                if descendant.is_connected() {
+                    static_node_list.push(descendant.clone());
+                }
+
                 // Step 7.7.1. Run the insertion steps with inclusiveDescendant.
                 // This is done in `parent.add_child()`.
 
                 // Step 7.7.2, whatwg/dom#833
                 // Enqueue connected reactions for custom elements or try upgrade.
-                if descendant.is_custom() {
-                    if descendant.is_connected() {
-                        custom_element_reaction_stack.enqueue_callback_reaction(
-                            &descendant,
-                            CallbackReaction::Connected,
-                            None,
-                        );
+                if let Some(descendant) = DomRoot::downcast::<Element>(descendant) {
+                    if descendant.is_custom() {
+                        if descendant.is_connected() {
+                            custom_element_reaction_stack.enqueue_callback_reaction(
+                                &descendant,
+                                CallbackReaction::Connected,
+                                None,
+                            );
+                        }
+                    } else {
+                        try_upgrade_element(&descendant);
                     }
-                } else {
-                    try_upgrade_element(&descendant);
                 }
             }
         }
@@ -2663,16 +2676,6 @@ impl Node {
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
 
-        // Step 10. Let staticNodeList be a list of nodes, initially « ».
-        let mut static_node_list = vec![];
-
-        // Step 11. For each node of nodes, in tree order:
-        for node in new_nodes {
-            // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
-            //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
-            static_node_list.extend(node.traverse_preorder(ShadowIncluding::Yes));
-        }
-
         // We use a delayed task for this step to work around an awkward interaction between
         // script/layout blockers, Node::replace_all, and the children_changed vtable method.
         // Any node with a post connection step that triggers layout (such as iframes) needs
@@ -2684,11 +2687,11 @@ impl Node {
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
         parent_document.add_delayed_task(
-            task!(PostConnectionSteps: |static_node_list: Vec<DomRoot<Node>>| {
+            task!(PostConnectionSteps: |static_node_list: SmallVec<[DomRoot<Node>; 4]>| {
                 // Step 12. For each node of staticNodeList, if node is connected, then run the
                 //          post-connection steps with node.
-                for node in static_node_list.iter().filter(|n| n.is_connected()) {
-                    vtable_for(node).post_connection_steps(CanGc::note());
+                for node in static_node_list {
+                    vtable_for(&node).post_connection_steps(CanGc::note());
                 }
             }),
         );
