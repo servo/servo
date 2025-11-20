@@ -231,7 +231,9 @@ impl VirtualMethods for SVGSVGElement {
                 let value = &value.str();
                 let parser_input = &mut ParserInput::new(value);
                 let parser = &mut Parser::new(parser_input);
+                // TODO: is about:blamk ok?
                 let url = Url::parse("about:blank").unwrap().into();
+                // TODO: quirks, etc.
                 let context = ParserContext::new(
                     Origin::Author,
                     &url,
@@ -242,12 +244,14 @@ impl VirtualMethods for SVGSVGElement {
                     None,
                     None,
                 );
+                // TODO: negative, quirks
                 let val = Length::parse_non_negative_quirky(
                     &context,
                     parser,
                     style::values::specified::AllowQuirks::No,
                 );
                 eprintln!("parsed val is {:?}", val);
+                // TODO: unwrap
                 AttrValue::Length(value.to_string(), Some(val.unwrap()))
             },
             _ => self
