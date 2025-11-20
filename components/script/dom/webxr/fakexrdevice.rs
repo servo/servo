@@ -117,11 +117,11 @@ pub(crate) fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
             let (left, right) = match (views[0].eye, views[1].eye) {
                 (XREye::Left, XREye::Right) => (&views[0], &views[1]),
                 (XREye::Right, XREye::Left) => (&views[1], &views[0]),
-                _ => return Err(Error::NotSupported),
+                _ => return Err(Error::NotSupported(None)),
             };
             Ok(MockViewsInit::Stereo(view(left)?, view(right)?))
         },
-        _ => Err(Error::NotSupported),
+        _ => Err(Error::NotSupported(None)),
     }
 }
 

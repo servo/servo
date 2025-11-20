@@ -172,7 +172,7 @@ impl DragDataStore {
                 .values()
                 .any(|item| item.text_type_matches(type_))
             {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             }
         }
 

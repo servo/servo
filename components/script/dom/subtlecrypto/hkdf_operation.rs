@@ -118,7 +118,7 @@ pub(crate) fn import_key(
     // Otherwise:
     else {
         // throw a NotSupportedError.
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 }
 

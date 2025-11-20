@@ -1205,7 +1205,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     key.algorithm().name(),
                     ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
-                    subtle.reject_promise_with_error(promise, Error::NotSupported);
+                    subtle.reject_promise_with_error(promise, Error::NotSupported(None));
                     return;
                 }
 
@@ -1329,7 +1329,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     key.algorithm().name(),
                     ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
-                    subtle.reject_promise_with_error(promise, Error::NotSupported);
+                    subtle.reject_promise_with_error(promise, Error::NotSupported(None));
                     return;
                 }
 
@@ -1617,7 +1617,7 @@ impl SubtleKeyAlgorithm {
             ALG_SHA384 => 1024,
             ALG_SHA512 => 1024,
             _ => {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             },
         };
 
@@ -2332,7 +2332,7 @@ fn normalize_algorithm(
             let Some(&alg_name) = SUPPORTED_ALGORITHMS.iter().find(|supported_algorithm| {
                 supported_algorithm.eq_ignore_ascii_case(&initial_alg.name.str())
             }) else {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             };
 
             // Step 5.2. Let desiredType be the IDL dictionary type stored at algName in
@@ -2782,7 +2782,7 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
 
-                _ => return Err(Error::NotSupported),
+                _ => return Err(Error::NotSupported(None)),
             };
 
             // Step 11. Return normalizedAlgorithm.
@@ -2823,7 +2823,7 @@ impl NormalizedAlgorithm {
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::encrypt_aes_gcm(algo, key, plaintext)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -2838,7 +2838,7 @@ impl NormalizedAlgorithm {
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::decrypt_aes_gcm(algo, key, ciphertext)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -2851,7 +2851,7 @@ impl NormalizedAlgorithm {
                 ed25519_operation::sign(key, message)
             },
             (ALG_HMAC, NormalizedAlgorithm::Algorithm(_algo)) => hmac_operation::sign(key, message),
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -2866,7 +2866,7 @@ impl NormalizedAlgorithm {
             (ALG_HMAC, NormalizedAlgorithm::Algorithm(_algo)) => {
                 hmac_operation::verify(key, message, signature)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -2884,7 +2884,7 @@ impl NormalizedAlgorithm {
             (ALG_SHA512, NormalizedAlgorithm::Algorithm(algo)) => {
                 sha_operation::digest(algo, message)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -2932,7 +2932,7 @@ impl NormalizedAlgorithm {
                 hmac_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -2950,7 +2950,7 @@ impl NormalizedAlgorithm {
             (ALG_PBKDF2, NormalizedAlgorithm::Pbkdf2Params(algo)) => {
                 pbkdf2_operation::derive_bits(algo, key, length)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -3045,7 +3045,7 @@ impl NormalizedAlgorithm {
             (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -3054,7 +3054,7 @@ impl NormalizedAlgorithm {
             (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
                 aes_operation::wrap_key_aes_kw(key, plaintext)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -3063,7 +3063,7 @@ impl NormalizedAlgorithm {
             (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
                 aes_operation::unwrap_key_aes_kw(key, ciphertext)
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 
@@ -3088,7 +3088,7 @@ impl NormalizedAlgorithm {
             (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::get_key_length()
             },
-            _ => Err(Error::NotSupported),
+            _ => Err(Error::NotSupported(None)),
         }
     }
 }
@@ -3110,6 +3110,6 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
         ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
         ALG_AES_KW => aes_operation::export_key_aes_kw(format, key),
         ALG_HMAC => hmac_operation::export_key(format, key),
-        _ => Err(Error::NotSupported),
+        _ => Err(Error::NotSupported(None)),
     }
 }

@@ -204,7 +204,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
             *options.sampleRate < MIN_SAMPLE_RATE ||
             *options.sampleRate > MAX_SAMPLE_RATE
         {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(AudioBuffer::new_with_proto(
             window,

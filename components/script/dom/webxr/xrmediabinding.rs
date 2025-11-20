@@ -76,7 +76,7 @@ impl XRMediaBindingMethods<crate::DomTypeHolder> for XRMediaBinding {
         _: &XRMediaLayerInit,
     ) -> Fallible<DomRoot<XRQuadLayer>> {
         // https://github.com/servo/servo/issues/27493
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-createcylinderlayer>
@@ -86,7 +86,7 @@ impl XRMediaBindingMethods<crate::DomTypeHolder> for XRMediaBinding {
         _: &XRMediaLayerInit,
     ) -> Fallible<DomRoot<XRCylinderLayer>> {
         // https://github.com/servo/servo/issues/27493
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-createequirectlayer>
@@ -96,6 +96,6 @@ impl XRMediaBindingMethods<crate::DomTypeHolder> for XRMediaBinding {
         _: &XRMediaLayerInit,
     ) -> Fallible<DomRoot<XREquirectLayer>> {
         // https://github.com/servo/servo/issues/27493
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 }

@@ -67,7 +67,7 @@ impl XPathExpression {
                 NodeTypeId::Element(_)
         );
         if !is_allowed_context_node_type {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         let result_type = XPathResultType::try_from(result_type_num)

@@ -77,7 +77,7 @@ impl PasswordCredentialMethods<DomTypeHolder> for PasswordCredential {
         _can_gc: CanGc,
         _form: &HTMLFormElement,
     ) -> Fallible<DomRoot<PasswordCredential>> {
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     fn Constructor_(

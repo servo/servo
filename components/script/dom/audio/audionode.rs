@@ -53,7 +53,7 @@ impl AudioNode {
         number_of_outputs: u32,
     ) -> Fallible<AudioNode> {
         if options.count == 0 || options.count > MAX_CHANNEL_COUNT {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         let ch = ChannelInfo {
             count: options.count as u8,
@@ -266,14 +266,14 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
                 if value > 2 {
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioScheduledSourceNode(
                 AudioScheduledSourceNodeTypeId::StereoPannerNode,
             )) => {
                 if value > 2 {
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
@@ -289,7 +289,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         };
 
         if value == 0 || value > MAX_CHANNEL_COUNT {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         self.channel_count.set(value);
@@ -317,14 +317,14 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
                 if value == ChannelCountMode::Max {
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioScheduledSourceNode(
                 AudioScheduledSourceNodeTypeId::StereoPannerNode,
             )) => {
                 if value == ChannelCountMode::Max {
-                    return Err(Error::NotSupported);
+                    return Err(Error::NotSupported(None));
                 }
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {

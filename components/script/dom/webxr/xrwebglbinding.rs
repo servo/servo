@@ -109,7 +109,7 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
         _: &XRProjectionLayerInit,
     ) -> Fallible<DomRoot<XRProjectionLayer>> {
         // https://github.com/servo/servo/issues/27468
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createquadlayer>
@@ -119,7 +119,7 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
         _: &Option<XRQuadLayerInit>,
     ) -> Fallible<DomRoot<XRQuadLayer>> {
         // https://github.com/servo/servo/issues/27493
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createcylinderlayer>
@@ -129,7 +129,7 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
         _: &Option<XRCylinderLayerInit>,
     ) -> Fallible<DomRoot<XRCylinderLayer>> {
         // https://github.com/servo/servo/issues/27493
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createequirectlayer>
@@ -139,13 +139,13 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
         _: &Option<XREquirectLayerInit>,
     ) -> Fallible<DomRoot<XREquirectLayer>> {
         // https://github.com/servo/servo/issues/27493
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createcubelayer>
     fn CreateCubeLayer(&self, _: &Option<XRCubeLayerInit>) -> Fallible<DomRoot<XRCubeLayer>> {
         // https://github.com/servo/servo/issues/27493
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-getsubimage>
@@ -156,7 +156,7 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
         _: XREye,
     ) -> Fallible<DomRoot<XRWebGLSubImage>> {
         // https://github.com/servo/servo/issues/27468
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-getviewsubimage>
@@ -166,6 +166,6 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
         _: &XRView,
     ) -> Fallible<DomRoot<XRWebGLSubImage>> {
         // https://github.com/servo/servo/issues/27468
-        Err(Error::NotSupported)
+        Err(Error::NotSupported(None))
     }
 }

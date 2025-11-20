@@ -688,7 +688,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         // https://immersive-web.github.io/layers/#updaterenderstatechanges
         // Step 1.
         if init.baseLayer.is_some() && (self.has_layers_feature() || init.layers.is_some()) {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         if let Some(Some(ref layers)) = init.layers {
@@ -845,14 +845,14 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         if !self.is_immersive() &&
             (ty == XRReferenceSpaceType::Bounded_floor || ty == XRReferenceSpaceType::Unbounded)
         {
-            p.reject_error(Error::NotSupported, can_gc);
+            p.reject_error(Error::NotSupported(None), can_gc);
             return p;
         }
 
         match ty {
             XRReferenceSpaceType::Unbounded => {
                 // XXXmsub2 figure out how to support this
-                p.reject_error(Error::NotSupported, can_gc)
+                p.reject_error(Error::NotSupported(None), can_gc)
             },
             ty => {
                 if ty != XRReferenceSpaceType::Viewer &&
@@ -866,7 +866,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                         .iter()
                         .any(|f| *f == s)
                     {
-                        p.reject_error(Error::NotSupported, can_gc);
+                        p.reject_error(Error::NotSupported(None), can_gc);
                         return p;
                     }
                 }
@@ -937,7 +937,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             .iter()
             .any(|f| f == "hit-test")
         {
-            p.reject_error(Error::NotSupported, can_gc);
+            p.reject_error(Error::NotSupported(None), can_gc);
             return p;
         }
 

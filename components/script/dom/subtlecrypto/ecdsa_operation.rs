@@ -63,7 +63,7 @@ pub(crate) fn sign(
         ALG_SHA256 => Sha256::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA384 => Sha384::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA512 => Sha512::new_with_prefix(message).finalize().to_vec(),
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
 
     // Step 4. Let d be the ECDSA private key associated with key.
@@ -133,7 +133,7 @@ pub(crate) fn sign(
                 .map_err(|_| Error::Operation)?;
             signature.to_vec()
         },
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
 
     // Step 7. Return result.
@@ -163,7 +163,7 @@ pub(crate) fn verify(
         ALG_SHA256 => Sha256::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA384 => Sha384::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA512 => Sha512::new_with_prefix(message).finalize().to_vec(),
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
 
     // Step 4. Let Q be the ECDSA public key associated with key.
@@ -241,7 +241,7 @@ pub(crate) fn verify(
                 _ => false,
             }
         },
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
 
     // Step 8. Return result.
@@ -303,7 +303,7 @@ pub(crate) fn generate_key(
                 Handle::P521PublicKey(public_key),
             )
         },
-        _ => return Err(Error::NotSupported),
+        _ => return Err(Error::NotSupported(None)),
     };
 
     // Step 4. Let algorithm be a new EcKeyAlgorithm object.
@@ -1197,7 +1197,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                         Handle::P256PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         Handle::P384PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         Handle::P521PrivateKey(private_key) => private_key.to_bytes().to_vec(),
-                        _ => return Err(Error::NotSupported),
+                        _ => return Err(Error::NotSupported(None)),
                     };
                     jwk.d = Some(Base64UrlUnpadded::encode_string(&d).into());
                 }
@@ -1262,7 +1262,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     _ => return Err(Error::Operation),
                 }
             } else {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             };
 
             // Step 3.3. Let result be data.

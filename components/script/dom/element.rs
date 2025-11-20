@@ -606,7 +606,7 @@ impl Element {
         // Step 1. If element’s namespace is not the HTML namespace,
         // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 2. If element’s local name is not a valid shadow host name,
@@ -614,7 +614,7 @@ impl Element {
         if !is_valid_shadow_host_name(self.local_name()) {
             // UA shadow roots may be attached to anything
             if is_ua_widget != IsUserAgentWidget::Yes {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             }
         }
 
@@ -628,7 +628,7 @@ impl Element {
             // Step 3.2. If definition is not null and definition’s disable shadow
             //  is true, then throw a "NotSupportedError" DOMException.
             if definition.is_some_and(|definition| definition.disable_shadow) {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             }
         }
 
@@ -641,7 +641,7 @@ impl Element {
             if !current_shadow_root.is_declarative() ||
                 current_shadow_root.shadow_root_mode() != mode
             {
-                return Err(Error::NotSupported);
+                return Err(Error::NotSupported(None));
             }
 
             // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
@@ -3897,7 +3897,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 a.enter_formal_activation_state();
                 Ok(())
             },
-            None => Err(Error::NotSupported),
+            None => Err(Error::NotSupported(None)),
         }
     }
 
@@ -3907,7 +3907,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 a.exit_formal_activation_state();
                 Ok(())
             },
-            None => Err(Error::NotSupported),
+            None => Err(Error::NotSupported(None)),
         }
     }
 

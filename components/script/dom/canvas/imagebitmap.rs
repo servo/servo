@@ -596,7 +596,7 @@ impl ImageBitmap {
             ImageBitmapSource::CSSStyleValue(_) => {
                 // TODO: CSSStyleValue is not part of ImageBitmapSource
                 // <https://html.spec.whatwg.org/multipage/#imagebitmapsource>
-                p.reject_error(Error::NotSupported, can_gc);
+                p.reject_error(Error::NotSupported(None), can_gc);
             },
         }
 

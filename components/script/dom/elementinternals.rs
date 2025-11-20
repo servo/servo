@@ -222,7 +222,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     ) -> ErrorResult {
         // Steps 1-2: If element is not a form-associated custom element, then throw a "NotSupportedError" DOMException
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 3: Set target element's submission value
@@ -248,7 +248,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         // Step 1. Let element be this's target element.
         // Step 2: If element is not a form-associated custom element, then throw a "NotSupportedError" DOMException.
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 3: If flags contains one or more true values and message is not given or is the empty
@@ -311,7 +311,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         // This check isn't in the spec but it's in WPT tests and it maintains
         // consistency with other methods that do specify it
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(self.validation_message.borrow().clone())
     }
@@ -319,7 +319,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-validity>
     fn GetValidity(&self, can_gc: CanGc) -> Fallible<DomRoot<ValidityState>> {
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(self.validity_state(can_gc))
     }
@@ -327,7 +327,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-labels>
     fn GetLabels(&self, can_gc: CanGc) -> Fallible<DomRoot<NodeList>> {
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(self.labels_node_list.or_init(|| {
             NodeList::new_labels_list(
@@ -341,7 +341,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-willvalidate>
     fn GetWillValidate(&self) -> Fallible<bool> {
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(self.is_instance_validatable())
     }
@@ -349,7 +349,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-form>
     fn GetForm(&self) -> Fallible<Option<DomRoot<HTMLFormElement>>> {
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(self.form_owner.get())
     }
@@ -357,7 +357,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-checkvalidity>
     fn CheckValidity(&self, can_gc: CanGc) -> Fallible<bool> {
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(self.check_validity(can_gc))
     }
@@ -365,7 +365,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-reportvalidity>
     fn ReportValidity(&self, can_gc: CanGc) -> Fallible<bool> {
         if !self.is_target_form_associated() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(self.report_validity(can_gc))
     }

@@ -3725,7 +3725,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     fn CloneNode(&self, subtree: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1. If this is a shadow root, then throw a "NotSupportedError" DOMException.
         if self.is::<ShadowRoot>() {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
 
         // Step 2. Return the result of cloning a node given this with subtree set to subtree.

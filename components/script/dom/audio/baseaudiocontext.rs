@@ -129,7 +129,7 @@ impl BaseAudioContext {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let audio_context_impl = ServoMedia::get()
             .create_audio_context(&client_context_id, options.convert())
-            .map_err(|_| Error::NotSupported)?;
+            .map_err(|_| Error::NotSupported(None))?;
 
         Ok(BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
@@ -445,7 +445,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             length == 0 ||
             *sample_rate <= 0.
         {
-            return Err(Error::NotSupported);
+            return Err(Error::NotSupported(None));
         }
         Ok(AudioBuffer::new(
             self.global().as_window(),

@@ -530,7 +530,7 @@ impl Convert<Error> for BluetoothError {
             BluetoothError::Type(message) => Error::Type(message),
             BluetoothError::Network => Error::Network,
             BluetoothError::NotFound => Error::NotFound(None),
-            BluetoothError::NotSupported => Error::NotSupported,
+            BluetoothError::NotSupported => Error::NotSupported(None),
             BluetoothError::Security => Error::Security,
             BluetoothError::InvalidState => Error::InvalidState(None),
         }
