@@ -252,7 +252,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
             .map_err(|_| Error::JSFailed)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-copyfromchannel
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-copyfromchannel>
     fn CopyFromChannel(
         &self,
         mut destination: CustomAutoRooterGuard<Float32Array>,
