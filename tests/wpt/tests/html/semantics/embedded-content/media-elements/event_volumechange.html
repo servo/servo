@@ -65,6 +65,17 @@ function volumechange_test(tagName) {
       }
     });
   }, "setting " + tagName + ".volume/muted repeatedly fires volumechange repeatedly");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
+    e.muted = !e.muted;
+    e.volume = 1 - e.volume;
+    e.load();
+    e.onvolumechange = t.unreached_func();
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  }, "setting " + tagName + ".volume/muted before load will not fire volumechange");
 }
 
 volumechange_test("audio");
