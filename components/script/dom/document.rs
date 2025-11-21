@@ -2799,6 +2799,7 @@ impl Document {
             results.insert(ReflowPhasesRun::UpdatedImageData);
             self.waiting_on_canvas_image_updates.set(true);
             self.window().compositor_api().delay_new_frame_for_canvas(
+                self.webview_id(),
                 self.window().pipeline_id(),
                 current_rendering_epoch,
                 image_keys,

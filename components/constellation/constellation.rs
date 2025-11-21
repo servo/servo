@@ -3857,7 +3857,7 @@ where
         self.notify_history_changed(webview_id);
 
         self.trim_history(webview_id);
-        self.update_webview_in_compositor(webview_id);
+        self.set_frame_tree_for_webview(webview_id);
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -4751,7 +4751,7 @@ where
         self.notify_focus_state(change.new_pipeline_id);
 
         self.notify_history_changed(change.webview_id);
-        self.update_webview_in_compositor(change.webview_id);
+        self.set_frame_tree_for_webview(change.webview_id);
     }
 
     /// Update the focus state of the specified pipeline that recently became
@@ -5465,7 +5465,7 @@ where
 
     /// Send the frame tree for the given webview to the compositor.
     #[servo_tracing::instrument(skip_all)]
-    fn update_webview_in_compositor(&mut self, webview_id: WebViewId) {
+    fn set_frame_tree_for_webview(&mut self, webview_id: WebViewId) {
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
@@ -5473,7 +5473,9 @@ where
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
             self.compositor_proxy
-                .send(CompositorMsg::CreateOrUpdateWebView(frame_tree));
+                .send(CompositorMsg::SetFrameTreeForWebView(
+                    webview_id, frame_tree,
+                ));
         }
     }
 
