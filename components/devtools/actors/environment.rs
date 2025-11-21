@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // TODO: Remove once the actor is used.
-#![allow(dead_code)]
 
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -17,15 +16,15 @@ use crate::protocol::ClientRequest;
 #[serde(rename_all = "camelCase")]
 pub enum EnvironmentType {
     Function,
-    Block,
-    Object,
+    _Block,
+    _Object,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EnvironmentScope {
     Function,
-    Global,
+    _Global,
 }
 
 #[derive(Serialize)]

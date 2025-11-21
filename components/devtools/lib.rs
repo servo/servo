@@ -60,6 +60,7 @@ mod actors {
     pub mod console;
     pub mod device;
     pub mod environment;
+    pub mod frame;
     pub mod framerate;
     pub mod inspector;
     pub mod long_string;
