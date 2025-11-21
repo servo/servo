@@ -921,7 +921,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
             .map_err(|_| Error::Operation(None))?;
 
-            ExportedKey::Raw(data.to_vec())
+            ExportedKey::Bytes(data.to_vec())
         },
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
@@ -979,7 +979,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
             .map_err(|_| Error::Operation(None))?;
 
-            ExportedKey::Raw(data.as_bytes().to_vec())
+            ExportedKey::Bytes(data.as_bytes().to_vec())
         },
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
@@ -1145,7 +1145,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be data.
-            ExportedKey::Raw(data)
+            ExportedKey::Bytes(data)
         },
     };
 

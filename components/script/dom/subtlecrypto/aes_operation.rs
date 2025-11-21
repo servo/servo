@@ -980,13 +980,13 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             // represented by the [[handle]] internal slot of key.
             // Step 2.2. Let result be data.
             Handle::Aes128(key_data) => {
-                result = ExportedKey::Raw(key_data.clone());
+                result = ExportedKey::Bytes(key_data.clone());
             },
             Handle::Aes192(key_data) => {
-                result = ExportedKey::Raw(key_data.clone());
+                result = ExportedKey::Bytes(key_data.clone());
             },
             Handle::Aes256(key_data) => {
-                result = ExportedKey::Raw(key_data.clone());
+                result = ExportedKey::Bytes(key_data.clone());
             },
             _ => unreachable!(),
         },

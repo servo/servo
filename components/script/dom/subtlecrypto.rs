@@ -1247,8 +1247,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     realm, as defined by [WebIDL].
                 // Step 11. Resolve promise with result.
                 match result {
-                    ExportedKey::Raw(raw) => {
-                        subtle.resolve_promise_with_data(promise, raw);
+                    ExportedKey::Bytes(bytes) => {
+                        subtle.resolve_promise_with_data(promise, bytes);
                     },
                     ExportedKey::Jwk(jwk) => {
                         subtle.resolve_promise_with_jwk(promise, jwk);
@@ -1372,7 +1372,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     Step 14.2. Let bytes be the result of UTF-8 encoding json.
                 let cx = GlobalScope::get_cx();
                 let bytes = match exported_key {
-                    ExportedKey::Raw(raw) => raw,
+                    ExportedKey::Bytes(bytes) => bytes,
                     ExportedKey::Jwk(jwk) => match jwk.stringify(cx) {
                         Ok(stringified_jwk) => stringified_jwk.as_bytes().to_vec(),
                         Err(error) => {
@@ -2072,8 +2072,11 @@ where
     }
 }
 
-pub(crate) enum ExportedKey {
-    Raw(Vec<u8>),
+/// The returned type of the successful export key operation. `Bytes` should be used when the key
+/// is exported in "raw", "spki" or "pkcs8" format. `Jwk` should be used when the key is exported
+/// in "jwk" format.
+enum ExportedKey {
+    Bytes(Vec<u8>),
     Jwk(Box<JsonWebKey>),
 }
 

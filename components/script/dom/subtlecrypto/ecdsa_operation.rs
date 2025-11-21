@@ -1043,7 +1043,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             .map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Raw(data.to_vec())
+            ExportedKey::Bytes(data.to_vec())
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
@@ -1104,7 +1104,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             .map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Raw(data.as_bytes().to_vec())
+            ExportedKey::Bytes(data.as_bytes().to_vec())
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -1270,7 +1270,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be data.
-            ExportedKey::Raw(data)
+            ExportedKey::Bytes(data)
         },
         // Otherwise: throw a NotSupportedError. (Unreachable)
     };
