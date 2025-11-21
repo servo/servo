@@ -304,10 +304,14 @@ impl ServiceWorkerManager {
                 // TODO: https://w3c.github.io/ServiceWorker/#terminate-service-worker
             },
             ServiceWorkerMsg::ForwardDOMMessage(msg, scope_url) => {
-                if let Some(registration) = self.registrations.get_mut(&scope_url) &&
-                    let Some(ref worker) = registration.active_worker
-                {
-                    worker.forward_dom_message(msg);
+                if let Some(registration) = self.registrations.get_mut(&scope_url) {
+                    if let Some(ref worker) = registration.active_worker {
+                        worker.forward_dom_message(msg);
+                    } else if let Some(ref worker) = registration.waiting_worker {
+                        worker.forward_dom_message(msg);
+                    } else if let Some(ref worker) = registration.installing_worker {
+                        worker.forward_dom_message(msg);
+                    }
                 }
             },
             ServiceWorkerMsg::HandleAlgorithm(algorithm) => match algorithm {
