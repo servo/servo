@@ -18,6 +18,7 @@
 //! `WindowMethods` trait.
 
 mod clipboard_delegate;
+mod credential_management_delegate;
 mod javascript_evaluator;
 mod proxies;
 mod responders;
@@ -610,6 +611,33 @@ impl Servo {
             EmbedderMsg::SetClipboardText(webview_id, string) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.clipboard_delegate().set_text(webview, string);
+                }
+            },
+            EmbedderMsg::StoreSecret(webview_id, origin, secret, result) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let _ = result.send(
+                        webview
+                            .credential_management_delegate()
+                            .store_secret(origin, secret),
+                    );
+                }
+            },
+            EmbedderMsg::RetrieveSecret(webview_id, origin, result) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let _ = result.send(
+                        webview
+                            .credential_management_delegate()
+                            .retrieve_secret(origin),
+                    );
+                }
+            },
+            EmbedderMsg::DeleteSecret(webview_id, origin, result) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let _ = result.send(
+                        webview
+                            .credential_management_delegate()
+                            .delete_secret(origin),
+                    );
                 }
             },
             EmbedderMsg::SetCursor(webview_id, cursor) => {
