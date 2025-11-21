@@ -273,14 +273,14 @@ impl BrowsingContextActor {
             watcher: watcher.name(),
         };
 
-        actors.register(Box::new(accessibility));
-        actors.register(Box::new(css_properties));
-        actors.register(Box::new(inspector));
-        actors.register(Box::new(reflow));
-        actors.register(Box::new(style_sheets));
-        actors.register(Box::new(tabdesc));
-        actors.register(Box::new(thread));
-        actors.register(Box::new(watcher));
+        actors.register(accessibility);
+        actors.register(css_properties);
+        actors.register(inspector);
+        actors.register(reflow);
+        actors.register(style_sheets);
+        actors.register(tabdesc);
+        actors.register(thread);
+        actors.register(watcher);
 
         target
     }

@@ -196,7 +196,7 @@ impl Actor for WalkerActor {
                 // TODO: Create actual layout inspector actor
                 let layout = LayoutInspectorActor::new(registry.new_name("layout"));
                 let actor = layout.encodable();
-                registry.register_later(Box::new(layout));
+                registry.register_later(layout);
 
                 let msg = GetLayoutInspectorReply {
                     from: self.name(),

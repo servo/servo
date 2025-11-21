@@ -161,7 +161,7 @@ impl DevtoolsInstance {
         let device = DeviceActor::new(registry.new_name("device"));
         let preference = PreferenceActor::new(registry.new_name("preference"));
         let process = ProcessActor::new(registry.new_name("process"));
-        let root = Box::new(RootActor {
+        let root = RootActor {
             tabs: vec![],
             workers: vec![],
             device: device.name(),
@@ -169,13 +169,13 @@ impl DevtoolsInstance {
             preference: preference.name(),
             process: process.name(),
             active_tab: None.into(),
-        });
+        };
 
         registry.register(root);
-        registry.register(Box::new(performance));
-        registry.register(Box::new(device));
-        registry.register(Box::new(preference));
-        registry.register(Box::new(process));
+        registry.register(performance);
+        registry.register(device);
+        registry.register(preference);
+        registry.register(process);
         registry.find::<RootActor>("root");
 
         let actors = registry.create_shareable();
@@ -360,7 +360,7 @@ impl DevtoolsInstance {
 
             let thread = ThreadActor::new(actors.new_name("thread"));
             let thread_name = thread.name();
-            actors.register(Box::new(thread));
+            actors.register(thread);
 
             let worker_name = actors.new_name("worker");
             let worker = WorkerActor {
@@ -377,7 +377,7 @@ impl DevtoolsInstance {
             root.workers.push(worker.name.clone());
 
             self.actor_workers.insert(id, worker_name.clone());
-            actors.register(Box::new(worker));
+            actors.register(worker);
 
             Root::DedicatedWorker(worker_name)
         } else {
@@ -397,7 +397,7 @@ impl DevtoolsInstance {
                         &mut actors,
                     );
                     let name = browsing_context_actor.name();
-                    actors.register(Box::new(browsing_context_actor));
+                    actors.register(browsing_context_actor);
                     name
                 });
 
@@ -417,7 +417,7 @@ impl DevtoolsInstance {
             root: parent_actor,
         };
 
-        actors.register(Box::new(console));
+        actors.register(console);
     }
 
     fn handle_title_changed(&self, pipeline_id: PipelineId, title: String) {
@@ -538,7 +538,7 @@ impl DevtoolsInstance {
         let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
 
         self.actor_requests.insert(request_id, actor_name.clone());
-        actors.register(Box::new(actor));
+        actors.register(actor);
 
         actor_name
     }

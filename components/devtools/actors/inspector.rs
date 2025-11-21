@@ -105,7 +105,7 @@ impl Actor for InspectorActor {
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
-                    registry.register_later(Box::new(walker));
+                    registry.register_later(walker);
                 }
 
                 let msg = GetWalkerReply {
@@ -127,7 +127,7 @@ impl Actor for InspectorActor {
                     };
                     let mut page_style = self.page_style.borrow_mut();
                     *page_style = Some(style.name());
-                    registry.register_later(Box::new(style));
+                    registry.register_later(style);
                 }
 
                 let msg = GetPageStyleReply {
@@ -162,7 +162,7 @@ impl Actor for InspectorActor {
                     };
                     let mut highlighter = self.highlighter.borrow_mut();
                     *highlighter = Some(highlighter_actor.name());
-                    registry.register_later(Box::new(highlighter_actor));
+                    registry.register_later(highlighter_actor);
                 }
 
                 let msg = GetHighlighterReply {

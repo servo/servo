@@ -53,7 +53,7 @@ impl MemoryActor {
             name: actor_name.clone(),
         };
 
-        registry.register_later(Box::new(actor));
+        registry.register_later(actor);
         actor_name
     }
 
