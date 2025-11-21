@@ -12,19 +12,74 @@ use stylo_atoms::Atom;
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
+use crate::dom::bindings::codegen::UnionTypes::ClientOrServiceWorkerOrMessagePort;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::client::Client;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
+use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
+
+/// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+pub(crate) enum MessageSource {
+    Client(DomRoot<Client>),
+    ServiceWorker(DomRoot<ServiceWorker>),
+    MessagePort(DomRoot<MessagePort>),
+}
+
+impl From<ClientOrServiceWorkerOrMessagePort> for MessageSource {
+    fn from(value: ClientOrServiceWorkerOrMessagePort) -> Self {
+        match value {
+            ClientOrServiceWorkerOrMessagePort::Client(client) => MessageSource::Client(client),
+            ClientOrServiceWorkerOrMessagePort::ServiceWorker(sw) => {
+                MessageSource::ServiceWorker(sw)
+            },
+            ClientOrServiceWorkerOrMessagePort::MessagePort(port) => {
+                MessageSource::MessagePort(port)
+            },
+        }
+    }
+}
+
+impl From<&ClientOrServiceWorkerOrMessagePort> for MessageSource {
+    fn from(value: &ClientOrServiceWorkerOrMessagePort) -> Self {
+        match value {
+            ClientOrServiceWorkerOrMessagePort::Client(client) => {
+                MessageSource::Client(DomRoot::from_ref(client))
+            },
+            ClientOrServiceWorkerOrMessagePort::ServiceWorker(sw) => {
+                MessageSource::ServiceWorker(DomRoot::from_ref(sw))
+            },
+            ClientOrServiceWorkerOrMessagePort::MessagePort(port) => {
+                MessageSource::MessagePort(DomRoot::from_ref(port))
+            },
+        }
+    }
+}
+
+impl From<MessageSource> for ClientOrServiceWorkerOrMessagePort {
+    fn from(value: MessageSource) -> Self {
+        match value {
+            MessageSource::Client(client) => ClientOrServiceWorkerOrMessagePort::Client(client),
+            MessageSource::ServiceWorker(sw) => {
+                ClientOrServiceWorkerOrMessagePort::ServiceWorker(sw)
+            },
+            MessageSource::MessagePort(port) => {
+                ClientOrServiceWorkerOrMessagePort::MessagePort(port)
+            },
+        }
+    }
+}
 
 #[dom_struct]
 #[expect(non_snake_case)]
@@ -38,6 +93,8 @@ pub(crate) struct ExtendableMessageEvent {
     origin: DOMString,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid>
     lastEventId: DOMString,
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
+    source: Option<MessageSource>,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports>
     ports: Vec<Dom<MessagePort>>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -49,6 +106,7 @@ impl ExtendableMessageEvent {
     pub(crate) fn new_inherited(
         origin: DOMString,
         lastEventId: DOMString,
+        source: Option<MessageSource>,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> ExtendableMessageEvent {
         ExtendableMessageEvent {
@@ -56,6 +114,7 @@ impl ExtendableMessageEvent {
             data: Heap::default(),
             origin,
             lastEventId,
+            source,
             ports: ports
                 .into_iter()
                 .map(|port| Dom::from_ref(&*port))
@@ -73,6 +132,7 @@ impl ExtendableMessageEvent {
         data: HandleValue,
         origin: DOMString,
         lastEventId: DOMString,
+        source: Option<MessageSource>,
         ports: Vec<DomRoot<MessagePort>>,
         can_gc: CanGc,
     ) -> DomRoot<ExtendableMessageEvent> {
@@ -85,6 +145,7 @@ impl ExtendableMessageEvent {
             data,
             origin,
             lastEventId,
+            source,
             ports,
             can_gc,
         )
@@ -100,12 +161,14 @@ impl ExtendableMessageEvent {
         data: HandleValue,
         origin: DOMString,
         lastEventId: DOMString,
+        source: Option<MessageSource>,
         ports: Vec<DomRoot<MessagePort>>,
         can_gc: CanGc,
     ) -> DomRoot<ExtendableMessageEvent> {
         let ev = Box::new(ExtendableMessageEvent::new_inherited(
             origin,
             lastEventId,
+            source,
             ports,
         ));
         let ev = reflect_dom_object_with_proto(ev, global, proto, can_gc);
@@ -136,6 +199,7 @@ impl ExtendableMessageEvent {
             message,
             DOMString::new(),
             DOMString::new(),
+            None,
             ports,
             CanGc::from_cx(cx),
         );
@@ -158,6 +222,9 @@ impl ExtendableMessageEvent {
             init.data.handle(),
             init.origin.clone(),
             init.lastEventId.clone(),
+            init.source
+                .as_ref()
+                .and_then(|s| s.as_ref().map(|s| s.into())),
             init.ports.clone(),
             CanGc::from_cx(cx),
         );
@@ -186,6 +253,9 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
             init.data.handle(),
             init.origin.clone(),
             init.lastEventId.clone(),
+            init.source
+                .as_ref()
+                .and_then(|s| s.as_ref().map(|s| s.into())),
             vec![],
             can_gc,
         );
@@ -210,6 +280,11 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
+    fn GetSource(&self) -> Option<ClientOrServiceWorkerOrMessagePort> {
+        self.source.clone().map(|s| s.into())
     }
 
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports>
