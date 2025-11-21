@@ -5,7 +5,6 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Instant;
 
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
@@ -14,7 +13,7 @@ use egui::{Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
-use log::{trace, warn};
+use log::warn;
 use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
@@ -29,9 +28,6 @@ use winit::window::Window;
 use super::app_state::RunningAppState;
 use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
-use super::headed_window::Window as ServoWindow;
-use crate::desktop::headed_window::INITIAL_WINDOW_TITLE;
-use crate::desktop::window_trait::WindowPortsMethods;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::running_app_state::RunningAppStateTrait;
 
@@ -41,7 +37,6 @@ pub struct Minibrowser {
     event_queue: Vec<MinibrowserEvent>,
     toolbar_height: Length<f32, DeviceIndependentPixel>,
 
-    last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: String,
 
@@ -97,13 +92,13 @@ impl Drop for Minibrowser {
 
 impl Minibrowser {
     pub fn new(
-        window: &ServoWindow,
+        winit_window: &Window,
         event_loop: &ActiveEventLoop,
         event_loop_proxy: EventLoopProxy,
+        rendering_context: Rc<OffscreenRenderingContext>,
         initial_url: ServoUrl,
         preferences: &ServoShellPreferences,
     ) -> Self {
-        let rendering_context = window.offscreen_rendering_context();
         #[allow(clippy::arc_with_non_send_sync)]
         let mut context = EguiGlow::new(
             event_loop,
@@ -113,7 +108,6 @@ impl Minibrowser {
             false,
         );
 
-        let winit_window = window.winit_window().unwrap();
         context
             .egui_winit
             .init_accesskit(event_loop, winit_window, event_loop_proxy);
@@ -134,7 +128,6 @@ impl Minibrowser {
             context,
             event_queue: vec![],
             toolbar_height: Default::default(),
-            last_update: Instant::now(),
             last_mouse_position: None,
             location: initial_url.to_string(),
             location_dirty: false,
@@ -196,6 +189,12 @@ impl Minibrowser {
             _ => true,
         };
         result
+    }
+
+    /// The height of the top toolbar of this user inteface ie the distance from the top of the
+    /// window to the position of the `WebView`.
+    pub(crate) fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
+        self.toolbar_height
     }
 
     /// Return true iff the given position is over the egui toolbar.
@@ -290,26 +289,13 @@ impl Minibrowser {
         tab_frame.end(ui);
     }
 
-    /// Update the minibrowser, but don’t paint.
-    pub fn update(
-        &mut self,
-        window: &dyn WindowPortsMethods,
-        state: &RunningAppState,
-        reason: &'static str,
-    ) {
-        let now = Instant::now();
-        let winit_window = window.winit_window().unwrap();
-        trace!(
-            "{:?} since last update ({})",
-            now - self.last_update,
-            reason
-        );
+    /// Update the user interface, but do not paint the updated state.
+    pub fn update(&mut self, winit_window: &Window, state: &RunningAppState) {
         let Self {
             rendering_context,
             context,
             event_queue,
             toolbar_height,
-            last_update,
             location,
             location_dirty,
             favicon_textures,
@@ -446,7 +432,6 @@ impl Minibrowser {
             // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
             // point, but the Context is correct and the TopBottomPanel is wrong.
             *toolbar_height = Length::new(ctx.available_rect().min.y);
-            window.set_toolbar_height(*toolbar_height);
 
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
@@ -493,8 +478,6 @@ impl Minibrowser {
                     })),
                 });
             }
-
-            *last_update = now;
         });
     }
 
@@ -507,7 +490,7 @@ impl Minibrowser {
         self.rendering_context.parent_context().present();
     }
 
-    /// Updates the location field from the given [WebViewManager], unless the user has started
+    /// Updates the location field from the given [`RunningAppState`], unless the user has started
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     fn update_location_in_toolbar(&mut self, state: &RunningAppState) -> bool {
         // User edited without clicking Go?
@@ -558,32 +541,9 @@ impl Minibrowser {
         old_can_go_back != self.can_go_back || old_can_go_forward != self.can_go_forward
     }
 
-    fn update_title(
-        &mut self,
-        state: &RunningAppState,
-        window: Rc<dyn WindowPortsMethods>,
-    ) -> bool {
-        if let Some(webview) = state.focused_webview() {
-            let title = webview
-                .page_title()
-                .filter(|title| !title.is_empty())
-                .map(|title| title.to_string())
-                .or_else(|| webview.url().map(|url| url.to_string()))
-                .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
-
-            window.set_title_if_changed(&title)
-        } else {
-            false
-        }
-    }
-
-    /// Updates all fields taken from the given [WebViewManager], such as the location field.
+    /// Updates all fields taken from the given [`RunningAppState`], such as the location field.
     /// Returns true iff the egui needs an update.
-    pub fn update_webview_data(
-        &mut self,
-        state: &RunningAppState,
-        window: Rc<dyn WindowPortsMethods>,
-    ) -> bool {
+    pub fn update_webview_data(&mut self, state: &RunningAppState) -> bool {
         // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
@@ -591,7 +551,6 @@ impl Minibrowser {
         self.update_location_in_toolbar(state) |
             self.update_load_status(state) |
             self.update_status_text(state) |
-            self.update_title(state, window) |
             self.update_can_go_back_and_forward(state)
     }
 
