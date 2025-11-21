@@ -512,7 +512,7 @@ impl ImageCacheStore {
     fn fetch_more_image_keys(&mut self) {
         self.key_cache.cache = KeyCacheState::PendingBatch;
         self.compositor_api
-            .generate_image_key_async(self.pipeline_id);
+            .generate_image_key_async(self.webview_id, self.pipeline_id);
     }
 
     /// Insert received keys into the cache and complete the loading of images.
@@ -533,7 +533,7 @@ impl ImageCacheStore {
             }
             if !self.key_cache.images_pending_keys.is_empty() {
                 self.compositor_api
-                    .generate_image_key_async(self.pipeline_id);
+                    .generate_image_key_async(self.webview_id, self.pipeline_id);
                 self.key_cache.cache = KeyCacheState::PendingBatch
             }
         } else {
@@ -742,7 +742,9 @@ impl ImageCache for ImageCacheImpl {
             store.fetch_more_image_keys();
         }
 
-        store.compositor_api.generate_image_key_blocking()
+        store
+            .compositor_api
+            .generate_image_key_blocking(store.webview_id)
     }
 
     fn get_image(
@@ -1071,7 +1073,7 @@ impl ImageCache for ImageCacheImpl {
                     .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))?;
                 let image_key = store
                     .compositor_api
-                    .generate_image_key_blocking()
+                    .generate_image_key_blocking(store.webview_id)
                     .expect("Could not generate image key for broken image icon");
                 set_webrender_image_key(&store.compositor_api, &mut image, image_key);
                 Some(Arc::new(image))
@@ -1097,7 +1099,8 @@ impl Drop for ImageCacheStore {
                     .filter_map(|task| task.result.as_ref()?.id.map(ImageUpdate::DeleteImage)),
             )
             .collect();
-        self.compositor_api.update_images(image_updates);
+        self.compositor_api
+            .update_images(self.webview_id.into(), image_updates);
     }
 }
 

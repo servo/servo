@@ -213,12 +213,20 @@ impl IOCompositor {
         Rc::new(RefCell::new(compositor))
     }
 
-    pub(crate) fn painter<'a>(&'a self) -> Ref<'a, Painter> {
-        self.painters[0].borrow()
+    pub(crate) fn painter<'a>(&'a self, painter_id: PainterId) -> Ref<'a, Painter> {
+        self.painters
+            .iter()
+            .map(|painter| painter.borrow())
+            .find(|painter| painter.painter_id == painter_id)
+            .expect("painter_id not found")
     }
 
-    pub(crate) fn painter_mut<'a>(&'a self) -> RefMut<'a, Painter> {
-        self.painters[0].borrow_mut()
+    pub(crate) fn painter_mut<'a>(&'a self, painter_id: PainterId) -> RefMut<'a, Painter> {
+        self.painters
+            .iter()
+            .map(|painter| painter.borrow_mut())
+            .find(|painter| painter.painter_id == painter_id)
+            .expect("painter_id not found")
     }
 
     pub fn painter_id(&self) -> PainterId {
@@ -231,8 +239,8 @@ impl IOCompositor {
         }
     }
 
-    pub fn rendering_context_size(&self) -> Size2D<u32, DevicePixel> {
-        self.painter().rendering_context.size2d()
+    pub fn rendering_context_size(&self, painter_id: PainterId) -> Size2D<u32, DevicePixel> {
+        self.painter(painter_id).rendering_context.size2d()
     }
 
     pub fn webgl_threads(&self) -> WebGLThreads {
@@ -318,24 +326,26 @@ impl IOCompositor {
                 pipeline_id,
                 animation_state,
             ) => {
-                self.painter_mut().change_running_animations_state(
-                    webview_id,
-                    pipeline_id,
-                    animation_state,
-                );
+                self.painter_mut(webview_id.into())
+                    .change_running_animations_state(webview_id, pipeline_id, animation_state);
             },
-            CompositorMsg::CreateOrUpdateWebView(frame_tree) => {
-                self.painter_mut().set_frame_tree_for_webview(&frame_tree);
+            CompositorMsg::SetFrameTreeForWebView(webview_id, frame_tree) => {
+                self.painter_mut(webview_id.into())
+                    .set_frame_tree_for_webview(&frame_tree);
             },
             CompositorMsg::RemoveWebView(webview_id) => {
-                self.painter_mut().remove_webview(webview_id);
+                self.painter_mut(webview_id.into())
+                    .remove_webview(webview_id);
             },
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
-                self.painter_mut()
-                    .set_throttled(webview_id, pipeline_id, throttled);
+                self.painter_mut(webview_id.into()).set_throttled(
+                    webview_id,
+                    pipeline_id,
+                    throttled,
+                );
             },
             CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
-                self.painter_mut().notify_pipeline_exited(
+                self.painter_mut(webview_id.into()).notify_pipeline_exited(
                     webview_id,
                     pipeline_id,
                     pipeline_exit_source,
@@ -345,7 +355,7 @@ impl IOCompositor {
                 unreachable!("New WebRender frames should be handled in the caller.");
             },
             CompositorMsg::SendInitialTransaction(webview_id, pipeline_id) => {
-                self.painter_mut()
+                self.painter_mut(webview_id.into())
                     .send_initial_pipeline_transaction(webview_id, pipeline_id);
             },
             CompositorMsg::ScrollNodeByDelta(
@@ -354,7 +364,7 @@ impl IOCompositor {
                 offset,
                 external_scroll_id,
             ) => {
-                self.painter_mut().scroll_node_by_delta(
+                self.painter_mut(webview_id.into()).scroll_node_by_delta(
                     webview_id,
                     pipeline_id,
                     offset,
@@ -362,7 +372,7 @@ impl IOCompositor {
                 );
             },
             CompositorMsg::ScrollViewportByDelta(webview_id, delta) => {
-                self.painter_mut()
+                self.painter_mut(webview_id.into())
                     .scroll_viewport_by_delta(webview_id, delta);
             },
             CompositorMsg::UpdateEpoch {
@@ -370,7 +380,7 @@ impl IOCompositor {
                 pipeline_id,
                 epoch,
             } => {
-                self.painter_mut()
+                self.painter_mut(webview_id.into())
                     .update_epoch(webview_id, pipeline_id, epoch);
             },
             CompositorMsg::SendDisplayList {
@@ -378,46 +388,61 @@ impl IOCompositor {
                 display_list_descriptor,
                 display_list_receiver,
             } => {
-                self.painter_mut().handle_new_display_list(
+                self.painter_mut(webview_id.into()).handle_new_display_list(
                     webview_id,
                     display_list_descriptor,
                     display_list_receiver,
                 );
             },
-            CompositorMsg::GenerateFrame(_webview_ids) => {
-                self.painter_mut().generate_frame_for_script();
+            CompositorMsg::GenerateFrame(painter_ids) => {
+                for painter_id in painter_ids {
+                    self.painter_mut(painter_id).generate_frame_for_script();
+                }
             },
-            CompositorMsg::GenerateImageKey(sender) => {
-                let _ = sender.send(self.painter().generate_image_key());
+            CompositorMsg::GenerateImageKey(webview_id, sender) => {
+                let _ = sender.send(self.painter(webview_id.into()).generate_image_key());
             },
-            CompositorMsg::GenerateImageKeysForPipeline(pipeline_id) => {
+            CompositorMsg::GenerateImageKeysForPipeline(webview_id, pipeline_id) => {
                 let _ = self.embedder_to_constellation_sender.send(
                     EmbedderToConstellationMessage::SendImageKeysForPipeline(
                         pipeline_id,
-                        self.painter().generate_image_keys(),
+                        self.painter(webview_id.into()).generate_image_keys(),
                     ),
                 );
             },
-            CompositorMsg::UpdateImages(updates) => {
-                self.painter_mut().update_images(updates);
+            CompositorMsg::UpdateImages(painter_id, updates) => {
+                self.painter_mut(painter_id).update_images(updates);
             },
-            CompositorMsg::DelayNewFrameForCanvas(pipeline_id, canvas_epoch, image_keys) => self
-                .painter_mut()
-                .delay_new_frames_for_canvas(pipeline_id, canvas_epoch, image_keys),
-            CompositorMsg::AddFont(font_key, data, index) => {
-                self.painter_mut().add_font(font_key, data, index);
+            CompositorMsg::DelayNewFrameForCanvas(
+                webview_id,
+                pipeline_id,
+                canvas_epoch,
+                image_keys,
+            ) => {
+                self.painter_mut(webview_id.into())
+                    .delay_new_frames_for_canvas(pipeline_id, canvas_epoch, image_keys);
             },
-            CompositorMsg::AddSystemFont(font_key, native_handle) => {
-                self.painter_mut().add_system_font(font_key, native_handle);
+            CompositorMsg::AddFont(painter_id, font_key, data, index) => {
+                debug_assert!(painter_id == font_key.into());
+                self.painter_mut(font_key.into())
+                    .add_font(font_key, data, index);
+            },
+            CompositorMsg::AddSystemFont(painter_id, font_key, native_handle) => {
+                debug_assert!(painter_id == font_key.into());
+                self.painter_mut(font_key.into())
+                    .add_system_font(font_key, native_handle);
             },
             CompositorMsg::AddFontInstance(
+                painter_id,
                 font_instance_key,
                 font_key,
                 size,
                 flags,
                 variations,
             ) => {
-                self.painter_mut().add_font_instance(
+                debug_assert!(painter_id == font_key.into());
+                debug_assert!(painter_id == font_instance_key.into());
+                self.painter_mut(font_key.into()).add_font_instance(
                     font_instance_key,
                     font_key,
                     size,
@@ -425,30 +450,31 @@ impl IOCompositor {
                     variations,
                 );
             },
-            CompositorMsg::RemoveFonts(keys, instance_keys) => {
-                self.painter_mut().remove_fonts(keys, instance_keys);
+            CompositorMsg::RemoveFonts(painter_id, keys, instance_keys) => {
+                self.painter_mut(painter_id)
+                    .remove_fonts(keys, instance_keys);
             },
             CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-                _painter_id,
+                painter_id,
             ) => {
                 let _ = result_sender.send(
-                    self.painter_mut()
+                    self.painter_mut(painter_id)
                         .generate_font_keys(number_of_font_keys, number_of_font_instance_keys),
                 );
             },
             CompositorMsg::Viewport(webview_id, viewport_description) => {
-                self.painter_mut()
+                self.painter_mut(webview_id.into())
                     .set_viewport_description(webview_id, viewport_description);
             },
             CompositorMsg::ScreenshotReadinessReponse(webview_id, pipelines_and_epochs) => {
-                self.painter()
+                self.painter(webview_id.into())
                     .handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
             },
             CompositorMsg::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
-                self.painter_mut().append_lcp_candidate(
+                self.painter_mut(webview_id.into()).append_lcp_candidate(
                     lcp_candidate,
                     webview_id,
                     pipeline_id,
@@ -483,13 +509,17 @@ impl IOCompositor {
         ];
 
         perform_memory_report(|ops| {
+            let mut scroll_trees_memory_usage = 0;
+            for painter in &self.painters {
+                scroll_trees_memory_usage += painter
+                    .borrow()
+                    .webview_renderers
+                    .scroll_trees_memory_usage(ops);
+            }
             reports.push(Report {
                 path: path!["compositor", "scroll-tree"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self
-                    .painter()
-                    .webview_renderers
-                    .scroll_trees_memory_usage(ops),
+                size: scroll_trees_memory_usage,
             });
         });
 
@@ -508,23 +538,27 @@ impl IOCompositor {
     fn handle_browser_message_while_shutting_down(&self, msg: CompositorMsg) {
         match msg {
             CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
-                self.painter_mut().notify_pipeline_exited(
+                self.painter_mut(webview_id.into()).notify_pipeline_exited(
                     webview_id,
                     pipeline_id,
                     pipeline_exit_source,
                 );
             },
-            CompositorMsg::GenerateImageKey(sender) => {
-                let _ = sender.send(self.painter().webrender_api.generate_image_key());
+            CompositorMsg::GenerateImageKey(webview_id, sender) => {
+                let _ = sender.send(
+                    self.painter(webview_id.into())
+                        .webrender_api
+                        .generate_image_key(),
+                );
             },
             CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-                _painter_id,
+                painter_id,
             ) => {
                 let _ = result_sender.send(
-                    self.painter_mut()
+                    self.painter_mut(painter_id)
                         .generate_font_keys(number_of_font_keys, number_of_font_instance_keys),
                 );
             },
@@ -535,7 +569,8 @@ impl IOCompositor {
     }
 
     pub fn add_webview(&self, webview: Box<dyn WebViewTrait>, viewport_details: ViewportDetails) {
-        self.painter_mut().add_webview(webview, viewport_details);
+        self.painter_mut(webview.id().into())
+            .add_webview(webview, viewport_details);
     }
 
     pub fn show_webview(
@@ -543,11 +578,12 @@ impl IOCompositor {
         webview_id: WebViewId,
         hide_others: bool,
     ) -> Result<(), UnknownWebView> {
-        self.painter_mut().show_webview(webview_id, hide_others)
+        self.painter_mut(webview_id.into())
+            .show_webview(webview_id, hide_others)
     }
 
     pub fn hide_webview(&self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
-        self.painter_mut().hide_webview(webview_id)
+        self.painter_mut(webview_id.into()).hide_webview(webview_id)
     }
 
     pub fn raise_webview_to_top(
@@ -555,7 +591,7 @@ impl IOCompositor {
         webview_id: WebViewId,
         hide_others: bool,
     ) -> Result<(), UnknownWebView> {
-        self.painter_mut()
+        self.painter_mut(webview_id.into())
             .raise_webview_to_top(webview_id, hide_others)
     }
 
@@ -563,7 +599,8 @@ impl IOCompositor {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.painter_mut().move_resize_webview(webview_id, rect);
+        self.painter_mut(webview_id.into())
+            .move_resize_webview(webview_id, rect);
     }
 
     pub fn set_hidpi_scale_factor(
@@ -574,31 +611,34 @@ impl IOCompositor {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.painter_mut()
+        self.painter_mut(webview_id.into())
             .set_hidpi_scale_factor(webview_id, new_scale_factor);
     }
 
-    pub fn resize_rendering_context(&self, new_size: PhysicalSize<u32>) {
+    pub fn resize_rendering_context(&self, webview_id: WebViewId, new_size: PhysicalSize<u32>) {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.painter_mut().resize_rendering_context(new_size);
+        self.painter_mut(webview_id.into())
+            .resize_rendering_context(new_size);
     }
 
     pub fn set_page_zoom(&self, webview_id: WebViewId, new_zoom: f32) {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.painter_mut().set_page_zoom(webview_id, new_zoom);
+        self.painter_mut(webview_id.into())
+            .set_page_zoom(webview_id, new_zoom);
     }
 
     pub fn page_zoom(&self, webview_id: WebViewId) -> f32 {
-        self.painter().page_zoom(webview_id)
+        self.painter(webview_id.into()).page_zoom(webview_id)
     }
 
     /// Render the WebRender scene to the active `RenderingContext`.
-    pub fn render(&self) {
-        self.painter_mut().render(&self.time_profiler_chan);
+    pub fn render(&self, webview_id: WebViewId) {
+        self.painter_mut(webview_id.into())
+            .render(&self.time_profiler_chan);
     }
 
     /// Get the message receiver for this [`IOCompositor`].
@@ -615,7 +655,7 @@ impl IOCompositor {
         let mut saw_webrender_frame_ready_for_painter = HashMap::new();
         messages.retain(|message| match message {
             CompositorMsg::NewWebRenderFrameReady(painter_id, _document_id, need_repaint) => {
-                self.painter().decrement_pending_frames();
+                self.painter(*painter_id).decrement_pending_frames();
                 *saw_webrender_frame_ready_for_painter
                     .entry(*painter_id)
                     .or_insert(*need_repaint) |= *need_repaint;
@@ -632,8 +672,8 @@ impl IOCompositor {
             }
         }
 
-        for (_, repaint_needed) in saw_webrender_frame_ready_for_painter.iter() {
-            self.painter()
+        for (painter_id, repaint_needed) in saw_webrender_frame_ready_for_painter.iter() {
+            self.painter(*painter_id)
                 .handle_new_webrender_frame_ready(*repaint_needed);
         }
     }
@@ -661,7 +701,7 @@ impl IOCompositor {
         }
     }
 
-    pub fn capture_webrender(&self) {
+    pub fn capture_webrender(&self, webview_id: WebViewId) {
         let capture_id = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -682,7 +722,7 @@ impl IOCompositor {
         };
 
         log::info!("Saving WebRender capture to {capture_path:?}");
-        self.painter()
+        self.painter(webview_id.into())
             .webrender_api
             .save_capture(capture_path.clone(), CaptureBits::all());
     }
@@ -691,14 +731,15 @@ impl IOCompositor {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.painter_mut().notify_input_event(webview_id, event);
+        self.painter_mut(webview_id.into())
+            .notify_input_event(webview_id, event);
     }
 
     pub fn notify_scroll_event(&self, webview_id: WebViewId, scroll: Scroll, point: WebViewPoint) {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.painter_mut()
+        self.painter_mut(webview_id.into())
             .notify_scroll_event(webview_id, scroll, point);
     }
 
@@ -706,7 +747,7 @@ impl IOCompositor {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        self.painter_mut()
+        self.painter_mut(webview_id.into())
             .pinch_zoom(webview_id, pinch_zoom_delta, center);
     }
 
@@ -714,7 +755,8 @@ impl IOCompositor {
         &self,
         webview_id: WebViewId,
     ) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.painter_mut().device_pixels_per_page_pixel(webview_id)
+        self.painter_mut(webview_id.into())
+            .device_pixels_per_page_pixel(webview_id)
     }
 
     pub(crate) fn shutdown_state(&self) -> ShutdownState {
@@ -727,7 +769,7 @@ impl IOCompositor {
         rect: Option<WebViewRect>,
         callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
     ) {
-        self.painter()
+        self.painter(webview_id.into())
             .request_screenshot(webview_id, rect, callback);
     }
 
@@ -737,7 +779,7 @@ impl IOCompositor {
         input_event_id: InputEventId,
         result: InputEventResult,
     ) {
-        self.painter_mut()
+        self.painter_mut(webview_id.into())
             .notify_input_event_handled(webview_id, input_event_id, result);
     }
 }

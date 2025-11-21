@@ -1100,7 +1100,7 @@ impl ScriptThread {
         // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
         // queue resize events on a child and have those run in the same call to this method, so
         // that needs to be sorted out to fix this.
-        let mut webviews_generating_frames = HashSet::new();
+        let mut painters_generating_frames = HashSet::new();
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
@@ -1196,17 +1196,17 @@ impl ScriptThread {
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             if document.update_the_rendering().needs_frame() {
-                webviews_generating_frames.insert(document.webview_id());
+                painters_generating_frames.insert(document.webview_id().into());
             }
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
 
-        let should_generate_frame = !webviews_generating_frames.is_empty();
+        let should_generate_frame = !painters_generating_frames.is_empty();
         if should_generate_frame {
             self.compositor_api
-                .generate_frame(webviews_generating_frames.into_iter().collect());
+                .generate_frame(painters_generating_frames.into_iter().collect());
         }
 
         // Perform a microtask checkpoint as the specifications says that *update the rendering*

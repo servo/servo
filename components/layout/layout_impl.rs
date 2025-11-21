@@ -221,8 +221,11 @@ impl Drop for LayoutThread {
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(true /* all */);
-        self.compositor_api
-            .remove_unused_font_resources(keys, instance_keys)
+        self.compositor_api.remove_unused_font_resources(
+            self.webview_id.into(),
+            keys,
+            instance_keys,
+        )
     }
 }
 
@@ -1323,8 +1326,11 @@ impl LayoutThread {
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(false /* all */);
-        self.compositor_api
-            .remove_unused_font_resources(keys, instance_keys);
+        self.compositor_api.remove_unused_font_resources(
+            self.webview_id.into(),
+            keys,
+            instance_keys,
+        );
 
         self.have_ever_generated_display_list.set(true);
         self.need_new_display_list.set(false);

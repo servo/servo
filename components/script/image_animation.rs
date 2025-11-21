@@ -78,7 +78,9 @@ impl ImageAnimationManager {
                 ))
             })
             .collect();
-        window.compositor_api().update_images(updates);
+        window
+            .compositor_api()
+            .update_images(window.webview_id().into(), updates);
 
         self.maybe_schedule_update(window, now);
     }

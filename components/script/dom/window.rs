@@ -2354,7 +2354,7 @@ impl Window {
             self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
         if reflow_phases_run.needs_frame() {
             self.compositor_api()
-                .generate_frame(vec![self.webview_id()]);
+                .generate_frame(vec![self.webview_id().into()]);
         }
 
         // > If the scroll position did not change as a result of the user interaction or programmatic
@@ -2608,7 +2608,7 @@ impl Window {
         // See <https://github.com/servo/servo/issues/14719>
         if self.Document().update_the_rendering().needs_frame() {
             self.compositor_api()
-                .generate_frame(vec![self.webview_id()]);
+                .generate_frame(vec![self.webview_id().into()]);
         }
     }
 

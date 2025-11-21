@@ -28,7 +28,7 @@ fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
     let (sender, receiver) = unbounded();
     let compositor_api =
         CrossProcessCompositorApi::dummy_with_callback(Some(Box::new(move |msg| {
-            if let compositing_traits::CompositorMsg::GenerateImageKeysForPipeline(pipeline_id) =
+            if let compositing_traits::CompositorMsg::GenerateImageKeysForPipeline(_, pipeline_id) =
                 msg
             {
                 let _ = sender.send(pipeline_id);

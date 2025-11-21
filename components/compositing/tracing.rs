@@ -31,7 +31,7 @@ mod from_constellation {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
-                Self::CreateOrUpdateWebView(..) => target!("CreateOrUpdateWebView"),
+                Self::SetFrameTreeForWebView(..) => target!("SetFrameTreeForWebView"),
                 Self::RemoveWebView(..) => target!("RemoveWebView"),
                 Self::SetThrottled(..) => target!("SetThrottled"),
                 Self::NewWebRenderFrameReady(..) => target!("NewWebRenderFrameReady"),

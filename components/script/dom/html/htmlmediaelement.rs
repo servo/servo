@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
+use base::id::WebViewId;
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
@@ -165,6 +166,7 @@ impl FrameHolder {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct MediaFrameRenderer {
+    webview_id: WebViewId,
     player_id: Option<usize>,
     glplayer_id: Option<u64>,
     compositor_api: CrossProcessCompositorApi,
@@ -179,8 +181,13 @@ pub(crate) struct MediaFrameRenderer {
 }
 
 impl MediaFrameRenderer {
-    fn new(compositor_api: CrossProcessCompositorApi, player_context: WindowGLContext) -> Self {
+    fn new(
+        webview_id: WebViewId,
+        compositor_api: CrossProcessCompositorApi,
+        player_context: WindowGLContext,
+    ) -> Self {
         Self {
+            webview_id,
             player_id: None,
             glplayer_id: None,
             compositor_api,
@@ -286,7 +293,8 @@ impl MediaFrameRenderer {
         }
 
         if !updates.is_empty() {
-            self.compositor_api.update_images(updates);
+            self.compositor_api
+                .update_images(self.webview_id.into(), updates);
         }
     }
 
@@ -351,7 +359,10 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             Some(current_frame) => {
                 self.old_frame = Some(current_frame.image_key);
 
-                let Some(new_image_key) = self.compositor_api.generate_image_key_blocking() else {
+                let Some(new_image_key) = self
+                    .compositor_api
+                    .generate_image_key_blocking(self.webview_id)
+                else {
                     return;
                 };
 
@@ -384,7 +395,10 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 updates.push(ImageUpdate::AddImage(new_image_key, descriptor, image_data));
             },
             None => {
-                let Some(image_key) = self.compositor_api.generate_image_key_blocking() else {
+                let Some(image_key) = self
+                    .compositor_api
+                    .generate_image_key_blocking(self.webview_id)
+                else {
                     return;
                 };
 
@@ -416,7 +430,8 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 updates.push(ImageUpdate::AddImage(image_key, descriptor, image_data));
             },
         }
-        self.compositor_api.update_images(updates);
+        self.compositor_api
+            .update_images(self.webview_id.into(), updates);
     }
 }
 
@@ -624,6 +639,7 @@ impl HTMLMediaElement {
             in_flight_play_promises_queue: Default::default(),
             player: Default::default(),
             video_renderer: Arc::new(Mutex::new(MediaFrameRenderer::new(
+                document.webview_id(),
                 document.window().compositor_api().clone(),
                 document.window().get_player_context(),
             ))),

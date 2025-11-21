@@ -124,7 +124,7 @@ impl WebView {
                     .servo
                     .compositor
                     .borrow()
-                    .rendering_context_size()
+                    .rendering_context_size(painter_id)
                     .to_f32()
             },
             |size| Size2D::new(size.width as f32, size.height as f32),
@@ -363,7 +363,7 @@ impl WebView {
         self.inner()
             .compositor
             .borrow()
-            .resize_rendering_context(new_size);
+            .resize_rendering_context(self.id(), new_size);
     }
 
     pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -578,7 +578,10 @@ impl WebView {
     }
 
     pub fn capture_webrender(&self) {
-        self.inner().compositor.borrow().capture_webrender();
+        self.inner()
+            .compositor
+            .borrow()
+            .capture_webrender(self.id());
     }
 
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
@@ -601,7 +604,7 @@ impl WebView {
 
     /// Paint the contents of this [`WebView`] into its `RenderingContext`.
     pub fn paint(&self) {
-        self.inner().compositor.borrow().render();
+        self.inner().compositor.borrow().render(self.id());
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
