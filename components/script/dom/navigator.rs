@@ -7,7 +7,9 @@ use std::convert::TryInto;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
+use base::generic_channel;
 use dom_struct::dom_struct;
+use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::rust::MutableHandleValue;
@@ -250,6 +252,22 @@ impl Navigator {
         assert!(url.is_potentially_trustworthy());
         // Step 8. Return (scheme, urlRecord).
         Ok((scheme, url))
+    }
+
+    fn send_protocol_update_registration_to_embedder(
+        &self,
+        registration: ProtocolHandlerUpdateRegistration,
+    ) {
+        let global = self.global();
+        let window = global.as_window();
+        let (sender, _) = generic_channel::channel().unwrap();
+        let _ = global
+            .script_to_embedder_chan()
+            .send(EmbedderMsg::AllowProtocolHandlerRequest(
+                window.webview_id(),
+                registration,
+                sender,
+            ));
     }
 }
 
@@ -521,8 +539,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn RegisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
         // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
         // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
-        let (_normalized_scheme, _normalized_url_string) =
-            self.normalize_protocol_handler_parameters(scheme, url)?;
+        let (scheme, url) = self.normalize_protocol_handler_parameters(scheme, url)?;
         // Step 2. In parallel: register a protocol handler for normalizedScheme and normalizedURLString.
         // User agents may, within the constraints described, do whatever they like. A user agent could,
         // for instance, prompt the user and offer the user the opportunity to add the site to a shortlist of handlers,
@@ -534,8 +551,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // the user agent should first verify that it is in an automation context (see WebDriver's security considerations).
         // The user agent should then bypass the above communication of information and gathering of user consent,
         // and instead do the following based on the value of the registerProtocolHandler() automation mode:
-        //
-        // TODO
+        self.send_protocol_update_registration_to_embedder(ProtocolHandlerUpdateRegistration {
+            scheme,
+            url,
+            register_or_unregister: RegisterOrUnregister::Register,
+        });
         Ok(())
     }
 
@@ -543,11 +563,13 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn UnregisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
         // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
         // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
-        let (_normalized_scheme, _normalized_url_string) =
-            self.normalize_protocol_handler_parameters(scheme, url)?;
+        let (scheme, url) = self.normalize_protocol_handler_parameters(scheme, url)?;
         // Step 2. In parallel: unregister the handler described by normalizedScheme and normalizedURLString.
-        //
-        // TODO
+        self.send_protocol_update_registration_to_embedder(ProtocolHandlerUpdateRegistration {
+            scheme,
+            url,
+            register_or_unregister: RegisterOrUnregister::Unregister,
+        });
         Ok(())
     }
 }

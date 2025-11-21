@@ -127,8 +127,8 @@ use crate::webview::MINIMUM_WEBVIEW_SIZE;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, ColorPicker, ContextMenu, EmbedderControl,
-    FilePicker, InputMethodControl, NavigationRequest, PermissionRequest, SelectElement,
-    WebResourceLoad, WebViewDelegate,
+    FilePicker, InputMethodControl, NavigationRequest, PermissionRequest,
+    ProtocolHandlerRegistration, SelectElement, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -508,6 +508,34 @@ impl Servo {
                         response_sent: false,
                     };
                     webview.delegate().request_navigation(webview, request);
+                }
+            },
+            EmbedderMsg::AllowProtocolHandlerRequest(
+                webview_id,
+                registration_update,
+                response_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let ProtocolHandlerUpdateRegistration {
+                        scheme,
+                        url,
+                        register_or_unregister,
+                    } = registration_update;
+                    let protocol_handler_registration = ProtocolHandlerRegistration {
+                        scheme,
+                        url: url.into_url(),
+                        register_or_unregister,
+                    };
+                    let allow_deny_request = AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Deny,
+                        self.servo_errors.sender(),
+                    );
+                    webview.delegate().request_protocol_handler(
+                        webview,
+                        protocol_handler_registration,
+                        allow_deny_request,
+                    );
                 }
             },
             EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {

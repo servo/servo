@@ -21,7 +21,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::responders::ServoErrorSender;
-use crate::{ConstellationProxy, WebView};
+use crate::{ConstellationProxy, RegisterOrUnregister, WebView};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
 /// asynchronously. If not handled, the request will automatically be allowed.
@@ -153,6 +153,13 @@ impl AllowOrDenyRequest {
             self.1.raise_response_send_error(error);
         }
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProtocolHandlerRegistration {
+    pub scheme: String,
+    pub url: Url,
+    pub register_or_unregister: RegisterOrUnregister,
 }
 
 /// A request to authenticate a [`WebView`] navigation. Embedders may choose to prompt
@@ -685,6 +692,18 @@ pub trait WebViewDelegate {
     fn request_unload(&self, _webview: WebView, _unload_request: AllowOrDenyRequest) {}
     /// Move the window to a point.
     fn request_move_to(&self, _webview: WebView, _: DeviceIntPoint) {}
+    /// Whether or not to allow a [`WebView`] to (un)register a protocol handler (e.g. `mailto:`).
+    /// Typically an embedder application will show a permissions prompt when this happens
+    /// to confirm a protocol handler is allowed. By default, requests are denied.
+    /// For more information, see the specification:
+    /// <https://html.spec.whatwg.org/multipage/#custom-handlers>
+    fn request_protocol_handler(
+        &self,
+        _webview: WebView,
+        _protocol_handler_registration: ProtocolHandlerRegistration,
+        _allow_deny_request: AllowOrDenyRequest,
+    ) {
+    }
     /// Try to resize the window that contains this [`WebView`] to the provided outer
     /// size. These resize requests can come from page content. Servo will ensure that the
     /// values are greater than zero, but it is up to the embedder to limit the maximum
