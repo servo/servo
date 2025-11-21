@@ -9,10 +9,9 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
 use servo_url::ServoUrl;
-use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
+use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
-use style::str::char_is_whitespace;
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::Length;
 use style_traits::ParsingMode;
@@ -164,22 +163,6 @@ pub(crate) trait LayoutSVGSVGElementHelpers<'dom> {
     fn data(self) -> SVGElementData<'dom>;
 }
 
-fn ratio_from_view_box(view_box: &AttrValue) -> Option<f32> {
-    let mut iter = view_box.chars();
-    let _min_x = parse_integer(&mut iter).ok()?;
-    let _min_y = parse_integer(&mut iter).ok()?;
-    let width = parse_unsigned_integer(&mut iter).ok()?;
-    if width == 0 {
-        return None;
-    }
-    let height = parse_unsigned_integer(&mut iter).ok()?;
-    if height == 0 {
-        return None;
-    }
-    let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
-    iter.next().is_none().then(|| width as f32 / height as f32)
-}
-
 impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
     #[expect(unsafe_code)]
     fn data(self) -> SVGElementData<'dom> {
@@ -226,7 +209,6 @@ impl VirtualMethods for SVGSVGElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
-            // TODO: This should accept lengths in arbitrary units instead of assuming px.
             local_name!("width") | local_name!("height") => {
                 let value = &value.str();
                 let parser_input = &mut ParserInput::new(value);

@@ -16,12 +16,13 @@ use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
-use style::attr::AttrValue;
+use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::rule_cache::RuleCacheConditions;
 use style::servo::url::ComputedUrl;
+use style::str::char_is_whitespace;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::{Context, ToComputedValue};
@@ -213,29 +214,43 @@ impl ReplacedContents {
                     context.style_context.stylist,
                     rule_cache_conditions,
                 );
-                let attr_val_to_computed_au = |attr_val: &AttrValue| {
+                let attr_to_computed = |attr_val: &AttrValue| {
                     if let AttrValue::Length(_, length) = attr_val {
-                        length
-                            .to_computed_value(&context)
-                            .map(|csspx| Au::from_f32_px(csspx.px()))
+                        length.to_computed_value(&context)
                     } else {
-                        // TODO: or zero??
                         None
                     }
                 };
-                let width = svg_data.width.and_then(attr_val_to_computed_au);
-                let height = svg_data.width.and_then(attr_val_to_computed_au);
+                let width = svg_data.width.and_then(attr_to_computed);
+                let height = svg_data.width.and_then(attr_to_computed);
 
-                eprintln!(
-                    "svg width: {:?}, svg height: {:?}",
-                    svg_data.width, svg_data.height
-                );
-                eprintln!("computed width: {:?}, computed height: {:?}", width, height);
+                let ratio = if let (Some(width), Some(height)) = (width, height) &&
+                    !width.is_zero() &&
+                    !height.is_zero()
+                {
+                    Some(width.px() / height.px())
+                } else {
+                    svg_data.view_box.and_then(|view_box| {
+                        let mut iter = view_box.chars();
+                        let _min_x = parse_integer(&mut iter).ok()?;
+                        let _min_y = parse_integer(&mut iter).ok()?;
+                        let width = parse_unsigned_integer(&mut iter).ok()?;
+                        if width == 0 {
+                            return None;
+                        }
+                        let height = parse_unsigned_integer(&mut iter).ok()?;
+                        if height == 0 {
+                            return None;
+                        }
+                        let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
+                        iter.next().is_none().then(|| width as f32 / height as f32)
+                    })
+                };
 
                 let natural_size = NaturalSizes {
-                    width,
-                    height,
-                    ratio: Some(1.0),
+                    width: width.map(|w| Au::from_f32_px(w.px())),
+                    height: height.map(|h| Au::from_f32_px(h.px())),
+                    ratio,
                 };
                 (ReplacedContentKind::SVGElement(vector_image), natural_size)
             } else {
