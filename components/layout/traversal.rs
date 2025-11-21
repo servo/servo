@@ -15,6 +15,7 @@ use style::values::computed::Display;
 
 use crate::context::LayoutContext;
 use crate::dom::{DOMLayoutData, NodeExt};
+use crate::layout_box_base::LayoutBoxBase;
 
 pub struct RecalcStyle<'a> {
     context: &'a LayoutContext<'a>,
@@ -166,9 +167,13 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     if element_damage != RestyleDamage::reconstruct() &&
         damage_for_parent.contains(RestyleDamage::RELAYOUT)
     {
-        let clear_inline_content_size =
-            (original_element_damage | damage_from_children).contains(RestyleDamage::RELAYOUT);
-        node.clear_fragment_layout_cache(clear_inline_content_size);
+        node.with_each_layout_box_base_including_pseudos(
+            if (original_element_damage | damage_from_children).contains(RestyleDamage::RELAYOUT) {
+                LayoutBoxBase::clear_fragments_and_layout_cache
+            } else {
+                LayoutBoxBase::clear_fragments
+            },
+        );
     }
 
     // If the box will be preserved, update the box's style and also in any fragments
