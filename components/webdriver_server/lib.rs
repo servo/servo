@@ -1341,13 +1341,12 @@ impl Handler {
         unwrap_first_element_response(res)
     }
 
+    /// `callback` bound: when it returns Ok, the first value indicates whether
+    /// implicit_wait can early return.
     fn implicit_wait<T>(
         &self,
-        callback: impl Fn() -> Result<Vec<T>, WebDriverError>,
-    ) -> Result<Vec<T>, WebDriverError>
-    where
-        T: for<'de> Deserialize<'de> + Serialize,
-    {
+        callback: impl Fn() -> Result<(bool, T), WebDriverError>,
+    ) -> Result<T, WebDriverError> {
         let now = Instant::now();
         let (implicit_wait, sleep_interval) = {
             let timeouts = self.session()?.session_timeouts();
@@ -1359,10 +1358,11 @@ impl Handler {
 
         loop {
             match callback() {
-                Ok(value) if !value.is_empty() || now.elapsed() > implicit_wait => {
-                    return Ok(value);
+                Ok((can_early_return, value)) => {
+                    if can_early_return || now.elapsed() >= implicit_wait {
+                        return Ok(value);
+                    }
                 },
-                Ok(_) => {},
                 Err(error) => return Err(error),
             }
             sleep(sleep_interval);
@@ -1418,7 +1418,7 @@ impl Handler {
                     self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
                 },
             }
-            wait_for_ipc_response_flatten(receiver)
+            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value))
         })
         .and_then(|response| {
             let resp_value: Vec<WebElement> = response.into_iter().map(WebElement).collect();
@@ -1496,8 +1496,7 @@ impl Handler {
                     self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
                 },
             }
-
-            wait_for_ipc_response_flatten(receiver)
+            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
@@ -1567,7 +1566,7 @@ impl Handler {
                 },
             }
 
-            wait_for_ipc_response_flatten(receiver)
+            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
