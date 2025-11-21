@@ -43,18 +43,6 @@ pub(crate) struct RunningAppState {
 }
 
 pub struct RunningAppStateInner {
-    /// List of top-level browsing contexts.
-    /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
-    /// and we exit if it ever becomes empty.
-    webviews: HashMap<WebViewId, WebView>,
-
-    /// The order in which the webviews were created.
-    creation_order: Vec<WebViewId>,
-
-    /// The webview that is currently focused.
-    /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
-    focused_webview_id: Option<WebViewId>,
-
     /// The current set of open dialogs.
     dialogs: HashMap<WebViewId, Vec<Dialog>>,
 
@@ -99,7 +87,7 @@ impl RunningAppStateTrait for RunningAppState {
     }
 
     fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
-        self.inner().webviews.get(&id).cloned()
+        self.webview_collection().get(id).cloned()
     }
 
     fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
@@ -123,9 +111,6 @@ impl RunningAppState {
         RunningAppState {
             base: RunningAppStateBase::new(servoshell_preferences, servo, webdriver_receiver),
             inner: RefCell::new(RunningAppStateInner {
-                webviews: HashMap::default(),
-                creation_order: Default::default(),
-                focused_webview_id: None,
                 dialogs: Default::default(),
                 window,
                 gamepad_support,
@@ -151,7 +136,7 @@ impl RunningAppState {
             .build();
 
         webview.notify_theme_change(self.inner().window.theme());
-        self.add(webview.clone());
+        self.add_webview(webview.clone());
         webview
     }
 
@@ -164,9 +149,8 @@ impl RunningAppState {
     }
 
     pub(crate) fn hidpi_scale_factor_changed(&self) {
-        let inner = self.inner();
-        let new_scale_factor = inner.window.hidpi_scale_factor();
-        for webview in inner.webviews.values() {
+        let new_scale_factor = self.inner().window.hidpi_scale_factor();
+        for webview in self.webview_collection().values() {
             webview.set_hidpi_scale_factor(new_scale_factor);
         }
     }
@@ -223,17 +207,11 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn add(&self, webview: WebView) {
-        self.inner_mut().creation_order.push(webview.id());
-        self.inner_mut().webviews.insert(webview.id(), webview);
-    }
-
-    pub(crate) fn shutdown(&self) {
-        self.inner_mut().webviews.clear();
-    }
-
     pub(crate) fn for_each_active_dialog(&self, callback: impl Fn(&mut Dialog) -> bool) {
-        let last_created_webview_id = self.inner().creation_order.last().cloned();
+        let last_created_webview_id = self
+            .webview_collection()
+            .newest()
+            .map(|webview_view| webview_view.id());
         let Some(webview_id) = self
             .focused_webview()
             .as_ref()
@@ -268,26 +246,17 @@ impl RunningAppState {
     pub fn close_webview(&self, webview_id: WebViewId) {
         // This can happen because we can trigger a close with a UI action and then get the
         // close event from Servo later.
-        let mut inner = self.inner_mut();
-        if !inner.webviews.contains_key(&webview_id) {
+        if !self.webview_collection().contains(webview_id) {
             return;
         }
 
-        inner.webviews.retain(|&id, _| id != webview_id);
-        inner.creation_order.retain(|&id| id != webview_id);
-        inner.dialogs.remove(&webview_id);
-        if Some(webview_id) == inner.focused_webview_id {
-            inner.focused_webview_id = None;
-        }
+        self.inner_mut().dialogs.remove(&webview_id);
 
-        let last_created = inner
-            .creation_order
-            .last()
-            .and_then(|id| inner.webviews.get(id));
+        self.webview_collection_mut().remove(webview_id);
 
-        match last_created {
-            Some(last_created_webview) => {
-                last_created_webview.focus();
+        match self.webview_collection().newest() {
+            Some(newest_webview) => {
+                newest_webview.focus();
             },
             None if self.servoshell_preferences().webdriver_port.is_none() => {
                 self.servo().start_shutting_down()
@@ -297,22 +266,6 @@ impl RunningAppState {
                 // https://github.com/servo/servo/issues/37408
             },
         }
-    }
-
-    pub fn focused_webview(&self) -> Option<WebView> {
-        self.inner()
-            .focused_webview_id
-            .and_then(|id| self.inner().webviews.get(&id).cloned())
-    }
-
-    // Returns the webviews in the creation order.
-    pub fn webviews(&self) -> Vec<(WebViewId, WebView)> {
-        let inner = self.inner();
-        inner
-            .creation_order
-            .iter()
-            .map(|id| (*id, inner.webviews.get(id).unwrap().clone()))
-            .collect()
     }
 
     pub fn handle_gamepad_events(&self) {
@@ -341,7 +294,10 @@ impl RunningAppState {
     }
 
     pub(crate) fn has_active_dialog(&self) -> bool {
-        let last_created_webview_id = self.inner().creation_order.last().cloned();
+        let last_created_webview_id = self
+            .webview_collection()
+            .newest()
+            .map(|webview_view| webview_view.id());
         let Some(webview_id) = self
             .focused_webview()
             .as_ref()
@@ -448,7 +404,7 @@ impl RunningAppState {
     }
 
     pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
-        let focused_id = self.inner().focused_webview_id?;
+        let focused_id = self.webview_collection().focused_id()?;
         self.webviews()
             .iter()
             .position(|webview| webview.0 == focused_id)
@@ -572,7 +528,7 @@ impl WebViewDelegate for RunningAppState {
         if self.servoshell_preferences().webdriver_port.is_none() {
             webview.focus_and_raise_to_top(true);
         }
-        self.add(webview.clone());
+        self.add_webview(webview.clone());
         Some(webview)
     }
 
@@ -581,13 +537,13 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_focus_changed(&self, webview: servo::WebView, focused: bool) {
-        let mut inner_mut = self.inner_mut();
         if focused {
             webview.show(true);
-            inner_mut.need_update = true;
-            inner_mut.focused_webview_id = Some(webview.id());
-        } else if inner_mut.focused_webview_id == Some(webview.id()) {
-            inner_mut.focused_webview_id = None;
+            self.inner_mut().need_update = true;
+            self.webview_collection_mut()
+                .set_focused(Some(webview.id()));
+        } else if self.webview_collection().focused_id() == Some(webview.id()) {
+            self.webview_collection_mut().set_focused(None);
         }
     }
 

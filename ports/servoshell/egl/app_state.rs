@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::{Cell, Ref, RefCell, RefMut};
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
@@ -11,7 +10,6 @@ use euclid::{Point2D, Rect, Scale, Size2D};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
-use servo::base::generic_channel::GenericSender;
 use servo::base::id::WebViewId;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{
@@ -80,17 +78,6 @@ pub struct RunningAppState {
 
 struct RunningAppStateInner {
     need_present: bool,
-    /// List of top-level browsing contexts.
-    /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
-    /// and we exit if it ever becomes empty.
-    webviews: HashMap<WebViewId, WebView>,
-
-    /// The order in which the webviews were created.
-    creation_order: Vec<WebViewId>,
-
-    /// The webview that is currently focused.
-    /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
-    focused_webview_id: Option<WebViewId>,
 
     /// Whether or not the animation state has changed. This is used to trigger
     /// host callbacks indicating that animation state has changed.
@@ -190,14 +177,9 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_closed(&self, webview: WebView) {
-        {
-            let mut inner_mut = self.inner_mut();
-            inner_mut.webviews.retain(|&id, _| id != webview.id());
-            inner_mut.creation_order.retain(|&id| id != webview.id());
-            inner_mut.focused_webview_id = None;
-        }
+        self.webview_collection_mut().remove(webview.id());
 
-        if let Some(newest_webview) = self.newest_webview() {
+        if let Some(newest_webview) = self.webview_collection().newest() {
             newest_webview.focus();
         } else {
             self.servo().start_shutting_down();
@@ -206,10 +188,11 @@ impl WebViewDelegate for RunningAppState {
 
     fn notify_focus_changed(&self, webview: WebView, focused: bool) {
         if focused {
-            self.inner_mut().focused_webview_id = Some(webview.id());
+            self.webview_collection_mut()
+                .set_focused(Some(webview.id()));
             webview.show(true);
-        } else if self.inner().focused_webview_id == Some(webview.id()) {
-            self.inner_mut().focused_webview_id = None;
+        } else if self.webview_collection().focused_id() == Some(webview.id()) {
+            self.webview_collection_mut().set_focused(None);
         }
     }
 
@@ -285,7 +268,7 @@ impl WebViewDelegate for RunningAppState {
             .delegate(parent_webview.delegate())
             .hidpi_scale_factor(self.inner().hidpi_scale_factor)
             .build();
-        self.add(webview.clone());
+        self.add_webview(webview.clone());
         Some(webview)
     }
 
@@ -362,7 +345,7 @@ impl RunningAppStateTrait for RunningAppState {
     }
 
     fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
-        self.inner().webviews.get(&id).cloned()
+        self.webview_collection().get(id).cloned()
     }
 }
 
@@ -396,9 +379,6 @@ impl RunningAppState {
             refresh_driver,
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
-                webviews: Default::default(),
-                creation_order: vec![],
-                focused_webview_id: None,
                 animating_state_changed,
                 hidpi_scale_factor: Scale::new(hidpi_scale_factor),
                 visible_input_methods: Default::default(),
@@ -409,15 +389,6 @@ impl RunningAppState {
         app_state
     }
 
-    pub fn webviews(&self) -> Vec<(WebViewId, WebView)> {
-        let inner = self.inner();
-        inner
-            .creation_order
-            .iter()
-            .map(|id| (*id, inner.webviews.get(id).unwrap().clone()))
-            .collect()
-    }
-
     pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         let webview = WebViewBuilder::new(self.servo())
             .url(url)
@@ -426,24 +397,13 @@ impl RunningAppState {
             .build();
 
         webview.focus();
-        self.add(webview.clone());
+        self.add_webview(webview.clone());
         webview
-    }
-
-    pub(crate) fn add(&self, webview: WebView) {
-        let webview_id = webview.id();
-        self.inner_mut().creation_order.push(webview_id);
-        self.inner_mut().webviews.insert(webview_id, webview);
-        info!(
-            "Added webview with ID: {:?}, total webviews: {}",
-            webview_id,
-            self.inner().webviews.len()
-        );
     }
 
     /// The focused webview will not be immediately valid via `active_webview()`
     pub(crate) fn focus_webview(&self, id: WebViewId) {
-        if let Some(webview) = self.inner().webviews.get(&id) {
+        if let Some(webview) = self.webview_collection().get(id) {
             webview.focus();
         } else {
             error!("We could not find the webview with this id {id}");
@@ -459,26 +419,9 @@ impl RunningAppState {
     }
 
     fn get_browser_id(&self) -> Result<WebViewId, &'static str> {
-        let webview_id = match self.inner().focused_webview_id {
-            Some(id) => id,
-            None => return Err("No focused WebViewId yet."),
-        };
-        Ok(webview_id)
-    }
-
-    pub(crate) fn newest_webview(&self) -> Option<WebView> {
-        self.inner()
-            .creation_order
-            .last()
-            .and_then(|id| self.inner().webviews.get(id).cloned())
-    }
-
-    pub(crate) fn active_webview(&self) -> WebView {
-        self.inner()
-            .focused_webview_id
-            .and_then(|id| self.inner().webviews.get(&id).cloned())
-            .or(self.newest_webview())
-            .expect("Should always have an active WebView")
+        self.webview_collection()
+            .focused_id()
+            .ok_or("No focused WebViewId yet.")
     }
 
     /// Request shutdown. Will call on_shutdown_complete.
@@ -520,13 +463,13 @@ impl RunningAppState {
             return;
         };
 
-        self.active_webview().load(url.into_url());
+        self.active_webview_or_panic().load(url.into_url());
     }
 
     /// Reload the page.
     pub fn reload(&self) {
         info!("reload");
-        self.active_webview().reload();
+        self.active_webview_or_panic().reload();
         self.perform_updates();
     }
 
@@ -538,14 +481,14 @@ impl RunningAppState {
     /// Go back in history.
     pub fn go_back(&self) {
         info!("go_back");
-        self.active_webview().go_back(1);
+        self.active_webview_or_panic().go_back(1);
         self.perform_updates();
     }
 
     /// Go forward in history.
     pub fn go_forward(&self) {
         info!("go_forward");
-        self.active_webview().go_forward(1);
+        self.active_webview_or_panic().go_forward(1);
         self.perform_updates();
     }
 
@@ -553,8 +496,9 @@ impl RunningAppState {
     pub fn resize(&self, coordinates: Coordinates) {
         info!("resize to {:?}", coordinates,);
         let size = coordinates.viewport.size;
-        self.active_webview().move_resize(size.to_f32().into());
-        self.active_webview()
+        self.active_webview_or_panic()
+            .move_resize(size.to_f32().into());
+        self.active_webview_or_panic()
             .resize(PhysicalSize::new(size.width as u32, size.height as u32));
         *self.callbacks.coordinates.borrow_mut() = coordinates;
         self.perform_updates();
@@ -566,7 +510,8 @@ impl RunningAppState {
     pub fn scroll(&self, dx: f32, dy: f32, x: f32, y: f32) {
         let scroll = Scroll::Delta(DeviceVector2D::new(dx, dy).into());
         let point = DevicePoint::new(x, y).into();
-        self.active_webview().notify_scroll_event(scroll, point);
+        self.active_webview_or_panic()
+            .notify_scroll_event(scroll, point);
         self.perform_updates();
     }
 
@@ -610,12 +555,9 @@ impl RunningAppState {
                         self.servo().execute_webdriver_command(msg);
                     },
                     WebDriverCommandMsg::GetFocusedWebView(response_sender) => {
-                        let focused_id = self
-                            .inner()
-                            .focused_webview_id
-                            .and_then(|id| self.inner().webviews.get(&id).cloned());
+                        let focused_id = self.webview_collection().focused_id();
 
-                        if let Err(error) = response_sender.send(focused_id.map(|w| w.id())) {
+                        if let Err(error) = response_sender.send(focused_id) {
                             warn!("Failed to send response of GetFocusedWebView: {error}");
                         }
                     },
@@ -707,7 +649,7 @@ impl RunningAppState {
 
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Down,
                 TouchId(pointer_id),
@@ -718,7 +660,7 @@ impl RunningAppState {
 
     /// Touch event: move touching finger
     pub fn touch_move(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Move,
                 TouchId(pointer_id),
@@ -729,7 +671,7 @@ impl RunningAppState {
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Up,
                 TouchId(pointer_id),
@@ -740,7 +682,7 @@ impl RunningAppState {
 
     /// Cancel touch event
     pub fn touch_cancel(&self, x: f32, y: f32, pointer_id: i32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Cancel,
                 TouchId(pointer_id),
@@ -751,7 +693,7 @@ impl RunningAppState {
 
     /// Register a mouse movement.
     pub fn mouse_move(&self, x: f32, y: f32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
                 DevicePoint::new(x, y).into(),
             )));
@@ -760,7 +702,7 @@ impl RunningAppState {
 
     /// Register a mouse button press.
     pub fn mouse_down(&self, x: f32, y: f32, button: MouseButton) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Down,
                 button,
@@ -771,7 +713,7 @@ impl RunningAppState {
 
     /// Register a mouse button release.
     pub fn mouse_up(&self, x: f32, y: f32, button: MouseButton) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Up,
                 button,
@@ -783,7 +725,7 @@ impl RunningAppState {
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&self, factor: f32, x: f32, y: f32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .pinch_zoom(factor, DevicePoint::new(x, y));
         self.perform_updates();
     }
@@ -791,7 +733,7 @@ impl RunningAppState {
     /// Pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom(&self, factor: f32, x: f32, y: f32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .pinch_zoom(factor, DevicePoint::new(x, y));
         self.perform_updates();
     }
@@ -799,21 +741,21 @@ impl RunningAppState {
     /// End pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_end(&self, factor: f32, x: f32, y: f32) {
-        self.active_webview()
+        self.active_webview_or_panic()
             .pinch_zoom(factor, DevicePoint::new(x, y));
         self.perform_updates();
     }
 
     pub fn key_down(&self, key: Key) {
         let key_event = KeyboardEvent::from_state_and_key(KeyState::Down, key);
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
 
     pub fn key_up(&self, key: Key) {
         let key_event = KeyboardEvent::from_state_and_key(KeyState::Up, key);
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::Keyboard(key_event));
         self.perform_updates();
     }
@@ -823,7 +765,7 @@ impl RunningAppState {
         if text.is_empty() {
             return;
         }
-        let active_webview = self.active_webview();
+        let active_webview = self.active_webview_or_panic();
         active_webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
             KeyState::Down,
             Key::Named(NamedKey::Process),
@@ -869,20 +811,20 @@ impl RunningAppState {
 
     pub fn media_session_action(&self, action: MediaSessionActionType) {
         info!("Media session action {:?}", action);
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_media_session_action_event(action);
         self.perform_updates();
     }
 
     pub fn set_throttled(&self, throttled: bool) {
         info!("set_throttled");
-        self.active_webview().set_throttled(throttled);
+        self.active_webview_or_panic().set_throttled(throttled);
         self.perform_updates();
     }
 
     pub fn ime_dismissed(&self) {
         info!("ime_dismissed");
-        self.active_webview()
+        self.active_webview_or_panic()
             .notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
         self.perform_updates();
     }
@@ -893,7 +835,7 @@ impl RunningAppState {
         }
 
         self.inner_mut().need_present = false;
-        self.active_webview().paint();
+        self.active_webview_or_panic().paint();
         self.rendering_context.present();
 
         if self.servoshell_preferences().exit_after_stable_image &&

@@ -202,7 +202,7 @@ impl App {
 
         match state.pump_event_loop() {
             PumpResult::Shutdown => {
-                state.shutdown();
+                state.webview_collection_mut().clear();
                 self.state = AppState::ShuttingDown;
             },
             PumpResult::Continue {
@@ -250,7 +250,7 @@ impl App {
 
         match state.pump_event_loop() {
             PumpResult::Shutdown => {
-                state.shutdown();
+                state.webview_collection_mut().clear();
                 self.state = AppState::ShuttingDown;
             },
             PumpResult::Continue { .. } => state.repaint_servo_if_necessary(),
