@@ -222,7 +222,7 @@ impl ReplacedContents {
                     }
                 };
                 let width = svg_data.width.and_then(attr_to_computed);
-                let height = svg_data.width.and_then(attr_to_computed);
+                let height = svg_data.height.and_then(attr_to_computed);
 
                 let ratio = if let (Some(width), Some(height)) = (width, height) &&
                     !width.is_zero() &&
