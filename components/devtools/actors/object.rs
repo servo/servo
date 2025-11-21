@@ -2,11 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
+
+#[derive(Serialize)]
+pub struct ObjectPreview {
+    kind: String,
+    url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObjectActorMsg {
+    actor: String,
+    #[serde(rename = "type")]
+    type_: String,
+    class: String,
+    own_property_length: i32,
+    extensible: bool,
+    frozen: bool,
+    sealed: bool,
+    is_error: bool,
+    preview: ObjectPreview,
+}
 
 pub struct ObjectActor {
     pub name: String,
@@ -45,6 +67,32 @@ impl ObjectActor {
             name
         } else {
             registry.script_to_actor(uuid)
+        }
+    }
+}
+
+// TODO: Remove once the message is used.
+#[allow(dead_code)]
+pub trait ObjectToProtocol {
+    fn encode(self) -> ObjectActorMsg;
+}
+
+impl ObjectToProtocol for ObjectActor {
+    fn encode(self) -> ObjectActorMsg {
+        // TODO: Review hardcoded values here
+        ObjectActorMsg {
+            actor: self.name,
+            type_: "object".into(),
+            class: "Window".into(),
+            own_property_length: 0,
+            extensible: true,
+            frozen: false,
+            sealed: false,
+            is_error: false,
+            preview: ObjectPreview {
+                kind: "ObjectWithURL".into(),
+                url: "".into(),
+            },
         }
     }
 }

@@ -59,6 +59,7 @@ mod actors {
     pub mod browsing_context;
     pub mod console;
     pub mod device;
+    pub mod environment;
     pub mod framerate;
     pub mod inspector;
     pub mod long_string;
