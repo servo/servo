@@ -24,6 +24,7 @@ use url::Url;
 
 use crate::prefs::ServoShellPreferences;
 
+#[derive(Default)]
 pub struct WebViewCollection {
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
@@ -39,14 +40,6 @@ pub struct WebViewCollection {
 }
 
 impl WebViewCollection {
-    pub fn new() -> Self {
-        Self {
-            webviews: HashMap::new(),
-            creation_order: Vec::new(),
-            focused_webview_id: None,
-        }
-    }
-
     pub fn add(&mut self, webview: WebView) {
         let id = webview.id();
         self.creation_order.push(id);
@@ -127,12 +120,6 @@ impl WebViewCollection {
     }
 }
 
-impl Default for WebViewCollection {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 pub struct RunningAppStateBase {
     pub(crate) webview_collection: RefCell<WebViewCollection>,
 
@@ -165,7 +152,7 @@ impl RunningAppStateBase {
         webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
     ) -> Self {
         Self {
-            webview_collection: RefCell::new(WebViewCollection::new()),
+            webview_collection: RefCell::default(),
             webdriver_senders: RefCell::default(),
             pending_webdriver_events: Default::default(),
             webdriver_receiver,
@@ -203,7 +190,7 @@ pub trait RunningAppStateTrait {
         self.base().webview_collection.borrow_mut()
     }
 
-    /// Returns all webviews in creation order.
+    /// Returns all [`WebView`]s in creation order.
     fn webviews(&self) -> Vec<(WebViewId, WebView)> {
         self.webview_collection()
             .all_in_creation_order()
@@ -227,15 +214,15 @@ pub trait RunningAppStateTrait {
         self.webview_collection().newest().cloned()
     }
 
-    /// Gets the "active" webview: the focused webview if there is one,
-    /// otherwise the most recently created webview.
+    /// Gets the "active" [`WebView`]: the focused [`WebView`] if there is one,
+    /// otherwise the most recently created [`WebView`].
     #[allow(dead_code)]
     fn active_webview(&self) -> Option<WebView> {
         self.webview_collection().active().cloned()
     }
 
-    /// Gets the "active" webview, panicking if there is none.
-    /// This is a convenience method for platforms that assume there's always an active webview.
+    /// Gets the "active" [`WebView`], panicking if there is none.
+    /// This is a convenience method for platforms that assume there's always an active [`WebView`].
     #[allow(dead_code)]
     fn active_webview_or_panic(&self) -> WebView {
         self.active_webview()
