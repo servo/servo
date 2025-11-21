@@ -285,10 +285,8 @@ impl Servo {
             embedder_to_constellation_sender: constellation_proxy.sender().clone(),
             time_profiler_chan: time_profiler_chan.clone(),
             mem_profiler_chan: mem_profiler_chan.clone(),
-            rendering_context: builder.rendering_context,
             shutdown_state: shutdown_state.clone(),
             event_loop_waker,
-            shaders_path: opts.shaders_path.clone(),
             #[cfg(feature = "webxr")]
             webxr_registry: builder.webxr_registry,
         });
@@ -1136,7 +1134,6 @@ struct DefaultWebXrRegistry;
 impl webxr::WebXrRegistry for DefaultWebXrRegistry {}
 
 pub struct ServoBuilder {
-    rendering_context: Rc<dyn RenderingContext>,
     opts: Option<Box<Opts>>,
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
@@ -1146,20 +1143,21 @@ pub struct ServoBuilder {
     webxr_registry: Box<dyn webxr::WebXrRegistry>,
 }
 
-impl ServoBuilder {
-    pub fn new(rendering_context: Rc<dyn RenderingContext>) -> Self {
+impl Default for ServoBuilder {
+    fn default() -> Self {
         Self {
-            rendering_context,
-            opts: None,
-            preferences: None,
+            opts: Default::default(),
+            preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
-            user_content_manager: UserContentManager::default(),
-            protocol_registry: ProtocolRegistry::default(),
+            user_content_manager: Default::default(),
+            protocol_registry: Default::default(),
             #[cfg(feature = "webxr")]
             webxr_registry: Box::new(DefaultWebXrRegistry),
         }
     }
+}
 
+impl ServoBuilder {
     pub fn build(self) -> Servo {
         Servo::new(self)
     }

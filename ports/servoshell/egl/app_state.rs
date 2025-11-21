@@ -264,7 +264,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-        let webview = WebViewBuilder::new_auxiliary(self.servo())
+        let webview = WebViewBuilder::new_auxiliary(self.servo(), self.rendering_context.clone())
             .delegate(parent_webview.delegate())
             .hidpi_scale_factor(self.inner().hidpi_scale_factor)
             .build();
@@ -390,7 +390,7 @@ impl RunningAppState {
     }
 
     pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
-        let webview = WebViewBuilder::new(self.servo())
+        let webview = WebViewBuilder::new(self.servo(), self.rendering_context.clone())
             .url(url)
             .hidpi_scale_factor(self.inner().hidpi_scale_factor)
             .delegate(self.clone())

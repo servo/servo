@@ -91,7 +91,7 @@ pub fn init(
         RefCell::new(init_opts.coordinates),
     ));
 
-    let servo_builder = ServoBuilder::new(rendering_context.clone())
+    let servo_builder = ServoBuilder::default()
         .opts(opts)
         .preferences(preferences)
         .event_loop_waker(waker.clone());

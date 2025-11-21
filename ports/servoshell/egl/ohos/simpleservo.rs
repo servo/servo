@@ -199,7 +199,7 @@ pub fn init(
         RefCell::new(coordinates),
     ));
 
-    let servo = ServoBuilder::new(rendering_context.clone())
+    let servo = ServoBuilder::default()
         .opts(opts)
         .preferences(preferences)
         .event_loop_waker(waker.clone())
