@@ -217,7 +217,7 @@ impl ReplacedContents {
                     if let AttrValue::Length(_, length) = attr_val {
                         length
                             .to_computed_value(&context)
-                            .map(|csspx| Au::new(csspx.to_i32_au()))
+                            .map(|csspx| Au::from_f32_px(csspx.px()))
                     } else {
                         // TODO: or zero??
                         None
