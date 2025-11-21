@@ -15,11 +15,12 @@ use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
-use log::debug;
+use log::{debug, info, warn};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
+use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
 };
@@ -52,16 +53,22 @@ use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size}
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
 use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
+use crate::desktop::app::PumpResult;
+use crate::desktop::events_loop::{AppEvent, EventLoopProxy};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
+use crate::desktop::minibrowser::{Minibrowser, MinibrowserEvent};
 use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
+use crate::parser::location_bar_input_to_url;
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::RunningAppStateTrait;
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 
 pub struct Window {
+    /// The egui interface that is responsible for showing the user interface elements of
+    /// this headed `Window`.
+    minibrowser: RefCell<Minibrowser>,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
-    toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
     /// The inner size of the window in physical pixels which excludes OS decorations.
@@ -101,6 +108,8 @@ impl Window {
     pub fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
+        event_loop_proxy: EventLoopProxy,
+        initial_url: ServoUrl,
     ) -> Window {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
         let inner_size = servoshell_preferences.initial_window_size;
@@ -175,9 +184,18 @@ impl Window {
             .expect("Could not make window RenderingContext current");
 
         let rendering_context = Rc::new(window_rendering_context.offscreen_context(inner_size));
+        let minibrowser = RefCell::new(Minibrowser::new(
+            &winit_window,
+            event_loop,
+            event_loop_proxy,
+            rendering_context.clone(),
+            initial_url,
+            servoshell_preferences,
+        ));
 
         debug!("Created window {:?}", winit_window.id());
         Window {
+            minibrowser,
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
             fullscreen: Cell::new(false),
@@ -187,7 +205,6 @@ impl Window {
             device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
-            toolbar_height: Cell::new(Default::default()),
             window_rendering_context,
             touch_event_simulator: servoshell_preferences
                 .simulate_touch_events
@@ -417,10 +434,6 @@ impl Window {
         handled
     }
 
-    pub(crate) fn offscreen_rendering_context(&self) -> Rc<OffscreenRenderingContext> {
-        self.rendering_context.clone()
-    }
-
     #[allow(unused_variables)]
     fn force_srgb_color_space(window_handle: RawWindowHandle) {
         #[cfg(target_os = "macos")]
@@ -436,15 +449,85 @@ impl Window {
             }
         }
     }
+
+    /// Takes any events generated during `egui` updates and performs their actions.
+    fn handle_servoshell_ui_events(&self, state: Rc<RunningAppState>) {
+        let mut minibrowser = self.minibrowser.borrow_mut();
+        for event in minibrowser.take_events() {
+            match event {
+                MinibrowserEvent::Go(location) => {
+                    minibrowser.update_location_dirty(false);
+                    let Some(url) = location_bar_input_to_url(
+                        &location.clone(),
+                        &state.servoshell_preferences().searchpage,
+                    ) else {
+                        warn!("failed to parse location");
+                        break;
+                    };
+                    if let Some(focused_webview) = state.focused_webview() {
+                        focused_webview.load(url.into_url());
+                    }
+                },
+                MinibrowserEvent::Back => {
+                    if let Some(focused_webview) = state.focused_webview() {
+                        focused_webview.go_back(1);
+                    }
+                },
+                MinibrowserEvent::Forward => {
+                    if let Some(focused_webview) = state.focused_webview() {
+                        focused_webview.go_forward(1);
+                    }
+                },
+                MinibrowserEvent::Reload => {
+                    minibrowser.update_location_dirty(false);
+                    if let Some(focused_webview) = state.focused_webview() {
+                        focused_webview.reload();
+                    }
+                },
+                MinibrowserEvent::ReloadAll => {
+                    minibrowser.update_location_dirty(false);
+                    for (_, webview) in state.webviews() {
+                        webview.reload();
+                    }
+                },
+                MinibrowserEvent::NewWebView => {
+                    minibrowser.update_location_dirty(false);
+                    let url = Url::parse("servo:newtab").expect("Should always be able to parse");
+                    state.create_and_focus_toplevel_webview(url);
+                },
+                MinibrowserEvent::CloseWebView(id) => {
+                    minibrowser.update_location_dirty(false);
+                    state.close_webview(id);
+                },
+            }
+        }
+    }
+
+    pub fn pump_event_loop(&self, state: &RunningAppState) -> bool {
+        match state.pump_event_loop() {
+            PumpResult::Shutdown => {
+                state.webview_collection_mut().clear();
+                false
+            },
+            PumpResult::Continue {
+                needs_user_interface_update,
+                need_window_redraw,
+            } => {
+                let updated_user_interface =
+                    needs_user_interface_update && self.update_user_interface_state(state);
+                if updated_user_interface || need_window_redraw {
+                    self.winit_window.request_redraw();
+                }
+                true
+            },
+        }
+    }
 }
 
 impl WindowPortsMethods for Window {
     fn screen_geometry(&self) -> ScreenGeometry {
         let hidpi_factor = self.hidpi_scale_factor();
-        let toolbar_size = Size2D::new(
-            0.0,
-            (self.toolbar_height.get() * self.hidpi_scale_factor()).0,
-        );
+        let toolbar_size = Size2D::new(0.0, (self.toolbar_height() * self.hidpi_scale_factor()).0);
         let screen_size = self.screen_size.to_f32() * hidpi_factor;
 
         // FIXME: In reality, this should subtract screen space used by the system interface
@@ -474,19 +557,228 @@ impl WindowPortsMethods for Window {
             .unwrap_or_else(|| self.device_hidpi_scale_factor())
     }
 
-    fn set_title(&self, title: &str) {
-        self.winit_window.set_title(title);
+    fn rebuild_user_interface(&self, state: &RunningAppState) {
+        self.minibrowser
+            .borrow_mut()
+            .update(&self.winit_window, state);
     }
 
-    fn set_title_if_changed(&self, title: &str) -> bool {
-        let mut last = self.last_title.borrow_mut();
-        if *last == title {
-            return false;
+    fn update_user_interface_state(&self, state: &RunningAppState) -> bool {
+        let title = state
+            .focused_webview()
+            .and_then(|webview| {
+                webview
+                    .page_title()
+                    .filter(|title| !title.is_empty())
+                    .map(|title| title.to_string())
+                    .or_else(|| webview.url().map(|url| url.to_string()))
+            })
+            .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
+        if title != *self.last_title.borrow() {
+            self.winit_window.set_title(&title);
+            *self.last_title.borrow_mut() = title;
         }
 
-        self.winit_window.set_title(title);
-        *last = title.to_owned();
-        true
+        self.minibrowser.borrow_mut().update_webview_data(state)
+    }
+
+    fn handle_winit_window_event(&self, state: Rc<RunningAppState>, event: WindowEvent) -> bool {
+        if event == WindowEvent::RedrawRequested {
+            // WARNING: do not defer painting or presenting to some later tick of the event
+            // loop or servoshell may become unresponsive! (servo#30312)
+            let mut minibrowser = self.minibrowser.borrow_mut();
+            minibrowser.update(&self.winit_window, &state);
+            minibrowser.paint(&self.winit_window);
+        }
+
+        // Handle the event
+        let mut consumed = false;
+        match event {
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
+                // we can use our own logic for calculating the scale factor and set egui’s
+                // scale factor to that value manually.
+                let desired_scale_factor = self.hidpi_scale_factor().get();
+                let effective_egui_zoom_factor = desired_scale_factor / scale_factor as f32;
+
+                info!(
+                    "window scale factor changed to {}, setting egui zoom factor to {}",
+                    scale_factor, effective_egui_zoom_factor
+                );
+
+                self.minibrowser
+                    .borrow()
+                    .set_zoom_factor(effective_egui_zoom_factor);
+
+                state.hidpi_scale_factor_changed();
+
+                // Request a winit redraw event, so we can recomposite, update and paint
+                // the minibrowser, and present the new frame.
+                self.winit_window.request_redraw();
+            },
+            ref event => {
+                let response = self.minibrowser.borrow_mut().on_window_event(
+                    &self.winit_window,
+                    &state,
+                    event,
+                );
+
+                // Update minibrowser if there's resize event to sync up with window.
+                if let WindowEvent::Resized(_) = event {
+                    self.rebuild_user_interface(&state);
+                }
+
+                if response.repaint && *event != WindowEvent::RedrawRequested {
+                    // Request a winit redraw event, so we can recomposite, update and paint
+                    // the minibrowser, and present the new frame.
+                    self.winit_window.request_redraw();
+                }
+
+                // TODO how do we handle the tab key? (see doc for consumed)
+                // Note that servo doesn’t yet support tabbing through links and inputs
+                consumed = response.consumed;
+            },
+        }
+
+        if !consumed {
+            // Make sure to handle early resize events even when there are no webviews yet
+            if let WindowEvent::Resized(new_inner_size) = event {
+                if self.inner_size.get() != new_inner_size {
+                    self.inner_size.set(new_inner_size);
+                    // This should always be set to inner size
+                    // because we are resizing `SurfmanRenderingContext`.
+                    // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
+                    self.window_rendering_context.resize(new_inner_size);
+                }
+            }
+
+            if let Some(webview) = state.focused_webview() {
+                match event {
+                    WindowEvent::KeyboardInput { event, .. } => {
+                        self.handle_keyboard_input(state.clone(), event)
+                    },
+                    WindowEvent::ModifiersChanged(modifiers) => {
+                        self.modifiers_state.set(modifiers.state())
+                    },
+                    WindowEvent::MouseInput { state, button, .. } => {
+                        self.handle_mouse_button_event(&webview, button, state);
+                    },
+                    WindowEvent::CursorMoved { position, .. } => {
+                        self.handle_mouse_move_event(&webview, position);
+                    },
+                    WindowEvent::CursorLeft { .. } => {
+                        if webview
+                            .rect()
+                            .contains(self.webview_relative_mouse_point.get())
+                        {
+                            webview.notify_input_event(InputEvent::MouseLeftViewport(
+                                MouseLeftViewportEvent::default(),
+                            ));
+                        }
+                    },
+                    WindowEvent::MouseWheel { delta, .. } => {
+                        let (delta_x, delta_y, mode) = match delta {
+                            MouseScrollDelta::LineDelta(delta_x, delta_y) => (
+                                (delta_x * LINE_WIDTH) as f64,
+                                (delta_y * LINE_HEIGHT) as f64,
+                                WheelMode::DeltaLine,
+                            ),
+                            MouseScrollDelta::PixelDelta(delta) => {
+                                (delta.x, delta.y, WheelMode::DeltaPixel)
+                            },
+                        };
+
+                        // Create wheel event before snapping to the major axis of movement
+                        let delta = WheelDelta {
+                            x: delta_x,
+                            y: delta_y,
+                            z: 0.0,
+                            mode,
+                        };
+                        let point = self.webview_relative_mouse_point.get();
+                        webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
+                            delta,
+                            point.into(),
+                        )));
+                    },
+                    WindowEvent::Touch(touch) => {
+                        webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
+                            winit_phase_to_touch_event_type(touch.phase),
+                            TouchId(touch.id as i32),
+                            DevicePoint::new(touch.location.x as f32, touch.location.y as f32)
+                                .into(),
+                        )));
+                    },
+                    WindowEvent::PinchGesture { delta, .. } => {
+                        webview.pinch_zoom(
+                            delta as f32 + 1.0,
+                            self.webview_relative_mouse_point.get(),
+                        );
+                    },
+                    WindowEvent::CloseRequested => {
+                        state.servo().start_shutting_down();
+                    },
+                    WindowEvent::ThemeChanged(theme) => {
+                        webview.notify_theme_change(match theme {
+                            winit::window::Theme::Light => Theme::Light,
+                            winit::window::Theme::Dark => Theme::Dark,
+                        });
+                    },
+                    WindowEvent::Ime(ime) => match ime {
+                        Ime::Enabled => {
+                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                                servo::CompositionEvent {
+                                    state: servo::CompositionState::Start,
+                                    data: String::new(),
+                                },
+                            )));
+                        },
+                        Ime::Preedit(text, _) => {
+                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                                servo::CompositionEvent {
+                                    state: servo::CompositionState::Update,
+                                    data: text,
+                                },
+                            )));
+                        },
+                        Ime::Commit(text) => {
+                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                                servo::CompositionEvent {
+                                    state: servo::CompositionState::End,
+                                    data: text,
+                                },
+                            )));
+                        },
+                        Ime::Disabled => {
+                            webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
+                        },
+                    },
+                    _ => {},
+                }
+            }
+        }
+
+        // Consume and handle any events from the servoshell UI.
+        self.handle_servoshell_ui_events(state.clone());
+        self.pump_event_loop(&state)
+    }
+
+    fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) -> bool {
+        if let AppEvent::Accessibility(ref event) = app_event {
+            if self
+                .minibrowser
+                .borrow_mut()
+                .handle_accesskit_event(&event.window_event)
+            {
+                self.winit_window.request_redraw();
+            }
+            return true;
+        }
+
+        // Consume and handle any events from the Minibrowser.
+        self.handle_servoshell_ui_events(state.clone());
+
+        self.pump_event_loop(&state)
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
@@ -614,116 +906,6 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn handle_winit_event(&self, state: Rc<RunningAppState>, event: WindowEvent) {
-        // Make sure to handle early resize events even when there are no webviews yet
-        if let WindowEvent::Resized(new_inner_size) = event {
-            if self.inner_size.get() != new_inner_size {
-                self.inner_size.set(new_inner_size);
-                // This should always be set to inner size
-                // because we are resizing `SurfmanRenderingContext`.
-                // See https://github.com/servo/servo/issues/38369#issuecomment-3138378527
-                self.window_rendering_context.resize(new_inner_size);
-            }
-            return;
-        }
-
-        let Some(webview) = state.focused_webview() else {
-            return;
-        };
-
-        match event {
-            WindowEvent::KeyboardInput { event, .. } => self.handle_keyboard_input(state, event),
-            WindowEvent::ModifiersChanged(modifiers) => self.modifiers_state.set(modifiers.state()),
-            WindowEvent::MouseInput { state, button, .. } => {
-                self.handle_mouse_button_event(&webview, button, state);
-            },
-            WindowEvent::CursorMoved { position, .. } => {
-                self.handle_mouse_move_event(&webview, position);
-            },
-            WindowEvent::CursorLeft { .. } => {
-                if webview
-                    .rect()
-                    .contains(self.webview_relative_mouse_point.get())
-                {
-                    webview.notify_input_event(InputEvent::MouseLeftViewport(
-                        MouseLeftViewportEvent::default(),
-                    ));
-                }
-            },
-            WindowEvent::MouseWheel { delta, .. } => {
-                let (delta_x, delta_y, mode) = match delta {
-                    MouseScrollDelta::LineDelta(delta_x, delta_y) => (
-                        (delta_x * LINE_WIDTH) as f64,
-                        (delta_y * LINE_HEIGHT) as f64,
-                        WheelMode::DeltaLine,
-                    ),
-                    MouseScrollDelta::PixelDelta(delta) => {
-                        (delta.x, delta.y, WheelMode::DeltaPixel)
-                    },
-                };
-
-                // Create wheel event before snapping to the major axis of movement
-                let delta = WheelDelta {
-                    x: delta_x,
-                    y: delta_y,
-                    z: 0.0,
-                    mode,
-                };
-                let point = self.webview_relative_mouse_point.get();
-                webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(delta, point.into())));
-            },
-            WindowEvent::Touch(touch) => {
-                webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
-                    winit_phase_to_touch_event_type(touch.phase),
-                    TouchId(touch.id as i32),
-                    DevicePoint::new(touch.location.x as f32, touch.location.y as f32).into(),
-                )));
-            },
-            WindowEvent::PinchGesture { delta, .. } => {
-                webview.pinch_zoom(delta as f32 + 1.0, self.webview_relative_mouse_point.get());
-            },
-            WindowEvent::CloseRequested => {
-                state.servo().start_shutting_down();
-            },
-            WindowEvent::ThemeChanged(theme) => {
-                webview.notify_theme_change(match theme {
-                    winit::window::Theme::Light => Theme::Light,
-                    winit::window::Theme::Dark => Theme::Dark,
-                });
-            },
-            WindowEvent::Ime(ime) => match ime {
-                Ime::Enabled => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
-                            state: servo::CompositionState::Start,
-                            data: String::new(),
-                        },
-                    )));
-                },
-                Ime::Preedit(text, _) => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
-                            state: servo::CompositionState::Update,
-                            data: text,
-                        },
-                    )));
-                },
-                Ime::Commit(text) => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
-                        servo::CompositionEvent {
-                            state: servo::CompositionState::End,
-                            data: text,
-                        },
-                    )));
-                },
-                Ime::Disabled => {
-                    webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
-                },
-            },
-            _ => {},
-        }
-    }
-
     #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
@@ -748,19 +930,8 @@ impl WindowPortsMethods for Window {
         Rc::new(XRWindow { winit_window, pose })
     }
 
-    fn winit_window(&self) -> Option<&winit::window::Window> {
-        Some(&self.winit_window)
-    }
-
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
-        self.toolbar_height.get()
-    }
-
-    fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>) {
-        if self.toolbar_height() == height {
-            return;
-        }
-        self.toolbar_height.set(height);
+        self.minibrowser.borrow().toolbar_height()
     }
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
@@ -773,7 +944,7 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_ime_cursor_area(
             LogicalPosition::new(
                 position.min.x,
-                position.min.y + (self.toolbar_height.get().0 as i32),
+                position.min.y + (self.toolbar_height().0 as i32),
             ),
             LogicalSize::new(
                 position.max.x - position.min.x,

@@ -19,7 +19,6 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, 
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView};
 use winit::dpi::PhysicalSize;
 
-use super::app_state::RunningAppState;
 use crate::desktop::window_trait::{MIN_WINDOW_INNER_SIZE, WindowPortsMethods};
 use crate::prefs::ServoShellPreferences;
 
@@ -126,20 +125,12 @@ impl WindowPortsMethods for Window {
         self.fullscreen.get()
     }
 
-    fn handle_winit_event(&self, _: Rc<RunningAppState>, _: winit::event::WindowEvent) {
-        // Not expecting any winit events.
-    }
-
     #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
         _events_loop: &winit::event_loop::ActiveEventLoop,
     ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         unimplemented!()
-    }
-
-    fn winit_window(&self) -> Option<&winit::window::Window> {
-        None
     }
 
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
@@ -151,10 +142,6 @@ impl WindowPortsMethods for Window {
             DeviceIntRect::from_origin_and_size(self.window_position.get(), self.inner_size.get()),
             self.hidpi_scale_factor(),
         )
-    }
-
-    fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {
-        unimplemented!("headless Window only")
     }
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {

@@ -202,7 +202,7 @@ impl RunningAppState {
         }
 
         PumpResult::Continue {
-            need_update,
+            needs_user_interface_update: need_update,
             need_window_redraw,
         }
     }
@@ -468,10 +468,8 @@ impl WebViewDelegate for RunningAppState {
         self.inner_mut().need_update = true;
     }
 
-    fn notify_page_title_changed(&self, webview: servo::WebView, title: Option<String>) {
+    fn notify_page_title_changed(&self, webview: servo::WebView, _: Option<String>) {
         if webview.focused() {
-            let window_title = format!("{} - Servo", title.clone().unwrap_or_default());
-            self.inner().window.set_title(&window_title);
             self.inner_mut().need_update = true;
         }
     }
