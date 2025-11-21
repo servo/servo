@@ -606,6 +606,9 @@ pub(crate) struct Document {
     /// <https://html.spec.whatwg.org/multipage/#registerprotocolhandler()-automation-mode>
     #[no_trace]
     protocol_handler_automation_mode: RefCell<CustomHandlersAutomationMode>,
+
+    /// Reflect the value of that preferences to prevent paying the cost of a RwLock access.
+    layout_animations_test_enabled: bool,
 }
 
 impl Document {
@@ -2643,10 +2646,6 @@ impl Document {
         local_name: &LocalName,
         is: Option<&LocalName>,
     ) -> Option<Rc<CustomElementDefinition>> {
-        if !pref!(dom_customelements_enabled) {
-            return None;
-        }
-
         // Step 1
         if *namespace != ns!(html) {
             return None;
@@ -3550,6 +3549,7 @@ impl Document {
             websockets: DOMTracker::new(),
             details_name_groups: Default::default(),
             protocol_handler_automation_mode: Default::default(),
+            layout_animations_test_enabled: pref!(layout_animations_test_enabled),
         }
     }
 
@@ -4335,7 +4335,7 @@ impl Document {
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
     pub(crate) fn update_animations_and_send_events(&self, can_gc: CanGc) {
         // Only update the time if it isn't being managed by a test.
-        if !pref!(layout_animations_test_enabled) {
+        if !self.layout_animations_test_enabled {
             self.animation_timeline.borrow_mut().update();
         }
 
