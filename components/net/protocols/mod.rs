@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::hash_map::Entry;
+use std::future;
 use std::future::Future;
 use std::ops::Bound;
 use std::pin::Pin;
@@ -13,10 +14,12 @@ use log::error;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use net_traits::{DiscardFetch, NetworkError};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
+use url::Position;
 
-use crate::fetch::methods::{DoneChannel, FetchContext, RangeRequestBounds};
+use crate::fetch::methods::{DoneChannel, FetchContext, RangeRequestBounds, fetch};
 
 mod blob;
 mod data;
@@ -25,6 +28,8 @@ mod file;
 use blob::BlobProtocolHander;
 use data::DataProtocolHander;
 use file::FileProtocolHander;
+
+type FutureResponse = Pin<Box<dyn Future<Output = Response> + Send>>;
 
 // The set of schemes that can't be registered.
 static FORBIDDEN_SCHEMES: [&str; 4] = ["http", "https", "chrome", "about"];
@@ -47,7 +52,7 @@ pub trait ProtocolHandler: Send + Sync {
         request: &mut Request,
         done_chan: &mut DoneChannel,
         context: &FetchContext,
-    ) -> Pin<Box<dyn Future<Output = Response> + Send>>;
+    ) -> FutureResponse;
 
     /// Specify if resources served by that protocol can be retrieved
     /// with `fetch()` without no-cors mode to allow the caller direct
@@ -114,6 +119,17 @@ impl ProtocolRegistry {
         }
     }
 
+    pub fn register_page_content_handler(
+        &mut self,
+        scheme: String,
+        url: String,
+    ) -> Result<(), ProtocolRegisterError> {
+        self.register(
+            &scheme.clone(),
+            WebPageContentProtocolHandler { url, scheme },
+        )
+    }
+
     pub fn get(&self, scheme: &str) -> Option<&dyn ProtocolHandler> {
         self.handlers.get(scheme).map(|e| e.as_ref())
     }
@@ -151,6 +167,62 @@ impl ProtocolRegistry {
                     .filter_map(move |path| ServoUrl::parse(&format!("{scheme}:{path}")).ok())
             })
             .collect()
+    }
+}
+
+struct WebPageContentProtocolHandler {
+    url: String,
+    scheme: String,
+}
+
+impl ProtocolHandler for WebPageContentProtocolHandler {
+    /// <https://html.spec.whatwg.org/multipage/#protocol-handler-invocation>
+    fn load(
+        &self,
+        request: &mut Request,
+        _done_chan: &mut DoneChannel,
+        context: &FetchContext,
+    ) -> FutureResponse {
+        let mut url = request.current_url();
+        // Step 1. Assert: inputURL's scheme is normalizedScheme.
+        assert!(url.scheme() == self.scheme);
+        // Step 2. Set the username given inputURL and the empty string.
+        //
+        // Ignore errors if no username can be set, which depending on the
+        // URL in the scheme handler might be bogus. For example, with a
+        // `mailto:` handler, it doesn't have a base. See the
+        // documentation at [`url::Url::set_username`]
+        let _ = url.set_username("");
+
+        // Step 3. Set the password given inputURL and the empty string.
+        //
+        // Ignore errors if no password can be set, which depending on the
+        // URL in the scheme handler might be bogus. For example, with a
+        // `mailto:` handler, it doesn't have a base. See the
+        // documentation at [`url::Url::set_password`]
+        let _ = url.set_password(None);
+
+        // Step 4. Let inputURLString be the serialization of inputURL.
+        // Step 5. Let encodedURL be the result of running UTF-8 percent-encode on inputURLString using the component percent-encode set.
+        //
+        // Url is already UTF-8, so encoding isn't required
+        let encoded_url = &url[Position::AfterScheme..][1..];
+        // Step 6. Let handlerURLString be normalizedURLString.
+        // Step 7. Replace the first instance of "%s" in handlerURLString with encodedURL.
+        let handler_url_string = self.url.replacen("%s", encoded_url, 1);
+        // Step 8. Let resultURL be the result of parsing handlerURLString.
+        let Ok(result_url) = ServoUrl::parse(&handler_url_string) else {
+            return Box::pin(future::ready(Response::network_error(
+                NetworkError::Internal("Failed to parse substituted protocol handler url".into()),
+            )));
+        };
+        // Ensure we did a proper substitution with a HTTP result
+        assert!(matches!(result_url.scheme(), "http" | "https"));
+        // Step 9. Navigate an appropriate navigable to resultURL.
+        request.url_list.push(result_url);
+        let request2 = request.clone();
+        let context2 = context.clone();
+        Box::pin(async move { fetch(request2, &mut DiscardFetch, &context2).await })
     }
 }
 
