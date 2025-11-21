@@ -10,6 +10,7 @@ use std::time::Duration;
 use base::id::WebViewId;
 use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
+use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -114,22 +115,18 @@ impl Drop for WebViewInner {
 
 impl WebView {
     pub(crate) fn new(builder: WebViewBuilder) -> Self {
-        let compositor = builder.servo.compositor.clone();
-        let painter_id = compositor.borrow().painter_id();
-        let id = WebViewId::new(painter_id);
         let servo = builder.servo;
         let size = builder.size.map_or_else(
-            || {
-                builder
-                    .servo
-                    .compositor
-                    .borrow()
-                    .rendering_context_size(painter_id)
-                    .to_f32()
-            },
+            || builder.rendering_context.size2d().to_f32(),
             |size| Size2D::new(size.width as f32, size.height as f32),
         );
 
+        let compositor = builder.servo.compositor.clone();
+        let painter_id = compositor
+            .borrow_mut()
+            .register_rendering_context(builder.rendering_context);
+
+        let id = WebViewId::new(painter_id);
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
             constellation_proxy: servo.constellation_proxy.clone(),
@@ -151,11 +148,13 @@ impl WebView {
         })));
 
         let viewport_details = webview.viewport_details();
-        let wv = Box::new(ServoRendererWebView {
-            weak_handle: webview.weak_handle(),
-            id,
-        });
-        servo.compositor.borrow().add_webview(wv, viewport_details);
+        servo.compositor.borrow().add_webview(
+            Box::new(ServoRendererWebView {
+                weak_handle: webview.weak_handle(),
+                id,
+            }),
+            viewport_details,
+        );
 
         servo
             .webviews
@@ -770,6 +769,7 @@ impl WebViewTrait for ServoRendererWebView {
 
 pub struct WebViewBuilder<'servo> {
     servo: &'servo Servo,
+    rendering_context: Rc<dyn RenderingContext>,
     delegate: Rc<dyn WebViewDelegate>,
     auxiliary: bool,
     url: Option<Url>,
@@ -778,9 +778,10 @@ pub struct WebViewBuilder<'servo> {
 }
 
 impl<'servo> WebViewBuilder<'servo> {
-    pub fn new(servo: &'servo Servo) -> Self {
+    pub fn new(servo: &'servo Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
         Self {
             servo,
+            rendering_context,
             auxiliary: false,
             url: None,
             size: None,
@@ -789,8 +790,11 @@ impl<'servo> WebViewBuilder<'servo> {
         }
     }
 
-    pub fn new_auxiliary(servo: &'servo Servo) -> Self {
-        let mut builder = Self::new(servo);
+    pub fn new_auxiliary(
+        servo: &'servo Servo,
+        rendering_context: Rc<dyn RenderingContext>,
+    ) -> Self {
+        let mut builder = Self::new(servo, rendering_context);
         builder.auxiliary = true;
         builder
     }

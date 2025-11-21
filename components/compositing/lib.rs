@@ -5,11 +5,9 @@
 #![deny(unsafe_code)]
 
 use std::cell::Cell;
-use std::path::PathBuf;
 use std::rc::Rc;
 
 use base::generic_channel::RoutedReceiver;
-use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{CompositorMsg, CompositorProxy};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
@@ -51,13 +49,9 @@ pub struct InitialCompositorState {
     /// A shared state which tracks whether Servo has started or has finished
     /// shutting down.
     pub shutdown_state: Rc<Cell<ShutdownState>>,
-    /// The target [`RenderingContext`] of this renderer.
-    pub rendering_context: Rc<dyn RenderingContext>,
     /// An [`EventLoopWaker`] used in order to wake up the embedder when it is
     /// time to paint.
     pub event_loop_waker: Box<dyn EventLoopWaker>,
-    /// A [`PathBuf`] which can be used to override WebRender shaders.
-    pub shaders_path: Option<PathBuf>,
     /// If WebXR is enabled, a [`WebXrRegistry`] to register WebXR threads.
     #[cfg(feature = "webxr")]
     pub webxr_registry: Box<dyn WebXrRegistry>,

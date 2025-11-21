@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::iter::once;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -17,8 +16,8 @@ use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{
-    CompositorProxy, ImageUpdate, PipelineExitSource, SendableFrameTree,
-    WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
+    ImageUpdate, PipelineExitSource, SendableFrameTree, WebRenderExternalImageHandlers,
+    WebRenderImageHandlerType, WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
@@ -36,7 +35,7 @@ use media::WindowGLContext;
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
-use servo_config::pref;
+use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
 use smallvec::SmallVec;
 use style_traits::CSSPixel;
@@ -136,11 +135,8 @@ impl Drop for Painter {
 }
 
 impl Painter {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         rendering_context: Rc<dyn RenderingContext>,
-        compositor_proxy: CompositorProxy,
-        shader_path: Option<PathBuf>,
         compositor: &IOCompositor,
     ) -> Self {
         let webrender_gl = rendering_context.gleam_gl_api();
@@ -213,14 +209,17 @@ impl Painter {
         let painter_id = PainterId::next();
         let (mut webrender, webrender_api_sender) = webrender::create_webrender_instance(
             webrender_gl.clone(),
-            Box::new(RenderNotifier::new(painter_id, compositor_proxy)),
+            Box::new(RenderNotifier::new(
+                painter_id,
+                compositor.compositor_proxy.clone(),
+            )),
             webrender::WebRenderOptions {
                 // We force the use of optimized shaders here because rendering is broken
                 // on Android emulators with unoptimized shaders. This is due to a known
                 // issue in the emulator's OpenGL emulation layer.
                 // See: https://github.com/servo/servo/issues/31726
                 use_optimized_shaders: true,
-                resource_override_path: shader_path,
+                resource_override_path: opts::get().shaders_path.clone(),
                 debug_flags: webrender::DebugFlags::empty(),
                 precache_flags: if pref!(gfx_precache_shaders) {
                     ShaderPrecacheFlags::FULL_COMPILE

@@ -13,8 +13,9 @@ use base::generic_channel::RoutedReceiver;
 use base::id::{PainterId, WebViewId};
 use bitflags::bitflags;
 use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
+use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositorMsg, PainterSurfmanDetails, PainterSurfmanDetailsMap,
+    CompositorMsg, CompositorProxy, PainterSurfmanDetails, PainterSurfmanDetailsMap,
     WebRenderExternalImageIdManager, WebViewTrait,
 };
 use constellation_traits::EmbedderToConstellationMessage;
@@ -61,6 +62,10 @@ pub struct IOCompositor {
     /// All of the [`Painters`] for this [`IOCompositor`]. Each [`Painter`] handles painting to
     /// a single [`RenderingContext`].
     painters: Vec<Rc<RefCell<Painter>>>,
+
+    /// A [`CompositorProxy`] which can be used to allow other parts of Servo to communicate
+    /// with this [`IOCompositor`].
+    pub(crate) compositor_proxy: CompositorProxy,
 
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop when the renderer needs
     /// to run.
@@ -167,8 +172,9 @@ impl IOCompositor {
             webxr_main_thread
         };
 
-        let mut compositor = IOCompositor {
+        Rc::new(RefCell::new(IOCompositor {
             painters: Default::default(),
+            compositor_proxy: state.compositor_proxy,
             event_loop_waker: state.event_loop_waker,
             shutdown_state: state.shutdown_state,
             compositor_receiver: state.receiver,
@@ -184,17 +190,26 @@ impl IOCompositor {
             webxr_main_thread: RefCell::new(webxr_main_thread),
             #[cfg(feature = "webgpu")]
             webgpu_image_map: Default::default(),
-        };
+        }))
+    }
 
-        let painter = Painter::new(
-            state.rendering_context.clone(),
-            state.compositor_proxy,
-            state.shaders_path,
-            &compositor,
-        );
+    pub fn register_rendering_context(
+        &mut self,
+        rendering_context: Rc<dyn RenderingContext>,
+    ) -> PainterId {
+        if let Some(painter_id) = self.painters.iter().find_map(|painter| {
+            let painter = painter.borrow();
+            if Rc::ptr_eq(&painter.rendering_context, &rendering_context) {
+                Some(painter.painter_id)
+            } else {
+                None
+            }
+        }) {
+            return painter_id;
+        }
 
-        let connection = state
-            .rendering_context
+        let painter = Painter::new(rendering_context.clone(), self);
+        let connection = rendering_context
             .connection()
             .expect("Failed to get connection");
         let adapter = connection
@@ -205,12 +220,12 @@ impl IOCompositor {
             connection,
             adapter,
         };
-        compositor
-            .painter_surfman_details_map
+        self.painter_surfman_details_map
             .insert(painter.painter_id, painter_surfman_details);
-        compositor.painters.push(Rc::new(RefCell::new(painter)));
 
-        Rc::new(RefCell::new(compositor))
+        let painter_id = painter.painter_id;
+        self.painters.push(Rc::new(RefCell::new(painter)));
+        painter_id
     }
 
     pub(crate) fn painter<'a>(&'a self, painter_id: PainterId) -> Ref<'a, Painter> {

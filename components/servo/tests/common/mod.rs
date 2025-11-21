@@ -62,7 +62,7 @@ impl ServoTest {
         }
 
         let user_event_triggered = Arc::new(AtomicBool::new(false));
-        let builder = ServoBuilder::new(rendering_context.clone())
+        let builder = ServoBuilder::default()
             .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)));
         let builder = customize(builder);
         let servo = Rc::new(builder.build());

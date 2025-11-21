@@ -137,7 +137,7 @@ impl App {
             protocols::resource::ResourceProtocolHandler::default(),
         );
 
-        let servo_builder = ServoBuilder::new(window.rendering_context())
+        let servo_builder = ServoBuilder::default()
             .opts(self.opts.clone())
             .preferences(self.preferences.clone())
             .user_content_manager(user_content_manager)

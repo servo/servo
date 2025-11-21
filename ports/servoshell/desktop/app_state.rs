@@ -129,7 +129,7 @@ impl RunningAppState {
     }
 
     pub(crate) fn create_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
-        let webview = WebViewBuilder::new(self.servo())
+        let webview = WebViewBuilder::new(self.servo(), self.inner().window.rendering_context())
             .url(url)
             .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
             .delegate(self.clone())
@@ -514,10 +514,11 @@ impl WebViewDelegate for RunningAppState {
         &self,
         parent_webview: servo::WebView,
     ) -> Option<servo::WebView> {
-        let webview = WebViewBuilder::new_auxiliary(self.servo())
-            .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
-            .delegate(parent_webview.delegate())
-            .build();
+        let webview =
+            WebViewBuilder::new_auxiliary(self.servo(), self.inner().window.rendering_context())
+                .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
+                .delegate(parent_webview.delegate())
+                .build();
 
         webview.notify_theme_change(self.inner().window.theme());
         // When WebDriver is enabled, do not focus and raise the WebView to the top,

@@ -54,7 +54,7 @@ impl ::servo::WebViewDelegate for AppState {
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+        let webview = WebViewBuilder::new_auxiliary(&self.servo, self.rendering_context.clone())
             .hidpi_scale_factor(Scale::new(self.window.scale_factor() as f32))
             .delegate(parent_webview.delegate())
             .build();
@@ -94,7 +94,7 @@ impl ApplicationHandler<WakerEvent> for App {
 
             let _ = rendering_context.make_current();
 
-            let servo = ServoBuilder::new(rendering_context.clone())
+            let servo = ServoBuilder::default()
                 .event_loop_waker(Box::new(waker.clone()))
                 .build();
             servo.setup_logging();
@@ -110,11 +110,12 @@ impl ApplicationHandler<WakerEvent> for App {
             let url = Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
                 .expect("Guaranteed by argument");
 
-            let webview = WebViewBuilder::new(&app_state.servo)
-                .url(url)
-                .hidpi_scale_factor(Scale::new(app_state.window.scale_factor() as f32))
-                .delegate(app_state.clone())
-                .build();
+            let webview =
+                WebViewBuilder::new(&app_state.servo, app_state.rendering_context.clone())
+                    .url(url)
+                    .hidpi_scale_factor(Scale::new(app_state.window.scale_factor() as f32))
+                    .delegate(app_state.clone())
+                    .build();
 
             webview.focus_and_raise_to_top(true);
 
