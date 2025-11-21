@@ -133,6 +133,10 @@ impl App {
             "resource",
             protocols::resource::ResourceProtocolHandler::default(),
         );
+        let _ = protocol_registry.register_page_content_handler(
+            "mailto".to_owned(),
+            "https://mail.proton.me/inbox/#mailto=%s".to_owned(),
+        );
 
         let servo_builder = ServoBuilder::default()
             .opts(self.opts.clone())

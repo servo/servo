@@ -26,7 +26,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Weak};
 
 use base::threadpool::ThreadPool;
-use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EventLoopWaker};
@@ -41,7 +40,7 @@ use hyper_util::rt::tokio::TokioIo;
 use net::async_runtime::{init_async_runtime, spawn_blocking_task, spawn_task};
 use net::connector::{CACertificates, create_http_client, create_tls_config};
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::{self, FetchContext};
+use net::fetch::methods::{self, FetchContext, FetchResponseCollector};
 use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
@@ -49,7 +48,7 @@ use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
-use net_traits::{AsyncRuntime, FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
+use net_traits::{AsyncRuntime, ResourceFetchTiming, ResourceTimingType};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashMap;
 use rustls_pemfile::{certs, pkcs8_private_keys};
@@ -63,10 +62,6 @@ const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
 static ASYNC_RUNTIME: LazyLock<Arc<Mutex<Box<dyn AsyncRuntime>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(init_async_runtime())));
-
-struct FetchResponseCollector {
-    sender: Option<tokio::sync::oneshot::Sender<Response>>,
-}
 
 fn create_embedder_proxy() -> EmbedderProxy {
     let _init = ASYNC_RUNTIME.clone();
@@ -189,17 +184,6 @@ fn new_fetch_context(
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
     }
-}
-impl FetchTaskTarget for FetchResponseCollector {
-    fn process_request_body(&mut self, _: &Request) {}
-    fn process_request_eof(&mut self, _: &Request) {}
-    fn process_response(&mut self, _: &Request, _: &Response) {}
-    fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
-    /// Fired when the response is fully fetched
-    fn process_response_eof(&mut self, _: &Request, response: &Response) {
-        let _ = self.sender.take().unwrap().send(response.clone());
-    }
-    fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
 }
 
 fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {

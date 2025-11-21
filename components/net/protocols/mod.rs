@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::hash_map::Entry;
+use std::future;
 use std::future::Future;
 use std::ops::Bound;
 use std::pin::Pin;
@@ -10,13 +11,16 @@ use std::pin::Pin;
 use headers::Range;
 use http::StatusCode;
 use log::error;
+use net_traits::NetworkError;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 
-use crate::fetch::methods::{DoneChannel, FetchContext, RangeRequestBounds};
+use crate::fetch::methods::{
+    DoneChannel, FetchContext, FetchResponseCollector, RangeRequestBounds, fetch,
+};
 
 mod blob;
 mod data;
@@ -114,6 +118,17 @@ impl ProtocolRegistry {
         }
     }
 
+    pub fn register_page_content_handler(
+        &mut self,
+        scheme: String,
+        url: String,
+    ) -> Result<(), ProtocolRegisterError> {
+        self.register(
+            &scheme.clone(),
+            WebpageContentProtocolHandler { url, scheme },
+        )
+    }
+
     pub fn get(&self, scheme: &str) -> Option<&dyn ProtocolHandler> {
         self.handlers.get(scheme).map(|e| e.as_ref())
     }
@@ -151,6 +166,67 @@ impl ProtocolRegistry {
                     .filter_map(move |path| ServoUrl::parse(&format!("{scheme}:{path}")).ok())
             })
             .collect()
+    }
+}
+
+struct WebpageContentProtocolHandler {
+    url: String,
+    scheme: String,
+}
+
+impl ProtocolHandler for WebpageContentProtocolHandler {
+    /// <https://html.spec.whatwg.org/multipage/#protocol-handler-invocation>
+    fn load(
+        &self,
+        request: &mut Request,
+        _done_chan: &mut DoneChannel,
+        context: &FetchContext,
+    ) -> Pin<Box<dyn Future<Output = Response> + Send>> {
+        let mut url = request.current_url();
+        // Step 1. Assert: inputURL's scheme is normalizedScheme.
+        assert!(url.scheme() == self.scheme);
+        // Step 2. Set the username given inputURL and the empty string.
+        //
+        // Ignore errors if no username can be set, which depending on the
+        // URL in the scheme handler might be bogus. For example, with a
+        // `mailto:` handler, it doesn't have a base. See the
+        // documentation at [`url::Url::set_username`]
+        let _ = url.set_username("");
+
+        // Step 3. Set the password given inputURL and the empty string.
+        //
+        // Ignore errors if no password can be set, which depending on the
+        // URL in the scheme handler might be bogus. For example, with a
+        // `mailto:` handler, it doesn't have a base. See the
+        // documentation at [`url::Url::set_password`]
+        let _ = url.set_password(None);
+
+        // Step 4. Let inputURLString be the serialization of inputURL.
+        // Step 5. Let encodedURL be the result of running UTF-8 percent-encode on inputURLString using the component percent-encode set.
+        //
+        // Url is already UTF-8, so encoding isn't required
+        let encoded_url = &url.as_str()[(self.scheme.len() + 1)..];
+        // Step 6. Let handlerURLString be normalizedURLString.
+        // Step 7. Replace the first instance of "%s" in handlerURLString with encodedURL.
+        let handler_url_string = self.url.replacen("%s", encoded_url, 1);
+        // Step 8. Let resultURL be the result of parsing handlerURLString.
+        let Ok(result_url) = ServoUrl::parse(&handler_url_string) else {
+            return Box::pin(future::ready(Response::network_error(
+                NetworkError::Internal("Failed to parse substituted protocol handler url".into()),
+            )));
+        };
+        // Step 9. Navigate an appropriate navigable to resultURL.
+        request.url_list.push(result_url);
+        let request2 = request.clone();
+        let context2 = context.clone();
+        Box::pin(async move {
+            let (sender, receiver) = tokio::sync::oneshot::channel();
+            let mut collector = FetchResponseCollector {
+                sender: Some(sender),
+            };
+            fetch(request2, &mut collector, &context2).await;
+            receiver.await.unwrap()
+        })
     }
 }
 

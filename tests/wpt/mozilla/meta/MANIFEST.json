@@ -10746,6 +10746,12 @@
      "33834c3ef095fa9c0080017e1b65b2eb8413eac4",
      []
     ],
+    "protocol-handlers": {
+     "mailto.html": [
+      "772a0c266ebb22b172b82e06ae65f28423793474",
+      []
+     ]
+    },
     "remove_link_styles.css": [
      "1984cf7df21686c499942929ac342dddb160af6a",
      []
