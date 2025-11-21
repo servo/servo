@@ -100,8 +100,6 @@ public class JNIServo {
 
         void onAlert(String message);
 
-        void onAnimatingChanged(boolean animating);
-
         void onLoadStarted();
 
         void onLoadEnded();

@@ -15,7 +15,8 @@ mod common;
 use common::ServoTest;
 
 #[test]
-fn test_simple_servo_is_not_animating_by_default() {
+fn test_simple_start_and_stop_servo() {
     let servo_test = ServoTest::new();
-    assert!(!servo_test.servo().animating());
+    servo_test.servo().start_shutting_down();
+    while servo_test.servo().spin_event_loop() {}
 }

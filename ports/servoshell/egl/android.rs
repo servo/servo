@@ -679,19 +679,6 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_animating_changed(&self, animating: bool) {
-        debug!("on_animating_changed");
-        let mut env = self.jvm.get_env().unwrap();
-        let animating = JValue::Bool(animating as jboolean);
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onAnimatingChanged",
-            "(Z)V",
-            &[animating],
-        )
-        .unwrap();
-    }
-
     fn on_ime_show(&self, _: InputMethodControl) {
         let mut env = self.jvm.get_env().unwrap();
         env.call_method(self.callbacks.as_obj(), "onImeShow", "()V", &[])

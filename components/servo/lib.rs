@@ -208,8 +208,6 @@ pub struct Servo {
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
     _js_engine_setup: Option<JSEngineSetup>,
-    /// Whether or not any WebView in this instance is animating or WebXR is enabled.
-    animating: Cell<bool>,
 }
 
 impl Servo {
@@ -324,7 +322,6 @@ impl Servo {
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
-            animating: Cell::new(false),
         }
     }
 
@@ -334,15 +331,6 @@ impl Servo {
 
     pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
         *self.delegate.borrow_mut() = delegate;
-    }
-
-    /// Whether or not any [`WebView`] of this Servo instance has animating content, such as a CSS
-    /// animation or transition or is running `requestAnimationFrame` callbacks. In addition, this
-    /// returns true if WebXR content is running. This indicates that the embedding application
-    /// should be spinning the Servo event loop on regular intervals in order to trigger animation
-    /// updates.
-    pub fn animating(&self) -> bool {
-        self.animating.get()
     }
 
     /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number
@@ -394,7 +382,6 @@ impl Servo {
 
         self.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
-        self.send_animating_changed_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
 
@@ -413,19 +400,6 @@ impl Servo {
             .filter_map(|webview_id| self.get_webview_handle(*webview_id))
         {
             webview.delegate().notify_new_frame_ready(webview);
-        }
-    }
-
-    fn send_animating_changed_messages(&self) {
-        let animating = self.compositor.borrow().webxr_running() ||
-            self.webviews
-                .borrow()
-                .values()
-                .filter_map(WebView::from_weak_handle)
-                .any(|webview| webview.animating());
-        if animating != self.animating.get() {
-            self.animating.set(animating);
-            self.delegate().notify_animating_changed(animating);
         }
     }
 
