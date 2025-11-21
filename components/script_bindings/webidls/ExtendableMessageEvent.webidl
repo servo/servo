@@ -11,7 +11,7 @@ interface ExtendableMessageEvent : ExtendableEvent {
   readonly attribute any data;
   readonly attribute DOMString origin;
   readonly attribute DOMString lastEventId;
-  // [SameObject] readonly attribute (Client or ServiceWorker /*or MessagePort*/)? source;
+  /*[SameObject]*/ readonly attribute (Client or ServiceWorker or MessagePort)? source;
   readonly attribute /*FrozenArray<MessagePort>*/any ports;
 };
 
@@ -19,6 +19,6 @@ dictionary ExtendableMessageEventInit : ExtendableEventInit {
   any data = null;
   DOMString origin = "";
   DOMString lastEventId = "";
-  // (Client or ServiceWorker /*or MessagePort*/)? source;
+  (Client or ServiceWorker or MessagePort)? source;
   sequence<MessagePort> ports = [];
 };
