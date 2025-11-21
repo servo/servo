@@ -102,9 +102,7 @@ impl EventsLoop {
                     if !app.handle_events_with_headless() {
                         break;
                     }
-                    if !app.animating() {
-                        *flag.lock().unwrap() = false;
-                    }
+                    *flag.lock().unwrap() = false;
                 }
             },
         }

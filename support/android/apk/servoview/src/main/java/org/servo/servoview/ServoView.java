@@ -106,10 +106,6 @@ public class ServoView extends SurfaceView
 
 
     @Override
-    public void animationStateChanged(boolean animating) {
-    }
-
-    @Override
     public void makeCurrent() {
     }
 

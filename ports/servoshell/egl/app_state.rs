@@ -443,12 +443,6 @@ impl RunningAppState {
         if !should_continue {
             self.callbacks.host_callbacks.on_shutdown_complete();
         }
-        if self.inner().animating_state_changed.get() {
-            self.inner().animating_state_changed.set(false);
-            self.callbacks
-                .host_callbacks
-                .on_animating_changed(self.servo().animating());
-        }
     }
 
     /// Load an URL.

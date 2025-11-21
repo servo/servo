@@ -980,10 +980,6 @@ impl HostTrait for HostCallbacks {
 
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {}
 
-    fn on_animating_changed(&self, animating: bool) {
-        // todo: should we tell the vsync thread that it should perform updates?
-    }
-
     fn on_shutdown_complete(&self) {
         if let Some(terminate_fn) = TERMINATE_CALLBACK.get() {
             terminate_fn.call((), ThreadsafeFunctionCallMode::Blocking);

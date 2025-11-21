@@ -175,14 +175,6 @@ impl App {
         self.state = AppState::Running(running_state);
     }
 
-    pub(crate) fn animating(&self) -> bool {
-        match self.state {
-            AppState::Initializing => false,
-            AppState::Running(ref running_app_state) => running_app_state.servo().animating(),
-            AppState::ShuttingDown => false,
-        }
-    }
-
     /// Handle all servo events with headless mode. Return true if the application should
     /// continue.
     pub fn handle_events_with_headless(&mut self) -> bool {

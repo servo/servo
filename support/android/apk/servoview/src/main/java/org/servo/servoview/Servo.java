@@ -211,8 +211,6 @@ public class Servo {
     public interface GfxCallbacks {
         void flushGLBuffers();
 
-        void animationStateChanged(boolean animating);
-
         void makeCurrent();
     }
 
@@ -260,10 +258,6 @@ public class Servo {
 
         public void onImeHide() {
             mRunCallback.inUIThread(() -> mClient.onImeHide());
-        }
-
-        public void onAnimatingChanged(boolean animating) {
-            mRunCallback.inGLThread(() -> mGfxCb.animationStateChanged(animating));
         }
 
         public boolean onAllowNavigation(String url) {

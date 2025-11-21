@@ -37,22 +37,6 @@ pub trait HostTrait {
     /// Back/forward state has changed.
     /// Back/forward buttons need to be disabled/enabled.
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool);
-    /// Page animation state has changed. If animating, it's recommended
-    /// that the embedder doesn't wait for the wake function to be called
-    /// to call perform_updates. Usually, it means doing:
-    /// ```rust
-    /// while true {
-    ///     servo.perform_updates();
-    ///     servo.present_if_needed();
-    /// }
-    /// ```
-    /// . This will end up calling flush
-    /// which will call swap_buffer which will be blocking long enough to limit
-    /// drawing at 60 FPS.
-    /// If not animating, call perform_updates only when needed (when the embedder
-    /// has events for Servo, or Servo has woken up the embedder event loop via
-    /// EventLoopWaker).
-    fn on_animating_changed(&self, animating: bool);
     /// Servo finished shutting down.
     fn on_shutdown_complete(&self);
     /// A text input is focused.
