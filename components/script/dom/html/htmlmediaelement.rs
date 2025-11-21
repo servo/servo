@@ -2828,18 +2828,6 @@ impl HTMLMediaElement {
         media_session.send_event(event);
     }
 
-    pub(crate) fn set_duration(&self, duration: f64) {
-        self.duration.set(duration);
-    }
-
-    pub(crate) fn reset(&self) {
-        if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().stop() {
-                error!("Could not stop player {:?}", err);
-            }
-        }
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-resource>
     pub(crate) fn origin_is_clean(&self) -> bool {
         // Step 5.local (media provider object).
