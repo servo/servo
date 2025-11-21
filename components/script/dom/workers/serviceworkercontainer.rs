@@ -167,9 +167,19 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         let scope_things =
             ServiceWorkerRegistration::create_scope_things(&global, script_url.clone());
 
+        let Ok(storage_key) = self.client.obtain_storage_key() else {
+            // Generally, we map to this error when obtain_storage_key fails.
+            // However the spec does not specify what to do in this case.
+            // So we log an error for visibility and return an error.
+            error!("Failed to obtain storage key in ServiceWorkerContainer.register");
+            promise.reject_error(Error::InvalidAccess, can_gc);
+            return promise;
+        };
+
         // B: Step 8 - 13
         let job = Job::create_job(
             JobType::Register,
+            storage_key,
             scope,
             script_url,
             result_handler,

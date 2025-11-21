@@ -91,14 +91,16 @@ impl ServiceWorker {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }
 
-    /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
+    /// <https://w3c.github.io/ServiceWorker/#dom-serviceworker-postmessage-message-options>
     fn post_message_impl(
         &self,
         cx: JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        // Step 1
+        // Step 1. Let serviceWorker be the service worker represented by this.
+        // Step 2. Let incumbentSettings be the incumbent settings object.
+
         if let ServiceWorkerState::Redundant = self.state.get() {
             return Err(Error::InvalidState(None));
         }
