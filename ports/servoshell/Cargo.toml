@@ -35,11 +35,12 @@ OriginalFilename = "servo.exe"
 ProductName = "Servo"
 
 [features]
-default = ["max_log_level", "webgpu", "webxr"]
+default = ["libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
 crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
+js_jit = ["libservo/js_jit"]
 max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["libservo/media-gstreamer"]
 native-bluetooth = ["libservo/native-bluetooth"]
@@ -65,7 +66,7 @@ image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"] }
+libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding", "vello_cpu"], default-features = false }
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
