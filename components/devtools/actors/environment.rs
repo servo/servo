@@ -64,7 +64,7 @@ pub struct EnvironmentActorMsg {
 /// <https://searchfox.org/firefox-main/source/devtools/server/actors/environment.js>
 pub struct EnvironmentActor {
     pub name: String,
-    pub parent: String,
+    pub parent: Option<String>,
 }
 
 impl Actor for EnvironmentActor {
@@ -86,17 +86,22 @@ impl Actor for EnvironmentActor {
 }
 
 pub trait EnvironmentToProtocol {
-    fn encode(self) -> EnvironmentActorMsg;
+    fn encode(&self, actors: &ActorRegistry) -> EnvironmentActorMsg;
 }
 
 impl EnvironmentToProtocol for EnvironmentActor {
-    fn encode(self) -> EnvironmentActorMsg {
+    fn encode(&self, actors: &ActorRegistry) -> EnvironmentActorMsg {
+        let parent = self
+            .parent
+            .as_ref()
+            .map(|p| actors.find::<EnvironmentActor>(p))
+            .map(|p| Box::new(p.encode(actors)));
         // TODO: Change hardcoded values.
         EnvironmentActorMsg {
-            actor: self.name,
+            actor: self.name(),
             type_: EnvironmentType::Function,
             scope_kind: EnvironmentScope::Function,
-            parent: None,
+            parent,
             bindings: None,
             function: None,
             object: None,
