@@ -1516,7 +1516,7 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616): Step 9. If aborted, then return the appropriate network error for fetchParams.
 
     // Step 10. If response is null, then:
-    let mut response = {
+    if response.is_none() {
         // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
         if http_request.cache_mode == CacheMode::OnlyIfCached {
             // The cache will not be updated,
@@ -1572,7 +1572,6 @@ async fn http_network_or_cache_fetch(
                 cache_guard.insert(http_request, forward_response, &context.state.http_cache);
             }
         }
-        response.unwrap()
     };
 
     //=-=----------------------------------------------------------------------------------------
@@ -1585,6 +1584,7 @@ async fn http_network_or_cache_fetch(
     //=-=----------------------------------------------------------------------------------------
 
     let http_request = &mut http_fetch_params.request;
+    let response = response.unwrap();
 
     // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
     // tests fail. Where should we do it instead? See also #33615
