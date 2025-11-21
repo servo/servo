@@ -11,6 +11,7 @@ interface ExtendableMessageEvent : ExtendableEvent {
   readonly attribute any data;
   readonly attribute DOMString origin;
   readonly attribute DOMString lastEventId;
+  // Using SameObject breaks codegen. Firefox does this as well.
   /*[SameObject]*/ readonly attribute (Client or ServiceWorker or MessagePort)? source;
   readonly attribute /*FrozenArray<MessagePort>*/any ports;
 };

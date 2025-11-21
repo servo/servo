@@ -29,6 +29,7 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
+/// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum MessageSource {
     Client(DomRoot<Client>),
