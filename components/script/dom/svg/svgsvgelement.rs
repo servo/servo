@@ -10,12 +10,10 @@ use js::rust::HandleObject;
 use layout_api::SVGElementData;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::Length;
 use style_traits::ParsingMode;
-use url::Url;
 use xml5ever::serialize::TraversalScope;
 
 use crate::dom::attr::Attr;
@@ -27,7 +25,9 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, ShadowIncluding};
+use crate::dom::node::{
+    ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding,
+};
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
@@ -213,28 +213,24 @@ impl VirtualMethods for SVGSVGElement {
                 let value = &value.str();
                 let parser_input = &mut ParserInput::new(value);
                 let parser = &mut Parser::new(parser_input);
-                // TODO: is about:blamk ok?
-                let url = Url::parse("about:blank").unwrap().into();
-                // TODO: quirks, etc.
+                let doc = self.owner_document();
+                let url = doc.url().into_url().into();
                 let context = ParserContext::new(
                     Origin::Author,
                     &url,
                     Some(CssRuleType::Style),
                     ParsingMode::ALLOW_UNITLESS_LENGTH,
-                    QuirksMode::NoQuirks,
+                    doc.quirks_mode(),
                     /* namespaces = */ Default::default(),
                     None,
                     None,
                 );
-                // TODO: negative, quirks
-                let val = Length::parse_non_negative_quirky(
+                let val = Length::parse_quirky(
                     &context,
                     parser,
-                    style::values::specified::AllowQuirks::No,
+                    style::values::specified::AllowQuirks::Always,
                 );
-                eprintln!("parsed val is {:?}", val);
-                // TODO: unwrap
-                AttrValue::Length(value.to_string(), Some(val.unwrap()))
+                AttrValue::Length(value.to_string(), val.ok())
             },
             _ => self
                 .super_type()
