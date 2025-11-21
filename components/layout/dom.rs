@@ -94,15 +94,15 @@ impl InnerDOMLayoutData {
         }
     }
 
-    fn clear_fragment_layout_cache(&self) {
+    fn clear_fragment_layout_cache(&self, clear_inline_content_size: bool) {
         if let Some(data) = self.self_box.borrow().as_ref() {
-            data.with_each_base(LayoutBoxBase::clear_fragment_layout_cache);
+            data.with_each_base(|base| base.clear_fragment_layout_cache(clear_inline_content_size));
         }
         for pseudo_layout_data in self.pseudo_boxes.iter() {
             pseudo_layout_data
                 .data
                 .borrow()
-                .clear_fragment_layout_cache();
+                .clear_fragment_layout_cache(clear_inline_content_size);
         }
     }
 }
@@ -329,7 +329,7 @@ pub(crate) trait NodeExt<'dom> {
     fn unset_all_pseudo_boxes(&self);
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
-    fn clear_fragment_layout_cache(&self);
+    fn clear_fragment_layout_cache(&self, clear_inline_content_size: bool);
 
     fn repair_style(&self, context: &SharedStyleContext);
     fn take_restyle_damage(&self) -> LayoutDamage;
@@ -471,9 +471,9 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         self.ensure_inner_layout_data().pseudo_boxes.clear();
     }
 
-    fn clear_fragment_layout_cache(&self) {
+    fn clear_fragment_layout_cache(&self, clear_inline_content_size: bool) {
         if let Some(inner_layout_data) = self.inner_layout_data() {
-            inner_layout_data.clear_fragment_layout_cache();
+            inner_layout_data.clear_fragment_layout_cache(clear_inline_content_size);
         }
     }
 

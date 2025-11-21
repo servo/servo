@@ -166,7 +166,9 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     if element_damage != RestyleDamage::reconstruct() &&
         damage_for_parent.contains(RestyleDamage::RELAYOUT)
     {
-        node.clear_fragment_layout_cache();
+        let clear_inline_content_size =
+            (original_element_damage | damage_from_children).contains(RestyleDamage::RELAYOUT);
+        node.clear_fragment_layout_cache(clear_inline_content_size);
     }
 
     // If the box will be preserved, update the box's style and also in any fragments
