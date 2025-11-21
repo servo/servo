@@ -317,7 +317,7 @@ impl ServiceWorkerManager {
                     self.handle_update_job(job);
                 },
                 JobType::Unregister => {
-                    // TODO: https://w3c.github.io/ServiceWorker/#unregister-algorithm
+                    self.handle_unregister_job(job);
                 },
             },
             ServiceWorkerMsg::MatchRegistration {
@@ -472,6 +472,31 @@ impl ServiceWorkerManager {
             let _ = job
                 .client
                 .send(JobResult::RejectPromise(JobError::TypeError));
+        }
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#unregister>
+    fn handle_unregister_job(&mut self, job: Job) {
+        // TODO: Step 1: If the origin of job’s scope url is not job’s client’s origin, then:
+        // Step 2: Let registration be the result of running Get Registration given job’s storage key and job’s scope url.
+        // Step 4: Remove registration map[(registration’s storage key, job’s scope url)].
+        if let Some(_registration) = self.registrations.remove(&job.scope_url) {
+            // Step 5: Invoke Resolve Job Promise with job and true.
+            let _ = job.client.send(JobResult::ResolvePromise(
+                job,
+                JobResultValue::Boolean(true),
+            ));
+            // TODO: Step 6: Invoke Try Clear Registration with registration.
+            // TODO: Step 7: Invoke Finish Job with job.
+        } else {
+            // Step 3: If registration is null, then:
+            // Step 3.1: Invoke Resolve Job Promise with job and false.
+            let _ = job.client.send(JobResult::ResolvePromise(
+                job,
+                JobResultValue::Boolean(false),
+            ));
+            // TODO: Step 3.2: Invoke Finish Job with job and abort these steps.
+            return;
         }
     }
 
