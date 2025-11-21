@@ -71,10 +71,12 @@ impl LayoutBoxBase {
 
     /// Clear cached data accumulated during fragment tree layout, either fragments and
     /// the cached inline content size, or just fragments.
-    pub(crate) fn clear_fragment_layout_cache(&self) {
+    pub(crate) fn clear_fragment_layout_cache(&self, clear_inline_content_size: bool) {
         self.fragments.borrow_mut().clear();
         *self.cached_layout_result.borrow_mut() = None;
-        *self.cached_inline_content_size.borrow_mut() = None;
+        if clear_inline_content_size {
+            *self.cached_inline_content_size.borrow_mut() = None;
+        }
     }
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
