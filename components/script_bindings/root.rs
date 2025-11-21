@@ -410,7 +410,16 @@ impl RootCollection {
             .rposition(|r| std::ptr::addr_eq(*r as *const (), object as *const ()))
         {
             Some(idx) => {
-                roots.swap_remove(idx);
+                unsafe {
+                    let len = roots.len() - 1;
+                    // Partial inlining of `Vec::swap_remove` to avoid having to read
+                    // and return the value since we don't care about it.
+                    if len != idx {
+                        let base_ptr = roots.as_mut_ptr();
+                        ptr::copy_nonoverlapping(base_ptr.add(len), base_ptr.add(idx), 1);
+                    }
+                    roots.set_len(len);
+                }
             },
             None => panic!("Can't remove a root that was never rooted!"),
         }
