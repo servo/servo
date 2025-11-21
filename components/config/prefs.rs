@@ -244,6 +244,9 @@ pub struct Preferences {
     pub network_enforce_tls_localhost: bool,
     pub network_enforce_tls_onion: bool,
     pub network_http_cache_disabled: bool,
+    /// The weight of the http memory cache
+    /// Notice that this is not equal to the number of different urls in the cache.
+    pub network_http_cache_size: u64,
     pub network_local_directory_listing_enabled: bool,
     pub network_mime_sniff: bool,
     pub session_history_max_length: i64,
@@ -425,6 +428,7 @@ impl Preferences {
             network_enforce_tls_localhost: false,
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
+            network_http_cache_size: 5000,
             network_local_directory_listing_enabled: true,
             network_mime_sniff: false,
             session_history_max_length: 20,

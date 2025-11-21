@@ -7,7 +7,6 @@
 //! A memory cache implementing the logic specified in <http://tools.ietf.org/html/rfc7234>
 //! and <http://tools.ietf.org/html/rfc7232>.
 
-use std::collections::HashMap;
 use std::ops::Bound;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -25,6 +24,7 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
+use quick_cache::Weighter;
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -55,7 +55,7 @@ impl CacheKey {
 
 /// A complete cached resource.
 #[derive(Clone)]
-struct CachedResource {
+pub(crate) struct CachedResource {
     request_headers: Arc<Mutex<HeaderMap>>,
     body: Arc<Mutex<ResponseBody>>,
     aborted: Arc<AtomicBool>,
@@ -101,18 +101,62 @@ struct CachedMetadata {
     pub status: HttpStatus,
 }
 /// Wrapper around a cached response, including information on re-validation needs
-pub struct CachedResponse {
+pub(crate) struct CachedResponse {
     /// The response constructed from the cached resource
     pub response: Response,
     /// The revalidation flag for the stored response
     pub needs_validation: bool,
 }
 
-/// A memory cache.
-#[derive(Default, MallocSizeOf)]
+type CacheEntry = std::sync::Arc<Vec<CachedResource>>;
+type QuickCache = quick_cache::sync::Cache<CacheKey, CacheEntry, VectorWeighter>;
+type QuickCachePlaceeholderGuard<'a> = quick_cache::sync::PlaceholderGuard<
+    'a,
+    CacheKey,
+    CacheEntry,
+    VectorWeighter,
+    quick_cache::DefaultHashBuilder,
+    OurLifecycle,
+>;
+
+/// Setup the weight per vector length in the HttpCache
+#[derive(Clone, Default)]
+pub(crate) struct VectorWeighter;
+
+impl Weighter<CacheKey, CacheEntry> for VectorWeighter {
+    fn weight(&self, _key: &CacheKey, val: &CacheEntry) -> u64 {
+        val.len() as u64
+    }
+}
+
+/// A simple memory cache.
+/// Elements will be evicted based on the cache heuristic. We weight elements
+/// by the number of entries per given url. We evict currently a whole url.
+/// The cache makes extensive use of `Arc::unwrap_or_clone or` and `Arc::into_inner`
+/// to modify the cached entries. This is ok because `CachedResource` are cheap to clone
 pub struct HttpCache {
     /// cached responses.
-    entries: HashMap<CacheKey, Vec<CachedResource>>,
+    entries: QuickCache,
+}
+
+impl MallocSizeOf for HttpCache {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.entries
+            .iter()
+            .map(|(_key, entry)| entry.size_of(ops))
+            .sum()
+    }
+}
+
+impl Default for HttpCache {
+    fn default() -> Self {
+        let size = pref!(network_http_cache_size)
+            .try_into()
+            .expect("http_cache_size needs to fit into u64");
+        Self {
+            entries: quick_cache::sync::Cache::with_weighter(size, size as u64, VectorWeighter),
+        }
+    }
 }
 
 /// Determine if a response is cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
@@ -509,11 +553,13 @@ fn handle_range_request(
 impl HttpCache {
     /// Constructing Responses from Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-4>
-    pub fn construct_response(
+    pub(crate) fn construct_response(
         &self,
         request: &Request,
         done_chan: &mut DoneChannel,
+        cache_result: std::sync::Arc<Vec<CachedResource>>,
     ) -> Option<CachedResponse> {
+        log::info!("Cache size/weight is currently {}", self.entries.weight());
         if pref!(network_http_cache_disabled) {
             return None;
         }
@@ -525,10 +571,8 @@ impl HttpCache {
             debug!("non-GET method, not caching");
             return None;
         }
-        let entry_key = CacheKey::new(request);
-        let resources = self
-            .entries
-            .get(&entry_key)?
+
+        let resources = cache_result
             .iter()
             .filter(|r| !r.aborted.load(Ordering::Relaxed));
         let mut candidates = vec![];
@@ -669,89 +713,103 @@ impl HttpCache {
     /// Freshening Stored Responses upon Validation.
     /// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
     pub fn refresh(
-        &mut self,
+        &self,
         request: &Request,
         response: Response,
         done_chan: &mut DoneChannel,
     ) -> Option<Response> {
         assert_eq!(response.status, StatusCode::NOT_MODIFIED);
         let entry_key = CacheKey::new(request);
-        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
-            if let Some(cached_resource) = cached_resources.iter_mut().next() {
-                let mut constructed_response = if let Some(range_spec) =
-                    request.headers.typed_get::<Range>()
-                {
-                    handle_range_request(request, &[cached_resource], &range_spec, done_chan)
-                        .map(|cached_response| cached_response.response)
-                } else {
-                    // done_chan will have been set to Some(..) by http_network_fetch.
-                    // If the body is not receiving data, set the done_chan back to None.
-                    // Otherwise, create a new dedicated channel to update the consumer.
-                    // The response constructed here will replace the 304 one from the network.
-                    let in_progress_channel = match &*cached_resource.body.lock().unwrap() {
-                        ResponseBody::Receiving(..) => Some(unbounded()),
-                        ResponseBody::Empty | ResponseBody::Done(..) => None,
-                    };
-                    match in_progress_channel {
-                        Some((done_sender, done_receiver)) => {
-                            *done_chan = Some((done_sender.clone(), done_receiver));
-                            cached_resource
-                                .awaiting_body
-                                .lock()
-                                .unwrap()
-                                .push(done_sender);
-                        },
-                        None => *done_chan = None,
-                    }
-                    // Received a response with 304 status code, in response to a request that matches a cached resource.
-                    // 1. update the headers of the cached resource.
-                    // 2. return a response, constructed from the cached resource.
-                    let resource_timing = ResourceFetchTiming::new(request.timing_type());
-                    let mut constructed_response =
-                        Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
+        let cached_resources = self
+            .entries
+            .remove(&entry_key)
+            .map(|(_key, cached_resource)| cached_resource)?;
 
-                    constructed_response.body = cached_resource.body.clone();
+        let Some(mut cached_resources) = std::sync::Arc::into_inner(cached_resources) else {
+            log::error!("Could not get cached resource arc which should always be possible");
+            return None;
+        };
 
-                    constructed_response
-                        .status
-                        .clone_from(&cached_resource.status);
-                    constructed_response.https_state = cached_resource.https_state;
-                    constructed_response.referrer = request.referrer.to_url().cloned();
-                    constructed_response.referrer_policy = request.referrer_policy;
-                    constructed_response
-                        .status
-                        .clone_from(&cached_resource.status);
-                    constructed_response
-                        .url_list
-                        .clone_from(&cached_resource.url_list);
-                    Some(constructed_response)
+        let cached_resource = cached_resources.iter_mut().next()?;
+
+        let mut constructed_response =
+            if let Some(range_spec) = request.headers.typed_get::<Range>() {
+                handle_range_request(request, &[cached_resource], &range_spec, done_chan)
+                    .map(|cached_response| cached_response.response)
+            } else {
+                // done_chan will have been set to Some(..) by http_network_fetch.
+                // If the body is not receiving data, set the done_chan back to None.
+                // Otherwise, create a new dedicated channel to update the consumer.
+                // The response constructed here will replace the 304 one from the network.
+                let in_progress_channel = match &*cached_resource.body.lock().unwrap() {
+                    ResponseBody::Receiving(..) => Some(unbounded()),
+                    ResponseBody::Empty | ResponseBody::Done(..) => None,
                 };
-                // Update cached Resource with response and constructed response.
-                if let Some(constructed_response) = constructed_response.as_mut() {
-                    cached_resource.expires = get_response_expiry(constructed_response);
-                    let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
-                    stored_headers.extend(response.headers);
-                    constructed_response.headers = stored_headers.clone();
+                match in_progress_channel {
+                    Some((done_sender, done_receiver)) => {
+                        *done_chan = Some((done_sender.clone(), done_receiver));
+                        cached_resource
+                            .awaiting_body
+                            .lock()
+                            .unwrap()
+                            .push(done_sender);
+                    },
+                    None => *done_chan = None,
                 }
+                // Received a response with 304 status code, in response to a request that matches a cached resource.
+                // 1. update the headers of the cached resource.
+                // 2. return a response, constructed from the cached resource.
+                let resource_timing = ResourceFetchTiming::new(request.timing_type());
+                let mut constructed_response =
+                    Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
 
-                return constructed_response;
-            }
+                constructed_response.body = cached_resource.body.clone();
+
+                constructed_response
+                    .status
+                    .clone_from(&cached_resource.status);
+                constructed_response.https_state = cached_resource.https_state;
+                constructed_response.referrer = request.referrer.to_url().cloned();
+                constructed_response.referrer_policy = request.referrer_policy;
+                constructed_response
+                    .status
+                    .clone_from(&cached_resource.status);
+                constructed_response
+                    .url_list
+                    .clone_from(&cached_resource.url_list);
+                Some(constructed_response)
+            };
+
+        // Update cached Resource with response and constructed response.
+        if let Some(constructed_response) = constructed_response.as_mut() {
+            cached_resource.expires = get_response_expiry(constructed_response);
+            let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
+            stored_headers.extend(response.headers);
+            constructed_response.headers = stored_headers.clone();
         }
-        None
+
+        self.entries
+            .insert(entry_key, std::sync::Arc::new(cached_resources));
+        constructed_response
     }
 
-    fn invalidate_for_url(&mut self, url: &ServoUrl) {
+    fn invalidate_for_url(&self, url: &ServoUrl) {
         let entry_key = CacheKey::from_servo_url(url);
-        if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
+        if let Some(cached_resources_arc) = self.entries.peek(&entry_key) {
+            // We cannot take ownership of the element becasue we want to keep the cache lifetime of the element the same.
+            let mut cached_resources = std::sync::Arc::unwrap_or_clone(cached_resources_arc);
             for cached_resource in cached_resources.iter_mut() {
                 cached_resource.expires = Duration::ZERO;
             }
+            let _ = self
+                .entries
+                .replace(entry_key, std::sync::Arc::new(cached_resources), true);
         }
     }
 
     /// Invalidation.
     /// <https://tools.ietf.org/html/rfc7234#section-4.4>
-    pub fn invalidate(&mut self, request: &Request, response: &Response) {
+    pub fn invalidate(&self, request: &Request, response: &Response) {
         // TODO(eijebong): Once headers support typed_get, update this to use them
         if let Some(Ok(location)) = response
             .headers
@@ -776,7 +834,7 @@ impl HttpCache {
 
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
-    pub fn store(&mut self, request: &Request, response: &Response) {
+    pub fn store(&self, request: &Request, response: &Response) {
         if pref!(network_http_cache_disabled) {
             return;
         }
@@ -826,15 +884,142 @@ impl HttpCache {
             expires: expiry,
             last_validated: Instant::now(),
         };
-        let entry = self.entries.entry(entry_key).or_default();
-        entry.push(entry_resource);
+
+        let new_vector = if let Some((_key, vector_arc)) = self.entries.remove(&entry_key) {
+            // this should be the only clone of this
+            let mut vector = std::sync::Arc::unwrap_or_clone(vector_arc);
+            vector.push(entry_resource);
+            std::sync::Arc::new(vector)
+        } else {
+            std::sync::Arc::new(vec![entry_resource])
+        };
+        self.entries.insert(entry_key, new_vector);
         // TODO: Complete incomplete responses, including 206 response, when stored here.
         // See A cache MAY complete a stored incomplete response by making a subsequent range request
         // https://tools.ietf.org/html/rfc7234#section-3.1
     }
 
     /// Clear the contents of this cache.
-    pub fn clear(&mut self) {
+    pub fn clear(&self) {
         self.entries.clear();
     }
+
+    /// If the value exist in the cache, return it. If the value does not exist, return a guard you can use to insert values in the cache.
+    /// If the guard is alive, all other accesses to this function will block.
+    pub(crate) async fn get_or_guard(&self, entry_key: CacheKey) -> CachedResourcesOrGuard<'_> {
+        let result = self.entries.get_value_or_guard_async(&entry_key).await;
+        match result {
+            Ok(val) => CachedResourcesOrGuard::Value(val),
+            Err(guard) => CachedResourcesOrGuard::Guard(guard),
+        }
+    }
+}
+
+/// Returns the entry in the cache or a guard.
+/// The guard will block other queries to the cache entry.
+pub(crate) enum CachedResourcesOrGuard<'a> {
+    Value(CacheEntry),
+    Guard(QuickCachePlaceeholderGuard<'a>),
+}
+
+/// A guard on the cache. Might not be blocking.
+pub(crate) struct CacheGuard<'a>(PlaceHolder<'a>);
+
+impl<'a> CacheGuard<'a> {
+    pub(crate) fn new_append_guard(key: CacheKey) -> Self {
+        CacheGuard(PlaceHolder::Append(key))
+    }
+
+    pub(crate) fn new_guard(guard: QuickCachePlaceeholderGuard<'a>) -> Self {
+        CacheGuard(PlaceHolder::Guard(guard))
+    }
+
+    /// Insert into the cache according to http spec
+    pub(crate) fn insert(self, request: &Request, response: &Response, cache: &HttpCache) {
+        if pref!(network_http_cache_disabled) {
+            return;
+        }
+
+        if request.method != Method::GET {
+            // Only Get requests are cached.
+            return;
+        }
+        if request.headers.contains_key(header::AUTHORIZATION) {
+            // https://tools.ietf.org/html/rfc7234#section-3.1
+            // A shared cache MUST NOT use a cached response
+            // to a request with an Authorization header field
+            //
+            // TODO: unless a cache directive that allows such
+            // responses to be stored is present in the response.
+            return;
+        };
+        let metadata = match response.metadata() {
+            Ok(FetchMetadata::Filtered {
+                filtered: _,
+                unsafe_: metadata,
+            }) |
+            Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
+            _ => return,
+        };
+        if !response_is_cacheable(&metadata) {
+            return;
+        }
+        let expiry = get_response_expiry(response);
+        let cacheable_metadata = CachedMetadata {
+            headers: Arc::new(Mutex::new(response.headers.clone())),
+            final_url: metadata.final_url,
+            content_type: metadata.content_type.map(|v| v.0.to_string()),
+            charset: metadata.charset,
+            status: metadata.status,
+        };
+        let entry_resource = CachedResource {
+            request_headers: Arc::new(Mutex::new(request.headers.clone())),
+            body: response.body.clone(),
+            aborted: response.aborted.clone(),
+            awaiting_body: Arc::new(Mutex::new(vec![])),
+            metadata: cacheable_metadata,
+            location_url: response.location_url.clone(),
+            https_state: response.https_state,
+            status: response.status.clone(),
+            url_list: response.url_list.clone(),
+            expires: expiry,
+            last_validated: Instant::now(),
+        };
+
+        match self.0 {
+            PlaceHolder::Append(cache_key) => {
+                let mut value =
+                    std::sync::Arc::unwrap_or_clone(cache.entries.remove(&cache_key).unwrap().1);
+                value.push(entry_resource);
+                cache.entries.insert(cache_key, std::sync::Arc::new(value));
+            },
+            PlaceHolder::Guard(placeholder_guard) => {
+                if placeholder_guard
+                    .insert(std::sync::Arc::new(vec![entry_resource]))
+                    .is_err()
+                {
+                    log::error!("Could not insert resource into http-cache");
+                }
+            },
+        };
+    }
+}
+
+type OurLifecycle = quick_cache::sync::DefaultLifecycle<CacheKey, CacheEntry>;
+
+/// A placeholder for our cache. Does not need to block other cache access but might.
+pub(crate) enum PlaceHolder<'a> {
+    /// Append the entry to the cache.
+    Append(CacheKey),
+    /// Block other queries to the same entry.
+    Guard(
+        quick_cache::sync::PlaceholderGuard<
+            'a,
+            CacheKey,
+            CacheEntry,
+            VectorWeighter,
+            quick_cache::DefaultHashBuilder,
+            OurLifecycle,
+        >,
+    ),
 }
