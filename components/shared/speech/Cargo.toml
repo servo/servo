@@ -1,0 +1,16 @@
+[package]
+name = "speech_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "speech_traits"
+path = "lib.rs"
+
+[dependencies]
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = "0.1"
