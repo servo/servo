@@ -406,27 +406,27 @@ impl Minibrowser {
                         },
                     );
                 });
-            };
 
-            // A simple Tab header strip
-            TopBottomPanel::top("tabs").show(ctx, |ui| {
-                ui.allocate_ui_with_layout(
-                    ui.available_size(),
-                    egui::Layout::left_to_right(egui::Align::Center),
-                    |ui| {
-                        for (id, webview) in state.webviews().into_iter() {
-                            let favicon = favicon_textures
-                                .get(&id)
-                                .map(|(_, favicon)| favicon)
-                                .copied();
-                            Self::browser_tab(ui, webview, event_queue, favicon);
-                        }
-                        if ui.add(Minibrowser::toolbar_button("+")).clicked() {
-                            event_queue.push(MinibrowserEvent::NewWebView);
-                        }
-                    },
-                );
-            });
+                // A simple Tab header strip
+                TopBottomPanel::top("tabs").show(ctx, |ui| {
+                    ui.allocate_ui_with_layout(
+                        ui.available_size(),
+                        egui::Layout::left_to_right(egui::Align::Center),
+                        |ui| {
+                            for (id, webview) in state.webviews().into_iter() {
+                                let favicon = favicon_textures
+                                    .get(&id)
+                                    .map(|(_, favicon)| favicon)
+                                    .copied();
+                                Self::browser_tab(ui, webview, event_queue, favicon);
+                            }
+                            if ui.add(Minibrowser::toolbar_button("+")).clicked() {
+                                event_queue.push(MinibrowserEvent::NewWebView);
+                            }
+                        },
+                    );
+                });
+            };
 
             // The toolbar height is where the Context’s available rect starts.
             // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
