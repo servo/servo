@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use base::id::WebViewId;
@@ -23,6 +23,7 @@ use net_traits::{
     FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
     cancel_async_fetch,
 };
+use parking_lot::Mutex;
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
 
@@ -291,7 +292,7 @@ fn queue_deferred_fetch(
     global.schedule_timer(TimerEventRequest {
         callback: Box::new(move || {
             // Step 6.2. Process deferredRecord.
-            deferred_record_clone.lock().unwrap().process();
+            deferred_record_clone.lock().process();
 
             // Last step of https://fetch.spec.whatwg.org/#process-a-deferred-fetch
             //
@@ -303,7 +304,7 @@ fn queue_deferred_fetch(
                 .task_manager()
                 .deferred_fetch_task_source()
                 .queue(task!(notify_deferred_record: move || {
-                    deferred_record_clone.lock().unwrap().activate();
+                    deferred_record_clone.lock().activate();
                 }));
         }),
         // Step 6.1. The user agent should wait until any of the following conditions is met:

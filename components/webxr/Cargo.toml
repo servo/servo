@@ -30,6 +30,7 @@ euclid = { workspace = true }
 glow = { workspace = true }
 log = { workspace = true }
 openxr = { workspace = true, optional = true }
+parking_lot = { workspace = true }
 raw-window-handle = { workspace = true }
 serde = { workspace = true, optional = true }
 surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }

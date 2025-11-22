@@ -5,7 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
@@ -28,6 +28,7 @@ use net_traits::request::{Destination, RequestId};
 use net_traits::{
     CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
 };
+use parking_lot::Mutex;
 use pixels::RasterImage;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
@@ -247,7 +248,6 @@ impl MediaFrameRenderer {
                         GLPlayerMsgForward::Lock(sender) => {
                             if let Some(holder) = video_renderer
                                 .lock()
-                                .unwrap()
                                 .current_frame_holder
                                 .as_mut() {
                                     holder.lock();
@@ -257,7 +257,6 @@ impl MediaFrameRenderer {
                         GLPlayerMsgForward::Unlock() => {
                             if let Some(holder) = video_renderer
                                 .lock()
-                                .unwrap()
                                 .current_frame_holder
                                 .as_mut() { holder.unlock() }
                         },
@@ -682,10 +681,10 @@ impl HTMLMediaElement {
 
     fn play_media(&self) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_rate(self.playback_rate.get()) {
+            if let Err(err) = player.lock().set_rate(self.playback_rate.get()) {
                 warn!("Could not set the playback rate {:?}", err);
             }
-            if let Err(err) = player.lock().unwrap().play() {
+            if let Err(err) = player.lock().play() {
                 warn!("Could not play media {:?}", err);
             }
         }
@@ -839,7 +838,7 @@ impl HTMLMediaElement {
                         this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
 
                         if let Some(ref player) = *this.player.borrow() {
-                            if let Err(e) = player.lock().unwrap().pause() {
+                            if let Err(e) = player.lock().pause() {
                                 error!("Could not pause player {:?}", e);
                             }
                         }
@@ -1545,7 +1544,6 @@ impl HTMLMediaElement {
                                     .as_ref()
                                     .unwrap()
                                     .lock()
-                                    .unwrap()
                                     .set_stream(&track.id(), pos == tracks.len() - 1)
                                     .is_err()
                                 {
@@ -1597,7 +1595,7 @@ impl HTMLMediaElement {
                     this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
                     if let Some(ref player) = *this.player.borrow() {
-                        if let Err(err) = player.lock().unwrap().stop() {
+                        if let Err(err) = player.lock().stop() {
                             error!("Could not stop player {:?}", err);
                         }
                     }
@@ -2003,7 +2001,7 @@ impl HTMLMediaElement {
         self.current_playback_position.set(time);
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.lock().unwrap().seek(time) {
+            if let Err(e) = player.lock().seek(time) {
                 error!("Seek error {:?}", e);
             }
         }
@@ -2043,7 +2041,7 @@ impl HTMLMediaElement {
             self.queue_media_element_task_to_fire_event(atom!("postershown"));
         }
 
-        self.video_renderer.lock().unwrap().set_poster_frame(image);
+        self.video_renderer.lock().set_poster_frame(image);
 
         self.upcast::<Node>().dirty(NodeDamage::Other);
     }
@@ -2085,7 +2083,7 @@ impl HTMLMediaElement {
             Box::new(window.get_player_context()),
         );
         let player_id = {
-            let player_guard = player.lock().unwrap();
+            let player_guard = player.lock();
 
             if let Err(e) = player_guard.set_mute(self.muted.get()) {
                 log::warn!("Could not set mute state: {:?}", e);
@@ -2123,7 +2121,6 @@ impl HTMLMediaElement {
 
         self.video_renderer
             .lock()
-            .unwrap()
             .setup(player_id, task_source, weak_video_renderer);
 
         Ok(())
@@ -2135,19 +2132,19 @@ impl HTMLMediaElement {
         }
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().stop() {
+            if let Err(err) = player.lock().stop() {
                 error!("Could not stop player {:?}", err);
             }
         }
 
         *self.player.borrow_mut() = None;
-        self.video_renderer.lock().unwrap().reset();
+        self.video_renderer.lock().reset();
         self.handle_resize(None, None);
     }
 
     pub(crate) fn set_audio_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_audio_track(idx as i32, enabled) {
+            if let Err(err) = player.lock().set_audio_track(idx as i32, enabled) {
                 warn!("Could not set audio track {:#?}", err);
             }
         }
@@ -2155,7 +2152,7 @@ impl HTMLMediaElement {
 
     pub(crate) fn set_video_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_video_track(idx as i32, enabled) {
+            if let Err(err) = player.lock().set_video_track(idx as i32, enabled) {
                 warn!("Could not set video track {:#?}", err);
             }
         }
@@ -2537,7 +2534,7 @@ impl HTMLMediaElement {
 
     fn playback_video_frame_updated(&self) {
         // Check if the frame was resized
-        if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
+        if let Some(frame) = self.video_renderer.lock().current_frame {
             self.handle_resize(Some(frame.width as u32), Some(frame.height as u32));
         }
     }
@@ -2660,7 +2657,7 @@ impl HTMLMediaElement {
             .player
             .borrow()
             .as_ref()
-            .is_none_or(|player| player.lock().unwrap().get_id() != player_id)
+            .is_none_or(|player| player.lock().get_id() != player_id)
         {
             return;
         }
@@ -2687,7 +2684,7 @@ impl HTMLMediaElement {
     fn seekable(&self) -> TimeRangesContainer {
         let mut seekable = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
-            if let Ok(ranges) = player.lock().unwrap().seekable() {
+            if let Ok(ranges) = player.lock().seekable() {
                 for range in ranges {
                     let _ = seekable.add(range.start, range.end);
                 }
@@ -2778,7 +2775,6 @@ impl HTMLMediaElement {
     pub(crate) fn get_current_frame(&self) -> Option<VideoFrame> {
         self.video_renderer
             .lock()
-            .unwrap()
             .current_frame_holder
             .as_ref()
             .map(|holder| holder.get_frame())
@@ -2788,7 +2784,7 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#the-video-element:the-video-element-7>
     pub(crate) fn get_current_frame_to_present(&self) -> Option<MediaFrame> {
         let (current_frame, poster_frame) = {
-            let renderer = self.video_renderer.lock().unwrap();
+            let renderer = self.video_renderer.lock();
             (renderer.current_frame, renderer.poster_frame)
         };
 
@@ -2821,7 +2817,7 @@ impl HTMLMediaElement {
 
         let had_player = {
             if let Some(ref player) = *self.player.borrow() {
-                if let Err(err) = player.lock().unwrap().stop() {
+                if let Err(err) = player.lock().stop() {
                     error!("Could not stop player {:?}", err);
                 }
                 true
@@ -2850,7 +2846,7 @@ impl HTMLMediaElement {
 
     pub(crate) fn reset(&self) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().stop() {
+            if let Err(err) = player.lock().stop() {
                 error!("Could not stop player {:?}", err);
             }
         }
@@ -2939,7 +2935,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.muted.set(value);
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_mute(value) {
+            if let Err(err) = player.lock().set_mute(value) {
                 warn!("Could not set mute state {:?}", err);
             }
         }
@@ -3112,7 +3108,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         if self.is_potentially_playing() {
             if let Some(ref player) = *self.player.borrow() {
-                if let Err(err) = player.lock().unwrap().set_rate(*value) {
+                if let Err(err) = player.lock().set_rate(*value) {
                     warn!("Could not set the playback rate {:?}", err);
                 }
             }
@@ -3194,7 +3190,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     fn Buffered(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
-            if let Ok(ranges) = player.lock().unwrap().buffered() {
+            if let Ok(ranges) = player.lock().buffered() {
                 for range in ranges {
                     let _ = buffered.add(range.start, range.end);
                 }
@@ -3273,7 +3269,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.volume.set(*value);
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_volume(*value) {
+            if let Err(err) = player.lock().set_volume(*value) {
                 warn!("Could not set the volume {:?}", err);
             }
         }
@@ -3506,13 +3502,13 @@ impl BufferedDataSource {
         while let Some(buffer) = self.buffers.pop_front() {
             match buffer {
                 DataBuffer::Payload(payload) => {
-                    if let Err(e) = player.lock().unwrap().push_data(payload) {
+                    if let Err(e) = player.lock().push_data(payload) {
                         warn!("Could not push input data to player {:?}", e);
                         return Err(e);
                     }
                 },
                 DataBuffer::EndOfStream => {
-                    if let Err(e) = player.lock().unwrap().end_of_stream() {
+                    if let Err(e) = player.lock().end_of_stream() {
                         warn!("Could not signal EOS to player {:?}", e);
                         return Err(e);
                     }
@@ -3706,7 +3702,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 .as_ref()
                 .unwrap()
                 .lock()
-                .unwrap()
                 .set_input_size(expected_content_length)
             {
                 warn!("Could not set player input size {:?}", e);
@@ -3793,7 +3788,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                         .as_ref()
                         .unwrap()
                         .lock()
-                        .unwrap()
                         .set_input_size(self.fetched_content_length)
                     {
                         warn!("Could not set player input size {:?}", e);

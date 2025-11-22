@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use log::debug;
+use parking_lot::Mutex;
 
 /// The state of the thread-pool used by CoreResource.
 struct ThreadPoolState {
@@ -78,7 +79,7 @@ impl ThreadPool {
         OP: FnOnce() + Send + 'static,
     {
         {
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.state.lock();
             if state.is_active() {
                 state.increment_active();
             } else {
@@ -91,7 +92,7 @@ impl ThreadPool {
 
         self.pool.spawn(move || {
             {
-                let mut state = state.lock().unwrap();
+                let mut state = state.lock();
                 if !state.is_active() {
                     // Decrement number of active workers and return,
                     // without doing any work.
@@ -102,7 +103,7 @@ impl ThreadPool {
             work();
             {
                 // Decrement number of active workers.
-                let mut state = state.lock().unwrap();
+                let mut state = state.lock();
                 state.decrement_active();
             }
         });
@@ -113,14 +114,14 @@ impl ThreadPool {
     /// or a timeout of roughly one second has been reached.
     pub fn exit(&self) {
         {
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.state.lock();
             state.switch_to_inactive();
         }
         let mut rounds = 0;
         loop {
             rounds += 1;
             {
-                let state = self.state.lock().unwrap();
+                let state = self.state.lock();
                 let still_active = state.active_workers();
 
                 if still_active == 0 || rounds == 10 {

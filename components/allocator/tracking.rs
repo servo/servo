@@ -10,8 +10,9 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::os::raw::c_void;
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
 
+use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 
 /// The maximum number of allocations that we'll keep track of. Once the limit
@@ -76,7 +77,7 @@ impl<A> AccountingAlloc<A> {
         if old {
             return;
         }
-        let mut sites = ALLOCATION_SITES.lock().unwrap();
+        let mut sites = ALLOCATION_SITES.lock();
         if let Entry::Occupied(e) = sites.entry(ptr as usize) {
             e.remove();
         }
@@ -110,7 +111,7 @@ impl<A> AccountingAlloc<A> {
             ptr,
             noted: false,
         };
-        let mut sites = ALLOCATION_SITES.lock().unwrap();
+        let mut sites = ALLOCATION_SITES.lock();
 
         if sites.len() < MAX_TRACKED_ALLOCATIONS {
             sites.insert(ptr as usize, site);
@@ -129,7 +130,6 @@ impl<A> AccountingAlloc<A> {
     pub(crate) fn enclosing_size(&self, ptr: *const c_void) -> (*const c_void, usize) {
         ALLOCATION_SITES
             .lock()
-            .unwrap()
             .iter()
             .find(|(_, site)| site.contains(ptr.cast_mut().cast()))
             .map_or((std::ptr::null_mut(), 0), |(_, site)| {
@@ -144,7 +144,7 @@ impl<A> AccountingAlloc<A> {
             return;
         }
         IN_ALLOCATION.with(|status| status.set(true));
-        if let Some(site) = ALLOCATION_SITES.lock().unwrap().get_mut(&(ptr as usize)) {
+        if let Some(site) = ALLOCATION_SITES.lock().get_mut(&(ptr as usize)) {
             site.noted = true;
         }
         IN_ALLOCATION.with(|status| status.set(false));
@@ -155,7 +155,7 @@ impl<A> AccountingAlloc<A> {
         // the existing allocation data.
         IN_ALLOCATION.with(|status| status.set(true));
         {
-            let sites = ALLOCATION_SITES.lock().unwrap();
+            let sites = ALLOCATION_SITES.lock();
             let default = "???";
             for site in sites
                 .values()
