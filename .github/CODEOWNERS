@@ -18,7 +18,7 @@
 /components/fonts @nicoburns
 /components/shared/fonts @nicoburns
 
-# Reviewers for Minibrowser related code
+# Reviewers for servoshell related code
 /ports/servoshell/desktop @atbrakhi
 
 # Reviewers for 2D canvas related code

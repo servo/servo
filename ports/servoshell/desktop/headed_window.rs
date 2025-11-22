@@ -55,8 +55,8 @@ use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::app::PumpResult;
 use crate::desktop::events_loop::{AppEvent, EventLoopProxy};
+use crate::desktop::gui::{Gui, GuiCommand};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
-use crate::desktop::minibrowser::{Minibrowser, MinibrowserEvent};
 use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
 use crate::parser::location_bar_input_to_url;
 use crate::prefs::ServoShellPreferences;
@@ -67,7 +67,7 @@ pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 pub struct Window {
     /// The egui interface that is responsible for showing the user interface elements of
     /// this headed `Window`.
-    minibrowser: RefCell<Minibrowser>,
+    gui: RefCell<Gui>,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
@@ -184,7 +184,7 @@ impl Window {
             .expect("Could not make window RenderingContext current");
 
         let rendering_context = Rc::new(window_rendering_context.offscreen_context(inner_size));
-        let minibrowser = RefCell::new(Minibrowser::new(
+        let gui = RefCell::new(Gui::new(
             &winit_window,
             event_loop,
             event_loop_proxy,
@@ -195,7 +195,7 @@ impl Window {
 
         debug!("Created window {:?}", winit_window.id());
         Window {
-            minibrowser,
+            gui,
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
             fullscreen: Cell::new(false),
@@ -452,11 +452,11 @@ impl Window {
 
     /// Takes any events generated during `egui` updates and performs their actions.
     fn handle_servoshell_ui_events(&self, state: Rc<RunningAppState>) {
-        let mut minibrowser = self.minibrowser.borrow_mut();
-        for event in minibrowser.take_events() {
+        let mut gui = self.gui.borrow_mut();
+        for event in gui.take_commands() {
             match event {
-                MinibrowserEvent::Go(location) => {
-                    minibrowser.update_location_dirty(false);
+                GuiCommand::Go(location) => {
+                    gui.update_location_dirty(false);
                     let Some(url) = location_bar_input_to_url(
                         &location.clone(),
                         &state.servoshell_preferences().searchpage,
@@ -468,35 +468,35 @@ impl Window {
                         focused_webview.load(url.into_url());
                     }
                 },
-                MinibrowserEvent::Back => {
+                GuiCommand::Back => {
                     if let Some(focused_webview) = state.focused_webview() {
                         focused_webview.go_back(1);
                     }
                 },
-                MinibrowserEvent::Forward => {
+                GuiCommand::Forward => {
                     if let Some(focused_webview) = state.focused_webview() {
                         focused_webview.go_forward(1);
                     }
                 },
-                MinibrowserEvent::Reload => {
-                    minibrowser.update_location_dirty(false);
+                GuiCommand::Reload => {
+                    gui.update_location_dirty(false);
                     if let Some(focused_webview) = state.focused_webview() {
                         focused_webview.reload();
                     }
                 },
-                MinibrowserEvent::ReloadAll => {
-                    minibrowser.update_location_dirty(false);
+                GuiCommand::ReloadAll => {
+                    gui.update_location_dirty(false);
                     for (_, webview) in state.webviews() {
                         webview.reload();
                     }
                 },
-                MinibrowserEvent::NewWebView => {
-                    minibrowser.update_location_dirty(false);
+                GuiCommand::NewWebView => {
+                    gui.update_location_dirty(false);
                     let url = Url::parse("servo:newtab").expect("Should always be able to parse");
                     state.create_and_focus_toplevel_webview(url);
                 },
-                MinibrowserEvent::CloseWebView(id) => {
-                    minibrowser.update_location_dirty(false);
+                GuiCommand::CloseWebView(id) => {
+                    gui.update_location_dirty(false);
                     state.close_webview(id);
                 },
             }
@@ -558,9 +558,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn rebuild_user_interface(&self, state: &RunningAppState) {
-        self.minibrowser
-            .borrow_mut()
-            .update(&self.winit_window, state);
+        self.gui.borrow_mut().update(&self.winit_window, state);
     }
 
     fn update_user_interface_state(&self, state: &RunningAppState) -> bool {
@@ -579,16 +577,16 @@ impl WindowPortsMethods for Window {
             *self.last_title.borrow_mut() = title;
         }
 
-        self.minibrowser.borrow_mut().update_webview_data(state)
+        self.gui.borrow_mut().update_webview_data(state)
     }
 
     fn handle_winit_window_event(&self, state: Rc<RunningAppState>, event: WindowEvent) -> bool {
         if event == WindowEvent::RedrawRequested {
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
-            let mut minibrowser = self.minibrowser.borrow_mut();
-            minibrowser.update(&self.winit_window, &state);
-            minibrowser.paint(&self.winit_window);
+            let mut gui = self.gui.borrow_mut();
+            gui.update(&self.winit_window, &state);
+            gui.paint(&self.winit_window);
         }
 
         // Handle the event
@@ -606,31 +604,27 @@ impl WindowPortsMethods for Window {
                     scale_factor, effective_egui_zoom_factor
                 );
 
-                self.minibrowser
+                self.gui
                     .borrow()
                     .set_zoom_factor(effective_egui_zoom_factor);
 
                 state.hidpi_scale_factor_changed();
 
                 // Request a winit redraw event, so we can recomposite, update and paint
-                // the minibrowser, and present the new frame.
+                // the GUI, and present the new frame.
                 self.winit_window.request_redraw();
             },
             ref event => {
-                let response = self.minibrowser.borrow_mut().on_window_event(
-                    &self.winit_window,
-                    &state,
-                    event,
-                );
+                let response =
+                    self.gui
+                        .borrow_mut()
+                        .on_window_event(&self.winit_window, &state, event);
 
-                // Update minibrowser if there's resize event to sync up with window.
                 if let WindowEvent::Resized(_) = event {
                     self.rebuild_user_interface(&state);
                 }
 
                 if response.repaint && *event != WindowEvent::RedrawRequested {
-                    // Request a winit redraw event, so we can recomposite, update and paint
-                    // the minibrowser, and present the new frame.
                     self.winit_window.request_redraw();
                 }
 
@@ -766,7 +760,7 @@ impl WindowPortsMethods for Window {
     fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) -> bool {
         if let AppEvent::Accessibility(ref event) = app_event {
             if self
-                .minibrowser
+                .gui
                 .borrow_mut()
                 .handle_accesskit_event(&event.window_event)
             {
@@ -775,7 +769,7 @@ impl WindowPortsMethods for Window {
             return true;
         }
 
-        // Consume and handle any events from the Minibrowser.
+        // Consume and handle any events from user interface interaction.
         self.handle_servoshell_ui_events(state.clone());
 
         self.pump_event_loop(&state)
@@ -931,7 +925,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
-        self.minibrowser.borrow().toolbar_height()
+        self.gui.borrow().toolbar_height()
     }
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {

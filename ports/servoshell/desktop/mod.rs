@@ -12,10 +12,10 @@ mod dialog;
 pub(crate) mod events_loop;
 mod gamepad;
 pub mod geometry;
+mod gui;
 mod headed_window;
 mod headless_window;
 mod keyutils;
-mod minibrowser;
 mod protocols;
 mod tracing;
 #[cfg(feature = "webxr")]

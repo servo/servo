@@ -31,10 +31,12 @@ use super::geometry::winit_position_to_euclid_point;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::running_app_state::RunningAppStateTrait;
 
-pub struct Minibrowser {
+/// The user interface of a headed servoshell. Currently this is implemented via
+/// egui.
+pub struct Gui {
     rendering_context: Rc<OffscreenRenderingContext>,
     context: EguiGlow,
-    event_queue: Vec<MinibrowserEvent>,
+    event_queue: Vec<GuiCommand>,
     toolbar_height: Length<f32, DeviceIndependentPixel>,
 
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
@@ -64,7 +66,8 @@ pub struct Minibrowser {
     experimental_prefs_enabled: bool,
 }
 
-pub enum MinibrowserEvent {
+/// A command received via the user interacting with the user interface.
+pub enum GuiCommand {
     /// Go button clicked.
     Go(String),
     Back,
@@ -84,13 +87,13 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
-impl Drop for Minibrowser {
+impl Drop for Gui {
     fn drop(&mut self) {
         self.context.destroy();
     }
 }
 
-impl Minibrowser {
+impl Gui {
     pub fn new(
         winit_window: &Window,
         event_loop: &ActiveEventLoop,
@@ -140,7 +143,7 @@ impl Minibrowser {
         }
     }
 
-    pub(crate) fn take_events(&mut self) -> Vec<MinibrowserEvent> {
+    pub(crate) fn take_commands(&mut self) -> Vec<GuiCommand> {
         std::mem::take(&mut self.event_queue)
     }
 
@@ -172,7 +175,7 @@ impl Minibrowser {
                 button: MouseButton::Forward,
                 ..
             } => {
-                self.event_queue.push(MinibrowserEvent::Forward);
+                self.event_queue.push(GuiCommand::Forward);
                 true
             },
             WindowEvent::MouseInput {
@@ -180,7 +183,7 @@ impl Minibrowser {
                 button: MouseButton::Back,
                 ..
             } => {
-                self.event_queue.push(MinibrowserEvent::Back);
+                self.event_queue.push(GuiCommand::Back);
                 true
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
@@ -209,13 +212,13 @@ impl Minibrowser {
             .min_size(Vec2 { x: 20.0, y: 20.0 })
     }
 
-    /// Draws a browser tab, checking for clicks and queues appropriate `MinibrowserEvent`s.
+    /// Draws a browser tab, checking for clicks and queues appropriate [`GuiCommand`]s.
     /// Using a custom widget here would've been nice, but it doesn't seem as though egui
     /// supports that, so we arrange multiple Widgets in a way that they look connected.
     fn browser_tab(
         ui: &mut egui::Ui,
         webview: WebView,
-        event_queue: &mut Vec<MinibrowserEvent>,
+        event_queue: &mut Vec<GuiCommand>,
         favicon_texture: Option<egui::load::SizedTexture>,
     ) {
         let label = match (webview.page_title(), webview.url()) {
@@ -273,7 +276,7 @@ impl Minibrowser {
                 .content_ui
                 .add(egui::Button::new("X").fill(egui::Color32::TRANSPARENT));
             if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
-                event_queue.push(MinibrowserEvent::CloseWebView(webview.id()))
+                event_queue.push(GuiCommand::CloseWebView(webview.id()))
             } else if !selected && tab.clicked() {
                 webview.focus();
             }
@@ -317,28 +320,28 @@ impl Minibrowser {
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
                             if ui
-                                .add_enabled(self.can_go_back, Minibrowser::toolbar_button("⏴"))
+                                .add_enabled(self.can_go_back, Gui::toolbar_button("⏴"))
                                 .clicked()
                             {
-                                event_queue.push(MinibrowserEvent::Back);
+                                event_queue.push(GuiCommand::Back);
                             }
 
                             if ui
-                                .add_enabled(self.can_go_forward, Minibrowser::toolbar_button("⏵"))
+                                .add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"))
                                 .clicked()
                             {
-                                event_queue.push(MinibrowserEvent::Forward);
+                                event_queue.push(GuiCommand::Forward);
                             }
 
                             match self.load_status {
                                 LoadStatus::Started | LoadStatus::HeadParsed => {
-                                    if ui.add(Minibrowser::toolbar_button("X")).clicked() {
+                                    if ui.add(Gui::toolbar_button("X")).clicked() {
                                         warn!("Do not support stop yet.");
                                     }
                                 },
                                 LoadStatus::Complete => {
-                                    if ui.add(Minibrowser::toolbar_button("↻")).clicked() {
-                                        event_queue.push(MinibrowserEvent::Reload);
+                                    if ui.add(Gui::toolbar_button("↻")).clicked() {
+                                        event_queue.push(GuiCommand::Reload);
                                     }
                                 },
                             }
@@ -358,7 +361,7 @@ impl Minibrowser {
                                                 .servo()
                                                 .set_preference(pref, PrefValue::Bool(enable));
                                         }
-                                        event_queue.push(MinibrowserEvent::ReloadAll);
+                                        event_queue.push(GuiCommand::ReloadAll);
                                     }
 
                                     let location_id = egui::Id::new("location_input");
@@ -399,7 +402,7 @@ impl Minibrowser {
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
-                                        event_queue.push(MinibrowserEvent::Go(location.clone()));
+                                        event_queue.push(GuiCommand::Go(location.clone()));
                                     }
                                 },
                             );
@@ -420,8 +423,8 @@ impl Minibrowser {
                                     .copied();
                                 Self::browser_tab(ui, webview, event_queue, favicon);
                             }
-                            if ui.add(Minibrowser::toolbar_button("+")).clicked() {
-                                event_queue.push(MinibrowserEvent::NewWebView);
+                            if ui.add(Gui::toolbar_button("+")).clicked() {
+                                event_queue.push(GuiCommand::NewWebView);
                             }
                         },
                     );
@@ -481,7 +484,7 @@ impl Minibrowser {
         });
     }
 
-    /// Paint the minibrowser, as of the last update.
+    /// Paint the GUI, as of the last update.
     pub fn paint(&mut self, window: &Window) {
         self.rendering_context
             .parent_context()
