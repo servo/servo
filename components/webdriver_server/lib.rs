@@ -419,6 +419,10 @@ enum VerifyBrowsingContextIsOpen {
     No,
 }
 
+/// The boolean indicates whether implicit_wait can early return before timeout with current result.
+type ImplicitWaitCallbackResult<T> = Result<(bool, T), (bool, WebDriverError)>;
+const CAN_EARLY_RETURN: bool = true;
+
 impl Handler {
     fn new(
         embedder_sender: Sender<WebDriverCommandMsg>,
@@ -1341,11 +1345,9 @@ impl Handler {
         unwrap_first_element_response(res)
     }
 
-    /// `callback` bound: when it returns Ok, the first value indicates whether
-    /// implicit_wait can early return.
     fn implicit_wait<T>(
         &self,
-        callback: impl Fn() -> Result<(bool, T), WebDriverError>,
+        callback: impl Fn() -> ImplicitWaitCallbackResult<T>,
     ) -> Result<T, WebDriverError> {
         let now = Instant::now();
         let (implicit_wait, sleep_interval) = {
@@ -1363,7 +1365,11 @@ impl Handler {
                         return Ok(value);
                     }
                 },
-                Err(error) => return Err(error),
+                Err((can_early_return, error)) => {
+                    if can_early_return || now.elapsed() >= implicit_wait {
+                        return Err(error);
+                    }
+                },
             }
             sleep(sleep_interval);
         }
@@ -1387,38 +1393,35 @@ impl Handler {
 
         self.implicit_wait(|| {
             let (sender, receiver) = ipc::channel().unwrap();
-            match parameters.using {
+            let cmd = match parameters.using {
                 LocatorStrategy::CSSSelector => {
-                    let cmd = WebDriverScriptCommand::FindElementsCSSSelector(
+                    WebDriverScriptCommand::FindElementsCSSSelector(
                         parameters.value.clone(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                    let cmd = WebDriverScriptCommand::FindElementsLinkText(
+                    WebDriverScriptCommand::FindElementsLinkText(
                         parameters.value.clone(),
                         parameters.using == LocatorStrategy::PartialLinkText,
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::TagName => {
-                    let cmd = WebDriverScriptCommand::FindElementsTagName(
+                    WebDriverScriptCommand::FindElementsTagName(
                         parameters.value.clone(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::XPath => {
-                    let cmd = WebDriverScriptCommand::FindElementsXpathSelector(
+                    WebDriverScriptCommand::FindElementsXpathSelector(
                         parameters.value.clone(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
-            }
-            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value))
+            };
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No).map_err(|error|(CAN_EARLY_RETURN, error))?;
+            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value)).map_err(|error|(CAN_EARLY_RETURN, error))
         })
         .and_then(|response| {
             let resp_value: Vec<WebElement> = response.into_iter().map(WebElement).collect();
@@ -1461,42 +1464,39 @@ impl Handler {
         self.implicit_wait(|| {
             let (sender, receiver) = ipc::channel().unwrap();
 
-            match parameters.using {
+            let cmd = match parameters.using {
                 LocatorStrategy::CSSSelector => {
-                    let cmd = WebDriverScriptCommand::FindElementElementsCSSSelector(
+                    WebDriverScriptCommand::FindElementElementsCSSSelector(
                         parameters.value.clone(),
                         element.to_string(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                    let cmd = WebDriverScriptCommand::FindElementElementsLinkText(
+                     WebDriverScriptCommand::FindElementElementsLinkText(
                         parameters.value.clone(),
                         element.to_string(),
                         parameters.using == LocatorStrategy::PartialLinkText,
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::TagName => {
-                    let cmd = WebDriverScriptCommand::FindElementElementsTagName(
+                    WebDriverScriptCommand::FindElementElementsTagName(
                         parameters.value.clone(),
                         element.to_string(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::XPath => {
-                    let cmd = WebDriverScriptCommand::FindElementElementsXPathSelector(
+                    WebDriverScriptCommand::FindElementElementsXPathSelector(
                         parameters.value.clone(),
                         element.to_string(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
-            }
-            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value))
+            };
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No).map_err(|error|(CAN_EARLY_RETURN, error))?;
+            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value)).map_err(|error|(CAN_EARLY_RETURN, error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
@@ -1530,43 +1530,39 @@ impl Handler {
         self.implicit_wait(|| {
             let (sender, receiver) = ipc::channel().unwrap();
 
-            match parameters.using {
+            let cmd = match parameters.using {
                 LocatorStrategy::CSSSelector => {
-                    let cmd = WebDriverScriptCommand::FindShadowElementsCSSSelector(
+                    WebDriverScriptCommand::FindShadowElementsCSSSelector(
                         parameters.value.clone(),
                         shadow_root.to_string(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                    let cmd = WebDriverScriptCommand::FindShadowElementsLinkText(
+                    WebDriverScriptCommand::FindShadowElementsLinkText(
                         parameters.value.clone(),
                         shadow_root.to_string(),
                         parameters.using == LocatorStrategy::PartialLinkText,
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::TagName => {
-                    let cmd = WebDriverScriptCommand::FindShadowElementsTagName(
+                    WebDriverScriptCommand::FindShadowElementsTagName(
                         parameters.value.clone(),
                         shadow_root.to_string(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
                 LocatorStrategy::XPath => {
-                    let cmd = WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                    WebDriverScriptCommand::FindShadowElementsXPathSelector(
                         parameters.value.clone(),
                         shadow_root.to_string(),
                         sender,
-                    );
-                    self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+                    )
                 },
-            }
-
-            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value))
+            };
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No).map_err(|error|(CAN_EARLY_RETURN, error))?;
+            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value)).map_err(|error|(CAN_EARLY_RETURN, error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
