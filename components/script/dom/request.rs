@@ -21,7 +21,7 @@ use net_traits::request::{
 };
 use servo_url::ServoUrl;
 
-use crate::body::{BodyMixin, BodyType, Extractable, consume_body};
+use crate::body::{BodyMixin, BodyType, Extractable, clone_body_stream_for_dom_body, consume_body};
 use crate::conversions::Convert;
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::cell::DomRefCell;
@@ -535,23 +535,30 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-clone>
     fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
-        // Step 1. Let newRequest be a copy of request, except for its body.
         let req = r.request.borrow();
         let url = req.url();
         let headers_guard = r.Headers(can_gc).get_guard();
+
+        // Step 1. Let newRequest be a copy of request, except for its body.
+        let mut new_req_inner = req.clone();
+        let body = new_req_inner.body.take();
+
         let r_clone = Request::new(&r.global(), None, url, can_gc);
-        r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
-        {
-            let mut borrowed_r_request = r_clone.request.borrow_mut();
-            borrowed_r_request.origin = req.origin.clone();
+        *r_clone.request.borrow_mut() = new_req_inner;
+
+        // Step 2. If request’s body is non-null, set newRequest’s body
+        // to the result of cloning request’s body.
+        if let Some(body) = body {
+            r_clone.request.borrow_mut().body = Some(body);
         }
-        *r_clone.request.borrow_mut() = req.clone();
+
         r_clone
             .Headers(can_gc)
             .copy_from_headers(r.Headers(can_gc))?;
         r_clone.Headers(can_gc).set_guard(headers_guard);
-        // Step 2. If request’s body is non-null, set newRequest’s body to the result of cloning request’s body.
-        // TODO
+
+        clone_body_stream_for_dom_body(&r.body_stream, &r_clone.body_stream, can_gc)?;
+
         // Step 3. Return newRequest.
         Ok(r_clone)
     }

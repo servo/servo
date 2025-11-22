@@ -14,7 +14,9 @@ use net_traits::http_status::HttpStatus;
 use servo_url::ServoUrl;
 use url::Position;
 
-use crate::body::{BodyMixin, BodyType, Extractable, ExtractedBody, consume_body};
+use crate::body::{
+    BodyMixin, BodyType, Extractable, ExtractedBody, clone_body_stream_for_dom_body, consume_body,
+};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
@@ -309,12 +311,12 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-response-clone>
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Response>> {
-        // Step 1
+        // Step 1. If this is unusable, then throw a TypeError.
         if self.is_unusable() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));
         }
 
-        // Step 2
+        // Step 2. Let clonedResponse be the result of cloning this’s response.
         let new_response = Response::new(&self.global(), can_gc);
         new_response
             .Headers(can_gc)
@@ -323,9 +325,6 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
             .Headers(can_gc)
             .set_guard(self.Headers(can_gc).get_guard());
 
-        // https://fetch.spec.whatwg.org/#concept-response-clone
-        // Instead of storing a net_traits::Response internally, we
-        // only store the relevant fields, and only clone them here
         *new_response.response_type.borrow_mut() = *self.response_type.borrow();
         new_response
             .status
@@ -336,16 +335,12 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
             .url_list
             .borrow_mut()
             .clone_from(&self.url_list.borrow());
-
-        if let Some(stream) = self.body_stream.get().clone() {
-            new_response.body_stream.set(Some(&*stream));
-        }
         new_response.is_body_empty.set(self.is_body_empty.get());
 
-        // Step 3
-        // TODO: This step relies on promises, which are still unimplemented.
+        // Step 3. Return the result of creating a Response object,
+        // given clonedResponse, this’s headers’s guard, and this’s relevant realm.
+        clone_body_stream_for_dom_body(&self.body_stream, &new_response.body_stream, can_gc)?;
 
-        // Step 4
         Ok(new_response)
     }
 
