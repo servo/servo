@@ -366,14 +366,28 @@ impl Performance {
         self.resource_timing_buffer_current_size.get() <=
             self.resource_timing_buffer_size_limit.get()
     }
+
+    /// <https://w3c.github.io/resource-timing/#dfn-copy-secondary-buffer>
     fn copy_secondary_resource_timing_buffer(&self) {
+        // Step 1. While resource timing secondary buffer is not empty and can add resource timing entry returns true, run the following substeps:
         while self.can_add_resource_timing_entry() {
+            // Step 1.1. Let entry be the oldest PerformanceResourceTiming in resource timing secondary buffer.
             let entry = self
                 .resource_timing_secondary_entries
                 .borrow_mut()
                 .pop_front();
             if let Some(ref entry) = entry {
-                self.queue_entry(entry);
+                // Step 1.2. Add entry to the end of performance entry buffer.
+                self.buffer
+                    .borrow_mut()
+                    .entries
+                    .push(DomRoot::from_ref(entry));
+                // Step 1.3. Increment resource timing buffer current size by 1.
+                self.resource_timing_buffer_current_size
+                    .set(self.resource_timing_buffer_current_size.get() + 1);
+                // Step 1.4. Remove entry from resource timing secondary buffer.
+                // Step 1.5. Decrement resource timing secondary buffer current size by 1.
+                // Handled by popping the entry earlier.
             } else {
                 break;
             }
