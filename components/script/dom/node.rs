@@ -915,7 +915,19 @@ impl Node {
     }
 
     pub(crate) fn is_ancestor_of(&self, child: &Node) -> bool {
-        child.ancestors().any(|ancestor| &*ancestor == self)
+        let mut current = &MutNullableDom::new(Some(child));
+        let mut done = false;
+
+        while let Some(node) = current.if_is_some(|node| {
+            done = node == self;
+            &node.parent_node
+        }) {
+            if done {
+                break;
+            }
+            current = node
+        }
+        done
     }
 
     pub(crate) fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
