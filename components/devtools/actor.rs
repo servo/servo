@@ -7,11 +7,12 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::mem;
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use log::{debug, warn};
+use parking_lot::Mutex;
 use serde_json::{Map, Value, json};
 
 use crate::StreamId;
@@ -122,8 +123,7 @@ impl ActorRegistry {
 
         let shareable = Arc::new(Mutex::new(self));
         {
-            let mut lock = shareable.lock();
-            let registry = lock.as_mut().unwrap();
+            let mut registry = shareable.lock();
             registry.shareable = Some(shareable.clone());
         }
         shareable

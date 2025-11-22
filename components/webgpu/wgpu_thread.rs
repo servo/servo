@@ -6,7 +6,7 @@
 
 use std::borrow::Cow;
 use std::slice;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::id::PipelineId;
 use compositing_traits::{
@@ -14,6 +14,7 @@ use compositing_traits::{
 };
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
+use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use webgpu_traits::{
@@ -606,7 +607,6 @@ impl WGPU {
                         let device_scope = self
                             .devices
                             .lock()
-                            .unwrap()
                             .remove(&device_id)
                             .expect("Device should not be dropped by this point");
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeDevice {
@@ -689,7 +689,7 @@ impl WGPU {
                             )
                             .map(|_| {
                                 {
-                                    self.devices.lock().unwrap().insert(
+                                    self.devices.lock().insert(
                                         device_id,
                                         DeviceScope::new(device_id, pipeline_id),
                                     );
@@ -706,7 +706,6 @@ impl WGPU {
                                     // make device lost by removing error scopes stack
                                     let _ = devices
                                         .lock()
-                                        .unwrap()
                                         .get_mut(&device_id)
                                         .expect("Device should not be dropped by this point")
                                         .error_scope_stack
@@ -1152,7 +1151,7 @@ impl WGPU {
                     },
                     WebGPURequest::PushErrorScope { device_id, filter } => {
                         // <https://www.w3.org/TR/webgpu/#dom-gpudevice-pusherrorscope>
-                        let mut devices = self.devices.lock().unwrap();
+                        let mut devices = self.devices.lock();
                         let device_scope = devices
                             .get_mut(&device_id)
                             .expect("Device should not be dropped by this point");
@@ -1165,7 +1164,7 @@ impl WGPU {
                     },
                     WebGPURequest::PopErrorScope { device_id, sender } => {
                         // <https://www.w3.org/TR/webgpu/#dom-gpudevice-poperrorscope>
-                        let mut devices = self.devices.lock().unwrap();
+                        let mut devices = self.devices.lock();
                         let device_scope = devices
                             .get_mut(&device_id)
                             .expect("Device should not be dropped by this point");
@@ -1240,7 +1239,7 @@ impl WGPU {
 
     /// <https://www.w3.org/TR/webgpu/#abstract-opdef-dispatch-error>
     fn dispatch_error(&mut self, device_id: id::DeviceId, error: Error) {
-        let mut devices = self.devices.lock().unwrap();
+        let mut devices = self.devices.lock();
         let device_scope = devices
             .get_mut(&device_id)
             .expect("Device should not be dropped by this point");

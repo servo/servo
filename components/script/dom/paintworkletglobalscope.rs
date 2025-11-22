@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::ptr::null_mut;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -22,6 +22,7 @@ use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use js::rust::wrappers::{Call, Construct1};
 use net_traits::image_cache::ImageCache;
+use parking_lot::Mutex;
 use pixels::PixelFormat;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_config::pref;
@@ -395,7 +396,6 @@ impl PaintWorkletGlobalScope {
                     PaintWorkletTask::SpeculativelyDrawAPaintImage(name, properties, arguments);
                 self.executor
                     .lock()
-                    .expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
             }
         }
@@ -419,7 +419,6 @@ impl PaintWorkletGlobalScope {
                 );
                 self.executor
                     .lock()
-                    .expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
 
                 let timeout = pref!(dom_worklet_timeout_ms) as u64;

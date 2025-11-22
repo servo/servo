@@ -7,7 +7,6 @@
 use std::f32::INFINITY;
 use std::ops::Range;
 use std::panic::{self, PanicHookInfo};
-use std::sync::{Mutex, MutexGuard};
 use std::{thread, u32};
 
 use app_units::Au;
@@ -17,6 +16,7 @@ use layout::flow::float::{
 };
 use layout::geom::{LogicalRect, LogicalVec2};
 use num_traits::identities::Zero;
+use parking_lot::{Mutex, MutexGuard};
 use quickcheck::{Arbitrary, Gen};
 
 static PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
@@ -659,7 +659,7 @@ fn check_floats_rule_8(floats_and_perturbations: Vec<(FloatInput, u32)>) {
         placement.placed_floats[float_index].origin.block -= Au::from_f32_px(perturbation as f32);
 
         let result = {
-            let mutex_guard = PANIC_HOOK_MUTEX.lock().unwrap();
+            let mutex_guard = PANIC_HOOK_MUTEX.lock();
             let _suppressor = PanicMsgSuppressor::new(mutex_guard);
             panic::catch_unwind(|| check_basic_float_rules(&placement))
         };
@@ -693,7 +693,7 @@ fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
         }
 
         let result = {
-            let mutex_guard = PANIC_HOOK_MUTEX.lock().unwrap();
+            let mutex_guard = PANIC_HOOK_MUTEX.lock();
             let _suppressor = PanicMsgSuppressor::new(mutex_guard);
             panic::catch_unwind(|| check_basic_float_rules(&placement))
         };

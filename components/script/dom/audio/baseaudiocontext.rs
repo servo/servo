@@ -6,12 +6,13 @@ use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::id::PipelineId;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
+use parking_lot::Mutex;
 use servo_media::audio::context::{
     AudioContext, AudioContextOptions, OfflineAudioContextOptions, ProcessingState,
     RealTimeAudioContextOptions,
@@ -155,11 +156,11 @@ impl BaseAudioContext {
     }
 
     pub(crate) fn destination_node(&self) -> NodeId {
-        self.audio_context_impl.lock().unwrap().dest_node()
+        self.audio_context_impl.lock().dest_node()
     }
 
     pub(crate) fn listener(&self) -> NodeId {
-        self.audio_context_impl.lock().unwrap().listener()
+        self.audio_context_impl.lock().listener()
     }
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
@@ -220,7 +221,7 @@ impl BaseAudioContext {
 
     /// Control thread processing state
     pub(crate) fn control_thread_state(&self) -> ProcessingState {
-        self.audio_context_impl.lock().unwrap().state()
+        self.audio_context_impl.lock().state()
     }
 
     /// Set audio context state
@@ -232,7 +233,7 @@ impl BaseAudioContext {
         let this = Trusted::new(self);
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
-        match self.audio_context_impl.lock().unwrap().resume() {
+        match self.audio_context_impl.lock().resume() {
             Ok(()) => {
                 self.take_pending_resume_promises(Ok(()));
                 self.global().task_manager().dom_manipulation_task_source().queue(
@@ -277,7 +278,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime>
     fn CurrentTime(&self) -> Finite<f64> {
-        let current_time = self.audio_context_impl.lock().unwrap().current_time();
+        let current_time = self.audio_context_impl.lock().current_time();
         Finite::wrap(current_time)
     }
 
@@ -292,7 +293,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
         // Step 2.
-        if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
+        if self.audio_context_impl.lock().state() == ProcessingState::Closed {
             promise.reject_error(Error::InvalidState(None), can_gc);
             return promise;
         }
@@ -513,12 +514,11 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .ready(move |channel_count| {
                     decoded_audio
                         .lock()
-                        .unwrap()
                         .resize(channel_count as usize, Vec::new());
                 })
                 .progress(move |buffer, channel_pos_mask| {
-                    let mut decoded_audio = decoded_audio_.lock().unwrap();
-                    let mut channels = channels.lock().unwrap();
+                    let mut decoded_audio = decoded_audio_.lock();
+                    let mut channels = channels.lock();
                     let channel = match channels.entry(channel_pos_mask) {
                         Entry::Occupied(entry) => *entry.get(),
                         Entry::Vacant(entry) => {
@@ -531,7 +531,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .eos(move || {
                     task_source.queue(task!(audio_decode_eos: move || {
                         let this = this.root();
-                        let decoded_audio = decoded_audio__.lock().unwrap();
+                        let decoded_audio = decoded_audio__.lock();
                         let length = if !decoded_audio.is_empty() {
                             decoded_audio[0].len()
                         } else {
@@ -571,7 +571,6 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .build();
             self.audio_context_impl
                 .lock()
-                .unwrap()
                 .decode_audio_data(audio_data, callbacks);
         } else {
             // Step 3.

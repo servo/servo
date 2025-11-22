@@ -14,7 +14,6 @@ use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::rc::Rc;
-use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use std::{os, ptr, thread};
 
@@ -55,6 +54,7 @@ use js::rust::{
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::Mutex;
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
@@ -718,7 +718,7 @@ impl Runtime {
         let mut runtime = if let Some(parent) = parent {
             unsafe { RustRuntime::create_with_parent(parent) }
         } else {
-            RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone())
+            RustRuntime::new(JS_ENGINE.lock().as_ref().unwrap().clone())
         };
         let cx = runtime.cx();
 
@@ -1009,14 +1009,14 @@ pub struct JSEngineSetup(JSEngine);
 impl Default for JSEngineSetup {
     fn default() -> Self {
         let engine = JSEngine::init().unwrap();
-        *JS_ENGINE.lock().unwrap() = Some(engine.handle());
+        *JS_ENGINE.lock() = Some(engine.handle());
         Self(engine)
     }
 }
 
 impl Drop for JSEngineSetup {
     fn drop(&mut self) {
-        *JS_ENGINE.lock().unwrap() = None;
+        *JS_ENGINE.lock() = None;
 
         while !self.0.can_shutdown() {
             thread::sleep(Duration::from_millis(50));
