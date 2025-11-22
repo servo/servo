@@ -72,7 +72,7 @@ pub(crate) fn submit_timing_data(
         PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing, can_gc);
     global
         .performance()
-        .queue_entry(performance_entry.upcast::<PerformanceEntry>(), can_gc);
+        .queue_entry(performance_entry.upcast::<PerformanceEntry>());
 }
 
 pub(crate) trait FetchResponseListener: Send + 'static {
