@@ -47,6 +47,7 @@ where
                 FontIdentifier::Local(local_font_identifier),
                 template_descriptor,
                 None,
+                None,
             ))
         }
     }
