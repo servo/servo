@@ -9,12 +9,9 @@ use std::time;
 
 use log::warn;
 use servo::EventLoopWaker;
-use winit::error::EventLoopError;
-use winit::event_loop::EventLoop as WinitEventLoop;
+use winit::event_loop::{EventLoop, EventLoop as WinitEventLoop, EventLoopProxy};
 
 use super::app::App;
-
-pub type EventLoopProxy = winit::event_loop::EventLoopProxy<AppEvent>;
 
 #[derive(Debug)]
 pub enum AppEvent {
@@ -29,70 +26,58 @@ impl From<egui_winit::accesskit_winit::Event> for AppEvent {
     }
 }
 
-/// The real or fake OS event loop.
-#[allow(dead_code)]
+/// A headed or headless event loop. Headless event loops are necessary for environments without a
+/// display server. Ideally, we could use the headed winit event loop in both modes, but on Linux,
+/// the event loop requires a display server, which prevents running servoshell in a console.
 #[allow(clippy::large_enum_variant)]
-enum EventLoop {
+pub(crate) enum ServoShellEventLoop {
     /// A real Winit windowing event loop.
-    Winit(winit::event_loop::EventLoop<AppEvent>),
+    Winit(EventLoop<AppEvent>),
     /// A fake event loop which contains a signalling flag used to ensure
     /// that pending events get processed in a timely fashion, and a condition
     /// variable to allow waiting on that flag changing state.
     Headless(Arc<(Mutex<bool>, Condvar)>),
 }
 
-pub struct EventsLoop(EventLoop);
+impl ServoShellEventLoop {
+    pub(crate) fn headless() -> ServoShellEventLoop {
+        ServoShellEventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
+    }
 
-impl EventsLoop {
-    // Ideally, we could use the winit event loop in both modes,
-    // but on Linux, the event loop requires a X11 server.
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    pub fn new(_headless: bool) -> Result<EventsLoop, EventLoopError> {
-        Ok(EventsLoop(EventLoop::Winit(
-            WinitEventLoop::with_user_event().build()?,
-        )))
-    }
-    #[cfg(any(target_os = "linux", target_os = "windows"))]
-    pub fn new(headless: bool) -> Result<EventsLoop, EventLoopError> {
-        Ok(EventsLoop(if headless {
-            EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
-        } else {
-            EventLoop::Winit(WinitEventLoop::with_user_event().build()?)
-        }))
-    }
-    #[cfg(target_os = "macos")]
-    pub fn new(headless: bool) -> Result<EventsLoop, EventLoopError> {
-        Ok(EventsLoop(if headless {
-            EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
-        } else {
-            EventLoop::Winit(WinitEventLoop::with_user_event().build()?)
-        }))
+    pub(crate) fn headed() -> ServoShellEventLoop {
+        ServoShellEventLoop::Winit(
+            WinitEventLoop::with_user_event()
+                .build()
+                .expect("Could not start winit event loop"),
+        )
     }
 }
 
-impl EventsLoop {
-    pub(crate) fn event_loop_proxy(&self) -> Option<EventLoopProxy> {
-        match self.0 {
-            EventLoop::Winit(ref events_loop) => Some(events_loop.create_proxy()),
-            EventLoop::Headless(..) => None,
+impl ServoShellEventLoop {
+    pub(crate) fn event_loop_proxy(&self) -> Option<EventLoopProxy<AppEvent>> {
+        match self {
+            ServoShellEventLoop::Winit(event_loop) => Some(event_loop.create_proxy()),
+            ServoShellEventLoop::Headless(..) => None,
         }
     }
 
     pub fn create_event_loop_waker(&self) -> Box<dyn EventLoopWaker> {
-        match self.0 {
-            EventLoop::Winit(ref events_loop) => Box::new(HeadedEventLoopWaker::new(events_loop)),
-            EventLoop::Headless(ref data) => Box::new(HeadlessEventLoopWaker(data.clone())),
+        match self {
+            ServoShellEventLoop::Winit(event_loop) => {
+                Box::new(HeadedEventLoopWaker::new(event_loop))
+            },
+            ServoShellEventLoop::Headless(data) => Box::new(HeadlessEventLoopWaker(data.clone())),
         }
     }
 
     pub fn run_app(self, app: &mut App) {
-        match self.0 {
-            EventLoop::Winit(events_loop) => {
-                events_loop
+        match self {
+            ServoShellEventLoop::Winit(event_loop) => {
+                event_loop
                     .run_app(app)
                     .expect("Failed while running events loop");
             },
-            EventLoop::Headless(ref data) => {
+            ServoShellEventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
 
                 app.init(None);
@@ -124,11 +109,11 @@ impl EventsLoop {
 }
 
 struct HeadedEventLoopWaker {
-    proxy: Arc<Mutex<winit::event_loop::EventLoopProxy<AppEvent>>>,
+    proxy: Arc<Mutex<EventLoopProxy<AppEvent>>>,
 }
 impl HeadedEventLoopWaker {
-    fn new(events_loop: &winit::event_loop::EventLoop<AppEvent>) -> HeadedEventLoopWaker {
-        let proxy = Arc::new(Mutex::new(events_loop.create_proxy()));
+    fn new(event_loop: &EventLoop<AppEvent>) -> HeadedEventLoopWaker {
+        let proxy = Arc::new(Mutex::new(event_loop.create_proxy()));
         HeadedEventLoopWaker { proxy }
     }
 }

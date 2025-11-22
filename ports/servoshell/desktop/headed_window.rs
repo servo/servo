@@ -36,7 +36,7 @@ use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
     ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
 };
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey as WinitNamedKey};
 #[cfg(target_os = "linux")]
 use winit::platform::wayland::WindowAttributesExtWayland;
@@ -54,7 +54,7 @@ use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
 use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::app::PumpResult;
-use crate::desktop::events_loop::{AppEvent, EventLoopProxy};
+use crate::desktop::event_loop::AppEvent;
 use crate::desktop::gui::{Gui, GuiCommand};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
@@ -108,7 +108,7 @@ impl Window {
     pub fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
-        event_loop_proxy: EventLoopProxy,
+        event_loop_proxy: EventLoopProxy<AppEvent>,
         initial_url: ServoUrl,
     ) -> Window {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;

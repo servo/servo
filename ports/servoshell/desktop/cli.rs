@@ -5,7 +5,7 @@
 use std::{env, panic};
 
 use crate::desktop::app::App;
-use crate::desktop::events_loop::EventsLoop;
+use crate::desktop::event_loop::ServoShellEventLoop;
 use crate::panic_hook;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
@@ -35,8 +35,10 @@ pub fn main() {
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
     let clean_shutdown = servoshell_preferences.clean_shutdown;
-    let event_loop =
-        EventsLoop::new(servoshell_preferences.headless).expect("Failed to create events loop");
+    let event_loop = match servoshell_preferences.headless {
+        true => ServoShellEventLoop::headless(),
+        false => ServoShellEventLoop::headed(),
+    };
 
     {
         let mut app = App::new(opts, preferences, servoshell_preferences, &event_loop);
