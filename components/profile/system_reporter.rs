@@ -38,6 +38,7 @@ pub fn collect_reports(request: ReporterRequest) {
         // Virtual and physical memory usage, as reported by the OS.
         report(path!["vsize"], vsize());
         report(path!["resident"], resident());
+        report(path!["pss"], proportional_set_size());
 
         // Memory segments, as reported by the OS.
         // Notice that the sum of this should be more accurate according to
@@ -198,6 +199,26 @@ fn vsize() -> Option<usize> {
 #[cfg(target_os = "linux")]
 fn resident() -> Option<usize> {
     proc_self_statm_field(1)
+}
+#[cfg(target_os = "linux")]
+fn proportional_set_size() -> Option<usize> {
+    use std::fs::File;
+    use std::io::Read;
+    let mut file = File::open("/proc/self/smaps_rollup").ok()?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).ok()?;
+    let pss_line = contents
+        .split("\n")
+        .find(|string| string.contains("Pss:"))?;
+
+    // String looks like: "Pss:                 227 kB"
+    let pss_str = pss_line.split_whitespace().nth(1)?;
+    pss_str.parse().ok()
+}
+
+#[cfg(not(target_os = "linux"))]
+fn proportional_set_size() -> Option<usize> {
+    None
 }
 
 #[cfg(target_os = "macos")]
