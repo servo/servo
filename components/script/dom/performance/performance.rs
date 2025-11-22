@@ -10,7 +10,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use time::Duration;
 
-use super::performanceentry::PerformanceEntry;
+use super::performanceentry::{EntryType, PerformanceEntry};
 use super::performancemark::PerformanceMark;
 use super::performancemeasure::PerformanceMeasure;
 use super::performancenavigation::PerformanceNavigation;
@@ -72,7 +72,7 @@ impl PerformanceEntryList {
     pub(crate) fn get_entries_by_name_and_type(
         &self,
         name: Option<DOMString>,
-        entry_type: Option<DOMString>,
+        entry_type: Option<EntryType>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
         let mut res = self
             .entries
@@ -81,7 +81,7 @@ impl PerformanceEntryList {
                 name.as_ref().is_none_or(|name_| *e.name() == *name_) &&
                     entry_type
                         .as_ref()
-                        .is_none_or(|type_| *e.entry_type() == *type_)
+                        .is_none_or(|type_| e.entry_type() == *type_)
             })
             .cloned()
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
@@ -96,22 +96,22 @@ impl PerformanceEntryList {
     pub(crate) fn clear_entries_by_name_and_type(
         &mut self,
         name: Option<DOMString>,
-        entry_type: DOMString,
+        entry_type: EntryType,
     ) {
         self.entries.retain(|e| {
-            *e.entry_type() != entry_type || name.as_ref().is_some_and(|name_| e.name() != name_)
+            e.entry_type() != entry_type || name.as_ref().is_some_and(|name_| e.name() != name_)
         });
     }
 
     fn get_last_entry_start_time_with_name_and_type(
         &self,
         name: DOMString,
-        entry_type: DOMString,
+        entry_type: EntryType,
     ) -> Option<CrossProcessInstant> {
         self.entries
             .iter()
             .rev()
-            .find(|e| *e.entry_type() == entry_type && *e.name() == name)
+            .find(|e| e.entry_type() == entry_type && *e.name() == name)
             .and_then(|entry| entry.start_time())
     }
 }
@@ -128,7 +128,7 @@ impl IntoIterator for PerformanceEntryList {
 #[derive(JSTraceable, MallocSizeOf)]
 struct PerformanceObserver {
     observer: DomRoot<DOMPerformanceObserver>,
-    entry_types: Vec<DOMString>,
+    entry_types: Vec<EntryType>,
 }
 
 #[dom_struct]
@@ -206,7 +206,7 @@ impl Performance {
     pub(crate) fn add_multiple_type_observer(
         &self,
         observer: &DOMPerformanceObserver,
-        entry_types: Vec<DOMString>,
+        entry_types: Vec<EntryType>,
     ) {
         let mut observers = self.observers.borrow_mut();
         match observers.iter().position(|o| *o.observer == *observer) {
@@ -224,13 +224,12 @@ impl Performance {
     pub(crate) fn add_single_type_observer(
         &self,
         observer: &DOMPerformanceObserver,
-        entry_type: &DOMString,
+        entry_type: EntryType,
         buffered: bool,
     ) {
         if buffered {
             let buffer = self.buffer.borrow();
-            let mut new_entries =
-                buffer.get_entries_by_name_and_type(None, Some(entry_type.clone()));
+            let mut new_entries = buffer.get_entries_by_name_and_type(None, Some(entry_type));
             if !new_entries.is_empty() {
                 let mut obs_entries = observer.entries();
                 obs_entries.append(&mut new_entries);
@@ -255,14 +254,14 @@ impl Performance {
             // the observed entry types.
             Some(p) => {
                 // Append the type if not already present, otherwise do nothing
-                if !observers[p].entry_types.contains(entry_type) {
-                    observers[p].entry_types.push(entry_type.clone())
+                if !observers[p].entry_types.contains(&entry_type) {
+                    observers[p].entry_types.push(entry_type)
                 }
             },
             // Otherwise, we create and insert the new PerformanceObserver.
             None => observers.push(PerformanceObserver {
                 observer: DomRoot::from_ref(observer),
-                entry_types: vec![entry_type.clone()],
+                entry_types: vec![entry_type],
             }),
         };
     }
@@ -288,7 +287,7 @@ impl Performance {
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
     pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) -> Option<usize> {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
-        if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry) {
+        if entry.entry_type() == EntryType::Resource && !self.should_queue_resource_entry(entry) {
             return None;
         }
 
@@ -300,7 +299,7 @@ impl Performance {
             .observers
             .borrow()
             .iter()
-            .filter(|o| o.entry_types.contains(entry.entry_type()))
+            .filter(|o| o.entry_types.contains(&entry.entry_type()))
         {
             o.observer.queue_entry(entry);
         }
@@ -492,6 +491,9 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype>
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
+        let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
+            return Vec::new();
+        };
         self.buffer
             .borrow()
             .get_entries_by_name_and_type(None, Some(entry_type))
@@ -503,6 +505,15 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         name: DOMString,
         entry_type: Option<DOMString>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
+        let entry_type = match entry_type {
+            Some(entry_type) => {
+                let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
+                    return Vec::new();
+                };
+                Some(entry_type)
+            },
+            None => None,
+        };
         self.buffer
             .borrow()
             .get_entries_by_name_and_type(Some(name), entry_type)
@@ -534,7 +545,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     fn ClearMarks(&self, mark_name: Option<DOMString>) {
         self.buffer
             .borrow_mut()
-            .clear_entries_by_name_and_type(mark_name, DOMString::from("mark"));
+            .clear_entries_by_name_and_type(mark_name, EntryType::Mark);
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-measure>
@@ -549,7 +560,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             .map(|name| {
                 self.buffer
                     .borrow()
-                    .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name)
+                    .get_last_entry_start_time_with_name_and_type(name, EntryType::Mark)
                     .unwrap_or(self.time_origin)
             })
             .unwrap_or_else(CrossProcessInstant::now);
@@ -559,7 +570,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             .and_then(|name| {
                 self.buffer
                     .borrow()
-                    .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name)
+                    .get_last_entry_start_time_with_name_and_type(name, EntryType::Mark)
             })
             .unwrap_or(self.time_origin);
 
@@ -582,13 +593,13 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     fn ClearMeasures(&self, measure_name: Option<DOMString>) {
         self.buffer
             .borrow_mut()
-            .clear_entries_by_name_and_type(measure_name, DOMString::from("measure"));
+            .clear_entries_by_name_and_type(measure_name, EntryType::Measure);
     }
     /// <https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings>
     fn ClearResourceTimings(&self) {
         self.buffer
             .borrow_mut()
-            .clear_entries_by_name_and_type(None, DOMString::from("resource"));
+            .clear_entries_by_name_and_type(None, EntryType::Resource);
         self.resource_timing_buffer_current_size.set(0);
     }
 

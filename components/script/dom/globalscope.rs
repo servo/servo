@@ -66,6 +66,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
+use strum::VariantArray;
 use timers::{TimerEventRequest, TimerId};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
@@ -119,7 +120,7 @@ use crate::dom::htmlscriptelement::ScriptOrigin;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
-use crate::dom::performance::performanceobserver::VALID_ENTRY_TYPES;
+use crate::dom::performance::performanceentry::EntryType;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::reportingobserver::ReportingObserver;
@@ -3182,9 +3183,9 @@ impl GlobalScope {
     ) {
         self.frozen_supported_performance_entry_types.get_or_init(
             || {
-                VALID_ENTRY_TYPES
+                EntryType::VARIANTS
                     .iter()
-                    .map(|t| DOMString::from(t.to_string()))
+                    .map(|t| DOMString::from(t.as_str()))
                     .collect()
             },
             cx,

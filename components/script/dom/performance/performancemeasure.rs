@@ -2,4 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-impl_performance_entry_struct!(PerformanceMeasureBinding, PerformanceMeasure, "measure");
+impl_performance_entry_struct!(
+    PerformanceMeasureBinding,
+    PerformanceMeasure,
+    EntryType::Measure
+);
