@@ -6,7 +6,7 @@ use std::cell::OnceCell;
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{mem, thread};
 
 use base::id::{PipelineId, WebViewId};
@@ -24,6 +24,7 @@ use net_traits::image_cache::{
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
+use parking_lot::Mutex;
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -724,7 +725,7 @@ pub struct ImageCacheImpl {
 
 impl ImageCache for ImageCacheImpl {
     fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report {
-        let size = self.store.lock().unwrap().size_of(ops);
+        let size = self.store.lock().size_of(ops);
         Report {
             path: path![prefix, "image-cache"],
             kind: ReportKind::ExplicitSystemHeapSize,
@@ -733,7 +734,7 @@ impl ImageCache for ImageCacheImpl {
     }
 
     fn get_image_key(&self) -> Option<WebRenderImageKey> {
-        let mut store = self.store.lock().unwrap();
+        let mut store = self.store.lock();
         if let KeyCacheState::Ready(ref mut cache) = store.key_cache.cache {
             if let Some(image_key) = cache.pop() {
                 return Some(image_key);
@@ -753,7 +754,7 @@ impl ImageCache for ImageCacheImpl {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
     ) -> Option<Image> {
-        let store = self.store.lock().unwrap();
+        let store = self.store.lock();
         let result = store.get_completed_image_if_available(url, origin, cors_setting);
         match result {
             Some(Ok((img, _))) => Some(img),
@@ -767,7 +768,7 @@ impl ImageCache for ImageCacheImpl {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
     ) -> ImageCacheResult {
-        let mut store = self.store.lock().unwrap();
+        let mut store = self.store.lock();
         if let Some(result) =
             store.get_completed_image_if_available(url.clone(), origin.clone(), cors_setting)
         {
@@ -852,7 +853,7 @@ impl ImageCache for ImageCacheImpl {
         callback: ImageCacheResponseCallback,
     ) {
         {
-            let mut store = self.store.lock().unwrap();
+            let mut store = self.store.lock();
             let key = (image_id, requested_size);
             if !store.vector_images.contains_key(&image_id) {
                 warn!("Unknown image requested for rasterization for key {key:?}");
@@ -885,7 +886,7 @@ impl ImageCache for ImageCacheImpl {
         image_id: PendingImageId,
         requested_size: DeviceIntSize,
     ) -> Option<RasterImage> {
-        let mut store = self.store.lock().unwrap();
+        let mut store = self.store.lock();
         let Some(vector_image) = store.vector_images.get(&image_id).cloned() else {
             warn!("Unknown image id {image_id:?} requested for rasterization");
             return None;
@@ -950,7 +951,7 @@ impl ImageCache for ImageCacheImpl {
                 is_opaque: false,
             };
 
-            let mut store = store.lock().unwrap();
+            let mut store = store.lock();
             store.load_image_with_keycache(PendingKey::Svg((
                 image_id,
                 rasterized_image,
@@ -964,7 +965,7 @@ impl ImageCache for ImageCacheImpl {
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
     fn add_listener(&self, listener: ImageLoadListener) {
-        let mut store = self.store.lock().unwrap();
+        let mut store = self.store.lock();
         self.add_listener_with_store(&mut store, listener);
     }
 
@@ -976,7 +977,7 @@ impl ImageCache for ImageCacheImpl {
             (FetchResponseMsg::ProcessCspViolations(..), _) => (),
             (FetchResponseMsg::ProcessResponse(_, response), _) => {
                 debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);
-                let mut store = self.store.lock().unwrap();
+                let mut store = self.store.lock();
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 let (cors_status, metadata) = match response {
                     Ok(meta) => match meta {
@@ -1005,7 +1006,7 @@ impl ImageCache for ImageCacheImpl {
             },
             (FetchResponseMsg::ProcessResponseChunk(_, data), _) => {
                 debug!("Got some data for {:?}", id);
-                let mut store = self.store.lock().unwrap();
+                let mut store = self.store.lock();
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
 
@@ -1029,7 +1030,7 @@ impl ImageCache for ImageCacheImpl {
                 match result {
                     Ok(_) => {
                         let (bytes, cors_status, content_type) = {
-                            let mut store = self.store.lock().unwrap();
+                            let mut store = self.store.lock();
                             let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                             pending_load.result = Some(Ok(()));
                             debug!("Async decoding {} ({:?})", pending_load.url, key);
@@ -1046,12 +1047,12 @@ impl ImageCache for ImageCacheImpl {
                             let msg =
                                 decode_bytes_sync(key, &bytes, cors_status, content_type, fontdb);
                             debug!("Image decoded");
-                            local_store.lock().unwrap().handle_decoder(msg);
+                            local_store.lock().handle_decoder(msg);
                         });
                     },
                     Err(error) => {
                         debug!("Processing error for {key:?}: {error:?}");
-                        let mut store = self.store.lock().unwrap();
+                        let mut store = self.store.lock();
                         store.complete_load(id, LoadResult::FailedToLoadOrDecode)
                     },
                 }
@@ -1060,12 +1061,12 @@ impl ImageCache for ImageCacheImpl {
     }
 
     fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<WebRenderImageKey>) {
-        let mut store = self.store.lock().unwrap();
+        let mut store = self.store.lock();
         store.insert_keys_and_load_images(image_keys);
     }
 
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {
-        let store = self.store.lock().unwrap();
+        let store = self.store.lock();
         store
             .broken_image_icon_image
             .get_or_init(|| {

@@ -484,8 +484,7 @@ impl FetchResponseListener for LinkFetchContext {
             let response = if let Ok(resource_timing) = &response_result {
                 // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
                 let response = Response::new(self.url.clone(), resource_timing.clone());
-                *response.body.lock().unwrap() =
-                    ResponseBody::Done(std::mem::take(&mut self.response_body));
+                *response.body.lock() = ResponseBody::Done(std::mem::take(&mut self.response_body));
                 response
             } else {
                 // Step 11.2. Otherwise, set response to a network error.
@@ -501,10 +500,7 @@ impl FetchResponseListener for LinkFetchContext {
             // Step 13. If options's document is null, then set options's on document ready to commit. Otherwise, call commit with options's document.
             let document_preloaded_resources = self.document.root().preloaded_resources();
             let mut preloaded_resources_lock = document_preloaded_resources.lock();
-            preloaded_resources_lock
-                .as_mut()
-                .unwrap()
-                .insert(key.clone(), entry);
+            preloaded_resources_lock.insert(key.clone(), entry);
         }
 
         // Step 11.6. If processResponse is given, then call processResponse with response.

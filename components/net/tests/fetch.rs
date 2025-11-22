@@ -9,7 +9,7 @@ use std::iter::FromIterator;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Weak};
 use std::time::{Duration, SystemTime};
 
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
@@ -46,6 +46,7 @@ use net_traits::{
     FetchTaskTarget, IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming,
     ResourceTimingType,
 };
+use parking_lot::Mutex;
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -117,7 +118,7 @@ fn test_fetch_response_body_matches_const_message() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.body.lock() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
@@ -138,14 +139,14 @@ fn test_fetch_aboutblank() {
     assert_eq!(fetch_response.response_type, ResponseType::Opaque);
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.headers.len(), 0);
-    let resp_body = fetch_response.body.lock().unwrap();
+    let resp_body = fetch_response.body.lock();
     assert_eq!(*resp_body, ResponseBody::Empty);
 
     // The underlying response behind the filter should
     // have a 0-byte body.
     let actual_response = fetch_response.actual_response();
     assert!(!actual_response.is_network_error());
-    let resp_body = actual_response.body.lock().unwrap();
+    let resp_body = actual_response.body.lock();
     assert_eq!(*resp_body, ResponseBody::Done(vec![]));
 }
 
@@ -187,7 +188,7 @@ fn test_fetch_blob() {
     let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
     let id = Uuid::new_v4();
-    context.filemanager.lock().unwrap().promote_memory(
+    context.filemanager.lock().promote_memory(
         id.clone(),
         blob_buf,
         true,
@@ -225,10 +226,7 @@ fn test_fetch_blob() {
     let content_length: ContentLength = fetch_response.headers.typed_get().unwrap();
     assert_eq!(content_length.0, bytes.len() as u64);
 
-    assert_eq!(
-        *fetch_response.body.lock().unwrap(),
-        ResponseBody::Receiving(vec![])
-    );
+    assert_eq!(*fetch_response.body.lock(), ResponseBody::Receiving(vec![]));
 }
 
 #[test]
@@ -253,7 +251,7 @@ fn test_file() {
 
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.headers.len(), 0);
-    let resp_body = fetch_response.body.lock().unwrap();
+    let resp_body = fetch_response.body.lock();
     assert_eq!(*resp_body, ResponseBody::Empty);
 
     // The underlying response behind the filter should
@@ -268,7 +266,7 @@ fn test_file() {
         .into();
     assert_eq!(content_type, mime::TEXT_CSS);
 
-    let resp_body = actual_response.body.lock().unwrap();
+    let resp_body = actual_response.body.lock();
     let file = fs::read(path).unwrap();
 
     match *resp_body {
@@ -365,7 +363,7 @@ fn test_cors_preflight_fetch() {
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.body.lock() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!(),
     };
@@ -438,11 +436,11 @@ fn test_cors_preflight_cache_fetch() {
     assert_eq!(true, cache.match_method(&wrapped_request2, Method::GET));
     assert_eq!(true, cache.match_method(&wrapped_request3, Method::GET));
 
-    match *fetch_response0.body.lock().unwrap() {
+    match *fetch_response0.body.lock() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!(),
     };
-    match *fetch_response1.body.lock().unwrap() {
+    match *fetch_response1.body.lock() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!(),
     };
@@ -640,7 +638,7 @@ fn test_fetch_response_is_opaque_filtered() {
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_error());
     assert_eq!(fetch_response.headers, HeaderMap::new());
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.body.lock() {
         ResponseBody::Empty => {},
         _ => panic!(),
     }
@@ -690,7 +688,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_error());
     assert_eq!(fetch_response.headers, HeaderMap::new());
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.body.lock() {
         ResponseBody::Empty => {},
         _ => panic!(),
     }
@@ -781,7 +779,7 @@ fn test_fetch_with_hsts() {
     }
 
     {
-        let mut list = context.state.hsts_list.write().unwrap();
+        let mut list = context.state.hsts_list.write();
         list.push(
             HstsEntry::new("localhost".to_owned(), IncludeSubdomains::NotIncluded, None).unwrap(),
         );
@@ -870,7 +868,6 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
             .state
             .hsts_list
             .read()
-            .unwrap()
             .is_host_secure(url.host_str().unwrap())
     );
 }
@@ -1094,7 +1091,7 @@ fn test_fetch_redirect_count_ceiling() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.body.lock() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
@@ -1112,7 +1109,7 @@ fn test_fetch_redirect_count_failure() {
 
     assert!(fetch_response.is_network_error());
 
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.body.lock() {
         ResponseBody::Done(_) | ResponseBody::Receiving(_) => panic!(),
         _ => {},
     };
@@ -1226,14 +1223,14 @@ fn test_fetch_redirect_updates_method() {
 fn response_is_done(response: &Response) -> bool {
     let response_complete = match response.response_type {
         ResponseType::Default | ResponseType::Basic | ResponseType::Cors => {
-            (*response.body.lock().unwrap()).is_done()
+            (*response.body.lock()).is_done()
         },
         // if the internal response cannot have a body, it shouldn't block the "done" state
         ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error(..) => true,
     };
 
     let internal_complete = if let Some(ref res) = response.internal_response {
-        res.body.lock().unwrap().is_done()
+        res.body.lock().is_done()
     } else {
         true
     };
@@ -1574,7 +1571,7 @@ fn test_fetch_request_intercepted() {
         "The custom header does not exist or has an incorrect value!"
     );
 
-    let body = response.body.lock().unwrap();
+    let body = response.body.lock();
     match &*body {
         ResponseBody::Done(data) => {
             assert_eq!(data, &EXPECTED_BODY, "Body content does not match");

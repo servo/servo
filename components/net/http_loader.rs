@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
-use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
+use std::sync::Arc as StdArc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
@@ -59,6 +59,7 @@ use net_traits::{
     RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
     ResourceTimeValue,
 };
+use parking_lot::{Condvar, Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use rustc_hash::FxHashMap;
@@ -118,12 +119,12 @@ impl HttpState {
             Report {
                 path: path!["memory-cache", suffix],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self.http_cache.read().unwrap().size_of(ops),
+                size: self.http_cache.read().size_of(ops),
             },
             Report {
                 path: path!["hsts-list", suffix],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self.hsts_list.read().unwrap().size_of(ops),
+                size: self.hsts_list.read().size_of(ops),
             },
         ]
     }
@@ -142,7 +143,7 @@ impl HttpState {
             return None;
         }
 
-        let embedder_proxy = self.embedder_proxy.lock().unwrap();
+        let embedder_proxy = self.embedder_proxy.lock();
         let (ipc_sender, ipc_receiver) = generic_channel::channel().unwrap();
         embedder_proxy.send(EmbedderMsg::RequestAuthentication(
             webview_id,
@@ -367,7 +368,7 @@ fn set_request_cookies(
     headers: &mut HeaderMap,
     cookie_jar: &RwLock<CookieStorage>,
 ) {
-    let mut cookie_jar = cookie_jar.write().unwrap();
+    let mut cookie_jar = cookie_jar.write();
     cookie_jar.remove_expired_cookies_for_url(url);
     if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) {
         headers.insert(
@@ -378,7 +379,7 @@ fn set_request_cookies(
 }
 
 fn set_cookie_for_url(cookie_jar: &RwLock<CookieStorage>, request: &ServoUrl, cookie_val: &str) {
-    let mut cookie_jar = cookie_jar.write().unwrap();
+    let mut cookie_jar = cookie_jar.write();
     let source = CookieSource::HTTP;
 
     if let Some(cookie) = ServoCookie::from_cookie_string(cookie_val, request, source) {
@@ -508,7 +509,6 @@ pub fn send_response_values_to_devtools(
 
         let _ = devtools_chan
             .lock()
-            .unwrap()
             .send(DevtoolsControlMsg::FromChrome(msg));
     }
 }
@@ -544,7 +544,7 @@ pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchCont
             NetworkEvent::HttpRequest(devtools_request),
         );
 
-        send_request_to_devtools(msg, &devtools_chan.lock().unwrap());
+        send_request_to_devtools(msg, &devtools_chan.lock());
     }
 }
 
@@ -552,12 +552,7 @@ fn auth_from_cache(
     auth_cache: &RwLock<AuthCache>,
     origin: &ImmutableOrigin,
 ) -> Option<Authorization<Basic>> {
-    if let Some(auth_entry) = auth_cache
-        .read()
-        .unwrap()
-        .entries
-        .get(&origin.ascii_serialization())
-    {
+    if let Some(auth_entry) = auth_cache.read().entries.get(&origin.ascii_serialization()) {
         let user_name = &auth_entry.user_name;
         let password = &auth_entry.password;
         Some(Authorization::basic(user_name, password))
@@ -674,7 +669,8 @@ async fn obtain_response(
 
             let (body_chan, body_port) = ipc::channel().unwrap();
 
-            if let Ok(requester) = chunk_requester.lock() {
+            {
+                let requester = chunk_requester.lock();
                 let _ = requester.send(BodyChunkRequest::Connect(body_chan));
 
                 // https://fetch.spec.whatwg.org/#concept-request-transmit-body
@@ -709,7 +705,7 @@ async fn obtain_response(
                         },
                     };
 
-                    devtools_bytes.lock().unwrap().extend_from_slice(&bytes);
+                    devtools_bytes.lock().extend_from_slice(&bytes);
 
                     // Step 5.1.2.2, transmit chunk over the network,
                     // currently implemented by sending the bytes to the fetch worker.
@@ -717,10 +713,7 @@ async fn obtain_response(
 
                     // Step 5.1.2.3
                     // Request the next chunk.
-                    let _ = chunk_requester2
-                        .lock()
-                        .unwrap()
-                        .send(BodyChunkRequest::Chunk);
+                    let _ = chunk_requester2.lock().send(BodyChunkRequest::Chunk);
                 }),
             );
 
@@ -762,7 +755,6 @@ async fn obtain_response(
         context
             .timing
             .lock()
-            .unwrap()
             .set_attribute(ResourceAttribute::DomainLookupStart);
 
         // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
@@ -771,7 +763,6 @@ async fn obtain_response(
         context
             .timing
             .lock()
-            .unwrap()
             .set_attribute(ResourceAttribute::ConnectStart(connect_start));
 
         // TODO: We currently don't know when the handhhake before the connection is done
@@ -781,7 +772,6 @@ async fn obtain_response(
             context
                 .timing
                 .lock()
-                .unwrap()
                 .set_attribute(ResourceAttribute::SecureConnectionStart);
         }
 
@@ -795,7 +785,6 @@ async fn obtain_response(
         context
             .timing
             .lock()
-            .unwrap()
             .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
         let request_id = request_id.map(|v| v.to_owned());
@@ -824,7 +813,7 @@ async fn obtain_response(
                                 closure_url,
                                 method.clone(),
                                 headers,
-                                Some(devtools_bytes.lock().unwrap().clone()),
+                                Some(devtools_bytes.lock().clone()),
                                 pipeline_id,
                                 (connect_end - connect_start).unsigned_abs(),
                                 (send_end - send_start).unsigned_abs(),
@@ -949,7 +938,6 @@ pub async fn http_fetch(
         context
             .timing
             .lock()
-            .unwrap()
             .set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
@@ -1040,7 +1028,6 @@ pub async fn http_fetch(
     context
         .timing
         .lock()
-        .unwrap()
         .set_attribute(ResourceAttribute::RedirectCount(
             fetch_params.request.redirect_count as u16,
         ));
@@ -1066,7 +1053,6 @@ impl Drop for RedirectEndTimer {
 
         resource_fetch_timing_opt.as_ref().map_or((), |t| {
             t.lock()
-                .unwrap()
                 .set_attribute(ResourceAttribute::RedirectEnd(RedirectEndValue::Zero));
         })
     }
@@ -1114,7 +1100,6 @@ pub async fn http_redirect_fetch(
     context
         .timing
         .lock()
-        .unwrap()
         .set_attribute(ResourceAttribute::RedirectStart(
             RedirectStartValue::FetchStart,
         ));
@@ -1122,20 +1107,17 @@ pub async fn http_redirect_fetch(
     context
         .timing
         .lock()
-        .unwrap()
         .set_attribute(ResourceAttribute::FetchStart);
 
     // start_time should equal redirect_start if nonzero; else fetch_start
     context
         .timing
         .lock()
-        .unwrap()
         .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
 
     context
         .timing
         .lock()
-        .unwrap()
         .set_attribute(ResourceAttribute::StartTime(
             ResourceTimeValue::RedirectStart,
         )); // updates start_time only if redirect_start is nonzero (implying TAO)
@@ -1252,7 +1234,6 @@ pub async fn http_redirect_fetch(
     context
         .timing
         .lock()
-        .unwrap()
         .set_attribute(ResourceAttribute::RedirectEnd(
             RedirectEndValue::ResponseEnd,
         ));
@@ -1534,17 +1515,17 @@ async fn http_network_or_cache_fetch(
         // inclusive, invalidate appropriate stored responses in httpCache, as per the
         // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
         if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
-            if let Ok(mut http_cache) = context.state.http_cache.write() {
-                http_cache.invalidate(http_request, &forward_response);
-            }
+            let mut http_cache = context.state.http_cache.write();
+            http_cache.invalidate(http_request, &forward_response);
         }
 
         // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
         if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
-            if let Ok(mut http_cache) = context.state.http_cache.write() {
-                // Ensure done_chan is None,
-                // since the network response will be replaced by the revalidated stored one.
-                *done_chan = None;
+            // Ensure done_chan is None,
+            // since the network response will be replaced by the revalidated stored one.
+            *done_chan = None;
+            {
+                let mut http_cache = context.state.http_cache.write();
                 response = http_cache.refresh(http_request, forward_response.clone(), done_chan);
             }
             wait_for_cached_response(done_chan, &mut response).await;
@@ -1563,9 +1544,8 @@ async fn http_network_or_cache_fetch(
             if http_request.cache_mode != CacheMode::NoStore {
                 // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
                 //             "Storing Responses in Caches" chapter of HTTP Caching.
-                if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.store(http_request, forward_response);
-                }
+                let mut http_cache = context.state.http_cache.write();
+                http_cache.store(http_request, forward_response);
             }
         }
     }
@@ -1681,7 +1661,7 @@ async fn http_network_or_cache_fetch(
             password: credentials.password,
         };
         {
-            let mut auth_cache = context.state.auth_cache.write().unwrap();
+            let mut auth_cache = context.state.auth_cache.write();
             let key = request.current_url().origin().ascii_serialization();
             auth_cache.entries.insert(key, entry);
         }
@@ -1733,7 +1713,7 @@ fn block_for_cache_ready(
 ) {
     let (lock, cvar) = {
         let entry_key = CacheKey::new(http_request);
-        let mut state_map = context.state.http_cache_state.lock().unwrap();
+        let mut state_map = context.state.http_cache_state.lock();
         &*state_map
             .entry(entry_key)
             .or_insert_with(|| {
@@ -1746,12 +1726,9 @@ fn block_for_cache_ready(
     };
 
     // Start of critical section on http-cache state.
-    let mut state = lock.lock().unwrap();
+    let mut state = lock.lock();
     while let HttpCacheEntryState::PendingStore(_) = *state {
-        let (current_state, time_out) = cvar
-            .wait_timeout(state, Duration::from_millis(500))
-            .unwrap();
-        state = current_state;
+        let time_out = cvar.wait_for(&mut state, Duration::from_millis(500));
         if time_out.timed_out() {
             // After a timeout, ignore the pending store.
             break;
@@ -1760,68 +1737,68 @@ fn block_for_cache_ready(
 
     // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
     // HTTP cache partition, given httpRequest.
-    if let Ok(http_cache) = context.state.http_cache.read() {
-        // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
-        //              possibly needing validation, as per the "Constructing Responses from Caches"
-        //              chapter of HTTP Caching, if any.
-        let stored_response = http_cache.construct_response(http_request, done_chan);
+    let http_cache = context.state.http_cache.read();
+    // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
+    //              possibly needing validation, as per the "Constructing Responses from Caches"
+    //              chapter of HTTP Caching, if any.
+    let stored_response = http_cache.construct_response(http_request, done_chan);
 
-        // Step 8.25.2 If storedResponse is non-null, then:
-        if let Some(response_from_cache) = stored_response {
-            let response_headers = response_from_cache.response.headers.clone();
-            // Substep 1, 2, 3, 4
-            let (cached_response, needs_revalidation) =
-                match (http_request.cache_mode, &http_request.mode) {
-                    (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
-                    (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
-                        (Some(response_from_cache.response), false)
-                    },
-                    (CacheMode::OnlyIfCached, _) |
-                    (CacheMode::NoStore, _) |
-                    (CacheMode::Reload, _) => (None, false),
-                    (_, _) => (
-                        Some(response_from_cache.response),
-                        response_from_cache.needs_validation,
-                    ),
-                };
+    // Step 8.25.2 If storedResponse is non-null, then:
+    if let Some(response_from_cache) = stored_response {
+        let response_headers = response_from_cache.response.headers.clone();
+        // Substep 1, 2, 3, 4
+        let (cached_response, needs_revalidation) =
+            match (http_request.cache_mode, &http_request.mode) {
+                (CacheMode::ForceCache, _) => (Some(response_from_cache.response), false),
+                (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
+                    (Some(response_from_cache.response), false)
+                },
+                (CacheMode::OnlyIfCached, _) | (CacheMode::NoStore, _) | (CacheMode::Reload, _) => {
+                    (None, false)
+                },
+                (_, _) => (
+                    Some(response_from_cache.response),
+                    response_from_cache.needs_validation,
+                ),
+            };
 
-            if needs_revalidation {
-                *revalidating_flag = true;
-                // Substep 5
-                if let Some(http_date) = response_headers.typed_get::<LastModified>() {
-                    let http_date: SystemTime = http_date.into();
-                    http_request
-                        .headers
-                        .typed_insert(IfModifiedSince::from(http_date));
-                }
-                if let Some(entity_tag) = response_headers.get(header::ETAG) {
-                    http_request
-                        .headers
-                        .insert(header::IF_NONE_MATCH, entity_tag.clone());
-                }
-            } else {
-                // Substep 6
-                *response = cached_response;
-                if let Some(response) = response {
-                    response.cache_state = CacheState::Local;
-                }
+        if needs_revalidation {
+            *revalidating_flag = true;
+            // Substep 5
+            if let Some(http_date) = response_headers.typed_get::<LastModified>() {
+                let http_date: SystemTime = http_date.into();
+                http_request
+                    .headers
+                    .typed_insert(IfModifiedSince::from(http_date));
             }
-            if response.is_none() {
-                // Ensure the done chan is not set if we're not using the cached response,
-                // as the cache might have set it to Some if it constructed a pending response.
-                *done_chan = None;
+            if let Some(entity_tag) = response_headers.get(header::ETAG) {
+                http_request
+                    .headers
+                    .insert(header::IF_NONE_MATCH, entity_tag.clone());
+            }
+        } else {
+            // Substep 6
+            *response = cached_response;
+            if let Some(response) = response {
+                response.cache_state = CacheState::Local;
+            }
+        }
+        if response.is_none() {
+            // Ensure the done chan is not set if we're not using the cached response,
+            // as the cache might have set it to Some if it constructed a pending response.
+            *done_chan = None;
 
-                // Update the cache state, incrementing the pending store count,
-                // or starting the count.
-                if let HttpCacheEntryState::PendingStore(i) = *state {
-                    let new = i + 1;
-                    *state = HttpCacheEntryState::PendingStore(new);
-                } else {
-                    *state = HttpCacheEntryState::PendingStore(1);
-                }
+            // Update the cache state, incrementing the pending store count,
+            // or starting the count.
+            if let HttpCacheEntryState::PendingStore(i) = *state {
+                let new = i + 1;
+                *state = HttpCacheEntryState::PendingStore(new);
+            } else {
+                *state = HttpCacheEntryState::PendingStore(1);
             }
         }
     }
+
     // Notify the next thread waiting in line, if there is any.
     if *state == HttpCacheEntryState::ReadyToConstruct {
         cvar.notify_one();
@@ -1836,13 +1813,13 @@ fn block_for_cache_ready(
 fn update_http_cache_state(context: &FetchContext, http_request: &Request) {
     let (lock, cvar) = {
         let entry_key = CacheKey::new(http_request);
-        let mut state_map = context.state.http_cache_state.lock().unwrap();
+        let mut state_map = context.state.http_cache_state.lock();
         &*state_map
             .get_mut(&entry_key)
             .expect("Entry in http-cache state to have been previously inserted")
             .clone()
     };
-    let mut state = lock.lock().unwrap();
+    let mut state = lock.lock();
     if let HttpCacheEntryState::PendingStore(i) = *state {
         let new = i - 1;
         if new == 0 {
@@ -1959,9 +1936,7 @@ impl Drop for ResponseEndTimer {
         let ResponseEndTimer(resource_fetch_timing_opt) = self;
 
         resource_fetch_timing_opt.as_ref().map_or((), |t| {
-            t.lock()
-                .unwrap()
-                .set_attribute(ResourceAttribute::ResponseEnd);
+            t.lock().set_attribute(ResourceAttribute::ResponseEnd);
         })
     }
 }
@@ -2025,7 +2000,7 @@ async fn http_network_fetch(
             // https://fetch.spec.whatwg.org/#websocket-opening-handshake
 
             let (resource_event_sender, dom_action_receiver) = {
-                let mut websocket_chan = context.websocket_chan.as_ref().unwrap().lock().unwrap();
+                let mut websocket_chan = context.websocket_chan.as_ref().unwrap().lock();
                 (
                     websocket_chan.sender.clone(),
                     websocket_chan.receiver.take().unwrap(),
@@ -2136,10 +2111,10 @@ async fn http_network_fetch(
     });
 
     if !(is_same_origin || req_origin_in_timing_allow || wildcard_present) {
-        context.timing.lock().unwrap().mark_timing_check_failed();
+        context.timing.lock().mark_timing_check_failed();
     }
 
-    let timing = context.timing.lock().unwrap().clone();
+    let timing = context.timing.lock().clone();
     let mut response = Response::new(url.clone(), timing);
 
     let status_text = res
@@ -2168,11 +2143,11 @@ async fn http_network_fetch(
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
     }
 
-    *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+    *res_body.lock() = ResponseBody::Receiving(vec![]);
     let res_body2 = res_body.clone();
 
     if let Some(ref sender) = devtools_sender {
-        let sender = sender.lock().unwrap();
+        let sender = sender.lock();
         if let Some(m) = msg {
             send_request_to_devtools(m, &sender);
         }
@@ -2197,11 +2172,11 @@ async fn http_network_fetch(
             })
             .try_fold(res_body, move |res_body, chunk| {
                 if cancellation_listener.cancelled() {
-                    *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
+                    *res_body.lock() = ResponseBody::Done(vec![]);
                     let _ = done_sender.send(Data::Cancelled);
                     return future::ready(Err(()));
                 }
-                if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
+                if let ResponseBody::Receiving(ref mut body) = *res_body.lock() {
                     let bytes = chunk;
                     body.extend_from_slice(&bytes);
                     let _ = done_sender.send(Data::Payload(bytes.to_vec()));
@@ -2210,7 +2185,7 @@ async fn http_network_fetch(
             })
             .and_then(move |res_body| {
                 debug!("successfully finished response for {:?}", url1);
-                let mut body = res_body.lock().unwrap();
+                let mut body = res_body.lock();
                 let completed_body = match *body {
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
@@ -2227,14 +2202,13 @@ async fn http_network_fetch(
                 );
                 timing_ptr2
                     .lock()
-                    .unwrap()
                     .set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender2.send(Data::Done);
                 future::ready(Ok(()))
             })
             .map_err(move |_| {
                 debug!("finished response for {:?}", url2);
-                let mut body = res_body2.lock().unwrap();
+                let mut body = res_body2.lock();
                 let completed_body = match *body {
                     ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
@@ -2242,7 +2216,6 @@ async fn http_network_fetch(
                 *body = ResponseBody::Done(completed_body);
                 timing_ptr3
                     .lock()
-                    .unwrap()
                     .set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender3.send(Data::Done);
             }),
@@ -2277,7 +2250,6 @@ async fn http_network_fetch(
         .state
         .hsts_list
         .write()
-        .unwrap()
         .update_hsts_list_from_response(&url, &response.headers);
 
     // TODO these steps

@@ -9,7 +9,6 @@
 
 use std::collections::HashMap;
 use std::ops::Bound;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
@@ -25,6 +24,7 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
+use parking_lot::Mutex;
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -286,15 +286,11 @@ fn create_cached_response(
     let mut response = Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
-    if let ResponseBody::Receiving(_) = *cached_resource.body.lock().unwrap() {
+    if let ResponseBody::Receiving(_) = *cached_resource.body.lock() {
         debug!("existing body is in progress");
         let (done_sender, done_receiver) = unbounded();
         *done_chan = Some((done_sender.clone(), done_receiver));
-        cached_resource
-            .awaiting_body
-            .lock()
-            .unwrap()
-            .push(done_sender);
+        cached_resource.awaiting_body.lock().push(done_sender);
     }
     response
         .location_url
@@ -364,7 +360,7 @@ fn handle_range_request(
         // see <https://tools.ietf.org/html/rfc7233#section-4.3>.
         // TODO: add support for complete and partial resources,
         // whose body is in the ResponseBody::Receiving state.
-        let body_len = match *complete_resource.body.lock().unwrap() {
+        let body_len = match *complete_resource.body.lock() {
             ResponseBody::Done(ref body) => body.len(),
             _ => 0,
         };
@@ -374,7 +370,7 @@ fn handle_range_request(
             .unwrap();
         match bound {
             (Bound::Included(beginning), Bound::Included(end)) => {
-                if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
+                if let ResponseBody::Done(ref body) = *complete_resource.body.lock() {
                     if end == u64::MAX {
                         // Prevent overflow on the addition below.
                         return None;
@@ -385,7 +381,7 @@ fn handle_range_request(
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
-                        let cached_headers = new_resource.metadata.headers.lock().unwrap();
+                        let cached_headers = new_resource.metadata.headers.lock();
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
@@ -399,13 +395,13 @@ fn handle_range_request(
                 }
             },
             (Bound::Included(beginning), Bound::Unbounded) => {
-                if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
+                if let ResponseBody::Done(ref body) = *complete_resource.body.lock() {
                     let b = beginning as usize;
                     let requested = body.get(b..);
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
-                        let cached_headers = new_resource.metadata.headers.lock().unwrap();
+                        let cached_headers = new_resource.metadata.headers.lock();
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
@@ -422,7 +418,7 @@ fn handle_range_request(
         }
     } else {
         for partial_resource in partial_cached_resources {
-            let headers = partial_resource.metadata.headers.lock().unwrap();
+            let headers = partial_resource.metadata.headers.lock();
             let content_range = headers.typed_get::<ContentRange>();
 
             let Some(body_len) = content_range.as_ref().and_then(|range| range.bytes_len()) else {
@@ -441,7 +437,7 @@ fn handle_range_request(
                         _ => continue,
                     };
                     if res_beginning <= beginning && res_end >= end {
-                        let resource_body = &*partial_resource.body.lock().unwrap();
+                        let resource_body = &*partial_resource.body.lock();
                         let requested = match resource_body {
                             ResponseBody::Done(body) => {
                                 let b = beginning as usize - res_beginning as usize;
@@ -478,7 +474,7 @@ fn handle_range_request(
                         continue;
                     };
                     if res_beginning <= beginning && res_end == total - 1 {
-                        let resource_body = &*partial_resource.body.lock().unwrap();
+                        let resource_body = &*partial_resource.body.lock();
                         let requested = match resource_body {
                             ResponseBody::Done(body) => {
                                 let from_byte = beginning as usize - res_beginning as usize;
@@ -534,8 +530,8 @@ impl HttpCache {
         let mut candidates = vec![];
         for cached_resource in resources {
             let mut can_be_constructed = true;
-            let cached_headers = cached_resource.metadata.headers.lock().unwrap();
-            let original_request_headers = cached_resource.request_headers.lock().unwrap();
+            let cached_headers = cached_resource.metadata.headers.lock();
+            let original_request_headers = cached_resource.request_headers.lock();
             if let Some(vary_value) = cached_headers.typed_get::<Vary>() {
                 if vary_value.is_any() {
                     debug!("vary value is any, not caching");
@@ -607,7 +603,7 @@ impl HttpCache {
             // Returning a response that can be constructed
             // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
             // or using the Date header to return the most recent one.
-            let cached_headers = cached_resource.metadata.headers.lock().unwrap();
+            let cached_headers = cached_resource.metadata.headers.lock();
             let cached_response =
                 create_cached_response(request, cached_resource, &cached_headers, done_chan);
             if let Some(cached_response) = cached_response {
@@ -636,13 +632,13 @@ impl HttpCache {
         // ie we don't want to wake-up 200 awaiting consumers with a 206.
         let relevant_cached_resources = cached_resources.iter().filter(|resource| {
             if actual_response.is_network_error() {
-                return *resource.body.lock().unwrap() == ResponseBody::Empty;
+                return *resource.body.lock() == ResponseBody::Empty;
             }
             resource.status == actual_response.status
         });
 
         for cached_resource in relevant_cached_resources {
-            let mut awaiting_consumers = cached_resource.awaiting_body.lock().unwrap();
+            let mut awaiting_consumers = cached_resource.awaiting_body.lock();
             if awaiting_consumers.is_empty() {
                 continue;
             }
@@ -653,7 +649,7 @@ impl HttpCache {
                 // TODO: Wake-up only one consumer, and make it the producer on which others wait.
                 Data::Cancelled
             } else {
-                match *cached_resource.body.lock().unwrap() {
+                match *cached_resource.body.lock() {
                     ResponseBody::Done(_) | ResponseBody::Empty => Data::Done,
                     ResponseBody::Receiving(_) => {
                         continue;
@@ -688,18 +684,14 @@ impl HttpCache {
                     // If the body is not receiving data, set the done_chan back to None.
                     // Otherwise, create a new dedicated channel to update the consumer.
                     // The response constructed here will replace the 304 one from the network.
-                    let in_progress_channel = match &*cached_resource.body.lock().unwrap() {
+                    let in_progress_channel = match &*cached_resource.body.lock() {
                         ResponseBody::Receiving(..) => Some(unbounded()),
                         ResponseBody::Empty | ResponseBody::Done(..) => None,
                     };
                     match in_progress_channel {
                         Some((done_sender, done_receiver)) => {
                             *done_chan = Some((done_sender.clone(), done_receiver));
-                            cached_resource
-                                .awaiting_body
-                                .lock()
-                                .unwrap()
-                                .push(done_sender);
+                            cached_resource.awaiting_body.lock().push(done_sender);
                         },
                         None => *done_chan = None,
                     }
@@ -729,7 +721,7 @@ impl HttpCache {
                 // Update cached Resource with response and constructed response.
                 if let Some(constructed_response) = constructed_response.as_mut() {
                     cached_resource.expires = get_response_expiry(constructed_response);
-                    let mut stored_headers = cached_resource.metadata.headers.lock().unwrap();
+                    let mut stored_headers = cached_resource.metadata.headers.lock();
                     stored_headers.extend(response.headers);
                     constructed_response.headers = stored_headers.clone();
                 }

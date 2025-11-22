@@ -8,7 +8,9 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::net::{IpAddr, Ipv4Addr};
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
+
+use parking_lot::Mutex;
 
 static HOST_TABLE: LazyLock<Mutex<Option<HashMap<String, IpAddr>>>> =
     LazyLock::new(|| Mutex::new(create_host_table()));
@@ -26,7 +28,7 @@ fn create_host_table() -> Option<HashMap<String, IpAddr>> {
 }
 
 pub fn replace_host_table(table: HashMap<String, IpAddr>) {
-    *HOST_TABLE.lock().unwrap() = Some(table);
+    *HOST_TABLE.lock() = Some(table);
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
@@ -52,7 +54,6 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
 pub fn replace_host(host: &str) -> Cow<'_, str> {
     HOST_TABLE
         .lock()
-        .unwrap()
         .as_ref()
         .and_then(|table| table.get(host))
         .map_or(host.into(), |replaced_host| {

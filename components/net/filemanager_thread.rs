@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, RwLock, Weak};
+use std::sync::{Arc, Weak};
 
 use base::generic_channel;
 use base::threadpool::ThreadPool;
@@ -27,6 +27,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
+use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
@@ -205,14 +206,14 @@ impl FileManager {
                 pool.spawn(move || {
                     loop {
                         if cancellation_listener.cancelled() {
-                            *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
+                            *res_body.lock() = ResponseBody::Done(vec![]);
                             let _ = done_sender.send(Data::Cancelled);
                             return;
                         }
                         let length = {
                             let buffer = reader.fill_buf().unwrap().to_vec();
                             let mut buffer_len = buffer.len();
-                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap()
+                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock()
                             {
                                 let offset = usize::min(
                                     {
@@ -244,7 +245,7 @@ impl FileManager {
                             buffer_len
                         };
                         if length == 0 {
-                            let mut body = res_body.lock().unwrap();
+                            let mut body = res_body.lock();
                             let completed_body = match *body {
                                 ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                                 _ => vec![],
@@ -426,7 +427,7 @@ impl FileManagerStore {
         file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
     ) -> Result<FileImpl, BlobURLStoreError> {
-        match self.entries.read().unwrap().get(id) {
+        match self.entries.read().get(id) {
             Some(entry) => {
                 if *origin_in != *entry.origin {
                     Err(BlobURLStoreError::InvalidOrigin)
@@ -449,7 +450,7 @@ impl FileManagerStore {
 
     pub fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
         if let FileTokenCheck::Required(token) = token {
-            let mut entries = self.entries.write().unwrap();
+            let mut entries = self.entries.write();
             if let Some(entry) = entries.get_mut(file_id) {
                 entry.outstanding_tokens.remove(token);
 
@@ -473,7 +474,7 @@ impl FileManagerStore {
     }
 
     pub fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
-        let mut entries = self.entries.write().unwrap();
+        let mut entries = self.entries.write();
         let parent_id = match entries.get(file_id) {
             Some(entry) => {
                 if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
@@ -500,15 +501,15 @@ impl FileManagerStore {
     }
 
     fn insert(&self, id: Uuid, entry: FileStoreEntry) {
-        self.entries.write().unwrap().insert(id, entry);
+        self.entries.write().insert(id, entry);
     }
 
     fn remove(&self, id: &Uuid) {
-        self.entries.write().unwrap().remove(id);
+        self.entries.write().remove(id);
     }
 
     fn inc_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
-        match self.entries.read().unwrap().get(id) {
+        match self.entries.read().get(id) {
             Some(entry) => {
                 if entry.origin == *origin_in {
                     entry.refs.fetch_add(1, Ordering::Relaxed);
@@ -755,7 +756,7 @@ impl FileManagerStore {
     }
 
     fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
-        let (do_remove, opt_parent_id) = match self.entries.read().unwrap().get(id) {
+        let (do_remove, opt_parent_id) = match self.entries.read().get(id) {
             Some(entry) => {
                 if *entry.origin == *origin_in {
                     let old_refs = entry.refs.fetch_sub(1, Ordering::Release);
@@ -824,7 +825,7 @@ impl FileManagerStore {
         id: &Uuid,
         origin_in: &FileOrigin,
     ) -> Result<(), BlobURLStoreError> {
-        let (do_remove, opt_parent_id, res) = match self.entries.read().unwrap().get(id) {
+        let (do_remove, opt_parent_id, res) = match self.entries.read().get(id) {
             Some(entry) => {
                 if *entry.origin == *origin_in {
                     entry.is_valid_url.store(validity, Ordering::Release);

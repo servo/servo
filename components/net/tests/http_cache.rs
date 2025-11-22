@@ -32,7 +32,7 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         .insert(EXPIRES, HeaderValue::from_str("-10").unwrap());
     let mut cache = HttpCache::default();
     response_bodies.iter().for_each(|body| {
-        *response.body.lock().unwrap() = body.clone();
+        *response.body.lock() = body.clone();
         // First, store the 'normal' response.
         cache.store(&request, &response);
         // Second, mutate the response into a 304 response, and refresh the stored one.

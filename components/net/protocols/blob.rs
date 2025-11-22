@@ -60,9 +60,9 @@ impl ProtocolHandler for BlobProtocolHander {
 
         let (mut done_sender, done_receiver) = unbounded_channel();
         *done_chan = Some((done_sender.clone(), done_receiver));
-        *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+        *response.body.lock() = ResponseBody::Receiving(vec![]);
 
-        if let Err(err) = context.filemanager.lock().unwrap().fetch_file(
+        if let Err(err) = context.filemanager.lock().fetch_file(
             &mut done_sender,
             context.cancellation_listener.clone(),
             id,

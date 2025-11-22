@@ -4,11 +4,11 @@
 
 use std::iter::Filter;
 use std::str::Split;
-use std::sync::MutexGuard;
 
 use base64::Engine;
 use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
+use parking_lot::MutexGuard;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 const SUPPORTED_ALGORITHM: &[&str] = &["sha256", "sha384", "sha512"];
@@ -155,7 +155,7 @@ pub fn is_response_integrity_valid(integrity_metadata: &str, response: &Response
     // Step 5
     let metadata: Vec<SriEntry> = get_strongest_metadata(parsed_metadata_list);
     for item in metadata {
-        let body = response.body.lock().unwrap();
+        let body = response.body.lock();
         let algorithm = item.alg;
         let digest = item.val;
 

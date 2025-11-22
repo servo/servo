@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, RwLock, Weak};
+use std::sync::{Arc, Weak};
 use std::thread;
 
 use base::id::CookieStoreId;
@@ -32,6 +32,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
     WebSocketNetworkEvent,
 };
+use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
     perform_memory_report,
@@ -400,18 +401,13 @@ impl ResourceChannelManager {
                 }
             },
             CoreResourceMsg::DeleteCookies(request) => {
-                http_state
-                    .cookie_jar
-                    .write()
-                    .unwrap()
-                    .clear_storage(&request);
+                http_state.cookie_jar.write().clear_storage(&request);
                 return true;
             },
             CoreResourceMsg::DeleteCookie(request, name) => {
                 http_state
                     .cookie_jar
                     .write()
-                    .unwrap()
                     .delete_cookie_with_name(&request, name);
                 return true;
             },
@@ -419,7 +415,6 @@ impl ResourceChannelManager {
                 http_state
                     .cookie_jar
                     .write()
-                    .unwrap()
                     .delete_cookie_with_name(&url, name);
                 self.send_cookie_response(cookie_store_id, CookieData::Delete(Ok(())));
             },
@@ -458,14 +453,14 @@ impl ResourceChannelManager {
                 self.send_cookie_response(cookie_store_id, CookieData::Set(Ok(())));
             },
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
-                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 consumer
                     .send(cookie_jar.cookies_for_url(&url, source))
                     .unwrap();
             },
             CoreResourceMsg::GetCookieDataForUrlAsync(cookie_store_id, url, name) => {
-                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 let cookie = cookie_jar
                     .query_cookies(&url, name)
@@ -475,7 +470,7 @@ impl ResourceChannelManager {
                 self.send_cookie_response(cookie_store_id, CookieData::Get(cookie));
             },
             CoreResourceMsg::GetAllCookieDataForUrlAsync(cookie_store_id, url, name) => {
-                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 let cookies = cookie_jar
                     .query_cookies(&url, name)
@@ -497,7 +492,7 @@ impl ResourceChannelManager {
                     .insert(origin, mediator_chan);
             },
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
-                let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+                let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 let cookies = cookie_jar
                     .cookies_data_for_url(&url, source)
@@ -506,41 +501,33 @@ impl ResourceChannelManager {
                 consumer.send(cookies).unwrap();
             },
             CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
-                let history_states = http_state.history_states.read().unwrap();
+                let history_states = http_state.history_states.read();
                 consumer
                     .send(history_states.get(&history_state_id).cloned())
                     .unwrap();
             },
             CoreResourceMsg::SetHistoryState(history_state_id, structured_data) => {
-                let mut history_states = http_state.history_states.write().unwrap();
+                let mut history_states = http_state.history_states.write();
                 history_states.insert(history_state_id, structured_data);
             },
             CoreResourceMsg::RemoveHistoryStates(states_to_remove) => {
-                let mut history_states = http_state.history_states.write().unwrap();
+                let mut history_states = http_state.history_states.write();
                 for history_state in states_to_remove {
                     history_states.remove(&history_state);
                 }
             },
             CoreResourceMsg::ClearCache => {
-                http_state.http_cache.write().unwrap().clear();
+                http_state.http_cache.write().clear();
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
-                    match http_state.auth_cache.read() {
-                        Ok(auth_cache) => {
-                            base::write_json_to_file(&*auth_cache, config_dir, "auth_cache.json")
-                        },
-                        Err(_) => warn!("Error writing auth cache to disk"),
-                    }
-                    match http_state.cookie_jar.read() {
-                        Ok(jar) => base::write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
-                        Err(_) => warn!("Error writing cookie jar to disk"),
-                    }
-                    match http_state.hsts_list.read() {
-                        Ok(hsts) => base::write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
-                        Err(_) => warn!("Error writing hsts list to disk"),
-                    }
+                    let auth_cache = http_state.auth_cache.read();
+                    base::write_json_to_file(&*auth_cache, config_dir, "auth_cache.json");
+                    let jar = http_state.cookie_jar.read();
+                    base::write_json_to_file(&*jar, config_dir, "cookie_jar.json");
+                    let hsts = http_state.hsts_list.read();
+                    base::write_json_to_file(&*hsts, config_dir, "hsts_list.json");
                 }
                 self.resource_manager.exit();
                 let _ = sender.send(());
@@ -625,7 +612,7 @@ impl CoreResourceManager {
         http_state: &Arc<HttpState>,
     ) {
         if let Some(cookie) = ServoCookie::new_wrapped(cookie, request, source) {
-            let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+            let mut cookie_jar = http_state.cookie_jar.write();
             cookie_jar.push(cookie, request, source)
         }
     }
@@ -722,7 +709,6 @@ impl CoreResourceManager {
                 context
                     .filemanager
                     .lock()
-                    .unwrap()
                     .invalidate_token(&context.file_token, id);
             }
         });

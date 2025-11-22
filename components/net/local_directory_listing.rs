@@ -46,7 +46,7 @@ pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Respons
 
     let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
     response.headers.typed_insert(ContentType::html());
-    *response.body.lock().unwrap() = ResponseBody::Done(output.into_bytes());
+    *response.body.lock() = ResponseBody::Done(output.into_bytes());
 
     response
 }

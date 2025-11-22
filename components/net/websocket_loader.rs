@@ -97,7 +97,7 @@ pub fn create_handshake_request(
         headers.insert("Sec-WebSocket-Protocol", HeaderValue::from_str(&protocols)?);
     }
 
-    let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+    let mut cookie_jar = http_state.cookie_jar.write();
     cookie_jar.remove_expired_cookies_for_url(&request.url);
     if let Some(cookie_list) = cookie_jar.cookies_for_url(&request.url, CookieSource::HTTP) {
         headers.insert("Cookie", HeaderValue::from_str(&cookie_list)?);
@@ -140,7 +140,7 @@ fn process_ws_response(
         protocol_in_use = Some(protocol_name.to_string());
     }
 
-    let mut jar = http_state.cookie_jar.write().unwrap();
+    let mut jar = http_state.cookie_jar.write();
     // TODO(eijebong): Replace thise once typed headers settled on a cookie impl
     for cookie in response.headers().get_all(header::SET_COOKIE) {
         let cookie_bytes = cookie.as_bytes();
@@ -159,7 +159,6 @@ fn process_ws_response(
     http_state
         .hsts_list
         .write()
-        .unwrap()
         .update_hsts_list_from_response(resource_url, response.headers());
 
     Ok(protocol_in_use)

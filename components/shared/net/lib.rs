@@ -364,7 +364,7 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         let payload = if let Some(network_error) = response.get_network_error() {
             Err(network_error.clone())
         } else {
-            Ok(response.get_resource_timing().lock().unwrap().clone())
+            Ok(response.get_resource_timing().lock().clone())
         };
 
         let _ = self.send(FetchResponseMsg::ProcessResponseEOF(request.id, payload));

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::{io, mem, str};
 
 use base64::Engine as _;
@@ -33,6 +33,7 @@ use net_traits::{
     ResourceTimeValue, ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
     set_default_accept_language,
 };
+use parking_lot::Mutex;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -114,7 +115,7 @@ pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext)
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
     {
-        let mut timing_guard = context.timing.lock().unwrap();
+        let mut timing_guard = context.timing.lock();
         timing_guard.set_attribute(ResourceAttribute::FetchStart);
         timing_guard.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
     }
@@ -443,7 +444,6 @@ pub async fn main_fetch(
         .state
         .hsts_list
         .read()
-        .unwrap()
         .apply_hsts_rules(request.current_url_mut());
 
     // Step 11.
@@ -456,7 +456,6 @@ pub async fn main_fetch(
     context
         .request_interceptor
         .lock()
-        .unwrap()
         .intercept_request(request, &mut response, context);
 
     let mut response = match response {
@@ -710,7 +709,7 @@ pub async fn main_fetch(
         {
             // when Fetch is used only asynchronously, we will need to make sure
             // that nothing tries to write to the body at this point
-            let mut body = internal_response.body.lock().unwrap();
+            let mut body = internal_response.body.lock();
             *body = ResponseBody::Empty;
         }
 
@@ -786,9 +785,8 @@ pub async fn main_fetch(
     // processed before sending the response to Devtools.
     send_response_to_devtools(request, context, &response, None);
 
-    if let Ok(http_cache) = context.state.http_cache.write() {
-        http_cache.update_awaiting_consumers(request, &response);
-    }
+    let http_cache = context.state.http_cache.write();
+    http_cache.update_awaiting_consumers(request, &response);
 
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used
@@ -826,7 +824,7 @@ async fn wait_for_response(
             }
         }
     } else {
-        match *response.actual_response().body.lock().unwrap() {
+        match *response.actual_response().body.lock() {
             ResponseBody::Done(ref vec) if !vec.is_empty() => {
                 // in case there was no channel to wait for, the body was
                 // obtained synchronously via scheme_fetch for data/file/about/etc
@@ -881,7 +879,7 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
     response
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-    *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
+    *response.body.lock() = ResponseBody::Done(vec![]);
     response.status = HttpStatus::default();
     response
 }
@@ -891,8 +889,7 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
     response
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-    *response.body.lock().unwrap() =
-        ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
+    *response.body.lock() = ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
     response.status = HttpStatus::default();
     response
 }
@@ -907,7 +904,7 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
     };
 
     let stream = body.take_stream();
-    let stream = stream.lock().unwrap();
+    let stream = stream.lock();
     let (body_chan, body_port) = ipc::channel().unwrap();
     let _ = stream.send(BodyChunkRequest::Connect(body_chan));
     let _ = stream.send(BodyChunkRequest::Chunk);
@@ -1209,9 +1206,10 @@ fn should_upgrade_request_to_potentially_trustworthy(
         // * request’s URL is not a potentially trustworthy URL
         // * request’s URL's host is not a preloadable HSTS host
         if !is_url_potentially_trustworthy(&context.protocols, &request.current_url()) ||
-            !request.current_url().host_str().is_some_and(|host| {
-                !context.state.hsts_list.read().unwrap().is_host_secure(host)
-            })
+            request
+                .current_url()
+                .host_str()
+                .is_none_or(|host| context.state.hsts_list.read().is_host_secure(host))
         {
             debug!("Appending the Upgrade-Insecure-Requests header to request’s header list");
             request

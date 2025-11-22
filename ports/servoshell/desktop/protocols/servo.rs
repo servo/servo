@@ -95,6 +95,6 @@ fn json_response(
         ResourceFetchTiming::new(request.timing_type()),
     );
     response.headers.typed_insert(ContentType::json());
-    *response.body.lock().unwrap() = ResponseBody::Done(body.into_bytes());
+    *response.body.lock() = ResponseBody::Done(body.into_bytes());
     Box::pin(std::future::ready(response))
 }

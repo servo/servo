@@ -6,8 +6,8 @@
 
 use std::collections::HashMap;
 use std::io::Write;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
@@ -44,6 +44,7 @@ use net_traits::request::{
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
+use parking_lot::{Mutex, RwLock};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
 
@@ -57,7 +58,7 @@ fn assert_cookie_for_domain(
     domain: &str,
     cookie: Option<&str>,
 ) {
-    let mut cookie_jar = cookie_jar.write().unwrap();
+    let mut cookie_jar = cookie_jar.write();
     let url = ServoUrl::parse(&*domain).unwrap();
     let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
     assert_eq!(cookies.as_ref().map(|c| &**c), cookie);
@@ -176,7 +177,7 @@ fn test_check_default_headers_loaded_in_every_request() {
                         _: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request.headers().clone(),
-            expected_headers_clone.lock().unwrap().take().unwrap()
+            expected_headers_clone.lock().take().unwrap()
         );
     };
     let (server, url) = make_server(handler);
@@ -224,7 +225,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderValue::from_static("?1"),
     );
 
-    *expected_headers.lock().unwrap() = Some(headers.clone());
+    *expected_headers.lock() = Some(headers.clone());
 
     // Testing for method.GET
     let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
@@ -255,7 +256,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         header::ORIGIN,
         HeaderValue::from_str(&url_str[..url_str.len() - 1]).unwrap(),
     );
-    *expected_headers.lock().unwrap() = Some(post_headers);
+    *expected_headers.lock() = Some(post_headers);
     let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
         .method(Method::POST)
         .destination(Destination::Document)
@@ -597,7 +598,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
-        *internal_response.body.lock().unwrap(),
+        *internal_response.body.lock(),
         ResponseBody::Done(b"Yay!".to_vec())
     );
 }
@@ -633,7 +634,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
-        *internal_response.body.lock().unwrap(),
+        *internal_response.body.lock(),
         ResponseBody::Done(b"Yay!".to_vec())
     );
 }
@@ -723,7 +724,6 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
             .state
             .hsts_list
             .read()
-            .unwrap()
             .is_host_secure(url.host_str().unwrap()),
         false
     );
@@ -792,7 +792,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let mut context = new_fetch_context(None, None, None);
 
     {
-        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
+        let mut cookie_jar = context.state.cookie_jar.write();
         let cookie = ServoCookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
@@ -842,7 +842,7 @@ fn test_load_sends_cookie_if_nonhttp() {
     let mut context = new_fetch_context(None, None, None);
 
     {
-        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
+        let mut cookie_jar = context.state.cookie_jar.write();
         let cookie = ServoCookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
@@ -922,7 +922,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         url.as_str(),
         Some("mozillaIs=theBest"),
     );
-    let mut cookie_jar = context.state.cookie_jar.write().unwrap();
+    let mut cookie_jar = context.state.cookie_jar.write();
     assert!(
         cookie_jar
             .cookies_for_url(&url, CookieSource::NonHTTP)
@@ -1183,15 +1183,8 @@ fn test_load_errors_when_there_a_redirect_loop() {
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
             response.headers_mut().insert(
                 header::LOCATION,
-                HeaderValue::from_str(
-                    &url_b_for_a_clone
-                        .lock()
-                        .unwrap()
-                        .as_ref()
-                        .unwrap()
-                        .to_string(),
-                )
-                .unwrap(),
+                HeaderValue::from_str(&url_b_for_a_clone.lock().as_ref().unwrap().to_string())
+                    .unwrap(),
             );
             *response.status_mut() = StatusCode::MOVED_PERMANENTLY;
         };
@@ -1209,7 +1202,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
         };
     let (server_b, url_b) = make_server(handler_b);
 
-    *url_b_for_a.lock().unwrap() = Some(url_b.clone());
+    *url_b_for_a.lock() = Some(url_b.clone());
 
     let request = RequestBuilder::new(None, url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
@@ -1241,15 +1234,8 @@ fn test_load_succeeds_with_a_redirect_loop() {
             if !handled_a.swap(true, Ordering::SeqCst) {
                 response.headers_mut().insert(
                     header::LOCATION,
-                    HeaderValue::from_str(
-                        &url_b_for_a_clone
-                            .lock()
-                            .unwrap()
-                            .as_ref()
-                            .unwrap()
-                            .to_string(),
-                    )
-                    .unwrap(),
+                    HeaderValue::from_str(&url_b_for_a_clone.lock().as_ref().unwrap().to_string())
+                        .unwrap(),
                 );
                 *response.status_mut() = StatusCode::MOVED_PERMANENTLY;
             } else {
@@ -1270,7 +1256,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
         };
     let (server_b, url_b) = make_server(handler_b);
 
-    *url_b_for_a.lock().unwrap() = Some(url_b.clone());
+    *url_b_for_a.lock() = Some(url_b.clone());
 
     let request = RequestBuilder::new(None, url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
@@ -1288,7 +1274,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
     let response = response.to_actual();
     assert_eq!(response.url_list, [url_a.clone(), url_b, url_a]);
     assert_eq!(
-        *response.body.lock().unwrap(),
+        *response.body.lock(),
         ResponseBody::Done(b"Success".to_vec())
     );
 }
@@ -1332,7 +1318,7 @@ fn test_load_follows_a_redirect() {
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
-        *internal_response.body.lock().unwrap(),
+        *internal_response.body.lock(),
         ResponseBody::Done(b"Yay!".to_vec())
     );
 }
@@ -1350,7 +1336,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
                     request.headers().get(header::COOKIE).unwrap().as_bytes(),
                     b"mozillaIsNot=dotOrg"
                 );
-                let location = shared_url_y.lock().unwrap().as_ref().unwrap().to_string();
+                let location = shared_url_y.lock().as_ref().unwrap().to_string();
                 response.headers_mut().insert(
                     header::LOCATION,
                     HeaderValue::from_str(&location.to_string()).unwrap(),
@@ -1379,11 +1365,11 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
     let url_x = ServoUrl::parse(&format!("http://mozilla.com:{}/com/", port)).unwrap();
     let url_y = ServoUrl::parse(&format!("http://mozilla.org:{}/org/", port)).unwrap();
-    *shared_url_y_clone.lock().unwrap() = Some(url_y.clone());
+    *shared_url_y_clone.lock() = Some(url_y.clone());
 
     let mut context = new_fetch_context(None, None, None);
     {
-        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
+        let mut cookie_jar = context.state.cookie_jar.write();
         let cookie_x = ServoCookie::new_wrapped(
             CookiePair::new("mozillaIsNot".to_owned(), "dotOrg".to_owned()),
             &url_x,
@@ -1418,7 +1404,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
-        *internal_response.body.lock().unwrap(),
+        *internal_response.body.lock(),
         ResponseBody::Done(b"Yay!".to_vec())
     );
 }
@@ -1470,7 +1456,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
-        *internal_response.body.lock().unwrap(),
+        *internal_response.body.lock(),
         ResponseBody::Done(b"Yay!".to_vec())
     );
 }
@@ -1510,7 +1496,6 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         .state
         .auth_cache
         .write()
-        .unwrap()
         .entries
         .insert(url.origin().clone().ascii_serialization(), auth_entry);
 
