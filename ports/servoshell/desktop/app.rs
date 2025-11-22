@@ -4,7 +4,6 @@
 
 //! Application entry point, runs the event loop.
 
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
@@ -41,7 +40,6 @@ pub struct App {
     opts: Opts,
     preferences: Preferences,
     servoshell_preferences: ServoShellPreferences,
-    suspended: Cell<bool>,
     waker: Box<dyn EventLoopWaker>,
     proxy: Option<EventLoopProxy>,
     initial_url: ServoUrl,
@@ -84,7 +82,6 @@ impl App {
             opts,
             preferences,
             servoshell_preferences: servo_shell_preferences,
-            suspended: Cell::new(false),
             windows: HashMap::new(),
             waker: events_loop.create_event_loop_waker(),
             proxy: events_loop.event_loop_proxy(),
@@ -115,7 +112,6 @@ impl App {
 
         self.windows.insert(window.id(), window);
 
-        self.suspended.set(false);
         let (_, window) = self.windows.iter().next().unwrap();
 
         let mut user_content_manager = UserContentManager::new();
@@ -472,10 +468,6 @@ impl ApplicationHandler<AppEvent> for App {
 
         // Block until the window gets an event
         event_loop.set_control_flow(ControlFlow::Wait);
-    }
-
-    fn suspended(&mut self, _: &ActiveEventLoop) {
-        self.suspended.set(true);
     }
 }
 
