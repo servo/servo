@@ -43,7 +43,7 @@ dictionary MediaSessionSeekToActionDetails : MediaSessionActionDetails {
 };
 
 dictionary MediaPositionState {
-  double duration;
+  unrestricted double duration;
   double playbackRate;
   double position;
 };
