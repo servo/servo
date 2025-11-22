@@ -32,6 +32,7 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 mime = { workspace = true }
 num-traits = { workspace = true }
+parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { path = "../profile" }

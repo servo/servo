@@ -4,12 +4,12 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 
 use http::HeaderMap;
 use hyper_serde::Serde;
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_url::ServoUrl;

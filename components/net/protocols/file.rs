@@ -86,9 +86,9 @@ impl ProtocolHandler for FileProtocolHander {
                 let (mut done_sender, done_receiver) = unbounded_channel();
                 *done_chan = Some((done_sender.clone(), done_receiver));
 
-                *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+                *response.body.lock() = ResponseBody::Receiving(vec![]);
 
-                context.filemanager.lock().unwrap().fetch_file_in_chunks(
+                context.filemanager.lock().fetch_file_in_chunks(
                     &mut done_sender,
                     reader,
                     response.body.clone(),

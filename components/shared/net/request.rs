@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
@@ -13,6 +13,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -208,8 +209,7 @@ impl RequestClient {
             credentials_mode: request.credentials_mode,
         };
         // Step 2. Let preloads be window's associated Document's map of preloaded resources.
-        let mut preloaded_resources_lock = self.preloaded_resources.lock();
-        let preloads = preloaded_resources_lock.as_mut().unwrap();
+        let mut preloads = self.preloaded_resources.lock();
         // Step 4. Let entry be preloads[key].
         let Some(entry) = preloads.get_mut(&key) else {
             // Step 3. If key does not exist in preloads, then return false.
@@ -372,7 +372,7 @@ impl RequestBody {
             BodySource::Null => panic!("Null sources should never be re-directed."),
             BodySource::Object => {
                 let (chan, port) = ipc::channel().unwrap();
-                let mut selfchan = self.chan.lock().unwrap();
+                let mut selfchan = self.chan.lock();
                 let _ = selfchan.send(BodyChunkRequest::Extract(port));
                 *selfchan = chan;
             },

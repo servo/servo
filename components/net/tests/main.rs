@@ -23,7 +23,7 @@ use std::fs::File;
 use std::io::{self, BufReader};
 use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
+use std::sync::{Arc, LazyLock, Weak};
 
 use base::threadpool::ThreadPool;
 use content_security_policy as csp;
@@ -50,6 +50,7 @@ use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::{AsyncRuntime, FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
+use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashMap;
 use rustls_pemfile::{certs, pkcs8_private_keys};
 use rustls_pki_types::{CertificateDer, PrivateKeyDer};

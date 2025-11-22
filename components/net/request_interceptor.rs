@@ -50,7 +50,7 @@ impl RequestInterceptor {
         while let Ok(message) = receiver.recv() {
             match message {
                 WebResourceResponseMsg::Start(webresource_response) => {
-                    let timing = context.timing.lock().unwrap().clone();
+                    let timing = context.timing.lock().clone();
                     let mut response_override =
                         Response::new(webresource_response.url.into(), timing);
                     response_override.headers = webresource_response.headers;
@@ -71,7 +71,7 @@ impl RequestInterceptor {
                         error!("Received unexpected FinishLoad message");
                         break;
                     };
-                    *response.body.lock().unwrap() =
+                    *response.body.lock() =
                         ResponseBody::Done(accumulated_body.into_iter().flatten().collect());
                     break;
                 },

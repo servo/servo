@@ -119,7 +119,7 @@ openxr = "0.19"
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }
-parking_lot = "0.12"
+parking_lot = { version = "0.12", features = ["serde"] }
 peniko = "0.5"
 percent-encoding = "2.3"
 pkcs8 = { version = "0.10", features = ["rand_core"] }

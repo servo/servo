@@ -34,7 +34,7 @@ impl ProtocolHandler for DataProtocolHander {
                 Ok((bytes, _fragment_id)) => {
                     let mut response =
                         Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                    *response.body.lock() = ResponseBody::Done(bytes);
                     let mime = data_url.mime_type();
                     response.headers.insert(
                         http::header::CONTENT_TYPE,

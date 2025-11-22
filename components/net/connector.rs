@@ -4,7 +4,7 @@
 
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use futures::Future;
 use futures::task::{Context, Poll};
@@ -16,6 +16,7 @@ use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
 use hyper_util::client::legacy::Client;
 use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
 use log::warn;
+use parking_lot::Mutex;
 use rustls::client::WebPkiServerVerifier;
 use rustls::{ClientConfig, RootCertStore};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
@@ -104,7 +105,7 @@ impl CertificateErrorOverrideManager {
     /// Add a certificate to this manager's list of certificates for which to ignore
     /// validation errors.
     pub fn add_override(&self, certificate: &CertificateDer<'static>) {
-        self.0.lock().unwrap().overrides.push(certificate.clone());
+        self.0.lock().overrides.push(certificate.clone());
     }
 
     /// Given the a string representation of a sever host name, remove information about
@@ -123,7 +124,6 @@ impl CertificateErrorOverrideManager {
         };
         self.0
             .lock()
-            .unwrap()
             .certificates_failing_to_verify
             .remove(&server_name)
     }
@@ -251,7 +251,7 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
         }
 
         // If there's an override for this certificate, just accept it.
-        for cert_with_exception in &*self.override_manager.0.lock().unwrap().overrides {
+        for cert_with_exception in &*self.override_manager.0.lock().overrides {
             if *end_entity == *cert_with_exception {
                 return Ok(rustls::client::danger::ServerCertVerified::assertion());
             }
@@ -259,7 +259,6 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
         self.override_manager
             .0
             .lock()
-            .unwrap()
             .certificates_failing_to_verify
             .insert(server_name.to_owned(), end_entity.clone().into_owned());
         Err(error)

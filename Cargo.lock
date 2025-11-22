@@ -5222,6 +5222,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
 dependencies = [
  "scopeguard",
+ "serde",
 ]
 
 [[package]]
@@ -5632,6 +5633,7 @@ dependencies = [
  "mime_guess",
  "net_traits",
  "nom 8.0.0",
+ "parking_lot",
  "pixels",
  "profile_traits",
  "rayon",
@@ -5681,6 +5683,7 @@ dependencies = [
  "malloc_size_of_derive",
  "mime",
  "num-traits",
+ "parking_lot",
  "percent-encoding",
  "pixels",
  "profile_traits",
