@@ -7,7 +7,7 @@ use dom_struct::dom_struct;
 use script_traits::ProgressiveWebMetricType;
 use time::Duration;
 
-use super::performanceentry::PerformanceEntry;
+use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::LargestContentfulPaintBinding::LargestContentfulPaintMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -36,7 +36,7 @@ impl LargestContentfulPaint {
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(""),
-                DOMString::from("largest-contentful-paint"),
+                EntryType::LargestContentfulPaint,
                 Some(render_time),
                 Duration::ZERO,
             ),

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
 
 use super::performance::PerformanceEntryList;
-use super::performanceentry::PerformanceEntry;
+use super::performanceentry::{EntryType, PerformanceEntry};
 use super::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
@@ -24,18 +24,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
-
-/// List of allowed performance entry types, in alphabetical order.
-pub(crate) const VALID_ENTRY_TYPES: &[&str] = &[
-    // "frame", // TODO Frame Timing API
-    "largest-contentful-paint", // Largest Contentful Paint API
-    "mark",                     // User Timing API
-    "measure",                  // User Timing API
-    "navigation",               // Navigation Timing API
-    "paint",                    // Paint Timing API
-    "resource",                 // Resource Timing API
-                                // "server", XXX Server Timing API
-];
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum ObserverType {
@@ -198,9 +186,8 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             // Steps 6.1 - 6.2
             let entry_types = entry_types
                 .iter()
-                .filter(|e| VALID_ENTRY_TYPES.contains(&&*e.str()))
-                .cloned()
-                .collect::<Vec<DOMString>>();
+                .filter_map(|e| EntryType::try_from(&*e.str()).ok())
+                .collect::<Vec<EntryType>>();
 
             // Step 6.3
             if entry_types.is_empty() {
@@ -220,13 +207,13 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             Ok(())
         } else if let Some(entry_type) = &options.type_ {
             // Step 7.2
-            if !VALID_ENTRY_TYPES.contains(&&*entry_type.str()) {
+            let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
                 Console::internal_warn(
                     &self.global(),
                     DOMString::from("No valid entry type provided to observe()."),
                 );
                 return Ok(());
-            }
+            };
 
             // Steps 7.3-7.5
             // This may pre-fill buffered entries, and

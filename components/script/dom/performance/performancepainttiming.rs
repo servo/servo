@@ -7,7 +7,7 @@ use dom_struct::dom_struct;
 use script_traits::ProgressiveWebMetricType;
 use time::Duration;
 
-use super::performanceentry::PerformanceEntry;
+use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -34,7 +34,7 @@ impl PerformancePaintTiming {
         PerformancePaintTiming {
             entry: PerformanceEntry::new_inherited(
                 name,
-                DOMString::from("paint"),
+                EntryType::Paint,
                 Some(start_time),
                 Duration::ZERO,
             ),

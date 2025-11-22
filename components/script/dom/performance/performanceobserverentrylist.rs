@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 
 use super::performance::PerformanceEntryList;
-use super::performanceentry::PerformanceEntry;
+use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -49,6 +49,9 @@ impl PerformanceObserverEntryListMethods<crate::DomTypeHolder> for PerformanceOb
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver>
     fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
+        let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
+            return Vec::new();
+        };
         self.entries
             .borrow()
             .get_entries_by_name_and_type(None, Some(entry_type))
@@ -60,6 +63,15 @@ impl PerformanceObserverEntryListMethods<crate::DomTypeHolder> for PerformanceOb
         name: DOMString,
         entry_type: Option<DOMString>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
+        let entry_type = match entry_type {
+            Some(entry_type) => {
+                let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
+                    return Vec::new();
+                };
+                Some(entry_type)
+            },
+            None => None,
+        };
         self.entries
             .borrow()
             .get_entries_by_name_and_type(Some(name), entry_type)
