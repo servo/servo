@@ -4,22 +4,63 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use strum_macros::VariantArray;
 use time::Duration;
 
 use super::performance::ToDOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
+
+/// All supported entry types, in alphabetical order.
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq, VariantArray)]
+pub(crate) enum EntryType {
+    LargestContentfulPaint,
+    Mark,
+    Measure,
+    Navigation,
+    Paint,
+    Resource,
+    VisibilityState,
+}
+
+impl EntryType {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            EntryType::Measure => "measure",
+            EntryType::Mark => "mark",
+            EntryType::LargestContentfulPaint => "largest-contentful-paint",
+            EntryType::Paint => "paint",
+            EntryType::Navigation => "navigation",
+            EntryType::Resource => "resource",
+            EntryType::VisibilityState => "visibility-state",
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a str> for EntryType {
+    type Error = ();
+
+    fn try_from(value: &'a str) -> Result<EntryType, ()> {
+        Ok(match value {
+            "measure" => EntryType::Measure,
+            "mark" => EntryType::Mark,
+            "largest-contentful-paint" => EntryType::LargestContentfulPaint,
+            "paint" => EntryType::Paint,
+            "navigation" => EntryType::Navigation,
+            "resource" => EntryType::Resource,
+            "visibility-state" => EntryType::VisibilityState,
+            _ => return Err(()),
+        })
+    }
+}
 
 #[dom_struct]
 pub(crate) struct PerformanceEntry {
     reflector_: Reflector,
     name: DOMString,
-    entry_type: DOMString,
+    entry_type: EntryType,
     #[no_trace]
     start_time: Option<CrossProcessInstant>,
     /// The duration of this [`PerformanceEntry`]. This is a [`time::Duration`],
@@ -32,7 +73,7 @@ pub(crate) struct PerformanceEntry {
 impl PerformanceEntry {
     pub(crate) fn new_inherited(
         name: DOMString,
-        entry_type: DOMString,
+        entry_type: EntryType,
         start_time: Option<CrossProcessInstant>,
         duration: Duration,
     ) -> PerformanceEntry {
@@ -45,21 +86,8 @@ impl PerformanceEntry {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new(
-        global: &GlobalScope,
-        name: DOMString,
-        entry_type: DOMString,
-        start_time: CrossProcessInstant,
-        duration: Duration,
-        can_gc: CanGc,
-    ) -> DomRoot<PerformanceEntry> {
-        let entry = PerformanceEntry::new_inherited(name, entry_type, Some(start_time), duration);
-        reflect_dom_object(Box::new(entry), global, can_gc)
-    }
-
-    pub(crate) fn entry_type(&self) -> &DOMString {
-        &self.entry_type
+    pub(crate) fn entry_type(&self) -> EntryType {
+        self.entry_type
     }
 
     pub(crate) fn name(&self) -> &DOMString {
@@ -83,7 +111,7 @@ impl PerformanceEntryMethods<crate::DomTypeHolder> for PerformanceEntry {
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype>
     fn EntryType(&self) -> DOMString {
-        self.entry_type.clone()
+        DOMString::from(self.entry_type.as_str())
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime>
