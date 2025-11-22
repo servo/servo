@@ -124,8 +124,7 @@ fn get_matching_adapter(
     }
 }
 
-#[expect(unused)]
-pub fn create_surfman_adapter(instance: &Instance) -> Option<SurfmanAdapter> {
+fn create_surfman_adapter(instance: &Instance) -> Option<SurfmanAdapter> {
     let system = instance.system(FormFactor::HEAD_MOUNTED_DISPLAY).ok()?;
 
     let requirements = D3D11::requirements(instance, system).ok()?;
