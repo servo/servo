@@ -190,7 +190,7 @@ pub struct CreatedInstance {
     supports_updating_framerate: bool,
 }
 
-pub fn create_instance(
+fn create_instance(
     needs_hands: bool,
     needs_secondary: bool,
     needs_passthrough: bool,

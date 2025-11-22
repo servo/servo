@@ -140,7 +140,7 @@ fn hand_str(h: Handedness) -> &'static str {
 }
 
 impl OpenXRInput {
-    pub fn new<G: Graphics>(
+    fn new<G: Graphics>(
         id: InputId,
         handedness: Handedness,
         action_set: &ActionSet,
@@ -299,7 +299,7 @@ impl OpenXRInput {
         }
     }
 
-    pub fn setup_inputs<G: Graphics>(
+    pub(super) fn setup_inputs<G: Graphics>(
         instance: &Instance,
         session: &Session<G>,
         needs_hands: bool,
@@ -440,7 +440,7 @@ impl OpenXRInput {
         ret
     }
 
-    pub fn frame<G: Graphics>(
+    pub(super) fn frame<G: Graphics>(
         &mut self,
         session: &Session<G>,
         frame_state: &FrameState,
@@ -594,7 +594,7 @@ impl OpenXRInput {
         }
     }
 
-    pub fn input_source(&self) -> InputSource {
+    pub(crate) fn input_source(&self) -> InputSource {
         let hand_support = if self.hand_tracker.is_some() {
             // openxr runtimes must always support all or none joints
             Some(Hand::<()>::default().map(|_, _| Some(())))
