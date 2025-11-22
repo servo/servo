@@ -22,12 +22,12 @@ use servo::{
     Image, LoadStatus, OffscreenRenderingContext, PixelFormat, PrefValue, RenderingContext, WebView,
 };
 use winit::event::{ElementState, MouseButton, WindowEvent};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::Window;
 
 use super::app_state::RunningAppState;
-use super::events_loop::EventLoopProxy;
 use super::geometry::winit_position_to_euclid_point;
+use crate::desktop::event_loop::AppEvent;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::running_app_state::RunningAppStateTrait;
 
@@ -97,7 +97,7 @@ impl Gui {
     pub fn new(
         winit_window: &Window,
         event_loop: &ActiveEventLoop,
-        event_loop_proxy: EventLoopProxy,
+        event_loop_proxy: EventLoopProxy<AppEvent>,
         rendering_context: Rc<OffscreenRenderingContext>,
         initial_url: ServoUrl,
         preferences: &ServoShellPreferences,

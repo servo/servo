@@ -23,13 +23,14 @@ use servo::{EventLoopWaker, WebDriverCommandMsg, WebDriverUserPromptAction};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, ControlFlow};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 use winit::window::WindowId;
 
 use super::app_state::AppState;
-use super::events_loop::{AppEvent, EventLoopProxy, EventsLoop};
+use super::event_loop::AppEvent;
 use super::{headed_window, headless_window};
 use crate::desktop::app_state::RunningAppState;
+use crate::desktop::event_loop::ServoShellEventLoop;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
@@ -43,7 +44,7 @@ pub struct App {
     servoshell_preferences: ServoShellPreferences,
     suspended: Cell<bool>,
     waker: Box<dyn EventLoopWaker>,
-    proxy: Option<EventLoopProxy>,
+    proxy: Option<EventLoopProxy<AppEvent>>,
     initial_url: ServoUrl,
     t_start: Instant,
     t: Instant,
@@ -70,7 +71,7 @@ impl App {
         opts: Opts,
         preferences: Preferences,
         servo_shell_preferences: ServoShellPreferences,
-        events_loop: &EventsLoop,
+        event_loop: &ServoShellEventLoop,
     ) -> Self {
         let initial_url = get_default_url(
             servo_shell_preferences.url.as_deref(),
@@ -86,8 +87,8 @@ impl App {
             servoshell_preferences: servo_shell_preferences,
             suspended: Cell::new(false),
             windows: HashMap::new(),
-            waker: events_loop.create_event_loop_waker(),
-            proxy: events_loop.event_loop_proxy(),
+            waker: event_loop.create_event_loop_waker(),
+            proxy: event_loop.event_loop_proxy(),
             initial_url: initial_url.clone(),
             t_start: t,
             t,

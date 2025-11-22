@@ -9,7 +9,7 @@ pub(crate) mod app;
 mod app_state;
 pub(crate) mod cli;
 mod dialog;
-pub(crate) mod events_loop;
+pub(crate) mod event_loop;
 mod gamepad;
 pub mod geometry;
 mod gui;

@@ -128,7 +128,7 @@ impl WindowPortsMethods for Window {
     #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
-        _events_loop: &winit::event_loop::ActiveEventLoop,
+        _event_loop: &winit::event_loop::ActiveEventLoop,
     ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
         unimplemented!()
     }

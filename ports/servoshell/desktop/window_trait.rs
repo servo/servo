@@ -17,7 +17,7 @@ use servo::{
 use winit::event::WindowEvent;
 
 use super::app_state::RunningAppState;
-use crate::desktop::events_loop::AppEvent;
+use crate::desktop::event_loop::AppEvent;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub(crate) const LINE_HEIGHT: f32 = 76.0;

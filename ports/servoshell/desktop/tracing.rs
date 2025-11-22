@@ -31,7 +31,7 @@ pub(crate) trait LogTarget {
 
 mod from_winit {
     use super::LogTarget;
-    use crate::desktop::events_loop::AppEvent;
+    use crate::desktop::event_loop::AppEvent;
 
     macro_rules! target {
         ($($name:literal)+) => {
