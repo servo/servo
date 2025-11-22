@@ -892,7 +892,7 @@ mod test {
     fn test_read_pixels() -> Result<(), Error> {
         let connection = Connection::new()?;
         let adapter = connection.create_software_adapter()?;
-        let mut device = connection.create_device(&adapter)?;
+        let device = connection.create_device(&adapter)?;
         let context_descriptor = device.create_context_descriptor(&ContextAttributes {
             version: GLVersion::new(3, 0),
             flags: ContextAttributeFlags::empty(),
