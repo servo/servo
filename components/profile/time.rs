@@ -115,9 +115,28 @@ impl Profiler {
                             .expect("Thread spawning failed");
                     },
                 }
+
                 ProfilerChan(Some(chan))
             },
-            None => ProfilerChan(None),
+            None => {
+                match file_path {
+                    Some(path) => {
+                        let (chan, port) = ipc::channel().unwrap();
+                        // Spawn the time profiler
+                        thread::Builder::new()
+                            .name("TimeProfiler".to_owned())
+                            .spawn(move || {
+                                let trace = TraceDump::new(path).ok();
+                                let mut profiler = Profiler::new(port, trace, None);
+                                profiler.start();
+                            })
+                            .expect("Thread spawning failed");
+
+                        ProfilerChan(Some(chan))
+                    },
+                    None => ProfilerChan(None),
+                }
+            },
         }
     }
 
