@@ -26,7 +26,7 @@ fn test_exit() {
     let (sender, receiver) = ipc::channel().unwrap();
     let (resource_thread, _private_resource_thread) = new_core_resource_thread(
         None,
-        ProfilerChan(tx),
+        ProfilerChan(Some(tx)),
         MemProfilerChan(mtx),
         create_embedder_proxy(),
         None,
