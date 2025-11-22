@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use content_security_policy::Violation;
 use net_traits::request::RequestId;
@@ -10,6 +10,7 @@ use net_traits::{
     BoxedFetchCallback, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
+use parking_lot::Mutex;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::inheritance::Castable;
@@ -118,7 +119,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
         let context = self.context.clone();
         self.task_source
             .queue(task!(network_listener_response: move || {
-                let mut context = context.lock().unwrap();
+                let mut context = context.lock();
                 let Some(fetch_listener) = &mut *context else {
                     return;
                 };

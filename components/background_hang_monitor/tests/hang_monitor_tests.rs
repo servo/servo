@@ -4,8 +4,8 @@
 
 #![allow(unused_imports)]
 
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -17,12 +17,13 @@ use background_hang_monitor_api::{
 use base::generic_channel;
 use base::id::TEST_PIPELINE_ID;
 use ipc_channel::ipc;
+use parking_lot::Mutex;
 
 static SERIAL: Mutex<()> = Mutex::new(());
 
 #[test]
 fn test_hang_monitoring() {
-    let _lock = SERIAL.lock().unwrap();
+    let _lock = SERIAL.lock();
 
     let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
         generic_channel::channel().expect("ipc channel failure");
@@ -139,7 +140,7 @@ fn test_hang_monitoring() {
 // https://github.com/servo/servo/issues/28270
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 fn test_hang_monitoring_unregister() {
-    let _lock = SERIAL.lock().unwrap();
+    let _lock = SERIAL.lock();
 
     let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
         generic_channel::channel().expect("ipc channel failure");
@@ -225,7 +226,7 @@ fn test_hang_monitoring_exit_signal4() {
 }
 
 fn test_hang_monitoring_exit_signal_inner(op_order: fn(&mut dyn FnMut(), &mut dyn FnMut())) {
-    let _lock = SERIAL.lock().unwrap();
+    let _lock = SERIAL.lock();
 
     let (background_hang_monitor_ipc_sender, _background_hang_monitor_receiver) =
         generic_channel::channel().expect("ipc channel failure");

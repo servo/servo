@@ -7,7 +7,7 @@
 
 use std::cell::RefCell;
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -16,6 +16,7 @@ use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
 use devtools_traits::{DevtoolScriptControlMsg, TimelineMarker, TimelineMarkerType};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use parking_lot::Mutex;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 
@@ -156,7 +157,7 @@ impl TimelineActor {
     ) {
         let is_recording = self.is_recording.clone();
 
-        if !*is_recording.lock().unwrap() {
+        if !*is_recording.lock() {
             return;
         }
 
@@ -164,7 +165,7 @@ impl TimelineActor {
             .name("PullTimelineData".to_owned())
             .spawn(move || {
                 loop {
-                    if !*is_recording.lock().unwrap() {
+                    if !*is_recording.lock() {
                         break;
                     }
 
@@ -198,7 +199,7 @@ impl Actor for TimelineActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "start" => {
-                **self.is_recording.lock().as_mut().unwrap() = true;
+                *self.is_recording.lock() = true;
 
                 let (tx, rx) = ipc::channel::<Option<TimelineMarker>>().unwrap();
                 self.script_sender
@@ -277,7 +278,7 @@ impl Actor for TimelineActor {
                     registry.drop_actor_later(actor_name.clone());
                 }
 
-                **self.is_recording.lock().as_mut().unwrap() = false;
+                *self.is_recording.lock() = false;
                 self.stream.borrow_mut().take();
                 request.reply_final(&msg)?
             },
@@ -285,7 +286,7 @@ impl Actor for TimelineActor {
             "isRecording" => {
                 let msg = IsRecordingReply {
                     from: self.name(),
-                    value: *self.is_recording.lock().unwrap(),
+                    value: *self.is_recording.lock(),
                 };
 
                 request.reply_final(&msg)?
@@ -338,8 +339,7 @@ impl Emitter {
         self.stream.write_json_packet(&reply)?;
 
         if let Some(ref actor_name) = self.framerate_actor {
-            let mut lock = self.registry.lock();
-            let registry = lock.as_mut().unwrap();
+            let mut registry = self.registry.lock();
             let framerate_actor = registry.find_mut::<FramerateActor>(actor_name);
             let framerate_reply = FramerateEmitterReply {
                 type_: "framerate".to_owned(),
@@ -351,7 +351,7 @@ impl Emitter {
         }
 
         if let Some(ref actor_name) = self.memory_actor {
-            let registry = self.registry.lock().unwrap();
+            let registry = self.registry.lock();
             let memory_actor = registry.find::<MemoryActor>(actor_name);
             let memory_reply = MemoryEmitterReply {
                 type_: "memory".to_owned(),

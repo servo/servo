@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 use std::{mem, thread};
 
@@ -21,6 +21,7 @@ use openxr::{
     ReferenceSpaceType, SecondaryEndInfo, Session, Space, Swapchain, SwapchainCreateFlags,
     SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
 };
+use parking_lot::Mutex;
 use surfman::{
     Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
 };
@@ -475,7 +476,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         context_id: ContextId,
         init: LayerInit,
     ) -> Result<LayerId, Error> {
-        let guard = self.shared_data.lock().unwrap();
+        let guard = self.shared_data.lock();
         let data = guard.as_ref().unwrap();
 
         // XXXManishearth should we be doing this, or letting Servo set the format?
@@ -575,7 +576,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         _contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<(), Error> {
-        let guard = self.shared_data.lock().unwrap();
+        let guard = self.shared_data.lock();
         let data = guard.as_ref().unwrap();
 
         // At this point the frame contents have been rendered, so we can release access to the texture
@@ -727,7 +728,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
         contexts: &mut dyn GLContexts<SurfmanGL>,
         layers: &[(ContextId, LayerId)],
     ) -> Result<Vec<SubImages>, Error> {
-        let data_guard = self.shared_data.lock().unwrap();
+        let data_guard = self.shared_data.lock();
         let data = data_guard.as_ref().unwrap();
         let openxr_layers = &mut self.openxr_layers;
         let clearer = &mut self.clearer;
@@ -838,7 +839,7 @@ impl OpenXrDevice {
         let instance_clone = instance.clone();
         let shared_data = Arc::new(Mutex::new(None));
         let shared_data_clone = shared_data.clone();
-        let mut data = shared_data.lock().unwrap();
+        let mut data = shared_data.lock();
 
         let layer_manager = grand_manager.create_layer_manager(move |_| {
             let (session, frame_waiter, frame_stream) =
@@ -1199,12 +1200,7 @@ impl DeviceAPI for OpenXrDevice {
     }
 
     fn viewports(&self) -> Viewports {
-        self.shared_data
-            .lock()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .viewports()
+        self.shared_data.lock().as_ref().unwrap().viewports()
     }
 
     fn create_layer(&mut self, context_id: ContextId, init: LayerInit) -> Result<LayerId, Error> {
@@ -1260,7 +1256,7 @@ impl DeviceAPI for OpenXrDevice {
         // since otherwise we'll deadlock
         let sub_images = self.layer_manager.begin_frame(layers).ok()?;
 
-        let mut guard = self.shared_data.lock().unwrap();
+        let mut guard = self.shared_data.lock();
         let data = guard.as_mut().unwrap();
 
         // XXXManishearth should we check frame_state.should_render?
@@ -1453,7 +1449,7 @@ impl DeviceAPI for OpenXrDevice {
         self.events.callback(Event::SessionEnd);
         // We clear this data to remove the outstanding reference to XrSpace,
         // which keeps other OpenXR objects alive.
-        *self.shared_data.lock().unwrap() = None;
+        *self.shared_data.lock() = None;
     }
 
     fn set_quitter(&mut self, _: Quitter) {
@@ -1466,14 +1462,7 @@ impl DeviceAPI for OpenXrDevice {
     }
 
     fn environment_blend_mode(&self) -> webxr_api::EnvironmentBlendMode {
-        match self
-            .shared_data
-            .lock()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .primary_blend_mode
-        {
+        match self.shared_data.lock().as_ref().unwrap().primary_blend_mode {
             EnvironmentBlendMode::OPAQUE => webxr_api::EnvironmentBlendMode::Opaque,
             EnvironmentBlendMode::ALPHA_BLEND => webxr_api::EnvironmentBlendMode::AlphaBlend,
             EnvironmentBlendMode::ADDITIVE => webxr_api::EnvironmentBlendMode::Additive,

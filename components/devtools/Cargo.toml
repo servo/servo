@@ -24,6 +24,7 @@ ipc-channel = { workspace = true }
 log = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
+parking_lot = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
