@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod aes_operation;
+mod cshake_operation;
 mod ecdh_operation;
 mod ecdsa_operation;
 mod ed25519_operation;
@@ -31,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EcKeyGenParams,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, CShakeParams, EcKeyAlgorithm, EcKeyGenParams,
     EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams, HmacImportParams,
     HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
     RsaOtherPrimesInfo, SubtleCryptoMethods,
@@ -76,6 +77,8 @@ const ALG_PBKDF2: &str = "PBKDF2";
 const ALG_SHA3_256: &str = "SHA3-256";
 const ALG_SHA3_384: &str = "SHA3-384";
 const ALG_SHA3_512: &str = "SHA3-512";
+const ALG_CSHAKE_128: &str = "cSHAKE128";
+const ALG_CSHAKE_256: &str = "cSHAKE256";
 
 static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_RSASSA_PKCS1,
@@ -99,6 +102,8 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_SHA3_256,
     ALG_SHA3_384,
     ALG_SHA3_512,
+    ALG_CSHAKE_128,
+    ALG_CSHAKE_256,
 ];
 
 // Named elliptic curves
@@ -2060,6 +2065,47 @@ impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleCShakeParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams-length>
+    length: u32,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams-functionName>
+    function_name: Option<Vec<u8>>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams-customization>
+    customization: Option<Vec<u8>>,
+}
+
+impl From<RootedTraceableBox<CShakeParams>> for SubtleCShakeParams {
+    fn from(value: RootedTraceableBox<CShakeParams>) -> Self {
+        let function_name = value
+            .functionName
+            .as_ref()
+            .map(|function_name| match function_name {
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+            });
+        let customization = value
+            .customization
+            .as_ref()
+            .map(|customization| match customization {
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+            });
+        SubtleCShakeParams {
+            name: value.parent.name.to_string(),
+            length: value.length,
+            function_name,
+            customization,
+        }
+    }
+}
+
 /// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
 fn dictionary_from_jsval<T>(cx: JSContext, value: HandleValue, can_gc: CanGc) -> Fallible<T>
 where
@@ -2298,6 +2344,7 @@ enum NormalizedAlgorithm {
     HmacKeyGenParams(SubtleHmacKeyGenParams),
     HkdfParams(SubtleHkdfParams),
     Pbkdf2Params(SubtlePbkdf2Params),
+    CShakeParams(SubtleCShakeParams),
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
@@ -2815,6 +2862,26 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
 
+                // <https://wicg.github.io/webcrypto-modern-algos/#cshake-registration>
+                (ALG_CSHAKE_128, Operation::Digest) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<CShakeParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::CShakeParams(params.into())
+                },
+                (ALG_CSHAKE_256, Operation::Digest) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<CShakeParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::CShakeParams(params.into())
+                },
+
                 _ => return Err(Error::NotSupported(None)),
             };
 
@@ -2842,6 +2909,7 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::HmacKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::HkdfParams(algo) => &algo.name,
             NormalizedAlgorithm::Pbkdf2Params(algo) => &algo.name,
+            NormalizedAlgorithm::CShakeParams(algo) => &algo.name,
         }
     }
 
@@ -2925,6 +2993,12 @@ impl NormalizedAlgorithm {
             },
             (ALG_SHA3_512, NormalizedAlgorithm::Algorithm(algo)) => {
                 sha3_operation::digest(algo, message)
+            },
+            (ALG_CSHAKE_128, NormalizedAlgorithm::CShakeParams(algo)) => {
+                cshake_operation::digest(algo, message)
+            },
+            (ALG_CSHAKE_256, NormalizedAlgorithm::CShakeParams(algo)) => {
+                cshake_operation::digest(algo, message)
             },
             _ => Err(Error::NotSupported(None)),
         }
