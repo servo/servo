@@ -48,17 +48,17 @@ pub trait WindowPortsMethods {
     ///
     /// TODO: This should be handled internally in the winit window if possible so that it
     /// makes more sense when we are mixing headed and headless windows.
-    fn handle_winit_window_event(&self, _: Rc<RunningAppState>, _: WindowEvent) -> bool {
-        false
-    }
+    fn handle_winit_window_event(&self, _: Rc<RunningAppState>, _: WindowEvent) {}
     /// Handle a winit [`AppEvent`]. Returns `true` if the event loop should continue and
     /// `false` otherwise.
     ///
     /// TODO: This should be handled internally in the winit window if possible so that it
     /// makes more sense when we are mixing headed and headless windows.
-    fn handle_winit_app_event(&self, _: Rc<RunningAppState>, _: AppEvent) -> bool {
-        false
-    }
+    fn handle_winit_app_event(&self, _: Rc<RunningAppState>, _: AppEvent) {}
+    /// Request that the window redraw itself. It is up to the window to do this
+    /// once the windowing system is ready. If this is a headless window, the redraw
+    /// will happen immediately.
+    fn request_repaint(&self, _: &RunningAppState);
     /// Request a new outer size for the window, including external decorations.
     /// This should be the same as `window.outerWidth` and `window.outerHeight``
     fn request_resize(&self, webview: &WebView, outer_size: DeviceIntSize)
