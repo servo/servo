@@ -1171,10 +1171,10 @@ impl ParserContext {
             document,
             CanGc::note(),
         );
-        self.pushed_entry_index = document.global().performance().queue_entry(
-            performance_entry.upcast::<PerformanceEntry>(),
-            CanGc::note(),
-        );
+        self.pushed_entry_index = document
+            .global()
+            .performance()
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 }
 

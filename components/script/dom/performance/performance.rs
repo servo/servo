@@ -286,9 +286,9 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> Option<usize> {
+    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) -> Option<usize> {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
-        if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry, can_gc) {
+        if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry) {
             return None;
         }
 
@@ -366,14 +366,14 @@ impl Performance {
         self.resource_timing_buffer_current_size.get() <=
             self.resource_timing_buffer_size_limit.get()
     }
-    fn copy_secondary_resource_timing_buffer(&self, can_gc: CanGc) {
+    fn copy_secondary_resource_timing_buffer(&self) {
         while self.can_add_resource_timing_entry() {
             let entry = self
                 .resource_timing_secondary_entries
                 .borrow_mut()
                 .pop_front();
             if let Some(ref entry) = entry {
-                self.queue_entry(entry, can_gc);
+                self.queue_entry(entry);
             } else {
                 break;
             }
@@ -389,7 +389,7 @@ impl Performance {
                 self.upcast::<EventTarget>()
                     .fire_event(atom!("resourcetimingbufferfull"), can_gc);
             }
-            self.copy_secondary_resource_timing_buffer(can_gc);
+            self.copy_secondary_resource_timing_buffer();
             let no_of_excess_entries_after = self.resource_timing_secondary_entries.borrow().len();
             if no_of_excess_entries_before <= no_of_excess_entries_after {
                 self.resource_timing_secondary_entries.borrow_mut().clear();
@@ -398,28 +398,37 @@ impl Performance {
         }
         self.resource_timing_buffer_pending_full_event.set(false);
     }
-    /// `add a PerformanceResourceTiming entry` paragraph of
-    /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    fn should_queue_resource_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> bool {
-        // Step 1 is done in the args list.
+
+    /// <https://w3c.github.io/resource-timing/#dfn-add-a-performanceresourcetiming-entry>
+    fn should_queue_resource_entry(&self, entry: &PerformanceEntry) -> bool {
+        // Step 1. If can add resource timing entry returns true and resource timing buffer full event pending flag is false, run the following substeps:
         if !self.resource_timing_buffer_pending_full_event.get() {
-            // Step 2.
             if self.can_add_resource_timing_entry() {
-                // Step 2.a is done in `queue_entry`
-                // Step 2.b.
+                // Step 1.a.  Add new entry to the performance entry buffer.
+                //   This is done in queue_entry, which calls this method.
+                // Step 1.b. Increase resource timing buffer current size by 1.
                 self.resource_timing_buffer_current_size
                     .set(self.resource_timing_buffer_current_size.get() + 1);
-                // Step 2.c.
+                // Step 1.c. Return.
                 return true;
             }
-            // Step 3.
+            // Step 2.a. Set resource timing buffer full event pending flag to true.
             self.resource_timing_buffer_pending_full_event.set(true);
-            self.fire_buffer_full_event(can_gc);
+            // Step 2.b. Queue a task on the performance timeline task source to run fire a buffer full event.
+            let performance = Trusted::new(self);
+            self.global()
+                .task_manager()
+                .performance_timeline_task_source()
+                .queue(task!(fire_a_buffer_full_event: move || {
+                    performance.root().fire_buffer_full_event(CanGc::note());
+                }));
         }
-        // Steps 4 and 5.
+        // Step 3. Add new entry to the resource timing secondary buffer.
         self.resource_timing_secondary_entries
             .borrow_mut()
             .push_back(DomRoot::from_ref(entry));
+        // Step 4. Increase resource timing secondary buffer current size by 1.
+        //   This is tracked automatically via `.len()`.
         false
     }
 
@@ -486,7 +495,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-mark>
-    fn Mark(&self, mark_name: DOMString, can_gc: CanGc) -> Fallible<()> {
+    fn Mark(&self, mark_name: DOMString) -> Fallible<()> {
         let global = self.global();
         // Step 1.
         if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
@@ -501,7 +510,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             Duration::ZERO,
         );
         // Steps 7 and 8.
-        self.queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
+        self.queue_entry(entry.upcast::<PerformanceEntry>());
 
         // Step 9.
         Ok(())
@@ -520,7 +529,6 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         measure_name: DOMString,
         start_mark: Option<DOMString>,
         end_mark: Option<DOMString>,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // Steps 1 and 2.
         let end_time = end_mark
@@ -550,7 +558,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         );
 
         // Step 9 and 10.
-        self.queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
+        self.queue_entry(entry.upcast::<PerformanceEntry>());
 
         // Step 11.
         Ok(())
