@@ -5,11 +5,11 @@
 mod engines;
 
 use std::borrow::ToOwned;
+use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::thread;
+use std::{mem, thread};
 
 use base::threadpool::ThreadPool;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
@@ -18,12 +18,13 @@ use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb_thread::{
-    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, SyncOperation,
+    BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
+    IndexedDBTransaction, KeyPath, KvsOperation, SyncOperation, TransactionState,
 };
+use tokio::sync::oneshot;
 use uuid::Uuid;
 
-use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
+use crate::indexeddb::engines::{KvsEngine, SqliteEngine};
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -80,9 +81,16 @@ impl IndexedDBDescription {
     }
 }
 
+enum Channel {
+    /// Indicates that the indexedDB thread has control over this transaction and that it hasn't been started yet
+    Operation(IpcReceiver<KvsOperation>),
+    /// Indicates that the transaction is being executed
+    Execution(oneshot::Receiver<()>),
+}
+
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
-    transactions: FxHashMap<u64, KvsTransaction>,
+    transactions: FxHashMap<u64, (Arc<IndexedDBTransaction>, Channel)>,
     serial_number_counter: u64,
 }
 
@@ -95,41 +103,61 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         }
     }
 
-    fn queue_operation(
-        &mut self,
-        store_name: &str,
-        serial_number: u64,
-        mode: IndexedDBTxnMode,
-        operation: AsyncOperation,
-    ) {
-        self.transactions
-            .entry(serial_number)
-            .or_insert_with(|| KvsTransaction {
-                requests: VecDeque::new(),
-                mode,
-            })
-            .requests
-            .push_back(KvsOperation {
-                operation,
-                store_name: String::from(store_name),
-            });
-    }
-
     // Executes all requests for a transaction (without committing)
     fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<BackendResult<()>>>) {
-        // FIXME:(arihant2math) find optimizations in this function
-        //   rather than on the engine level code (less repetition)
-        if let Some(txn) = self.transactions.remove(&txn) {
-            let _ = self.engine.process_transaction(txn).blocking_recv();
-        }
+        // Cleanup transaction list
+        self.transactions
+            .retain(|_, v| *v.0.state.lock().unwrap() != TransactionState::Finished);
 
-        // We have a sender if the transaction is started manually, and they
-        // probably want to know when it is finished
-        if let Some(sender) = sender {
-            if sender.send(Ok(())).is_err() {
-                warn!("IDBTransaction starter dropped its channel");
+        // Wait for all pending transactions to finish to prevent race conditions
+        // TODO: Implement a better scheduling mechanism
+        let transactions = mem::take(&mut self.transactions);
+        for (id, tr) in transactions {
+            if let Channel::Execution(waiter) = tr.1 {
+                let _ = waiter.blocking_recv();
+            } else {
+                self.transactions.insert(id, tr);
             }
         }
+
+        // FIXME:(arihant2math) find optimizations in this function
+        //   rather than on the engine level code (less repetition)
+        let (transaction, channel) = match self.transactions.get_mut(&txn) {
+            Some(value) => value,
+            None => {
+                // TODO: Temporary
+                panic!("Transaction not found");
+            },
+        };
+
+        match channel {
+            Channel::Operation(port) => {
+                let transaction = transaction.clone();
+                let (_, dummy_rec) = ipc::channel().unwrap();
+                let owned_port = mem::replace(port, dummy_rec);
+                let completion_receiver = self.engine.process_transaction(transaction, owned_port);
+                let _ = mem::replace(channel, Channel::Execution(completion_receiver));
+
+                // We have a sender if the transaction is started manually, and they
+                // probably want to know when it is finished
+                if let Some(sender) = sender {
+                    if sender.send(Ok(())).is_err() {
+                        warn!("IDBTransaction starter dropped its channel");
+                    }
+                }
+            },
+            Channel::Execution(_) => {
+                warn!(
+                    "Transaction was started for execution, but an operation channel was expected"
+                );
+                if let Some(sender) = sender {
+                    if sender.send(Ok(())).is_err() {
+                        warn!("IDBTransaction starter dropped its channel");
+                    }
+                }
+                return;
+            },
+        };
     }
 
     fn has_key_generator(&self, store_name: &str) -> bool {
@@ -247,17 +275,6 @@ impl IndexedDBManager {
                 },
                 IndexedDBThreadMsg::Sync(operation) => {
                     self.handle_sync_operation(operation);
-                },
-                IndexedDBThreadMsg::Async(origin, db_name, store_name, txn, mode, operation) => {
-                    if let Some(db) = self.get_database_mut(origin, db_name) {
-                        // Queues an operation for a transaction without starting it
-                        db.queue_operation(&store_name, txn, mode, operation);
-                        // FIXME:(arihant2math) Schedule transactions properly
-                        // while db.transactions.iter().any(|s| s.1.mode == IndexedDBTxnMode::Readwrite) {
-                        //     std::hint::spin_loop();
-                        // }
-                        db.start_transaction(txn, None);
-                    }
                 },
             }
         }
@@ -381,10 +398,6 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::Commit(sender, _origin, _db_name, _txn) => {
-                // FIXME:(arihant2math) This does nothing at the moment
-                let _ = sender.send(Ok(()));
-            },
             SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     if version > db.version().unwrap_or(0) {
@@ -419,13 +432,6 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::StartTransaction(sender, origin, db_name, txn) => {
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.start_transaction(txn, Some(sender));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
-                }
-            },
             SyncOperation::Version(sender, origin, db_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
                     let _ = sender.send(db.version().map_err(BackendError::from));
@@ -433,10 +439,16 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
+            SyncOperation::RegisterNewTxn(sender, origin, db_name, shared) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.serial_number_counter += 1;
-                    let _ = sender.send(db.serial_number_counter);
+                    let (op_sen, op_rec) = ipc::channel().unwrap();
+                    db.transactions.insert(
+                        db.serial_number_counter,
+                        (shared, Channel::Operation(op_rec)),
+                    );
+                    db.start_transaction(db.serial_number_counter, None);
+                    let _ = sender.send((db.serial_number_counter, op_sen));
                 }
             },
             SyncOperation::Exit(_) => {

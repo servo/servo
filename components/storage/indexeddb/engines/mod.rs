@@ -2,28 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::VecDeque;
+use std::sync::Arc;
 
+use ipc_channel::ipc::IpcReceiver;
 use storage_traits::indexeddb_thread::{
-    AsyncOperation, CreateObjectResult, IndexedDBTxnMode, KeyPath,
+    CreateObjectResult, IndexedDBTransaction, KeyPath, KvsOperation,
 };
 use tokio::sync::oneshot;
 
 pub use self::sqlite::SqliteEngine;
 
 mod sqlite;
-
-pub struct KvsOperation {
-    pub store_name: String,
-    pub operation: AsyncOperation,
-}
-
-pub struct KvsTransaction {
-    // Mode could be used by a more optimal implementation of transactions
-    // that has different allocated threadpools for reading and writing
-    pub mode: IndexedDBTxnMode,
-    pub requests: VecDeque<KvsOperation>,
-}
 
 pub trait KvsEngine {
     type Error: std::error::Error;
@@ -44,8 +33,9 @@ pub trait KvsEngine {
 
     fn process_transaction(
         &self,
-        transaction: KvsTransaction,
-    ) -> oneshot::Receiver<Option<Vec<u8>>>;
+        transaction: Arc<IndexedDBTransaction>,
+        requests: IpcReceiver<KvsOperation>,
+    ) -> oneshot::Receiver<()>;
 
     fn has_key_generator(&self, store_name: &str) -> bool;
     fn key_path(&self, store_name: &str) -> Option<KeyPath>;

@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use base::threadpool::ThreadPool;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcReceiver, IpcSender, TryRecvError};
 use log::{error, info};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
@@ -13,13 +14,13 @@ use sea_query_rusqlite::RusqliteBinder;
 use serde::Serialize;
 use storage_traits::indexeddb_thread::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
-    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
-    KeyPath, PutItemResult,
+    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTransaction,
+    IndexedDBTxnMode, KeyPath, KvsOperation, PutItemResult, TransactionState,
 };
 use tokio::sync::oneshot;
 
 use crate::indexeddb::IndexedDBDescription;
-use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
+use crate::indexeddb::engines::KvsEngine;
 use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
 
 mod create;
@@ -365,10 +366,10 @@ impl KvsEngine for SqliteEngine {
 
     fn process_transaction(
         &self,
-        transaction: KvsTransaction,
-    ) -> oneshot::Receiver<Option<Vec<u8>>> {
-        let (tx, rx) = oneshot::channel();
-
+        transaction: Arc<IndexedDBTransaction>,
+        requests: IpcReceiver<KvsOperation>,
+    ) -> oneshot::Receiver<()> {
+        let (txn_done_sender, txn_done_receiver) = oneshot::channel();
         let spawning_pool = if transaction.mode == IndexedDBTxnMode::Readonly {
             self.read_pool.clone()
         } else {
@@ -377,11 +378,40 @@ impl KvsEngine for SqliteEngine {
         let path = self.db_path.clone();
         spawning_pool.spawn(move || {
             let connection = Connection::open(path).unwrap();
-            for request in transaction.requests {
+            loop {
+                let request = requests.try_recv_timeout(Duration::from_millis(50));
+                dbg!(&request);
+                let request = match request {
+                    Ok(req) => req,
+                    Err(TryRecvError::Empty) => {
+                        if *transaction.state.lock().unwrap() == TransactionState::Committing {
+                            break;
+                        }
+                        continue;
+                    },
+                    Err(_) => {
+                        break;
+                    },
+                };
+                let (store_name, operation) = match request {
+                    KvsOperation::StoreOperation {
+                        store_name,
+                        operation,
+                    } => (store_name, operation),
+                    KvsOperation::Commit(sender) => {
+                        *transaction.state.lock().unwrap() = TransactionState::Committing;
+                        let _ = sender.send(());
+                        continue;
+                    },
+                    KvsOperation::Wait(sender) => {
+                        let _ = sender.send(());
+                        continue;
+                    },
+                };
                 let object_store = connection
                     .prepare("SELECT * FROM object_store WHERE name = ?")
                     .and_then(|mut stmt| {
-                        stmt.query_row(params![request.store_name.to_string()], |row| {
+                        stmt.query_row(params![store_name], |row| {
                             object_store_model::Model::try_from(row)
                         })
                         .optional()
@@ -406,7 +436,7 @@ impl KvsEngine for SqliteEngine {
                     }
                 }
 
-                match request.operation {
+                match operation {
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
                         sender,
                         key,
@@ -553,9 +583,11 @@ impl KvsEngine for SqliteEngine {
                     },
                 }
             }
-            let _ = tx.send(None);
+            // TODO: Commiting logic
+            *transaction.state.lock().unwrap() = TransactionState::Finished;
+            let _ = txn_done_sender.send(());
         });
-        rx
+        txn_done_receiver
     }
 
     // TODO: we should be able to error out here, maybe change the trait definition?
@@ -666,19 +698,20 @@ impl KvsEngine for SqliteEngine {
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
 
     use base::threadpool::ThreadPool;
     use serde::{Deserialize, Serialize};
     use servo_url::ImmutableOrigin;
     use storage_traits::indexeddb_thread::{
         AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
-        IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult,
+        IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTransaction, IndexedDBTxnMode, KeyPath,
+        KvsOperation, PutItemResult, TransactionState,
     };
     use url::Host;
 
     use crate::indexeddb::IndexedDBDescription;
-    use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
+    use crate::indexeddb::engines::{KvsEngine, SqliteEngine};
 
     fn test_origin() -> ImmutableOrigin {
         ImmutableOrigin::Tuple(
@@ -883,94 +916,101 @@ mod tests {
         let count = get_channel();
         let remove = get_channel();
         let clear = get_channel();
-        let rx = db.process_transaction(KvsTransaction {
+        let transaction = Arc::new(IndexedDBTransaction {
             mode: IndexedDBTxnMode::Readwrite,
-            requests: VecDeque::from(vec![
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put.0,
-                        key: Some(IndexedDBKeyType::Number(1.0)),
-                        value: vec![1, 2, 3],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put2.0,
-                        key: Some(IndexedDBKeyType::String("2.0".to_string())),
-                        value: vec![4, 5, 6],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put3.0,
-                        key: Some(IndexedDBKeyType::Array(vec![
-                            IndexedDBKeyType::String("3".to_string()),
-                            IndexedDBKeyType::Number(0.0),
-                        ])),
-                        value: vec![7, 8, 9],
-                        should_overwrite: false,
-                    }),
-                },
-                // Try to put a duplicate key without overwrite
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put_dup.0,
-                        key: Some(IndexedDBKeyType::Number(1.0)),
-                        value: vec![10, 11, 12],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        sender: get_item_some.0,
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        sender: get_item_none.0,
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
-                        sender: get_all_items.0,
-                        key_range: IndexedDBKeyRange::lower_bound(
-                            IndexedDBKeyType::Number(0.0),
-                            false,
-                        ),
-                        count: None,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
-                        sender: count.0,
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
-                        sender: remove.0,
-                        key: IndexedDBKeyType::Number(1.0),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(clear.0)),
-                },
-            ]),
+            object_stores: vec![store_name.to_owned()],
+            state: Mutex::new(TransactionState::InProgress),
         });
+        let (op_sender, op_receiver) = ipc_channel::ipc::channel().unwrap();
+        let operations = vec![
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    sender: put.0,
+                    key: Some(IndexedDBKeyType::Number(1.0)),
+                    value: vec![1, 2, 3],
+                    should_overwrite: false,
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    sender: put2.0,
+                    key: Some(IndexedDBKeyType::String("2.0".to_string())),
+                    value: vec![4, 5, 6],
+                    should_overwrite: false,
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    sender: put3.0,
+                    key: Some(IndexedDBKeyType::Array(vec![
+                        IndexedDBKeyType::String("3".to_string()),
+                        IndexedDBKeyType::Number(0.0),
+                    ])),
+                    value: vec![7, 8, 9],
+                    should_overwrite: false,
+                }),
+            },
+            // Try to put a duplicate key without overwrite
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    sender: put_dup.0,
+                    key: Some(IndexedDBKeyType::Number(1.0)),
+                    value: vec![10, 11, 12],
+                    should_overwrite: false,
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                    sender: get_item_some.0,
+                    key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                    sender: get_item_none.0,
+                    key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                    sender: get_all_items.0,
+                    key_range: IndexedDBKeyRange::lower_bound(IndexedDBKeyType::Number(0.0), false),
+                    count: None,
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
+                    sender: count.0,
+                    key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                    sender: remove.0,
+                    key: IndexedDBKeyType::Number(1.0),
+                }),
+            },
+            KvsOperation {
+                store_name: store_name.to_owned(),
+                operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(clear.0)),
+            },
+        ];
+        for op in operations {
+            op_sender.send(op).unwrap();
+        }
+        let (done_tx, _done_rx) = ipc_channel::ipc::channel().unwrap();
+        op_sender.send(KvsOperation::Commit(done_tx)).unwrap();
+        drop(op_sender);
+        let rx = db.process_transaction(transaction.clone(), op_receiver);
         let _ = rx.blocking_recv().unwrap();
         put.1.recv().unwrap().unwrap();
         put2.1.recv().unwrap().unwrap();
