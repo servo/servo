@@ -1855,7 +1855,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>
-    fn tee(
+    pub(crate) fn tee(
         &self,
         clone_for_branch_2: bool,
         can_gc: CanGc,
