@@ -105,4 +105,8 @@ impl ProtocolHandler for ResourceProtocolHandler {
 
         Self::response_for_path(request, done_chan, context, url.path())
     }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler> {
+        Box::new(ResourceProtocolHandler::default())
+    }
 }

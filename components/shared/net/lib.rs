@@ -518,6 +518,7 @@ pub enum CoreResourceMsg {
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
+    RegisterProtocolHandler(String, ServoUrl, IpcSender<()>),
     RemoveCookieListener(CookieStoreId),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),

@@ -108,4 +108,8 @@ impl ProtocolHandler for FileProtocolHander {
 
         Box::pin(ready(response))
     }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler> {
+        Box::new(FileProtocolHander::default())
+    }
 }

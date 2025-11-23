@@ -50,4 +50,8 @@ impl ProtocolHandler for UrlInfoProtocolHander {
     fn is_secure(&self) -> bool {
         true
     }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler> {
+        Box::new(UrlInfoProtocolHander::default())
+    }
 }

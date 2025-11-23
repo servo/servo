@@ -147,6 +147,7 @@ pub fn new_core_resource_thread(
                 config_dir,
                 ca_certificates,
                 ignore_certificate_errors,
+                protocols,
                 cancellation_listeners: Default::default(),
                 cookie_listeners: Default::default(),
             };
@@ -157,7 +158,6 @@ pub fn new_core_resource_thread(
                         public_setup_port,
                         private_setup_port,
                         report_port,
-                        protocols,
                         embedder_proxy,
                     )
                 },
@@ -177,6 +177,7 @@ struct ResourceChannelManager {
     ignore_certificate_errors: bool,
     cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
     cookie_listeners: FxHashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
+    protocols: Arc<ProtocolRegistry>,
 }
 
 fn create_http_states(
@@ -238,7 +239,6 @@ impl ResourceChannelManager {
         public_receiver: IpcReceiver<CoreResourceMsg>,
         private_receiver: IpcReceiver<CoreResourceMsg>,
         memory_reporter: IpcReceiver<ReportsChan>,
-        protocols: Arc<ProtocolRegistry>,
         embedder_proxy: EmbedderProxy,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
@@ -274,7 +274,7 @@ impl ResourceChannelManager {
                         &public_http_state
                     };
                     if let Ok(msg) = data.to() {
-                        if !self.process_msg(msg, group, Arc::clone(&protocols)) {
+                        if !self.process_msg(msg, group, Arc::clone(&self.protocols)) {
                             return;
                         }
                     }
@@ -478,6 +478,13 @@ impl ResourceChannelManager {
                     .map(Serde)
                     .collect();
                 self.send_cookie_response(cookie_store_id, CookieData::GetAll(cookies));
+            },
+            CoreResourceMsg::RegisterProtocolHandler(scheme, url, sender) => {
+                // TODO(40615): What should we do with duplicate custom schemes?
+                let _ = Arc::make_mut(&mut self.protocols)
+                    .register_page_content_handler(scheme, url.to_string());
+                let _ = sender.send(());
+                println!("Registered custom handler in resource thread");
             },
             CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring

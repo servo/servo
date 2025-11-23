@@ -605,7 +605,7 @@ pub(crate) struct Document {
 
     /// <https://html.spec.whatwg.org/multipage/#registerprotocolhandler()-automation-mode>
     #[no_trace]
-    protocol_handler_automation_mode: RefCell<CustomHandlersAutomationMode>,
+    protocol_handler_automation_mode: Cell<CustomHandlersAutomationMode>,
 
     /// Reflect the value of that preferences to prevent paying the cost of a RwLock access.
     layout_animations_test_enabled: bool,
@@ -888,8 +888,12 @@ impl Document {
         &self.origin
     }
 
+    pub(crate) fn protocol_handler_automation_mode(&self) -> CustomHandlersAutomationMode {
+        self.protocol_handler_automation_mode.get()
+    }
+
     pub(crate) fn set_protocol_handler_automation_mode(&self, mode: CustomHandlersAutomationMode) {
-        *self.protocol_handler_automation_mode.borrow_mut() = mode;
+        self.protocol_handler_automation_mode.set(mode);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-document-url>

@@ -68,11 +68,23 @@ pub trait ProtocolHandler: Send + Sync {
     fn is_secure(&self) -> bool {
         false
     }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler>;
 }
 
 #[derive(Default)]
 pub struct ProtocolRegistry {
     pub(crate) handlers: FxHashMap<String, Box<dyn ProtocolHandler>>, // Maps scheme -> handler
+}
+
+impl Clone for ProtocolRegistry {
+    fn clone(&self) -> ProtocolRegistry {
+        let mut handlers: FxHashMap<String, Box<dyn ProtocolHandler>> = FxHashMap::default();
+        for (scheme, handler) in self.handlers.iter() {
+            handlers.insert(scheme.clone(), handler.clone_box());
+        }
+        Self { handlers }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -130,6 +142,7 @@ impl ProtocolRegistry {
     }
 
     pub fn get(&self, scheme: &str) -> Option<&dyn ProtocolHandler> {
+        println!("Looking up for scheme {}", scheme);
         self.handlers.get(scheme).map(|e| e.as_ref())
     }
 
@@ -215,6 +228,7 @@ impl ProtocolHandler for WebpageContentProtocolHandler {
                 NetworkError::Internal("Failed to parse substituted protocol handler url".into()),
             )));
         };
+        println!("Final url {}", result_url);
         // Step 9. Navigate an appropriate navigable to resultURL.
         request.url_list.push(result_url);
         let request2 = request.clone();
@@ -226,6 +240,13 @@ impl ProtocolHandler for WebpageContentProtocolHandler {
             };
             fetch(request2, &mut collector, &context2).await;
             receiver.await.unwrap()
+        })
+    }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler> {
+        Box::new(WebpageContentProtocolHandler {
+            scheme: self.scheme.clone(),
+            url: self.url.clone(),
         })
     }
 }

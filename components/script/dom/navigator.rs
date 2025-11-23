@@ -7,17 +7,21 @@ use std::convert::TryInto;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use base::generic_channel;
+use base::{IpcSend, generic_channel};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
+use embedder_traits::{
+    CustomHandlersAutomationMode, EmbedderMsg, ProtocolHandlerUpdateRegistration,
+    RegisterOrUnregister,
+};
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
+use ipc_channel::ipc;
 use js::rust::MutableHandleValue;
 use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
 };
-use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
+use net_traits::{CoreResourceMsg, FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -268,6 +272,27 @@ impl Navigator {
                 registration,
                 sender,
             ));
+    }
+
+    fn add_procol_handler_to_protocol_registry(
+        &self,
+        global: &GlobalScope,
+        scheme: String,
+        url: ServoUrl,
+    ) {
+        let (tx, rx) = ipc::channel().unwrap();
+        let _ = global
+            .resource_threads()
+            .send(CoreResourceMsg::RegisterProtocolHandler(
+                scheme.clone(),
+                url.clone(),
+                tx,
+            ));
+        let _ = rx.recv();
+        println!(
+            "Registered custom handler {} with {} in navigator",
+            scheme, url
+        );
     }
 }
 
@@ -551,11 +576,21 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // the user agent should first verify that it is in an automation context (see WebDriver's security considerations).
         // The user agent should then bypass the above communication of information and gathering of user consent,
         // and instead do the following based on the value of the registerProtocolHandler() automation mode:
-        self.send_protocol_update_registration_to_embedder(ProtocolHandlerUpdateRegistration {
-            scheme,
-            url,
-            register_or_unregister: RegisterOrUnregister::Register,
-        });
+        let global = self.global();
+        let window = global.as_window();
+        let doc = window.Document();
+        match doc.protocol_handler_automation_mode() {
+            CustomHandlersAutomationMode::AutoReject => {},
+            CustomHandlersAutomationMode::AutoAccept => {
+                self.add_procol_handler_to_protocol_registry(&global, scheme, url)
+            },
+            CustomHandlersAutomationMode::None => self
+                .send_protocol_update_registration_to_embedder(ProtocolHandlerUpdateRegistration {
+                    scheme,
+                    url,
+                    register_or_unregister: RegisterOrUnregister::Register,
+                }),
+        };
         Ok(())
     }
 

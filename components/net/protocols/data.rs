@@ -57,4 +57,8 @@ impl ProtocolHandler for DataProtocolHander {
     fn is_fetchable(&self) -> bool {
         true
     }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler> {
+        Box::new(DataProtocolHander::default())
+    }
 }
