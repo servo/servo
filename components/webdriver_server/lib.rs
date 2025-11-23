@@ -419,8 +419,6 @@ enum VerifyBrowsingContextIsOpen {
     No,
 }
 
-/// The boolean indicates whether implicit_wait can early return before timeout with current result.
-type ImplicitWaitCallbackResult<T> = Result<(bool, T), (bool, WebDriverError)>;
 const CAN_EARLY_RETURN: bool = true;
 
 impl Handler {
@@ -1345,9 +1343,11 @@ impl Handler {
         unwrap_first_element_response(res)
     }
 
+    /// The boolean in callback result indicates whether implicit_wait can early return
+    /// before timeout with current result.
     fn implicit_wait<T>(
         &self,
-        callback: impl Fn() -> ImplicitWaitCallbackResult<T>,
+        callback: impl Fn() -> Result<(bool, T), (bool, WebDriverError)>,
     ) -> Result<T, WebDriverError> {
         let now = Instant::now();
         let (implicit_wait, sleep_interval) = {
