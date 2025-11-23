@@ -1394,12 +1394,10 @@ impl Handler {
         self.implicit_wait(|| {
             let (sender, receiver) = ipc::channel().unwrap();
             let cmd = match parameters.using {
-                LocatorStrategy::CSSSelector => {
-                    WebDriverScriptCommand::FindElementsCSSSelector(
-                        parameters.value.clone(),
-                        sender,
-                    )
-                },
+                LocatorStrategy::CSSSelector => WebDriverScriptCommand::FindElementsCSSSelector(
+                    parameters.value.clone(),
+                    sender,
+                ),
                 LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
                     WebDriverScriptCommand::FindElementsLinkText(
                         parameters.value.clone(),
@@ -1408,20 +1406,18 @@ impl Handler {
                     )
                 },
                 LocatorStrategy::TagName => {
-                    WebDriverScriptCommand::FindElementsTagName(
-                        parameters.value.clone(),
-                        sender,
-                    )
+                    WebDriverScriptCommand::FindElementsTagName(parameters.value.clone(), sender)
                 },
-                LocatorStrategy::XPath => {
-                    WebDriverScriptCommand::FindElementsXpathSelector(
-                        parameters.value.clone(),
-                        sender,
-                    )
-                },
+                LocatorStrategy::XPath => WebDriverScriptCommand::FindElementsXpathSelector(
+                    parameters.value.clone(),
+                    sender,
+                ),
             };
-            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No).map_err(|error|(CAN_EARLY_RETURN, error))?;
-            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value)).map_err(|error|(CAN_EARLY_RETURN, error))
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
+                .map_err(|error| (CAN_EARLY_RETURN, error))?;
+            wait_for_ipc_response_flatten(receiver)
+                .map(|value| (!value.is_empty(), value))
+                .map_err(|error| (CAN_EARLY_RETURN, error))
         })
         .and_then(|response| {
             let resp_value: Vec<WebElement> = response.into_iter().map(WebElement).collect();
@@ -1473,30 +1469,29 @@ impl Handler {
                     )
                 },
                 LocatorStrategy::LinkText | LocatorStrategy::PartialLinkText => {
-                     WebDriverScriptCommand::FindElementElementsLinkText(
+                    WebDriverScriptCommand::FindElementElementsLinkText(
                         parameters.value.clone(),
                         element.to_string(),
                         parameters.using == LocatorStrategy::PartialLinkText,
                         sender,
                     )
                 },
-                LocatorStrategy::TagName => {
-                    WebDriverScriptCommand::FindElementElementsTagName(
-                        parameters.value.clone(),
-                        element.to_string(),
-                        sender,
-                    )
-                },
-                LocatorStrategy::XPath => {
-                    WebDriverScriptCommand::FindElementElementsXPathSelector(
-                        parameters.value.clone(),
-                        element.to_string(),
-                        sender,
-                    )
-                },
+                LocatorStrategy::TagName => WebDriverScriptCommand::FindElementElementsTagName(
+                    parameters.value.clone(),
+                    element.to_string(),
+                    sender,
+                ),
+                LocatorStrategy::XPath => WebDriverScriptCommand::FindElementElementsXPathSelector(
+                    parameters.value.clone(),
+                    element.to_string(),
+                    sender,
+                ),
             };
-            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No).map_err(|error|(CAN_EARLY_RETURN, error))?;
-            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value)).map_err(|error|(CAN_EARLY_RETURN, error))
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
+                .map_err(|error| (CAN_EARLY_RETURN, error))?;
+            wait_for_ipc_response_flatten(receiver)
+                .map(|value| (!value.is_empty(), value))
+                .map_err(|error| (CAN_EARLY_RETURN, error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
@@ -1546,23 +1541,22 @@ impl Handler {
                         sender,
                     )
                 },
-                LocatorStrategy::TagName => {
-                    WebDriverScriptCommand::FindShadowElementsTagName(
-                        parameters.value.clone(),
-                        shadow_root.to_string(),
-                        sender,
-                    )
-                },
-                LocatorStrategy::XPath => {
-                    WebDriverScriptCommand::FindShadowElementsXPathSelector(
-                        parameters.value.clone(),
-                        shadow_root.to_string(),
-                        sender,
-                    )
-                },
+                LocatorStrategy::TagName => WebDriverScriptCommand::FindShadowElementsTagName(
+                    parameters.value.clone(),
+                    shadow_root.to_string(),
+                    sender,
+                ),
+                LocatorStrategy::XPath => WebDriverScriptCommand::FindShadowElementsXPathSelector(
+                    parameters.value.clone(),
+                    shadow_root.to_string(),
+                    sender,
+                ),
             };
-            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No).map_err(|error|(CAN_EARLY_RETURN, error))?;
-            wait_for_ipc_response_flatten(receiver).map(|value| (!value.is_empty(), value)).map_err(|error|(CAN_EARLY_RETURN, error))
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
+                .map_err(|error| (CAN_EARLY_RETURN, error))?;
+            wait_for_ipc_response_flatten(receiver)
+                .map(|value| (!value.is_empty(), value))
+                .map_err(|error| (CAN_EARLY_RETURN, error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
