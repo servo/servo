@@ -33,4 +33,4 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "open_servo_org","https://servo.org")
+    common_function_for_servo_test.run_test(operator, "open_servo_org", "https://servo.org")
