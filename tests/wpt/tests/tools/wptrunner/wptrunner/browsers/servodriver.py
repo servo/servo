@@ -169,7 +169,7 @@ class ServoWebDriverBrowser(WebDriverBrowser):
 
             retry_cnt += 1
             if retry_cnt >= self.shutdown_retry_attempts:
-                self.logger.warn("Max retry exceeded to normally shut down. Killing instead.")
+                self.logger.warning("Max retry exceeded to normally shut down. Killing instead.")
                 break
             time.sleep(1)
         super().stop(force)
