@@ -6,6 +6,7 @@
 />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
 <body>
   <video width="300" height="300" loop></video>
   <script type="module">
@@ -23,6 +24,7 @@
     }, "Test :pseudo-class syntax is supported without throwing a SyntaxError");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:muted)"), ":muted is not supported");
       assert_equals(
         document.querySelector("video:muted"),
         null,
@@ -31,7 +33,7 @@
       const video = document.querySelector("video");
       await new Promise((r) => {
         video.addEventListener("canplay", r, { once: true });
-        video.src = "/media/counting.mp4";
+        video.src = getVideoURI("/media/counting");
       });
       video.muted = false;
       assert_false(video.muted, "video is unmuted");

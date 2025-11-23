@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<head>
+<title>Testcases for handling javascript: URL attributes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/html5lib-testcase-support.js"></script>
+
+<script id="built-in-navigating-url-attributes-list" type="html5lib-testcases">
+#data
+<a href="javascript:alert(1)"></a>
+#document
+| <a>
+
+#data
+<area href="javascript:alert(1)"></area>
+#document
+| <area>
+
+#data
+<base href="javascript:alert(1)"></base>
+#document
+| <base>
+
+#data
+<button formaction="javascript:alert(1)"></button>
+#document
+| <button>
+
+#data
+<form action="javascript:alert(1)"></form>
+#document
+| <form>
+
+#data
+<input formaction="javascript:alert(1)"></input>
+#document
+| <input>
+
+#data
+<svg><a href="javascript:alert(1)"></a></svg>
+#document
+| <svg svg>
+|   <svg a>
+
+#data
+<svg><a xlink:href="javascript:alert(1)"></a></svg>
+#document
+| <svg svg>
+|   <svg a>
+</script>
+
+<script id="mathml" type="html5lib-testcases">
+#data
+<math><mrow href="javascript:alert(1)"></mrow></math>
+#document
+| <math math>
+|   <math mrow>
+
+#data
+<math><msqrt href="javascript:alert(1)"></msqrt></math>
+#document
+| <math math>
+|   <math msqrt>
+
+#data
+<math><mtext href="javascript:alert(1)">Test</mtext></math>
+#document
+| <math math>
+|   <math mtext>
+|     "Test"
+</script>
+
+<script id="built-in-animating-url-attributes-list" type="html5lib-testcases">
+#data
+<svg><animate attributeName="href"></svg>
+#document
+| <svg svg>
+|   <svg animate>
+
+#data
+<svg><animate attributeName="xlink:href"></svg>
+#document
+| <svg svg>
+|   <svg animate>
+
+
+#data
+<svg><animateMotion attributeName="href"></svg>
+#document
+| <svg svg>
+|   <svg animateMotion>
+
+#data
+<svg><animateMotion attributeName="xlink:href"></svg>
+#document
+| <svg svg>
+|   <svg animateMotion>
+
+
+#data
+<svg><animateTransform attributeName="href"></svg>
+#document
+| <svg svg>
+|   <svg animateTransform>
+
+#data
+<svg><animateTransform attributeName="xlink:href"></svg>
+#document
+| <svg svg>
+|   <svg animateTransform>
+
+
+#data
+<svg><set attributeName="href"></svg>
+#document
+| <svg svg>
+|   <svg set>
+
+#data
+<svg><set attributeName="xlink:href"></svg>
+#document
+| <svg svg>
+|   <svg set>
+</script>
+
+<script id="allowed" type="html5lib-testcases">
+#data
+<a nothref="javascript:alert(1)"></a>
+#document
+| <a>
+|  nothref="javascript:alert(1)"
+
+#data
+<svg><a xlink:href="data:text/html,foobar"></a></svg>
+#document
+| <svg svg>
+|  <svg a>
+|    xlink href="data:text/html,foobar"
+
+#data
+<svg><set attributeName=" href "></svg>
+#document
+| <svg svg>
+|   <svg set>
+|     attributeName=" href "
+</script>
+
+<script>
+for (const group of document.querySelectorAll("script[type='html5lib-testcases']")) {
+  parse_html5lib_testcases(group.textContent).forEach((testcase, index) => {
+    // Allow everything by default, we only care about the URLs being removed.
+    let config = { sanitizer: {} };
+
+    test((_) => {
+      const div = document.createElement("div");
+      div.setHTML(testcase.data, config);
+      assert_testcase(div, testcase);
+    }, `setHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+
+    test((_) => {
+      assert_testcase(Document.parseHTML("<body>" + testcase.data, config).body, testcase);
+    }, `parseHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+  });
+}
+</script>
+</head>
+<body>
+</body>

@@ -576,55 +576,6 @@ subsetTest(promise_test, async test => {
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
 
-  let renderURL = createRenderURL(uuid);
-  let bidderDebugReportURL =
-      createBidderReportURL(uuid, /*id=*/ 'forDebuggingOnly');
-
-  let biddingLogicURL = createBiddingScriptURL({
-    generateBid: `
-        forDebuggingOnly.reportAdAuctionWin('${bidderDebugReportURL}');
-        return {bid: 1, render: '${renderURL}'};`
-  });
-
-  await Promise.all([
-    joinInterestGroup(
-        test, uuid,
-        {name: 'o1', ads: [{renderURL: renderURL}], biddingLogicURL}),
-    joinInterestGroup(
-        test, uuid,
-        {name: 'o2', ads: [{renderURL: renderURL}], biddingLogicURL})
-  ]);
-
-  // Run an auction to put the origin to cooldown, or lockout.
-  await runBasicFledgeAuctionAndNavigate(test, uuid);
-
-  const result = await navigator.getInterestGroupAdAuctionData({
-    coordinatorOrigin: await BA.configureCoordinator(),
-    seller: window.location.origin
-  });
-  assert_true(result.requestId !== null);
-  assert_true(result.request.length > 0);
-
-  let decoded = await BA.decodeInterestGroupData(result.request);
-  assert_equals(decoded.message.version, 0);
-  assert_equals(decoded.message.publisher, window.location.hostname);
-  assert_equals(typeof decoded.message.generationId, 'string');
-
-  assert_equals(
-      decoded.message.interestGroups[window.location.origin].length, 2);
-  assert_equals(
-      decoded.message.interestGroups[window.location.origin][0]
-          .inCooldownOrLockout,
-      true);
-  assert_equals(
-      decoded.message.interestGroups[window.location.origin][1]
-          .inCooldownOrLockout,
-      true);
-}, 'getInterestGroupAdAuctionData() InCooldownOrLockout in each IG');
-
-subsetTest(promise_test, async test => {
-  const uuid = generateUuid(test);
-
   await joinCrossOriginIG(test, uuid, OTHER_ORIGIN1, 'o1');
   await joinCrossOriginIG(test, uuid, OTHER_ORIGIN2, 'o2');
   await joinCrossOriginIG(test, uuid, OTHER_ORIGIN3, 'o3');

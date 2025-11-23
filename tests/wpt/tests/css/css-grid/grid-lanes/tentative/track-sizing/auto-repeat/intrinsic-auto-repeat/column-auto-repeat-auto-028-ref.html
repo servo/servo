@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid-lanes {
+    display: grid;
+    background: gray;
+    item-tolerance: 0;
+    grid-template-columns: repeat(auto-fill, 1px);
+    width: auto;
+    height: auto;
+}
+
+.grid-lanes > div {
+    width: 100%;
+    height: 100px;
+}
+</style>
+<div class="grid-lanes">
+  <div style="background: lightskyblue;"></div>
+  <div style="background: lightcoral;"></div>
+  <div style="background: lightgreen;"></div>
+</div>
+</html>

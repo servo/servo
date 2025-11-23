@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>streamHTML methods can apply template with contentmethod</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div contentname=p id="placeholder">Old content</div>
+<script>
+promise_test(async t => {
+    const writable = document.body.streamAppendHTMLUnsafe();
+    const writer = writable.getWriter();
+    await writer.write('<template contentmethod="replace-children">');
+    await writer.write("<div contentname=p>");
+    await writer.write("New content");
+    await writer.write("</div>");
+    await writer.close();
+    assert_equals(document.querySelector("#placeholder").textContent, "New content")
+});
+</script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>column-height: 0</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#cwr">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; columns:2 / 0; width:100px; gap:99px 0; column-fill:auto; background:red;">
+  <div style="height:4px; background:green;"></div>
+  <div style="position:absolute; top:1px; left:0; width:100%; height:98px; background:green;"></div>
+</div>

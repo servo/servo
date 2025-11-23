@@ -1,13 +1,13 @@
 <!DOCTYPE HTML>
 <meta charset="utf-8" />
-<title>HTML partial updates: shadowrootmode supercede contentmethod</title>
+<title>HTML partial updates: shadowrootmode supersedes contentmethod</title>
 <link rel=help href="https://github.com/WICG/declarative-partial-updates">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
 <div id="container">
     <section id=outer contentname="d">Unchanged</section>
-    <template shadowrootmode="invalid" contentmethod="replace-children">
+    <template shadowrootmode="open" contentmethod="append">
         <section id=inner contentname="d">Inside</section>
     </template>
 </div>
@@ -15,7 +15,9 @@
 <script>
 test(() => {
     const outer = document.querySelector("#outer");
-    assert_equals(outer.textContent, "Inside");
-    assert_equals(document.querySelector("#container").shadowRoot, null);
+    assert_equals(outer.textContent, "Unchanged");
+    const inner = document.querySelector("#container").shadowRoot.querySelector("#inner");
+    assert_not_equals(inner, null);
+    assert_equals(inner.textContent, "Inside");
 });
 </script>

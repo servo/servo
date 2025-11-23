@@ -222,6 +222,14 @@ const expectations = [
         ]
       }
     ]
+  },
+  {
+    format: 'brotli',
+
+    // Decompresses to 'expected output'.
+    baseInput: brotliChunkValue,
+
+    fields: []
   }
 ];
 

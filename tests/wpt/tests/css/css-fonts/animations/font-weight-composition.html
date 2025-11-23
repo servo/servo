@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>font-weight composition</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-3/#propdef-font-weight">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<body>
+<script>
+test_composition({
+  property: 'font-weight',
+  underlying: '500',
+  addFrom: '100',
+  addTo: '500',
+}, [
+  {at: -0.3, expect: '480'},
+  {at: 0, expect: '600'},
+  {at: 0.5, expect: '800'},
+  {at: 1, expect: '1000'},
+  {at: 1.5, expect: '1000'},
+]);
+
+test_composition({
+  property: 'font-weight',
+  underlying: '200',
+  addFrom: '600',
+  replaceTo: '500',
+}, [
+  {at: -0.3, expect: '889.75'},
+  {at: 0, expect: '800'},
+  {at: 0.5, expect: '650'},
+  {at: 1, expect: '500'},
+  {at: 1.5, expect: '350'},
+]);
+</script>
+</body>

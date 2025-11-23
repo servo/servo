@@ -466,6 +466,7 @@ promise_test(async t => {
   await anim.ready;
   scroller.scrollTop = maxScroll * 0.07
   await waitForNextFrame();
+  await waitForNextFrame();
 
   assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.07,
                              'progress before updating direction');
@@ -520,6 +521,7 @@ promise_test(async t => {
   await anim.ready;
   scroller.scrollTop = maxScroll * 0.17 // 34% through first iteration
   await waitForNextFrame();
+  await waitForNextFrame();
 
   assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.34,
                              'progress before updating direction');
@@ -540,6 +542,7 @@ promise_test(async t => {
   anim.play();
   await anim.ready;
   scroller.scrollTop = maxScroll * 0.17
+  await waitForNextFrame();
   await waitForNextFrame();
   // anim.currentTime = 17000; // 34% through first iteration
   assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.34,
@@ -615,6 +618,7 @@ promise_test(async t => {
                 'easing replace to steps(2, end) at before phase');
 
   scroller.scrollTop = maxScroll * 0.875
+  await waitForNextFrame();
   await waitForNextFrame();
 
   assert_equals(anim.effect.getComputedTiming().progress, 0.5,

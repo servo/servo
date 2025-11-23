@@ -1,11 +1,19 @@
 // META: global=window,worker,shadowrealm
 // META: script=third_party/pako/pako_inflate.min.js
+// META: script=resources/decompress.js
+// META: script=resources/formats.js
 // META: timeout=long
 
 'use strict';
 
 const SMALL_FILE = "/media/foo.vtt";
 const LARGE_FILE = "/media/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm";
+
+let dataPromiseList = [
+  ["empty data", Promise.resolve(new Uint8Array(0))],
+  ["small amount data", fetch(SMALL_FILE).then(response => response.bytes())],
+  ["large amount data", fetch(LARGE_FILE).then(response => response.bytes())],
+];
 
 async function compressArrayBuffer(input, format) {
   const cs = new CompressionStream(format);
@@ -38,54 +46,14 @@ test(() => {
   }, "non supported format should throw");
 }, "CompressionStream constructor should throw on invalid format");
 
-promise_test(async () => {
-  const buffer = new ArrayBuffer(0);
-  const bufferView = new Uint8Array(buffer);
-  const compressedData = await compressArrayBuffer(bufferView, "deflate");
-  // decompress with pako, and check that we got the same result as our original string
-  assert_array_equals(bufferView, pako.inflate(compressedData));
-}, "deflated empty data should be reinflated back to its origin");
-
-promise_test(async () => {
-  const response = await fetch(SMALL_FILE)
-  const buffer = await response.arrayBuffer();
-  const bufferView = new Uint8Array(buffer);
-  const compressedData = await compressArrayBuffer(bufferView, "deflate");
-  // decompress with pako, and check that we got the same result as our original string
-  assert_array_equals(bufferView, pako.inflate(compressedData));
-}, "deflated small amount data should be reinflated back to its origin");
-
-promise_test(async () => {
-  const response = await fetch(LARGE_FILE)
-  const buffer = await response.arrayBuffer();
-  const bufferView = new Uint8Array(buffer);
-  const compressedData = await compressArrayBuffer(bufferView, "deflate");
-  // decompress with pako, and check that we got the same result as our original string
-  assert_array_equals(bufferView, pako.inflate(compressedData));
-}, "deflated large amount data should be reinflated back to its origin");
-
-promise_test(async () => {
-  const buffer = new ArrayBuffer(0);
-  const bufferView = new Uint8Array(buffer);
-  const compressedData = await compressArrayBuffer(bufferView, "gzip");
-  // decompress with pako, and check that we got the same result as our original string
-  assert_array_equals(bufferView, pako.inflate(compressedData));
-}, "gzipped empty data should be reinflated back to its origin");
-
-promise_test(async () => {
-  const response = await fetch(SMALL_FILE)
-  const buffer = await response.arrayBuffer();
-  const bufferView = new Uint8Array(buffer);
-  const compressedData = await compressArrayBuffer(bufferView, "gzip");
-  // decompress with pako, and check that we got the same result as our original string
-  assert_array_equals(bufferView, pako.inflate(compressedData));
-}, "gzipped small amount data should be reinflated back to its origin");
-
-promise_test(async () => {
-  const response = await fetch(LARGE_FILE)
-  const buffer = await response.arrayBuffer();
-  const bufferView = new Uint8Array(buffer);
-  const compressedData = await compressArrayBuffer(bufferView, "gzip");
-  // decompress with pako, and check that we got the same result as our original string
-  assert_array_equals(bufferView, pako.inflate(compressedData));
-}, "gzipped large amount data should be reinflated back to its origin");
+for (const format of formats) {
+  for (const [label, dataPromise] of dataPromiseList) {
+    promise_test(async () => {
+      const bufferView = await dataPromise;
+      const compressedData = await compressArrayBuffer(bufferView, format);
+      const decompressedData = await decompressDataOrPako(compressedData, format);
+      // check that we got the same result as our original string
+      assert_array_equals(decompressedData, bufferView, 'value should match');
+    }, `${format} ${label} should be reinflated back to its origin`);
+  }
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Lists reference: use of `counter-*` in ::marker</title>
+
+<link rel="author" href="mailto:jkew@mozilla.com">
+
+<style>
+ol {
+  padding-left: 5em;
+}
+li:nth-child(1)::marker {
+  content: "[1] ";
+}
+li:nth-child(2)::marker {
+  content: "[2] ";
+}
+li:nth-child(3)::marker {
+  content: "[10] ";
+}
+li:nth-child(4)::marker {
+  content: "[11] ";
+}
+li:nth-child(5)::marker {
+  content: "[12] ";
+}
+li:nth-child(6)::marker {
+  content: "[12:1] ";
+}
+li:nth-child(7)::marker {
+  content: "[13] ";
+}
+li:nth-child(8)::marker {
+  content: "[14] ";
+}
+</style>
+
+<ol>
+  <li>one
+  <li>two
+  <li class=set>set to 10
+  <li>next item
+  <li>next item
+  <li class=reset>reset (12:2)
+  <li>next item
+  <li>last item
+</ol>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>Animated anchor transform in iframe</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining-position">
+<iframe id="iframe" style="width:300px; height:400px;" srcdoc='
+<style>
+  #anchor {
+    anchor-name: --a;
+    width: 200px;
+    height: 200px;
+    translate: 0;
+    background: hotpink;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: bottom right;
+    width: 100%;
+    height: 100%;
+    background: cyan;
+  }
+  @keyframes anim {
+    from { translate: 0; }
+    to { translate: 100px; }
+  }
+  body { margin: 0; }
+</style>
+<div id="anchor"></div>
+<div id="anchored"></div>
+<script>
+  const done = Promise.withResolvers();
+  let got_halfway = false;
+  const observer = new ResizeObserver((entries)=> {
+    const inlineSize = entries[0].contentBoxSize[0].inlineSize;
+    if (inlineSize > 30 && inlineSize < 90) {
+      got_halfway = true;
+      done.resolve();
+    }
+  });
+  anchor.onanimationend = ()=> { done.reject(); }
+
+  async function runTest() {
+    await new Promise(resolve => { window.onmessage = resolve; });
+    anchor.style.animation = "2000ms linear anim";
+    try {
+      observer.observe(anchored);
+      await done.promise;
+      observer.unobserve(anchored);
+      anchor.style.animation = "none";
+    } catch (e) {}
+    window.top.postMessage(got_halfway);
+  }
+  runTest();
+</script>
+'></iframe>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+    await new Promise(resolve => { window.onload = resolve; });
+    iframe.contentWindow.postMessage("go");
+    let success = await new Promise(resolve => {
+      window.onmessage = function(e) { resolve(e.data); };
+    });
+    assert_true(success, "animation frame somewhere in the middle");
+  }, "Animation being updated");
+</script>
