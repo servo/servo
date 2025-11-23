@@ -14,6 +14,7 @@ use fonts::{
     PlatformFontMethods, ShapingFlags, ShapingOptions,
 };
 use servo_url::ServoUrl;
+use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
 use unicode_script::Script;
@@ -39,6 +40,7 @@ fn make_font(path: PathBuf) -> Font {
         pt_size: Au::from_px(24),
         variation_settings: vec![],
         synthesis_weight: FontSynthesis::Auto,
+        optical_sizing: FontOpticalSizing::Auto,
     };
     Font::new(FontTemplateRef::new(template), descriptor, Some(data), None).unwrap()
 }
