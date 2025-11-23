@@ -27,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{Blob, normalize_type_string};
@@ -41,6 +41,31 @@ use crate::dom::urlsearchparams::URLSearchParams;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::SendableTaskSource;
+
+/// <https://fetch.spec.whatwg.org/#concept-body-clone>
+pub(crate) fn clone_body_stream_for_dom_body(
+    original_body_stream: &MutNullableDom<ReadableStream>,
+    cloned_body_stream: &MutNullableDom<ReadableStream>,
+    can_gc: CanGc,
+) -> Fallible<()> {
+    // To clone a body *body*, run these steps:
+
+    let Some(stream) = original_body_stream.get() else {
+        return Ok(());
+    };
+
+    // step 1. Let « out1, out2 » be the result of teeing body’s stream.
+    let branches = stream.tee(true, can_gc)?;
+    let out1 = &*branches[0];
+    let out2 = &*branches[1];
+
+    // step 2. Set body’s stream to out1.
+    // step 3. Return a body whose stream is out2 and other members are copied from body.
+    original_body_stream.set(Some(out1));
+    cloned_body_stream.set(Some(out2));
+
+    Ok(())
+}
 
 /// The Dom object, or ReadableStream, that is the source of a body.
 /// <https://fetch.spec.whatwg.org/#concept-body-source>
