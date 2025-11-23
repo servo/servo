@@ -36,12 +36,12 @@ pub(crate) enum ServoShellEventLoop {
     /// A fake event loop which contains a signalling flag used to ensure
     /// that pending events get processed in a timely fashion, and a condition
     /// variable to allow waiting on that flag changing state.
-    Headless(Arc<(Mutex<bool>, Condvar)>),
+    Headless(Arc<HeadlessEventLoop>),
 }
 
 impl ServoShellEventLoop {
     pub(crate) fn headless() -> ServoShellEventLoop {
-        ServoShellEventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
+        ServoShellEventLoop::Headless(Default::default())
     }
 
     pub(crate) fn headed() -> ServoShellEventLoop {
@@ -77,46 +77,23 @@ impl ServoShellEventLoop {
                     .run_app(app)
                     .expect("Failed while running events loop");
             },
-            ServoShellEventLoop::Headless(ref data) => {
-                let (flag, condvar) = &**data;
-
-                app.init(None);
-                loop {
-                    self.sleep(flag, condvar);
-                    app.handle_webdriver_messages();
-                    if !app.handle_events_with_headless() {
-                        break;
-                    }
-                    *flag.lock().unwrap() = false;
-                }
-            },
+            ServoShellEventLoop::Headless(event_loop) => event_loop.run_app(app),
         }
-    }
-
-    fn sleep(&self, lock: &Mutex<bool>, condvar: &Condvar) {
-        // To avoid sleeping when we should be processing events, do two things:
-        // * before sleeping, check whether our signalling flag has been set
-        // * wait on a condition variable with a maximum timeout, to allow
-        //   being woken up by any signals that occur while sleeping.
-        let guard = lock.lock().unwrap();
-        if *guard {
-            return;
-        }
-        let _ = condvar
-            .wait_timeout(guard, time::Duration::from_millis(5))
-            .unwrap();
     }
 }
 
+#[derive(Clone)]
 struct HeadedEventLoopWaker {
     proxy: Arc<Mutex<EventLoopProxy<AppEvent>>>,
 }
+
 impl HeadedEventLoopWaker {
     fn new(event_loop: &EventLoop<AppEvent>) -> HeadedEventLoopWaker {
         let proxy = Arc::new(Mutex::new(event_loop.create_proxy()));
         HeadedEventLoopWaker { proxy }
     }
 }
+
 impl EventLoopWaker for HeadedEventLoopWaker {
     fn wake(&self) {
         // Kick the OS event loop awake.
@@ -124,26 +101,64 @@ impl EventLoopWaker for HeadedEventLoopWaker {
             warn!("Failed to wake up event loop ({}).", err);
         }
     }
+
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
-        Box::new(HeadedEventLoopWaker {
-            proxy: self.proxy.clone(),
-        })
+        Box::new(self.clone())
     }
 }
 
-struct HeadlessEventLoopWaker(Arc<(Mutex<bool>, Condvar)>);
+/// The [`HeadlessEventLoop`] is used when running in headless mode. The event
+/// loop just loops over a condvar to simulate a real windowing system event loop.
+#[derive(Default)]
+pub(crate) struct HeadlessEventLoop {
+    guard: Arc<Mutex<bool>>,
+    condvar: Condvar,
+}
+
+impl HeadlessEventLoop {
+    fn run_app(&self, app: &mut App) {
+        app.init(None);
+
+        loop {
+            self.sleep();
+            if !app.pump_servo_event_loop() {
+                break;
+            }
+            *self.guard.lock().unwrap() = false;
+        }
+    }
+
+    fn sleep(&self) {
+        // To avoid sleeping when we should be processing events, do two things:
+        // * before sleeping, check whether our signalling flag has been set
+        // * wait on a condition variable with a maximum timeout, to allow
+        //   being woken up by any signals that occur while sleeping.
+        let guard = self.guard.lock().unwrap();
+        if *guard {
+            return;
+        }
+        let _ = self
+            .condvar
+            .wait_timeout(guard, time::Duration::from_millis(5))
+            .unwrap();
+    }
+}
+
+#[derive(Clone)]
+struct HeadlessEventLoopWaker(Arc<HeadlessEventLoop>);
+
 impl EventLoopWaker for HeadlessEventLoopWaker {
     fn wake(&self) {
         // Set the signalling flag and notify the condition variable.
         // This ensures that any sleep operation is interrupted,
         // and any non-sleeping operation will have a change to check
         // the flag before going to sleep.
-        let (ref flag, ref condvar) = *self.0;
-        let mut flag = flag.lock().unwrap();
+        let mut flag = self.0.guard.lock().unwrap();
         *flag = true;
-        condvar.notify_all();
+        self.0.condvar.notify_all();
     }
+
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
-        Box::new(HeadlessEventLoopWaker(self.0.clone()))
+        Box::new(self.clone())
     }
 }
