@@ -21,6 +21,7 @@ app_units = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
 compositing_traits = { workspace = true }
+content-security-policy = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }

@@ -29,6 +29,7 @@ use embedder_traits::{
     Image, LoadStatus,
 };
 use encoding_rs::{Encoding, UTF_8};
+use fonts::WebFontDocumentContext;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -4195,9 +4196,12 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
+            let document_context = self.window.web_font_context();
+
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
+                &document_context,
             );
         }
 
@@ -4231,6 +4235,7 @@ impl Document {
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
+                &self.window.web_font_context(),
             );
         }
 
@@ -4244,10 +4249,14 @@ impl Document {
     }
 
     /// Given a stylesheet, load all web fonts from it in Layout.
-    pub(crate) fn load_web_fonts_from_stylesheet(&self, stylesheet: &Arc<Stylesheet>) {
+    pub(crate) fn load_web_fonts_from_stylesheet(
+        &self,
+        stylesheet: &Arc<Stylesheet>,
+        document_context: &WebFontDocumentContext,
+    ) {
         self.window
             .layout()
-            .load_web_fonts_from_stylesheet(stylesheet);
+            .load_web_fonts_from_stylesheet(stylesheet, document_context);
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.

@@ -30,6 +30,7 @@ use constellation_traits::{
     ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
     WindowSizeType,
 };
+use content_security_policy::Violation;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
@@ -43,7 +44,7 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
-use fonts::FontContext;
+use fonts::{CspViolationHandler, FontContext, WebFontDocumentContext};
 use ipc_channel::ipc::IpcSender;
 use js::glue::DumpJSStack;
 use js::jsapi::{
@@ -138,6 +139,7 @@ use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::cookiestore::CookieStore;
 use crate::dom::crypto::Crypto;
+use crate::dom::csp::GlobalCspReporting;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
@@ -187,6 +189,7 @@ use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
+use crate::task_source::SendableTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
@@ -842,6 +845,45 @@ impl Window {
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         with_script_thread(|script_thread| script_thread.perform_a_microtask_checkpoint(can_gc));
+    }
+
+    pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
+        let global = self.as_global_scope();
+        WebFontDocumentContext {
+            policy_container: global.policy_container(),
+            document_url: global.api_base_url(),
+            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: global.insecure_requests_policy(),
+            csp_handler: Box::new(FontCspHandler {
+                global: Trusted::new(global),
+                task_source: global
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .to_sendable(),
+            }),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct FontCspHandler {
+    global: Trusted<GlobalScope>,
+    task_source: SendableTaskSource,
+}
+
+impl CspViolationHandler for FontCspHandler {
+    fn process_violations(&self, violations: Vec<Violation>) {
+        let global = self.global.clone();
+        self.task_source.queue(task!(csp_violation: move || {
+            global.root().report_csp_violations(violations, None, None);
+        }));
+    }
+
+    fn clone(&self) -> Box<dyn CspViolationHandler> {
+        Box::new(Self {
+            global: self.global.clone(),
+            task_source: self.task_source.clone(),
+        })
     }
 }
 
@@ -2451,6 +2493,9 @@ impl Window {
             None
         };
 
+        let document_context = self.web_font_context();
+
+        // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
             epoch: document.current_rendering_epoch(),
@@ -2463,6 +2508,7 @@ impl Window {
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
+            document_context,
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {

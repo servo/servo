@@ -253,9 +253,13 @@ impl StylesheetContext {
                     link.set_stylesheet(stylesheet);
                 },
                 StylesheetContextSource::Import { import_rule } => {
+                    // Construct a new WebFontDocumentContext for the stylesheet
+                    let window = element.owner_window();
+                    let document_context = window.web_font_context();
+
                     // Layout knows about this stylesheet, because Stylo added it to the Stylist,
                     // but Layout doesn't know about any new web fonts that it contains.
-                    document.load_web_fonts_from_stylesheet(&stylesheet);
+                    document.load_web_fonts_from_stylesheet(&stylesheet, &document_context);
 
                     let mut guard = document.style_shared_lock().write();
                     import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);

@@ -176,6 +176,12 @@ pub(crate) struct Trusted<T: DomObject> {
     phantom: PhantomData<T>,
 }
 
+impl<T: DomObject> std::fmt::Debug for Trusted<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.write_str("...")
+    }
+}
+
 unsafe impl<T: DomObject> Send for Trusted<T> {}
 
 impl<T: DomObject> Trusted<T> {

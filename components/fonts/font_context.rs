@@ -12,19 +12,24 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use app_units::Au;
 use base::id::{PainterId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
+use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
     FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
 };
 use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::request::{Destination, Referrer, RequestBuilder};
+use net_traits::policy_container::PolicyContainer;
+use net_traits::request::{
+    CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestMode,
+    ServiceWorkersMode,
+};
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::font_face::{
@@ -103,6 +108,36 @@ pub struct FontContext {
     font_data: RwLock<HashMap<FontIdentifier, FontData>>,
 
     have_removed_web_fonts: AtomicBool,
+}
+
+/// A callback that will be invoked on the Fetch thread if a web font download
+/// results in CSP violations. This handler will be cloned each time a new
+/// web font download is initiated.
+pub trait CspViolationHandler: Send + std::fmt::Debug {
+    fn process_violations(&self, violations: Vec<Violation>);
+    fn clone(&self) -> Box<dyn CspViolationHandler>;
+}
+
+/// Document-specific data required to fetch a web font.
+#[derive(Debug)]
+pub struct WebFontDocumentContext {
+    pub policy_container: PolicyContainer,
+    pub document_url: ServoUrl,
+    pub has_trustworthy_ancestor_origin: bool,
+    pub insecure_requests_policy: InsecureRequestsPolicy,
+    pub csp_handler: Box<dyn CspViolationHandler>,
+}
+
+impl Clone for WebFontDocumentContext {
+    fn clone(&self) -> WebFontDocumentContext {
+        Self {
+            policy_container: self.policy_container.clone(),
+            document_url: self.document_url.clone(),
+            has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_origin,
+            insecure_requests_policy: self.insecure_requests_policy,
+            csp_handler: self.csp_handler.clone(),
+        }
+    }
 }
 
 impl FontContext {
@@ -410,6 +445,7 @@ pub(crate) struct WebFontDownloadState {
     local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
     font_context: Arc<FontContext>,
     initiator: WebFontLoadInitiator,
+    document_context: WebFontDocumentContext,
 }
 
 impl WebFontDownloadState {
@@ -420,6 +456,7 @@ impl WebFontDownloadState {
         initiator: WebFontLoadInitiator,
         sources: Vec<Source>,
         local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
+        document_context: WebFontDocumentContext,
     ) -> WebFontDownloadState {
         match initiator {
             WebFontLoadInitiator::Stylesheet(ref initiator) => {
@@ -444,6 +481,7 @@ impl WebFontDownloadState {
             local_fonts,
             font_context,
             initiator,
+            document_context,
         }
     }
 
@@ -514,6 +552,7 @@ pub trait FontContextWebFontMethods {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         finished_callback: StylesheetWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     ) -> usize;
     fn load_web_font_for_script(
         &self,
@@ -521,6 +560,7 @@ pub trait FontContextWebFontMethods {
         source_list: SourceList,
         descriptors: CSSFontFaceDescriptors,
         finished_callback: ScriptWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     );
     fn add_template_to_font_context(
         &self,
@@ -540,6 +580,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         guard: &SharedRwLockReadGuard,
         device: &Device,
         finished_callback: StylesheetWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     ) -> usize {
         let mut number_loading = 0;
         let custom_media = &CustomMediaMap::default();
@@ -570,6 +611,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 font_face.sources(),
                 css_font_face_descriptors,
                 WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
+                document_context,
             );
         }
 
@@ -678,9 +720,16 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         sources: SourceList,
         descriptors: CSSFontFaceDescriptors,
         finished_callback: ScriptWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
     ) {
         let completion_handler = WebFontLoadInitiator::Script(finished_callback);
-        self.start_loading_one_web_font(webview_id, &sources, descriptors, completion_handler);
+        self.start_loading_one_web_font(
+            webview_id,
+            &sources,
+            descriptors,
+            completion_handler,
+            document_context,
+        );
     }
 
     fn add_template_to_font_context(
@@ -702,6 +751,7 @@ impl FontContext {
         source_list: &SourceList,
         css_font_face_descriptors: CSSFontFaceDescriptors,
         completion_handler: WebFontLoadInitiator,
+        document_context: &WebFontDocumentContext,
     ) {
         let sources: Vec<Source> = source_list
             .0
@@ -743,6 +793,7 @@ impl FontContext {
             completion_handler,
             sources,
             local_fonts,
+            document_context.clone(),
         ));
     }
 
@@ -841,14 +892,21 @@ impl RemoteWebFontDownloader {
             None => return,
         };
 
-        // FIXME: This shouldn't use NoReferrer, but the current documents url
-        let request =
-            RequestBuilder::new(state.webview_id, url.clone().into(), Referrer::NoReferrer)
-                // TODO: Set policy_container from globalscope that contains the fontcontext
-                .policy_container(Default::default())
-                // TODO: Set origin from document that contains the fontcontext
-                .origin(ImmutableOrigin::new(url.origin()))
-                .destination(Destination::Font);
+        let document_context = &state.document_context;
+
+        let request = RequestBuilder::new(
+            state.webview_id,
+            url.clone().into(),
+            Referrer::ReferrerUrl(document_context.document_url.clone()),
+        )
+        .origin(document_context.document_url.origin())
+        .destination(Destination::Font)
+        .mode(RequestMode::CorsMode)
+        .credentials_mode(CredentialsMode::CredentialsSameOrigin)
+        .service_workers_mode(ServiceWorkersMode::All)
+        .policy_container(document_context.policy_container.clone())
+        .insecure_requests_policy(document_context.insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(document_context.has_trustworthy_ancestor_origin);
 
         let core_resource_thread_clone = state.core_resource_thread.clone();
 
@@ -955,9 +1013,18 @@ impl RemoteWebFontDownloader {
         response_message: FetchResponseMsg,
     ) -> DownloaderResponseResult {
         match response_message {
-            FetchResponseMsg::ProcessRequestBody(..) |
-            FetchResponseMsg::ProcessRequestEOF(..) |
-            FetchResponseMsg::ProcessCspViolations(..) => DownloaderResponseResult::InProcess,
+            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
+                DownloaderResponseResult::InProcess
+            },
+            FetchResponseMsg::ProcessCspViolations(_request_id, violations) => {
+                self.state
+                    .as_ref()
+                    .expect("must have download state before termination")
+                    .document_context
+                    .csp_handler
+                    .process_violations(violations);
+                DownloaderResponseResult::InProcess
+            },
             FetchResponseMsg::ProcessResponse(_, meta_result) => {
                 trace!(
                     "@font-face {} metadata ok={:?}",
