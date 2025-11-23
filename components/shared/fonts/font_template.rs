@@ -8,7 +8,10 @@ use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
+use read_fonts::collections::int_set::Domain;
+use read_fonts::types::Tag;
 use serde::{Deserialize, Serialize};
+use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::stylesheets::{DocumentStyleSheet, FontFaceRule};
@@ -254,6 +257,14 @@ impl FontTemplate {
                     })
                     .for_each(&mut add_variation);
             }
+        }
+
+        // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
+        if descriptor.optical_sizing == FontOpticalSizing::Auto {
+            add_variation(FontVariation {
+                tag: Tag::new(b"opsz").to_u32(),
+                value: descriptor.pt_size.to_f32_px(),
+            });
         }
 
         variations
