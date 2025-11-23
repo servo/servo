@@ -17,7 +17,7 @@ import sys
 import time
 from decimal import Decimal
 
-import hdc_py
+from hdc_py import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
 from urllib3.exceptions import ProtocolError
@@ -144,18 +144,25 @@ def stop_servo():
     print("Stop Test Application successful!")
 
 
-def run_test(test_fn, initial_url: str):
+def run_test(test_fn, test_name: str, initial_url: str):
     try:
         print("Stopping potential old servo instance ...")
         stop_servo()
-        hdc = hdc_py.HarmonyDeviceConnector()
+        hdc = HarmonyDeviceConnector()
         print(f"Starting new servo instance, loading {initial_url} ...")
         hdc.cmd(f"aa start -a EntryAbility -b org.servo.servo -U {initial_url} --psn --webdriver", timeout=10)
         setup_hdc_forward()
-        with hdc_py.HarmonyDevicePerfMode():
-            test_fn()
     except Exception as e:
-        print(f"Scenario test {os.path.basename(__file__)} failed with error: {e} (exception: {type(e)})")
+        print(f"Scenario test setup failed with error: {e} (exception: {type(e)})")
         stop_servo()
         sys.exit(1)
+    try:
+        with HarmonyDevicePerfMode():
+            test_fn()
+    except Exception as e:
+        print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
+        hdc.screenshot(f"servo_scenario_{test_name}_error.jpg")
+        stop_servo()
+        sys.exit(1)
+
     stop_servo()

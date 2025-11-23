@@ -48,4 +48,4 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "https://m.huaweimossel.com")
+    common_function_for_servo_test.run_test(operator, "open_mossel", "https://m.huaweimossel.com")
