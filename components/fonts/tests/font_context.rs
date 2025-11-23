@@ -27,6 +27,7 @@ mod font_context {
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
     use style::ArcSlice;
+    use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
     use style::properties::style_structs::Font as FontStyleStruct;
     use style::values::computed::font::{
@@ -358,6 +359,7 @@ mod font_context {
             pt_size: Au(10),
             variation_settings: vec![],
             synthesis_weight: FontSynthesis::Auto,
+            optical_sizing: FontOpticalSizing::Auto,
         };
 
         let family = SingleFontFamily::FamilyName(FamilyName {
