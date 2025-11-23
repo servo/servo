@@ -28,3 +28,7 @@ features:
   files:
   - backdrop-animate-002.html
   - backdrop-animate.html
+- name: before-after
+  files:
+  - before-*
+  - pseudo-replaced-elements.html

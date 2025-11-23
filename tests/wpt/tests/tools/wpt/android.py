@@ -141,8 +141,10 @@ def download_and_extract(url, path):
     try:
         with open(temp_path, "wb") as f:
             with requests.get(url, stream=True) as resp:
-                shutil.copyfileobj(resp.raw, f)
-
+                for chunk in resp.iter_content(2**16):
+                    f.write(chunk)
+        if not os.path.exists(temp_path):
+            raise ValueError(f"Failed to download {url}, output path doesn't exist")
         # Python's zipfile module doesn't seem to work here
         subprocess.check_call(["unzip", temp_path], cwd=path)
     finally:

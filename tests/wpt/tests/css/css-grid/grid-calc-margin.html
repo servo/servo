@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=301873">
+<link rel="match" href="grid-calc-margin-ref.html">
+<style>
+  .cardStack {
+    display: grid;
+    width: 100px;
+  }
+  .card {
+    height: 100px;
+  }
+  #card1 {
+    background-color: lightpink;
+    margin-top: calc(50% - 0px);
+  }
+  #card2 {
+    background-color: lightgreen;
+  }
+</style>
+</head>
+<body>
+  <div class="cardStack">
+    <div id="card1" class="card"></div>
+    <div id="card2" class="card"></div>
+  </div>
+</body>
+</html>

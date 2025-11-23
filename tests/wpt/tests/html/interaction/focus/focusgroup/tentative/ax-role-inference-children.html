@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Child implied AX role inference</title>
+<meta name="assert" content="Generic child elements inside a focusgroup with implied owner role map to behavior-specific child roles; explicit and native child roles are preserved.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<!-- Tablist behavior -->
+<div id=fgTablist focusgroup="tablist">
+  <span tabindex=0 id=tabChild>Tab</span>
+</div>
+
+<!-- Radiogroup behavior -->
+<div id=fgRadiogroup focusgroup="radiogroup">
+  <span tabindex=0 id=radioChild>Radio</span>
+</div>
+
+<!-- Listbox behavior -->
+<div id=fgListbox focusgroup="listbox">
+  <span tabindex=0 id=listboxChild>Option</span>
+</div>
+
+<!-- Menu behavior -->
+<div id=fgMenu focusgroup="menu">
+  <span tabindex=0 id=menuChild>Menu Item</span>
+</div>
+
+<!-- Menubar behavior -->
+<div id=fgMenubar focusgroup="menubar">
+  <span tabindex=0 id=menubarChild>Menu Item</span>
+</div>
+
+<!-- Explicit child role (should not be overridden) -->
+<div id=fgExplicitChild focusgroup="tablist">
+  <span id="explicitChild" tabindex=0 role=listitem>List Item</span>
+</div>
+
+<!-- Native child semantics (button) should be preserved -->
+<div id=fgNativeChild focusgroup="radiogroup">
+  <button id=nativeChild>Button</button>
+</div>
+
+<script>
+// Use WebDriver get_computed_role to assert author vs implied roles.
+// This mirrors pattern in wai-aria/role/basic.html.
+
+async function assert_role_equals(idref,expected_role) {
+  const element = document.getElementById(idref);
+  const role = await test_driver.get_computed_role(element);
+  assert_equals(role, expected_role);
+}
+
+promise_test(async t => {
+  await assert_role_equals('tabChild', 'tab');
+}, 'Tablist child gets implied tab role');
+
+promise_test(async t => {
+  // Blink exposes role="radio" as AXRadioButton internally; computed role should be 'radio'.
+  await assert_role_equals('radioChild', 'radio');
+}, 'Radiogroup child gets implied radio role');
+
+promise_test(async t => {
+  await assert_role_equals('listboxChild', 'option');
+}, 'Listbox child gets implied option role');
+
+promise_test(async t => {
+  await assert_role_equals('menuChild', 'menuitem');
+}, 'Menu child gets implied menuitem role');
+
+promise_test(async t => {
+  // Menubar items map to menuitem.
+  await assert_role_equals('menubarChild', 'menuitem');
+}, 'Menubar child gets implied menuitem role');
+
+promise_test(async t => {
+  // Explicit author-supplied listitem role should be preserved.
+  await assert_role_equals('explicitChild', 'listitem');
+}, 'Explicit child role preserved over implied mapping');
+
+promise_test(async t => {
+  // Native button semantics must be preserved.
+  await assert_role_equals('nativeChild', 'button');
+}, 'Native child semantics preserved over implied mapping');
+</script>

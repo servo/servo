@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Column balancing, specified column-height, unused space</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#cwr">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="columns:2; column-height:20px; column-wrap:wrap; gap:5px 0; background:green;">
+    <div style="background:red;">
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <div style="break-before:column; height:1px; background:green;"></div>
+      <!-- One more row of columns, so that the multicol container fills the
+           final row-gap, which ends at offset 100px. -->
+      <div style="break-before:column; height:40px; background:white;"></div>
+    </div>
+  </div>
+</div>

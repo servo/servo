@@ -6,18 +6,35 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/testdriver.js></script>
 <script src=/resources/testdriver-vendor.js></script>
+<script src=/cookies/resources/cookie-helper.sub.js></script>
+<script src=/storage-access-api/helpers.js></script>
 <script>
-  promise_setup(async () => {
-    try {
-      await test_driver.set_storage_access('*', '*', 'blocked');
-    } catch (e) {
-      // Ignore, can be unimplemented if the platform blocks cross-site
-      // cookies by default. If this failed without default blocking the test
-      // will fail.
-    }
-  });
+  async function CheckCrossSiteCookieAccess(t) {
+    const altOrigin = "https://{{hosts[alt][]}}:{{ports[https][0]}}";
+    const altPath = "/storage-access-api/resources/script-with-cookie-header.py?script=embedded_responder.js";
+    const url = `${altOrigin}${altPath}`;
+
+    await SetFirstPartyCookie(altOrigin);
+    t.add_cleanup(async () => {
+      await test_driver.delete_all_cookies();
+      await MaybeSetStorageAccess("*", "*", "allowed");
+    });
+
+    const frame = await CreateFrame(url);
+    const hasCookieAccess = await HasUnpartitionedCookie(frame);
+
+    return hasCookieAccess;
+  }
 
   promise_test(async t => {
+    await MaybeSetStorageAccess("*", "*", "blocked");
+
+    if (await CheckCrossSiteCookieAccess(t)) {
+      // Nothing to test here, as cross-site cookies are not blocked.
+      // See https://github.com/privacycg/storage-access/issues/162.
+      return;
+    }
+
     let linkInNewPage = null;
 
     // Open a new tab and retrieve the link to start the test.

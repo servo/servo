@@ -107,6 +107,9 @@
         assert_equals(animation.currentTime, null,
             "animation is idle; null currentTime.");
         assert_equals(animation.playState, "idle", "animation is idle.");
+        assert_array_equals(trigger.getAnimations(), [],
+          "trigger has no animations");
+
         // Attaching the trigger should simply keep the animaiton paused at
         // zero currentTime.
         trigger.addAnimation(animation, "play-forwards", "play-backwards");
@@ -114,6 +117,8 @@
         assert_times_equal(animation.currentTime, 0,
             "animation is paused at currentTime zero.");
         assert_equals(animation.playState, "paused", "animation is paused.");
+        assert_array_equals(trigger.getAnimations(), [animation],
+          "trigger has the animation attached");
 
         // First, verify that the trigger is indeed active.
         await rangeBoundaries.enterTriggerRange();
@@ -123,8 +128,13 @@
           "animation finished (currentTime)");
         assert_equals(animation.playState, "finished",
           "animation finished (playState)");
+        assert_array_equals(trigger.getAnimations(), [animation],
+          "trigger has the animation attached");
 
         animation.cancel();
+
+        assert_array_equals(trigger.getAnimations(), [],
+          "trigger has no animations as the animation was cancelled");
 
         // Ensure exiting does nothing.
         status_promise = new Promise(resolve => {

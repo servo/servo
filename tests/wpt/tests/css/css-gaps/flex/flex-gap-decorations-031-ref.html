@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #flexbox>* {
+        background-color: rgb(96 139 168 / 0.2);
+    }
+
+    #flexbox {
+        display: flex;
+        column-gap: 10px;
+        row-gap: 30px;
+        height: 130px;
+        width: 230px;
+        flex-wrap: wrap;
+        align-content: center;
+    }
+
+    .items {
+        width: 70px;
+        height: 50px;
+        writing-mode: vertical-rl;
+    }
+
+    .row-rule {
+        position: absolute;
+        height: 30px;
+        width: 70px;
+        background: blue;
+        top: 50px;
+    }
+
+    .col-rule {
+        position: absolute;
+        width: 10px;
+        height: 50px;
+        background: red;
+    }
+</style>
+
+<div class="row-rule" style="left: 0px;"></div>
+<div class="row-rule" style="left: 80px;"></div>
+<div class="row-rule" style="left: 160px;"></div>
+
+<div class="col-rule" style="left: 70px;"></div>
+<div class="col-rule" style="left: 70px; top: 80px;"></div>
+<div class="col-rule" style="left: 150px;"></div>
+<div class="col-rule" style="left: 150px; top: 80px;"></div>
+
+<div id="flexbox">
+    <div class="items">One</div>
+    <div class="items">Two</div>
+    <div class="items">Three</div>
+    <div class="items">Four</div>
+    <div class="items">Five</div>
+    <div class="items">Six</div>
+</div>

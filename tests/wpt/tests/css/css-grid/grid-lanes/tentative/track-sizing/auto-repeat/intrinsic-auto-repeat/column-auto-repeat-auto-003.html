@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<title>Auto repeat tracks with auto track sizes and percentage sized spanning children</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-auto-repeat-auto-003-ref.html">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    background: gray;
+    item-tolerance: 0;
+    grid-template-columns: repeat(auto-fill, auto);
+    width: 360px;
+    height: 200px;
+    font: 15px/1 Ahem;
+}
+
+.grid-lanes > div {
+    width: 75%;
+    height: 50px;
+}
+</style>
+<body>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue; grid-column: span 2;">
+      Number 1
+    </div>
+    <div style="background: lightcoral; grid-column: span 3;">
+      Number 2
+    </div>
+    <div style="background: lightgreen; grid-column: span 4;">
+      Number 3
+    </div>
+    <div style="background: lightpink; grid-column: span 2;">
+      Number 4
+    </div>
+  </div>
+</body>
+</html>

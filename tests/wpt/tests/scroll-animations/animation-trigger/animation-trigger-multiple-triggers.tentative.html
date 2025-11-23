@@ -95,6 +95,10 @@
         assert_equals(animation.currentTime, null, "currentTime is null");
         assert_equals(scroller.scrollTop, 0, "scroller is not scrolled, i.e. " +
           "not within the trigger range");
+        assert_array_equals(trigger1.getAnimations(), [],
+          "trigger1 has no animation attached");
+        assert_array_equals(trigger2.getAnimations(), [],
+          "trigger2 has no animation attached");
 
         trigger1.addAnimation(animation, "play-forwards", "reset");
         trigger2.addAnimation(animation, "play-forwards", "reset");
@@ -102,6 +106,10 @@
         // Test preconditions.
         assert_equals(animation.playState, "paused", "animation is idle");
         assert_equals(animation.currentTime, 0, "currentTime is 0");
+        assert_array_equals(trigger1.getAnimations(), [animation],
+          "trigger1 has animation attached");
+        assert_array_equals(trigger2.getAnimations(), [animation],
+          "trigger2 has animation attached");
 
         await rangeBoundaries1.enterTriggerRange();
         await animation.finished;
@@ -143,6 +151,10 @@
         assert_equals(animation.currentTime, null, "currentTime is null");
         assert_equals(scroller.scrollTop, 0, "scroller is not scrolled, i.e. " +
           "not within the trigger range");
+        assert_array_equals(trigger1.getAnimations(), [],
+          "trigger1 has no animation attached");
+        assert_array_equals(trigger2.getAnimations(), [],
+          "trigger2 has no animation attached");
 
         trigger1.addAnimation(animation, "play-forwards", "reset");
         trigger2.addAnimation(animation, "play-forwards", "reset");
@@ -150,6 +162,10 @@
         // Test preconditions.
         assert_equals(animation.playState, "paused", "animation is paused");
         assert_equals(animation.currentTime, 0, "currentTime is null");
+        assert_array_equals(trigger1.getAnimations(), [animation],
+          "trigger1 has animation attached");
+        assert_array_equals(trigger2.getAnimations(), [animation],
+          "trigger2 has animation attached");
 
         await rangeBoundaries1.enterTriggerRange();
         await animation.finished;

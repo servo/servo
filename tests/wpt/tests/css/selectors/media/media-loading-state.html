@@ -7,6 +7,7 @@
 />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
 <body>
   <video width="300" height="300" muted loop controls></video>
   <script type="module">
@@ -21,10 +22,11 @@
     }, "Test :pseudo-class syntax is supported without throwing a SyntaxError");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:stalled)"), ":stalled is not supported");
       const video = document.querySelector("video");
       await new Promise((r) => {
         video.addEventListener("stalled", r, { once: true });
-        video.src = `/media/counting.mp4?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
+        video.src = `${getVideoURI("/media/counting")}?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
       });
       const promise = video.play();
       assert_equals(
@@ -40,10 +42,11 @@
     }, "Test :stalled pseudo-class");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:buffering)"), ":buffering is not supported");
       const video = document.querySelector("video");
       await new Promise((r) => {
         video.addEventListener("stalled", r, { once: true });
-        video.src = `/media/counting.mp4?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
+        video.src = `${getVideoURI("/media/counting")}?pipe=trickle(100:d1:r2)&random=${Math.random()}`;
       });
       video.currentTime = 10;
       const promise = video.play();

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Animated transform on anchor ancestor</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#determining-position">
+<style>
+  #anchor {
+    anchor-name: --a;
+    width: 200px;
+    height: 200px;
+    background: hotpink;
+  }
+  #transformed {
+    width: 500px;
+    transform: translateX(0);
+    background: yellow;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: bottom right;
+    width: 100%;
+    height: 100%;
+    background: cyan;
+  }
+  @keyframes anim {
+    from { transform: translateX(0) }
+    to { transform: translateX(200px) }
+  }
+</style>
+<div style="contain:layout; width:400px; height:400px;">
+  <div>
+    <div id="transformed">
+      <div>
+        <div id="anchor"></div>
+      </div>
+    </div>
+  </div>
+  <div id="anchored"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const done = Promise.withResolvers();
+  let got_halfway = false;
+  const observer = new ResizeObserver((entries)=> {
+    assert_equals(entries.length, 1);
+    const inlineSize = entries[0].contentBoxSize[0].inlineSize;
+    if (inlineSize > 30 && inlineSize < 170) {
+      got_halfway = true;
+      done.resolve();
+    }
+  });
+  anchor.onanimationend = ()=> { done.reject(); }
+
+  promise_test(async t => {
+    transformed.style.animation = "2000ms linear anim";
+    observer.observe(anchored);
+    try { await done.promise; } catch(e) {}
+    assert_true(got_halfway, "animation frame somewhere in the middle");
+  }, "Animation being updated");
+</script>

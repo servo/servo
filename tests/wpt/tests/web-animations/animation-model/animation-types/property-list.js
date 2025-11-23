@@ -907,11 +907,7 @@ const gCSSProperties2 = {
   },
   "math-depth": {
     // https://w3c.github.io/mathml-core/#propdef-math-depth
-    types: [
-      "integer",
-      { type: "discrete", options: [ [ "auto-add", "1", "0", "1" ],
-                                     [ "add(1)", "2", "1", "2" ] ] },
-    ],
+    types: [ "integer" ],
   },
   "math-shift": {
     // https://w3c.github.io/mathml-core/#propdef-math-shift

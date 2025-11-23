@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: Masonry layout with item-tolerance: infinite</title>
+  <link rel="author" title="Apple Inc.">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#item-tolerance">
+  <link rel="match" href="item-tolerance-column-004-ref.html">
+  <style>
+    html,body {
+      color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+    }
+
+    grid {
+      display: inline-grid-lanes;
+      gap: 10px;
+      grid-template-columns: repeat(2, 100px);
+      item-tolerance: infinite; /* Always place in order */
+      color: #444;
+      border: 1px solid;
+      padding: 2px;
+    }
+
+    item {
+      background-color: #444;
+      color: #fff;
+      padding: 10px;
+      margin: 3px;
+      border: 2px solid blue;
+    }
+  </style>
+</head>
+<body>
+
+<grid>
+  <item style="height: 100px">1</item>
+  <item style="height: 50px">2</item>
+  <item style="height: 50px">3</item>
+  <item style="height: 100px">4</item>
+</grid>
+
+</body>
+</html>

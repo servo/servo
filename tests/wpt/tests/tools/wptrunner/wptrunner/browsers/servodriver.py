@@ -136,7 +136,7 @@ class ServoWebDriverBrowser(WebDriverBrowser):
         if not super().is_alive():
             return False
         try:
-            requests.get(f"http://{self.host}:{self.port}/status", timeout=3)    
+            requests.get(f"http://{self.host}:{self.port}/status", timeout=3)
         except requests.exceptions.Timeout:
             # FIXME: This indicates a hanged browser. Reasons need to be investigated further.
             # It happens with ~0.1% probability in our CI runs.
@@ -166,7 +166,7 @@ class ServoWebDriverBrowser(WebDriverBrowser):
             except requests.exceptions.Timeout:
                 self.logger.debug("Request timed out")
                 break
-                
+
             retry_cnt += 1
             if retry_cnt >= self.shutdown_retry_attempts:
                 self.logger.warn("Max retry exceeded to normally shut down. Killing instead.")

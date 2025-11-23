@@ -31,6 +31,7 @@
   </div>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
   <script>
     const GREEN = "rgb(0, 128, 0)";
     const ORANGE = "rgb(255, 165, 0)";
@@ -52,6 +53,7 @@
     }
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:playing)"), ":playing is not supported");
       t.add_cleanup(() => {
         video.muted = false;
         video.pause();
@@ -63,7 +65,7 @@
       assert_matches_seeking(false);
       await new Promise((r) => {
         video.addEventListener("canplay", r, { once: true });
-        video.src = "/media/counting.mp4";
+        video.src = getVideoURI("/media/counting");
       });
       video.muted = true; // allows us to play the video
       assert_matches_muted(true);
@@ -72,9 +74,10 @@
         video.play();
       });
       assert_matches_playing(true);
-    }, "Test :playing pseudo-classes");
+    }, "Test :playing pseudo-class");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:seeking)"), ":seeking is not supported");
       t.add_cleanup(() => {
         video.removeAttribute("src");
       });
@@ -84,7 +87,7 @@
       assert_matches_seeking(false);
       await new Promise((r) => {
         video.addEventListener("canplay", r, { once: true });
-        video.src = "/media/counting.mp4";
+        video.src = getVideoURI("/media/counting");
       });
 
       assert_matches_seeking(false);
@@ -96,13 +99,14 @@
     }, "Test :seeking pseudo-class");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:muted)"), ":muted is not supported");
       t.add_cleanup(() => {
         video.removeAttribute("src");
       });
       const video = document.querySelector("video");
       await new Promise((r) => {
         video.addEventListener("canplay", r, { once: true });
-        video.src = "/media/counting.mp4";
+        video.src = getVideoURI("/media/counting");
       });
       assert_matches_muted(false);
       video.muted = true;

@@ -8,6 +8,7 @@
 />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
 <body>
   <video width="300" height="300" muted loop></video>
   <script>
@@ -22,10 +23,11 @@
     }, "Test :pseudo-class syntax is supported without throwing a SyntaxError");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:playing)"), ":playing is not supported");
       const video = document.querySelector("video");
       await new Promise((r) => {
         video.addEventListener("canplay", r, { once: true });
-        video.src = "/media/counting.mp4";
+        video.src = getVideoURI("/media/counting");
       });
       video.muted = true; // allows us to play the video
       assert_true(video.muted, "video is muted");
@@ -39,26 +41,28 @@
       assert_equals(document.querySelector("video:not(:playing)"), null);
       assert_equals(document.querySelector("video:paused"), null);
       assert_equals(document.querySelector("video:not(:paused)"), video);
-    }, "Test :playing pseudo-classes");
+    }, "Test :playing pseudo-class");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:paused)"), ":paused is not supported");
       const video = document.querySelector("video");
       await new Promise((r) => {
         video.addEventListener("canplay", r, { once: true });
-        video.src = "/media/counting.mp4";
+        video.src = getVideoURI("/media/counting");
       });
       assert_equals(video.paused, true);
       assert_equals(document.querySelector("video:playing"), null);
       assert_equals(document.querySelector("video:not(:playing)"), video);
       assert_equals(document.querySelector("video:paused"), video);
       assert_equals(document.querySelector("video:not(:paused)"), null);
-    }, "Test :paused pseudo-classes");
+    }, "Test :paused pseudo-class");
 
     promise_test(async (t) => {
+      assert_implements(CSS.supports("selector(:seeking)"), ":seeking is not supported");
       const video = document.querySelector("video");
       await new Promise((r) => {
         video.addEventListener("canplay", r, { once: true });
-        video.src = "/media/counting.mp4";
+        video.src = getVideoURI("/media/counting");
       });
       assert_equals(document.querySelector("video:seeking"), null);
       assert_equals(document.querySelector("video:not(:seeking)"), video);
