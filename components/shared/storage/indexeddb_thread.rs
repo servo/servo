@@ -294,7 +294,7 @@ pub enum AsyncReadWriteOperation {
     /// Removes the key/value pair for the given key in the associated idb data
     RemoveItem {
         sender: IpcSender<BackendResult<()>>,
-        key: IndexedDBKeyType,
+        key_range: IndexedDBKeyRange,
     },
     /// Clears all key/value pairs in the associated idb data
     Clear(IpcSender<BackendResult<()>>),
