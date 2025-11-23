@@ -4,6 +4,10 @@ features:
   - has-*
   - "*-in-has.*"
   - "*-in-has-*"
+- name: media-pseudos
+  files:
+  - media-loading-pseudo-classes-in-has.html
+  - media-pseudo-classes-in-has.html
 - name: modal
   files:
   - modal-pseudo-class-in-has.html

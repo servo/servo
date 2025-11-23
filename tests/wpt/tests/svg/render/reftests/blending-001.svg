@@ -11,7 +11,7 @@
     <html:link rel="help"
           href="https://www.w3.org/TR/SVG2/render.html#PaintersModel"/>
     <html:link rel="match"  href="blending-001-ref.svg" />
-    <html:meta name="fuzzy" content="0-1;0-11" />
+    <html:meta name="fuzzy" content="maxDifference=0-127; totalPixels=0-1220" />
   </g>
 
   <style id="test-font" type="text/css">

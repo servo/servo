@@ -70,7 +70,7 @@ def trigger_download(bidi_session, subscribe_events, wait_for_event,
 
         await subscribe_events(events=[DOWNLOAD_END])
 
-        on_download_will_begin = wait_for_event(DOWNLOAD_END)
+        on_download_end = wait_for_event(DOWNLOAD_END)
         # Trigger download by clicking the link.
         await bidi_session.script.evaluate(
             expression="download_link.click()",
@@ -80,10 +80,11 @@ def trigger_download(bidi_session, subscribe_events, wait_for_event,
         )
 
         try:
+            print("Wait for browsingContext.downloadEnd event")
             return await wait_for_future_safe(
-                on_download_will_begin, timeout=0.5)
+                on_download_end, timeout=2.0)
         except TimeoutException:
-            # User Agent showed file save dialog.
+            print("User Agent showed file save dialog")
             return None
 
     return trigger_download

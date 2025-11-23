@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Grid Lanes: grid-lanes-flow getComputedStyle()</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/computed-testcommon.js"></script>
+  <script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test_computed_value("grid-lanes-flow", "column normal");
+    test_computed_value("grid-lanes-flow", "column reverse");
+
+    test_computed_value("grid-lanes-flow", "row normal");
+    test_computed_value("grid-lanes-flow", "row reverse");
+
+    test_computed_value("grid-lanes-flow", "column-reverse normal");
+    test_computed_value("grid-lanes-flow", "column-reverse reverse");
+
+    test_computed_value("grid-lanes-flow", "row-reverse normal");
+    test_computed_value("grid-lanes-flow", "row-reverse reverse");
+  </script>
+</body>
+</html>

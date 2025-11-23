@@ -57,6 +57,18 @@ test(() => {
     assert_equals(element.__proto__.constructor.name, 'HTMLElement');
 }, 'createElementNS should create an upgrade candidate when there is no matching definition in the specified registry');
 
+test((t) => {
+    assert_equals(document.createElementNS('http://www.w3.org/1999/xhtml', 'div', {customElementRegistry: null}).customElementRegistry, null);
+}, `document.createElement should create a builtin element with null registry if customElement is set to null`);
+
+test((t) => {
+    assert_equals(document.createElementNS('http://www.w3.org/1999/xhtml', 'c-d', {customElementRegistry: null}).customElementRegistry, null);
+}, `document.createElement should create a custom element candidate with null registry if customElement is set to null`);
+
+test((t) => {
+    assert_equals(document.createElementNS('http://www.w3.org/1999/xhtml', 'a-b', {customElementRegistry: null}).customElementRegistry, null);
+}, `document.createElement should create a defined custom element with null registry if customElement is set to null`);
+
 test(() => {
     class CDElement extends HTMLElement { }
     const registry = new CustomElementRegistry;

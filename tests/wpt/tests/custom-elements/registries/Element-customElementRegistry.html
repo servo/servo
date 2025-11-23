@@ -41,7 +41,7 @@ test((t) => {
     const clone = document.getElementById('host-null').cloneNode(true);
     const ab = clone.shadowRoot.querySelector('a-b');
     document.body.appendChild(ab);
-    assert_equals(ab.customElementRegistry, window.customElements);
+    assert_equals(ab.customElementRegistry, null);
 
     const frame = document.createElement('iframe');
     t.add_cleanup(() => frame.remove());

@@ -123,9 +123,8 @@ test(t => {
 
 test(t => {
   const name = nextCustomElementName();
-  const node = document.body.appendChild(document.createElement(name));
-
   const registry = new CustomElementRegistry;
+  const node = document.body.appendChild(document.createElement(name, {customElementRegistry: registry}));
   const shadow = attachShadowForTest(t, registry);
   shadow.appendChild(node);
 

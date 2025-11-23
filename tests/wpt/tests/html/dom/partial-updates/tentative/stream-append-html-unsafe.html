@@ -1,0 +1,156 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - streamAppendHTMLUnsafe</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="style"></style>
+<p id="target"></p>
+<script>
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "A";
+    const writable = placeholder.streamAppendHTMLUnsafe();
+    assert_true(writable instanceof WritableStream, "node.streamAppendHTMLUnsafe() returns a writable stream");
+    const response = new Response("<span>B</span>", {headers: {"Content-Type": "text/html"}});
+    await response.body.pipeThrough(new TextDecoderStream()).pipeTo(writable);
+    assert_equals(placeholder.textContent, "AB");
+    assert_true(response.bodyUsed);
+}, "piping a response into streamAppendHTMLUnsafe()");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "<span>A</span>";
+    const writable = placeholder.streamAppendHTMLUnsafe();
+    assert_true(writable instanceof WritableStream, "node.streamAppendHTMLUnsafe() returns a writable stream");
+    const writer = writable.getWriter();
+    await writer.write("B");
+    await writer.close();
+    assert_equals(placeholder.textContent, "AB");
+}, "writing a string to streamAppendHTMLUnsafe()");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "<span>A</span>";
+    const writable = placeholder.streamAppendHTMLUnsafe();
+    assert_true(writable instanceof WritableStream, "node.streamAppendHTMLUnsafe() returns a writable stream");
+    const writer = writable.getWriter();
+    await writer.write("<span>B</span>");
+    assert_equals(placeholder.textContent, "AB");
+    await writer.close();
+}, "streamAppendHTMLUnsafe() does not buffer until close()");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "Before";
+    const writable = placeholder.streamAppendHTMLUnsafe();
+    assert_true(writable instanceof WritableStream, "streamAppendHTMLUnsafe() returns a writable stream");
+    const writer = writable.getWriter();
+    await promise_rejects_js(t, TypeError, writer.write(Symbol("sym")));
+    assert_equals(placeholder.textContent, "Before");
+}, "writing a Symbol to streamAppendHTMLUnsafe()");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "12";
+    const writable = placeholder.streamAppendHTMLUnsafe();
+    assert_true(writable instanceof WritableStream, "node.streamAppendHTMLUnsafe() returns a writable stream");
+    const writer = writable.getWriter();
+    await writer.write(345);
+    await writer.close();
+    assert_equals(placeholder.textContent, "12345");
+    assert_equals(placeholder.childNodes.length, 1);
+    assert_equals(placeholder.firstChild.nodeType, Node.TEXT_NODE);
+    assert_equals(placeholder.firstChild.textContent, "12345");
+}, "writing numbers to streamAppendHTMLUnsafe()");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "start ";
+    const writable = placeholder.streamAppendHTMLUnsafe();
+    assert_true(writable instanceof WritableStream, "node.streamAppendHTMLUnsafe() returns a writable stream");
+    const writer = writable.getWriter();
+    await writer.write(null);
+    await writer.write(" ");
+    await writer.write(undefined);
+    await writer.close();
+    assert_equals(placeholder.textContent, "start null undefined");
+}, "writing null or undefined to streamAppendHTMLUnsafe()");
+
+promise_test(async t => {
+    const style = document.querySelector("#style");
+    const writable = style.streamAppendHTMLUnsafe();
+    assert_true(writable instanceof WritableStream, "node.streamAppendHTMLUnsafe() returns a writable stream");
+    const writer = await writable.getWriter();
+    await writer.write("#target { color: rgba(100, 0, 100); }");
+    await writer.close();
+    assert_equals(getComputedStyle(document.querySelector("#target")).color, "rgb(100, 0, 100)");
+}, "streamAppendHTMLUnsafe() can stream into <style>");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    placeholder.innerHTML = "start ";
+    const writable = placeholder.streamAppendHTMLUnsafe();
+    const writer = writable.getWriter();
+    await writer.write("ABC");
+    await writer.abort("abort-reason");
+    await writer.write("DEF").catch(() => {});
+    assert_equals(placeholder.textContent, "start ABC");
+}, "Aborting streamAppendHTMLUnsafe()");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
+    const writer1 = placeholder.streamAppendHTMLUnsafe().getWriter();
+    const writer2 = placeholder.streamAppendHTMLUnsafe().getWriter();
+    await writer1.write("<span>A</span>");
+    await writer2.write("<span>B</span>");
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await writer1.write("C");
+    await writer1.close();
+    await writer2.close();
+    assert_equals(placeholder.textContent, "ABC");
+}, "Interleaved streamAppendHTMLUnsafe() writes");
+
+promise_test(async t => {
+    const element = document.createElement("div");
+    const shadowRoot = element.attachShadow({mode: "open"});
+    const writer = shadowRoot.streamAppendHTMLUnsafe().getWriter();
+    await writer.write("<div id=added>A</div>");
+    assert_equals(shadowRoot.getElementById("added").textContent, "A");
+}, "streamAppendHTMLUnsafe into a ShadowRoot");
+
+promise_test(async t => {
+    const element = document.createElement("template");
+    const writer = element.streamAppendHTMLUnsafe().getWriter();
+    await writer.write("<div id=added>A</div>");
+    assert_equals(element.content.getElementById("added").textContent, "A");
+}, "streamAppendHTMLUnsafe into a template");
+
+promise_test(async t => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    window.did_eval_script = false;
+    const writer = element.streamAppendHTMLUnsafe().getWriter();
+    assert_false(window.did_eval_script);
+    await writer.write("<script>window.did_eval_script = true;");
+    assert_false(window.did_eval_script);
+    await writer.write("<");
+    assert_false(window.did_eval_script);
+    await writer.write("/script>");
+    assert_true(window.did_eval_script);
+}, "streamAppendHTMLUnsafe should execute scripts when connected");
+
+promise_test(async t => {
+    const element = document.createElement("div");
+    window.did_eval_script = false;
+    const writer = element.streamAppendHTMLUnsafe().getWriter();
+    assert_false(window.did_eval_script);
+    await writer.write("<script>window.did_eval_script = true;");
+    assert_false(window.did_eval_script);
+    await writer.write("<");
+    assert_false(window.did_eval_script);
+    await writer.write("/script>");
+    assert_false(window.did_eval_script);
+}, "streamAppendHTMLUnsafe should not execute scripts when disconnected");
+</script>

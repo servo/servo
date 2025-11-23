@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  document.designMode = "on";
+  getSelection().setBaseAndExtent(
+    document.querySelector("b"),
+    1,
+    document.querySelector("span"),
+    1
+  );
+  document.execCommand("insertText", false, "A");
+}, {once: true});
+</script>
+</head>
+<body>
+<div style="display:inline-grid">
+  <b>
+  </b>
+  <i style="display:contents">
+    <span>
+    </span>
+  </i>
+</div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", async () => {
+  document.documentElement.contentEditable = "plaintext-only";
+  getSelection().collapse(document.body.lastChild, 0);
+  document.execCommand("delete");
+}, {once: true});
+
+// FYI: The white-space only text node in <rb> is important.
+</script>
+</head>
+<body>
+  <rb>
+  </rb>
+</body>
+</html>

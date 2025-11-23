@@ -6,6 +6,7 @@ const emptyValues = [
   ["gzip", new Uint8Array([31, 139, 8, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
   ["deflate", new Uint8Array([120, 156, 3, 0, 0, 0, 0, 1])],
   ["deflate-raw", new Uint8Array([1, 0, 0, 255, 255])],
+  ["brotli", new Uint8Array([0xa1, 0x01])],
 ];
 
 for (const [format, emptyValue] of emptyValues) {

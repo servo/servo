@@ -34,11 +34,11 @@
     test(() => void assert_equals(body_selection.getPropertyValue("--background-color"), "green"),
         "body ::selection uses the originating custom property");
     test(() => void assert_equals(body_selection.getPropertyValue("--decoration-color"), "purple"),
-        "body ::selection does not use its own custom property");
+        "body ::selection uses its own custom property");
     test(() => void assert_equals(div_selection.getPropertyValue("--decoration-color"), "green"),
         "div::selection uses the originating element custom property");
     test(() => void assert_equals(div_selection.getPropertyValue("--background-color"), "blue"),
-        "div::selection does not use its own custom property");
+        "div::selection uses its own custom property");
     test(() => void assert_equals(div_style.getPropertyValue("--background-color"), "green"),
         "div::selection properties are not present on the originating element");
 </script>

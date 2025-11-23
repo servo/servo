@@ -30,21 +30,21 @@ function registration_tests_script(register_method, type) {
 
   promise_test(function(t) {
       var script = 'resources/malformed-worker.py?undefined-error';
-      var scope = 'resources/scope/undefined-error';
+      var scope = `resources/scope/undefined-error/${type}`;
       return promise_rejects_js(t,
           TypeError,
           register_method(script, {scope: scope}),
           'Registration of script including undefined error should fail.');
-    }, 'Registering script including undefined error');
+    }, `Registering script including undefined error: ${type}`);
 
   promise_test(function(t) {
       var script = 'resources/malformed-worker.py?uncaught-exception';
-      var scope = 'resources/scope/uncaught-exception';
+      var scope = `resources/scope/uncaught-exception/${type}`;
       return promise_rejects_js(t,
           TypeError,
           register_method(script, {scope: scope}),
           'Registration of script including uncaught exception should fail.');
-    }, 'Registering script including uncaught exception');
+    }, `Registering script including uncaught exception: ${type}`);
 
   if (type === 'classic') {
     promise_test(function(t) {

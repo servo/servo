@@ -5,7 +5,7 @@
 <title>CSS Display: Parsing display with valid values</title>
 <link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
 <link rel="help" href="https://tabatkins.github.io/specs/css-masonry/#masonry-containers">
-<meta name="assert" content="display supports the new values 'masonry | inline-masonry'.">
+<meta name="assert" content="display supports the new values 'grid-lanes | inline-grid-lanes'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -13,8 +13,8 @@
 <body>
 <script>
 // https://tabatkins.github.io/specs/css-masonry/#masonry-containers
-test_valid_value("display", "masonry");
-test_valid_value("display", "inline-masonry");
+test_valid_value("display", "grid-lanes");
+test_valid_value("display", "inline-grid-lanes");
 </script>
 </body>
 </html>

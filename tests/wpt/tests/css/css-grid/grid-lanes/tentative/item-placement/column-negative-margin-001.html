@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-negative-margin-001-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    item-tolerance: 0;
+    grid-template-columns: 50px;
+}
+</style>
+<body>
+  <p>When an item with negative margins are placed, ensure the items after it are placed immediately behind it</p>
+  <div class="grid-lanes">
+    <div style="background: aquamarine; height: 50px;" >
+      item 1
+    </div>
+    <div style="background: aquamarine; height: 50px;" >
+      item 1
+    </div>
+    <div style="background: aquamarine; height: 50px;" >
+      item 1
+    </div>
+    <div style="background: lightblue; height: 50px; margin-top: -100px;" >
+      item 2
+    </div>
+    <div style="background: lightpink; height: 50px;">
+      item 3
+    </div>
+  </div>
+</body>
+</html>

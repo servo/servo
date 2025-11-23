@@ -90,6 +90,8 @@
           "animations2's currentTime is null");
         assert_equals(scroller.scrollTop, 0,
           "scroller is not scrolled, i.e. not within the trigger range");
+        assert_array_equals(trigger.getAnimations(), [],
+          "trigger has no animations");
 
         trigger.addAnimation(animation1, "play-forwards", "play-backwards");
 
@@ -100,6 +102,8 @@
         assert_equals(animation2.playState, "idle", "animation2 is idle");
         assert_equals(animation2.currentTime, null,
           "animations2's currentTime is null");
+        assert_array_equals(trigger.getAnimations(), [animation1],
+          "trigger has exactly 1 animation");
 
         trigger.addAnimation(animation2, "play-forwards", "play-backwards");
 
@@ -111,6 +115,8 @@
           "animation2 is paused, awaiting trigger event");
         assert_times_equal(animation2.currentTime, 0,
           "animation2's currentTime is 0");
+        assert_array_equals(trigger.getAnimations(), [animation1, animation2],
+          "trigger has both animations attached");
 
         rangeBoundaries.enterTriggerRange();
 

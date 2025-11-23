@@ -89,49 +89,6 @@ subsetTest(promise_test, async test => {
   let decoded = await BA.decodeInterestGroupData(result.request);
 
   let serverResponseMsg = {
-    'nonce': uuid,
-    'biddingGroups': {},
-    'adRenderURL': adsArray[0].renderURL,
-    'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,
-    'interestGroupOwner': window.location.origin,
-  };
-  serverResponseMsg.biddingGroups[window.location.origin] = [0];
-
-  let serverResponse =
-      await BA.encodeServerResponse(serverResponseMsg, decoded);
-
-  let hashString = await BA.payloadHash(serverResponse);
-  await BA.authorizeServerResponseNonces([uuid]);
-
-  let auctionResult = await navigator.runAdAuction({
-    'seller': window.location.origin,
-    'requestId': result.requestId,
-    'serverResponse': serverResponse,
-    'resolveToConfig': true,
-  });
-  expectSuccess(auctionResult);
-  createAndNavigateFencedFrame(test, auctionResult);
-  await waitForObservedRequests(uuid, [adA]);
-}, 'Basic B&A auction - nonces');
-
-subsetTest(promise_test, async test => {
-  const uuid = generateUuid(test);
-  const adA = createTrackerURL(window.location.origin, uuid, 'track_get', 'a');
-  const adB = createTrackerURL(window.location.origin, uuid, 'track_get', 'b');
-  const adsArray =
-      [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
-  await joinInterestGroup(test, uuid, {ads: adsArray});
-
-  const result = await navigator.getInterestGroupAdAuctionData({
-    coordinatorOrigin: await BA.configureCoordinator(),
-    seller: window.location.origin
-  });
-  assert_true(result.requestId !== null);
-  assert_true(result.request.length > 0);
-
-  let decoded = await BA.decodeInterestGroupData(result.request);
-
-  let serverResponseMsg = {
     'biddingGroups': {},
     'adRenderURL': adsArray[0].renderURL,
     'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,

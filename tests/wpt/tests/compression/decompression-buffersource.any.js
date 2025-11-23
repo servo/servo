@@ -9,6 +9,7 @@ const compressedBytes = [
     0x00, 0x06, 0x00, 0xf9, 0xff, 0x41, 0x42, 0x43,
     0x44, 0x45, 0x46, 0x01, 0x00, 0x00, 0xff, 0xff,
   ]],
+  ["brotli", [0x21, 0x08, 0x00, 0x04, 0x66, 0x6F, 0x6F, 0x03]]
 ];
 // These chunk values below were chosen to make the length of the compressed
 // output be a multiple of 8 bytes.
@@ -16,6 +17,7 @@ const expectedChunkValue = new Map(Object.entries({
   "deflate": new TextEncoder().encode('a0123456'),
   "gzip": new TextEncoder().encode('a012'),
   "deflate-raw": new TextEncoder().encode('ABCDEF'),
+  "brotli": new TextEncoder().encode('foo'),
 }));
 
 const bufferSourceChunks = compressedBytes.map(([format, bytes]) => [format, [

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Lists test: use of `counter-*` in ::marker</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#marker-properties">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5265#issuecomment-3531669680">
+<meta name="assert" content="counter-* properties are supported in ::marker">
+
+<link rel="author" href="mailto:jkew@mozilla.com">
+
+<link rel="match" href="marker-counter-ref.html">
+
+<style>
+ol {
+  counter-reset: my-counter;
+  padding-left: 5em;
+}
+::marker {
+  counter-increment: my-counter;
+  content: "[" counters(my-counter, ":") "] ";
+}
+.set::marker {
+  counter-set: my-counter 10;
+}
+.reset::marker {
+  counter-reset: my-counter;
+}
+.reset::after {
+  counter-increment: my-counter;
+  content: " (" counters(my-counter, ":") ")";
+}
+</style>
+
+<ol>
+  <li>one
+  <li>two
+  <li class=set>set to 10
+  <li>next item
+  <li>next item
+  <li class=reset>reset <!-- instantiates a new counter on the current item -->
+  <li>next item
+  <li>last item
+</ol>
