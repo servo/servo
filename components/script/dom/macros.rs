@@ -718,7 +718,7 @@ macro_rules! window_event_handlers(
 
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
-    ($binding:ident, $struct:ident, $type:expr) => (
+    ($binding:ident, $struct:ident, $type:path) => (
         use base::cross_process_instant::CrossProcessInstant;
         use time::Duration;
 
@@ -726,7 +726,7 @@ macro_rules! impl_performance_entry_struct(
         use crate::dom::bindings::root::DomRoot;
         use crate::dom::bindings::str::DOMString;
         use crate::dom::globalscope::GlobalScope;
-        use crate::dom::performance::performanceentry::PerformanceEntry;
+        use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
         use crate::script_runtime::CanGc;
         use dom_struct::dom_struct;
 
@@ -740,7 +740,7 @@ macro_rules! impl_performance_entry_struct(
                 -> $struct {
                 $struct {
                     entry: PerformanceEntry::new_inherited(name,
-                                                           DOMString::from($type),
+                                                           $type,
                                                            Some(start_time),
                                                            duration)
                 }

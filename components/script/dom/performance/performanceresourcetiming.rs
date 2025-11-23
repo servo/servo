@@ -8,7 +8,7 @@ use net_traits::ResourceFetchTiming;
 use servo_url::ServoUrl;
 use time::Duration;
 
-use super::performanceentry::PerformanceEntry;
+use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -83,9 +83,9 @@ impl PerformanceResourceTiming {
         fetch_start: Option<CrossProcessInstant>,
     ) -> PerformanceResourceTiming {
         let entry_type = if initiator_type == InitiatorType::Navigation {
-            DOMString::from("navigation")
+            EntryType::Navigation
         } else {
-            DOMString::from("resource")
+            EntryType::Resource
         };
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
@@ -129,7 +129,7 @@ impl PerformanceResourceTiming {
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
-                DOMString::from("resource"),
+                EntryType::Resource,
                 resource_timing.start_time,
                 duration,
             ),

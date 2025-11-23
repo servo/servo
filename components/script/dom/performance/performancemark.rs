@@ -2,4 +2,4 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-impl_performance_entry_struct!(PerformanceMarkBinding, PerformanceMark, "mark");
+impl_performance_entry_struct!(PerformanceMarkBinding, PerformanceMark, EntryType::Mark);

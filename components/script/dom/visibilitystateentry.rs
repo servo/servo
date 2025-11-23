@@ -16,7 +16,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performance::performanceentry::PerformanceEntry;
+use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -37,7 +37,7 @@ impl VisibilityStateEntry {
         VisibilityStateEntry {
             entry: PerformanceEntry::new_inherited(
                 name,
-                DOMString::from("visibility-state"),
+                EntryType::VisibilityState,
                 Some(timestamp),
                 Duration::ZERO,
             ),
