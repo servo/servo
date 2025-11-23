@@ -248,8 +248,6 @@ pub(crate) mod credentialmanagement;
 pub(crate) use self::credentialmanagement::*;
 pub(crate) mod crypto;
 pub(crate) mod cryptokey;
-pub(crate) mod csp;
-pub(crate) mod csppolicyviolationreport;
 pub(crate) mod css;
 pub(crate) use self::css::*;
 pub(crate) mod customelementregistry;
@@ -385,7 +383,8 @@ pub(crate) mod resizeobserversize;
 pub(crate) mod response;
 pub(crate) mod screen;
 mod scrolling_box;
-pub(crate) mod securitypolicyviolationevent;
+pub(crate) mod security;
+pub(crate) use self::security::*;
 pub(crate) mod selection;
 pub(crate) mod servointernals;
 #[expect(dead_code)]

@@ -18,11 +18,11 @@ use hyper_serde::Serde;
 use js::rust::describe_scripted_caller;
 use log::warn;
 
+use super::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
