@@ -19,6 +19,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, 
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView};
 use winit::dpi::PhysicalSize;
 
+use super::app_state::RunningAppState;
 use crate::desktop::window_trait::{MIN_WINDOW_INNER_SIZE, WindowPortsMethods};
 use crate::prefs::ServoShellPreferences;
 
@@ -84,6 +85,10 @@ impl WindowPortsMethods for Window {
 
     fn set_position(&self, point: DeviceIntPoint) {
         self.window_position.set(point);
+    }
+
+    fn request_repaint(&self, state: &RunningAppState) {
+        state.repaint_servo_if_necessary();
     }
 
     fn request_resize(&self, webview: &WebView, new_size: DeviceIntSize) -> Option<DeviceIntSize> {

@@ -53,7 +53,6 @@ use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size}
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
 use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
-use crate::desktop::app::PumpResult;
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::gui::{Gui, GuiCommand};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
@@ -502,26 +501,6 @@ impl Window {
             }
         }
     }
-
-    pub fn pump_event_loop(&self, state: &RunningAppState) -> bool {
-        match state.pump_event_loop() {
-            PumpResult::Shutdown => {
-                state.webview_collection_mut().clear();
-                false
-            },
-            PumpResult::Continue {
-                needs_user_interface_update,
-                need_window_redraw,
-            } => {
-                let updated_user_interface =
-                    needs_user_interface_update && self.update_user_interface_state(state);
-                if updated_user_interface || need_window_redraw {
-                    self.winit_window.request_redraw();
-                }
-                true
-            },
-        }
-    }
 }
 
 impl WindowPortsMethods for Window {
@@ -580,7 +559,7 @@ impl WindowPortsMethods for Window {
         self.gui.borrow_mut().update_webview_data(state)
     }
 
-    fn handle_winit_window_event(&self, state: Rc<RunningAppState>, event: WindowEvent) -> bool {
+    fn handle_winit_window_event(&self, state: Rc<RunningAppState>, event: WindowEvent) {
         if event == WindowEvent::RedrawRequested {
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
@@ -754,10 +733,9 @@ impl WindowPortsMethods for Window {
 
         // Consume and handle any events from the servoshell UI.
         self.handle_servoshell_ui_events(state.clone());
-        self.pump_event_loop(&state)
     }
 
-    fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) -> bool {
+    fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
             if self
                 .gui
@@ -766,13 +744,14 @@ impl WindowPortsMethods for Window {
             {
                 self.winit_window.request_redraw();
             }
-            return true;
         }
 
         // Consume and handle any events from user interface interaction.
         self.handle_servoshell_ui_events(state.clone());
+    }
 
-        self.pump_event_loop(&state)
+    fn request_repaint(&self, _: &RunningAppState) {
+        self.winit_window.request_redraw();
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {

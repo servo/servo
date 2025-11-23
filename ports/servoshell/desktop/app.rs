@@ -172,33 +172,33 @@ impl App {
         self.state = AppState::Running(running_state);
     }
 
-    /// Handle all servo events with headless mode. Return true if the application should
-    /// continue.
-    pub fn handle_events_with_headless(&mut self) -> bool {
-        let now = Instant::now();
-        let event = winit::event::Event::UserEvent(AppEvent::Waker);
-        trace_winit_event!(
-            event,
-            "@{:?} (+{:?}) {event:?}",
-            now - self.t_start,
-            now - self.t
-        );
-        self.t = now;
-
-        // We should always be in the running state.
+    pub fn pump_servo_event_loop(&mut self) -> bool {
         let AppState::Running(state) = &self.state else {
             return false;
         };
 
+        self.handle_webdriver_messages();
         match state.pump_event_loop() {
             PumpResult::Shutdown => {
                 state.webview_collection_mut().clear();
                 self.state = AppState::ShuttingDown;
+                false
             },
-            PumpResult::Continue { .. } => state.repaint_servo_if_necessary(),
+            PumpResult::Continue {
+                needs_user_interface_update,
+                need_window_redraw,
+            } => {
+                // TODO: These results should eventually be stored per-`Window`.
+                for window in self.windows.values() {
+                    let updated_user_interface =
+                        needs_user_interface_update && window.update_user_interface_state(state);
+                    if updated_user_interface || need_window_redraw {
+                        window.request_repaint(state);
+                    }
+                }
+                true
+            },
         }
-
-        !matches!(self.state, AppState::ShuttingDown)
     }
 
     pub(crate) fn handle_webdriver_messages(&self) {
@@ -436,35 +436,36 @@ impl ApplicationHandler<AppEvent> for App {
         );
         self.t = now;
 
-        let AppState::Running(state) = &self.state else {
-            return;
-        };
-        let Some(window) = self.windows.get(&window_id) else {
-            return;
-        };
-
-        self.handle_webdriver_messages();
-        if !window.handle_winit_window_event(state.clone(), window_event) {
-            event_loop.exit();
-            self.state = AppState::ShuttingDown;
+        {
+            let AppState::Running(state) = &self.state else {
+                return;
+            };
+            let Some(window) = self.windows.get(&window_id) else {
+                return;
+            };
+            window.handle_winit_window_event(state.clone(), window_event);
         }
 
+        if !self.pump_servo_event_loop() {
+            event_loop.exit();
+        }
         // Block until the window gets an event
         event_loop.set_control_flow(ControlFlow::Wait);
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, app_event: AppEvent) {
-        let AppState::Running(state) = &self.state else {
-            return;
-        };
-        let Some(window) = self.windows.values().next() else {
-            return;
-        };
+        {
+            let AppState::Running(state) = &self.state else {
+                return;
+            };
+            let Some(window) = self.windows.values().next() else {
+                return;
+            };
+            window.handle_winit_app_event(state.clone(), app_event);
+        }
 
-        self.handle_webdriver_messages();
-        if !window.handle_winit_app_event(state.clone(), app_event) {
+        if !self.pump_servo_event_loop() {
             event_loop.exit();
-            self.state = AppState::ShuttingDown;
         }
 
         // Block until the window gets an event
