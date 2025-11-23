@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webcrypto/#subtlecrypto-interface
 
-enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
+// enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
 [SecureContext,Exposed=(Window,Worker),Pref="dom_crypto_subtle_enabled"]
 interface SubtleCrypto {
@@ -213,6 +213,16 @@ dictionary JsonWebKey {
   sequence<RsaOtherPrimesInfo> oth;
   DOMString k;
 };
+
+// https://wicg.github.io/webcrypto-modern-algos/#subtlecrypto-interface-keyformat
+// * For all existing symmetric algorithms in [webcrypto], "raw-secret"
+//   acts as an alias of "raw".
+// * For all existing asymmetric algorithms in [webcrypto], "raw-public"
+//   acts as an alias of "raw".
+// * In the deriveKey() method, in the import key step, "raw-secret"
+//   must be used as the format instead of "raw".
+
+enum KeyFormat { "raw-public", "raw-private", "raw-seed", "raw-secret", "raw", "spki", "pkcs8", "jwk" };
 
 // https://wicg.github.io/webcrypto-modern-algos/#cshake-params
 

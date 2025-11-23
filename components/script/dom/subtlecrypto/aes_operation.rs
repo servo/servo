@@ -823,7 +823,7 @@ fn import_key_aes(
     let data;
     match format {
         // If format is "raw":
-        KeyFormat::Raw => {
+        KeyFormat::Raw | KeyFormat::Raw_secret => {
             // Step 2.1. Let data be keyData.
             data = key_data.to_vec();
 
@@ -975,7 +975,7 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
     let result;
     match format {
         // If format is "raw":
-        KeyFormat::Raw => match key.handle() {
+        KeyFormat::Raw | KeyFormat::Raw_secret => match key.handle() {
             // Step 2.1. Let data be a byte sequence containing the raw octets of the key
             // represented by the [[handle]] internal slot of key.
             // Step 2.2. Let result be data.
