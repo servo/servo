@@ -213,3 +213,11 @@ dictionary JsonWebKey {
   sequence<RsaOtherPrimesInfo> oth;
   DOMString k;
 };
+
+// https://wicg.github.io/webcrypto-modern-algos/#cshake-params
+
+dictionary CShakeParams : Algorithm {
+  required [EnforceRange] unsigned long length;
+  BufferSource functionName;
+  BufferSource customization;
+};
