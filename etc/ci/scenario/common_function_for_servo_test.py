@@ -17,7 +17,7 @@ import sys
 import time
 from decimal import Decimal
 
-from hdc_py import HarmonyDeviceConnector, HarmonyDevicePerfMode
+from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
 from urllib3.exceptions import ProtocolError
