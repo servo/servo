@@ -14,6 +14,7 @@ import sys
 import time
 import subprocess
 
+from hdc_py.hdc import HarmonyDevicePerfMode
 from selenium.common import NoSuchWindowException, NoSuchElementException
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
@@ -111,7 +112,8 @@ def operator():
 
 if __name__ == "__main__":
     try:
-        operator()
+        with HarmonyDevicePerfMode():
+            operator()
     except Exception as e:
         print(f"Scenario test {os.path.basename(__file__)} failed with error: {e} (exception: {type(e)})")
         sys.exit(1)
