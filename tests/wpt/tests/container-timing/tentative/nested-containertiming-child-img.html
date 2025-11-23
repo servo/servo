@@ -17,11 +17,18 @@ body {
     assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
-        assert_equals(entryList.getEntries().length, 1, 'one entry expected for the image, for the inner containertiming');
-        const entry = entryList.getEntries()[0];
-        checkContainerEntry(entry, 'div2_ct', 'img_id', beforeRender)
-        checkRect(entry, [0, 100, 0, 100])
-        checkContainerSize(entry, 10000);
+        assert_equals(entryList.getEntries().length, 2, 'two entries expected for the image, one for each containertiming');
+        const entries = entryList.getEntries();
+
+        const entry_div1 = entries.find(e => e.identifier == 'div1_ct');
+        checkContainerEntry(entry_div1, 'div1_ct', 'img_id', beforeRender)
+        checkRect(entry_div1, [0, 100, 0, 100])
+        checkContainerSize(entry_div1, 10000);
+
+        const entry_div2 = entries.find(e => e.identifier == 'div2_ct');
+        checkContainerEntry(entry_div2, 'div2_ct', 'img_id', beforeRender)
+        checkRect(entry_div2, [0, 100, 0, 100])
+        checkContainerSize(entry_div2, 10000);
       })
     );
     observer.observe({entryTypes: ['container']});

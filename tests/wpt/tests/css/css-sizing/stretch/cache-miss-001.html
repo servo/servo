@@ -13,6 +13,12 @@
     height: 100px;
     z-index: -1;
   }
+  #target {
+    /* Use a sans-serif font to reduce likelihood that the 'hi' text draws any
+       flourishes that happen to generate antialiasing fringe outside the
+       container: */
+    font-family: sans-serif;
+  }
 </style>
 
 <p>Test passes if there is a filled green square and <strong>no red</strong>.

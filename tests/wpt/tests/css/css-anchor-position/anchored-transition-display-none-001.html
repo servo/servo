@@ -3,7 +3,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1">
 <link rel="match" href="anchored-transition-display-none-001-ref.html">
 This is visible.
-<div>FAIL if this is visible</div>
+<div id="target">FAIL if this is visible</div>
 
 <style>
 div {
@@ -15,11 +15,13 @@ div {
 }
 </style>
 <script>
+  // Make sure that everything is loaded before changing styles, to ensure
+  // that we actually get a transition.
+  window.onload = ()=> {
     html.addEventListener('transitionend', () => {
-        html.classList.toggle('reftest-wait')
+      html.classList.toggle('reftest-wait')
     });
-
-    document.body.offsetLeft;
-    document.querySelector("div").style.display = "none";
+    target.style.display = "none";
+  }
 </script>
 

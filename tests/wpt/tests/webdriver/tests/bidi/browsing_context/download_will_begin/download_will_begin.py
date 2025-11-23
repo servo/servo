@@ -1,6 +1,7 @@
 import random
 
 import pytest
+import pytest_asyncio
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
@@ -9,11 +10,36 @@ from ... import any_int, any_string, recursive_compare
 
 pytestmark = pytest.mark.asyncio
 
+DOWNLOAD_END = "browsingContext.downloadEnd"
 DOWNLOAD_WILL_BEGIN = "browsingContext.downloadWillBegin"
 NAVIGATION_STARTED = "browsingContext.navigationStarted"
 
 
-async def test_unsubscribe(bidi_session, inline, new_tab):
+# This fixture is a workaround until we can cancel downloads.
+# https://github.com/w3c/webdriver-bidi/issues/1031
+@pytest_asyncio.fixture
+async def expect_download_end(bidi_session, subscribe_events):
+    await subscribe_events(events=[DOWNLOAD_END])
+
+    download_end_events = []
+
+    async def on_event(method, data):
+        download_end_events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(DOWNLOAD_END, on_event)
+
+    expected_events = 0
+    def _expect_download_end(count):
+        nonlocal expected_events
+        expected_events = count
+
+    yield _expect_download_end
+
+    await wait_for_bidi_events(bidi_session, download_end_events, expected_events, timeout=2)
+    remove_listener()
+
+
+async def test_unsubscribe(bidi_session, inline, new_tab, expect_download_end):
     filename = f"some_file_name{random.random()}.txt"
     download_link = "data:text/plain;charset=utf-8,"
     url = inline(
@@ -35,6 +61,9 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
 
     remove_listener = bidi_session.add_event_listener(DOWNLOAD_WILL_BEGIN, on_event)
 
+    # Expect one downloadEnd event for this test.
+    expect_download_end(1)
+
     await bidi_session.script.evaluate(
         expression="download_link.click()",
         target=ContextTarget(new_tab["context"]),
@@ -49,7 +78,13 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
 
 
 async def test_download_attribute(
-    bidi_session, subscribe_events, new_tab, inline, wait_for_event, wait_for_future_safe
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    expect_download_end,
 ):
     download_filename = f"download_filename{random.random()}.txt"
     download_link = "data:text/plain;charset=utf-8,"
@@ -65,12 +100,17 @@ async def test_download_attribute(
 
     # Track all received events in the events array
     navigation_started_events = []
+
     async def on_event(method, data):
         navigation_started_events.append(data)
 
     remove_listener = bidi_session.add_event_listener(NAVIGATION_STARTED, on_event)
 
     on_download_will_begin = wait_for_event(DOWNLOAD_WILL_BEGIN)
+
+    # Expect one downloadEnd event for this test.
+    expect_download_end(1)
+
     # Test clicking on a link with a "download" attribute.
     await bidi_session.script.evaluate(
         expression="download_link.click()",
@@ -95,13 +135,22 @@ async def test_download_attribute(
 
     # Check that no browsingContext.navigationStarted event was emitted
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, navigation_started_events, 1, timeout=0.5)
+        await wait_for_bidi_events(
+            bidi_session, navigation_started_events, 1, timeout=0.5
+        )
 
     remove_listener()
 
 
 async def test_content_disposition_header(
-    bidi_session, subscribe_events, new_tab, inline, wait_for_event, wait_for_future_safe, url
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    expect_download_end,
 ):
     content_disposition_filename = f"content_disposition_filename{random.random()}.txt"
     content_disposition_link = url(
@@ -122,6 +171,10 @@ async def test_content_disposition_header(
     # Content-Disposition header.
     on_navigation_started = wait_for_event(NAVIGATION_STARTED)
     on_download_will_begin = wait_for_event(DOWNLOAD_WILL_BEGIN)
+
+    # Expect one downloadEnd event for this test.
+    expect_download_end(1)
+
     await bidi_session.script.evaluate(
         expression="content_disposition_link.click()",
         target=ContextTarget(new_tab["context"]),
@@ -149,9 +202,15 @@ async def test_content_disposition_header(
     assert download_event["url"] == navigation_event["url"]
 
 
-
 async def test_redirect_to_content_disposition_header(
-    bidi_session, subscribe_events, new_tab, inline, wait_for_event, wait_for_future_safe, url
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    expect_download_end,
 ):
     redirect_filename = f"redirect_filename{random.random()}.txt"
     content_disposition_link = url(
@@ -176,6 +235,10 @@ async def test_redirect_to_content_disposition_header(
     # Content-Disposition header.
     on_navigation_started = wait_for_event(NAVIGATION_STARTED)
     on_download_will_begin = wait_for_event(DOWNLOAD_WILL_BEGIN)
+
+    # Expect one downloadEnd event for this test.
+    expect_download_end(1)
+
     await bidi_session.script.evaluate(
         expression="redirect_link.click()",
         target=ContextTarget(new_tab["context"]),

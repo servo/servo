@@ -1,0 +1,329 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test Selection.modify("move", "left" or "right", "character") around inline element boundaries</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../editing/include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const testContainer = document.getElementById("testBody");
+  function stringifySelectionRanges() {
+    let result = "[";
+    for (let i = 0; i < getSelection().rangeCount; i++) {
+      const range = getSelection().getRangeAt(i);
+      if (result != "[") {
+        result += ", "
+      }
+      result += EditorTestUtils.getRangeDescription(range);
+    }
+    return result + "]";
+  }
+  function stringifyExpectedRange(expectedRange) {
+    return `[${EditorTestUtils.getRangeDescription({
+      startContainer: expectedRange.container,
+      startOffset: expectedRange.offset,
+      endContainer: expectedRange.container,
+      endOffset: expectedRange.offset,
+    })}]`;
+  }
+  for (const data of [
+    // Basic tests. If moving caret from middle of a Text, shouldn't go out different Text.
+    // This allows users preserve style at previous cursor position for the new text.
+    {
+      innerHTML: "ab[]c<span>def</span>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "abc".length };
+      },
+    },
+    {
+      innerHTML: "abc[]<span>def</span>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "d".length };
+      },
+    },
+    {
+      innerHTML: "<b>ab[]c</b><i>def</i>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("b").firstChild, offset: "abc".length };
+      },
+    },
+    {
+      innerHTML: "<b>abc[]</b><i>def</i>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("i").firstChild, offset: "d".length };
+      },
+    },
+    {
+      innerHTML: "abc<span>d[]ef</span>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: 0 };
+      },
+    },
+    {
+      innerHTML: "abc<span>[]def</span>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "ab".length };
+      },
+    },
+    {
+      innerHTML: "<b>abc</b><i>d[]ef</i>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("i").firstChild, offset: 0 };
+      },
+    },
+    {
+      innerHTML: "<b>abc</b><i>[]def</i>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("b").firstChild, offset: "ab".length };
+      },
+    },
+    // Don't skip visible white-space around the inline element boundaries.
+    {
+      innerHTML: "abc[] <span>def</span>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "abc ".length };
+      },
+    },
+    {
+      innerHTML: "abc[]<span> def</span>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: " ".length };
+      },
+    },
+    {
+      innerHTML: "abc <span>[]def</span>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "abc".length };
+      },
+    },
+    {
+      innerHTML: "abc<span> []def</span>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: 0 };
+      },
+    },
+
+    // Skip invisible white-spaces around the inline element boundaries.
+
+    // Only the first white-space should be visible when multiple spaces are collapsed.
+    // Therefore, the following tests expect that selection is collapsed after the first white-space.
+    {
+      innerHTML: "abc[]  <span>def</span>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "abc ".length };
+      },
+    },
+    {
+      innerHTML: "abc[] <span> def</span>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "abc ".length };
+      },
+    },
+    {
+      innerHTML: "abc[]<span>  def</span>",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: " ".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc[]  </span>def",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "abc ".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc[] </span> def",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "abc ".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc[]</span>  def",
+      direction: "right",
+      expectedResult: function () {
+        return { container: testContainer.lastChild, offset: " ".length };
+      },
+    },
+    // Similarly, these tests expect that selection is collapsed before the first white-space.
+    {
+      innerHTML: "abc  <span>[]def</span>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "abc".length };
+      },
+    },
+    {
+      innerHTML: "abc <span> []def</span>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "abc".length };
+      },
+    },
+    {
+      innerHTML: "abc<span>  []def</span>",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: 0 };
+      },
+    },
+    {
+      innerHTML: "<span>abc  </span>[]def",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "abc".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc </span> []def",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "abc".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc</span>  []def",
+      direction: "left",
+      expectedResult: function () {
+        return { container: testContainer.lastChild, offset: 0 };
+      },
+    },
+    // Invisible white-spaces must be skipped by modify().
+    {
+      innerHTML: "abc[]  <span>def</span>",
+      direction: "right",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "d".length };
+      },
+    },
+    {
+      innerHTML: "abc[] <span> def</span>",
+      direction: "right",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: " d".length };
+      },
+    },
+    {
+      innerHTML: "abc[]<span>  def</span>",
+      direction: "right",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "  d".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc[]  </span>def",
+      direction: "right",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.lastChild, offset: "d".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc[] </span> def",
+      direction: "right",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.lastChild, offset: " d".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc[]</span>  def",
+      direction: "right",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.lastChild, offset: "  d".length };
+      },
+    },
+    {
+      innerHTML: "abc  <span>[]def</span>",
+      direction: "left",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "ab".length };
+      },
+    },
+    {
+      innerHTML: "abc <span> []def</span>",
+      direction: "left",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "ab".length };
+      },
+    },
+    {
+      innerHTML: "abc<span>  []def</span>",
+      direction: "left",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.firstChild, offset: "ab".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc  </span>[]def",
+      direction: "left",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "ab".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc </span> []def",
+      direction: "left",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "ab".length };
+      },
+    },
+    {
+      innerHTML: "<span>abc</span>  []def",
+      direction: "left",
+      repeat: 2,
+      expectedResult: function () {
+        return { container: testContainer.querySelector("span").firstChild, offset: "ab".length };
+      },
+    },
+  ]) {
+    test(() => {
+      const utils = new EditorTestUtils(testContainer);
+      utils.setupEditingHost(data.innerHTML);
+      for (let i = 0; i < (data.repeat ?? 1); i++) {
+        getSelection().modify("move", data.direction, "character");
+      }
+      assert_equals(
+        stringifySelectionRanges(),
+        stringifyExpectedRange(data.expectedResult())
+      );
+    }, `Selection.modify("move", "${data.direction}", "character")${
+      data.repeat > 1 ? ` (${data.repeat} times)` : ""
+    } when "${data.innerHTML}"`);
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+  <div id="testBody" contenteditable></div>
+</body>
+</html>

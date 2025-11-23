@@ -1,0 +1,14 @@
+features:
+- name: settimeout
+  files:
+  - 'evil-spec-example.any.js'
+  - 'negative-settimeout.any.js'
+  - 'settimeout-cross-realm-callback-report-exception.html'
+  - 'type-long-settimeout.any.js'
+- name: setinterval
+  files:
+  - 'clearinterval-from-callback.any.js'
+  - 'missing-timeout-setinterval.any.js'
+  - 'negative-setinterval.any.js'
+  - 'setinterval-cross-realm-callback-report-exception.html'
+  - 'type-long-setinterval.any.js'

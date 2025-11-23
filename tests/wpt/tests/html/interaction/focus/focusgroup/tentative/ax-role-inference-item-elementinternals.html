@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - ElementInternals item role never overridden</title>
+<meta name="assert" content="Author supplied ElementInternals role for a focusgroup item must never be overridden by implied item role inference, even when mismatching expected mapping.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Scenario A: Owner implied tablist, item supplies expected mapped role 'tab'. -->
+<div id="fgOwnerTablist" focusgroup="tablist">
+  <focusgroup-item-internals-expected id="tabItem" tabindex="0"></focusgroup-item-internals-expected>
+</div>
+
+<!-- Scenario B: Same owner type (tablist) but item supplies a different role ('button'); ensure we do NOT coerce it to tab. -->
+<div id="fgOwnerTablistMismatch" focusgroup="tablist">
+  <focusgroup-item-internals-mismatch id="mismatchItem" tabindex="0"></focusgroup-item-internals-mismatch>
+</div>
+
+<script>
+class FocusgroupItemInternalsExpected extends HTMLElement {
+  constructor() {
+    super();
+    this.internals_ = this.attachInternals();
+    // ElementInternals author supplied role should be preserved.
+    this.internals_.role = 'tab';
+    this.textContent = 'Item';
+  }
+}
+customElements.define('focusgroup-item-internals-expected', FocusgroupItemInternalsExpected);
+
+class FocusgroupItemInternalsMismatch extends HTMLElement {
+  constructor() {
+    super();
+    this.internals_ = this.attachInternals();
+    // Deliberately provide a role that does NOT match the implied item role mapping.
+    this.internals_.role = 'button';
+    this.textContent = 'Other';
+  }
+}
+customElements.define('focusgroup-item-internals-mismatch', FocusgroupItemInternalsMismatch);
+</script>
+
+<script>
+if (!window.accessibilityController) {
+  test(() => { assert_true(true); }, 'accessibilityController not available (noop)');
+} else {
+  test(() => {
+    const ownerAX = accessibilityController.accessibleElementById('fgOwnerTablist');
+    assert_equals(ownerAX.role, 'AXRole: AXTabList');
+  }, 'Scenario A: Owner receives implied tablist role');
+
+  test(() => {
+    const itemAX = accessibilityController.accessibleElementById('tabItem');
+    assert_equals(itemAX.role, 'AXRole: AXTab');
+  }, 'Scenario A: Expected mapped ElementInternals role (tab) preserved');
+
+  test(() => {
+    const ownerAX = accessibilityController.accessibleElementById('fgOwnerTablistMismatch');
+    assert_equals(ownerAX.role, 'AXRole: AXTabList');
+  }, 'Scenario B: Owner implied tablist role still inferred with mismatched child role');
+
+  test(() => {
+    const itemAX = accessibilityController.accessibleElementById('mismatchItem');
+    // Critical assertion: we do NOT coerce to AXTab; remains AXButton per author intent.
+    assert_equals(itemAX.role, 'AXRole: AXButton');
+  }, 'Scenario B: Mismatched ElementInternals role (button) preserved (no coercion)');
+}
+</script>

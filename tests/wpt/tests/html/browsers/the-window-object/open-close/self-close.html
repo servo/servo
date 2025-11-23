@@ -2,7 +2,7 @@
 <p>self-close.html?navs=n&channel=name will navigate n times, then close and notify the channel.</p>
 
 <script>
-window.onload = setTimeout(() => {
+window.onload = () => setTimeout(() => {
   const urlParams = new URLSearchParams(window.location.search);
   let n = parseInt(urlParams.get('navs')) || 0;
 

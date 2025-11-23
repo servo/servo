@@ -1,0 +1,40 @@
+// https://wicg.github.io/PEPC/permission-elements.html#mixin-activation
+enum InPagePermissionMixinBlockerReason {
+  // No blocker reason.
+  "",
+
+  // Blocker reasons supported by all InPagePermissionMixin users.
+  "illegal_subframe", "unsuccesful_registration",
+  "recently_attached", "intersection_changed",
+  "intersection_out_of_viewport_or_clipped",
+  "intersection_occluded_or_distorted", "style_invalid",
+
+  // Blocker reason specific to HTMLPermissionElement.
+  "type_invalid",
+};
+
+// https://wicg.github.io/PEPC/permission-elements.html#permission-mixin
+interface mixin InPagePermissionMixin {
+  readonly attribute boolean isValid;
+  readonly attribute InPagePermissionMixinBlockerReason invalidReason;
+  readonly attribute PermissionState initialPermissionStatus;
+  readonly attribute PermissionState permissionStatus;
+
+  attribute EventHandler onpromptaction;
+  attribute EventHandler onpromptdismiss;
+  attribute EventHandler onvalidationstatuschange;
+};
+
+// https://wicg.github.io/PEPC/permission-elements.html#geolocation-element
+[Exposed=Window]
+interface HTMLGeolocationElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  readonly attribute GeolocationPosition? position;
+  readonly attribute GeolocationPositionError? error;
+  [CEReactions, Reflect] attribute boolean autolocate;
+  [CEReactions, Reflect] attribute boolean watch;
+
+  attribute EventHandler onlocation;
+};
+HTMLGeolocationElement includes InPagePermissionMixin;

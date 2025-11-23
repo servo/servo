@@ -51,6 +51,17 @@
 
     test(function() {
         let svg = document.getElementById("svg");
+        svg.setAttribute("style", "padding-left: 12px; padding-bottom: 10px; padding-top: 12px; padding-right: 24px; transform: rotate(180deg);");
+        let ctm = svg.getScreenCTM();
+        let pt = DOMPoint.fromPoint({x: 50, y: 50});
+        let transformedPoint = pt.matrixTransform(ctm.inverse());
+        svg.removeAttribute("style");
+        assert_approx_equals(transformedPoint.x, pt.x + 24, 0.1);
+        assert_approx_equals(transformedPoint.y, pt.y + 10, 0.1);
+    }, 'getScreenCTM with padding and rotation');
+
+    test(function() {
+        let svg = document.getElementById("svg");
         svg.setAttribute("style", "padding-left: 12px; transform: rotate(180deg); transform-box: content-box");
         let ctm = svg.getScreenCTM();
         let pt = DOMPoint.fromPoint({x: 50, y: 50});
@@ -59,6 +70,28 @@
         assert_equals(transformedPoint.x, pt.x + 12);
         assert_equals(transformedPoint.y, pt.y);
     }, 'getScreenCTM with padding-left, rotation and content-box');
+
+    test(function() {
+        let svg = document.getElementById("svg");
+        svg.setAttribute("style", "padding-left: 12px; transform: scale(2)");
+        let ctm = svg.getScreenCTM();
+        let pt = DOMPoint.fromPoint({x: 50, y: 50});
+        let transformedPoint = pt.matrixTransform(ctm.inverse());
+        svg.removeAttribute("style");
+        assert_equals(transformedPoint.x, pt.x - 3);
+        assert_equals(transformedPoint.y, pt.y);
+    }, 'getScreenCTM with padding-left, scale');
+
+    test(function() {
+        let svg = document.getElementById("svg");
+        svg.setAttribute("style", "border-width: 12px; transform: rotate(180deg);");
+        let ctm = svg.getScreenCTM();
+        let pt = DOMPoint.fromPoint({x: 50, y: 50});
+        let transformedPoint = pt.matrixTransform(ctm.inverse());
+        svg.removeAttribute("style");
+        assert_equals(transformedPoint.x, pt.x);
+        assert_equals(transformedPoint.y, pt.y);
+    }, 'getScreenCTM with border-width and rotation');
 
   ]]></script>
 </svg>

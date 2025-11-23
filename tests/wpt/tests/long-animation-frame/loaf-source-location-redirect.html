@@ -1,0 +1,95 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: source location should not expose cross-origin redirects</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: source location with cross-origin redirects</h1>
+<div id="log"></div>
+<script>
+
+const {REMOTE_ORIGIN} = get_host_info();
+
+function corsify(url, cors) {
+  if (!cors)
+    return url.href;
+  url.searchParams.set("pipe", "header(Access-Control-Allow-Origin, *)");
+  return url.href;
+}
+
+const targetURL = (path, cors) =>
+  corsify(new URL(path, REMOTE_ORIGIN), cors);
+
+function crossOriginRedirectURL(path, cors) {
+  const url = new URL(`/common/redirect.py`, REMOTE_ORIGIN);
+  url.searchParams.set("location", targetURL(path, cors));
+  return corsify(url, cors);
+}
+
+function test_source_location_with_redirect({path, type, name}) {
+  for (let scriptType of ["classic-opaque", "classic-cors", "module"]) {
+    const cors = scriptType !== "classic-opaque";
+    promise_test(async t => {
+      const VERY_LONG_FRAME_DURATION = 360;
+      const preRedirectURL = crossOriginRedirectURL(path, cors);
+      const postRedirectURL = targetURL(path, cors);
+      let [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+        const script = document.createElement("script");
+        script.src = preRedirectURL;
+        if (scriptType === "module")
+          script.type = "module";
+        else if (cors)
+          script.crossOrigin = "anonymous";
+        document.body.appendChild(script);
+        t.add_cleanup(() => script.remove());
+      }, script => script.duration >= VERY_LONG_FRAME_DURATION - 5, t);
+
+      const result =
+        script.sourceURL.startsWith(postRedirectURL) ? "post-redirect" :
+        script.sourceURL.startsWith(preRedirectURL) ? "pre-redirect" :
+        script.sourceURL === "" ?
+        "empty" : "other";
+
+      assert_not_equals(result, "other", `Unexpected source location ${script.sourceURL}`);
+      if (!cors)
+        assert_equals(script.executionStart, script.startTime, "Opaque scripts should hide execution start time");
+
+      if (cors) {
+        assert_not_equals(result, "empty", "CORS-ok scripts should expose sourceLocation");
+      } else {
+        assert_equals(result, "pre-redirect", "No-CORS classic scripts should expose pre-redirect URL");
+        assert_equals(script.sourceCharPosition, type === "script-block" || type === "resolve-promise" ? 0 : -1, "No-CORS classic scripts should not expose character index");
+      }
+    }, `Test ${type} with ${scriptType}`);
+  }
+}
+
+test_source_location_with_redirect({
+  path: "/long-animation-frame/resources/busy.js",
+  type: "script-block"
+});
+
+test_source_location_with_redirect({
+  path: "/long-animation-frame/resources/raf-generates-loaf.js",
+  name: "FrameRequestCallback",
+  type: "user-callback"
+});
+test_source_location_with_redirect({
+  path: "/long-animation-frame/resources/event-generates-loaf.js",
+  type: "event-listener",
+  name: "XMLHttpRequest.onload"
+});
+
+test_source_location_with_redirect({
+  path: "/long-animation-frame/resources/promise-generates-loaf.js",
+  type: "resolve-promise",
+  name: "Window.fetch.then"
+});
+
+</script>
+</body>

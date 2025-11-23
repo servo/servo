@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Lists test: use of `quotes` in ::marker</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#marker-properties">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5265#issuecomment-3531669680">
+<meta name="assert" content="the quotes property is supported in ::marker">
+
+<link rel="author" href="mailto:jkew@mozilla.com">
+
+<link rel="match" href="marker-quotes-ref.html">
+
+<style>
+ol {
+  quotes: "\2018" "\2019";
+}
+::marker {
+  content: open-quote counter(list-item) close-quote " ";
+}
+:nth-child(2)::marker {
+  quotes: "«" "»";
+}
+:nth-child(3)::marker {
+  quotes: "‹" "›";
+}
+</style>
+
+<ol>
+  <li>one
+  <li>two
+  <li>three
+</ol>

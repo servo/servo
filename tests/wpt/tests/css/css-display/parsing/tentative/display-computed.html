@@ -17,16 +17,16 @@
 'use strict';
 
 // https://tabatkins.github.io/specs/css-masonry/#masonry-containers
-test_computed_value("display", "masonry");
-test_computed_value("display", "inline-masonry");
+test_computed_value("display", "grid-lanes");
+test_computed_value("display", "inline-grid-lanes");
 
 // https://www.w3.org/TR/CSS2/visuren.html#dis-pos-flo
 function test_display_affected(property, value) {
   const target = document.getElementById('target');
   test(() => {
     target.style[property] = value;
-    target.style.display = 'inline-masonry';
-    assert_equals(getComputedStyle(target).display, 'masonry', 'inline-masonry -> masonry');
+    target.style.display = 'inline-grid-lanes';
+    assert_equals(getComputedStyle(target).display, 'grid-lanes', 'inline-masonry -> masonry');
 
     target.style[property] = '';
     target.style.display = '';
