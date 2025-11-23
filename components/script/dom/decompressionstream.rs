@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::io::{self, Write};
 use std::ptr;
 
+use brotli::DecompressorWriter as BrotliDecoder;
 use dom_struct::dom_struct;
 use flate2::write::{DeflateDecoder, GzDecoder, ZlibDecoder};
 use js::jsapi::JSObject;
@@ -34,6 +35,7 @@ enum Decompressor {
     Deflate(ZlibDecoder<Vec<u8>>),
     DeflateRaw(DeflateDecoder<Vec<u8>>),
     Gzip(GzDecoder<Vec<u8>>),
+    Brotli(Box<BrotliDecoder<Vec<u8>>>),
 }
 
 /// Expose methods of the inner decoder.
@@ -45,6 +47,9 @@ impl Decompressor {
                 Decompressor::DeflateRaw(DeflateDecoder::new(Vec::new()))
             },
             CompressionFormat::Gzip => Decompressor::Gzip(GzDecoder::new(Vec::new())),
+            CompressionFormat::Brotli => {
+                Decompressor::Brotli(Box::new(BrotliDecoder::new(Vec::new(), 4096)))
+            },
         }
     }
 
@@ -53,6 +58,7 @@ impl Decompressor {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.get_ref(),
             Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.get_ref(),
             Decompressor::Gzip(gz_decoder) => gz_decoder.get_ref(),
+            Decompressor::Brotli(brotli_decoder) => brotli_decoder.get_ref(),
         }
     }
 
@@ -61,6 +67,7 @@ impl Decompressor {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.get_mut(),
             Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.get_mut(),
             Decompressor::Gzip(gz_decoder) => gz_decoder.get_mut(),
+            Decompressor::Brotli(brotli_decoder) => brotli_decoder.get_mut(),
         }
     }
 
@@ -69,6 +76,7 @@ impl Decompressor {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.write(buf),
             Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.write(buf),
             Decompressor::Gzip(gz_decoder) => gz_decoder.write(buf),
+            Decompressor::Brotli(brotli_decoder) => brotli_decoder.write(buf),
         }
     }
 
@@ -77,6 +85,7 @@ impl Decompressor {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.flush(),
             Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.flush(),
             Decompressor::Gzip(gz_decoder) => gz_decoder.flush(),
+            Decompressor::Brotli(brotli_decoder) => brotli_decoder.flush(),
         }
     }
 
@@ -85,6 +94,7 @@ impl Decompressor {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.try_finish(),
             Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.try_finish(),
             Decompressor::Gzip(gz_decoder) => gz_decoder.try_finish(),
+            Decompressor::Brotli(brotli_decoder) => brotli_decoder.flush(),
         }
     }
 }
@@ -95,6 +105,7 @@ impl MallocSizeOf for Decompressor {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.size_of(ops),
             Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.size_of(ops),
             Decompressor::Gzip(gz_decoder) => gz_decoder.size_of(ops),
+            Decompressor::Brotli(brotli_decoder) => brotli_decoder.get_ref().size_of(ops),
         }
     }
 }
