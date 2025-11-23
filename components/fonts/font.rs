@@ -818,7 +818,17 @@ impl FontGroupFamily {
                 }
 
                 if !member.loaded {
-                    member.font = font_context.font(member.template.clone(), font_descriptor);
+                    if servo_config::pref!(layout_variable_fonts_enabled) {
+                        let variation_settings =
+                            member.template.borrow().compute_variations(font_descriptor);
+                        let descriptor_with_variations =
+                            font_descriptor.with_variation_settings(variation_settings);
+                        member.font =
+                            font_context.font(member.template.clone(), &descriptor_with_variations);
+                    } else {
+                        member.font = font_context.font(member.template.clone(), font_descriptor)
+                    }
+
                     member.loaded = true;
                 }
                 if matches!(&member.font, Some(font) if font_predicate(font)) {

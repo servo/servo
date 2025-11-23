@@ -422,11 +422,11 @@ impl WebFontDownloadState {
         local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
     ) -> WebFontDownloadState {
         match initiator {
-            WebFontLoadInitiator::Stylesheet(ref stylesheet, _) => {
+            WebFontLoadInitiator::Stylesheet(ref initiator) => {
                 font_context
                     .web_fonts
                     .write()
-                    .handle_web_font_load_started_for_stylesheet(stylesheet);
+                    .handle_web_font_load_started_for_stylesheet(&initiator.stylesheet);
             },
             WebFontLoadInitiator::Script(_) => {
                 font_context
@@ -450,15 +450,19 @@ impl WebFontDownloadState {
     fn handle_web_font_load_success(self, new_template: FontTemplate) {
         let family_name = self.css_font_face_descriptors.family_name.clone();
         match self.initiator {
-            WebFontLoadInitiator::Stylesheet(ref stylesheet, ref callback) => {
+            WebFontLoadInitiator::Stylesheet(initiator) => {
                 let not_cancelled = self
                     .font_context
                     .web_fonts
                     .write()
-                    .handle_web_font_loaded_for_stylesheet(stylesheet, family_name, new_template);
+                    .handle_web_font_loaded_for_stylesheet(
+                        &initiator.stylesheet,
+                        family_name,
+                        new_template,
+                    );
                 self.font_context
                     .invalidate_font_groups_after_web_font_load();
-                callback(not_cancelled);
+                (initiator.callback)(not_cancelled);
             },
             WebFontLoadInitiator::Script(callback) => {
                 self.font_context
@@ -473,12 +477,12 @@ impl WebFontDownloadState {
     fn handle_web_font_load_failure(self) {
         let family_name = self.css_font_face_descriptors.family_name.clone();
         match self.initiator {
-            WebFontLoadInitiator::Stylesheet(ref stylesheet, ref callback) => {
+            WebFontLoadInitiator::Stylesheet(initiator) => {
                 self.font_context
                     .web_fonts
                     .write()
-                    .handle_web_font_load_failed_for_stylesheet(stylesheet);
-                callback(false);
+                    .handle_web_font_load_failed_for_stylesheet(&initiator.stylesheet);
+                (initiator.callback)(false);
             },
             WebFontLoadInitiator::Script(callback) => {
                 self.font_context
@@ -492,11 +496,11 @@ impl WebFontDownloadState {
 
     fn font_load_cancelled(&self) -> bool {
         match self.initiator {
-            WebFontLoadInitiator::Stylesheet(ref stylesheet, _) => self
+            WebFontLoadInitiator::Stylesheet(ref initiator) => self
                 .font_context
                 .web_fonts
                 .read()
-                .font_load_cancelled_for_stylesheet(stylesheet),
+                .font_load_cancelled_for_stylesheet(&initiator.stylesheet),
             WebFontLoadInitiator::Script(_) => false,
         }
     }
@@ -553,15 +557,19 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             };
 
             let css_font_face_descriptors = rule.into();
-            let completion_handler =
-                WebFontLoadInitiator::Stylesheet(stylesheet.clone(), finished_callback.clone());
+
+            let initiator = FontFaceRuleInitiator {
+                stylesheet: stylesheet.clone(),
+                font_face_rule: rule.clone(),
+                callback: finished_callback.clone(),
+            };
 
             number_loading += 1;
             self.start_loading_one_web_font(
                 Some(webview_id),
                 font_face.sources(),
                 css_font_face_descriptors,
-                completion_handler,
+                WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
             );
         }
 
@@ -761,6 +769,7 @@ impl FontContext {
                             local_template.clone(),
                             &state.css_font_face_descriptors,
                             state.initiator.stylesheet().cloned(),
+                            state.initiator.font_face_rule().cloned(),
                         )
                         .ok()?;
                         Some(template)
@@ -778,15 +787,28 @@ impl FontContext {
 pub(crate) type ScriptWebFontLoadFinishedCallback =
     Box<dyn FnOnce(LowercaseFontFamilyName, Option<FontTemplate>) + Send>;
 
+pub(crate) struct FontFaceRuleInitiator {
+    stylesheet: DocumentStyleSheet,
+    font_face_rule: FontFaceRule,
+    callback: StylesheetWebFontLoadFinishedCallback,
+}
+
 pub(crate) enum WebFontLoadInitiator {
-    Stylesheet(DocumentStyleSheet, StylesheetWebFontLoadFinishedCallback),
+    Stylesheet(Box<FontFaceRuleInitiator>),
     Script(ScriptWebFontLoadFinishedCallback),
 }
 
 impl WebFontLoadInitiator {
     pub(crate) fn stylesheet(&self) -> Option<&DocumentStyleSheet> {
         match self {
-            Self::Stylesheet(stylesheet, _) => Some(stylesheet),
+            Self::Stylesheet(initiator) => Some(&initiator.stylesheet),
+            Self::Script(_) => None,
+        }
+    }
+
+    pub(crate) fn font_face_rule(&self) -> Option<&FontFaceRule> {
+        match self {
+            Self::Stylesheet(initiator) => Some(&initiator.font_face_rule),
             Self::Script(_) => None,
         }
     }
@@ -912,6 +934,7 @@ impl RemoteWebFontDownloader {
             FontIdentifier::Web(url),
             descriptor,
             state.initiator.stylesheet().cloned(),
+            state.initiator.font_face_rule().cloned(),
         );
 
         state
