@@ -324,7 +324,7 @@ mod test {
 
     fn test_metrics() -> ProgressiveWebMetrics {
         let (sender, _) = ipc_channel::ipc::channel().unwrap();
-        let profiler_chan = ProfilerChan(sender);
+        let profiler_chan = ProfilerChan(Some(sender));
         let mut metrics = ProgressiveWebMetrics::new(
             profiler_chan,
             ServoUrl::parse("about:blank").unwrap(),

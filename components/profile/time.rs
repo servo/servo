@@ -83,9 +83,9 @@ pub struct Profiler {
 
 impl Profiler {
     pub fn create(output: &Option<OutputOptions>, file_path: Option<String>) -> ProfilerChan {
-        let (chan, port) = ipc::channel().unwrap();
         match *output {
             Some(ref option) => {
+                let (chan, port) = ipc::channel().unwrap();
                 // Spawn the time profiler thread
                 let outputoption = option.clone();
                 thread::Builder::new()
@@ -115,41 +115,29 @@ impl Profiler {
                             .expect("Thread spawning failed");
                     },
                 }
+
+                ProfilerChan(Some(chan))
             },
             None => {
-                // this is when the -p option hasn't been specified
-                if file_path.is_some() {
-                    // Spawn the time profiler
-                    thread::Builder::new()
-                        .name("TimeProfiler".to_owned())
-                        .spawn(move || {
-                            let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
-                            let mut profiler = Profiler::new(port, trace, None);
-                            profiler.start();
-                        })
-                        .expect("Thread spawning failed");
-                } else {
-                    // No-op to handle messages when the time profiler is not printing:
-                    thread::Builder::new()
-                        .name("TimeProfiler".to_owned())
-                        .spawn(move || {
-                            loop {
-                                match port.recv() {
-                                    Err(_) => break,
-                                    Ok(ProfilerMsg::Exit(chan)) => {
-                                        let _ = chan.send(());
-                                        break;
-                                    },
-                                    _ => {},
-                                }
-                            }
-                        })
-                        .expect("Thread spawning failed");
+                match file_path {
+                    Some(path) => {
+                        let (chan, port) = ipc::channel().unwrap();
+                        // Spawn the time profiler
+                        thread::Builder::new()
+                            .name("TimeProfiler".to_owned())
+                            .spawn(move || {
+                                let trace = TraceDump::new(path).ok();
+                                let mut profiler = Profiler::new(port, trace, None);
+                                profiler.start();
+                            })
+                            .expect("Thread spawning failed");
+
+                        ProfilerChan(Some(chan))
+                    },
+                    None => ProfilerChan(None),
                 }
             },
         }
-
-        ProfilerChan(chan)
     }
 
     pub fn new(

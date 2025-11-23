@@ -17,12 +17,14 @@ pub struct TimerMetadata {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
+pub struct ProfilerChan(pub Option<IpcSender<ProfilerMsg>>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
-        if let Err(e) = self.0.send(msg) {
-            warn!("Error communicating with the time profiler thread: {}", e);
+        if let Some(sender) = &self.0 {
+            if let Err(e) = sender.send(msg) {
+                warn!("Error communicating with the time profiler thread: {}", e);
+            }
         }
     }
 }
