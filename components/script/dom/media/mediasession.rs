@@ -7,7 +7,8 @@ use std::rc::Rc;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    MediaMetadata as EmbedderMediaMetadata, MediaSessionActionType, MediaSessionEvent,
+    MediaMetadata as EmbedderMediaMetadata, MediaPositionState as EmbedderMediaPositionState,
+    MediaSessionActionType, MediaSessionEvent,
 };
 use rustc_hash::FxBuildHasher;
 
@@ -23,7 +24,6 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::{
     MediaSessionPlaybackState,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -203,55 +203,52 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
 
     /// <https://w3c.github.io/mediasession/#dom-mediasession-setpositionstate>
     fn SetPositionState(&self, state: &MediaPositionState) -> Fallible<()> {
-        // If the state is an empty dictionary then clear the position state.
+        // If state is an empty dictionary, clear the position state and abort these steps.
         if state.duration.is_none() && state.position.is_none() && state.playbackRate.is_none() {
-            if let Some(media_instance) = self.media_instance.get() {
-                media_instance.reset();
-            }
+            let position_state = EmbedderMediaPositionState::new(0.0, 0.0, 0.0);
+            self.send_event(MediaSessionEvent::SetPositionState(position_state));
+
             return Ok(());
         }
 
-        // If the duration is not present or its value is null, throw a TypeError.
-        if state.duration.is_none() {
-            return Err(Error::Type(
-                "duration is not present or its value is null".to_owned(),
-            ));
-        }
+        let duration = if let Some(state_duration) = state.duration {
+            // If state’s duration is negative or NaN, throw a TypeError.
+            if state_duration < 0.0 || state_duration.is_nan() {
+                return Err(Error::Type("Duration is negative or NaN".to_owned()));
+            }
+            state_duration
+        } else {
+            // If state’s duration is not present, throw a TypeError.
+            return Err(Error::Type("Duration is not present".to_owned()));
+        };
 
-        // If the duration is negative, throw a TypeError.
-        if let Some(state_duration) = state.duration {
-            if *state_duration < 0.0 {
-                return Err(Error::Type("duration is negative".to_owned()));
+        let position = if let Some(state_position) = state.position {
+            // If state’s position is negative or greater than duration, throw a TypeError.
+            if *state_position < 0.0 || *state_position > duration {
+                return Err(Error::Type(
+                    "Position is negative or greater than duration".to_owned(),
+                ));
             }
-        }
+            *state_position
+        } else {
+            // If state’s position is not present, set it to zero.
+            0.0
+        };
 
-        // If the position is negative or greater than duration, throw a TypeError.
-        if let Some(state_position) = state.position {
-            if *state_position < 0.0 {
-                return Err(Error::Type("position is negative".to_owned()));
+        let playback_rate = if let Some(state_playback_rate) = state.playbackRate {
+            // If state’s playbackRate is zero, throw a TypeError.
+            if *state_playback_rate == 0.0 {
+                return Err(Error::Type("Playback rate is zero".to_owned()));
             }
-            if let Some(state_duration) = state.duration {
-                if *state_position > *state_duration {
-                    return Err(Error::Type("position is greater than duration".to_owned()));
-                }
-            }
-        }
-
-        // If the playbackRate is zero throw a TypeError.
-        if let Some(state_playback_rate) = state.playbackRate {
-            if *state_playback_rate <= 0.0 {
-                return Err(Error::Type("playbackRate is zero".to_owned()));
-            }
-        }
+            *state_playback_rate
+        } else {
+            // If state’s playbackRate is not present, set it to 1.0.
+            1.0
+        };
 
         // Update the position state and last position updated time.
-        if let Some(media_instance) = self.media_instance.get() {
-            media_instance.set_duration(state.duration.map(|v| *v).unwrap());
-            // If the playbackRate is not present or its value is null, set it to 1.0.
-            media_instance.SetPlaybackRate(state.playbackRate.unwrap_or(Finite::wrap(1.0)))?;
-            // If the position is not present or its value is null, set it to zero.
-            media_instance.SetCurrentTime(state.position.unwrap_or(Finite::wrap(0.0)));
-        }
+        let position_state = EmbedderMediaPositionState::new(duration, playback_rate, position);
+        self.send_event(MediaSessionEvent::SetPositionState(position_state));
 
         Ok(())
     }
