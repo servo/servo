@@ -6,7 +6,7 @@ use base::generic_channel::GenericSender;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum ClientStorageThreadMsg {
+pub enum ClientStorageThreadMessage {
     /// Send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),
 }

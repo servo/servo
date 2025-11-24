@@ -6,14 +6,14 @@ use std::path::PathBuf;
 use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender};
-use storage_traits::client_storage::ClientStorageThreadMsg;
+use storage_traits::client_storage::ClientStorageThreadMessage;
 
 pub trait ClientStorageThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
 }
 
-impl ClientStorageThreadFactory for GenericSender<ClientStorageThreadMsg> {
-    fn new(config_dir: Option<PathBuf>) -> GenericSender<ClientStorageThreadMsg> {
+impl ClientStorageThreadFactory for GenericSender<ClientStorageThreadMessage> {
+    fn new(config_dir: Option<PathBuf>) -> GenericSender<ClientStorageThreadMessage> {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
 
         let generic_sender_clone = generic_sender.clone();
@@ -31,15 +31,15 @@ impl ClientStorageThreadFactory for GenericSender<ClientStorageThreadMsg> {
 
 pub struct ClientStorageThread {
     _base_dir: PathBuf,
-    _generic_sender: GenericSender<ClientStorageThreadMsg>,
-    generic_receiver: GenericReceiver<ClientStorageThreadMsg>,
+    _generic_sender: GenericSender<ClientStorageThreadMessage>,
+    generic_receiver: GenericReceiver<ClientStorageThreadMessage>,
 }
 
 impl ClientStorageThread {
     pub fn new(
         config_dir: Option<PathBuf>,
-        generic_sender: GenericSender<ClientStorageThreadMsg>,
-        generic_receiver: GenericReceiver<ClientStorageThreadMsg>,
+        generic_sender: GenericSender<ClientStorageThreadMessage>,
+        generic_receiver: GenericReceiver<ClientStorageThreadMessage>,
     ) -> ClientStorageThread {
         let base_dir = config_dir
             .unwrap_or_else(|| PathBuf::from("."))
@@ -56,7 +56,7 @@ impl ClientStorageThread {
         #[allow(clippy::never_loop)]
         loop {
             match self.generic_receiver.recv().unwrap() {
-                ClientStorageThreadMsg::Exit(sender) => {
+                ClientStorageThreadMessage::Exit(sender) => {
                     let _ = sender.send(());
                     return;
                 },

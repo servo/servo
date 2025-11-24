@@ -4,14 +4,16 @@
 
 use base::generic_channel::{self, GenericSender};
 use storage::ClientStorageThreadFactory;
-use storage_traits::client_storage::ClientStorageThreadMsg;
+use storage_traits::client_storage::ClientStorageThreadMessage;
 
 #[test]
 fn test_exit() {
-    let thread: GenericSender<ClientStorageThreadMsg> = ClientStorageThreadFactory::new(None);
+    let thread: GenericSender<ClientStorageThreadMessage> = ClientStorageThreadFactory::new(None);
 
     let (sender, receiver) = generic_channel::channel().unwrap();
-    thread.send(ClientStorageThreadMsg::Exit(sender)).unwrap();
+    thread
+        .send(ClientStorageThreadMessage::Exit(sender))
+        .unwrap();
     receiver.recv().unwrap();
 
     // Workaround for https://github.com/servo/servo/issues/32912
