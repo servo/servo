@@ -822,7 +822,7 @@ struct HostCallbacks {
     ime_proxy: RefCell<Option<ohos_ime::ImeProxy>>,
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(Debug)]
 enum ImeError {
     TextEditorProxy(CreateTextEditorProxyError),

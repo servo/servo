@@ -335,7 +335,8 @@ impl DedicatedWorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
-    #[allow(unsafe_code, clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,

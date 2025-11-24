@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![cfg(test)]
-#![allow(dead_code)]
+#![expect(dead_code)]
 
 mod cookie;
 mod cookie_http_state;

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-#![allow(unsafe_code)]
+#![expect(unsafe_code)]
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;

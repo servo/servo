@@ -5,7 +5,7 @@
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
 
-#![allow(dead_code)]
+#![expect(dead_code)]
 
 use core::ffi::c_char;
 use std::cell::Cell;

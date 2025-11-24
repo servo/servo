@@ -452,7 +452,8 @@ impl crate::unminify::ScriptSource for ModuleSource {
 }
 
 impl ModuleTree {
-    #[allow(unsafe_code, clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-module-script>
     /// Step 7-11.
     /// Although the CanGc argument appears unused, it represents the GC operations that
@@ -1385,7 +1386,8 @@ impl ResourceTimingListener for ModuleContext {
     }
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 /// A function to register module hooks (e.g. listening on resolving modules,
 /// getting module metadata, getting script private reference and resolving dynamic import)
 pub(crate) unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
@@ -1570,7 +1572,8 @@ fn fetch_an_import_module_script_graph(
     Ok(())
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 /// <https://tc39.es/ecma262/#sec-HostLoadImportedModule>
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 unsafe extern "C" fn HostResolveImportedModule(
@@ -1615,7 +1618,8 @@ unsafe extern "C" fn HostResolveImportedModule(
     unreachable!()
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 /// <https://tc39.es/ecma262/#sec-hostgetimportmetaproperties>
 /// <https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties>
 unsafe extern "C" fn HostPopulateImportMeta(

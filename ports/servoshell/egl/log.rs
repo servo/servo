@@ -10,7 +10,7 @@ use std::thread;
 use log::{debug, error, info, warn};
 
 #[derive(Debug)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) enum LogRedirectError {
     CreatePipeFailed(nix::Error),
     RedirectToPipeFailed(nix::Error),

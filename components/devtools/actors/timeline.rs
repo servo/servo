@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// TODO: Is this actor still relevant?
-#![allow(dead_code)]
+#![expect(dead_code)]
 
 use std::cell::RefCell;
 use std::net::TcpStream;

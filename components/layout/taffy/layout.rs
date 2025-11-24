@@ -116,7 +116,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         (*self.source_child_nodes[id]).borrow_mut().taffy_layout = *layout;
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn resolve_calc_value(&self, val: *const (), basis: f32) -> f32 {
         // SAFETY:
         // - The calc `val` here is the same pointer we return to Taffy in `convert::length_percentage`
