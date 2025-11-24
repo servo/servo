@@ -72,9 +72,7 @@ pub(crate) trait StylesheetOwner {
 
 pub(crate) enum StylesheetContextSource {
     LinkElement,
-    Import {
-        import_rule: Arc<Locked<ImportRule>>,
-    },
+    Import(Arc<Locked<ImportRule>>),
 }
 
 /// The context required for asynchronously loading an external stylesheet.
@@ -252,7 +250,7 @@ impl StylesheetContext {
                     }
                     link.set_stylesheet(stylesheet);
                 },
-                StylesheetContextSource::Import { import_rule } => {
+                StylesheetContextSource::Import(import_rule) => {
                     // Construct a new WebFontDocumentContext for the stylesheet
                     let window = element.owner_window();
                     let document_context = window.web_font_context();
@@ -586,9 +584,7 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
 
         // TODO (mrnayak) : Whether we should use the original loader's CORS
         // setting? Fix this when spec has more details.
-        let source = StylesheetContextSource::Import {
-            import_rule: import_rule.clone(),
-        };
+        let source = StylesheetContextSource::Import(import_rule.clone());
 
         match self {
             ElementStylesheetLoader::Synchronous { element } => {
