@@ -18,11 +18,13 @@ use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::computed_values::object_fit::T as ObjectFit;
+use style::context::QuirksMode;
 use style::logical_geometry::{Direction, WritingMode};
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, StyleBuilder};
 use style::rule_cache::RuleCacheConditions;
 use style::servo::url::ComputedUrl;
 use style::str::char_is_whitespace;
+use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::{Context, ToComputedValue};
@@ -208,12 +210,23 @@ impl ReplacedContents {
                     _ => unreachable!("SVG element can't contain a raster image."),
                 });
 
-                // TODO: are these two correct?
                 let rule_cache_conditions = &mut RuleCacheConditions::default();
-                let context = Context::new_for_initial_at_property_value(
-                    context.style_context.stylist,
-                    rule_cache_conditions,
+                let style_builder = StyleBuilder::new(
+                    context.style_context.stylist.device(),
+                    Some(context.style_context.stylist),
+                    None,
+                    None,
+                    None,
+                    false,
                 );
+
+                let context = Context::new(
+                    style_builder,
+                    QuirksMode::Quirks,
+                    rule_cache_conditions,
+                    ContainerSizeQuery::none(),
+                );
+
                 let attr_to_computed = |attr_val: &AttrValue| {
                     if let AttrValue::Length(_, length) = attr_val {
                         length.to_computed_value(&context)
