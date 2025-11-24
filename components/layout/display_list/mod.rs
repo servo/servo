@@ -743,7 +743,7 @@ impl Fragment {
             fragment.has_selection() || text_decorations.iter().any(|item| !item.line.is_empty());
 
         let glyphs = glyphs(
-            &fragment.glyphs,
+            fragment,
             baseline_origin,
             fragment.justification_adjustment,
             include_whitespace,
@@ -1636,7 +1636,7 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 }
 
 fn glyphs(
-    glyph_runs: &[Arc<GlyphStore>],
+    fragment: &TextFragment,
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,
@@ -1644,9 +1644,18 @@ fn glyphs(
     use fonts_traits::ByteIndex;
     use range::Range;
 
+    let glyph_runs = &fragment.glyphs;
+    let containing_block_width = fragment.overflow_metadata.parent_width;
+
     let mut glyphs = vec![];
+    let mut total_advance = fragment.overflow_metadata.inline_offset;
+    let max_total_advance =
+        containing_block_width - fragment.overflow_metadata.overflow_marker_width.1;
+
     for run in glyph_runs {
         for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
+            let current_advance = glyph.advance();
+            total_advance += current_advance;
             if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
@@ -1657,13 +1666,26 @@ fn glyphs(
                     index: glyph.id(),
                     point,
                 };
-                glyphs.push(glyph);
+
+                // First glyph must never be elided. Otherwise, check if it's time to crop.
+                // The first character or atomic inline-level element on a line must be clipped rather than ellipsed.
+                // <https://www.w3.org/TR/css-ui-3/#text-overflow>
+                if !fragment.overflow_metadata.can_be_elided ||
+                    total_advance <= max_total_advance ||
+                    (glyphs.is_empty() &&
+                        fragment
+                            .overflow_metadata
+                            .contains_first_character_of_the_line)
+                {
+                    glyphs.push(glyph);
+                }
             }
 
             if glyph.char_is_word_separator() {
                 baseline_origin.x += justification_adjustment;
+                total_advance += justification_adjustment;
             }
-            baseline_origin.x += glyph.advance();
+            baseline_origin.x += current_advance;
         }
     }
     glyphs
