@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::thread;
 
 use euclid::{Point2D, RigidTransform3D};
+use parking_lot::Mutex;
 use surfman::chains::SwapChains;
 use webxr_api::util::{self, ClipPlanes, HitTestList};
 use webxr_api::{
@@ -121,7 +122,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
 
 fn run_loop(receiver: WebXrReceiver<MockDeviceMsg>, data: Arc<Mutex<HeadlessDeviceData>>) {
     while let Ok(msg) = receiver.recv() {
-        if !data.lock().expect("Mutex poisoned").handle_msg(msg) {
+        if !data.lock().handle_msg(msg) {
             break;
         }
     }
@@ -138,7 +139,7 @@ impl DiscoveryAPI<SurfmanGL> for HeadlessDiscovery {
             return Err(Error::NoMatchingDevice);
         }
         let data = self.data.clone();
-        let mut d = data.lock().unwrap();
+        let mut d = data.lock();
         let id = d.next_id;
         d.next_id += 1;
         let per_session = PerSessionData {
@@ -167,7 +168,7 @@ impl DiscoveryAPI<SurfmanGL> for HeadlessDiscovery {
     }
 
     fn supports_session(&self, mode: SessionMode) -> bool {
-        if self.data.lock().unwrap().disconnected {
+        if self.data.lock().disconnected {
             return false;
         }
         match mode {
@@ -200,7 +201,6 @@ impl HeadlessDevice {
         f(self
             .data
             .lock()
-            .unwrap()
             .sessions
             .iter_mut()
             .find(|s| s.id == self.id)
@@ -223,11 +223,11 @@ impl HeadlessDevice {
 
 impl DeviceAPI for HeadlessDevice {
     fn floor_transform(&self) -> Option<RigidTransform3D<f32, Native, Floor>> {
-        self.data.lock().unwrap().floor_transform
+        self.data.lock().floor_transform
     }
 
     fn viewports(&self) -> Viewports {
-        let d = self.data.lock().unwrap();
+        let d = self.data.lock();
         let per_session = d.sessions.iter().find(|s| s.id == self.id).unwrap();
         d.viewports(per_session.mode)
     }
@@ -244,7 +244,7 @@ impl DeviceAPI for HeadlessDevice {
 
     fn begin_animation_frame(&mut self, layers: &[(ContextId, LayerId)]) -> Option<Frame> {
         let sub_images = self.layer_manager().ok()?.begin_frame(layers).ok()?;
-        let mut data = self.data.lock().unwrap();
+        let mut data = self.data.lock();
         let mut frame = data.get_frame(
             data.sessions.iter().find(|s| s.id == self.id).unwrap(),
             sub_images,
@@ -324,7 +324,7 @@ impl DeviceAPI for HeadlessDevice {
     }
 
     fn reference_space_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
-        let bounds = self.data.lock().unwrap().bounds_geometry.clone();
+        let bounds = self.data.lock().bounds_geometry.clone();
         Some(bounds)
     }
 }

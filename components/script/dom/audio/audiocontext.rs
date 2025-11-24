@@ -158,7 +158,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Steps 4 and 5.
         let trusted_promise = TrustedPromise::new(promise.clone());
-        match self.context.audio_context_impl().lock().unwrap().suspend() {
+        match self.context.audio_context_impl().lock().suspend() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
@@ -214,7 +214,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Steps 4 and 5.
         let trusted_promise = TrustedPromise::new(promise.clone());
-        match self.context.audio_context_impl().lock().unwrap().close() {
+        match self.context.audio_context_impl().lock().close() {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);

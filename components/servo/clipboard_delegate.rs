@@ -76,7 +76,9 @@ impl ClipboardDelegate for DefaultClipboardDelegate {
 }
 
 mod fallback_clipboard {
-    use std::sync::{LockResult, Mutex, OnceLock};
+    use std::sync::OnceLock;
+
+    use parking_lot::Mutex;
 
     use crate::clipboard_delegate::StringRequest;
 
@@ -87,9 +89,8 @@ mod fallback_clipboard {
     fn with_shared_clipboard(callback: impl FnOnce(&mut String)) {
         let clipboard_mutex =
             SHARED_FALLBACK_CLIPBOARD.get_or_init(|| Mutex::new(Default::default()));
-        if let LockResult::Ok(mut string) = clipboard_mutex.lock() {
-            callback(&mut string)
-        }
+        let mut string = clipboard_mutex.lock();
+        callback(&mut string);
     }
 
     pub(super) fn clear() {

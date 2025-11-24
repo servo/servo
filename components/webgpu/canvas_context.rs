@@ -5,7 +5,7 @@
 //! Main process implementation of [GPUCanvasContext](https://www.w3.org/TR/webgpu/#canvas-context)
 
 use std::ptr::NonNull;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use arrayvec::ArrayVec;
 use base::Epoch;
@@ -16,6 +16,7 @@ use compositing_traits::{
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
+use parking_lot::Mutex;
 use pixels::{SharedSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use webgpu_traits::{
@@ -326,7 +327,7 @@ impl WebRenderExternalImageApi for WebGpuExternalImages {
     fn lock(&mut self, id: u64) -> (ExternalImageSource<'_>, Size2D<i32>) {
         let id = WebGPUContextId(id);
         let presentation = {
-            let mut webgpu_contexts = self.image_map.lock().unwrap();
+            let mut webgpu_contexts = self.image_map.lock();
             webgpu_contexts
                 .get_mut(&id)
                 .and_then(|context_data| context_data.presentation.clone())
@@ -351,7 +352,7 @@ impl WebRenderExternalImageApi for WebGpuExternalImages {
         let Some(presentation) = self.locked_ids.remove(&id) else {
             return;
         };
-        let mut webgpu_contexts = self.image_map.lock().unwrap();
+        let mut webgpu_contexts = self.image_map.lock();
         if let Some(context_data) = webgpu_contexts.get_mut(&id) {
             // We use this to return staging buffer if a newer one exists.
             presentation.maybe_destroy(context_data);
@@ -533,7 +534,6 @@ impl crate::WGPU {
         assert!(
             self.wgpu_image_map
                 .lock()
-                .unwrap()
                 .insert(context_id, context_data)
                 .is_none(),
             "Context should be created only once!"
@@ -541,7 +541,7 @@ impl crate::WGPU {
     }
 
     pub(crate) fn set_image_key(&self, context_id: WebGPUContextId, image_key: ImageKey) {
-        let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
+        let mut webgpu_contexts = self.wgpu_image_map.lock();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
 
         if let Some(old_image_key) = context_data.image_key.replace(image_key) {
@@ -567,7 +567,7 @@ impl crate::WGPU {
         pending_texture: Option<PendingTexture>,
         sender: IpcSender<SharedSnapshot>,
     ) {
-        let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
+        let mut webgpu_contexts = self.wgpu_image_map.lock();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
         if let Some(PendingTexture {
             texture_id,
@@ -594,7 +594,7 @@ impl crate::WGPU {
                 staging_buffer,
                 configuration,
                 move |staging_buffer| {
-                    let mut webgpu_contexts = wgpu_image_map.lock().unwrap();
+                    let mut webgpu_contexts = wgpu_image_map.lock();
                     let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
                     sender
                         .send(
@@ -641,7 +641,7 @@ impl crate::WGPU {
         size: Size2D<u32>,
         canvas_epoch: Epoch,
     ) {
-        let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
+        let mut webgpu_contexts = self.wgpu_image_map.lock();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
 
         let Some(image_key) = context_data.image_key else {
@@ -690,7 +690,7 @@ impl crate::WGPU {
             staging_buffer,
             configuration,
             move |staging_buffer| {
-                let mut webgpu_contexts = wgpu_image_map.lock().unwrap();
+                let mut webgpu_contexts = wgpu_image_map.lock();
                 let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
                 if staging_buffer.is_mapped() {
                     context_data.replace_presentation(PresentationStagingBuffer::new(
@@ -795,7 +795,6 @@ impl crate::WGPU {
     pub(crate) fn destroy_context(&mut self, context_id: WebGPUContextId) {
         self.wgpu_image_map
             .lock()
-            .unwrap()
             .remove(&context_id)
             .unwrap()
             .destroy(&self.script_sender, &self.compositor_api);

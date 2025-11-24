@@ -64,7 +64,6 @@ impl AudioNode {
         let node_id = context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .create_node(node_type, ch);
         Ok(AudioNode::new_inherited_for_id(
             node_id,
@@ -98,7 +97,6 @@ impl AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .message_node(self.node_id, message);
     }
 
@@ -125,14 +123,10 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
 
         // servo-media takes care of ignoring duplicated connections.
 
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .connect_ports(
-                self.node_id().output(output),
-                destination.node_id().input(input),
-            );
+        self.context.audio_context_impl().lock().connect_ports(
+            self.node_id().output(output),
+            destination.node_id().input(input),
+        );
 
         Ok(DomRoot::from_ref(destination))
     }
@@ -149,14 +143,10 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
 
         // servo-media takes care of ignoring duplicated connections.
 
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .connect_ports(
-                self.node_id().output(output),
-                dest.node_id().param(dest.param_type()),
-            );
+        self.context.audio_context_impl().lock().connect_ports(
+            self.node_id().output(output),
+            dest.node_id().param(dest.param_type()),
+        );
 
         Ok(())
     }
@@ -166,7 +156,6 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .disconnect_all_from(self.node_id());
         Ok(())
     }
@@ -176,7 +165,6 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .disconnect_output(self.node_id().output(out));
         Ok(())
     }
@@ -186,7 +174,6 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .disconnect_between(self.node_id(), to.node_id());
         Ok(())
     }
@@ -196,7 +183,6 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .disconnect_output_between(self.node_id().output(out), to.node_id());
         Ok(())
     }
@@ -206,7 +192,6 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .disconnect_output_between_to(self.node_id().output(out), to.node_id().input(inp));
         Ok(())
     }
@@ -216,7 +201,6 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .disconnect_to(self.node_id(), param.node_id().param(param.param_type()));
         Ok(())
     }
@@ -226,7 +210,6 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .disconnect_output_between_to(
                 self.node_id().output(out),
                 param.node_id().param(param.param_type()),

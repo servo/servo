@@ -25,7 +25,7 @@ pub mod largest_contentful_paint_candidate;
 pub mod rendering_context;
 pub mod viewport_description;
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::generic_channel::{self, GenericCallback, GenericSender};
 use bitflags::bitflags;
@@ -33,6 +33,7 @@ use display_list::CompositorDisplayListInfo;
 use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
+use parking_lot::Mutex;
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 pub use webrender_api::ExternalImageSource;
@@ -527,12 +528,12 @@ pub struct PainterSurfmanDetailsMap(Arc<Mutex<HashMap<PainterId, PainterSurfmanD
 
 impl PainterSurfmanDetailsMap {
     pub fn get(&self, painter_id: PainterId) -> Option<PainterSurfmanDetails> {
-        let map = self.0.lock().expect("poisoned");
+        let map = self.0.lock();
         map.get(&painter_id).cloned()
     }
 
     pub fn insert(&mut self, painter_id: PainterId, details: PainterSurfmanDetails) {
-        let mut map = self.0.lock().expect("poisoned");
+        let mut map = self.0.lock();
         let existing = map.insert(painter_id, details);
         assert!(existing.is_none())
     }

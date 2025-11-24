@@ -6,11 +6,12 @@
 //!
 //! This is roughly based on <https://github.com/LucentFlux/wgpu-async/blob/1322c7e3fcdfc1865a472c7bbbf0e2e06dcf4da8/src/wgpu_future.rs>
 
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 
 use log::warn;
+use parking_lot::{Mutex, MutexGuard};
 
 use crate::wgc::global::Global;
 
@@ -53,7 +54,7 @@ fn poll_all_devices(
     force_wait: bool,
     lock: &Mutex<()>,
 ) {
-    let _guard = lock.lock().unwrap();
+    let _guard = lock.lock();
     match global.poll_all_devices(force_wait) {
         Ok(all_queue_empty) => *more_work = !all_queue_empty,
         Err(e) => warn!("Poller thread got `{e}` on poll_all_devices."),
@@ -117,7 +118,7 @@ impl Poller {
 
     /// Lock for device maintain calls (in poll_all_devices and queue_submit)
     pub(crate) fn lock(&self) -> MutexGuard<'_, ()> {
-        self.lock.lock().unwrap()
+        self.lock.lock()
     }
 }
 

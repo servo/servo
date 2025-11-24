@@ -15,7 +15,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Read;
 use std::net::{Shutdown, TcpListener, TcpStream};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 
 use base::generic_channel;
@@ -29,6 +29,7 @@ use devtools_traits::{
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
+use parking_lot::Mutex;
 use rand::{RngCore, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
@@ -227,7 +228,7 @@ impl DevtoolsInstance {
 
                     // Inform every browsing context of the new stream
                     for name in self.browsing_contexts.values() {
-                        let actors = actors.lock().unwrap();
+                        let actors = actors.lock();
                         let browsing_context = actors.find::<BrowsingContextActor>(name);
                         let mut streams = browsing_context.streams.borrow_mut();
                         streams.insert(id, stream.try_clone().unwrap());
@@ -309,16 +310,16 @@ impl DevtoolsInstance {
     }
 
     fn handle_framerate_tick(&self, actor_name: String, tick: f64) {
-        let mut actors = self.actors.lock().unwrap();
+        let mut actors = self.actors.lock();
         let framerate_actor = actors.find_mut::<FramerateActor>(&actor_name);
         framerate_actor.add_tick(tick);
     }
 
     fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
         let actor_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
-        let actors = self.actors.lock().unwrap();
+        let actors = self.actors.lock();
         let actor = actors.find::<BrowsingContextActor>(actor_name);
-        let mut id_map = self.id_map.lock().expect("Mutex poisoned");
+        let mut id_map = self.id_map.lock();
         if let NavigationState::Start(url) = &state {
             let mut connections = Vec::<TcpStream>::new();
             for stream in self.connections.values() {
@@ -344,10 +345,10 @@ impl DevtoolsInstance {
         script_sender: IpcSender<DevtoolScriptControlMsg>,
         page_info: DevtoolsPageInfo,
     ) {
-        let mut actors = self.actors.lock().unwrap();
+        let mut actors = self.actors.lock();
 
         let (browsing_context_id, pipeline_id, worker_id, webview_id) = ids;
-        let id_map = &mut self.id_map.lock().expect("Mutex poisoned");
+        let id_map = &mut self.id_map.lock();
         let devtools_browser_id = id_map.browser_id(webview_id);
         let devtools_browsing_context_id = id_map.browsing_context_id(browsing_context_id);
         let devtools_outer_window_id = id_map.outer_window_id(pipeline_id);
@@ -429,7 +430,7 @@ impl DevtoolsInstance {
             Some(name) => name,
             None => return,
         };
-        let actors = self.actors.lock().unwrap();
+        let actors = self.actors.lock();
         let browsing_context = actors.find::<BrowsingContextActor>(name);
         browsing_context.title_changed(pipeline_id, title);
     }
@@ -444,7 +445,7 @@ impl DevtoolsInstance {
             Some(name) => name,
             None => return,
         };
-        let actors = self.actors.lock().unwrap();
+        let actors = self.actors.lock();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
         for stream in self.connections.values_mut() {
@@ -462,7 +463,7 @@ impl DevtoolsInstance {
             Some(name) => name,
             None => return,
         };
-        let actors = self.actors.lock().unwrap();
+        let actors = self.actors.lock();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
         for stream in self.connections.values_mut() {
@@ -475,7 +476,7 @@ impl DevtoolsInstance {
         pipeline_id: PipelineId,
         worker_id: Option<WorkerId>,
     ) -> Option<String> {
-        let actors = self.actors.lock().unwrap();
+        let actors = self.actors.lock();
         if let Some(worker_id) = worker_id {
             let actor_name = self.actor_workers.get(&worker_id)?;
             Some(actors.find::<WorkerActor>(actor_name).console.clone())
@@ -510,7 +511,6 @@ impl DevtoolsInstance {
         let watcher_name = self
             .actors
             .lock()
-            .unwrap()
             .find::<BrowsingContextActor>(browsing_context_actor_name)
             .watcher
             .clone();
@@ -530,7 +530,7 @@ impl DevtoolsInstance {
 
     /// Create a new NetworkEventActor for a given request ID and watcher name.
     fn create_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
-        let mut actors = self.actors.lock().unwrap();
+        let mut actors = self.actors.lock();
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
@@ -549,7 +549,7 @@ impl DevtoolsInstance {
         pipeline_id: PipelineId,
         source_info: SourceInfo,
     ) {
-        let mut actors = self.actors.lock().unwrap();
+        let mut actors = self.actors.lock();
 
         let source_content = source_info
             .content
@@ -619,7 +619,7 @@ impl DevtoolsInstance {
     }
 
     fn handle_update_source_content(&mut self, pipeline_id: PipelineId, source_content: String) {
-        let mut actors = self.actors.lock().unwrap();
+        let mut actors = self.actors.lock();
 
         for actor_name in actors.source_actor_names_for_pipeline(pipeline_id) {
             let source_actor: &mut SourceActor = actors.find_mut(&actor_name);
@@ -665,7 +665,7 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
 /// Process the input from a single devtools client until EOF.
 fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, stream_id: StreamId) {
     log::info!("Connection established to {}", stream.peer_addr().unwrap());
-    let msg = actors.lock().unwrap().find::<RootActor>("root").encodable();
+    let msg = actors.lock().find::<RootActor>("root").encodable();
     if let Err(error) = stream.write_json_packet(&msg) {
         warn!("Failed to send initial packet from root actor: {error:?}");
         return;
@@ -674,7 +674,7 @@ fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, strea
     loop {
         match stream.read_json_packet() {
             Ok(Some(json_packet)) => {
-                if let Err(()) = actors.lock().unwrap().handle_message(
+                if let Err(()) = actors.lock().handle_message(
                     json_packet.as_object().unwrap(),
                     &mut stream,
                     stream_id,
@@ -695,5 +695,5 @@ fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, strea
         }
     }
 
-    actors.lock().unwrap().cleanup(stream_id);
+    actors.lock().cleanup(stream_id);
 }

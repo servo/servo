@@ -729,6 +729,7 @@ dependencies = [
  "log",
  "mach2",
  "nix",
+ "parking_lot",
  "rustc-demangle",
  "rustc-hash 2.1.1",
  "serde_json",
@@ -2073,6 +2074,7 @@ dependencies = [
  "log",
  "net",
  "net_traits",
+ "parking_lot",
  "rand 0.9.2",
  "rustc-hash 2.1.1",
  "serde",
@@ -5325,6 +5327,7 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "log",
+ "parking_lot",
  "rustc-hash 2.1.1",
  "serde",
  "servo-media",
@@ -7857,9 +7860,10 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "once_cell",
+ "parking_lot",
  "servo-media-audio",
  "servo-media-player",
  "servo-media-streams",
@@ -7870,13 +7874,14 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "byte-slice-cast",
  "euclid",
  "log",
  "num-complex",
  "num-traits",
+ "parking_lot",
  "petgraph",
  "serde",
  "serde_derive",
@@ -7891,7 +7896,7 @@ dependencies = [
 [[package]]
 name = "servo-media-derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7901,9 +7906,10 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "ipc-channel",
+ "parking_lot",
  "servo-media",
  "servo-media-audio",
  "servo-media-player",
@@ -7915,7 +7921,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -7933,6 +7939,7 @@ dependencies = [
  "log",
  "mime",
  "once_cell",
+ "parking_lot",
  "servo-media",
  "servo-media-audio",
  "servo-media-gstreamer-render",
@@ -7948,7 +7955,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -7958,13 +7965,14 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "glib",
  "gstreamer",
  "gstreamer-gl",
  "gstreamer-gl-egl",
  "gstreamer-video",
+ "parking_lot",
  "servo-media-gstreamer-render",
  "servo-media-player",
 ]
@@ -7972,7 +7980,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "glib",
  "gstreamer",
@@ -7980,6 +7988,7 @@ dependencies = [
  "gstreamer-gl-egl",
  "gstreamer-gl-x11",
  "gstreamer-video",
+ "parking_lot",
  "servo-media-gstreamer-render",
  "servo-media-player",
 ]
@@ -7987,7 +7996,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -7999,20 +8008,21 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
+ "parking_lot",
  "uuid",
 ]
 
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#6c1766f5f5d5c18d770af002bcd8f79a7910b6d8"
+source = "git+https://github.com/servo/media#a3e6fcf094723eece97dccfc0941daf957daa4ed"
 dependencies = [
  "log",
  "servo-media-streams",
@@ -8035,6 +8045,7 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "libc",
+ "parking_lot",
  "rustc-hash 2.1.1",
  "tikv-jemalloc-sys",
  "tikv-jemallocator",
@@ -10093,6 +10104,7 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "log",
+ "parking_lot",
  "pixels",
  "rustc-hash 2.1.1",
  "serde",
@@ -10200,6 +10212,7 @@ dependencies = [
  "glow",
  "log",
  "openxr",
+ "parking_lot",
  "raw-window-handle",
  "serde",
  "surfman",

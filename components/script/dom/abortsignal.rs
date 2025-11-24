@@ -4,7 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
@@ -13,6 +13,7 @@ use js::jsapi::{ExceptionStackBehavior, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use parking_lot::Mutex;
 use script_bindings::inheritance::Castable;
 use script_bindings::weakref::WeakRef;
 
@@ -205,12 +206,12 @@ impl AbortSignal {
             AbortAlgorithm::Fetch(fetch_context) => {
                 rooted!(in(*cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
-                if let Some(fetch_context) = &mut *fetch_context.lock().unwrap() {
+                if let Some(fetch_context) = &mut *fetch_context.lock() {
                     fetch_context.abort_fetch(reason.handle(), cx, can_gc);
                 }
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record) => {
-                deferred_fetch_record.lock().unwrap().abort();
+                deferred_fetch_record.lock().abort();
             },
             AbortAlgorithm::DomEventListener(removable_listener) => {
                 removable_listener.event_target.remove_event_listener(

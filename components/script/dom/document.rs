@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -45,6 +45,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{InsecureRequestsPolicy, PreloadedResources, RequestBuilder};
 use net_traits::response::HttpsState;
+use parking_lot::Mutex;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;

@@ -42,7 +42,8 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use profile_traits::ipc as ProfiledIpc;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
+use parking_lot::Mutex;
 
 const KEY_CONVERSION_ERROR: &str =
     "This `manufacturerData` key can not be parsed as unsigned short:";
@@ -267,7 +268,7 @@ pub(crate) fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
                 T: AsyncBluetoothListener + DomObject,
             {
                 fn run_once(self) {
-                    let mut context = self.context.lock().unwrap();
+                    let mut context = self.context.lock();
                     context.response(self.action, CanGc::note());
                 }
             }

@@ -61,12 +61,13 @@
 
 use std::fmt;
 use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use ipc_channel::ErrorKind;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use parking_lot::Mutex;
 use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
@@ -161,7 +162,7 @@ where
                 })
             },
             GenericCallbackVariants::InProcess(callback) => {
-                let mut cb = callback.lock().expect("poisoned");
+                let mut cb = callback.lock();
                 (*cb)(Ok(value));
                 Ok(())
             },

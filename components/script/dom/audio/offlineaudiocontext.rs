@@ -4,12 +4,13 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, mpsc};
 use std::thread::Builder;
 
 use base::id::PipelineId;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use parking_lot::Mutex;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 
 use crate::dom::audio::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};
@@ -160,13 +161,11 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
         self.context
             .audio_context_impl()
             .lock()
-            .unwrap()
             .set_eos_callback(Box::new(move |buffer| {
                 processed_audio_
                     .lock()
-                    .unwrap()
                     .extend_from_slice((*buffer).as_ref());
-                let _ = sender.lock().unwrap().send(());
+                let _ = sender.lock().send(());
             }));
 
         let this = Trusted::new(self);
@@ -181,7 +180,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                 let _ = receiver.recv();
                 task_source.queue(task!(resolve: move || {
                     let this = this.root();
-                    let processed_audio = processed_audio.lock().unwrap();
+                    let processed_audio = processed_audio.lock();
                     let mut processed_audio: Vec<_> = processed_audio
                         .chunks(this.length as usize)
                         .map(|channel| channel.to_vec())
@@ -213,14 +212,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             })
             .unwrap();
 
-        if self
-            .context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .resume()
-            .is_err()
-        {
+        if self.context.audio_context_impl().lock().resume().is_err() {
             promise.reject_error(
                 Error::Type("Could not start offline rendering".to_owned()),
                 can_gc,
