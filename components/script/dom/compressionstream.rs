@@ -112,14 +112,8 @@ impl MallocSizeOf for Compressor {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.size_of(ops),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.size_of(ops),
             Compressor::Gzip(gz_encoder) => gz_encoder.size_of(ops),
-            Compressor::Brotli(encoder) => {
-                // Size of the output Vec buffer
-                let output_size = encoder.get_ref().size_of(ops);
-
-                // Size of the boxed BrotliEncoder struct itself
-                let encoder_size = unsafe { ops.malloc_size_of(&**encoder) };
-
-                output_size + encoder_size
+            Compressor::Brotli(brotli_dencoder) => unsafe {
+                ops.malloc_size_of(&**brotli_dencoder)
             },
         }
     }
