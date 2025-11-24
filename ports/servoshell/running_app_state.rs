@@ -165,7 +165,7 @@ impl RunningAppStateBase {
 
 pub trait RunningAppStateTrait {
     fn base(&self) -> &RunningAppStateBase;
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn base_mut(&mut self) -> &mut RunningAppStateBase;
     fn webview_by_id(&self, _: WebViewId) -> Option<WebView>;
     fn dismiss_embedder_controls_for_webview(&self, _webview_id: WebViewId) {}

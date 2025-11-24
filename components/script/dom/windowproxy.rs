@@ -937,7 +937,8 @@ fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, nam
 // This is only called from extern functions,
 // there's no use using the lifetimed handles here.
 // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 unsafe fn GetSubframeWindowProxy(
     cx: *mut JSContext,
     proxy: RawHandleObject,
@@ -991,7 +992,8 @@ unsafe fn GetSubframeWindowProxy(
     None
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 unsafe extern "C" fn get_own_property_descriptor(
     cx: *mut JSContext,
     proxy: RawHandleObject,
@@ -1018,7 +1020,8 @@ unsafe extern "C" fn get_own_property_descriptor(
     unsafe { JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc, is_none) }
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 unsafe extern "C" fn define_property(
     cx: *mut JSContext,
     proxy: RawHandleObject,
@@ -1319,7 +1322,8 @@ unsafe extern "C" fn delete_xorigin(
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
     cx: *mut JSContext,
     proxy: RawHandleObject,
@@ -1332,7 +1336,8 @@ unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(
     found && unsafe { get_own_property_descriptor(cx, proxy, id, desc, is_none) }
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 unsafe extern "C" fn defineProperty_xorigin(
     cx: *mut JSContext,
     _: RawHandleObject,
@@ -1345,7 +1350,8 @@ unsafe extern "C" fn defineProperty_xorigin(
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
-#[allow(unsafe_code, non_snake_case)]
+#[expect(unsafe_code)]
+#[allow(non_snake_case)]
 unsafe extern "C" fn preventExtensions_xorigin(
     cx: *mut JSContext,
     _: RawHandleObject,

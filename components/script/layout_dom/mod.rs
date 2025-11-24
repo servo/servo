@@ -19,7 +19,7 @@
 //! will race and cause spurious thread failure. (Note that I do not believe these races are
 //! exploitable, but they'll result in brokenness nonetheless.)
 
-#![allow(unsafe_code)]
+#![expect(unsafe_code)]
 
 mod document;
 mod element;

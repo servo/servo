@@ -1836,7 +1836,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
-    #[allow(unsafe_code, clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn put_image_data_(
         &self,
         canvas_size: Size2D<u32>,

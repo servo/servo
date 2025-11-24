@@ -726,7 +726,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 },
             };
 
-            #[allow(unsafe_code)]
+            #[expect(unsafe_code)]
             let mut cx =
                 unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
             let options = CompileOptionsWrapper::new(&cx, url.as_str(), 1);

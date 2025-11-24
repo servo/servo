@@ -13,7 +13,7 @@ use crate::script_runtime::JSContext;
 pub struct AlreadyInRealm(());
 
 impl AlreadyInRealm {
-    #![allow(unsafe_code)]
+    #![expect(unsafe_code)]
     pub fn assert<D: DomTypes>() -> AlreadyInRealm {
         unsafe {
             assert!(!GetCurrentRealmOrNull(*D::GlobalScope::get_cx()).is_null());

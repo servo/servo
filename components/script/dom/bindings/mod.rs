@@ -130,7 +130,7 @@
 //! return `Err()` from the method with the appropriate [error value]
 //! (error/enum.Error.html).
 
-#![allow(unsafe_code)]
+#![expect(unsafe_code)]
 #![deny(missing_docs)]
 #![deny(non_snake_case)]
 

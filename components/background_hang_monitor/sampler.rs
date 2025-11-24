@@ -15,7 +15,7 @@ pub trait Sampler: Send {
 pub struct DummySampler;
 
 impl DummySampler {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn new_boxed() -> Box<dyn Sampler> {
         Box::new(DummySampler)
     }
@@ -31,7 +31,7 @@ impl Sampler for DummySampler {
 pub type Address = *const u8;
 
 /// The registers used for stack unwinding
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub struct Registers {
     /// Instruction pointer.
     pub instruction_ptr: Address,

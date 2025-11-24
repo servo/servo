@@ -63,10 +63,9 @@ pub mod dummy_tracing {
     impl Entered<'_> {}
 
     #[derive(Debug)]
-    #[allow(dead_code)]
     struct Level();
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     impl Level {
         /// The "error" level.
         ///
