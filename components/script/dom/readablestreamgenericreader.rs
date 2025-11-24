@@ -122,7 +122,9 @@ pub(crate) trait ReadableStreamGenericReader {
             self.get_closed_promise().set_promise_is_handled();
 
             // Perform ! stream.[[controller]].[[ReleaseSteps]]().
-            stream.perform_release_steps()?;
+            stream
+                .perform_release_steps()
+                .expect("Stream should have a controller");
 
             // Set stream.[[reader]] to undefined.
             stream.set_reader(None);
