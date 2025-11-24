@@ -178,8 +178,6 @@ public class Servo {
     public interface Client {
         void onAlert(String message);
 
-        boolean onAllowNavigation(String url);
-
         void onLoadStarted();
 
         void onLoadEnded();
@@ -258,10 +256,6 @@ public class Servo {
 
         public void onImeHide() {
             mRunCallback.inUIThread(() -> mClient.onImeHide());
-        }
-
-        public boolean onAllowNavigation(String url) {
-            return mClient.onAllowNavigation(url);
         }
 
         public void onLoadStarted() {

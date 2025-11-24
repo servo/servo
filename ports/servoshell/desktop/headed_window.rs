@@ -17,6 +17,7 @@ use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vec
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info, warn};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
+use servo::base::generic_channel::GenericSender;
 use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
@@ -25,11 +26,12 @@ use servo::webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
 };
 use servo::{
-    Cursor, ImeEvent, InputEvent, InputEventId, InputEventResult, InputMethodControl, Key,
-    KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
-    WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    AuthenticationRequest, Cursor, EmbedderControl, EmbedderControlId, ImeEvent, InputEvent,
+    InputEventId, InputEventResult, InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, NamedKey, OffscreenRenderingContext, PermissionRequest, RenderingContext,
+    ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView,
+    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -48,18 +50,20 @@ use {
     objc2_foundation::MainThreadMarker,
 };
 
-use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
-use super::window_trait::{LINE_HEIGHT, LINE_WIDTH, WindowPortsMethods};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
+use crate::desktop::dialog::Dialog;
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::gui::{Gui, GuiCommand};
 use crate::desktop::keyutils::CMD_OR_CONTROL;
-use crate::desktop::window_trait::MIN_WINDOW_INNER_SIZE;
 use crate::parser::location_bar_input_to_url;
 use crate::prefs::ServoShellPreferences;
-use crate::running_app_state::RunningAppStateTrait;
+use crate::running_app_state::RunningAppState;
+use crate::window::{
+    LINE_HEIGHT, LINE_WIDTH, MIN_WINDOW_INNER_SIZE, PlatformWindow, ServoShellWindow,
+    ServoShellWindowId,
+};
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 
@@ -77,7 +81,6 @@ pub struct Window {
     device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
     modifiers_state: Cell<ModifiersState>,
-
     /// The `RenderingContext` of Servo itself. This is used to render Servo results
     /// temporarily until they can be blitted into the egui scene.
     rendering_context: Rc<OffscreenRenderingContext>,
@@ -92,24 +95,26 @@ pub struct Window {
     /// When these are handled, they will optionally be used to trigger keybindings that
     /// are overridable by web content.
     pending_keyboard_events: RefCell<HashMap<InputEventId, KeyboardEvent>>,
-
     // Keep this as the last field of the struct to ensure that the rendering context is
     // dropped first.
     // (https://github.com/servo/servo/issues/36711)
     winit_window: winit::window::Window,
-
     /// The last title set on this window. We need to store this value here, as `winit::Window::title`
     /// is not supported very many platforms.
     last_title: RefCell<String>,
+    /// The current set of open dialogs.
+    dialogs: RefCell<HashMap<WebViewId, Vec<Dialog>>>,
+    /// A list of showing [`InputMethod`] interfaces.
+    visible_input_methods: RefCell<Vec<EmbedderControlId>>,
 }
 
 impl Window {
-    pub fn new(
+    pub(crate) fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
         event_loop_proxy: EventLoopProxy<AppEvent>,
         initial_url: ServoUrl,
-    ) -> Window {
+    ) -> Rc<Self> {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
         let inner_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
@@ -193,7 +198,7 @@ impl Window {
         ));
 
         debug!("Created window {:?}", winit_window.id());
-        Window {
+        Rc::new(Window {
             gui,
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
@@ -211,18 +216,29 @@ impl Window {
             pending_keyboard_events: Default::default(),
             rendering_context,
             last_title: RefCell::new(String::from(INITIAL_WINDOW_TITLE)),
-        }
+            dialogs: Default::default(),
+            visible_input_methods: Default::default(),
+        })
     }
 
-    fn handle_keyboard_input(&self, state: Rc<RunningAppState>, winit_event: KeyEvent) {
+    pub(crate) fn winit_window(&self) -> &winit::window::Window {
+        &self.winit_window
+    }
+
+    fn handle_keyboard_input(
+        &self,
+        state: Rc<RunningAppState>,
+        window: &ServoShellWindow,
+        winit_event: KeyEvent,
+    ) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
         let keyboard_event = keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
-        if self.handle_intercepted_key_bindings(state.clone(), &keyboard_event) {
+        if self.handle_intercepted_key_bindings(state.clone(), window, &keyboard_event) {
             return;
         }
 
         // Then we deliver character and keyboard events to the page in the focused webview.
-        let Some(webview) = state.focused_webview() else {
+        let Some(webview) = window.focused_webview() else {
             return;
         };
 
@@ -316,9 +332,10 @@ impl Window {
     fn handle_intercepted_key_bindings(
         &self,
         state: Rc<RunningAppState>,
+        window: &ServoShellWindow,
         key_event: &KeyboardEvent,
     ) -> bool {
-        let Some(focused_webview) = state.focused_webview() else {
+        let Some(focused_webview) = window.focused_webview() else {
             return false;
         };
 
@@ -326,7 +343,7 @@ impl Window {
         ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || focused_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
-                state.close_webview(focused_webview.id());
+                window.close_webview(focused_webview.id());
             })
             .shortcut(CMD_OR_CONTROL, 'P', || {
                 let rate = env::var("SAMPLING_RATE")
@@ -396,34 +413,35 @@ impl Window {
                 || focused_webview.exit_fullscreen(),
             )
             // Select the first 8 tabs via shortcuts
-            .shortcut(CMD_OR_CONTROL, '1', || state.focus_webview_by_index(0))
-            .shortcut(CMD_OR_CONTROL, '2', || state.focus_webview_by_index(1))
-            .shortcut(CMD_OR_CONTROL, '3', || state.focus_webview_by_index(2))
-            .shortcut(CMD_OR_CONTROL, '4', || state.focus_webview_by_index(3))
-            .shortcut(CMD_OR_CONTROL, '5', || state.focus_webview_by_index(4))
-            .shortcut(CMD_OR_CONTROL, '6', || state.focus_webview_by_index(5))
-            .shortcut(CMD_OR_CONTROL, '7', || state.focus_webview_by_index(6))
-            .shortcut(CMD_OR_CONTROL, '8', || state.focus_webview_by_index(7))
+            .shortcut(CMD_OR_CONTROL, '1', || window.focus_webview_by_index(0))
+            .shortcut(CMD_OR_CONTROL, '2', || window.focus_webview_by_index(1))
+            .shortcut(CMD_OR_CONTROL, '3', || window.focus_webview_by_index(2))
+            .shortcut(CMD_OR_CONTROL, '4', || window.focus_webview_by_index(3))
+            .shortcut(CMD_OR_CONTROL, '5', || window.focus_webview_by_index(4))
+            .shortcut(CMD_OR_CONTROL, '6', || window.focus_webview_by_index(5))
+            .shortcut(CMD_OR_CONTROL, '7', || window.focus_webview_by_index(6))
+            .shortcut(CMD_OR_CONTROL, '8', || window.focus_webview_by_index(7))
             // Cmd/Ctrl 9 is a bit different in that it focuses the last tab instead of the 9th
             .shortcut(CMD_OR_CONTROL, '9', || {
-                let len = state.webviews().len();
+                let len = window.webviews().len();
                 if len > 0 {
-                    state.focus_webview_by_index(len - 1)
+                    window.focus_webview_by_index(len - 1)
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::PageDown), || {
-                if let Some(index) = state.get_focused_webview_index() {
-                    state.focus_webview_by_index((index + 1) % state.webviews().len())
+                if let Some(index) = window.get_focused_webview_index() {
+                    window.focus_webview_by_index((index + 1) % window.webviews().len())
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::PageUp), || {
-                if let Some(index) = state.get_focused_webview_index() {
-                    let len = state.webviews().len();
-                    state.focus_webview_by_index((index + len - 1) % len);
+                if let Some(index) = window.get_focused_webview_index() {
+                    let len = window.webviews().len();
+                    window.focus_webview_by_index((index + len - 1) % len);
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
-                state.create_and_focus_toplevel_webview(
+                window.create_and_focus_toplevel_webview(
+                    state.clone(),
                     Url::parse("servo:newtab")
                         .expect("Should be able to unconditionally parse 'servo:newtab' as URL"),
                 );
@@ -450,7 +468,7 @@ impl Window {
     }
 
     /// Takes any events generated during `egui` updates and performs their actions.
-    fn handle_servoshell_ui_events(&self, state: Rc<RunningAppState>) {
+    fn handle_servoshell_ui_events(&self, state: Rc<RunningAppState>, window: &ServoShellWindow) {
         let mut gui = self.gui.borrow_mut();
         for event in gui.take_commands() {
             match event {
@@ -458,52 +476,122 @@ impl Window {
                     gui.update_location_dirty(false);
                     let Some(url) = location_bar_input_to_url(
                         &location.clone(),
-                        &state.servoshell_preferences().searchpage,
+                        &state.servoshell_preferences.searchpage,
                     ) else {
                         warn!("failed to parse location");
                         break;
                     };
-                    if let Some(focused_webview) = state.focused_webview() {
+                    if let Some(focused_webview) = window.focused_webview() {
                         focused_webview.load(url.into_url());
                     }
                 },
                 GuiCommand::Back => {
-                    if let Some(focused_webview) = state.focused_webview() {
+                    if let Some(focused_webview) = window.focused_webview() {
                         focused_webview.go_back(1);
                     }
                 },
                 GuiCommand::Forward => {
-                    if let Some(focused_webview) = state.focused_webview() {
+                    if let Some(focused_webview) = window.focused_webview() {
                         focused_webview.go_forward(1);
                     }
                 },
                 GuiCommand::Reload => {
                     gui.update_location_dirty(false);
-                    if let Some(focused_webview) = state.focused_webview() {
+                    if let Some(focused_webview) = window.focused_webview() {
                         focused_webview.reload();
                     }
                 },
                 GuiCommand::ReloadAll => {
                     gui.update_location_dirty(false);
-                    for (_, webview) in state.webviews() {
+                    for (_, webview) in window.webviews() {
                         webview.reload();
                     }
                 },
                 GuiCommand::NewWebView => {
                     gui.update_location_dirty(false);
                     let url = Url::parse("servo:newtab").expect("Should always be able to parse");
-                    state.create_and_focus_toplevel_webview(url);
+                    window.create_and_focus_toplevel_webview(state.clone(), url);
                 },
                 GuiCommand::CloseWebView(id) => {
                     gui.update_location_dirty(false);
-                    state.close_webview(id);
+                    window.close_webview(id);
                 },
             }
         }
     }
+
+    fn show_ime(&self, input_method: InputMethodControl) {
+        let position = input_method.position();
+        self.winit_window.set_ime_allowed(true);
+        self.winit_window.set_ime_cursor_area(
+            LogicalPosition::new(
+                position.min.x,
+                position.min.y + (self.toolbar_height().0 as i32),
+            ),
+            LogicalSize::new(
+                position.max.x - position.min.x,
+                position.max.y - position.min.y,
+            ),
+        );
+    }
+
+    pub(crate) fn for_each_active_dialog(
+        &self,
+        window: &ServoShellWindow,
+        callback: impl Fn(&mut Dialog) -> bool,
+    ) {
+        let Some(focused_webview) = window.focused_webview() else {
+            return;
+        };
+        let mut dialogs = self.dialogs.borrow_mut();
+        let Some(dialogs) = dialogs.get_mut(&focused_webview.id()) else {
+            return;
+        };
+        if dialogs.is_empty() {
+            return;
+        }
+
+        // If a dialog is open, clear any Servo cursor. TODO: This should restore the
+        // cursor too, when all dialogs close. In general, we need a better cursor
+        // management strategy.
+        self.set_cursor(Cursor::Default);
+
+        let length = dialogs.len();
+        dialogs.retain_mut(callback);
+        if length != dialogs.len() {
+            window.set_needs_repaint();
+        }
+    }
+
+    fn add_dialog(&self, webview_id: WebViewId, dialog: Dialog) {
+        self.dialogs
+            .borrow_mut()
+            .entry(webview_id)
+            .or_default()
+            .push(dialog)
+    }
+
+    fn remove_dialog(&self, webview_id: WebViewId, embedder_control_id: EmbedderControlId) {
+        let mut dialogs = self.dialogs.borrow_mut();
+        if let Some(dialogs) = dialogs.get_mut(&webview_id) {
+            dialogs.retain(|dialog| dialog.embedder_control_id() != Some(embedder_control_id));
+        }
+        dialogs.retain(|_, dialogs| !dialogs.is_empty());
+    }
+
+    fn has_active_dialog_for_webview(&self, webview_id: WebViewId) -> bool {
+        // First lazily clean up any empty dialog vectors.
+        let mut dialogs = self.dialogs.borrow_mut();
+        dialogs.retain(|_, dialogs| !dialogs.is_empty());
+        dialogs.contains_key(&webview_id)
+    }
+
+    fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
+        self.gui.borrow().toolbar_height()
+    }
 }
 
-impl WindowPortsMethods for Window {
+impl PlatformWindow for Window {
     fn screen_geometry(&self) -> ScreenGeometry {
         let hidpi_factor = self.hidpi_scale_factor();
         let toolbar_size = Size2D::new(0.0, (self.toolbar_height() * self.hidpi_scale_factor()).0);
@@ -536,12 +624,12 @@ impl WindowPortsMethods for Window {
             .unwrap_or_else(|| self.device_hidpi_scale_factor())
     }
 
-    fn rebuild_user_interface(&self, state: &RunningAppState) {
-        self.gui.borrow_mut().update(&self.winit_window, state);
+    fn rebuild_user_interface(&self, state: &RunningAppState, window: &ServoShellWindow) {
+        self.gui.borrow_mut().update(state, window, self);
     }
 
-    fn update_user_interface_state(&self, state: &RunningAppState) -> bool {
-        let title = state
+    fn update_user_interface_state(&self, _: &RunningAppState, window: &ServoShellWindow) -> bool {
+        let title = window
             .focused_webview()
             .and_then(|webview| {
                 webview
@@ -556,15 +644,21 @@ impl WindowPortsMethods for Window {
             *self.last_title.borrow_mut() = title;
         }
 
-        self.gui.borrow_mut().update_webview_data(state)
+        self.gui.borrow_mut().update_webview_data(window)
     }
 
-    fn handle_winit_window_event(&self, state: Rc<RunningAppState>, event: WindowEvent) {
+    fn handle_winit_window_event(
+        &self,
+        state: Rc<RunningAppState>,
+        window: &ServoShellWindow,
+        event: WindowEvent,
+    ) {
         if event == WindowEvent::RedrawRequested {
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
+            let _ = self.rendering_context().make_current();
             let mut gui = self.gui.borrow_mut();
-            gui.update(&self.winit_window, &state);
+            gui.update(&state, window, self);
             gui.paint(&self.winit_window);
         }
 
@@ -587,20 +681,20 @@ impl WindowPortsMethods for Window {
                     .borrow()
                     .set_zoom_factor(effective_egui_zoom_factor);
 
-                state.hidpi_scale_factor_changed();
+                window.hidpi_scale_factor_changed();
 
                 // Request a winit redraw event, so we can recomposite, update and paint
                 // the GUI, and present the new frame.
                 self.winit_window.request_redraw();
             },
             ref event => {
-                let response =
-                    self.gui
-                        .borrow_mut()
-                        .on_window_event(&self.winit_window, &state, event);
+                let response = self
+                    .gui
+                    .borrow_mut()
+                    .on_window_event(&self.winit_window, event);
 
                 if let WindowEvent::Resized(_) = event {
-                    self.rebuild_user_interface(&state);
+                    self.rebuild_user_interface(&state, window);
                 }
 
                 if response.repaint && *event != WindowEvent::RedrawRequested {
@@ -611,6 +705,19 @@ impl WindowPortsMethods for Window {
                 // Note that servo doesn’t yet support tabbing through links and inputs
                 consumed = response.consumed;
             },
+        }
+
+        if matches!(
+            event,
+            WindowEvent::CursorMoved { .. } |
+                WindowEvent::MouseInput { .. } |
+                WindowEvent::MouseWheel { .. } |
+                WindowEvent::KeyboardInput { .. }
+        ) && window
+            .focused_webview()
+            .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
+        {
+            consumed = true;
         }
 
         if !consumed {
@@ -625,10 +732,10 @@ impl WindowPortsMethods for Window {
                 }
             }
 
-            if let Some(webview) = state.focused_webview() {
+            if let Some(webview) = window.focused_webview() {
                 match event {
                     WindowEvent::KeyboardInput { event, .. } => {
-                        self.handle_keyboard_input(state.clone(), event)
+                        self.handle_keyboard_input(state.clone(), window, event)
                     },
                     WindowEvent::ModifiersChanged(modifiers) => {
                         self.modifiers_state.set(modifiers.state())
@@ -732,10 +839,15 @@ impl WindowPortsMethods for Window {
         }
 
         // Consume and handle any events from the servoshell UI.
-        self.handle_servoshell_ui_events(state.clone());
+        self.handle_servoshell_ui_events(state.clone(), window);
     }
 
-    fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) {
+    fn handle_winit_app_event(
+        &self,
+        state: Rc<RunningAppState>,
+        window: &ServoShellWindow,
+        app_event: AppEvent,
+    ) {
         if let AppEvent::Accessibility(ref event) = app_event {
             if self
                 .gui
@@ -747,11 +859,20 @@ impl WindowPortsMethods for Window {
         }
 
         // Consume and handle any events from user interface interaction.
-        self.handle_servoshell_ui_events(state.clone());
+        self.handle_servoshell_ui_events(state.clone(), window);
     }
 
-    fn request_repaint(&self, _: &RunningAppState) {
+    fn request_repaint(&self, window: &ServoShellWindow) {
         self.winit_window.request_redraw();
+
+        // FIXME: This is a workaround for dialogs, which do not seem to animate, unless we
+        // constantly repaint the egui scene.
+        if window
+            .focused_webview()
+            .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
+        {
+            window.set_needs_repaint();
+        }
     }
 
     fn request_resize(&self, _: &WebView, new_outer_size: DeviceIntSize) -> Option<DeviceIntSize> {
@@ -875,8 +996,9 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_cursor_visible(true);
     }
 
-    fn id(&self) -> winit::window::WindowId {
-        self.winit_window.id()
+    fn id(&self) -> ServoShellWindowId {
+        let id: u64 = self.winit_window.id().into();
+        id.into()
     }
 
     #[cfg(feature = "webxr")]
@@ -903,31 +1025,8 @@ impl WindowPortsMethods for Window {
         Rc::new(XRWindow { winit_window, pose })
     }
 
-    fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
-        self.gui.borrow().toolbar_height()
-    }
-
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
-    }
-
-    fn show_ime(&self, input_method: InputMethodControl) {
-        let position = input_method.position();
-        self.winit_window.set_ime_allowed(true);
-        self.winit_window.set_ime_cursor_area(
-            LogicalPosition::new(
-                position.min.x,
-                position.min.y + (self.toolbar_height().0 as i32),
-            ),
-            LogicalSize::new(
-                position.max.x - position.min.x,
-                position.max.y - position.min.y,
-            ),
-        );
-    }
-
-    fn hide_ime(&self) {
-        self.winit_window.set_ime_allowed(false);
     }
 
     fn theme(&self) -> servo::Theme {
@@ -968,6 +1067,96 @@ impl WindowPortsMethods for Window {
             .shortcut(CMD_OR_CONTROL, '0', || {
                 webview.set_page_zoom(1.0);
             });
+    }
+
+    fn focused(&self) -> bool {
+        self.winit_window.has_focus()
+    }
+
+    fn show_embedder_control(&self, webview_id: WebViewId, embedder_control: EmbedderControl) {
+        let control_id = embedder_control.id();
+        match embedder_control {
+            EmbedderControl::SelectElement(prompt) => {
+                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+                // But if the toolbar height changes while the dialog is open then the position won't be updated
+                let offset = self.gui.borrow().toolbar_height();
+                self.add_dialog(
+                    webview_id,
+                    Dialog::new_select_element_dialog(prompt, offset),
+                );
+            },
+            EmbedderControl::ColorPicker(color_picker) => {
+                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+                // But if the toolbar height changes while the dialog is open then the position won't be updated
+                let offset = self.gui.borrow().toolbar_height();
+                self.add_dialog(
+                    webview_id,
+                    Dialog::new_color_picker_dialog(color_picker, offset),
+                );
+            },
+            EmbedderControl::InputMethod(input_method_control) => {
+                self.visible_input_methods.borrow_mut().push(control_id);
+                self.show_ime(input_method_control);
+            },
+            EmbedderControl::FilePicker(file_picker) => {
+                self.add_dialog(webview_id, Dialog::new_file_dialog(file_picker));
+            },
+            EmbedderControl::SimpleDialog(simple_dialog) => {
+                self.add_dialog(webview_id, Dialog::new_simple_dialog(simple_dialog));
+            },
+            EmbedderControl::ContextMenu(prompt) => {
+                let offset = self.gui.borrow().toolbar_height();
+                self.add_dialog(webview_id, Dialog::new_context_menu(prompt, offset));
+            },
+        }
+    }
+
+    fn hide_embedder_control(&self, webview_id: WebViewId, embedder_control_id: EmbedderControlId) {
+        {
+            let mut visible_input_methods = self.visible_input_methods.borrow_mut();
+            if let Some(index) = visible_input_methods
+                .iter()
+                .position(|visible_id| *visible_id == embedder_control_id)
+            {
+                visible_input_methods.remove(index);
+                self.winit_window.set_ime_allowed(false);
+            }
+        }
+        self.remove_dialog(webview_id, embedder_control_id);
+    }
+
+    fn show_bluetooth_device_dialog(
+        &self,
+        webview_id: WebViewId,
+        devices: Vec<String>,
+        response_sender: GenericSender<Option<String>>,
+    ) {
+        self.add_dialog(
+            webview_id,
+            Dialog::new_device_selection_dialog(devices, response_sender),
+        );
+    }
+
+    fn show_permission_dialog(&self, webview_id: WebViewId, permission_request: PermissionRequest) {
+        self.add_dialog(
+            webview_id,
+            Dialog::new_permission_request_dialog(permission_request),
+        );
+    }
+
+    fn show_http_authentication_dialog(
+        &self,
+        webview_id: WebViewId,
+        authentication_request: AuthenticationRequest,
+    ) {
+        self.add_dialog(
+            webview_id,
+            Dialog::new_authentication_dialog(authentication_request),
+        );
+    }
+
+    fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
+        self.dialogs.borrow_mut().remove(&webview_id);
     }
 }
 

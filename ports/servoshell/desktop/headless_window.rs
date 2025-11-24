@@ -10,8 +10,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use euclid::num::Zero;
-use euclid::{Length, Point2D, Scale, Size2D};
+use euclid::{Point2D, Scale, Size2D};
 use servo::servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
@@ -19,9 +18,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, 
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView};
 use winit::dpi::PhysicalSize;
 
-use super::app_state::RunningAppState;
-use crate::desktop::window_trait::{MIN_WINDOW_INNER_SIZE, WindowPortsMethods};
 use crate::prefs::ServoShellPreferences;
+use crate::window::{MIN_WINDOW_INNER_SIZE, PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
 pub struct Window {
     fullscreen: Cell<bool>,
@@ -34,8 +32,7 @@ pub struct Window {
 }
 
 impl Window {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<Self> {
         let size = servoshell_preferences.initial_window_size;
 
         let device_pixel_ratio_override = servoshell_preferences.device_pixel_ratio_override;
@@ -67,9 +64,9 @@ impl Window {
     }
 }
 
-impl WindowPortsMethods for Window {
-    fn id(&self) -> winit::window::WindowId {
-        winit::window::WindowId::dummy()
+impl PlatformWindow for Window {
+    fn id(&self) -> ServoShellWindowId {
+        0.into()
     }
 
     fn screen_geometry(&self) -> servo::ScreenGeometry {
@@ -87,8 +84,8 @@ impl WindowPortsMethods for Window {
         self.window_position.set(point);
     }
 
-    fn request_repaint(&self, state: &RunningAppState) {
-        state.repaint_servo_if_necessary();
+    fn request_repaint(&self, window: &ServoShellWindow) {
+        window.repaint_webviews();
     }
 
     fn request_resize(&self, webview: &WebView, new_size: DeviceIntSize) -> Option<DeviceIntSize> {
@@ -138,10 +135,6 @@ impl WindowPortsMethods for Window {
         unimplemented!()
     }
 
-    fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
-        Length::zero()
-    }
-
     fn window_rect(&self) -> DeviceIndependentIntRect {
         convert_rect_to_css_pixel(
             DeviceIntRect::from_origin_and_size(self.window_position.get(), self.inner_size.get()),
@@ -164,5 +157,9 @@ impl WindowPortsMethods for Window {
             self.screen_size.width as u32,
             self.screen_size.height as u32,
         ));
+    }
+
+    fn focused(&self) -> bool {
+        true
     }
 }

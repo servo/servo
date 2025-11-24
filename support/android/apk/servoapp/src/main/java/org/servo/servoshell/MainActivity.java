@@ -232,19 +232,6 @@ public class MainActivity extends Activity implements Servo.Client {
         mCanGoBack = canGoBack;
     }
 
-    @Override
-    public boolean onAllowNavigation(String url) {
-        if (url.startsWith("market://")) {
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                return false;
-            } catch (Exception e) {
-                Log.e("onAllowNavigation", e.toString());
-            }
-        }
-        return true;
-    }
-
     public void onRedrawing(boolean redrawing) {
         if (redrawing) {
             mIdleText.setText("LOOP");

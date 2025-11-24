@@ -4,11 +4,9 @@
 
 #[cfg(target_os = "android")]
 mod android;
-
+mod app;
+pub(crate) mod gamepad;
+mod host_trait;
+mod log;
 #[cfg(target_env = "ohos")]
 mod ohos;
-
-mod log;
-
-mod app_state;
-mod host_trait;

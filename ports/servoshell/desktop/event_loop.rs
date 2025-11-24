@@ -10,6 +10,7 @@ use std::time;
 use log::warn;
 use servo::EventLoopWaker;
 use winit::event_loop::{EventLoop, EventLoop as WinitEventLoop, EventLoopProxy};
+use winit::window::WindowId;
 
 use super::app::App;
 
@@ -23,6 +24,15 @@ pub enum AppEvent {
 impl From<egui_winit::accesskit_winit::Event> for AppEvent {
     fn from(event: egui_winit::accesskit_winit::Event) -> AppEvent {
         AppEvent::Accessibility(event)
+    }
+}
+
+impl AppEvent {
+    pub(crate) fn window_id(&self) -> Option<WindowId> {
+        match self {
+            AppEvent::Waker => None,
+            AppEvent::Accessibility(event) => Some(event.window_id),
+        }
     }
 }
 

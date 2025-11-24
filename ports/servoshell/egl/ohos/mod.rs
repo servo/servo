@@ -3,31 +3,44 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #![allow(non_snake_case)]
 
+mod resources;
+
 use std::cell::RefCell;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
+use std::path::PathBuf;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
-use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
+use std::{fs, thread};
 
+use dpi::PhysicalSize;
+use euclid::{Point2D, Rect, Size2D};
 use keyboard_types::{Key, NamedKey};
 use log::{LevelFilter, debug, error, info, trace, warn};
 use napi_derive_ohos::napi;
 use napi_ohos::bindgen_prelude::{Function, JsObjectValue, Object};
 use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_ohos::{Env, JsString, JsValue};
+use ohos_abilitykit_sys::runtime::application_context;
 use ohos_ime::{
     AttachOptions, CreateImeProxyError, CreateTextEditorProxyError, Ime, ImeProxy,
     RawTextEditorProxy,
 };
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
+use ohos_window_manager_sys::display_manager;
+use raw_window_handle::{
+    DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
+    WindowHandle,
+};
 use servo::style::Zero;
+use servo::webrender_api::units::DevicePixel;
 use servo::{
-    AlertResponse, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, PermissionRequest, SimpleDialog, WebView, WebViewId,
+    self, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
+    MediaSessionPlaybackState, WebViewId, WindowRenderingContext,
 };
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -39,12 +52,213 @@ use xcomponent_sys::{
     OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
 };
 
-use super::app_state::{Coordinates, RunningAppState};
+use super::app::{App, AppInitOptions, VsyncRefreshDriver};
 use super::host_trait::HostTrait;
-use crate::running_app_state::RunningAppStateTrait;
+use crate::egl::ohos::resources::ResourceReaderInstance;
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
-mod resources;
-mod simpleservo;
+/// Queue length for the thread-safe function to submit URL updates to ArkTS
+const UPDATE_URL_QUEUE_SIZE: usize = 1;
+/// Queue length for the thread-safe function to submit prompts to ArkTS
+///
+/// We can submit alerts in a non-blocking fashion, but alerts will always come from the
+/// embedder thread. Specifying 4 as a max queue size seems reasonable for now, and can
+/// be adjusted later.
+const PROMPT_QUEUE_SIZE: usize = 4;
+// Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
+// if the activity gets suspended.
+static SET_URL_BAR_CB: OnceLock<
+    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>,
+> = OnceLock::new();
+static TERMINATE_CALLBACK: OnceLock<
+    ThreadsafeFunction<(), (), (), napi_ohos::Status, false, false, 1>,
+> = OnceLock::new();
+static PROMPT_TOAST: OnceLock<
+    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
+> = OnceLock::new();
+
+/// Currently we do not support different contexts for different windows but we might want to change tabs.
+/// For this we store the window context for every tab and change the compositor by hand.
+static NATIVE_WEBVIEWS: Mutex<Vec<NativeWebViewComponents>> = Mutex::new(Vec::new());
+
+static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
+
+pub(crate) fn get_raw_window_handle(
+    xcomponent: *mut OH_NativeXComponent,
+    window: *mut c_void,
+) -> (RawWindowHandle, Rect<i32, DevicePixel>) {
+    let window_size = unsafe { get_xcomponent_size(xcomponent, window) }
+        .expect("Could not get native window size");
+    let window_origin = unsafe { get_xcomponent_offset(xcomponent, window) }
+        .expect("Could not get native window offset");
+    let viewport_rect = Rect::new(window_origin, window_size);
+    let native_window = NonNull::new(window).expect("Could not get native window");
+    let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
+    (window_handle, viewport_rect)
+}
+
+#[derive(Debug)]
+struct NativeValues {
+    cache_dir: String,
+    display_density: f32,
+    device_type: ohos_deviceinfo::OhosDeviceType,
+    os_full_name: String,
+}
+
+/// Gets the resource and cache directory from the native c methods.
+fn get_native_values() -> NativeValues {
+    let cache_dir = {
+        const BUFFER_SIZE: i32 = 100;
+        let mut buffer: Vec<u8> = Vec::with_capacity(BUFFER_SIZE as usize);
+        let mut write_length = 0;
+        unsafe {
+            application_context::OH_AbilityRuntime_ApplicationContextGetCacheDir(
+                buffer.as_mut_ptr().cast(),
+                BUFFER_SIZE,
+                &mut write_length,
+            )
+            .expect("Call to cache dir failed");
+            buffer.set_len(write_length as usize);
+            String::from_utf8(buffer).expect("UTF-8")
+        }
+    };
+    let display_density = unsafe {
+        let mut density: f32 = 0_f32;
+        display_manager::OH_NativeDisplayManager_GetDefaultDisplayDensityPixels(&mut density)
+            .expect("Could not get displaydensity");
+        density
+    };
+
+    NativeValues {
+        cache_dir,
+        display_density,
+        device_type: ohos_deviceinfo::get_device_type(),
+        os_full_name: String::from(ohos_deviceinfo::get_os_full_name().unwrap_or("Undefined")),
+    }
+}
+
+/// Initialize the servoshell [`App`]. At that point, we need a valid GL context. In the
+/// future, this will be done in multiple steps.
+fn init_app(
+    options: InitOpts,
+    native_window: *mut c_void,
+    xcomponent: *mut OH_NativeXComponent,
+    event_loop_waker: Box<dyn EventLoopWaker>,
+    host: Box<dyn HostTrait>,
+) -> Result<Rc<App>, &'static str> {
+    info!("Entered servoshell init function");
+    crate::init_crypto();
+
+    let native_values = get_native_values();
+    info!("Device Type {:?}", native_values.device_type);
+    info!("OS Full Name {:?}", native_values.os_full_name);
+    info!("ResourceDir {:?}", options.resource_dir);
+
+    let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
+    debug!("Resources are located at: {:?}", resource_dir);
+    servo::resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
+
+    // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
+    // Then again, this code could and maybe even should be disabled in production builds.
+    let mut args = vec!["servoshell".to_string()];
+    args.extend(
+        options
+            .commandline_args
+            .split("\u{1f}")
+            .map(|arg| arg.to_string()),
+    );
+    debug!("Servo commandline args: {:?}", args);
+
+    let config_dir = PathBuf::from(&native_values.cache_dir).join("servo");
+    debug!("Configs are located at: {:?}", config_dir);
+    let _ = crate::prefs::DEFAULT_CONFIG_DIR
+        .set(config_dir.clone())
+        .inspect_err(|e| {
+            warn!(
+                "Default Prefs Dir already previously filled. Got error {}",
+                e.display()
+            );
+        });
+
+    // Ensure cache dir exists before copy `prefs.json`
+    let _ = crate::prefs::default_config_dir().inspect(|path| {
+        if !path.exists() {
+            fs::create_dir_all(path).unwrap_or_else(|e| {
+                log::error!("Failed to create config directory at {:?}: {:?}", path, e)
+            })
+        }
+    });
+
+    // Try copy `prefs.json` from {this.context.resource_prefsDir}/servo/
+    // to `config_dir` if none exist
+    let source_prefs = resource_dir.join("prefs.json");
+    let target_prefs = config_dir.join("prefs.json");
+    if !target_prefs.exists() && source_prefs.exists() {
+        debug!("Copy {:?} to {:?}", source_prefs, target_prefs);
+        fs::copy(&source_prefs, &target_prefs).unwrap_or_else(|e| {
+            debug!("Copy failed! {:?}", e);
+            0
+        });
+    }
+
+    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+        ArgumentParsingResult::ContentProcess(..) => {
+            unreachable!("OHOS does not have support for multiprocess yet.")
+        },
+        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+            (opts, preferences, servoshell_preferences)
+        },
+        ArgumentParsingResult::Exit => std::process::exit(0),
+        ArgumentParsingResult::ErrorParsing => std::process::exit(1),
+    };
+
+    if native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone {
+        preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
+    }
+
+    if servoshell_preferences.log_to_file {
+        let mut servo_log = PathBuf::from(&native_values.cache_dir);
+        servo_log.push("servo.log");
+        if crate::egl::ohos::LOGGER.set_file_writer(servo_log).is_err() {
+            warn!("Could not set log file");
+        }
+    }
+
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+    #[cfg(target_env = "ohos")]
+    crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
+
+    let (window_handle, viewport_rect) = get_raw_window_handle(xcomponent, native_window);
+    let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
+    let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
+    let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
+
+    let viewport_size = viewport_rect.size;
+    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
+    let rendering_context = Rc::new(
+        WindowRenderingContext::new_with_refresh_driver(
+            display_handle,
+            window_handle,
+            PhysicalSize::new(viewport_size.width as u32, viewport_size.height as u32),
+            refresh_driver.clone(),
+        )
+        .expect("Could not create RenderingContext"),
+    );
+    Ok(App::new(AppInitOptions {
+        host,
+        event_loop_waker,
+        viewport_rect,
+        hidpi_scale_factor: native_values.display_density as f32,
+        rendering_context,
+        refresh_driver,
+        initial_url: Some(options.url),
+        opts,
+        preferences,
+        servoshell_preferences,
+        #[cfg(feature = "webxr")]
+        xr_discovery: None,
+    }))
+}
 
 #[napi(object)]
 #[derive(Debug)]
@@ -114,26 +328,6 @@ pub(super) enum ServoAction {
     NewWebview(XComponentWrapper, WindowWrapper),
 }
 
-/// Queue length for the thread-safe function to submit URL updates to ArkTS
-const UPDATE_URL_QUEUE_SIZE: usize = 1;
-/// Queue length for the thread-safe function to submit prompts to ArkTS
-///
-/// We can submit alerts in a non-blocking fashion, but alerts will always come from the
-/// embedder thread. Specifying 4 as a max queue size seems reasonable for now, and can
-/// be adjusted later.
-const PROMPT_QUEUE_SIZE: usize = 4;
-// Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
-// if the activity gets suspended.
-static SET_URL_BAR_CB: OnceLock<
-    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>,
-> = OnceLock::new();
-static TERMINATE_CALLBACK: OnceLock<
-    ThreadsafeFunction<(), (), (), napi_ohos::Status, false, false, 1>,
-> = OnceLock::new();
-static PROMPT_TOAST: OnceLock<
-    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
-> = OnceLock::new();
-
 /// Storing webview related items
 struct NativeWebViewComponents {
     /// The id of the related webview
@@ -144,18 +338,8 @@ struct NativeWebViewComponents {
     window: WindowWrapper,
 }
 
-/// Currently we do not support different contexts for different windows but we might want to change tabs.
-/// For this we store the window context for every tab and change the compositor by hand.
-static NATIVE_WEBVIEWS: Mutex<Vec<NativeWebViewComponents>> = Mutex::new(Vec::new());
-
 impl ServoAction {
-    fn dispatch_touch_event(
-        servo: &RunningAppState,
-        kind: TouchEventType,
-        x: f32,
-        y: f32,
-        pointer_id: i32,
-    ) {
+    fn dispatch_touch_event(servo: &App, kind: TouchEventType, x: f32, y: f32, pointer_id: i32) {
         match kind {
             TouchEventType::Down => servo.touch_down(x, y, pointer_id),
             TouchEventType::Up => servo.touch_up(x, y, pointer_id),
@@ -166,12 +350,11 @@ impl ServoAction {
     }
 
     // todo: consider making this take `self`, so we don't need to needlessly clone.
-    fn do_action(&self, servo: &Rc<RunningAppState>) {
+    fn do_action(&self, servo: &Rc<App>) {
         use ServoAction::*;
         match self {
             WakeUp => {
-                servo.perform_updates();
-                servo.present_if_needed();
+                servo.spin_event_loop();
             },
             LoadUrl(url) => servo.load_uri(url.as_str()),
             GoBack => servo.go_back(),
@@ -206,23 +389,26 @@ impl ServoAction {
             },
             Vsync => {
                 servo.notify_vsync();
-                servo.present_if_needed();
             },
-            Resize { width, height } => servo.resize(Coordinates::new(0, 0, *width, *height)),
+            Resize { width, height } => {
+                servo.resize(Rect::new(Point2D::origin(), Size2D::new(*width, *height)))
+            },
             FocusWebview(arkts_id) => {
                 if let Some(native_webview_components) =
                     NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
                 {
-                    if servo.active_webview_or_panic().id() != native_webview_components.id {
+                    let webview = servo
+                        .focused_or_newest_webview()
+                        .expect("Should always start with at least one WebView");
+                    if webview.id() != native_webview_components.id {
                         servo.focus_webview(native_webview_components.id);
                         servo.pause_compositor();
-                        let (window_handle, _, coordinates) = simpleservo::get_raw_window_handle(
+                        let (window_handle, viewport_rect) = get_raw_window_handle(
                             native_webview_components.xcomponent.0,
                             native_webview_components.window.0,
                         );
-                        servo.resume_compositor(window_handle, coordinates);
-                        let url = servo
-                            .active_webview_or_panic()
+                        servo.resume_compositor(window_handle, viewport_rect);
+                        let url = webview
                             .url()
                             .map(|u| u.to_string())
                             .unwrap_or(String::from("about:blank"));
@@ -236,12 +422,11 @@ impl ServoAction {
             },
             NewWebview(xcomponent, window) => {
                 servo.pause_compositor();
-                servo.create_and_focus_toplevel_webview("about:blank".parse().unwrap());
-                let (window_handle, _, coordinates) =
-                    simpleservo::get_raw_window_handle(xcomponent.0, window.0);
+                let webview =
+                    servo.create_and_focus_toplevel_webview("about:blank".parse().unwrap());
+                let (window_handle, viewport_rect) = get_raw_window_handle(xcomponent.0, window.0);
 
-                servo.resume_compositor(window_handle, coordinates);
-                let webview = servo.newest_webview().expect("There should always be one");
+                servo.resume_compositor(window_handle, viewport_rect);
                 let id = webview.id();
                 NATIVE_WEBVIEWS
                     .lock()
@@ -286,8 +471,6 @@ unsafe extern "C" fn on_vsync_cb(
     }
 }
 
-static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
-
 #[unsafe(no_mangle)]
 extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("on_surface_created_cb");
@@ -320,14 +503,17 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             } else {
                 panic!("Servos GL thread received another event before it was initialized")
             };
-            let servo = simpleservo::init(*init_opts, window.0, xc.0, wakeup, callbacks)
+            let servo = init_app(*init_opts, window.0, xc.0, wakeup, callbacks)
                 .expect("Servo initialization failed");
-
+            let id = servo
+                .focused_or_newest_webview()
+                .expect("Should always start with at least one WebView")
+                .id();
             NATIVE_WEBVIEWS
                 .lock()
                 .unwrap()
                 .push(NativeWebViewComponents {
-                    id: servo.active_webview_or_panic().id(),
+                    id,
                     xcomponent: xc,
                     window,
                 });
@@ -347,8 +533,6 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             while let Ok(action) = rx.recv() {
                 trace!("Wakeup message received!");
                 action.do_action(&servo);
-                // Also handle any pending WebDriver messages
-                servo.handle_webdriver_messages();
             }
 
             info!("Sender disconnected - Terminating main surface thread");
@@ -369,7 +553,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
 unsafe fn get_xcomponent_offset(
     xcomponent: *mut OH_NativeXComponent,
     native_window: *mut c_void,
-) -> Result<(i32, i32), i32> {
+) -> Result<Point2D<i32, DevicePixel>, i32> {
     let mut x: f64 = 0.0;
     let mut y: f64 = 0.0;
 
@@ -380,11 +564,9 @@ unsafe fn get_xcomponent_offset(
         error!("OH_NativeXComponent_GetXComponentOffset failed with {result}");
         return Err(result);
     }
-
-    Ok((
-        (x.round() as i64).try_into().expect("X offset too large"),
-        (y.round() as i64).try_into().expect("Y offset too large"),
-    ))
+    let x = (x.round() as i64).try_into().expect("X offset too large");
+    let y = (y.round() as i64).try_into().expect("Y offset too large");
+    Ok(Point2D::new(x, y))
 }
 
 /// Returns the size of the surface
@@ -396,7 +578,7 @@ unsafe fn get_xcomponent_offset(
 unsafe fn get_xcomponent_size(
     xcomponent: *mut OH_NativeXComponent,
     native_window: *mut c_void,
-) -> Result<euclid::default::Size2D<i32>, i32> {
+) -> Result<Size2D<i32, DevicePixel>, i32> {
     let mut width: u64 = 0;
     let mut height: u64 = 0;
     let result = unsafe {
@@ -414,7 +596,7 @@ unsafe fn get_xcomponent_size(
 
     let width: i32 = width.try_into().expect("Width too large");
     let height: i32 = height.try_into().expect("Height too large");
-    Ok(euclid::Size2D::new(width, height))
+    Ok(Size2D::new(width, height))
 }
 
 extern "C" fn on_surface_changed_cb(
@@ -652,7 +834,7 @@ fn debug_jsobject(obj: &Object, obj_name: &str) -> napi_ohos::Result<()> {
 #[napi(module_exports)]
 fn init(exports: Object, env: Env) -> napi_ohos::Result<()> {
     initialize_logging_once();
-    info!("simpleservo init function called");
+    info!("servoshell init function called");
     if let Ok(xcomponent) = exports.get_named_property::<Object>("__NATIVE_XCOMPONENT_OBJ__") {
         register_xcomponent_callbacks(&env, &xcomponent)?;
     }
@@ -836,19 +1018,6 @@ impl HostCallbacks {
         }
     }
 
-    pub fn show_alert(&self, message: String) {
-        match PROMPT_TOAST.get() {
-            Some(prompt_fn) => {
-                let status = prompt_fn.call(message, ThreadsafeFunctionCallMode::NonBlocking);
-                if status != napi_ohos::Status::Ok {
-                    // Queue could be full.
-                    error!("show_alert failed with {status}");
-                }
-            },
-            None => error!("PROMPT_TOAST not set. Dropping message {message}"),
-        }
-    }
-
     fn try_create_ime_proxy(
         &self,
         input_type: InputMethodType,
@@ -891,51 +1060,27 @@ impl Ime for ServoIme {
 
 #[allow(unused)]
 impl HostTrait for HostCallbacks {
-    fn request_permission(&self, _webview: WebView, request: PermissionRequest) {
-        warn!("Permissions prompt not implemented. Denied.");
-        request.deny();
-    }
-
-    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog) {
-        let _ = match dialog {
-            SimpleDialog::Alert {
-                message,
-                response_sender,
-                ..
-            } => {
-                debug!("SimpleDialog::Alert");
-
-                // forward it to tracing
-                #[cfg(feature = "tracing-hitrace")]
-                {
-                    if message.contains("TESTCASE_PROFILING") {
-                        if let Some((tag, number)) = message.rsplit_once(":") {
-                            hitrace::trace_metric_str(tag, number.parse::<i64>().unwrap_or(-1));
-                        }
-                    }
+    fn show_alert(&self, message: String) {
+        // forward it to tracing
+        #[cfg(feature = "tracing-hitrace")]
+        {
+            if message.contains("TESTCASE_PROFILING") {
+                if let Some((tag, number)) = message.rsplit_once(":") {
+                    hitrace::trace_metric_str(tag, number.parse::<i64>().unwrap_or(-1));
                 }
+            }
+        }
 
-                // TODO: Indicate that this message is untrusted, and what origin it came from.
-                self.show_alert(message);
-                response_sender.send(AlertResponse::Ok)
+        match PROMPT_TOAST.get() {
+            Some(prompt_fn) => {
+                let status = prompt_fn.call(message, ThreadsafeFunctionCallMode::NonBlocking);
+                if status != napi_ohos::Status::Ok {
+                    // Queue could be full.
+                    error!("show_alert failed with {status}");
+                }
             },
-            SimpleDialog::Confirm {
-                message,
-                response_sender,
-                ..
-            } => {
-                warn!("Confirm dialog not implemented. Cancelled. {}", message);
-                response_sender.send(Default::default())
-            },
-            SimpleDialog::Prompt {
-                message,
-                response_sender,
-                ..
-            } => {
-                warn!("Prompt dialog not implemented. Cancelled. {}", message);
-                response_sender.send(Default::default())
-            },
-        };
+            None => error!("PROMPT_TOAST not set. Dropping message {message}"),
+        }
     }
 
     fn notify_load_status_changed(&self, load_status: LoadStatus) {
@@ -959,10 +1104,6 @@ impl HostTrait for HostCallbacks {
 
     fn on_title_changed(&self, title: Option<String>) {
         warn!("on_title_changed not implemented")
-    }
-
-    fn on_allow_navigation(&self, url: String) -> bool {
-        true
     }
 
     fn on_url_changed(&self, url: String) {

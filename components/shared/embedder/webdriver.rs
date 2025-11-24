@@ -138,7 +138,7 @@ pub enum WebDriverCommandMsg {
     HandleUserPrompt(
         WebViewId,
         WebDriverUserPromptAction,
-        IpcSender<Result<Option<String>, ()>>,
+        IpcSender<Result<String, ()>>,
     ),
     GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),

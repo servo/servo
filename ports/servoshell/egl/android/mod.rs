@@ -5,31 +5,52 @@
 #![allow(non_snake_case)]
 
 mod resources;
-mod simpleservo;
 
+use std::cell::RefCell;
+use std::mem;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr::NonNull;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
+use dpi::PhysicalSize;
+use euclid::{Point2D, Rect, Size2D};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
 use keyboard_types::{Key, NamedKey};
 use log::{debug, error, info, warn};
 use raw_window_handle::{
-    AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
+    AndroidDisplayHandle, AndroidNdkWindowHandle, DisplayHandle, RawDisplayHandle, RawWindowHandle,
+    WindowHandle,
 };
+use resources::ResourceReaderInstance;
+use servo::webrender_api::units::DevicePixel;
 use servo::{
-    AlertResponse, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
-    MouseButton, PermissionRequest, PrefValue, SimpleDialog, WebView,
+    self, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType, MouseButton,
+    PrefValue,
 };
-use simpleservo::{APP, InitOptions, MediaSessionPlaybackState};
+pub use servo::{MediaSessionPlaybackState, WindowRenderingContext};
 
-use super::app_state::{Coordinates, RunningAppState};
+use super::app::{App, AppInitOptions, VsyncRefreshDriver};
 use super::host_trait::HostTrait;
-use crate::prefs::EXPERIMENTAL_PREFS;
-use crate::running_app_state::RunningAppStateTrait;
+use crate::prefs::{ArgumentParsingResult, EXPERIMENTAL_PREFS, parse_command_line_arguments};
+
+thread_local! {
+    pub static APP: RefCell<Option<Rc<App>>> = const { RefCell::new(None) };
+}
+
+struct InitOptions {
+    args: Vec<String>,
+    url: Option<String>,
+    viewport_rect: Rect<i32, DevicePixel>,
+    density: f32,
+    #[cfg(feature = "webxr")]
+    xr_discovery: Option<servo::webxr::Discovery>,
+    window_handle: RawWindowHandle,
+    display_handle: RawDisplayHandle,
+}
 
 struct HostCallbacks {
     callbacks: GlobalRef,
@@ -51,10 +72,10 @@ pub extern "C" fn android_main() {
 
 fn call<F>(env: &mut JNIEnv, f: F)
 where
-    F: FnOnce(&RunningAppState),
+    F: FnOnce(&App),
 {
     APP.with(|app| match app.borrow().as_ref() {
-        Some(ref app_state) => (f)(app_state),
+        Some(app) => (f)(app),
         None => throw(env, "Servo not available in this thread"),
     });
 }
@@ -64,11 +85,13 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
-    let v = crate::VERSION;
-    env.new_string(&v)
+    let version = crate::VERSION;
+    env.new_string(version)
         .unwrap_or_else(|_str| JObject::null().into())
 }
 
+/// Initialize Servo. At that point, we need a valid GL context. In the future, this will
+/// be done in multiple steps.
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     mut env: JNIEnv<'local>,
@@ -78,7 +101,8 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     callbacks_obj: JObject<'local>,
     surface: JObject<'local>,
 ) {
-    let (opts, log, log_str, _gst_debug_str) = match get_options(&mut env, &opts, &surface) {
+    let (mut init_opts, log, log_str, _gst_debug_str) = match get_options(&mut env, &opts, &surface)
+    {
         Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&mut env, &err);
@@ -141,12 +165,68 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
         },
     };
 
-    let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
-    let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
+    let event_loop_waker = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
+    let host = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
-    if let Err(err) = simpleservo::init(opts, wakeup, callbacks) {
-        throw(&mut env, err)
+    crate::init_crypto();
+    servo::resources::set(Box::new(ResourceReaderInstance::new()));
+
+    // `parse_command_line_arguments` expects the first argument to be the binary name.
+    let mut args = mem::take(&mut init_opts.args);
+    args.insert(0, "servo".to_string());
+
+    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+        ArgumentParsingResult::ContentProcess(..) => {
+            unreachable!("Android does not have support for multiprocess yet.")
+        },
+        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+            (opts, preferences, servoshell_preferences)
+        },
+        ArgumentParsingResult::Exit => {
+            std::process::exit(0);
+        },
+        ArgumentParsingResult::ErrorParsing => std::process::exit(1),
     };
+
+    preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
+
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+
+    let (display_handle, window_handle) = unsafe {
+        (
+            DisplayHandle::borrow_raw(init_opts.display_handle),
+            WindowHandle::borrow_raw(init_opts.window_handle),
+        )
+    };
+
+    let size = init_opts.viewport_rect.size;
+    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
+    let rendering_context = Rc::new(
+        WindowRenderingContext::new_with_refresh_driver(
+            display_handle,
+            window_handle,
+            PhysicalSize::new(size.width as u32, size.height as u32),
+            refresh_driver.clone(),
+        )
+        .expect("Could not create RenderingContext"),
+    );
+
+    APP.with(|app| {
+        *app.borrow_mut() = Some(App::new(AppInitOptions {
+            host,
+            event_loop_waker,
+            viewport_rect: init_opts.viewport_rect,
+            hidpi_scale_factor: init_opts.density,
+            rendering_context,
+            refresh_driver,
+            initial_url: init_opts.url,
+            opts,
+            preferences,
+            servoshell_preferences,
+            #[cfg(feature = "webxr")]
+            xr_discovery: init_opts.xr_discovery,
+        }));
+    });
 }
 
 #[unsafe(no_mangle)]
@@ -178,7 +258,9 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_deinit<'local>(
     _class: JClass<'local>,
 ) {
     debug!("deinit");
-    simpleservo::deinit();
+    APP.with(|app| {
+        *app.borrow_mut() = None;
+    });
 }
 
 #[unsafe(no_mangle)]
@@ -187,10 +269,10 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resize<'local>(
     _: JClass<'local>,
     coordinates: JObject<'local>,
 ) {
-    let coords = jni_coords_to_rust_coords(&mut env, &coordinates);
-    debug!("resize {:#?}", coords);
-    match coords {
-        Ok(coords) => call(&mut env, |s| s.resize(coords.clone())),
+    let viewport_rect = jni_coordinate_to_rust_viewport_rect(&mut env, &coordinates);
+    debug!("resize {viewport_rect:#?}");
+    match viewport_rect {
+        Ok(viewport_rect) => call(&mut env, |s| s.resize(viewport_rect)),
         Err(error) => throw(&mut env, &error),
     }
 }
@@ -201,9 +283,8 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
     _class: JClass<'local>,
 ) {
     debug!("performUpdates");
-    call(&mut env, |s| {
-        s.perform_updates();
-        s.present_if_needed();
+    call(&mut env, |app| {
+        app.spin_event_loop();
     });
 }
 
@@ -474,14 +555,14 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
     coordinates: JObject<'local>,
 ) {
     debug!("resumeCompositor");
-    let coords = match jni_coords_to_rust_coords(&mut env, &coordinates) {
-        Ok(coords) => coords,
+    let viewport_rect = match jni_coordinate_to_rust_viewport_rect(&mut env, &coordinates) {
+        Ok(viewport_rect) => viewport_rect,
         Err(error) => return throw(&mut env, &error),
     };
 
     let (_, window_handle) = display_and_window_handle(&mut env, &surface);
-    call(&mut env, |s| {
-        s.resume_compositor(window_handle, coords.clone())
+    call(&mut env, |app| {
+        app.resume_compositor(window_handle, viewport_rect);
     });
 }
 
@@ -540,7 +621,9 @@ impl HostCallbacks {
         let jvm = env.get_java_vm().unwrap();
         HostCallbacks { callbacks, jvm }
     }
+}
 
+impl HostTrait for HostCallbacks {
     fn show_alert(&self, message: String) {
         let mut env = self.jvm.get_env().unwrap();
         let Ok(string) = new_string_as_jvalue(&mut env, &message) else {
@@ -553,44 +636,6 @@ impl HostCallbacks {
             &[(&string).into()],
         )
         .unwrap();
-    }
-}
-
-impl HostTrait for HostCallbacks {
-    fn request_permission(&self, _webview: WebView, request: PermissionRequest) {
-        warn!("Permissions prompt not implemented. Denied.");
-        request.deny();
-    }
-
-    fn show_simple_dialog(&self, _webview: WebView, dialog: SimpleDialog) {
-        let _ = match dialog {
-            SimpleDialog::Alert {
-                message,
-                response_sender,
-                ..
-            } => {
-                debug!("SimpleDialog::Alert");
-                // TODO: Indicate that this message is untrusted, and what origin it came from.
-                self.show_alert(message);
-                response_sender.send(AlertResponse::Ok)
-            },
-            SimpleDialog::Confirm {
-                message,
-                response_sender,
-                ..
-            } => {
-                warn!("Confirm dialog not implemented. Cancelled. {}", message);
-                response_sender.send(Default::default())
-            },
-            SimpleDialog::Prompt {
-                message,
-                response_sender,
-                ..
-            } => {
-                warn!("Prompt dialog not implemented. Cancelled. {}", message);
-                response_sender.send(Default::default())
-            },
-        };
     }
 
     fn notify_load_status_changed(&self, load_status: LoadStatus) {
@@ -630,24 +675,6 @@ impl HostTrait for HostCallbacks {
             &[(&title_string).into()],
         )
         .unwrap();
-    }
-
-    fn on_allow_navigation(&self, url: String) -> bool {
-        debug!("on_allow_navigation");
-        let mut env = self.jvm.get_env().unwrap();
-        let Ok(url_string) = new_string_as_jvalue(&mut env, &url) else {
-            return false;
-        };
-        let allow = env.call_method(
-            self.callbacks.as_obj(),
-            "onAllowNavigation",
-            "(Ljava/lang/String;)Z",
-            &[(&url_string).into()],
-        );
-        match allow {
-            Ok(allow) => allow.z().unwrap(),
-            Err(_) => true,
-        }
     }
 
     fn on_url_changed(&self, url: String) {
@@ -783,10 +810,10 @@ fn new_string_as_jvalue<'local>(
     Ok(JValueOwned::from(jstring))
 }
 
-fn jni_coords_to_rust_coords<'local>(
+fn jni_coordinate_to_rust_viewport_rect<'local>(
     env: &mut JNIEnv<'local>,
     obj: &JObject<'local>,
-) -> Result<Coordinates, String> {
+) -> Result<Rect<i32, DevicePixel>, String> {
     let x = get_non_null_field(env, obj, "x", "I")?
         .i()
         .map_err(|_| "x not an int")? as i32;
@@ -799,7 +826,7 @@ fn jni_coords_to_rust_coords<'local>(
     let height = get_non_null_field(env, obj, "height", "I")?
         .i()
         .map_err(|_| "height not an int")? as i32;
-    Ok(Coordinates::new(x, y, width, height))
+    Ok(Rect::new(Point2D::new(x, y), Size2D::new(width, height)))
 }
 
 fn get_field<'local>(
@@ -877,7 +904,7 @@ fn get_options<'local>(
     )?
     .l()
     .map_err(|_| "coordinates is not an object")?;
-    let coordinates = jni_coords_to_rust_coords(env, &coordinates)?;
+    let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &coordinates)?;
 
     let mut args: Vec<String> = match args {
         Some(args) => serde_json::from_str(&args)
@@ -893,7 +920,7 @@ fn get_options<'local>(
     let opts = InitOptions {
         args,
         url,
-        coordinates,
+        viewport_rect,
         density,
         xr_discovery: None,
         window_handle,

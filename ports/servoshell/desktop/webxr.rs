@@ -15,7 +15,7 @@ use servo::webxr::glwindow::GlWindowDiscovery;
 use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
 use winit::event_loop::ActiveEventLoop;
 
-use super::window_trait::WindowPortsMethods;
+use crate::window::PlatformWindow;
 
 enum XrDiscovery {
     GlWindow(GlWindowDiscovery),
@@ -29,7 +29,7 @@ pub(crate) struct XrDiscoveryWebXrRegistry {
 
 impl XrDiscoveryWebXrRegistry {
     pub(crate) fn new_boxed(
-        window: Rc<dyn WindowPortsMethods>,
+        window: Rc<dyn PlatformWindow>,
         event_loop: Option<&ActiveEventLoop>,
         preferences: &Preferences,
     ) -> Box<Self> {

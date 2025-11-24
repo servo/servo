@@ -19,9 +19,16 @@ mod egl;
 mod panic_hook;
 mod parser;
 mod prefs;
-#[cfg(not(any(target_os = "android", target_env = "ohos")))]
+#[cfg(not(target_os = "android"))]
 mod resources;
 mod running_app_state;
+mod webdriver;
+mod window;
+
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
+pub(crate) use crate::desktop::gamepad::GamepadSupport;
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+pub(crate) use crate::egl::gamepad::GamepadSupport;
 
 pub mod platform {
     #[cfg(target_os = "macos")]
