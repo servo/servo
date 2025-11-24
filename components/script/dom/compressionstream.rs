@@ -106,12 +106,21 @@ impl Compressor {
 }
 
 impl MallocSizeOf for Compressor {
+    #[expect(unsafe_code)]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.size_of(ops),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.size_of(ops),
             Compressor::Gzip(gz_encoder) => gz_encoder.size_of(ops),
-            Compressor::Brotli(brotli_encoder) => brotli_encoder.get_ref().size_of(ops),
+            Compressor::Brotli(encoder) => {
+                // Size of the output Vec buffer
+                let output_size = encoder.get_ref().size_of(ops);
+
+                // Size of the boxed BrotliEncoder struct itself
+                let encoder_size = unsafe { ops.malloc_size_of(&**encoder) };
+
+                output_size + encoder_size
+            },
         }
     }
 }

@@ -100,12 +100,21 @@ impl Decompressor {
 }
 
 impl MallocSizeOf for Decompressor {
+    #[expect(unsafe_code)]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
             Decompressor::Deflate(zlib_decoder) => zlib_decoder.size_of(ops),
             Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.size_of(ops),
             Decompressor::Gzip(gz_decoder) => gz_decoder.size_of(ops),
-            Decompressor::Brotli(brotli_decoder) => brotli_decoder.get_ref().size_of(ops),
+            Decompressor::Brotli(brotli_decoder) => {
+                // Size of the output Vec buffer the decoder writes into.
+                let output_size = brotli_decoder.get_ref().size_of(ops);
+
+                // Size of the boxed Brotli decoder struct itself.
+                let decoder_size = unsafe { ops.malloc_size_of(&**brotli_decoder) };
+
+                output_size + decoder_size
+            },
         }
     }
 }
@@ -164,7 +173,7 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
         format: CompressionFormat,
     ) -> Fallible<DomRoot<DecompressionStream>> {
         // Step 1. If format is unsupported in DecompressionStream, then throw a TypeError.
-        // NOTE: All of "deflate", "deflate_raw" and "gzip" are supported.
+        // NOTE: All of "deflate", "deflate-raw", "gzip" and "br" are supported.
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
