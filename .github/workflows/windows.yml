@@ -76,7 +76,7 @@ jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
   # with the help of a `runner-select` job and a `runner-timeout` job.
   runner-select:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       unique-id: ${{ steps.select.outputs.unique-id }}
       selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
@@ -100,7 +100,7 @@ jobs:
     needs:
       - runner-select
     if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Runner timeout
         uses: servo/ci-runners/actions/runner-timeout@44317e3cd86c5ff2ef0b08878b90da246bc237da
