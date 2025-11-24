@@ -101,7 +101,7 @@ struct Index {
             this.xComponentContext?.goForward()
           })
         TextInput({ placeholder: 'URL', text: $$this.urlToLoad })
-          .type(InputType.Normal)
+          .type(InputType.URL)
           .width('76%')
           .onChange((value) => {
             this.urlToLoad = value
