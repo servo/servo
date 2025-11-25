@@ -41,6 +41,7 @@ base64ct = { version = "1.8", features = ["alloc"] }
 bincode = "1"
 bitflags = "2.10"
 bluetooth_traits = { path = "components/shared/bluetooth" }
+brotli = "8.0.2"
 bytemuck = "1"
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }

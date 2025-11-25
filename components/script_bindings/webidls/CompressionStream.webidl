@@ -7,6 +7,7 @@ enum CompressionFormat {
   "deflate",
   "deflate-raw",
   "gzip",
+  "brotli",
 };
 
 // https://compression.spec.whatwg.org/#compressionstream

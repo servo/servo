@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::io::{self, Write};
 use std::ptr;
 
+use brotli::CompressorWriter as BrotliEncoder;
 use dom_struct::dom_struct;
 use flate2::Compression;
 use flate2::write::{DeflateEncoder, GzEncoder, ZlibEncoder};
@@ -36,6 +37,7 @@ enum Compressor {
     Deflate(ZlibEncoder<Vec<u8>>),
     DeflateRaw(DeflateEncoder<Vec<u8>>),
     Gzip(GzEncoder<Vec<u8>>),
+    Brotli(Box<BrotliEncoder<Vec<u8>>>),
 }
 
 /// Expose methods of the inner encoder.
@@ -51,6 +53,9 @@ impl Compressor {
             CompressionFormat::Gzip => {
                 Compressor::Gzip(GzEncoder::new(Vec::new(), Compression::default()))
             },
+            CompressionFormat::Brotli => {
+                Compressor::Brotli(Box::new(BrotliEncoder::new(Vec::new(), 4096, 5, 22)))
+            },
         }
     }
 
@@ -59,6 +64,7 @@ impl Compressor {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.get_ref(),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.get_ref(),
             Compressor::Gzip(gz_encoder) => gz_encoder.get_ref(),
+            Compressor::Brotli(brotli_encoder) => brotli_encoder.get_ref(),
         }
     }
 
@@ -67,6 +73,7 @@ impl Compressor {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.get_mut(),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.get_mut(),
             Compressor::Gzip(gz_encoder) => gz_encoder.get_mut(),
+            Compressor::Brotli(brotli_encoder) => brotli_encoder.get_mut(),
         }
     }
 
@@ -75,6 +82,7 @@ impl Compressor {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.write_all(buf),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.write_all(buf),
             Compressor::Gzip(gz_encoder) => gz_encoder.write_all(buf),
+            Compressor::Brotli(brotli_encoder) => brotli_encoder.write_all(buf),
         }
     }
 
@@ -83,6 +91,7 @@ impl Compressor {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.flush(),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.flush(),
             Compressor::Gzip(gz_encoder) => gz_encoder.flush(),
+            Compressor::Brotli(brotli_encoder) => brotli_encoder.flush(),
         }
     }
 
@@ -91,16 +100,21 @@ impl Compressor {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.try_finish(),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.try_finish(),
             Compressor::Gzip(gz_encoder) => gz_encoder.try_finish(),
+            Compressor::Brotli(brotli_encoder) => brotli_encoder.flush(),
         }
     }
 }
 
 impl MallocSizeOf for Compressor {
+    #[expect(unsafe_code)]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
             Compressor::Deflate(zlib_encoder) => zlib_encoder.size_of(ops),
             Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.size_of(ops),
             Compressor::Gzip(gz_encoder) => gz_encoder.size_of(ops),
+            Compressor::Brotli(brotli_dencoder) => unsafe {
+                ops.malloc_size_of(&**brotli_dencoder)
+            },
         }
     }
 }
@@ -156,7 +170,7 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
         format: CompressionFormat,
     ) -> Fallible<DomRoot<CompressionStream>> {
         // Step 1. If format is unsupported in CompressionStream, then throw a TypeError.
-        // NOTE: All of "deflate", "deflate_raw" and "gzip" are supported.
+        // NOTE: All of "deflate", "deflate-raw", "gzip" and "br" are supported.
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
