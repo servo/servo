@@ -28,11 +28,6 @@ pub trait ServoDelegate {
     /// Request a DevTools connection from a DevTools client. Typically an embedder application
     /// will show a permissions prompt when this happens to confirm a connection is allowed.
     fn request_devtools_connection(&self, _servo: &Servo, _request: AllowOrDenyRequest) {}
-    /// Any [`WebView`] in this Servo instance has either started to animate or WebXR is
-    /// running. When a [`WebView`] is animating, it is up to the embedding application
-    /// ensure that `Servo::spin_event_loop` is called at regular intervals in order to
-    /// update the painted contents of the [`WebView`].
-    fn notify_animating_changed(&self, _animating: bool) {}
     /// Triggered when Servo will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling
     /// [`WebResourceLoad::intercept`]. If not handled, the load will continue as normal.

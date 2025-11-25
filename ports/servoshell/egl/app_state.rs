@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
 use crossbeam_channel::Receiver;
@@ -16,13 +16,12 @@ use servo::webrender_api::units::{
     DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 use servo::{
-    AllowOrDenyRequest, EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId,
-    InputEventResult, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent,
-    MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest,
-    PermissionRequest, RefreshDriver, RenderingContext, ScreenGeometry, Scroll, Servo,
-    ServoDelegate, ServoError, TouchEvent, TouchEventType, TouchId, TraversalId,
-    WebDriverCommandMsg, WebDriverLoadStatus, WebView, WebViewBuilder, WebViewDelegate,
-    WindowRenderingContext,
+    EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
+    KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
+    RefreshDriver, RenderingContext, ScreenGeometry, Scroll, Servo, TouchEvent, TouchEventType,
+    TouchId, TraversalId, WebDriverCommandMsg, WebDriverLoadStatus, WebView, WebViewBuilder,
+    WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -79,37 +78,11 @@ pub struct RunningAppState {
 struct RunningAppStateInner {
     need_present: bool,
 
-    /// Whether or not the animation state has changed. This is used to trigger
-    /// host callbacks indicating that animation state has changed.
-    animating_state_changed: Rc<Cell<bool>>,
-
     /// The HiDPI scaling factor to use for the display of [`WebView`]s.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 
     /// A list of showing [`InputMethod`] interfaces.
     visible_input_methods: Vec<EmbedderControlId>,
-}
-
-struct ServoShellServoDelegate {
-    animating_state_changed: Rc<Cell<bool>>,
-}
-
-impl ServoDelegate for ServoShellServoDelegate {
-    fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
-        info!("Devtools Server running on port {port}");
-    }
-
-    fn request_devtools_connection(&self, _servo: &Servo, request: AllowOrDenyRequest) {
-        request.allow();
-    }
-
-    fn notify_error(&self, _servo: &Servo, error: ServoError) {
-        error!("Saw Servo error: {error:?}!");
-    }
-
-    fn notify_animating_changed(&self, _animating: bool) {
-        self.animating_state_changed.set(true);
-    }
 }
 
 impl WebViewDelegate for RunningAppState {
@@ -367,11 +340,6 @@ impl RunningAppState {
             .or_else(|| Url::parse("about:blank").ok())
             .unwrap();
 
-        let animating_state_changed = Rc::new(Cell::new(false));
-        servo.set_delegate(Rc::new(ServoShellServoDelegate {
-            animating_state_changed: animating_state_changed.clone(),
-        }));
-
         let app_state = Rc::new(Self {
             base: RunningAppStateBase::new(servoshell_preferences, servo, webdriver_receiver),
             rendering_context,
@@ -379,7 +347,6 @@ impl RunningAppState {
             refresh_driver,
             inner: RefCell::new(RunningAppStateInner {
                 need_present: false,
-                animating_state_changed,
                 hidpi_scale_factor: Scale::new(hidpi_scale_factor),
                 visible_input_methods: Default::default(),
             }),
