@@ -60,6 +60,10 @@ pub(crate) enum ScrollZoomEvent {
 #[derive(Clone, Debug)]
 pub(crate) struct ScrollResult {
     pub hit_test_result: CompositorHitTestResult,
+    /// The [`ExternalScrollId`] of the node that was actually scrolled.
+    ///
+    /// Note that this is an inclusive ancestor of `external_scroll_id` in
+    /// [`Self::hit_test_result`].
     pub external_scroll_id: ExternalScrollId,
     pub offset: LayoutVector2D,
 }
