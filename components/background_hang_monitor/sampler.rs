@@ -31,7 +31,6 @@ impl Sampler for DummySampler {
 pub type Address = *const u8;
 
 /// The registers used for stack unwinding
-#[expect(dead_code)]
 pub struct Registers {
     /// Instruction pointer.
     pub instruction_ptr: Address,
