@@ -709,7 +709,7 @@ impl Painter {
         }
         for update in scroll_offset_updates {
             transaction.set_scroll_offsets(
-                update.external_scroll_id,
+                update.hit_test_result.external_scroll_id,
                 vec![SampledScrollOffset {
                     offset: update.offset,
                     generation: 0,
