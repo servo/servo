@@ -60,6 +60,7 @@ pub(crate) enum ScrollZoomEvent {
 #[derive(Clone, Debug)]
 pub(crate) struct ScrollResult {
     pub hit_test_result: CompositorHitTestResult,
+    pub external_scroll_id: ExternalScrollId,
     pub offset: LayoutVector2D,
 }
 
@@ -763,7 +764,7 @@ impl WebViewRenderer {
                 scroll_result.hit_test_result.pipeline_id,
             );
             self.dispatch_scroll_event(
-                scroll_result.hit_test_result.external_scroll_id,
+                scroll_result.external_scroll_id,
                 scroll_result.hit_test_result.clone(),
             );
         }
@@ -812,7 +813,7 @@ impl WebViewRenderer {
                     scroll_location,
                     ScrollType::InputEvents,
                 );
-                if let Some((_, offset)) = scroll_result {
+                if let Some((external_scroll_id, offset)) = scroll_result {
                     // We would like to cache the hit test for the node that that actually scrolls
                     // while panning, which we don't know until right now (as some nodes
                     // might be at the end of their scroll area). In particular, directionality of
@@ -824,6 +825,7 @@ impl WebViewRenderer {
                     );
                     return Some(ScrollResult {
                         hit_test_result,
+                        external_scroll_id,
                         offset,
                     });
                 }
@@ -884,6 +886,7 @@ impl WebViewRenderer {
 
         let scroll_result = ScrollResult {
             hit_test_result,
+            external_scroll_id,
             offset,
         };
         (pinch_zoom_result, vec![scroll_result])
