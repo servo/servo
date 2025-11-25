@@ -82,7 +82,9 @@ use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
-use crate::http_cache::{CacheGuard, CacheKey, CachedResourcesOrGuard, HttpCache};
+use crate::http_cache::{
+    CacheGuard, CacheKey, CachedResourcesOrGuard, HttpCache, construct_response,
+};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
 
@@ -97,17 +99,10 @@ pub enum HttpCacheEntryState {
     PendingStore(usize),
 }
 
-type HttpCacheState =
-    tokio::sync::Mutex<HashMap<CacheKey, Arc<(tokio::sync::Mutex<HttpCacheEntryState>, Notify)>>>;
-
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
     pub http_cache: HttpCache,
-    /// A map of cache key to entry state,
-    /// reflecting whether the cache entry is ready to read from,
-    /// or whether a concurrent pending store should be awaited.
-    pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, crate::connector::BoxedBody>,
@@ -1742,12 +1737,8 @@ async fn block_for_cache_ready<'a>(
             // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
             //              possibly needing validation, as per the "Constructing Responses from Caches"
             //              chapter of HTTP Caching, if any.
-            let cached_resources = cached_resources.read().await;
-            let stored_response = context
-                .state
-                .http_cache
-                .construct_response(http_request, done_chan, cached_resources)
-                .await;
+            let stored_response =
+                construct_response(http_request, done_chan, &*cached_resources.read().await).await;
             // Step 8.25.2 If storedResponse is non-null, then:
             if let Some(response_from_cache) = stored_response {
                 let response_headers = response_from_cache.response.headers.clone();
