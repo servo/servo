@@ -25,9 +25,10 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::media::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
@@ -50,7 +51,7 @@ pub(crate) struct MediaSession {
     >,
     /// The media instance controlled by this media session.
     /// For now only HTMLMediaElements are controlled by media sessions.
-    media_instance: MutNullableDom<HTMLMediaElement>,
+    media_instance: MutableWeakRef<HTMLMediaElement>,
 }
 
 impl MediaSession {
@@ -61,7 +62,7 @@ impl MediaSession {
             metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
             action_handlers: DomRefCell::new(HashMapTracedValues::new_fx()),
-            media_instance: Default::default(),
+            media_instance: MutableWeakRef::new(None),
         }
     }
 
@@ -84,7 +85,7 @@ impl MediaSession {
         }
 
         // Default action.
-        if let Some(media) = self.media_instance.get() {
+        if let Some(media) = self.media_instance.root() {
             match action {
                 MediaSessionActionType::Play => {
                     let realm = enter_realm(self);
