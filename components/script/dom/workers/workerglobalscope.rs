@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
@@ -23,9 +22,7 @@ use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JS_AddInterruptCallback;
-use js::jsval::UndefinedValue;
-use js::panic::maybe_resume_unwind;
-use js::rust::{CompileOptionsWrapper, HandleValue, MutableHandleValue, ParentRuntime};
+use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -55,7 +52,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -65,7 +62,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::{ClassicScript, GlobalScope};
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, ScriptOrigin, ScriptType};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -230,9 +227,15 @@ impl FetchResponseListener for ScriptFetchContext {
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
+        let script = scope.globalscope.create_a_classic_script(
+            source,
+            scope.worker_url.borrow().clone(),
+            false,
+            Some(IntroductionType::WORKER),
+        );
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(Some(source), self.worker.clone(), CanGc::note());
+        scope.on_complete(Some(script), self.worker.clone(), CanGc::note());
 
         if let Ok(response) = response {
             submit_timing(&self, &response, CanGc::note());
@@ -579,7 +582,7 @@ impl WorkerGlobalScope {
     #[expect(unsafe_code)]
     fn on_complete(
         &self,
-        script: Option<Cow<'_, str>>,
+        script: Option<ClassicScript>,
         worker: TrustedWorkerAddress,
         can_gc: CanGc,
     ) {
@@ -593,6 +596,11 @@ impl WorkerGlobalScope {
             dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
 
             // Step 2 TODO Run the environment discarding steps for inside settings.
+            return;
+        };
+
+        if let Err(_) = script.record {
+            dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
             return;
         };
 
@@ -614,7 +622,7 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            self.execute_script(DOMString::from(script), can_gc);
+            _ = self.globalscope.run_a_classic_script_(script, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
@@ -675,7 +683,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             };
         }
 
-        rooted!(in(*self.get_cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit::new(
@@ -695,7 +702,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
-            let (url, source) = match load_whole_resource(
+            let (url, bytes) = match load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
@@ -722,36 +729,29 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                         return Err(Error::Network(None));
                     }
 
-                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    (metadata.final_url, bytes)
                 },
             };
 
-            #[expect(unsafe_code)]
-            let mut cx =
-                unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
-            let options = CompileOptionsWrapper::new(&cx, url.as_str(), 1);
-            let result = js::rust::evaluate_script(
-                &mut cx,
-                self.reflector().get_jsobject(),
-                &source,
-                rval.handle_mut(),
-                options,
+            let (source, _, _) = UTF_8.decode(&bytes);
+
+            let script = self.globalscope.create_a_classic_script(
+                source,
+                url,
+                false,
+                Some(IntroductionType::WORKER),
             );
+            let result = self.globalscope.run_a_classic_script_(script, can_gc);
 
-            maybe_resume_unwind();
-
-            match result {
-                Ok(_) => (),
-                Err(_) => {
-                    if self.is_closing() {
-                        // Don't return JSFailed as we might not have
-                        // any pending exceptions.
-                        error!("evaluate_script failed (terminated)");
-                    } else {
-                        error!("evaluate_script failed");
-                        return Err(Error::JSFailed);
-                    }
-                },
+            if let Err(_) = result {
+                if self.is_closing() {
+                    // Don't return JSFailed as we might not have
+                    // any pending exceptions.
+                    println!("evaluate_script failed (terminated)");
+                } else {
+                    println!("evaluate_script failed");
+                    return Err(Error::JSFailed);
+                }
             }
         }
 
