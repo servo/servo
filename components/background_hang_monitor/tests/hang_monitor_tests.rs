@@ -29,11 +29,8 @@ fn test_hang_monitoring() {
     let (_sampler_sender, sampler_receiver) =
         generic_channel::channel().expect("ipc channel failure");
 
-    let (background_hang_monitor_register, join_handle) = HangMonitorRegister::init(
-        background_hang_monitor_ipc_sender.clone(),
-        sampler_receiver,
-        true,
-    );
+    let (background_hang_monitor_register, join_handle) =
+        HangMonitorRegister::init(background_hang_monitor_ipc_sender, sampler_receiver, true);
 
     struct BHMExitSignal;
 
@@ -146,11 +143,8 @@ fn test_hang_monitoring_unregister() {
     let (_sampler_sender, sampler_receiver) =
         generic_channel::channel().expect("ipc channel failure");
 
-    let (background_hang_monitor_register, join_handle) = HangMonitorRegister::init(
-        background_hang_monitor_ipc_sender.clone(),
-        sampler_receiver,
-        true,
-    );
+    let (background_hang_monitor_register, join_handle) =
+        HangMonitorRegister::init(background_hang_monitor_ipc_sender, sampler_receiver, true);
 
     struct BHMExitSignal;
 
@@ -248,11 +242,8 @@ fn test_hang_monitoring_exit_signal_inner(op_order: fn(&mut dyn FnMut(), &mut dy
     }));
 
     // Init a worker, without active monitoring.
-    let (background_hang_monitor_register, join_handle) = HangMonitorRegister::init(
-        background_hang_monitor_ipc_sender.clone(),
-        control_receiver,
-        false,
-    );
+    let (background_hang_monitor_register, join_handle) =
+        HangMonitorRegister::init(background_hang_monitor_ipc_sender, control_receiver, false);
 
     let mut background_hang_monitor = None;
 

@@ -759,13 +759,13 @@ impl WebViewRenderer {
                 combined_event.scroll,
             )
         });
-        if let Some(scroll_result) = scroll_result.clone() {
+        if let Some(ref scroll_result) = scroll_result {
             self.send_scroll_positions_to_layout_for_pipeline(
                 scroll_result.hit_test_result.pipeline_id,
             );
             self.dispatch_scroll_event(
                 scroll_result.external_scroll_id,
-                scroll_result.hit_test_result,
+                scroll_result.hit_test_result.clone(),
             );
         }
 
@@ -803,10 +803,10 @@ impl WebViewRenderer {
         // This is needed to propagate the scroll events from a pipeline representing an iframe to
         // its ancestor pipelines.
         let mut previous_pipeline_id = None;
-        for hit_test_result in hit_test_results.iter() {
+        for hit_test_result in hit_test_results {
             let pipeline_details = self.pipelines.get_mut(&hit_test_result.pipeline_id)?;
-            if previous_pipeline_id.replace(&hit_test_result.pipeline_id) !=
-                Some(&hit_test_result.pipeline_id)
+            if previous_pipeline_id.replace(hit_test_result.pipeline_id) !=
+                Some(hit_test_result.pipeline_id)
             {
                 let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
                     hit_test_result.external_scroll_id,
@@ -824,7 +824,7 @@ impl WebViewRenderer {
                         self.device_pixels_per_page_pixel(),
                     );
                     return Some(ScrollResult {
-                        hit_test_result: hit_test_result.clone(),
+                        hit_test_result,
                         external_scroll_id,
                         offset,
                     });

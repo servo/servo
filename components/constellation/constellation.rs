@@ -676,7 +676,7 @@ where
                     embedder_to_constellation_receiver,
                     layout_factory,
                     embedder_proxy: state.embedder_proxy,
-                    compositor_proxy: state.compositor_proxy.clone(),
+                    compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
                     devtools_sender: state.devtools_sender,
                     #[cfg(feature = "bluetooth")]
