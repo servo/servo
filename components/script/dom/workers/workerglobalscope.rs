@@ -622,7 +622,9 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            _ = self.globalscope.run_a_classic_script_(script, can_gc);
+            _ = self
+                .globalscope
+                .run_a_classic_script_(script, false, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
@@ -741,16 +743,16 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 muted_errors,
                 Some(IntroductionType::WORKER),
             );
-            let result = self.globalscope.run_a_classic_script_(script, can_gc);
+            let result = self.globalscope.run_a_classic_script_(script, true, can_gc);
 
-            if let Err(_) = result {
+            if let Err(error) = result {
                 if self.is_closing() {
                     // Don't return JSFailed as we might not have
                     // any pending exceptions.
                     println!("evaluate_script failed (terminated)");
                 } else {
                     println!("evaluate_script failed");
-                    return Err(Error::JSFailed);
+                    return Err(error);
                 }
             }
         }

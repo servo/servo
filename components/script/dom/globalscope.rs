@@ -38,12 +38,13 @@ use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
     Compile1, CurrentGlobalOrNull, DelazificationOption, GetNonCCWObjectGlobal, HandleObject, Heap,
-    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
+    InstantiateGlobalStencil, InstantiateOptions, JS_ClearPendingException, JSContext, JSObject,
+    JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
-use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
+use js::rust::wrappers::{JS_ExecuteScript, JS_GetPendingException, JS_GetScriptPrivate};
 use js::rust::{
     CompileOptionsWrapper, CustomAutoRooter, CustomAutoRooterGuard, HandleValue,
     MutableHandleValue, ParentRuntime, Runtime, get_object_class, transform_str_to_source_text,
@@ -76,7 +77,6 @@ use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 #[cfg(feature = "webgpu")]
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
-use super::bindings::error::Fallible;
 use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use super::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use super::transformstream::CrossRealmTransform;
@@ -93,7 +93,8 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
 use crate::dom::bindings::error::{
-    Error, ErrorInfo, report_pending_exception, take_and_report_pending_exception_for_api,
+    Error, ErrorInfo, ErrorResult, Fallible, report_pending_exception,
+    take_and_report_pending_exception_for_api,
 };
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
@@ -2999,7 +3000,7 @@ impl GlobalScope {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#creating-a-classic-script>
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
     #[expect(unsafe_code)]
     pub(crate) fn create_a_classic_script(
         &self,
@@ -3039,46 +3040,43 @@ impl GlobalScope {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#run-a-classic-script>
+    /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
     #[expect(unsafe_code)]
     pub(crate) fn run_a_classic_script_(
         &self,
         script: ClassicScript,
+        rethrow_errors: bool,
         can_gc: CanGc,
-    ) -> Result<(), JavaScriptEvaluationError> {
+    ) -> ErrorResult {
         // TODO use a settings object
-        // Step 2
+        // Step 2 Check if we can run script with settings. If this returns "do not run", then return NormalCompletion(empty).
         if !self.can_run_script() {
             return Ok(());
         }
 
-        let script_base_url = script.url;
-        let fetch_options = script.fetch_options;
-
-        let cx = GlobalScope::get_cx();
-
-        let ar = enter_realm(self);
-
+        // Once dropped this will run "Clean up after running script" steps
         let _aes = AutoEntryScript::new(self);
 
+        // Step 6 If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
         let Ok(compiled_script) = script.record else {
-            return Err(JavaScriptEvaluationError::CompilationFailure);
+            return Err(Error::JSFailed);
         };
 
+        let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        rooted!(in(*cx) let script = compiled_script.as_ptr());
+        rooted!(in(*cx) let record = compiled_script.as_ptr());
         rooted!(in(*cx) let mut script_private = UndefinedValue());
 
-        unsafe { JS_GetScriptPrivate(*script, script_private.handle_mut()) };
+        unsafe { JS_GetScriptPrivate(*record, script_private.handle_mut()) };
 
         // When `ScriptPrivate` for the compiled script is undefined,
         // we need to set it so that it can be used in dynamic import context.
         if script_private.is_undefined() {
-            debug!("Set script private for {}", script_base_url);
+            debug!("Set script private for {}", script.url);
 
             let module_script_data = Rc::new(ModuleScript::new(
-                script_base_url,
-                fetch_options,
+                script.url,
+                script.fetch_options,
                 // We can't initialize an module owner here because
                 // the executing context of script might be different
                 // from the dynamic import script's executing context.
@@ -3087,19 +3085,48 @@ impl GlobalScope {
 
             unsafe {
                 SetScriptPrivate(
-                    *script,
+                    *record,
                     &PrivateValue(Rc::into_raw(module_script_data) as *const _),
                 );
             }
         }
 
-        let result = unsafe { JS_ExecuteScript(*cx, script.handle(), rval.handle_mut()) };
+        // Step 7 Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
+        let result = unsafe { JS_ExecuteScript(*cx, record.handle(), rval.handle_mut()) };
 
+        rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
+        // Step 8 If evaluationStatus is an abrupt completion, then:
         if !result {
             debug!("error evaluating Dom string");
-            let error_info =
-                take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
-            return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
+            unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
+
+            // Step 8.1 If rethrow errors is true and script's muted errors is false, then:
+            if rethrow_errors && !script.muted_errors {
+                // Clean up after running script with settings.
+
+                // Rethrow evaluationStatus.[[Value]].
+                return Err(Error::JSFailed);
+            }
+
+            // Step 8.2 If rethrow errors is true and script's muted errors is true, then:
+            if rethrow_errors && script.muted_errors {
+                unsafe { JS_ClearPendingException(*cx) };
+                // Clean up after running script with settings.
+
+                // Throw a "NetworkError" DOMException.
+                return Err(Error::Network(None));
+            }
+
+            // Step 8.3 Otherwise, rethrow errors is false. Perform the following steps:
+            if !rethrow_errors {
+                // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
+                self.report_an_exception(cx, evaluation_status.handle(), can_gc);
+
+                // Clean up after running script with settings.
+
+                // Return evaluationStatus.
+                return Err(Error::JSFailed);
+            }
         }
 
         maybe_resume_unwind();
