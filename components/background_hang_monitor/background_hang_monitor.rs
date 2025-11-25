@@ -237,13 +237,11 @@ impl BackgroundHangMonitorWorker {
                 None => "null".to_string(),
             };
             let json = format!(
-                "{}{{ \"name\": {}, \"namespace\": {}, \"index\": {}, \"type\": \"{:?}\", \
+                "{}{{ \"name\": {}, \"event loop id\": \"{:?}\", \
                  \"time\": {}, \"frames\": {} }}",
                 if !first { ",\n" } else { "" },
                 name,
-                id.0.namespace_id.0,
-                id.0.index.0.get(),
-                id.1,
+                id,
                 (instant - self.sampling_baseline).as_millis(),
                 serde_json::to_string(&profile.backtrace).unwrap(),
             );

@@ -747,13 +747,13 @@ impl GlobalScope {
     /// workers that are not currently handling a message.
     pub(crate) fn webview_id(&self) -> Option<WebViewId> {
         if let Some(window) = self.downcast::<Window>() {
-            Some(window.webview_id())
-        } else if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
-            dedicated.webview_id()
-        } else {
-            // ServiceWorkerGlobalScope, PaintWorklet, or DissimilarOriginWindow
-            None
+            return Some(window.webview_id());
         }
+        // If this is a worker only DedicatedWorkerGlobalScope will have a WebViewId, the other are
+        // ServiceWorkerGlobalScope, PaintWorklet, or DissimilarOriginWindow.
+        // TODO: This should only return None for ServiceWorkerGlobalScope.
+        self.downcast::<DedicatedWorkerGlobalScope>()
+            .map(DedicatedWorkerGlobalScope::webview_id)
     }
 
     #[allow(clippy::too_many_arguments)]

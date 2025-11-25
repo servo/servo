@@ -317,9 +317,6 @@ impl BrowsingContextId {
     }
 }
 
-thread_local!(pub static WEBVIEW_ID: Cell<Option<WebViewId>> =
-    const { Cell::new(None) });
-
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
@@ -339,18 +336,8 @@ impl WebViewId {
         WebViewId(painter_id, BrowsingContextId::new())
     }
 
-    /// Each script and layout thread should have the top-level browsing context id installed,
-    /// since it is used by crash reporting.
-    pub fn install(id: WebViewId) {
-        WEBVIEW_ID.with(|tls| tls.set(Some(id)))
-    }
-
-    pub fn installed() -> Option<WebViewId> {
-        WEBVIEW_ID.with(|tls| tls.get())
-    }
-
     pub fn mock_for_testing(browsing_context_id: BrowsingContextId) -> WebViewId {
-        WebViewId(PainterId(0), browsing_context_id)
+        WebViewId(TEST_PAINTER_ID, browsing_context_id)
     }
 }
 
@@ -427,8 +414,9 @@ pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     index: TEST_BROWSING_CONTEXT_INDEX,
 };
 
-pub const TEST_PAINTER_ID: PainterId = PainterId(0);
+pub const TEST_PAINTER_ID: PainterId = PainterId(9999);
 pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(TEST_PAINTER_ID, TEST_BROWSING_CONTEXT_ID);
+pub const TEST_SCRIPT_EVENT_LOOP_ID: ScriptEventLoopId = ScriptEventLoopId(1234);
 
 /// An id for a ScrollTreeNode in the ScrollTree. This contains both the index
 /// to the node in the tree's array of nodes as well as the corresponding SpatialId
@@ -438,6 +426,8 @@ pub struct ScrollTreeNodeId {
     /// The index of this scroll tree node in the tree's array of nodes.
     pub index: usize,
 }
+
+static PAINTER_ID: AtomicU32 = AtomicU32::new(1);
 
 #[derive(
     Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Hash, Eq, Serialize, Deserialize, MallocSizeOf,
@@ -449,8 +439,6 @@ impl fmt::Display for PainterId {
         write!(f, "PainterId: {}", self.0)
     }
 }
-
-static PAINTER_ID: AtomicU32 = AtomicU32::new(1);
 
 impl PainterId {
     pub fn next() -> Self {
@@ -485,5 +473,29 @@ impl From<FontInstanceKey> for PainterId {
 impl From<ImageKey> for PainterId {
     fn from(image_key: ImageKey) -> Self {
         image_key.0.into()
+    }
+}
+
+static SCRIPT_EVENT_LOOP_ID: AtomicU32 = AtomicU32::new(1);
+thread_local!(pub static INSTALLED_SCRIPT_EVENT_LOOP_ID: Cell<Option<ScriptEventLoopId>> =
+    const { Cell::new(None) });
+
+#[derive(
+    Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Hash, Eq, Serialize, Deserialize, MallocSizeOf,
+)]
+pub struct ScriptEventLoopId(u32);
+impl ScriptEventLoopId {
+    pub fn new() -> Self {
+        Self(SCRIPT_EVENT_LOOP_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+    }
+
+    /// Each script and layout thread should have the [`ScriptEventLoopId`] installed,
+    /// since it is used by crash reporting.
+    pub fn install(id: Self) {
+        INSTALLED_SCRIPT_EVENT_LOOP_ID.with(|tls| tls.set(Some(id)))
+    }
+
+    pub fn installed() -> Option<Self> {
+        INSTALLED_SCRIPT_EVENT_LOOP_ID.with(|tls| tls.get())
     }
 }

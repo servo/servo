@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::thread;
 
 use backtrace::Backtrace;
-use base::id::WebViewId;
+use base::id::ScriptEventLoopId;
 use constellation_traits::{
     EmbedderToConstellationMessage, LogEntry, ScriptToConstellationChan,
     ScriptToConstellationMessage,
@@ -52,9 +52,13 @@ impl Log for FromScriptLogger {
     fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
             let thread_name = thread::current().name().map(ToOwned::to_owned);
-            let msg = ScriptToConstellationMessage::LogEntry(thread_name, entry);
-            let chan = self.script_to_constellation_chan.lock();
-            let _ = chan.send(msg);
+            let _ = self.script_to_constellation_chan.lock().send(
+                ScriptToConstellationMessage::LogEntry(
+                    ScriptEventLoopId::installed(),
+                    thread_name,
+                    entry,
+                ),
+            );
         }
     }
 
@@ -89,9 +93,9 @@ impl Log for FromEmbedderLogger {
 
     fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
-            let webview_id = WebViewId::installed();
+            let event_loop_id = ScriptEventLoopId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
-            let msg = EmbedderToConstellationMessage::LogEntry(webview_id, thread_name, entry);
+            let msg = EmbedderToConstellationMessage::LogEntry(event_loop_id, thread_name, entry);
             let chan = self.constellation_chan.lock();
             let _ = chan.send(msg);
         }

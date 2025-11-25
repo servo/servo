@@ -16,7 +16,7 @@ use std::fmt;
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{MessagePortId, PipelineId, WebViewId};
+use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use embedder_traits::{
     CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse, InputEventAndId,
@@ -66,7 +66,7 @@ pub enum EmbedderToConstellationMessage {
     /// Reload a top-level browsing context.
     Reload(WebViewId),
     /// A log entry, with the top-level browsing context id and thread name
-    LogEntry(Option<WebViewId>, Option<String>, LogEntry),
+    LogEntry(Option<ScriptEventLoopId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
     NewWebView(ServoUrl, WebViewId, ViewportDetails),
     /// Close a top level browsing context.

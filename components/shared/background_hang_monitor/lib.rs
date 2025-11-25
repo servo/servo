@@ -9,7 +9,7 @@
 use std::time::Duration;
 use std::{fmt, mem};
 
-use base::id::PipelineId;
+use base::id::ScriptEventLoopId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -158,7 +158,7 @@ pub enum MonitoredComponentType {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct MonitoredComponentId(pub PipelineId, pub MonitoredComponentType);
+pub struct MonitoredComponentId(pub ScriptEventLoopId, pub MonitoredComponentType);
 
 /// A handle to register components for hang monitoring,
 /// and to receive a means to communicate with the underlying hang monitor worker.
