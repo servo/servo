@@ -60,6 +60,8 @@ pub(crate) enum ScrollZoomEvent {
 #[derive(Clone, Debug)]
 pub(crate) struct ScrollResult {
     pub hit_test_result: CompositorHitTestResult,
+    /// This is necessary as the `external_scroll_id` of [CompositorHitTestResult] can be different.
+    /// Currently, we scroll the first possible inclusive ancestor.
     pub external_scroll_id: ExternalScrollId,
     pub offset: LayoutVector2D,
 }
