@@ -23,9 +23,7 @@ use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JS_AddInterruptCallback;
-use js::jsval::UndefinedValue;
-use js::panic::maybe_resume_unwind;
-use js::rust::{CompileOptionsWrapper, HandleValue, MutableHandleValue, ParentRuntime};
+use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -55,7 +53,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -674,7 +672,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             };
         }
 
-        rooted!(in(*self.get_cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit::new(
@@ -694,7 +691,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
-            let (url, source) = match load_whole_resource(
+            // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
+            let (url, bytes) = match load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
@@ -705,7 +703,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             ) {
                 Err(_) => return Err(Error::Network(None)),
                 Ok((metadata, bytes)) => {
-                    // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
                     // Step 7: Check if response status is not an ok status
                     if !metadata.status.is_success() {
                         return Err(Error::Network(None));
@@ -721,36 +718,39 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                         return Err(Error::Network(None));
                     }
 
-                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    (metadata.final_url, bytes)
                 },
             };
 
-            #[expect(unsafe_code)]
-            let mut cx =
-                unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
-            let options = CompileOptionsWrapper::new(&cx, url.as_str(), 1);
-            let result = js::rust::evaluate_script(
-                &mut cx,
-                self.reflector().get_jsobject(),
-                &source,
-                rval.handle_mut(),
-                options,
+            // Step 8. Let sourceText be the result of UTF-8 decoding bodyBytes.
+            let (source, _, _) = UTF_8.decode(&bytes);
+
+            // TODO Step 9. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
+
+            // Step 10. Let script be the result of creating a classic script
+            // given sourceText, settingsObject, response's URL, the default script fetch options, and mutedErrors.
+            let script = self.globalscope.create_a_classic_script(
+                source,
+                url,
+                ScriptFetchOptions::default_classic_script(&self.globalscope),
+                false,
+                Some(IntroductionType::WORKER),
+                1,
+                true,
             );
 
-            maybe_resume_unwind();
+            // Run the classic script script, with rethrow errors set to true.
+            let result = self.globalscope.run_a_classic_script(script, true, can_gc);
 
-            match result {
-                Ok(_) => (),
-                Err(_) => {
-                    if self.is_closing() {
-                        // Don't return JSFailed as we might not have
-                        // any pending exceptions.
-                        error!("evaluate_script failed (terminated)");
-                    } else {
-                        error!("evaluate_script failed");
-                        return Err(Error::JSFailed);
-                    }
-                },
+            if let Err(error) = result {
+                if self.is_closing() {
+                    // Don't return JSFailed as we might not have
+                    // any pending exceptions.
+                    error!("evaluate_script failed (terminated)");
+                } else {
+                    error!("evaluate_script failed");
+                    return Err(error);
+                }
             }
         }
 
