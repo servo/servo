@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use script_bindings::reflector::DomObject;
-use servo_constellation_traits::StructuredSerializedData;
 use servo_base::id::PipelineId;
+use servo_constellation_traits::StructuredSerializedData;
 use servo_url::ImmutableOrigin;
 
 use crate::dom::bindings::refcounted::Trusted;

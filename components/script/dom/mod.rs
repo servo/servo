@@ -401,6 +401,7 @@ pub(crate) mod webvtt;
 pub(crate) use self::webvtt::*;
 #[expect(dead_code)]
 pub(crate) mod window;
+pub(crate) mod windowclient;
 pub(crate) mod windowproxy;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;
