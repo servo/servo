@@ -525,6 +525,7 @@ impl ServiceWorkerGlobalScope {
                         target,
                         scope.upcast(),
                         message.handle(),
+                        None,
                         ports,
                     );
                 } else {
