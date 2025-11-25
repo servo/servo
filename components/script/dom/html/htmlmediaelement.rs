@@ -2543,11 +2543,9 @@ impl HTMLMediaElement {
     }
 
     fn playback_need_data(&self) {
-        // The player needs more data.
-        // If we already have a valid fetch request, we do nothing.
-        // Otherwise, if we have no request and the previous request was
-        // cancelled because we got an EnoughData event, we restart
-        // fetching where we left.
+        // The media engine signals that the source needs more data. If we already have a valid
+        // fetch request, we do nothing. Otherwise, if we have no request and the previous request
+        // was cancelled because we got an EnoughData event, we restart fetching where we left.
         if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
             if let Some(reason) = current_fetch_context.cancel_reason() {
                 // XXX(ferjm) Ideally we should just create a fetch request from
@@ -2583,12 +2581,10 @@ impl HTMLMediaElement {
     }
 
     fn playback_enough_data(&self) {
-        self.change_ready_state(ReadyState::HaveEnoughData);
-
-        // The player has enough data and it is asking us to stop pushing
-        // bytes, so we cancel the ongoing fetch request iff we are able
-        // to restart it from where we left. Otherwise, we continue the
-        // current fetch request, assuming that some frames will be dropped.
+        // The media engine signals that the source has enough data and asks us to stop pushing bytes
+        // to avoid excessive buffer queueing, so we cancel the ongoing fetch request if we are able
+        // to restart it from where we left. Otherwise, we continue the current fetch request,
+        // assuming that some frames will be dropped.
         if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut() {
             if current_fetch_context.is_seekable() {
                 current_fetch_context.cancel(CancelReason::Backoff);
