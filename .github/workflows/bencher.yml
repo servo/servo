@@ -49,7 +49,7 @@ jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
   # with the help of a `runner-select` job and a `runner-timeout` job.
   runner-select:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       unique-id: ${{ steps.select.outputs.unique-id }}
       selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@0b9edd49381b22c14e5b123f21377269864ddf54
+        uses: servo/ci-runners/actions/runner-select@44317e3cd86c5ff2ef0b08878b90da246bc237da
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ubuntu-22.04
@@ -74,10 +74,10 @@ jobs:
     needs:
       - runner-select
     if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Runner timeout
-        uses: servo/ci-runners/actions/runner-timeout@0b9edd49381b22c14e5b123f21377269864ddf54
+        uses: servo/ci-runners/actions/runner-timeout@44317e3cd86c5ff2ef0b08878b90da246bc237da
         with:
           github_token: '${{ secrets.GITHUB_TOKEN }}'
           unique-id: '${{ needs.runner-select.outputs.unique-id }}'
@@ -88,7 +88,7 @@ jobs:
     name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@0b9edd49381b22c14e5b123f21377269864ddf54
+      - uses: servo/ci-runners/actions/checkout@44317e3cd86c5ff2ef0b08878b90da246bc237da
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}
