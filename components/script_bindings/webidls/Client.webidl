@@ -9,7 +9,8 @@ interface Client {
   readonly attribute USVString url;
   readonly attribute FrameType frameType;
   readonly attribute DOMString id;
-  //void postMessage(any message, optional sequence<Transferable> transfer);
+  // undefined postMessage(any message, sequence<object> transfer);
+  // undefined postMessage(any message, optional StructuredSerializeOptions options = {});
 };
 
 enum FrameType {

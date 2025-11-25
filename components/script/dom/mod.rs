@@ -450,6 +450,8 @@ pub(crate) use self::webvtt::*;
 pub(crate) mod wheelevent;
 #[expect(dead_code)]
 pub(crate) mod window;
+pub(crate) mod windowclient;
+#[expect(dead_code)]
 pub(crate) mod windowproxy;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;
