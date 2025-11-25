@@ -37,7 +37,7 @@ pub use self::background_hang_monitor::*;
         )
     ),
 ))]
-pub use crate::sampler::DummySampler as SamplerImpl;
+pub(crate) use crate::sampler::DummySampler as SamplerImpl;
 #[cfg(all(
     feature = "sampler",
     target_os = "linux",
@@ -48,14 +48,14 @@ pub use crate::sampler::DummySampler as SamplerImpl;
         target_env = "musl"
     ))
 ))]
-pub use crate::sampler_linux::LinuxSampler as SamplerImpl;
+pub(crate) use crate::sampler_linux::LinuxSampler as SamplerImpl;
 #[cfg(all(feature = "sampler", target_os = "android"))]
-pub use crate::sampler_linux::LinuxSampler as SamplerImpl;
+pub(crate) use crate::sampler_linux::LinuxSampler as SamplerImpl;
 #[cfg(all(feature = "sampler", target_os = "macos"))]
-pub use crate::sampler_mac::MacOsSampler as SamplerImpl;
+pub(crate) use crate::sampler_mac::MacOsSampler as SamplerImpl;
 #[cfg(all(
     feature = "sampler",
     target_os = "windows",
     any(target_arch = "x86_64", target_arch = "x86")
 ))]
-pub use crate::sampler_windows::WindowsSampler as SamplerImpl;
+pub(crate) use crate::sampler_windows::WindowsSampler as SamplerImpl;

@@ -76,7 +76,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         );
 
         bhm_chan.send(MonitoredComponentMsg::Register(
-            SamplerImpl::new_boxed(),
+            SamplerImpl::default(),
             thread::current().name().map(str::to_owned),
             transient_hang_timeout,
             permanent_hang_timeout,
@@ -96,7 +96,7 @@ impl BackgroundHangMonitorClone for HangMonitorRegister {
 enum MonitoredComponentMsg {
     /// Register component for monitoring,
     Register(
-        Box<dyn Sampler>,
+        SamplerImpl,
         Option<String>,
         Duration,
         Duration,
@@ -159,7 +159,7 @@ impl BackgroundHangMonitor for BackgroundHangMonitorChan {
 }
 
 struct MonitoredComponent {
-    sampler: Box<dyn Sampler>,
+    sampler: SamplerImpl,
     last_activity: Instant,
     last_annotation: Option<HangAnnotation>,
     transient_hang_timeout: Duration,

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
 use std::ptr;
 
 use background_hang_monitor_api::{HangProfile, HangProfileSymbol};
@@ -12,33 +13,13 @@ pub trait Sampler: Send {
     fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()>;
 }
 
-pub struct DummySampler;
-
-impl DummySampler {
-    #[expect(dead_code)]
-    pub fn new_boxed() -> Box<dyn Sampler> {
-        Box::new(DummySampler)
-    }
-}
+// Implementing this type on `PhantomData` allows avoiding dead code warnings.
+pub(crate) type DummySampler = PhantomData<()>;
 
 impl Sampler for DummySampler {
     fn suspend_and_sample_thread(&self) -> Result<NativeStack, ()> {
         Err(())
     }
-}
-
-// Several types in this file are currently not used in a Linux or Windows build.
-pub type Address = *const u8;
-
-/// The registers used for stack unwinding
-#[expect(dead_code)]
-pub struct Registers {
-    /// Instruction pointer.
-    pub instruction_ptr: Address,
-    /// Stack pointer.
-    pub stack_ptr: Address,
-    /// Frame pointer.
-    pub frame_ptr: Address,
 }
 
 pub struct NativeStack {
