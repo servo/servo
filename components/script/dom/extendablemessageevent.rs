@@ -188,6 +188,7 @@ impl ExtendableMessageEvent {
         target: &EventTarget,
         scope: &GlobalScope,
         message: HandleValue,
+        source: Option<MessageSource>,
         ports: Vec<DomRoot<MessagePort>>,
         can_gc: CanGc,
     ) {
@@ -199,7 +200,7 @@ impl ExtendableMessageEvent {
             message,
             DOMString::new(),
             DOMString::new(),
-            None,
+            source,
             ports,
             can_gc,
         );
