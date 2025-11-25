@@ -37,6 +37,10 @@
 import os
 import sys
 
+# On NixOS, prepend nix-provided binary paths so they take precedence over .venv/bin
+if 'SERVO_NIX_BIN_DIR' in os.environ:
+    os.environ['PATH'] = os.environ['SERVO_NIX_BIN_DIR'] + os.pathsep + os.environ.get('PATH', '')
+
 def main(args):
     topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     sys.path.insert(0, os.path.join(topdir, "python"))

@@ -52,6 +52,19 @@ let
       ];
   };
   androidSdk = androidComposition.androidsdk;
+
+  # FHS wrappers for Python tools installed via venv (e.g ruff, pyrefly)
+  # These allow running dynamically linked binaries on NixOS without patching them.
+  # The wrappers provide an FHS environment at runtime.
+  mkVenvFhsWrapper =
+    name:
+    buildFHSEnv {
+      inherit name;
+      runScript = writeShellScript "${name}-fhs" ''
+        exec "${toString ./.}/.venv/bin/${name}" "$@"
+      '';
+    };
+
   # Required by ./mach build --android
   androidEnvironment = lib.optionalAttrs buildAndroid rec {
     ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
@@ -190,6 +203,15 @@ stdenv.mkDerivation (androidEnvironment // {
       # get patched in a way that makes them dependent on the Nix store.
       repo_root=$(git rev-parse --show-toplevel)
       export RUSTUP_HOME=$repo_root/.rustup
+    else
+      # On NixOS, export FHS wrapper paths so mach can prepend them to PATH at runtime
+      # This ensures the FHS-wrapped binaries take precedence over .venv/bin
+      export SERVO_NIX_BIN_DIR="${
+        lib.makeBinPath [
+          (mkVenvFhsWrapper "ruff")
+          (mkVenvFhsWrapper "pyrefly")
+        ]
+      }"
     fi
   '';
 })
