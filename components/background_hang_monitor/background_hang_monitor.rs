@@ -33,7 +33,6 @@ impl HangMonitorRegister {
         monitoring_enabled: bool,
     ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
         let (sender, port) = unbounded();
-        let sender_clone = sender.clone();
 
         let join_handle = Builder::new()
             .name("BackgroundHangMonitor".to_owned())
@@ -51,7 +50,7 @@ impl HangMonitorRegister {
             .expect("Couldn't start BHM worker.");
         (
             Box::new(HangMonitorRegister {
-                sender: sender_clone,
+                sender,
                 monitoring_enabled,
             }),
             join_handle,
