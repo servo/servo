@@ -228,10 +228,7 @@ impl FontTemplate {
                 .iter()
                 .any(|existing_variation| existing_variation.tag == variation.tag)
             {
-                variations.push(FontVariation {
-                    tag: variation.tag,
-                    value: variation.value,
-                });
+                variations.push(variation);
             }
         };
 
@@ -245,12 +242,9 @@ impl FontTemplate {
             .for_each(&mut add_variation);
 
         // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
-        if descriptor.optical_sizing == FontOpticalSizing::Auto {
-            add_variation(FontVariation {
-                tag: Tag::new(b"opsz").to_u32(),
-                value: descriptor.pt_size.to_f32_px(),
-            });
-        }
+        // NOTE The precise behaviour of font-optical-sizing:auto is not defined.
+        // We choose to set "opsz" to the font size if it's not already set elsewhere. This is the easiest
+        // at the end of this function, so we move this step down.
 
         if let Some(font_face_rule) = &self.font_face_rule {
             // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
@@ -281,6 +275,14 @@ impl FontTemplate {
             add_variation(FontVariation {
                 tag: Tag::new(b"wdth").to_u32(),
                 value: descriptor.stretch.0.to_float(),
+            });
+        }
+
+        // This is the implementation for Step 9. Refer to the note on Step 9 for an explanation of why it's here.
+        if descriptor.optical_sizing == FontOpticalSizing::Auto {
+            add_variation(FontVariation {
+                tag: Tag::new(b"opsz").to_u32(),
+                value: descriptor.pt_size.to_f32_px(),
             });
         }
 
