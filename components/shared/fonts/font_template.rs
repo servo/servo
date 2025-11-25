@@ -244,6 +244,14 @@ impl FontTemplate {
             .copied()
             .for_each(&mut add_variation);
 
+        // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
+        if descriptor.optical_sizing == FontOpticalSizing::Auto {
+            add_variation(FontVariation {
+                tag: Tag::new(b"opsz").to_u32(),
+                value: descriptor.pt_size.to_f32_px(),
+            });
+        }
+
         if let Some(font_face_rule) = &self.font_face_rule {
             // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
             // descriptor in the @font-face rule are applied.
@@ -259,11 +267,20 @@ impl FontTemplate {
             }
         }
 
-        // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
-        if descriptor.optical_sizing == FontOpticalSizing::Auto {
+        // Step 2. Font variations as enabled by the font-weight, font-width, and font-style properties are applied.
+        // FIXME: Apply variations for font-style
+        // NOTE: font-stretch is a legacy alias to font-width
+        if descriptor.weight != FontWeight::NORMAL {
             add_variation(FontVariation {
-                tag: Tag::new(b"opsz").to_u32(),
-                value: descriptor.pt_size.to_f32_px(),
+                tag: Tag::new(b"wght").to_u32(),
+                value: descriptor.weight.value(),
+            });
+        }
+
+        if descriptor.stretch != FontStretch::NORMAL {
+            add_variation(FontVariation {
+                tag: Tag::new(b"wdth").to_u32(),
+                value: descriptor.stretch.0.to_float(),
             });
         }
 
