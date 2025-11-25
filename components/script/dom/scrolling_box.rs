@@ -54,12 +54,10 @@ impl ScrollRequirement {
         match self {
             ScrollRequirement::Always => true,
             ScrollRequirement::IfNotVisible => {
-                // Because the element_start and element_end have taken into account the scroll_offset, the
-                // viewport_start and viewport_end should have the root coordinate space.
-                let viewport_start = 0.;
-                let viewport_end = container_size;
+                let scrollport_start = 0.;
+                let scrollport_end = container_size;
 
-                element_end <= viewport_start || element_start >= viewport_end
+                element_end <= scrollport_start || element_start >= scrollport_end
             },
         }
     }
@@ -276,17 +274,15 @@ impl ScrollingBox {
                 },
                 // Step 4 & 8: If inline is "nearest",
                 ScrollLogicalPosition::Nearest => {
-                    // Because the element_start and element_end have taken into account the scroll_offset, the
-                    // viewport_start and viewport_end should have the root coordinate space.
-                    let viewport_start = 0.;
-                    let viewport_end = container_size;
+                    let scrollport_start = 0.;
+                    let scrollport_end = container_size;
 
                     // Step 4.2 & 8.2: If element start edge is outside scrolling box start edge and element
                     // size is less than scrolling box size or If element end edge is outside
                     // scrolling box end edge and element size is greater than scrolling box size:
                     // Align element start edge with scrolling box start edge.
-                    if (element_start < viewport_start && element_size <= container_size) ||
-                        (element_end > viewport_end && element_size >= container_size)
+                    if (element_start < scrollport_start && element_size <= container_size) ||
+                        (element_end > scrollport_end && element_size >= container_size)
                     {
                         element_start
                     }
@@ -294,8 +290,8 @@ impl ScrollingBox {
                     // size is greater than scrolling box size or If element start edge is outside
                     // scrolling box end edge and element size is less than scrolling box size:
                     // Align element end edge with scrolling box end edge.
-                    else if (element_end > viewport_end && element_size < container_size) ||
-                        (element_start < viewport_start && element_size > container_size)
+                    else if (element_end > scrollport_end && element_size < container_size) ||
+                        (element_start < scrollport_start && element_size > container_size)
                     {
                         element_end - container_size
                     }
