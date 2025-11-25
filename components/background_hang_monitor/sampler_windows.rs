@@ -12,8 +12,7 @@ pub struct WindowsSampler {
 }
 
 impl WindowsSampler {
-    #[expect(unsafe_code, dead_code)]
-    pub fn new_boxed() -> Box<dyn Sampler> {
+    pub(super) fn new_boxed() -> Box<dyn Sampler> {
         let thread_id = 0; // TODO: use windows::Win32::System::Threading::GetThreadId
         Box::new(WindowsSampler { thread_id })
     }
