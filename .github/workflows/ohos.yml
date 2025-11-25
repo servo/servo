@@ -36,7 +36,7 @@ env:
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
-  HITRACE_BENCH_VERSION: 0.8.2
+  HITRACE_BENCH_VERSION: 0.9.0
 
 jobs:
   build:
@@ -239,7 +239,7 @@ jobs:
           servo_pid=$(hdc shell pidof org.servo.servo)
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
-          grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+          grep 'tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
 
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64
@@ -293,7 +293,7 @@ jobs:
         continue-on-error: true
       - name: Handle failed speedometer
         if: ${{ steps.BencherRun.outcome == 'failure' }}
-        run: | 
+        run: |
           touch speedometer.json # Create an empty file for bencher.
           mkdir speedometer_error_logs
           hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
@@ -362,7 +362,7 @@ jobs:
     needs: build-harmonyos-aarch64
     env:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
-      UV_PROJECT: 'etc/ci/scenario'
+      UV_PROJECT: "etc/ci/scenario"
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -403,4 +403,4 @@ jobs:
         if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         uses: actions/upload-artifact@v5
         with:
-          path: 'servo_scenario_*_error.jpg'
+          path: "servo_scenario_*_error.jpg"
