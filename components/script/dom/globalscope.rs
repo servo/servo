@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
 use std::ops::Index;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -2998,6 +2999,113 @@ impl GlobalScope {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#creating-a-classic-script>
+    #[expect(unsafe_code)]
+    pub(crate) fn create_a_classic_script(
+        &self,
+        source: Cow<'_, str>,
+        url: ServoUrl,
+        muted_errors: bool,
+        introduction_type: Option<&'static CStr>,
+    ) -> ClassicScript {
+        let cx = GlobalScope::get_cx();
+
+        let filename = url.as_str();
+        let line_number = 1;
+        let fetch_options = ScriptFetchOptions::default_classic_script(self);
+
+        let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, filename, line_number) };
+        if let Some(introduction_type) = introduction_type {
+            options.set_introduction_type(introduction_type);
+        }
+
+        rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+        debug!("compiling dom string");
+        compiled_script
+            .set(unsafe { Compile1(*cx, options.ptr, &mut transform_str_to_source_text(&source)) });
+
+        let record = if compiled_script.get().is_null() {
+            debug!("error compiling Dom string");
+            Err(JavaScriptEvaluationError::CompilationFailure)
+        } else {
+            Ok(NonNull::new(*compiled_script).expect("Can't be null"))
+        };
+
+        ClassicScript {
+            record,
+            url,
+            fetch_options,
+            muted_errors,
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#run-a-classic-script>
+    #[expect(unsafe_code)]
+    pub(crate) fn run_a_classic_script_(
+        &self,
+        script: ClassicScript,
+        can_gc: CanGc,
+    ) -> Result<(), JavaScriptEvaluationError> {
+        // TODO use a settings object
+        // Step 2
+        if !self.can_run_script() {
+            return Ok(());
+        }
+
+        let script_base_url = script.url;
+        let fetch_options = script.fetch_options;
+
+        let cx = GlobalScope::get_cx();
+
+        let ar = enter_realm(self);
+
+        let _aes = AutoEntryScript::new(self);
+
+        let Ok(compiled_script) = script.record else {
+            return Err(JavaScriptEvaluationError::CompilationFailure);
+        };
+
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        rooted!(in(*cx) let script = compiled_script.as_ptr());
+        rooted!(in(*cx) let mut script_private = UndefinedValue());
+
+        unsafe { JS_GetScriptPrivate(*script, script_private.handle_mut()) };
+
+        // When `ScriptPrivate` for the compiled script is undefined,
+        // we need to set it so that it can be used in dynamic import context.
+        if script_private.is_undefined() {
+            debug!("Set script private for {}", script_base_url);
+
+            let module_script_data = Rc::new(ModuleScript::new(
+                script_base_url,
+                fetch_options,
+                // We can't initialize an module owner here because
+                // the executing context of script might be different
+                // from the dynamic import script's executing context.
+                None,
+            ));
+
+            unsafe {
+                SetScriptPrivate(
+                    *script,
+                    &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+                );
+            }
+        }
+
+        let result = unsafe { JS_ExecuteScript(*cx, script.handle(), rval.handle_mut()) };
+
+        if !result {
+            debug!("error evaluating Dom string");
+            let error_info =
+                take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
+            return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
+        }
+
+        maybe_resume_unwind();
+        Ok(())
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     pub(crate) fn schedule_callback(
         &self,
@@ -3728,4 +3836,11 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     fn is_secure_context(&self) -> bool {
         self.is_secure_context()
     }
+}
+
+pub struct ClassicScript {
+    pub record: Result<NonNull<JSScript>, JavaScriptEvaluationError>,
+    pub url: ServoUrl,
+    pub fetch_options: ScriptFetchOptions,
+    pub muted_errors: bool,
 }
