@@ -17,7 +17,7 @@ use headers::{
 };
 use http::header::HeaderValue;
 use http::{HeaderMap, Method, StatusCode, header};
-use log::debug;
+use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
@@ -29,8 +29,8 @@ use quick_cache::{DefaultHashBuilder, UnitWeighter};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
-use tokio::sync::RwLock;
 use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
+use tokio::sync::{OwnedRwLockWriteGuard, RwLock};
 
 use crate::fetch::methods::{Data, DoneChannel};
 
@@ -112,6 +112,7 @@ pub(crate) struct CachedResponse {
 
 type CacheEntry = std::sync::Arc<RwLock<Vec<CachedResource>>>;
 type QuickCache = Cache<CacheKey, CacheEntry, UnitWeighter>;
+type OurLifecycle = DefaultLifecycle<CacheKey, CacheEntry>;
 type QuickCachePlaceeholderGuard<'a> =
     PlaceholderGuard<'a, CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, OurLifecycle>;
 
@@ -641,6 +642,72 @@ pub(crate) async fn construct_response(
     None
 }
 
+/// Freshening Stored Responses upon Validation.
+/// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
+pub(crate) async fn refresh(
+    request: &Request,
+    response: Response,
+    done_chan: &mut DoneChannel,
+    cached_resources: &mut Vec<CachedResource>,
+) -> Option<Response> {
+    assert_eq!(response.status, StatusCode::NOT_MODIFIED);
+
+    let cached_resource = cached_resources.iter_mut().next()?;
+
+    let mut constructed_response = if let Some(range_spec) = request.headers.typed_get::<Range>() {
+        handle_range_request(request, &[cached_resource], &range_spec, done_chan)
+            .map(|cached_response| cached_response.response)
+    } else {
+        // done_chan will have been set to Some(..) by http_network_fetch.
+        // If the body is not receiving data, set the done_chan back to None.
+        // Otherwise, create a new dedicated channel to update the consumer.
+        // The response constructed here will replace the 304 one from the network.
+        let in_progress_channel = match &*cached_resource.body.lock() {
+            ResponseBody::Receiving(..) => Some(unbounded()),
+            ResponseBody::Empty | ResponseBody::Done(..) => None,
+        };
+        match in_progress_channel {
+            Some((done_sender, done_receiver)) => {
+                *done_chan = Some((done_sender.clone(), done_receiver));
+                cached_resource.awaiting_body.lock().push(done_sender);
+            },
+            None => *done_chan = None,
+        }
+        // Received a response with 304 status code, in response to a request that matches a cached resource.
+        // 1. update the headers of the cached resource.
+        // 2. return a response, constructed from the cached resource.
+        let resource_timing = ResourceFetchTiming::new(request.timing_type());
+        let mut constructed_response =
+            Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
+
+        constructed_response.body = cached_resource.body.clone();
+
+        constructed_response
+            .status
+            .clone_from(&cached_resource.status);
+        constructed_response.https_state = cached_resource.https_state;
+        constructed_response.referrer = request.referrer.to_url().cloned();
+        constructed_response.referrer_policy = request.referrer_policy;
+        constructed_response
+            .status
+            .clone_from(&cached_resource.status);
+        constructed_response
+            .url_list
+            .clone_from(&cached_resource.url_list);
+        Some(constructed_response)
+    };
+
+    // Update cached Resource with response and constructed response.
+    if let Some(constructed_response) = constructed_response.as_mut() {
+        cached_resource.expires = get_response_expiry(constructed_response);
+        let mut stored_headers = cached_resource.metadata.headers.lock();
+        stored_headers.extend(response.headers);
+        constructed_response.headers = stored_headers.clone();
+    }
+
+    constructed_response
+}
+
 impl HttpCache {
     /// Wake-up consumers of cached resources
     /// whose response body was still receiving data when the resource was constructed,
@@ -688,76 +755,6 @@ impl HttpCache {
                 let _ = done_sender.send(to_send.clone());
             }
         }
-    }
-
-    /// Freshening Stored Responses upon Validation.
-    /// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
-    pub async fn refresh(
-        &self,
-        request: &Request,
-        response: Response,
-        done_chan: &mut DoneChannel,
-    ) -> Option<Response> {
-        assert_eq!(response.status, StatusCode::NOT_MODIFIED);
-        let entry_key = CacheKey::new(request);
-        let cached_resources = self.entries.get(&entry_key).unwrap();
-
-        let mut lock = cached_resources.write().await;
-        let cached_resource = lock.iter_mut().next()?;
-
-        let mut constructed_response =
-            if let Some(range_spec) = request.headers.typed_get::<Range>() {
-                handle_range_request(request, &[cached_resource], &range_spec, done_chan)
-                    .map(|cached_response| cached_response.response)
-            } else {
-                // done_chan will have been set to Some(..) by http_network_fetch.
-                // If the body is not receiving data, set the done_chan back to None.
-                // Otherwise, create a new dedicated channel to update the consumer.
-                // The response constructed here will replace the 304 one from the network.
-                let in_progress_channel = match &*cached_resource.body.lock() {
-                    ResponseBody::Receiving(..) => Some(unbounded()),
-                    ResponseBody::Empty | ResponseBody::Done(..) => None,
-                };
-                match in_progress_channel {
-                    Some((done_sender, done_receiver)) => {
-                        *done_chan = Some((done_sender.clone(), done_receiver));
-                        cached_resource.awaiting_body.lock().push(done_sender);
-                    },
-                    None => *done_chan = None,
-                }
-                // Received a response with 304 status code, in response to a request that matches a cached resource.
-                // 1. update the headers of the cached resource.
-                // 2. return a response, constructed from the cached resource.
-                let resource_timing = ResourceFetchTiming::new(request.timing_type());
-                let mut constructed_response =
-                    Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
-
-                constructed_response.body = cached_resource.body.clone();
-
-                constructed_response
-                    .status
-                    .clone_from(&cached_resource.status);
-                constructed_response.https_state = cached_resource.https_state;
-                constructed_response.referrer = request.referrer.to_url().cloned();
-                constructed_response.referrer_policy = request.referrer_policy;
-                constructed_response
-                    .status
-                    .clone_from(&cached_resource.status);
-                constructed_response
-                    .url_list
-                    .clone_from(&cached_resource.url_list);
-                Some(constructed_response)
-            };
-
-        // Update cached Resource with response and constructed response.
-        if let Some(constructed_response) = constructed_response.as_mut() {
-            cached_resource.expires = get_response_expiry(constructed_response);
-            let mut stored_headers = cached_resource.metadata.headers.lock();
-            stored_headers.extend(response.headers);
-            constructed_response.headers = stored_headers.clone();
-        }
-
-        constructed_response
     }
 
     async fn invalidate_for_url(&self, url: &ServoUrl) {
@@ -866,35 +863,23 @@ impl HttpCache {
     /// If the value exist in the cache, return it. If the value does not exist, return a guard you can use to insert values in the cache.
     /// If the guard is alive, all other accesses to this function will block.
     pub(crate) async fn get_or_guard(&self, entry_key: CacheKey) -> CachedResourcesOrGuard<'_> {
-        let result = self.entries.get_value_or_guard_async(&entry_key).await;
-        match result {
-            Ok(val) => CachedResourcesOrGuard::Value(val),
+        match self.entries.get_value_or_guard_async(&entry_key).await {
+            Ok(val) => CachedResourcesOrGuard::Value(val.write_owned().await),
             Err(guard) => CachedResourcesOrGuard::Guard(guard),
         }
     }
 }
 
-/// Returns the entry in the cache or a guard.
-/// The guard will block other queries to the cache entry.
+/// Returns an writeable entry into the cache or a guard for insertint an entry
+/// The guard will block other queries to the cache entry in both cases.
 pub(crate) enum CachedResourcesOrGuard<'a> {
-    Value(CacheEntry),
+    Value(OwnedRwLockWriteGuard<Vec<CachedResource>>),
     Guard(QuickCachePlaceeholderGuard<'a>),
 }
 
-/// A guard on the cache. Might not be blocking.
-pub(crate) struct CacheGuard<'a>(PlaceHolder<'a>);
-
-impl<'a> CacheGuard<'a> {
-    pub(crate) fn new_append_guard(key: CacheKey) -> Self {
-        CacheGuard(PlaceHolder::Append(key))
-    }
-
-    pub(crate) fn new_guard(guard: QuickCachePlaceeholderGuard<'a>) -> Self {
-        CacheGuard(PlaceHolder::Guard(guard))
-    }
-
+impl<'a> CachedResourcesOrGuard<'a> {
     /// Insert into the cache according to http spec
-    pub(crate) async fn insert(self, request: &Request, response: &Response, cache: &HttpCache) {
+    pub(crate) async fn insert(self, request: &Request, response: &Response) {
         if pref!(network_http_cache_disabled) {
             return;
         }
@@ -945,33 +930,32 @@ impl<'a> CacheGuard<'a> {
             last_validated: Instant::now(),
         };
 
-        match self.0 {
-            PlaceHolder::Append(cache_key) => {
-                if let Some(entry) = cache.entries.get(&cache_key) {
-                    let mut entry = entry.write().await;
-                    entry.push(entry_resource);
-                }
+        match self {
+            CachedResourcesOrGuard::Value(mut owned_rw_lock_write_guard) => {
+                owned_rw_lock_write_guard.push(entry_resource);
             },
-            PlaceHolder::Guard(placeholder_guard) => {
+            CachedResourcesOrGuard::Guard(placeholder_guard) => {
                 if placeholder_guard
                     .insert(std::sync::Arc::new(RwLock::new(vec![entry_resource])))
                     .is_err()
                 {
-                    log::error!("Could not insert resource into http-cache");
+                    error!("Could not insert into cache");
                 }
             },
-        };
+        }
     }
 }
 
-type OurLifecycle = DefaultLifecycle<CacheKey, CacheEntry>;
-
-/// A placeholder for our cache. Does not need to block other cache access but might.
-pub(crate) enum PlaceHolder<'a> {
-    /// Append the entry to the cache.
-    Append(CacheKey),
-    /// Block other queries to the same entry.
-    Guard(
-        PlaceholderGuard<'a, CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, OurLifecycle>,
-    ),
+impl<'a, T> AsMut<T> for CachedResourcesOrGuard<'a>
+where
+    Vec<CachedResource>: AsMut<T>,
+{
+    fn as_mut(&mut self) -> &mut T {
+        match self {
+            CachedResourcesOrGuard::Value(owned_rw_lock_write_guard) => {
+                owned_rw_lock_write_guard.as_mut()
+            },
+            CachedResourcesOrGuard::Guard(_) => panic!("NYI"),
+        }
+    }
 }

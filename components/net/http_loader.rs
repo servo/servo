@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc as StdArc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -65,7 +65,6 @@ use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use tokio::sync::Notify;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
@@ -82,9 +81,7 @@ use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
-use crate::http_cache::{
-    CacheGuard, CacheKey, CachedResourcesOrGuard, HttpCache, construct_response,
-};
+use crate::http_cache::{CacheKey, CachedResourcesOrGuard, HttpCache, construct_response, refresh};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
 
@@ -1478,89 +1475,84 @@ async fn http_network_or_cache_fetch(
 
     // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
-    let cache_guard = block_for_cache_ready(
-        context,
-        http_request,
-        done_chan,
-        &mut revalidating_flag,
-        &mut response,
-    )
-    .await;
+    {
+        // Section for blocking
+        let mut cache_guard = block_for_cache_ready(
+            context,
+            http_request,
+            done_chan,
+            &mut revalidating_flag,
+            &mut response,
+        )
+        .await;
 
-    wait_for_cached_response(done_chan, &mut response).await;
+        wait_for_cached_response(done_chan, &mut response).await;
 
-    // TODO(#33616): Step 9. If aborted, then return the appropriate network error for fetchParams.
+        // TODO(#33616): Step 9. If aborted, then return the appropriate network error for fetchParams.
 
-    // Step 10. If response is null, then:
-    if response.is_none() {
-        // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
-        if http_request.cache_mode == CacheMode::OnlyIfCached {
-            // The cache will not be updated,
-            // set its state to ready to construct.
-            return Response::network_error(NetworkError::Internal(
-                "Couldn't find response in cache".into(),
-            ));
-        }
-
-        // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
-        // includeCredentials, and isNewConnectionFetch.
-        let forward_response =
-            http_network_fetch(http_fetch_params, include_credentials, done_chan, context).await;
-
-        let http_request = &mut http_fetch_params.request;
-        // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
-        // inclusive, invalidate appropriate stored responses in httpCache, as per the
-        // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
-        if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
-            context
-                .state
-                .http_cache
-                .invalidate(http_request, &forward_response)
-                .await;
-        }
-
-        // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
-        if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
-            // Ensure done_chan is None,
-            // since the network response will be replaced by the revalidated stored one.
-            response = context
-                .state
-                .http_cache
-                .refresh(http_request, forward_response.clone(), done_chan)
-                .await;
-            *done_chan = None;
-
-            wait_for_cached_response(done_chan, &mut response).await;
-            if let Some(response) = &mut response {
-                response.cache_state = CacheState::Validated;
-            }
-        }
-
-        // Step 10.5 If response is null, then:
+        // Step 10. If response is null, then:
         if response.is_none() {
-            // Step 10.5.1 Set response to forwardResponse.
-            let forward_response = response.insert(forward_response);
+            // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
+            if http_request.cache_mode == CacheMode::OnlyIfCached {
+                // The cache will not be updated,
+                // set its state to ready to construct.
+                return Response::network_error(NetworkError::Internal(
+                    "Couldn't find response in cache".into(),
+                ));
+            }
 
-            // Per https://httpwg.org/specs/rfc9111.html#response.cacheability we must not cache responses
-            // if the No-Store directive is present
-            if http_request.cache_mode != CacheMode::NoStore {
-                // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
-                //             "Storing Responses in Caches" chapter of HTTP Caching.
-                cache_guard
-                    .insert(http_request, forward_response, &context.state.http_cache)
+            // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
+            // includeCredentials, and isNewConnectionFetch.
+            let forward_response =
+                http_network_fetch(http_fetch_params, include_credentials, done_chan, context)
+                    .await;
+
+            let http_request = &mut http_fetch_params.request;
+            // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
+            // inclusive, invalidate appropriate stored responses in httpCache, as per the
+            // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
+            if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
+                context
+                    .state
+                    .http_cache
+                    .invalidate(http_request, &forward_response)
                     .await;
             }
-        }
-    };
 
-    //=-=----------------------------------------------------------------------------------------
-    //=-=----------------------------------------------------------------------------------------
-    //=-=----------------------------------------------------------------------------------------
-    //=-=----------------------------------------------------------------------------------------
-    //=-=----------------------------------------------------------------------------------------
-    //=-=----------------------------------------------------------------------------------------
-    //=-=----------------------------------------------------------------------------------------
-    //=-=----------------------------------------------------------------------------------------
+            // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
+            if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
+                // Ensure done_chan is None,
+                // since the network response will be replaced by the revalidated stored one.
+                response = refresh(
+                    http_request,
+                    forward_response.clone(),
+                    done_chan,
+                    cache_guard.as_mut(),
+                )
+                .await;
+                *done_chan = None;
+
+                wait_for_cached_response(done_chan, &mut response).await;
+                if let Some(response) = &mut response {
+                    response.cache_state = CacheState::Validated;
+                }
+            }
+
+            // Step 10.5 If response is null, then:
+            if response.is_none() {
+                // Step 10.5.1 Set response to forwardResponse.
+                let forward_response = response.insert(forward_response);
+
+                // Per https://httpwg.org/specs/rfc9111.html#response.cacheability we must not cache responses
+                // if the No-Store directive is present
+                if http_request.cache_mode != CacheMode::NoStore {
+                    // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
+                    //             "Storing Responses in Caches" chapter of HTTP Caching.
+                    cache_guard.insert(http_request, forward_response).await;
+                }
+            }
+        };
+    }
 
     let http_request = &mut http_fetch_params.request;
     let mut response = response.unwrap();
@@ -1718,7 +1710,7 @@ async fn block_for_cache_ready<'a>(
     done_chan: &mut DoneChannel,
     revalidating_flag: &mut bool,
     response: &mut Option<Response>,
-) -> CacheGuard<'a> {
+) -> CachedResourcesOrGuard<'a> {
     let entry_key = CacheKey::new(http_request);
     let guard_result = context
         .state
@@ -1727,18 +1719,17 @@ async fn block_for_cache_ready<'a>(
         .await;
 
     match guard_result {
-        CachedResourcesOrGuard::Guard(guard) => {
+        CachedResourcesOrGuard::Guard(_) => {
             *done_chan = None;
-            CacheGuard::new_guard(guard)
         },
-        CachedResourcesOrGuard::Value(cached_resources) => {
+        CachedResourcesOrGuard::Value(ref cached_resources) => {
             // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
             // HTTP cache partition, given httpRequest.
             // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
             //              possibly needing validation, as per the "Constructing Responses from Caches"
             //              chapter of HTTP Caching, if any.
             let stored_response =
-                construct_response(http_request, done_chan, &*cached_resources.read().await).await;
+                construct_response(http_request, done_chan, &*cached_resources).await;
             // Step 8.25.2 If storedResponse is non-null, then:
             if let Some(response_from_cache) = stored_response {
                 let response_headers = response_from_cache.response.headers.clone();
@@ -1785,9 +1776,9 @@ async fn block_for_cache_ready<'a>(
                     *done_chan = None;
                 }
             }
-            CacheGuard::new_append_guard(entry_key)
         },
     }
+    guard_result
 }
 
 /// Wait for a cached response from channel.
