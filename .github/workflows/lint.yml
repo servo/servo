@@ -35,17 +35,6 @@ jobs:
           NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
           # Any other boolean conditions that disable self-hosted runners go here.
           force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
-  runner-timeout:
-    needs:
-      - runner-select
-    if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Runner timeout
-        uses: servo/ci-runners/actions/runner-timeout@44317e3cd86c5ff2ef0b08878b90da246bc237da
-        with:
-          github_token: '${{ secrets.GITHUB_TOKEN }}'
-          unique-id: '${{ needs.runner-select.outputs.unique-id }}'
 
   lint:
     needs:
