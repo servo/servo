@@ -312,6 +312,7 @@ pub enum JobResultValue {
         /// The active worker, if any.
         active_worker: Option<ServiceWorkerId>,
     },
+    Boolean(bool),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -319,6 +320,8 @@ pub enum JobResultValue {
 pub struct Job {
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-type>
     pub job_type: JobType,
+    /// <https://w3c.github.io/ServiceWorker/#job-storage-key>
+    pub storage_key: (ImmutableOrigin,),
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-scope-url>
     pub scope_url: ServoUrl,
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-script-url>
@@ -335,6 +338,7 @@ impl Job {
     /// <https://w3c.github.io/ServiceWorker/#create-job-algorithm>
     pub fn create_job(
         job_type: JobType,
+        storage_key: (ImmutableOrigin,),
         scope_url: ServoUrl,
         script_url: ServoUrl,
         client: GenericCallback<JobResult>,
@@ -343,6 +347,7 @@ impl Job {
     ) -> Job {
         Job {
             job_type,
+            storage_key,
             scope_url,
             script_url,
             client,
