@@ -419,8 +419,6 @@ enum VerifyBrowsingContextIsOpen {
     No,
 }
 
-const CAN_EARLY_RETURN: bool = true;
-
 impl Handler {
     fn new(
         embedder_sender: Sender<WebDriverCommandMsg>,
@@ -1414,10 +1412,10 @@ impl Handler {
                 ),
             };
             self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
-                .map_err(|error| (CAN_EARLY_RETURN, error))?;
+                .map_err(|error| (true, error))?;
             wait_for_ipc_response_flatten(receiver)
                 .map(|value| (!value.is_empty(), value))
-                .map_err(|error| (CAN_EARLY_RETURN, error))
+                .map_err(|error| (true, error))
         })
         .and_then(|response| {
             let resp_value: Vec<WebElement> = response.into_iter().map(WebElement).collect();
@@ -1488,10 +1486,10 @@ impl Handler {
                 ),
             };
             self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
-                .map_err(|error| (CAN_EARLY_RETURN, error))?;
+                .map_err(|error| (true, error))?;
             wait_for_ipc_response_flatten(receiver)
                 .map(|value| (!value.is_empty(), value))
-                .map_err(|error| (CAN_EARLY_RETURN, error))
+                .map_err(|error| (true, error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
@@ -1553,10 +1551,10 @@ impl Handler {
                 ),
             };
             self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
-                .map_err(|error| (CAN_EARLY_RETURN, error))?;
+                .map_err(|error| (true, error))?;
             wait_for_ipc_response_flatten(receiver)
                 .map(|value| (!value.is_empty(), value))
-                .map_err(|error| (CAN_EARLY_RETURN, error))
+                .map_err(|error| (true, error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
