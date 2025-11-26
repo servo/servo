@@ -105,8 +105,10 @@ impl ServiceWorker {
         // Step 7
         let data = structuredclone::write(cx, message, Some(transfer))?;
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let pipeline_id = incumbent.pipeline_id();
         let msg_vec = DOMMessage {
             origin: incumbent.origin().immutable().clone(),
+            pipeline_id,
             data,
         };
         let _ = self.global().script_to_constellation_chan().send(

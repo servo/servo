@@ -221,6 +221,7 @@ pub struct ScopeThings {
 pub struct DOMMessage {
     /// The origin of the message
     pub origin: ImmutableOrigin,
+    pub pipeline_id: PipelineId,
     /// The payload of the message
     pub data: StructuredSerializedData,
 }

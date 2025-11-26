@@ -64,10 +64,15 @@ impl ServiceWorker {
 
     /// Forward a DOM message to the running service worker scope.
     fn forward_dom_message(&self, msg: DOMMessage) {
-        let DOMMessage { origin, data } = msg;
+        let DOMMessage {
+            origin,
+            data,
+            pipeline_id,
+        } = msg;
         let _ = self.sender.send(ServiceWorkerScriptMsg::CommonWorker(
             WorkerScriptMsg::DOMMessage(MessageData {
                 origin,
+                pipeline_id,
                 data: Box::new(data),
             }),
         ));

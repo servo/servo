@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+use base::id::PipelineId;
 use constellation_traits::StructuredSerializedData;
 use servo_url::ImmutableOrigin;
 
@@ -21,6 +21,7 @@ pub(crate) enum WorkerScriptMsg {
 pub(crate) struct MessageData {
     pub origin: ImmutableOrigin,
     pub data: Box<StructuredSerializedData>,
+    pub pipeline_id: PipelineId,
 }
 
 pub(crate) struct SimpleWorkerErrorHandler<T: DomObject> {
