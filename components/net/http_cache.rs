@@ -708,6 +708,41 @@ pub(crate) async fn refresh(
     constructed_response
 }
 
+/// Invalidation.
+/// <https://tools.ietf.org/html/rfc7234#section-4.4>
+pub(crate) async fn invalidate(
+    request: &Request,
+    response: &Response,
+    cached_resources: &mut Vec<CachedResource>,
+) {
+    // TODO(eijebong): Once headers support typed_get, update this to use them
+    if let Some(Ok(location)) = response
+        .headers
+        .get(header::LOCATION)
+        .map(HeaderValue::to_str)
+    {
+        if request.current_url().join(location).is_ok() {
+            invalidate_cached_resources(cached_resources).await;
+        }
+    }
+    if let Some(Ok(content_location)) = response
+        .headers
+        .get(header::CONTENT_LOCATION)
+        .map(HeaderValue::to_str)
+    {
+        if request.current_url().join(content_location).is_ok() {
+            invalidate_cached_resources(cached_resources).await;
+        }
+    }
+    invalidate_cached_resources(cached_resources).await;
+}
+
+async fn invalidate_cached_resources(cached_resources: &mut Vec<CachedResource>) {
+    for cached_resource in cached_resources.iter_mut() {
+        cached_resource.expires = Duration::ZERO;
+    }
+}
+
 impl HttpCache {
     /// Wake-up consumers of cached resources
     /// whose response body was still receiving data when the resource was constructed,
@@ -757,42 +792,7 @@ impl HttpCache {
         }
     }
 
-    async fn invalidate_for_url(&self, url: &ServoUrl) {
-        let entry_key = CacheKey::from_servo_url(url);
-        if let Some(cached_resources_arc) = self.entries.peek(&entry_key) {
-            // We cannot take ownership of the element becasue we want to keep the cache lifetime of the element the same.
-            let mut cached_resources = cached_resources_arc.write().await;
-            for cached_resource in cached_resources.iter_mut() {
-                cached_resource.expires = Duration::ZERO;
-            }
-        }
-    }
-
-    /// Invalidation.
-    /// <https://tools.ietf.org/html/rfc7234#section-4.4>
-    pub async fn invalidate(&self, request: &Request, response: &Response) {
-        // TODO(eijebong): Once headers support typed_get, update this to use them
-        if let Some(Ok(location)) = response
-            .headers
-            .get(header::LOCATION)
-            .map(HeaderValue::to_str)
-        {
-            if let Ok(url) = request.current_url().join(location) {
-                self.invalidate_for_url(&url).await;
-            }
-        }
-        if let Some(Ok(content_location)) = response
-            .headers
-            .get(header::CONTENT_LOCATION)
-            .map(HeaderValue::to_str)
-        {
-            if let Ok(url) = request.current_url().join(content_location) {
-                self.invalidate_for_url(&url).await;
-            }
-        }
-        self.invalidate_for_url(&request.url()).await;
-    }
-
+    /*
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub async fn store(&self, request: &Request, response: &Response) {
@@ -854,6 +854,7 @@ impl HttpCache {
         // See A cache MAY complete a stored incomplete response by making a subsequent range request
         // https://tools.ietf.org/html/rfc7234#section-3.1
     }
+    */
 
     /// Clear the contents of this cache.
     pub fn clear(&self) {

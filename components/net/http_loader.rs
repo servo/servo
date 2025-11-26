@@ -5,6 +5,7 @@
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc as StdArc;
+use std::sync::atomic::AtomicUsize;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
@@ -81,7 +82,9 @@ use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
-use crate::http_cache::{CacheKey, CachedResourcesOrGuard, HttpCache, construct_response, refresh};
+use crate::http_cache::{
+    CacheKey, CachedResourcesOrGuard, HttpCache, construct_response, invalidate, refresh,
+};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
 
@@ -1236,6 +1239,8 @@ pub async fn http_redirect_fetch(
     fetch_response
 }
 
+static CTR: AtomicUsize = AtomicUsize::new(0);
+
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch)
 #[async_recursion]
 async fn http_network_or_cache_fetch(
@@ -1476,6 +1481,11 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
     {
+        CTR.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        log::error!(
+            "Before block ready for {}",
+            CTR.load(std::sync::atomic::Ordering::SeqCst)
+        );
         // Section for blocking
         let mut cache_guard = block_for_cache_ready(
             context,
@@ -1486,8 +1496,10 @@ async fn http_network_or_cache_fetch(
         )
         .await;
 
+        log::error!("After block ready for");
         wait_for_cached_response(done_chan, &mut response).await;
 
+        log::error!("After wait for cached response");
         // TODO(#33616): Step 9. If aborted, then return the appropriate network error for fetchParams.
 
         // Step 10. If response is null, then:
@@ -1512,11 +1524,7 @@ async fn http_network_or_cache_fetch(
             // inclusive, invalidate appropriate stored responses in httpCache, as per the
             // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
             if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
-                context
-                    .state
-                    .http_cache
-                    .invalidate(http_request, &forward_response)
-                    .await;
+                invalidate(http_request, &forward_response, cache_guard.as_mut()).await;
             }
 
             // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
@@ -1552,6 +1560,12 @@ async fn http_network_or_cache_fetch(
                 }
             }
         };
+
+        log::error!(
+            "lock should free {}",
+            CTR.load(std::sync::atomic::Ordering::SeqCst)
+        );
+        CTR.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
     }
 
     let http_request = &mut http_fetch_params.request;
