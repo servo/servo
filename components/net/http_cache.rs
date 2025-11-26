@@ -30,9 +30,7 @@ use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
-use tokio::sync::{
-    OwnedRwLockWriteGuard, RwLock as TokioRwLock, RwLockWriteGuard as TokioRwLockWriteGuard,
-};
+use tokio::sync::{OwnedRwLockWriteGuard, RwLock as TokioRwLock};
 
 use crate::fetch::methods::{Data, DoneChannel};
 
@@ -47,12 +45,6 @@ impl CacheKey {
     pub(crate) fn new(request: &Request) -> CacheKey {
         CacheKey {
             url: request.current_url(),
-        }
-    }
-
-    fn from_servo_url(servo_url: &ServoUrl) -> CacheKey {
-        CacheKey {
-            url: servo_url.clone(),
         }
     }
 }

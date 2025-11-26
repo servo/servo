@@ -1478,7 +1478,7 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
     {
-        // Section for blocking
+        // Enter critical section on cache entry.
         let mut cache_guard = block_for_cache_ready(
             context,
             http_request,
@@ -1490,15 +1490,13 @@ async fn http_network_or_cache_fetch(
 
         wait_for_cached_response(done_chan, &mut response).await;
 
-        let debug_request = http_request.clone();
         // TODO(#33616): Step 9. If aborted, then return the appropriate network error for fetchParams.
 
         // Step 10. If response is null, then:
         if response.is_none() {
             // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
             if http_request.cache_mode == CacheMode::OnlyIfCached {
-                // The cache will not be updated,
-                // set its state to ready to construct.
+                // Exit critical section of cache entry.
                 return Response::network_error(NetworkError::Internal(
                     "Couldn't find response in cache".into(),
                 ));
@@ -1551,7 +1549,7 @@ async fn http_network_or_cache_fetch(
                 }
             }
         };
-    }
+    }; // Exit Critical Section on cache entry
 
     let http_request = &mut http_fetch_params.request;
     let mut response = response.unwrap();
