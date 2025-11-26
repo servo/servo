@@ -212,19 +212,33 @@ impl HTMLTextAreaElement {
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
     }
 
-    fn handle_focus(&self) {
-        self.owner_document()
-            .embedder_controls()
-            .show_embedder_control(
-                ControlElement::Ime(DomRoot::from_ref(self.upcast())),
-                EmbedderControlRequest::InputMethod(InputMethodRequest {
-                    input_method_type: InputMethodType::Text,
-                    text: self.Value().to_string(),
-                    insertion_point: self.GetSelectionEnd(),
-                    multiline: false,
-                }),
-                None,
-            );
+    fn handle_focus_event(&self, event: &FocusEvent) {
+        // The focus state can afect the selection (see `selection_for_layout()`),
+        // thus dirty the node so that it is laid out again.
+        // TODO: Selection changes shouldn't require a new layout.
+        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+
+        let event_type = event.upcast::<Event>().type_();
+        if *event_type == *"blur" {
+            self.owner_document()
+                .embedder_controls()
+                .hide_embedder_control(self.upcast());
+        } else if *event_type == *"focus" {
+            self.owner_document()
+                .embedder_controls()
+                .show_embedder_control(
+                    ControlElement::Ime(DomRoot::from_ref(self.upcast())),
+                    EmbedderControlRequest::InputMethod(InputMethodRequest {
+                        input_method_type: InputMethodType::Text,
+                        text: self.Value().to_string(),
+                        insertion_point: self.GetSelectionEnd(),
+                        multiline: false,
+                    }),
+                    None,
+                );
+        } else {
+            unreachable!("Got unexpected FocusEvent {event_type:?}");
+        }
     }
 }
 
@@ -753,14 +767,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
-            if *event.upcast::<Event>().type_() == *"blur" {
-                self.owner_document()
-                    .embedder_controls()
-                    .hide_embedder_control(self.upcast());
-            }
-            if *event.upcast::<Event>().type_() == *"focus" {
-                self.handle_focus();
-            }
+            self.handle_focus_event(event);
         }
 
         self.validity_state(can_gc)

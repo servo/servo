@@ -1607,31 +1607,7 @@ impl TextControlElement for HTMLInputElement {
     // Types omitted which could theoretically be included if they were
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
-        match self.input_type() {
-            InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Password |
-            InputType::Email |
-            InputType::Date |
-            InputType::Month |
-            InputType::Week |
-            InputType::Time |
-            InputType::DatetimeLocal |
-            InputType::Number => !self.textinput.borrow().get_content().is_empty(),
-
-            InputType::Button |
-            InputType::Checkbox |
-            InputType::Color |
-            InputType::File |
-            InputType::Hidden |
-            InputType::Image |
-            InputType::Radio |
-            InputType::Range |
-            InputType::Reset |
-            InputType::Submit => false,
-        }
+        self.is_textual_widget() && !self.textinput.borrow().get_content().is_empty()
     }
 
     fn has_selection(&self) -> bool {
@@ -2920,23 +2896,39 @@ impl HTMLInputElement {
         target.fire_bubbling_event(atom!("change"), can_gc);
     }
 
-    fn handle_focus(&self) {
-        let Ok(input_method_type) = self.input_type().try_into() else {
-            return;
-        };
+    fn handle_focus_event(&self, event: &FocusEvent) {
+        // The focus state can afect the selection (see `selection_for_layout()`),
+        // thus dirty the node so that it is laid out again.
+        // TODO: Selection changes shouldn't require a new layout.
+        if self.is_textual_widget() {
+            self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+        }
 
-        self.owner_document()
-            .embedder_controls()
-            .show_embedder_control(
-                ControlElement::Ime(DomRoot::from_ref(self.upcast())),
-                EmbedderControlRequest::InputMethod(InputMethodRequest {
-                    input_method_type,
-                    text: self.Value().to_string(),
-                    insertion_point: self.GetSelectionEnd(),
-                    multiline: false,
-                }),
-                None,
-            );
+        let event_type = event.upcast::<Event>().type_();
+        if *event_type == *"blur" {
+            self.owner_document()
+                .embedder_controls()
+                .hide_embedder_control(self.upcast());
+        } else if *event_type == *"focus" {
+            let Ok(input_method_type) = self.input_type().try_into() else {
+                return;
+            };
+
+            self.owner_document()
+                .embedder_controls()
+                .show_embedder_control(
+                    ControlElement::Ime(DomRoot::from_ref(self.upcast())),
+                    EmbedderControlRequest::InputMethod(InputMethodRequest {
+                        input_method_type,
+                        text: self.Value().to_string(),
+                        insertion_point: self.GetSelectionEnd(),
+                        multiline: false,
+                    }),
+                    None,
+                );
+        } else {
+            unreachable!("Got unexpected FocusEvent {event_type:?}");
+        }
     }
 }
 
@@ -3344,14 +3336,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
-            if *event.upcast::<Event>().type_() == *"blur" {
-                self.owner_document()
-                    .embedder_controls()
-                    .hide_embedder_control(self.upcast());
-            }
-            if *event.upcast::<Event>().type_() == *"focus" {
-                self.handle_focus();
-            }
+            self.handle_focus_event(event)
         }
 
         self.value_changed(can_gc);
