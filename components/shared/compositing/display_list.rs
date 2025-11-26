@@ -40,7 +40,7 @@ bitflags! {
     }
 }
 
-/// Convert [Overflow] to [ScrollSensitivity].
+/// Convert [Overflow] to [ScrollType].
 impl From<Overflow> for ScrollType {
     fn from(overflow: Overflow) -> Self {
         match overflow {
@@ -51,7 +51,7 @@ impl From<Overflow> for ScrollType {
     }
 }
 
-/// The [ScrollSensitivity] of particular node in the vertical and horizontal axes.
+/// The [ScrollType] of particular node in the vertical and horizontal axes.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct AxesScrollSensitivity {
     pub x: ScrollType,
