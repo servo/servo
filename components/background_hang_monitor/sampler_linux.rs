@@ -118,12 +118,12 @@ impl Drop for PosixSemaphore {
 
 pub struct LinuxSampler {
     thread_id: MonitoredThreadId,
-    old_handler: SigAction,
+    old_handler: Box<SigAction>,
 }
 
-impl LinuxSampler {
+impl Default for LinuxSampler {
     #[expect(unsafe_code)]
-    pub fn new_boxed() -> Box<dyn Sampler> {
+    fn default() -> Self {
         let thread_id = unsafe { libc::syscall(libc::SYS_gettid) as libc::pid_t };
         let handler = SigHandler::SigAction(sigprof_handler);
         let action = SigAction::new(
@@ -132,11 +132,11 @@ impl LinuxSampler {
             SigSet::empty(),
         );
         let old_handler =
-            unsafe { sigaction(Signal::SIGPROF, &action).expect("signal handler set") };
-        Box::new(LinuxSampler {
+            Box::new(unsafe { sigaction(Signal::SIGPROF, &action).expect("signal handler set") });
+        Self {
             thread_id,
             old_handler,
-        })
+        }
     }
 }
 

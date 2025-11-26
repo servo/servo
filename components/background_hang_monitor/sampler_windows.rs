@@ -11,10 +11,10 @@ pub struct WindowsSampler {
     thread_id: MonitoredThreadId,
 }
 
-impl WindowsSampler {
-    pub(super) fn new_boxed() -> Box<dyn Sampler> {
+impl Default for WindowsSampler {
+    fn default() -> Self {
         let thread_id = 0; // TODO: use windows::Win32::System::Threading::GetThreadId
-        Box::new(WindowsSampler { thread_id })
+        Self { thread_id }
     }
 }
 

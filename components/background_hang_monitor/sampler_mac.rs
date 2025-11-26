@@ -4,19 +4,32 @@
 
 use std::{panic, process};
 
-use crate::sampler::{Address, NativeStack, Registers, Sampler};
+use crate::sampler::{NativeStack, Sampler};
 
 type MonitoredThreadId = mach2::mach_types::thread_act_t;
+
+// Several types in this file are currently not used in a Linux or Windows build.
+type Address = *const u8;
+
+/// The registers used for stack unwinding
+struct Registers {
+    /// Instruction pointer.
+    pub instruction_ptr: Address,
+    /// Stack pointer.
+    pub stack_ptr: Address,
+    /// Frame pointer.
+    pub frame_ptr: Address,
+}
 
 pub struct MacOsSampler {
     thread_id: MonitoredThreadId,
 }
 
-impl MacOsSampler {
+impl Default for MacOsSampler {
     #[expect(unsafe_code)]
-    pub fn new_boxed() -> Box<dyn Sampler> {
+    fn default() -> Self {
         let thread_id = unsafe { mach2::mach_init::mach_thread_self() };
-        Box::new(MacOsSampler { thread_id })
+        Self { thread_id }
     }
 }
 
