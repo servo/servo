@@ -149,6 +149,7 @@ impl Worker {
             address,
             WorkerScriptMsg::DOMMessage(MessageData {
                 origin: self.global().origin().immutable().clone(),
+                pipeline_id: self.global().pipeline_id(),
                 data: Box::new(data),
             }),
         ));
