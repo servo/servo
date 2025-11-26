@@ -16,7 +16,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
-use strum_macros::IntoStaticStr;
+use strum::IntoStaticStr;
 use surfman::{Adapter, Connection};
 use webrender_api::{DocumentId, FontVariation};
 

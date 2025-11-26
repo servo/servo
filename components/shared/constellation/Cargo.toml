@@ -40,7 +40,6 @@ servo_config = { path = "../../config" }
 servo_url = { path = "../../url" }
 storage_traits = { workspace = true }
 strum = { workspace = true }
-strum_macros = { workspace = true }
 stylo_traits = { workspace = true }
 uuid = { workspace = true }
 webgpu_traits = { workspace = true }

@@ -6,7 +6,7 @@ use std::fmt;
 
 use base::id::PipelineId;
 use malloc_size_of_derive::MallocSizeOf;
-use strum_macros::VariantArray;
+use strum::VariantArray;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::refcounted::Trusted;

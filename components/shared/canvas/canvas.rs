@@ -446,7 +446,7 @@ pub enum CanvasMsg {
     Close(CanvasId),
 }
 
-#[derive(Debug, Deserialize, Serialize, strum::Display)]
+#[derive(Debug, Deserialize, Serialize, Display)]
 pub enum Canvas2dMsg {
     SetImageKey(ImageKey),
     DrawImage(

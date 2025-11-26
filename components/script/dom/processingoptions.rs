@@ -21,7 +21,7 @@ use net_traits::{FetchMetadata, NetworkError, ReferrerPolicy, ResourceFetchTimin
 pub use nom_rfc8288::complete::LinkDataOwned as LinkHeader;
 use nom_rfc8288::complete::link_lenient as parse_link_header;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use strum_macros::IntoStaticStr;
+use strum::IntoStaticStr;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;

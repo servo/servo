@@ -4,7 +4,7 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use strum_macros::VariantArray;
+use strum::VariantArray;
 use time::Duration;
 
 use super::performance::ToDOMHighResTimeStamp;

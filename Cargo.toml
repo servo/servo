@@ -156,8 +156,7 @@ skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.9"
-strum = "0.27"
-strum_macros = "0.27"
+strum = { version = "0.27", features = ["derive"] }
 stylo = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }

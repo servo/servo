@@ -37,7 +37,7 @@ rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo_geometry = { path = "../../geometry" }
 smallvec = { workspace = true }
-strum_macros = { workspace = true }
+strum = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
