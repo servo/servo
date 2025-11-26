@@ -143,7 +143,10 @@ webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-
 
 [dev-dependencies]
 http = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true }
 libservo = { path = ".", features = ["tracing"] }
+net = { path = "../net", features = ["test-util"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 tracing = { workspace = true }
 winit = { workspace = true }
