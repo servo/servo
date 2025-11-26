@@ -7,7 +7,6 @@
 //! A memory cache implementing the logic specified in <http://tools.ietf.org/html/rfc7234>
 //! and <http://tools.ietf.org/html/rfc7232>.
 
-use parking_lot::Mutex;
 use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
@@ -24,13 +23,16 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
+use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, DefaultLifecycle, PlaceholderGuard};
 use quick_cache::{DefaultHashBuilder, UnitWeighter};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
-use tokio::sync::{OwnedRwLockWriteGuard, RwLock};
+use tokio::sync::{
+    OwnedRwLockWriteGuard, RwLock as TokioRwLock, RwLockWriteGuard as TokioRwLockWriteGuard,
+};
 
 use crate::fetch::methods::{Data, DoneChannel};
 
@@ -58,10 +60,10 @@ impl CacheKey {
 /// A complete cached resource.
 #[derive(Clone)]
 pub(crate) struct CachedResource {
-    request_headers: Arc<Mutex<HeaderMap>>,
-    body: Arc<Mutex<ResponseBody>>,
+    request_headers: Arc<ParkingLotMutex<HeaderMap>>,
+    body: Arc<ParkingLotMutex<ResponseBody>>,
     aborted: Arc<AtomicBool>,
-    awaiting_body: Arc<Mutex<Vec<TokioSender<Data>>>>,
+    awaiting_body: Arc<ParkingLotMutex<Vec<TokioSender<Data>>>>,
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
     https_state: HttpsState,
@@ -74,16 +76,16 @@ pub(crate) struct CachedResource {
 impl MallocSizeOf for CachedResource {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         // TODO: self.request_headers.unconditional_size_of(ops) +
-        self.body.unconditional_size_of(ops)
-            + self.aborted.unconditional_size_of(ops)
-            + self.awaiting_body.unconditional_size_of(ops)
-            + self.metadata.size_of(ops)
-            + self.location_url.size_of(ops)
-            + self.https_state.size_of(ops)
-            + self.status.size_of(ops)
-            + self.url_list.size_of(ops)
-            + self.expires.size_of(ops)
-            + self.last_validated.size_of(ops)
+        self.body.unconditional_size_of(ops) +
+            self.aborted.unconditional_size_of(ops) +
+            self.awaiting_body.unconditional_size_of(ops) +
+            self.metadata.size_of(ops) +
+            self.location_url.size_of(ops) +
+            self.https_state.size_of(ops) +
+            self.status.size_of(ops) +
+            self.url_list.size_of(ops) +
+            self.expires.size_of(ops) +
+            self.last_validated.size_of(ops)
     }
 }
 
@@ -92,7 +94,7 @@ impl MallocSizeOf for CachedResource {
 struct CachedMetadata {
     /// Headers
     #[ignore_malloc_size_of = "Defined in `http` and has private members"]
-    pub headers: Arc<Mutex<HeaderMap>>,
+    pub headers: Arc<ParkingLotMutex<HeaderMap>>,
     /// Final URL after redirects.
     pub final_url: ServoUrl,
     /// MIME type / subtype.
@@ -110,7 +112,7 @@ pub(crate) struct CachedResponse {
     pub needs_validation: bool,
 }
 
-type CacheEntry = std::sync::Arc<RwLock<Vec<CachedResource>>>;
+type CacheEntry = std::sync::Arc<TokioRwLock<Vec<CachedResource>>>;
 type QuickCache = Cache<CacheKey, CacheEntry, UnitWeighter>;
 type OurLifecycle = DefaultLifecycle<CacheKey, CacheEntry>;
 type QuickCachePlaceeholderGuard<'a> =
@@ -162,9 +164,9 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     // 2. check for absence of the Authorization header field.
     let mut is_cacheable = false;
     let headers = metadata.headers.as_ref().unwrap();
-    if headers.contains_key(header::EXPIRES)
-        || headers.contains_key(header::LAST_MODIFIED)
-        || headers.contains_key(header::ETAG)
+    if headers.contains_key(header::EXPIRES) ||
+        headers.contains_key(header::LAST_MODIFIED) ||
+        headers.contains_key(header::ETAG)
     {
         is_cacheable = true;
     }
@@ -172,10 +174,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
         if directive.no_store() {
             return false;
         }
-        if directive.public()
-            || directive.s_max_age().is_some()
-            || directive.max_age().is_some()
-            || directive.no_cache()
+        if directive.public() ||
+            directive.s_max_age().is_some() ||
+            directive.max_age().is_some() ||
+            directive.no_cache()
         {
             // If cache-control is understood, we can use it and ignore pragma.
             return true;
@@ -356,9 +358,9 @@ fn create_resource_with_bytes_from_resource(
 ) -> CachedResource {
     CachedResource {
         request_headers: resource.request_headers.clone(),
-        body: Arc::new(Mutex::new(ResponseBody::Done(bytes.to_owned()))),
+        body: Arc::new(ParkingLotMutex::new(ResponseBody::Done(bytes.to_owned()))),
         aborted: Arc::new(AtomicBool::new(false)),
-        awaiting_body: Arc::new(Mutex::new(vec![])),
+        awaiting_body: Arc::new(ParkingLotMutex::new(vec![])),
         metadata: resource.metadata.clone(),
         location_url: resource.location_url.clone(),
         https_state: resource.https_state,
@@ -535,7 +537,7 @@ fn handle_range_request(
 
 /// Constructing Responses from Caches.
 /// <https://tools.ietf.org/html/rfc7234#section-4>
-pub(crate) async fn construct_response(
+pub(crate) fn construct_response(
     request: &Request,
     done_chan: &mut DoneChannel,
     cache_result: &Vec<CachedResource>,
@@ -866,7 +868,7 @@ impl HttpCache {
     pub(crate) async fn get_or_guard(&self, entry_key: CacheKey) -> CachedResourcesOrGuard<'_> {
         match self.entries.get_value_or_guard_async(&entry_key).await {
             Ok(val) => CachedResourcesOrGuard::Value(val.write_owned().await),
-            Err(guard) => CachedResourcesOrGuard::Guard(guard),
+            Err(guard) => return CachedResourcesOrGuard::Guard(guard),
         }
     }
 }
@@ -902,8 +904,8 @@ impl<'a> CachedResourcesOrGuard<'a> {
             Ok(FetchMetadata::Filtered {
                 filtered: _,
                 unsafe_: metadata,
-            })
-            | Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
+            }) |
+            Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
             _ => return,
         };
         if !response_is_cacheable(&metadata) {
@@ -911,17 +913,17 @@ impl<'a> CachedResourcesOrGuard<'a> {
         }
         let expiry = get_response_expiry(response);
         let cacheable_metadata = CachedMetadata {
-            headers: Arc::new(Mutex::new(response.headers.clone())),
+            headers: Arc::new(ParkingLotMutex::new(response.headers.clone())),
             final_url: metadata.final_url,
             content_type: metadata.content_type.map(|v| v.0.to_string()),
             charset: metadata.charset,
             status: metadata.status,
         };
         let entry_resource = CachedResource {
-            request_headers: Arc::new(Mutex::new(request.headers.clone())),
+            request_headers: Arc::new(ParkingLotMutex::new(request.headers.clone())),
             body: response.body.clone(),
             aborted: response.aborted.clone(),
-            awaiting_body: Arc::new(Mutex::new(vec![])),
+            awaiting_body: Arc::new(ParkingLotMutex::new(vec![])),
             metadata: cacheable_metadata,
             location_url: response.location_url.clone(),
             https_state: response.https_state,
@@ -937,7 +939,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
             },
             CachedResourcesOrGuard::Guard(placeholder_guard) => {
                 if placeholder_guard
-                    .insert(std::sync::Arc::new(RwLock::new(vec![entry_resource])))
+                    .insert(std::sync::Arc::new(TokioRwLock::new(vec![entry_resource])))
                     .is_err()
                 {
                     error!("Could not insert into cache");
@@ -945,18 +947,13 @@ impl<'a> CachedResourcesOrGuard<'a> {
             },
         }
     }
-}
 
-impl<'a, T> AsMut<T> for CachedResourcesOrGuard<'a>
-where
-    Vec<CachedResource>: AsMut<T>,
-{
-    fn as_mut(&mut self) -> &mut T {
+    pub(crate) fn try_as_mut(&mut self) -> Option<&mut Vec<CachedResource>> {
         match self {
             CachedResourcesOrGuard::Value(owned_rw_lock_write_guard) => {
-                owned_rw_lock_write_guard.as_mut()
+                Some(owned_rw_lock_write_guard.as_mut())
             },
-            CachedResourcesOrGuard::Guard(_) => panic!("NYI"),
+            CachedResourcesOrGuard::Guard(_) => None,
         }
     }
 }
