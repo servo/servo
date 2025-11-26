@@ -119,3 +119,29 @@ def test_htmldocument(session, inline, using, value):
     session.url = inline("")
     response = find_element(session, using, value)
     assert_success(response)
+
+
+def test_implicit_wait(session, inline):
+    session.url = inline("""
+        <script>
+            setTimeout(() => {
+                document.body.innerHTML = '<div id="delayed"></div>';
+            }, 300);
+        </script>
+    """)
+    session.timeouts.implicit = 1
+
+    response = find_element(session, "css selector", "#delayed")
+    value = assert_success(response)
+
+    expected = session.execute_script("return document.getElementById('delayed')")
+    assert_same_element(session, value, expected)
+
+
+def test_implicit_wait_timeout(session, inline):
+    session.url = inline("")
+    session.timeouts.implicit = 0.5
+
+    # Element never created
+    response = find_element(session, "css selector", "#nonexistent")
+    assert_error(response, "no such element")
