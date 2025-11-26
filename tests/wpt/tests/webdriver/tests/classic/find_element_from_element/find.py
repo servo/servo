@@ -177,3 +177,29 @@ def test_parent_of_document_node_errors(session, inline):
 
     response = find_element(session, from_element.id, "xpath", "..")
     assert_error(response, "invalid selector")
+
+def test_implicit_wait(session, inline):
+    session.url = inline("""
+        <div id="parent"></div>
+        <script>
+            setTimeout(() => {
+                document.getElementById('parent').innerHTML = '<div id="delayed"></div>';
+            }, 300);
+        </script>
+    """)
+    session.timeouts.implicit = 1
+
+    from_element = session.find.css("#parent", all=False)
+    response = find_element(session, from_element.id, "css selector", "#delayed")
+    value = assert_success(response)
+
+    expected = session.execute_script("return document.getElementById('delayed')")
+    assert_same_element(session, value, expected)
+
+def test_implicit_wait_timeout(session, inline):
+    session.url = inline("<div id='parent'></div>")
+    session.timeouts.implicit = 0.5
+
+    from_element = session.find.css("#parent", all=False)
+    response = find_element(session, from_element.id, "css selector", "#nonexistent")
+    assert_error(response, "no such element")
