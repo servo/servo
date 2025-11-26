@@ -925,6 +925,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
             last_validated: Instant::now(),
         };
 
+        log::error!("INSERTING {:?}", request.current_url());
         match self {
             CachedResourcesOrGuard::Value(mut owned_rw_lock_write_guard) => {
                 owned_rw_lock_write_guard.push(entry_resource);
