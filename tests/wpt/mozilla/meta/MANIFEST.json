@@ -239,6 +239,19 @@
       ],
       {}
      ]
+    ],
+    "textarea-caret-following-linebreak.html": [
+     "55bc06e372e9ce8ad4d62d368a644c1f1cd3ffd9",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/textarea-caret-following-linebreak-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
     ]
    },
    "css": {
@@ -8237,7 +8250,11 @@
       "2aa42d2fc6877665357bc2f46a5fbb309230b507",
       []
      ]
-    }
+    },
+    "textarea-caret-following-linebreak-ref.html": [
+     "f424853f243ff0fe4c43506db800b51afc294113",
+     []
+    ]
    },
    "bluetooth": {
     "bluetooth-helpers.js": [

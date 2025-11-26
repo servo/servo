@@ -1421,12 +1421,7 @@ impl InlineFormattingContextLayout<'_> {
             let intersection = selection.intersect(&range);
             if intersection.is_empty() {
                 let insertion_point_index = selection.begin();
-                // We only allow the caret to be shown in the start of the fragment if it is the first fragment.
-                // Otherwise this will cause duplicate caret, especially apparent when encountered line break.
-                if insertion_point_index >= range.begin() &&
-                    insertion_point_index <= range.end() &&
-                    (range.begin() != insertion_point_index || range.begin().0 == 0)
-                {
+                if range.contains_inclusive(insertion_point_index) {
                     Some(Range::new(
                         insertion_point_index - range.begin(),
                         ByteIndex(0),
