@@ -421,7 +421,7 @@ enum VerifyBrowsingContextIsOpen {
 
 enum ImplicitWait {
     Return,
-    #[expect(dead_code)]
+    #[expect(dead_code, reason = "This will be used in the next patch")]
     Continue,
 }
 
