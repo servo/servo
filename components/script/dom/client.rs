@@ -5,15 +5,22 @@
 use std::default::Default;
 
 use dom_struct::dom_struct;
+use js::gc::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::jsapi::{Heap, JSObject};
+use script_bindings::error::{Error, ErrorResult};
+use script_bindings::script_runtime::JSContext;
+use script_bindings::trace::RootedTraceableBox;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, FrameType};
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::structuredclone;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::serviceworker::ServiceWorker;
-use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -29,7 +36,7 @@ pub(crate) struct Client {
 }
 
 impl Client {
-    fn new_inherited(url: ServoUrl) -> Client {
+    pub(crate) fn new_inherited(url: ServoUrl) -> Client {
         Client {
             reflector_: Reflector::new(),
             active_worker: Default::default(),
@@ -39,10 +46,10 @@ impl Client {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Client> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Client> {
         reflect_dom_object(
-            Box::new(Client::new_inherited(window.get_url())),
-            window,
+            Box::new(Client::new_inherited(global.get_url())),
+            global,
             can_gc,
         )
     }
@@ -81,6 +88,20 @@ impl Client {
         // Step 4. Return key.
         Ok(key)
     }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-client-postmessage-message-options>
+    fn post_message_impl(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        // Step 3. Let serializeWithTransferResult be StructuredSerializeWithTransfer(message, options["transfer"]).
+        // Rethrow any exceptions.
+        let _data = structuredclone::write(cx, message, Some(transfer))?;
+        // TODO: Send the message to the target.
+        Err(Error::NotSupported)
+    }
 }
 
 impl ClientMethods<crate::DomTypeHolder> for Client {
@@ -98,5 +119,33 @@ impl ClientMethods<crate::DomTypeHolder> for Client {
     fn Id(&self) -> DOMString {
         let uid_str = format!("{}", self.id);
         DOMString::from_string(uid_str)
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-client-postmessage>
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer)
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-client-postmessage-message-options>
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
     }
 }

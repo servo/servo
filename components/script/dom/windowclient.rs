@@ -4,18 +4,47 @@
 
 use std::rc::Rc;
 
+use base::id::PipelineId;
 use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::WindowClientBinding::WindowClientMethods;
+use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::USVString;
 
-use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::client::Client;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 
 #[dom_struct]
 pub(crate) struct WindowClient {
     client: Client,
+    #[no_trace]
+    pipeline_id: PipelineId,
+}
+
+impl WindowClient {
+    pub(crate) fn new_inherited(client: Client, pipeline_id: PipelineId) -> WindowClient {
+        WindowClient {
+            client,
+            pipeline_id,
+        }
+    }
+
+    pub(crate) fn new(
+        global: &GlobalScope,
+        pipeline_id: PipelineId,
+        can_gc: CanGc,
+    ) -> DomRoot<WindowClient> {
+        reflect_dom_object(
+            Box::new(WindowClient::new_inherited(
+                Client::new_inherited(global.get_url()),
+                pipeline_id,
+            )),
+            global,
+            can_gc,
+        )
+    }
 }
 
 impl WindowClientMethods<crate::DomTypeHolder> for WindowClient {
