@@ -4,6 +4,7 @@
 
 use script_bindings::reflector::DomObject;
 use servo_constellation_traits::StructuredSerializedData;
+use servo_base::id::PipelineId;
 use servo_url::ImmutableOrigin;
 
 use crate::dom::bindings::refcounted::Trusted;
@@ -21,6 +22,7 @@ pub(crate) enum WorkerScriptMsg {
 pub(crate) struct MessageData {
     pub origin: ImmutableOrigin,
     pub data: Box<StructuredSerializedData>,
+    pub pipeline_id: PipelineId,
 }
 
 pub(crate) struct SimpleWorkerErrorHandler<T: DomObject> {
