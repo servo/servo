@@ -89,9 +89,6 @@ skip = [
     "futures",
     "redox_syscall",
 
-    # Duplicated by aws-lc-rs
-    "bindgen",
-
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
 
