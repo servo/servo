@@ -47,10 +47,11 @@ use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
-use crate::dom::extendablemessageevent::ExtendableMessageEvent;
+use crate::dom::extendablemessageevent::{ExtendableMessageEvent, MessageSource};
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
+use crate::dom::windowclient::WindowClient;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
@@ -465,11 +466,15 @@ impl ServiceWorkerGlobalScope {
                 if let Ok(ports) =
                     structuredclone::read(scope.upcast(), *msg.data, message.handle_mut(), can_gc)
                 {
+                    // TODO: incorrect when dealing with non-windows
+                    let source = Some(MessageSource::Client(DomRoot::from_ref(
+                        WindowClient::new(self.upcast(), msg.pipeline_id, can_gc).upcast(),
+                    )));
                     ExtendableMessageEvent::dispatch_jsval(
                         target,
                         scope.upcast(),
                         message.handle(),
-                        None,
+                        source,
                         ports,
                         can_gc,
                     );
