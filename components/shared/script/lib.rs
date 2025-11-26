@@ -49,7 +49,7 @@ use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::StorageType;
-use strum_macros::IntoStaticStr;
+use strum::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]

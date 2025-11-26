@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
-use strum_macros::IntoStaticStr;
+use strum::IntoStaticStr;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, ImageKey};
 
