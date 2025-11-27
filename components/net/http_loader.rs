@@ -37,7 +37,6 @@ use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
 use hyper_serde::Serde;
-use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
@@ -72,7 +71,7 @@ use tokio::sync::mpsc::{
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
-use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
+use crate::connector::{CertificateErrorOverrideManager, ServoClient, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -108,7 +107,7 @@ pub struct HttpState {
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
-    pub client: Client<Connector, crate::connector::BoxedBody>,
+    pub client: ServoClient,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
 }
@@ -620,7 +619,7 @@ impl BodySink {
 
 #[allow(clippy::too_many_arguments)]
 async fn obtain_response(
-    client: &Client<Connector, crate::connector::BoxedBody>,
+    client: &ServoClient,
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
