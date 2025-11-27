@@ -53,16 +53,24 @@ where
             }
 
             // Skip bitmap fonts. They aren't supported by FreeType.
-            let fontformat = c_str_to_string(format as *const c_char);
-            if fontformat != "TrueType" && fontformat != "CFF" && fontformat != "Type 1" {
+            let fontformat = CStr::from_ptr(format as *const c_char);
+            if !matches!(fontformat.to_bytes(), b"TrueType" | b"CFF" | b"Type 1") {
                 continue;
             }
 
             while FcPatternGetString(*font, FC_FAMILY.as_ptr() as *mut c_char, v, &mut family) ==
                 FcResultMatch
             {
-                let family_name = c_str_to_string(family as *const c_char);
-                callback(family_name);
+                let family_name = match CStr::from_ptr(family as *const c_char).to_str() {
+                    Ok(family_name) => family_name,
+                    Err(error) => {
+                        log::error!(
+                            "Ignoring font family because its name contains invalid UTF-8: {error:?}"
+                        );
+                        continue;
+                    },
+                };
+                callback(family_name.to_owned());
                 v += 1;
             }
         }
@@ -121,8 +129,17 @@ where
                 continue;
             };
 
+            let path = match CStr::from_ptr(path as *const c_char).to_str() {
+                Ok(path) => path,
+                Err(error) => {
+                    log::error!(
+                        "Ignoring font variation from the {family_name:?} family because file path contains invalid UTF-8: {error:?}"
+                    );
+                    continue;
+                },
+            };
             let local_font_identifier = LocalFontIdentifier {
-                path: Atom::from(c_str_to_string(path as *const c_char)),
+                path: Atom::from(path),
                 face_index: (index & 0xFFFF) as u16,
                 named_instance_index: (index >> 16) as u16,
             };
@@ -219,7 +236,10 @@ pub(crate) fn default_system_generic_font_family(
                 0,
                 &mut match_string,
             );
-            let family_name = c_str_to_string(match_string as *const c_char);
+            let family_name = CStr::from_ptr(match_string as *const c_char)
+                .to_str()
+                .expect("Font family name contains invalid UTF-8")
+                .to_owned();
 
             FcPatternDestroy(family_match);
             FcPatternDestroy(pattern);
@@ -297,11 +317,4 @@ fn font_weight_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWe
 
     let mapped_weight = map_platform_values_to_style_values(&mapping, weight as f64);
     Some(FontWeight::from_float(mapped_weight as f32))
-}
-
-/// Creates a String from the given null-terminated buffer.
-/// Panics if the buffer does not contain UTF-8.
-unsafe fn c_str_to_string(s: *const c_char) -> String {
-    let c_str = unsafe { CStr::from_ptr(s) };
-    std::str::from_utf8(c_str.to_bytes()).unwrap().to_owned()
 }
