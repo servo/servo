@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: outline - dynamic changes</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Checks that outline can be changed dynamically.">
+<style>
+div {
+  position: absolute;
+}
+#red {
+  background: red;
+}
+#target {
+  margin: 50px;
+}
+#target.outline {
+  outline: solid 50px green;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+
+<div id="red"></div>
+<div id="target"></div>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  document.getElementById("target").className = "outline";
+  takeScreenshot();
+});
+</script>
+</html>
