@@ -308,6 +308,7 @@ pub trait Layout {
     /// Marks that this layout needs to produce a new display list for rendering updates.
     fn set_needs_new_display_list(&self);
 
+    fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress>;
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides>;
     fn query_box_area(
         &self,
