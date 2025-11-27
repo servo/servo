@@ -680,13 +680,22 @@ impl HTMLMediaElement {
         }
     }
 
-    fn play_media(&self) {
-        if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_rate(self.playback_rate.get()) {
-                warn!("Could not set the playback rate {:?}", err);
+    fn update_media_state(&self) {
+        if self.is_potentially_playing() {
+            if let Some(ref player) = *self.player.borrow() {
+                if let Err(err) = player.lock().unwrap().set_rate(self.playback_rate.get()) {
+                    warn!("Could not set the playback rate {:?}", err);
+                }
+                if let Err(err) = player.lock().unwrap().set_volume(self.volume.get()) {
+                    warn!("Could not set the volume {:?}", err);
+                }
+                if let Err(err) = player.lock().unwrap().play() {
+                    warn!("Could not play media {:?}", err);
+                }
             }
-            if let Err(err) = player.lock().unwrap().play() {
-                warn!("Could not play media {:?}", err);
+        } else if let Some(ref player) = *self.player.borrow() {
+            if let Err(err) = player.lock().unwrap().pause() {
+                error!("Could not pause player {:?}", err);
             }
         }
     }
@@ -795,14 +804,14 @@ impl HTMLMediaElement {
                         return;
                     }
 
-                    this.fulfill_in_flight_play_promises(|| {
-                        this.play_media();
-                    });
+                    this.fulfill_in_flight_play_promises(|| {});
                 }));
         }
 
         // Step 5. Set the media element's can autoplay flag to false.
         self.autoplaying.set(false);
+
+        self.update_media_state();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-pause-steps>
@@ -838,12 +847,6 @@ impl HTMLMediaElement {
                         // Step 2.3.2. Fire an event named pause at the element.
                         this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
 
-                        if let Some(ref player) = *this.player.borrow() {
-                            if let Err(e) = player.lock().unwrap().pause() {
-                                error!("Could not pause player {:?}", e);
-                            }
-                        }
-
                         // Step 2.3.3. Reject pending play promises with promises and an
                         // "AbortError" DOMException.
                         // Done after running this closure in `fulfill_in_flight_play_promises`.
@@ -854,6 +857,8 @@ impl HTMLMediaElement {
             self.official_playback_position
                 .set(self.current_playback_position.get());
         }
+
+        self.update_media_state();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#allowed-to-play>
@@ -882,7 +887,6 @@ impl HTMLMediaElement {
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1. Fire an event named playing at the element.
                     this.upcast::<EventTarget>().fire_event(atom!("playing"), CanGc::note());
-                    this.play_media();
 
                     // Step 2.2. Resolve pending play promises with promises.
                     // Done after running this closure in `fulfill_in_flight_play_promises`.
@@ -1001,6 +1005,8 @@ impl HTMLMediaElement {
                 self.notify_about_playing();
             }
         }
+
+        self.update_media_state();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
@@ -2649,6 +2655,9 @@ impl HTMLMediaElement {
             },
             PlaybackState::Playing => {
                 media_session_playback_state = MediaSessionPlaybackState::Playing;
+                if self.ready_state.get() == ReadyState::HaveMetadata {
+                    self.change_ready_state(ReadyState::HaveEnoughData);
+                }
             },
             PlaybackState::Buffering => {
                 // Do not send the media session playback state change event
