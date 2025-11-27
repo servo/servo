@@ -1478,7 +1478,6 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
     {
-        log::error!("Critical start of {:?}", current_url);
         // Enter critical section on cache entry.
         let mut cache_guard = block_for_cache_ready(
             context,
@@ -1489,15 +1488,10 @@ async fn http_network_or_cache_fetch(
         )
         .await;
 
-        log::error!("wait before cached response {:?}", current_url);
-        wait_for_cached_response(done_chan, &mut response).await;
-        log::error!("after wait cached response {:?}", current_url);
-
         // TODO(#33616): Step 9. If aborted, then return the appropriate network error for fetchParams.
 
         // Step 10. If response is null, then:
         if response.is_none() {
-            log::error!("response none of {:?}", current_url);
             // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
             if http_request.cache_mode == CacheMode::OnlyIfCached {
                 // Exit critical section of cache entry.
@@ -1523,7 +1517,6 @@ async fn http_network_or_cache_fetch(
                 invalidate(http_request, &forward_response, guard).await;
             }
 
-            log::error!("Further down {:?}", current_url);
             // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
             if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
                 // Ensure done_chan is None,
@@ -1542,7 +1535,6 @@ async fn http_network_or_cache_fetch(
 
             // Step 10.5 If response is null, then:
             if response.is_none() {
-                log::error!("response NONE FURTHER DOWN {:?}", current_url);
                 // Step 10.5.1 Set response to forwardResponse.
                 let forward_response = response.insert(forward_response);
 
@@ -1555,7 +1547,6 @@ async fn http_network_or_cache_fetch(
                 }
             }
         };
-        log::error!("Critical end of {:?}", current_url);
     }; // Exit Critical Section on cache entry
 
     let http_request = &mut http_fetch_params.request;
@@ -1769,16 +1760,16 @@ async fn block_for_cache_ready<'a>(
                         response.cache_state = CacheState::Local;
                     }
                 }
-                //if response.is_none() {
-                // Ensure the done chan is not set if we're not using the cached response,
-                // as the cache might have set it to Some if it constructed a pending response.
-                *done_chan = None;
-                //}
+                if response.is_none() {
+                    // Ensure the done chan is not set if we're not using the cached response,
+                    // as the cache might have set it to Some if it constructed a pending response.
+                    *done_chan = None;
+                }
             }
-            *done_chan = None;
+            //*done_chan = None;
         },
     }
-    *done_chan = None;
+    //*done_chan = None;
     guard_result
 }
 

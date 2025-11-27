@@ -532,7 +532,7 @@ fn handle_range_request(
 pub(crate) fn construct_response(
     request: &Request,
     done_chan: &mut DoneChannel,
-    cache_result: &Vec<CachedResource>,
+    cache_result: &[CachedResource],
 ) -> Option<CachedResponse> {
     if pref!(network_http_cache_disabled) {
         return None;
@@ -642,7 +642,7 @@ pub(crate) async fn refresh(
     request: &Request,
     response: Response,
     done_chan: &mut DoneChannel,
-    cached_resources: &mut Vec<CachedResource>,
+    cached_resources: &mut [CachedResource],
 ) -> Option<Response> {
     assert_eq!(response.status, StatusCode::NOT_MODIFIED);
 
@@ -707,7 +707,7 @@ pub(crate) async fn refresh(
 pub(crate) async fn invalidate(
     request: &Request,
     response: &Response,
-    cached_resources: &mut Vec<CachedResource>,
+    cached_resources: &mut [CachedResource],
 ) {
     // TODO(eijebong): Once headers support typed_get, update this to use them
     if let Some(Ok(location)) = response
@@ -731,7 +731,7 @@ pub(crate) async fn invalidate(
     invalidate_cached_resources(cached_resources).await;
 }
 
-async fn invalidate_cached_resources(cached_resources: &mut Vec<CachedResource>) {
+async fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
     for cached_resource in cached_resources.iter_mut() {
         cached_resource.expires = Duration::ZERO;
     }
@@ -786,70 +786,6 @@ impl HttpCache {
         }
     }
 
-    /*
-    /// Storing Responses in Caches.
-    /// <https://tools.ietf.org/html/rfc7234#section-3>
-    pub async fn store(&self, request: &Request, response: &Response) {
-        if pref!(network_http_cache_disabled) {
-            return;
-        }
-        if request.method != Method::GET {
-            // Only Get requests are cached.
-            return;
-        }
-        if request.headers.contains_key(header::AUTHORIZATION) {
-            // https://tools.ietf.org/html/rfc7234#section-3.1
-            // A shared cache MUST NOT use a cached response
-            // to a request with an Authorization header field
-            //
-            // TODO: unless a cache directive that allows such
-            // responses to be stored is present in the response.
-            return;
-        };
-        let entry_key = CacheKey::new(request);
-        let metadata = match response.metadata() {
-            Ok(FetchMetadata::Filtered {
-                filtered: _,
-                unsafe_: metadata,
-            })
-            | Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
-            _ => return,
-        };
-        if !response_is_cacheable(&metadata) {
-            return;
-        }
-        let expiry = get_response_expiry(response);
-        let cacheable_metadata = CachedMetadata {
-            headers: Arc::new(Mutex::new(response.headers.clone())),
-            final_url: metadata.final_url,
-            content_type: metadata.content_type.map(|v| v.0.to_string()),
-            charset: metadata.charset,
-            status: metadata.status,
-        };
-        let entry_resource = CachedResource {
-            request_headers: Arc::new(Mutex::new(request.headers.clone())),
-            body: response.body.clone(),
-            aborted: response.aborted.clone(),
-            awaiting_body: Arc::new(Mutex::new(vec![])),
-            metadata: cacheable_metadata,
-            location_url: response.location_url.clone(),
-            https_state: response.https_state,
-            status: response.status.clone(),
-            url_list: response.url_list.clone(),
-            expires: expiry,
-            last_validated: Instant::now(),
-        };
-
-        if let Some(entry) = self.entries.get(&entry_key) {
-            let mut entry = entry.write().await;
-            entry.push(entry_resource);
-        }
-        // TODO: Complete incomplete responses, including 206 response, when stored here.
-        // See A cache MAY complete a stored incomplete response by making a subsequent range request
-        // https://tools.ietf.org/html/rfc7234#section-3.1
-    }
-    */
-
     /// Clear the contents of this cache.
     pub fn clear(&self) {
         self.entries.clear();
@@ -860,7 +796,7 @@ impl HttpCache {
     pub(crate) async fn get_or_guard(&self, entry_key: CacheKey) -> CachedResourcesOrGuard<'_> {
         match self.entries.get_value_or_guard_async(&entry_key).await {
             Ok(val) => CachedResourcesOrGuard::Value(val.write_owned().await),
-            Err(guard) => return CachedResourcesOrGuard::Guard(guard),
+            Err(guard) => CachedResourcesOrGuard::Guard(guard),
         }
     }
 }
@@ -925,7 +861,6 @@ impl<'a> CachedResourcesOrGuard<'a> {
             last_validated: Instant::now(),
         };
 
-        log::error!("INSERTING {:?}", request.current_url());
         match self {
             CachedResourcesOrGuard::Value(mut owned_rw_lock_write_guard) => {
                 owned_rw_lock_write_guard.push(entry_resource);
