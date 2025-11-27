@@ -17,14 +17,15 @@ use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, DeviceIntPoint, DeviceIntSize,
     EmbedderControl, EmbedderControlId, EventLoopWaker, GamepadHapticEffectType, GenericSender,
     InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus, MediaSessionEvent,
-    PermissionRequest, ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate, WebViewId, pref,
+    PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate, ServoError,
+    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate, WebViewId,
+    pref,
 };
 use url::Url;
 
 use crate::GamepadSupport;
-use crate::prefs::ServoShellPreferences;
+use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
@@ -120,7 +121,6 @@ impl WebViewCollection {
         }
     }
 
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
     pub(crate) fn activate_webview_by_index(&mut self, index: usize) {
         self.activate_webview(
             *self
@@ -129,6 +129,19 @@ impl WebViewCollection {
                 .expect("Tried to activate an unknown WebView"),
         );
     }
+}
+
+/// A command received via the user interacting with the user interface.
+#[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+pub(crate) enum UserInterfaceCommand {
+    Go(String),
+    Back,
+    Forward,
+    Reload,
+    ReloadAll,
+    NewWebView,
+    CloseWebView(WebViewId),
+    NewWindow,
 }
 
 pub(crate) struct RunningAppState {
@@ -166,6 +179,9 @@ pub(crate) struct RunningAppState {
     /// will be destroyed and shutdown will start at the end of the current event loop.
     exit_scheduled: Cell<bool>,
 
+    /// Whether the user has enabled experimental preferences.
+    experimental_preferences_enabled: Cell<bool>,
+
     /// The set of [`ServoShellWindow`]s that currently exist for this instance of servoshell.
     // This is the last field of the struct to ensure that windows are dropped *after* all
     // other references to the relevant rendering contexts have been destroyed.
@@ -199,6 +215,9 @@ impl RunningAppState {
             embedder_receiver
         });
 
+        let experimental_preferences_enabled =
+            Cell::new(servoshell_preferences.experimental_preferences_enabled);
+
         Self {
             windows: Default::default(),
             gamepad_support: RefCell::new(gamepad_support),
@@ -210,10 +229,11 @@ impl RunningAppState {
             servo,
             achieved_stable_image: Default::default(),
             exit_scheduled: Default::default(),
+            experimental_preferences_enabled,
         }
     }
 
-    pub(crate) fn create_window(
+    pub(crate) fn open_window(
         self: &Rc<Self>,
         platform_window: Rc<dyn PlatformWindow>,
         initial_url: Url,
@@ -276,6 +296,22 @@ impl RunningAppState {
         self.exit_scheduled.set(true);
     }
 
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    pub(crate) fn experimental_preferences_enabled(&self) -> bool {
+        self.experimental_preferences_enabled.get()
+    }
+
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    pub(crate) fn set_experimental_preferences_enabled(&self, new_value: bool) {
+        let old_value = self.experimental_preferences_enabled.replace(new_value);
+        if old_value == new_value {
+            return;
+        }
+        for pref in EXPERIMENTAL_PREFS {
+            self.servo.set_preference(pref, PrefValue::Bool(new_value));
+        }
+    }
+
     /// Spins the internal application event loop.
     ///
     /// - Notifies Servo about incoming gamepad events
@@ -314,6 +350,21 @@ impl RunningAppState {
         }
 
         true
+    }
+
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    pub(crate) fn foreach_window_and_interface_commands(
+        self: &Rc<Self>,
+        callback: impl Fn(&ServoShellWindow, Vec<UserInterfaceCommand>),
+    ) {
+        // We clone here to avoid a double borrow. User interface commands can update the list of windows.
+        let windows: Vec<_> = self.windows.borrow().values().cloned().collect();
+        for window in windows {
+            callback(
+                &window,
+                window.platform_window().take_user_interface_commands(),
+            )
+        }
     }
 
     pub(crate) fn maybe_window_for_webview_id(

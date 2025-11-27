@@ -85,7 +85,7 @@ pub(crate) struct ServoShellPreferences {
     /// remote WebDriver commands.
     pub webdriver_port: Cell<Option<u16>>,
     /// Whether the CLI option to enable experimental prefs was present at startup.
-    pub experimental_prefs_enabled: bool,
+    pub experimental_preferences_enabled: bool,
     /// Log filter given in the `log_filter` spec as a String, if any.
     /// If a filter is passed, the logger should adjust accordingly.
     #[cfg(target_env = "ohos")]
@@ -117,7 +117,7 @@ impl Default for ServoShellPreferences {
             log_filter: None,
             #[cfg(target_env = "ohos")]
             log_to_file: false,
-            experimental_prefs_enabled: false,
+            experimental_preferences_enabled: false,
         }
     }
 }
@@ -687,7 +687,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         output_image_path: cmd_args.output.map(|p| p.to_string_lossy().into_owned()),
         exit_after_stable_image: cmd_args.exit,
         userscripts_directory: cmd_args.userscripts,
-        experimental_prefs_enabled: cmd_args.enable_experimental_web_platform_features,
+        experimental_preferences_enabled: cmd_args.enable_experimental_web_platform_features,
         #[cfg(target_env = "ohos")]
         log_filter: cmd_args.log_filter.or_else(|| {
             (!preferences.log_filter.is_empty()).then(|| preferences.log_filter.clone())

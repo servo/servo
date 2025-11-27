@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
-use log::{debug, info, warn};
+use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
     AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
@@ -23,9 +23,9 @@ use servo::{
     EmbedderControlId, GenericSender, ImeEvent, InputEvent, InputEventId, InputEventResult,
     InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
-    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, ServoUrl,
-    Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WebViewId,
-    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext, convert_rect_to_css_pixel,
+    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
+    TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WebViewId, WheelDelta,
+    WheelEvent, WheelMode, WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -49,11 +49,10 @@ use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::dialog::Dialog;
 use crate::desktop::event_loop::AppEvent;
-use crate::desktop::gui::{Gui, GuiCommand};
+use crate::desktop::gui::Gui;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
-use crate::parser::location_bar_input_to_url;
 use crate::prefs::ServoShellPreferences;
-use crate::running_app_state::RunningAppState;
+use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{
     LINE_HEIGHT, LINE_WIDTH, MIN_WINDOW_INNER_SIZE, PlatformWindow, ServoShellWindow,
     ServoShellWindowId,
@@ -107,7 +106,7 @@ impl Window {
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
         event_loop_proxy: EventLoopProxy<AppEvent>,
-        initial_url: ServoUrl,
+        initial_url: Url,
     ) -> Rc<Self> {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
         let inner_size = servoshell_preferences.initial_window_size;
@@ -188,7 +187,6 @@ impl Window {
             event_loop_proxy,
             rendering_context.clone(),
             initial_url,
-            servoshell_preferences,
         ));
 
         debug!("Created window {:?}", winit_window.id());
@@ -461,59 +459,6 @@ impl Window {
         }
     }
 
-    /// Takes any events generated during `egui` updates and performs their actions.
-    fn handle_servoshell_ui_events(&self, state: Rc<RunningAppState>, window: &ServoShellWindow) {
-        let mut gui = self.gui.borrow_mut();
-        for event in gui.take_commands() {
-            match event {
-                GuiCommand::Go(location) => {
-                    gui.update_location_dirty(false);
-                    let Some(url) = location_bar_input_to_url(
-                        &location.clone(),
-                        &state.servoshell_preferences.searchpage,
-                    ) else {
-                        warn!("failed to parse location");
-                        break;
-                    };
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.load(url.into_url());
-                    }
-                },
-                GuiCommand::Back => {
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.go_back(1);
-                    }
-                },
-                GuiCommand::Forward => {
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.go_forward(1);
-                    }
-                },
-                GuiCommand::Reload => {
-                    gui.update_location_dirty(false);
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.reload();
-                    }
-                },
-                GuiCommand::ReloadAll => {
-                    gui.update_location_dirty(false);
-                    for (_, webview) in window.webviews() {
-                        webview.reload();
-                    }
-                },
-                GuiCommand::NewWebView => {
-                    gui.update_location_dirty(false);
-                    let url = Url::parse("servo:newtab").expect("Should always be able to parse");
-                    window.create_and_activate_toplevel_webview(state.clone(), url);
-                },
-                GuiCommand::CloseWebView(id) => {
-                    gui.update_location_dirty(false);
-                    window.close_webview(id);
-                },
-            }
-        }
-    }
-
     fn show_ime(&self, input_method: InputMethodControl) {
         let position = input_method.position();
         self.winit_window.set_ime_allowed(true);
@@ -650,7 +595,6 @@ impl PlatformWindow for Window {
         if event == WindowEvent::RedrawRequested {
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
-            let _ = self.rendering_context().make_current();
             let mut gui = self.gui.borrow_mut();
             gui.update(&state, window, self);
             gui.paint(&self.winit_window);
@@ -831,17 +775,9 @@ impl PlatformWindow for Window {
                 }
             }
         }
-
-        // Consume and handle any events from the servoshell UI.
-        self.handle_servoshell_ui_events(state.clone(), window);
     }
 
-    fn handle_winit_app_event(
-        &self,
-        state: Rc<RunningAppState>,
-        window: &ServoShellWindow,
-        app_event: AppEvent,
-    ) {
+    fn handle_winit_app_event(&self, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
             if self
                 .gui
@@ -851,9 +787,6 @@ impl PlatformWindow for Window {
                 self.winit_window.request_redraw();
             }
         }
-
-        // Consume and handle any events from user interface interaction.
-        self.handle_servoshell_ui_events(state.clone(), window);
     }
 
     fn request_repaint(&self, window: &ServoShellWindow) {
@@ -1148,6 +1081,10 @@ impl PlatformWindow for Window {
 
     fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
         self.dialogs.borrow_mut().remove(&webview_id);
+    }
+
+    fn take_user_interface_commands(&self) -> Vec<UserInterfaceCommand> {
+        self.gui.borrow_mut().take_user_interface_commands()
     }
 }
 
