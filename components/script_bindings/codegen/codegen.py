@@ -7135,6 +7135,20 @@ class CGWeakReferenceableTrait(CGThing):
         return self.code
 
 
+class CGForbidDrop(CGThing):
+    def __init__(self, descriptor: Descriptor) -> None:
+        CGThing.__init__(self)
+        assert not descriptor.allowDropImpl
+        self.code = f"""
+impl Drop for {firstCap(descriptor.interface.identifier.name)} {{
+    fn drop(&mut self) {{ }}
+}}
+        """
+
+    def define(self) -> str:
+        return self.code
+
+
 class CGInitStatics(CGThing):
     def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
@@ -7991,6 +8005,13 @@ class CGConcreteBindingRoot(CGThing):
 
             if d.weakReferenceable:
                 cgthings.append(CGWeakReferenceableTrait(d))
+
+            if (
+                not d.interface.isIteratorInterface() and
+                not d.interface.isCallback() and
+                not d.allowDropImpl
+            ):
+                cgthings.append(CGForbidDrop(d))
 
             if not d.interface.isCallback():
                 traitName = f"{ifaceName}Methods"

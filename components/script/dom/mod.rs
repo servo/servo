@@ -205,7 +205,6 @@
 #[macro_use]
 pub(crate) mod macros;
 
-#[expect(unused_imports)]
 pub(crate) mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }

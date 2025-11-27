@@ -300,6 +300,7 @@ class Descriptor(DescriptorProvider):
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
         self.useSystemCompartment = desc.get('useSystemCompartment', False)
+        self.allowDropImpl = desc.get('allowDropImpl', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
