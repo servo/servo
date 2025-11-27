@@ -55,6 +55,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::script_module::{ModuleOwner, ScriptFetchOptions, fetch_external_module_script};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -384,6 +385,7 @@ impl DedicatedWorkerGlobalScope {
 
                 let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
+                // https://html.spec.whatwg.org/multipage/webappapis.html#set-up-the-classic-script-request
                 let request = RequestBuilder::new(webview_id, worker_url.clone(), referrer)
                     .destination(Destination::Worker)
                     .mode(RequestMode::SameOrigin)
@@ -486,13 +488,39 @@ impl DedicatedWorkerGlobalScope {
                     name: TaskSourceName::Networking,
                     canceller: Default::default(),
                 };
-                let context = ScriptFetchContext::new(
-                    Trusted::new(scope),
-                    request.url.clone(),
-                    worker.clone(),
-                    policy_container,
-                );
-                global_scope.fetch(request, context, task_source);
+
+                // TODO(pylbrecht)
+                // https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model
+                // 12. Obtain script by switching on options["type"]:
+                match worker_type {
+                    WorkerType::Classic => {
+                        let context = ScriptFetchContext::new(
+                            Trusted::new(scope),
+                            request.url.clone(),
+                            worker.clone(),
+                            policy_container,
+                        );
+                        global_scope.fetch(request, context, task_source);
+                    },
+                    WorkerType::Module => {
+                        let options = ScriptFetchOptions {
+                            referrer: request.referrer,
+                            integrity_metadata: request.integrity_metadata,
+                            credentials_mode: request.credentials_mode,
+                            cryptographic_nonce: request.cryptographic_nonce_metadata,
+                            parser_metadata: request.parser_metadata,
+                            referrer_policy: request.referrer_policy,
+                        };
+                        fetch_external_module_script(
+                            ModuleOwner::Worker(Trusted::new(scope)),
+                            request.url.clone(),
+                            Destination::Worker,
+                            options,
+                            CanGc::note(),
+                            task_source,
+                        );
+                    },
+                };
 
                 let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
                 scope

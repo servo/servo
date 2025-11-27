@@ -870,6 +870,7 @@ impl HTMLScriptElement {
                         Destination::Script,
                         options,
                         can_gc,
+                        global.task_manager().networking_task_source().to_sendable(),
                     );
 
                     if !asynch && was_parser_inserted {
