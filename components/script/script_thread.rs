@@ -33,7 +33,10 @@ use background_hang_monitor_api::{
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
+use base::id::{
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
+    TEST_WEBVIEW_ID, WebViewId,
+};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use compositing_traits::{CrossProcessCompositorApi, PipelineExitSource};
@@ -425,32 +428,24 @@ impl ScriptThreadFactory for ScriptThread {
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     ) -> JoinHandle<()> {
-        // TODO: This should be replaced with some sort of per-ScriptThread id. It doesn't make
-        // sense to associate a ScriptThread with an ephemeral Pipeline.
-        let pipeline_id = new_pipeline_info.new_pipeline_id;
-        // This ScriptThread isn't necessary *only* associated with this WebView, so we
-        // should stop relying on this value here.
-        let webview_id = new_pipeline_info.webview_id;
-
         // Setup pipeline-namespace-installing for all threads in this process.
         // Idempotent in single-process mode.
         PipelineNamespace::set_installer_sender(state.namespace_request_sender.clone());
 
+        let script_thread_id = state.id;
         thread::Builder::new()
-            .name(format!("Script{:?}", pipeline_id))
+            .name(format!("Script{script_thread_id:?}"))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
-                WebViewId::install(webview_id);
+                ScriptEventLoopId::install(state.id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
-                let reporter_name = format!("script-reporter-{pipeline_id:?}");
+                let reporter_name = format!("script-reporter-{script_thread_id:?}");
                 let script_thread = ScriptThread::new(
                     state,
                     layout_factory,
                     image_cache_factory,
                     background_hang_monitor_register,
-                    webview_id,
-                    pipeline_id,
                 );
 
                 SCRIPT_THREAD_ROOT.with(|root| {
@@ -839,8 +834,6 @@ impl ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
     ) -> ScriptThread {
         let (self_sender, self_receiver) = unbounded();
         let mut runtime =
@@ -876,7 +869,7 @@ impl ScriptThread {
         let background_hang_monitor = background_hang_monitor_register.register_component(
             // TODO: We shouldn't rely on this PipelineId as a ScriptThread can have multiple
             // Pipelines and any of them might disappear at any time.
-            MonitoredComponentId(pipeline_id, MonitoredComponentType::Script),
+            MonitoredComponentId(state.id, MonitoredComponentType::Script),
             Duration::from_millis(1000),
             Duration::from_millis(5000),
             Box::new(background_hang_monitor_exit_signal),
@@ -913,13 +906,14 @@ impl ScriptThread {
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
-        let pipeline_id = PipelineId::new();
+        let debugger_pipeline_id = PipelineId::new();
         let script_to_constellation_chan = ScriptToConstellationChan {
             sender: senders.pipeline_to_constellation_sender.clone(),
-            // TODO: We shouldn't rely on this WebViewId and PipelineId as a ScriptThread can have
-            // multiple Pipelines and any of them might disappear at any time.
-            webview_id,
-            pipeline_id,
+            // This channel is not expected to be used, so the `WebViewId` that we set here
+            // does not matter.
+            // TODO: Look at ways of removing the channel entirely for debugger globals.
+            webview_id: TEST_WEBVIEW_ID,
+            pipeline_id: debugger_pipeline_id,
         };
         let debugger_global = DebuggerGlobalScope::new(
             PipelineId::new(),

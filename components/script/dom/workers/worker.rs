@@ -196,8 +196,9 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             pipeline_id: global.pipeline_id(),
         };
 
-        let webview_id = global.webview_id().expect("global must have a webview id");
-
+        let webview_id = global
+            .webview_id()
+            .expect("Global object must have a WebViewId");
         let browsing_context = global
             .downcast::<Window>()
             .map(|w| w.window_proxy().browsing_context_id())
@@ -236,6 +237,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             .expect("Tried to create a worker in a worker while not handling a message?");
         let join_handle = DedicatedWorkerGlobalScope::run_worker_scope(
             init,
+            webview_id,
             worker_url,
             devtools_receiver,
             worker_ref,

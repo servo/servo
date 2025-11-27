@@ -269,7 +269,9 @@ impl Pipeline {
                         script_to_devtools_ipc_sender
                     });
 
+                let event_loop = EventLoop::new(script_chan.clone());
                 let initial_script_state = InitialScriptState {
+                    id: event_loop.id(),
                     pipeline_to_constellation_sender: state.script_to_constellation_chan.clone(),
                     script_to_embedder_sender: state.script_to_embedder_chan,
                     namespace_request_sender: state.namespace_request_sender,
@@ -281,7 +283,7 @@ impl Pipeline {
                     storage_threads: state.storage_threads,
                     time_profiler_sender: state.time_profiler_chan,
                     memory_profiler_sender: state.mem_profiler_chan,
-                    constellation_to_script_sender: script_chan.clone(),
+                    constellation_to_script_sender: script_chan,
                     constellation_to_script_receiver: script_port,
                     pipeline_namespace_id: state.pipeline_namespace_id,
                     cross_process_compositor_api: state
@@ -339,7 +341,7 @@ impl Pipeline {
                     (None, None, Some(join_handle))
                 };
 
-                (EventLoop::new(script_chan), multiprocess_data)
+                (event_loop, multiprocess_data)
             },
         };
 

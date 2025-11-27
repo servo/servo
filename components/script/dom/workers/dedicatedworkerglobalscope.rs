@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
@@ -179,6 +179,9 @@ unsafe_no_jsmanaged_fields!(TaskQueue<DedicatedWorkerScriptMsg>);
 #[dom_struct]
 pub(crate) struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
+    /// The [`WebViewId`] of the `WebView` that this worker is associated with.
+    #[no_trace]
+    webview_id: WebViewId,
     #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<DedicatedWorkerScriptMsg>,
     own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -242,13 +245,10 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
-    pub(crate) fn webview_id(&self) -> Option<WebViewId> {
-        WebViewId::installed()
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
+        webview_id: WebViewId,
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
@@ -279,6 +279,7 @@ impl DedicatedWorkerGlobalScope {
                 insecure_requests_policy,
                 font_context,
             ),
+            webview_id,
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
             parent_event_loop_sender,
@@ -293,6 +294,7 @@ impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
+        webview_id: WebViewId,
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
@@ -311,6 +313,7 @@ impl DedicatedWorkerGlobalScope {
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
+            webview_id,
             worker_name,
             worker_type,
             worker_url,
@@ -339,6 +342,7 @@ impl DedicatedWorkerGlobalScope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
+        webview_id: WebViewId,
         worker_url: ServoUrl,
         from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
@@ -358,7 +362,8 @@ impl DedicatedWorkerGlobalScope {
         policy_container: PolicyContainer,
         font_context: Option<Arc<FontContext>>,
     ) -> JoinHandle<()> {
-        let webview_id = WebViewId::installed();
+        let event_loop_id = ScriptEventLoopId::installed()
+            .expect("Should always be in a ScriptThread or in a dedicated worker");
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
@@ -371,10 +376,7 @@ impl DedicatedWorkerGlobalScope {
             .name(format!("WW:{}", worker_url.debug_compact()))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
-
-                if let Some(webview_id) = webview_id {
-                    WebViewId::install(webview_id);
-                }
+                ScriptEventLoopId::install(event_loop_id);
 
                 let WorkerScriptLoadOrigin {
                     referrer_url,
@@ -384,7 +386,7 @@ impl DedicatedWorkerGlobalScope {
 
                 let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
-                let request = RequestBuilder::new(webview_id, worker_url.clone(), referrer)
+                let request = RequestBuilder::new(Some(webview_id), worker_url.clone(), referrer)
                     .destination(Destination::Worker)
                     .mode(RequestMode::SameOrigin)
                     .credentials_mode(CredentialsMode::CredentialsSameOrigin)
@@ -451,6 +453,7 @@ impl DedicatedWorkerGlobalScope {
                 let worker_id = init.worker_id;
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
+                    webview_id,
                     DOMString::from_string(worker_name),
                     worker_type,
                     worker_url,
@@ -516,6 +519,10 @@ impl DedicatedWorkerGlobalScope {
                 scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
+    }
+
+    pub(crate) fn webview_id(&self) -> WebViewId {
+        self.webview_id
     }
 
     /// The non-None value of the `worker` field can contain a rooted [`TrustedWorkerAddress`]

@@ -9,10 +9,10 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
 use base::generic_channel::{GenericReceiver, GenericSender};
+use base::id::ScriptEventLoopId;
 use ipc_channel::Error;
 use ipc_channel::ipc::IpcSender;
 use script_traits::{InitialScriptState, NewPipelineInfo, ScriptThreadMessage};
@@ -20,13 +20,11 @@ use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 
-static CURRENT_EVENT_LOOP_ID: AtomicUsize = AtomicUsize::new(0);
-
 /// <https://html.spec.whatwg.org/multipage/#event-loop>
 pub struct EventLoop {
     script_chan: GenericSender<ScriptThreadMessage>,
     dont_send_or_sync: PhantomData<Rc<()>>,
-    id: usize,
+    id: ScriptEventLoopId,
 }
 
 impl PartialEq for EventLoop {
@@ -52,12 +50,15 @@ impl Drop for EventLoop {
 impl EventLoop {
     /// Create a new event loop from the channel to its script thread.
     pub fn new(script_chan: GenericSender<ScriptThreadMessage>) -> Rc<EventLoop> {
-        let id = CURRENT_EVENT_LOOP_ID.fetch_add(1, Ordering::Relaxed);
         Rc::new(EventLoop {
             script_chan,
             dont_send_or_sync: PhantomData,
-            id,
+            id: ScriptEventLoopId::new(),
         })
+    }
+
+    pub(crate) fn id(&self) -> ScriptEventLoopId {
+        self.id
     }
 
     /// Send a message to the event loop.

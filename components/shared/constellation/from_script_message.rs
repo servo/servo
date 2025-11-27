@@ -10,7 +10,8 @@ use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
+    MessagePortRouterId, PipelineId, ScriptEventLoopId, ServiceWorkerId,
+    ServiceWorkerRegistrationId, WebViewId,
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use compositing_traits::CrossProcessCompositorApi;
@@ -670,7 +671,7 @@ pub enum ScriptToConstellationMessage {
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
     /// A log entry, with the top-level browsing context id and thread name
-    LogEntry(Option<String>, LogEntry),
+    LogEntry(Option<ScriptEventLoopId>, Option<String>, LogEntry),
     /// Discard the document.
     DiscardDocument,
     /// Discard the browsing context.

@@ -103,7 +103,7 @@ use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
-    WebViewId,
+    ScriptEventLoopId, WebViewId,
 };
 use base::{Epoch, IpcSend, generic_channel};
 #[cfg(feature = "bluetooth")]
@@ -1422,11 +1422,11 @@ where
             },
             // Panic a top level browsing context.
             EmbedderToConstellationMessage::SendError(webview_id, error) => {
-                debug!("constellation got SendError message");
-                if webview_id.is_none() {
-                    warn!("constellation got a SendError message without top level id");
-                }
-                self.handle_panic(webview_id, error, None);
+                warn!("Constellation got a SendError message from WebView {webview_id:?}: {error}");
+                let Some(webview_id) = webview_id else {
+                    return;
+                };
+                self.handle_panic_in_webview(webview_id, &error, &None);
             },
             EmbedderToConstellationMessage::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
@@ -1474,8 +1474,8 @@ where
             EmbedderToConstellationMessage::Reload(webview_id) => {
                 self.handle_reload_msg(webview_id);
             },
-            EmbedderToConstellationMessage::LogEntry(webview_id, thread_name, entry) => {
-                self.handle_log_entry(webview_id, thread_name, entry);
+            EmbedderToConstellationMessage::LogEntry(event_loop_id, thread_name, entry) => {
+                self.handle_log_entry(event_loop_id, thread_name, entry);
             },
             EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
@@ -1811,8 +1811,8 @@ where
             ScriptToConstellationMessage::SetDocumentState(state) => {
                 self.document_states.insert(source_pipeline_id, state);
             },
-            ScriptToConstellationMessage::LogEntry(thread_name, entry) => {
-                self.handle_log_entry(Some(webview_id), thread_name, entry);
+            ScriptToConstellationMessage::LogEntry(event_loop_id, thread_name, entry) => {
+                self.handle_log_entry(event_loop_id, thread_name, entry);
             },
             ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, response_sender) => {
                 let result = self
@@ -2731,21 +2731,26 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
+    fn handle_send_error(&mut self, pipeline_id: PipelineId, error: IpcError) {
+        error!("Error sending message to {pipeline_id:?}: {error}",);
+
+        // Ignore errors from unknown Pipelines.
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+
         // Treat send error the same as receiving a panic message
-        error!("{}: Send error ({})", pipeline_id, err);
-        let webview_id = self
-            .pipelines
-            .get(&pipeline_id)
-            .map(|pipeline| pipeline.webview_id);
-        let reason = format!("Send failed ({})", err);
-        self.handle_panic(webview_id, reason, None);
+        self.handle_panic_in_webview(
+            pipeline.webview_id,
+            &format!("Send failed ({error})"),
+            &None,
+        );
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_panic(
         &mut self,
-        webview_id: Option<WebViewId>,
+        event_loop_id: Option<ScriptEventLoopId>,
         reason: String,
         backtrace: Option<String>,
     ) {
@@ -2756,17 +2761,29 @@ where
             process::exit(1);
         }
 
-        let Some(webview_id) = webview_id else {
+        let Some(event_loop_id) = event_loop_id else {
             return;
         };
+        debug!("Panic handler for {event_loop_id:?}: {reason:?}",);
 
-        debug!(
-            "{}: Panic handler for top-level browsing context: {}",
-            webview_id, reason
-        );
+        let mut webview_ids = HashSet::new();
+        for pipeline in self.pipelines.values() {
+            if pipeline.event_loop.id() == event_loop_id {
+                webview_ids.insert(pipeline.webview_id);
+            }
+        }
+        for webview_id in webview_ids {
+            self.handle_panic_in_webview(webview_id, &reason, &backtrace);
+        }
+    }
 
+    fn handle_panic_in_webview(
+        &mut self,
+        webview_id: WebViewId,
+        reason: &String,
+        backtrace: &Option<String>,
+    ) {
         let browsing_context_id = BrowsingContextId::from(webview_id);
-
         self.embedder_proxy.send(EmbedderMsg::Panic(
             webview_id,
             reason.clone(),
@@ -2805,8 +2822,9 @@ where
         let new_load_data = LoadData {
             crash: Some(
                 backtrace
-                    .map(|b| format!("{}\n{}", reason, b))
-                    .unwrap_or(reason),
+                    .clone()
+                    .map(|backtrace| format!("{reason}\n{backtrace}"))
+                    .unwrap_or_else(|| reason.clone()),
             ),
             creation_sandboxing_flag_set: SandboxingFlagSet::all(),
             ..old_load_data.clone()
@@ -2849,12 +2867,12 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_log_entry(
         &mut self,
-        webview_id: Option<WebViewId>,
+        event_loop_id: Option<ScriptEventLoopId>,
         thread_name: Option<String>,
         entry: LogEntry,
     ) {
         if let LogEntry::Panic(ref reason, ref backtrace) = entry {
-            self.handle_panic(webview_id, reason.clone(), Some(backtrace.clone()));
+            self.handle_panic(event_loop_id, reason.clone(), Some(backtrace.clone()));
         }
 
         match entry {

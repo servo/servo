@@ -15,7 +15,7 @@ use background_hang_monitor_api::{
     HangMonitorAlert, MonitoredComponentId, MonitoredComponentType, ScriptHangAnnotation,
 };
 use base::generic_channel;
-use base::id::TEST_PIPELINE_ID;
+use base::id::TEST_SCRIPT_EVENT_LOOP_ID;
 use ipc_channel::ipc;
 
 static SERIAL: Mutex<()> = Mutex::new(());
@@ -39,7 +39,7 @@ fn test_hang_monitoring() {
     }
 
     let background_hang_monitor = background_hang_monitor_register.register_component(
-        MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
+        MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script),
         Duration::from_millis(10),
         Duration::from_millis(1000),
         Box::new(BHMExitSignal),
@@ -55,7 +55,8 @@ fn test_hang_monitoring() {
     // Check for a transient hang alert.
     match background_hang_monitor_receiver.recv().unwrap() {
         HangMonitorAlert::Hang(HangAlert::Transient(component_id, _annotation)) => {
-            let expected = MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script);
+            let expected =
+                MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
         },
         _ => unreachable!(),
@@ -67,7 +68,8 @@ fn test_hang_monitoring() {
     // Check for a permanent hang alert.
     match background_hang_monitor_receiver.recv().unwrap() {
         HangMonitorAlert::Hang(HangAlert::Permanent(component_id, _annotation, _profile)) => {
-            let expected = MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script);
+            let expected =
+                MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
         },
         _ => unreachable!(),
@@ -83,7 +85,8 @@ fn test_hang_monitoring() {
     // Check for a transient hang alert.
     match background_hang_monitor_receiver.recv().unwrap() {
         HangMonitorAlert::Hang(HangAlert::Transient(component_id, _annotation)) => {
-            let expected = MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script);
+            let expected =
+                MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
         },
         _ => unreachable!(),
@@ -107,7 +110,8 @@ fn test_hang_monitoring() {
     // We're getting new hang alerts for the latest task.
     match background_hang_monitor_receiver.recv().unwrap() {
         HangMonitorAlert::Hang(HangAlert::Transient(component_id, _annotation)) => {
-            let expected = MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script);
+            let expected =
+                MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
         },
         _ => unreachable!(),
@@ -153,7 +157,7 @@ fn test_hang_monitoring_unregister() {
     }
 
     let background_hang_monitor = background_hang_monitor_register.register_component(
-        MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
+        MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script),
         Duration::from_millis(10),
         Duration::from_millis(1000),
         Box::new(BHMExitSignal),
@@ -253,7 +257,7 @@ fn test_hang_monitoring_exit_signal_inner(op_order: fn(&mut dyn FnMut(), &mut dy
         &mut || {
             // Register a component.
             background_hang_monitor = Some(background_hang_monitor_register.register_component(
-                MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
+                MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script),
                 Duration::from_millis(10),
                 Duration::from_millis(1000),
                 signal.take().unwrap(),

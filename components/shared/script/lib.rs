@@ -15,7 +15,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{GenericReceiver, GenericSender};
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
-    WebViewId,
+    ScriptEventLoopId, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -333,6 +333,9 @@ pub struct ConstellationInputEvent {
 /// do! Use IPC senders and receivers instead.
 #[derive(Deserialize, Serialize)]
 pub struct InitialScriptState {
+    /// The id of the script event loop that this state will start. This is used to uniquely
+    /// identify an event loop.
+    pub id: ScriptEventLoopId,
     /// The sender to use to install the `Pipeline` namespace into this process (if necessary).
     pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     /// A channel with which messages can be sent to us (the script thread).
