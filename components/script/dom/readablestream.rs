@@ -1171,29 +1171,34 @@ impl ReadableStream {
 
         // Let reader be stream.[[reader]].
 
-        match self.reader.borrow().as_ref() {
-            Some(ReaderType::Default(reader)) => {
-                let Some(reader) = reader.get() else {
-                    // If reader is undefined, return.
-                    return;
-                };
+        let default_reader = {
+            let reader_ref = self.reader.borrow();
+            match reader_ref.as_ref() {
+                Some(ReaderType::Default(reader)) => reader.get(),
+                _ => None,
+            }
+        };
 
-                // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
-                reader.error(e, can_gc);
-            },
-            Some(ReaderType::BYOB(reader)) => {
-                let Some(reader) = reader.get() else {
-                    // If reader is undefined, return.
-                    return;
-                };
-
-                // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-                reader.error_read_into_requests(e, can_gc);
-            },
-            None => {
-                // If reader is undefined, return.
-            },
+        if let Some(reader) = default_reader {
+            // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
+            reader.error(e, can_gc);
+            return;
         }
+
+        let byob_reader = {
+            let reader_ref = self.reader.borrow();
+            match reader_ref.as_ref() {
+                Some(ReaderType::BYOB(reader)) => reader.get(),
+                _ => None,
+            }
+        };
+
+        if let Some(reader) = byob_reader {
+            // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
+            reader.error_read_into_requests(e, can_gc);
+        }
+
+        // If reader is undefined, return.
     }
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
@@ -1592,11 +1597,17 @@ impl ReadableStream {
         self.close(can_gc);
 
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
-        if let Some(ReaderType::BYOB(reader)) = self.reader.borrow().as_ref() {
-            if let Some(reader) = reader.get() {
-                // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-                reader.cancel(can_gc);
+        let byob_reader = {
+            let reader_ref = self.reader.borrow();
+            match reader_ref.as_ref() {
+                Some(ReaderType::BYOB(reader)) => reader.get(),
+                _ => None,
             }
+        };
+
+        if let Some(reader) = byob_reader {
+            // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
+            reader.cancel(can_gc);
         }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
