@@ -211,16 +211,17 @@ impl ReplacedContents {
                 });
 
                 let rule_cache_conditions = &mut RuleCacheConditions::default();
+                let parent_style = &node.selected_style();
                 let style_builder = StyleBuilder::new(
                     context.style_context.stylist.device(),
                     Some(context.style_context.stylist),
-                    None,
+                    Some(parent_style),
                     None,
                     None,
                     false,
                 );
 
-                let context = Context::new(
+                let to_computed_context = Context::new(
                     style_builder,
                     QuirksMode::Quirks,
                     rule_cache_conditions,
@@ -229,7 +230,7 @@ impl ReplacedContents {
 
                 let attr_to_computed = |attr_val: &AttrValue| {
                     if let AttrValue::Length(_, length) = attr_val {
-                        length.to_computed_value(&context)
+                        length.to_computed_value(&to_computed_context)
                     } else {
                         None
                     }
