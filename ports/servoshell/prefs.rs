@@ -609,19 +609,20 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     // Remove the binary name from the list of arguments.
     let args_without_binary = args
         .split_first()
-        .expect("Expectd executable name and and arguments")
+        .expect("Expected executable name and arguments")
         .1;
     let cmd_args = cmd_args().run_inner(Args::from(args_without_binary));
-    if let Err(error) = cmd_args {
-        error.print_message(80);
-        return if error.exit_code() == 0 {
-            ArgumentParsingResult::Exit
-        } else {
-            ArgumentParsingResult::ErrorParsing
-        };
-    }
-
-    let cmd_args = cmd_args.unwrap();
+    let cmd_args = match cmd_args {
+        Ok(cmd_args) => cmd_args,
+        Err(error) => {
+            error.print_message(80);
+            return if error.exit_code() == 0 {
+                ArgumentParsingResult::Exit
+            } else {
+                ArgumentParsingResult::ErrorParsing
+            };
+        },
+    };
 
     if cmd_args
         .debug
