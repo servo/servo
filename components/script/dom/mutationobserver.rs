@@ -23,7 +23,6 @@ use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct MutationObserver {
@@ -104,9 +103,12 @@ impl MutationObserver {
     ) where
         F: FnOnce() -> Mutation<'a>,
     {
-        if !target.global().as_window().get_exists_mut_observer() {
+        let global = target.global();
+        let window = global.as_window();
+        if !window.get_exists_mut_observer() {
             return;
         }
+
         // Step 1 Let interestedObservers be an empty map.
         let mut interested_observers: HashMap<DomRoot<MutationObserver>, Option<DOMString>> =
             HashMap::new();
@@ -196,6 +198,8 @@ impl MutationObserver {
         }
 
         // Step 4 For each observer → mappedOldValue of interestedObservers:
+        let script_thread = window.script_thread();
+        let mutation_observers = script_thread.mutation_observers();
         for (observer, mapped_old_value) in interested_observers {
             // Step 4.1 Let record be a new MutationRecord object ...
             let record = match *attr_type {
@@ -239,27 +243,30 @@ impl MutationObserver {
                 .record_queue
                 .borrow_mut()
                 .push(Dom::from_ref(&*record));
+
             // Step 4.3 Append observer to the surrounding agent’s pending mutation observers.
-            ScriptThread::mutation_observers().add_mutation_observer(&observer);
+            mutation_observers.add_mutation_observer(&observer);
         }
 
         // Step 5 Queue a mutation observer microtask.
-        let mutation_observers = ScriptThread::mutation_observers();
-        mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
+        mutation_observers.queue_mutation_observer_microtask(script_thread.microtask_queue());
     }
 }
 
 impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
     /// <https://dom.spec.whatwg.org/#dom-mutationobserver-mutationobserver>
     fn Constructor(
-        global: &Window,
+        window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
         callback: Rc<MutationCallback>,
     ) -> Fallible<DomRoot<MutationObserver>> {
-        global.set_exists_mut_observer();
-        let observer = MutationObserver::new_with_proto(global, proto, callback, can_gc);
-        ScriptThread::mutation_observers().add_mutation_observer(&observer);
+        window.set_exists_mut_observer();
+        let observer = MutationObserver::new_with_proto(window, proto, callback, can_gc);
+        window
+            .script_thread()
+            .mutation_observers()
+            .add_mutation_observer(&observer);
         Ok(observer)
     }
 

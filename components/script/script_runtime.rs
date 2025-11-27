@@ -13,10 +13,10 @@ use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use std::{os, ptr, thread};
+use std::{ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
@@ -62,6 +62,7 @@ use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
+use crate::ScriptThread;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
@@ -87,11 +88,11 @@ use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
 use crate::dom::trustedscript::TrustedScript;
+use crate::js::rust::Trace;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
-use crate::script_thread::trace_thread;
 use crate::task_source::TaskSourceName;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
@@ -671,6 +672,16 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     }
 }
 
+/// Data that is sent to SpiderMonkey runtime callbacks as a pointer, which allows access
+/// to the `Runtime` state.
+#[derive(Default, JSTraceable, MallocSizeOf)]
+struct RuntimeCallbackData {
+    script_event_loop_sender: Option<ScriptEventLoopSender>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "ScriptThread measures its own memory itself."]
+    script_thread: Option<Weak<ScriptThread>>,
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct Runtime {
     #[ignore_malloc_size_of = "Type from mozjs"]
@@ -680,7 +691,7 @@ pub(crate) struct Runtime {
     pub(crate) microtask_queue: Rc<MicrotaskQueue>,
     #[ignore_malloc_size_of = "Type from mozjs"]
     job_queue: *mut JobQueue,
-    script_event_loop_sender: Option<Box<ScriptEventLoopSender>>,
+    runtime_callback_data: Box<RuntimeCallbackData>,
 }
 
 impl Runtime {
@@ -713,7 +724,7 @@ impl Runtime {
     #[expect(unsafe_code)]
     pub(crate) unsafe fn new_with_parent(
         parent: Option<ParentRuntime>,
-        script_event_looper_sender: Option<ScriptEventLoopSender>,
+        script_event_loop_sender: Option<ScriptEventLoopSender>,
     ) -> Runtime {
         let mut runtime = if let Some(parent) = parent {
             unsafe { RustRuntime::create_with_parent(parent) }
@@ -722,8 +733,19 @@ impl Runtime {
         };
         let cx = runtime.cx();
 
+        let have_event_loop_sender = script_event_loop_sender.is_some();
+        let runtime_callback_data = Box::new(RuntimeCallbackData {
+            script_event_loop_sender,
+            script_thread: None,
+        });
+        let runtime_callback_data = Box::into_raw(runtime_callback_data);
+
         unsafe {
-            JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
+            JS_AddExtraGCRootsTracer(
+                cx,
+                Some(trace_rust_roots),
+                runtime_callback_data as *mut c_void,
+            );
 
             JS_SetSecurityCallbacks(cx, &SECURITY_CALLBACKS);
 
@@ -763,8 +785,14 @@ impl Runtime {
             data: *mut c_void,
             dispatchable: *mut DispatchablePointer,
         ) -> bool {
-            let script_event_loop_sender: &ScriptEventLoopSender =
-                unsafe { &*(data as *mut ScriptEventLoopSender) };
+            let runtime_callback_data: &RuntimeCallbackData =
+                unsafe { &*(data as *mut RuntimeCallbackData) };
+            let Some(script_event_loop_sender) =
+                runtime_callback_data.script_event_loop_sender.as_ref()
+            else {
+                return false;
+            };
+
             let runnable = Runnable(dispatchable);
             let task = task!(dispatch_to_event_loop_message: move || {
                 if let Some(cx) = RustRuntime::get() {
@@ -782,14 +810,12 @@ impl Runtime {
                 .is_ok()
         }
 
-        let mut script_event_loop_sender_pointer = std::ptr::null_mut();
-        if let Some(script_event_loop_sender) = script_event_looper_sender {
-            script_event_loop_sender_pointer = Box::into_raw(Box::new(script_event_loop_sender));
+        if have_event_loop_sender {
             unsafe {
                 SetUpEventLoopDispatch(
                     cx,
                     Some(dispatch_to_event_loop),
-                    script_event_loop_sender_pointer as *mut c_void,
+                    runtime_callback_data as *mut c_void,
                 );
             }
         }
@@ -966,9 +992,14 @@ impl Runtime {
             rt: runtime,
             microtask_queue,
             job_queue,
-            script_event_loop_sender: (!script_event_loop_sender_pointer.is_null())
-                .then(|| unsafe { Box::from_raw(script_event_loop_sender_pointer) }),
+            runtime_callback_data: unsafe { Box::from_raw(runtime_callback_data) },
         }
+    }
+
+    pub(crate) fn set_script_thread(&mut self, script_thread: Weak<ScriptThread>) {
+        self.runtime_callback_data
+            .script_thread
+            .replace(script_thread);
     }
 
     pub(crate) fn thread_safe_js_context(&self) -> ThreadSafeJSContext {
@@ -1098,7 +1129,7 @@ unsafe extern "C" fn debug_gc_callback(
     _cx: *mut RawJSContext,
     status: JSGCStatus,
     _reason: GCReason,
-    _data: *mut os::raw::c_void,
+    _data: *mut c_void,
 ) {
     match status {
         JSGCStatus::JSGC_BEGIN => thread_state::enter(ThreadState::IN_GC),
@@ -1107,13 +1138,23 @@ unsafe extern "C" fn debug_gc_callback(
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
+unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, data: *mut c_void) {
     if !runtime_is_alive() {
         return;
     }
     trace!("starting custom root handler");
+
+    let runtime_callback_data = unsafe { &*(data as *const RuntimeCallbackData) };
+    if let Some(script_thread) = runtime_callback_data
+        .script_thread
+        .as_ref()
+        .and_then(Weak::upgrade)
+    {
+        trace!("tracing fields of ScriptThread");
+        unsafe { script_thread.trace(tr) };
+    };
+
     unsafe {
-        trace_thread(tr);
         trace_roots(tr);
         trace_refcounted_objects(tr);
         settings_stack::trace(tr);

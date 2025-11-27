@@ -83,7 +83,6 @@ use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 /// Supported image MIME types as defined by
 /// <https://mimesniff.spec.whatwg.org/#image-mime-type>.
@@ -1071,7 +1070,8 @@ impl HTMLImageElement {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
-        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+        self.script_thread()
+            .await_stable_state(Microtask::ImageElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
@@ -1081,7 +1081,8 @@ impl HTMLImageElement {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
-        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+        self.script_thread()
+            .await_stable_state(Microtask::ImageElement(task));
     }
 
     /// Step 2-12 of <https://html.spec.whatwg.org/multipage/#img-environment-changes>
@@ -1772,7 +1773,8 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             elem: DomRoot::from_ref(self),
             promise: promise.clone(),
         };
-        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+        self.script_thread()
+            .await_stable_state(Microtask::ImageElement(task));
 
         // Step 3. Return promise.
         promise
