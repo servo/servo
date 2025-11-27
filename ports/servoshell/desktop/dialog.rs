@@ -17,7 +17,6 @@ use servo::{
     AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, ContextMenu,
     ContextMenuItem, EmbedderControlId, FilePicker, PermissionRequest, PromptResponse, RgbColor,
     SelectElement, SelectElementOption, SelectElementOptionOrOptgroup, SimpleDialog,
-    WebDriverUserPrompt,
 };
 
 /// The minimum width of many UI elements including dialog boxes and menus,
@@ -143,40 +142,6 @@ impl Dialog {
             current_color,
             maybe_prompt: Some(prompt),
             toolbar_offset,
-        }
-    }
-
-    pub fn accept(&self) {
-        #[allow(clippy::single_match)]
-        match self {
-            Dialog::SimpleDialog(dialog) => {
-                dialog.accept();
-            },
-            _ => {},
-        }
-    }
-
-    pub fn dismiss(&self) {
-        #[allow(clippy::single_match)]
-        match self {
-            Dialog::SimpleDialog(dialog) => {
-                dialog.dismiss();
-            },
-            _ => {},
-        }
-    }
-
-    pub fn message(&self) -> Option<String> {
-        #[allow(clippy::single_match)]
-        match self {
-            Dialog::SimpleDialog(dialog) => Some(dialog.message().to_string()),
-            _ => None,
-        }
-    }
-
-    pub fn set_message(&mut self, text: String) {
-        if let Dialog::SimpleDialog(dialog) = self {
-            dialog.set_message(text);
         }
     }
 
@@ -709,25 +674,6 @@ impl Dialog {
                 }
                 is_open
             },
-        }
-    }
-
-    pub fn webdriver_dialog_type(&self) -> Option<WebDriverUserPrompt> {
-        // From <https://w3c.github.io/webdriver/#dfn-handle-any-user-prompts>
-        // > Step 3: If the current user prompt is an alert dialog, set type to "alert". Otherwise,
-        // > if the current user prompt is a beforeunload dialog, set type to
-        // > "beforeUnload". Otherwise, if the current user prompt is a confirm dialog, set
-        // > type to "confirm". Otherwise, if the current user prompt is a prompt dialog,
-        // > set type to "prompt".
-        match self {
-            Dialog::SimpleDialog(SimpleDialog::Alert { .. }) => Some(WebDriverUserPrompt::Alert),
-            Dialog::SimpleDialog(SimpleDialog::Confirm { .. }) => {
-                Some(WebDriverUserPrompt::Confirm)
-            },
-            Dialog::SimpleDialog(SimpleDialog::Prompt { .. }) => Some(WebDriverUserPrompt::Prompt),
-            Dialog::File { .. } => Some(WebDriverUserPrompt::File),
-            Dialog::SelectElement { .. } => Some(WebDriverUserPrompt::Default),
-            _ => None,
         }
     }
 

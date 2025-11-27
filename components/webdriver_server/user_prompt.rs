@@ -333,9 +333,7 @@ impl Handler {
 
                 if handler.notify || handler.handler == WebDriverUserPromptAction::Ignore {
                     // Step 6. If handler's notify is true, return annotated unexpected alert open error.
-                    let alert_text = wait_for_ipc_response(receiver)?
-                        .unwrap_or_default()
-                        .unwrap_or_default();
+                    let alert_text = wait_for_ipc_response(receiver)?.unwrap_or_default();
 
                     Err(WebDriverError::new_with_data(
                         ErrorStatus::UnexpectedAlertOpen,

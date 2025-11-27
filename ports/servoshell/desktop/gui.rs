@@ -25,11 +25,12 @@ use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::Window;
 
-use super::app_state::RunningAppState;
 use super::geometry::winit_position_to_euclid_point;
 use crate::desktop::event_loop::AppEvent;
+use crate::desktop::headed_window;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
-use crate::running_app_state::RunningAppStateTrait;
+use crate::running_app_state::RunningAppState;
+use crate::window::ServoShellWindow;
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -94,7 +95,7 @@ impl Drop for Gui {
 }
 
 impl Gui {
-    pub fn new(
+    pub(crate) fn new(
         winit_window: &Window,
         event_loop: &ActiveEventLoop,
         event_loop_proxy: EventLoopProxy<AppEvent>,
@@ -147,19 +148,12 @@ impl Gui {
         std::mem::take(&mut self.event_queue)
     }
 
-    pub fn on_window_event(
+    pub(crate) fn on_window_event(
         &mut self,
-        window: &Window,
-        app_state: &RunningAppState,
+        winit_window: &Window,
         event: &WindowEvent,
     ) -> EventResponse {
-        let mut result = self.context.on_window_event(window, event);
-
-        if app_state.has_active_dialog() {
-            result.consumed = true;
-            return result;
-        }
-
+        let mut result = self.context.on_window_event(winit_window, event);
         result.consumed &= match event {
             WindowEvent::CursorMoved { position, .. } => {
                 let scale = Scale::<_, DeviceIndependentPixel, _>::new(
@@ -293,7 +287,12 @@ impl Gui {
     }
 
     /// Update the user interface, but do not paint the updated state.
-    pub fn update(&mut self, winit_window: &Window, state: &RunningAppState) {
+    pub(crate) fn update(
+        &mut self,
+        state: &RunningAppState,
+        window: &ServoShellWindow,
+        headed_window: &headed_window::Window,
+    ) {
         let Self {
             rendering_context,
             context,
@@ -305,8 +304,9 @@ impl Gui {
             ..
         } = self;
 
+        let winit_window = headed_window.winit_window();
         context.run(winit_window, |ctx| {
-            load_pending_favicons(ctx, state, favicon_textures);
+            load_pending_favicons(ctx, window, favicon_textures);
 
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
@@ -416,7 +416,7 @@ impl Gui {
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
-                            for (id, webview) in state.webviews().into_iter() {
+                            for (id, webview) in window.webviews().into_iter() {
                                 let favicon = favicon_textures
                                     .get(&id)
                                     .map(|(_, favicon)| favicon)
@@ -439,14 +439,14 @@ impl Gui {
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
 
-            state.for_each_active_dialog(|dialog| dialog.update(ctx));
+            headed_window.for_each_active_dialog(window, |dialog| dialog.update(ctx));
 
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
             let rect = ctx.available_rect();
             let size = Size2D::new(rect.width(), rect.height()) * scale;
             let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
-            if let Some(webview) = state.focused_webview() &&
+            if let Some(webview) = window.focused_webview() &&
                 rect != webview.rect()
             {
                 webview.move_resize(rect);
@@ -466,7 +466,7 @@ impl Gui {
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
             }
 
-            state.repaint_servo_if_necessary();
+            window.repaint_webviews();
 
             if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
                 ctx.layer_painter(LayerId::background()).add(PaintCallback {
@@ -485,7 +485,7 @@ impl Gui {
     }
 
     /// Paint the GUI, as of the last update.
-    pub fn paint(&mut self, window: &Window) {
+    pub(crate) fn paint(&mut self, window: &Window) {
         self.rendering_context
             .parent_context()
             .prepare_for_rendering();
@@ -495,13 +495,13 @@ impl Gui {
 
     /// Updates the location field from the given [`RunningAppState`], unless the user has started
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
-    fn update_location_in_toolbar(&mut self, state: &RunningAppState) -> bool {
+    fn update_location_in_toolbar(&mut self, window: &ServoShellWindow) -> bool {
         // User edited without clicking Go?
         if self.location_dirty {
             return false;
         }
 
-        let current_url_string = state
+        let current_url_string = window
             .focused_webview()
             .and_then(|webview| Some(webview.url()?.to_string()));
         match current_url_string {
@@ -517,8 +517,8 @@ impl Gui {
         self.location_dirty = dirty;
     }
 
-    fn update_load_status(&mut self, state: &RunningAppState) -> bool {
-        let state_status = state
+    fn update_load_status(&mut self, window: &ServoShellWindow) -> bool {
+        let state_status = window
             .focused_webview()
             .map(|webview| webview.load_status())
             .unwrap_or(LoadStatus::Complete);
@@ -526,16 +526,16 @@ impl Gui {
         old_status != self.load_status
     }
 
-    fn update_status_text(&mut self, state: &RunningAppState) -> bool {
-        let state_status = state
+    fn update_status_text(&mut self, window: &ServoShellWindow) -> bool {
+        let state_status = window
             .focused_webview()
             .and_then(|webview| webview.status_text());
         let old_status = std::mem::replace(&mut self.status_text, state_status);
         old_status != self.status_text
     }
 
-    fn update_can_go_back_and_forward(&mut self, state: &RunningAppState) -> bool {
-        let (can_go_back, can_go_forward) = state
+    fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
+        let (can_go_back, can_go_forward) = window
             .focused_webview()
             .map(|webview| (webview.can_go_back(), webview.can_go_forward()))
             .unwrap_or((false, false));
@@ -544,17 +544,17 @@ impl Gui {
         old_can_go_back != self.can_go_back || old_can_go_forward != self.can_go_forward
     }
 
-    /// Updates all fields taken from the given [`RunningAppState`], such as the location field.
+    /// Updates all fields taken from the given [`ServoShellWindow`], such as the location field.
     /// Returns true iff the egui needs an update.
-    pub fn update_webview_data(&mut self, state: &RunningAppState) -> bool {
+    pub(crate) fn update_webview_data(&mut self, window: &ServoShellWindow) -> bool {
         // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        self.update_location_in_toolbar(state) |
-            self.update_load_status(state) |
-            self.update_status_text(state) |
-            self.update_can_go_back_and_forward(state)
+        self.update_location_in_toolbar(window) |
+            self.update_load_status(window) |
+            self.update_status_text(window) |
+            self.update_can_go_back_and_forward(window)
     }
 
     /// Returns true if a redraw is required after handling the provided event.
@@ -619,11 +619,11 @@ fn embedder_image_to_egui_image(image: &Image) -> egui::ColorImage {
 /// Uploads all favicons that have not yet been processed to the GPU.
 fn load_pending_favicons(
     ctx: &egui::Context,
-    state: &RunningAppState,
+    window: &ServoShellWindow,
     texture_cache: &mut HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
 ) {
-    for id in state.take_pending_favicon_loads() {
-        let Some(webview) = state.webview_by_id(id) else {
+    for id in window.take_pending_favicon_loads() {
+        let Some(webview) = window.webview_by_id(id) else {
             continue;
         };
         let Some(favicon) = webview.favicon() else {

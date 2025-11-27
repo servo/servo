@@ -4,64 +4,48 @@
 
 //! Application entry point, runs the event loop.
 
-use std::collections::HashMap;
 use std::path::Path;
 use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use ::servo::ServoBuilder;
-use crossbeam_channel::unbounded;
-use log::warn;
 use net::protocols::ProtocolRegistry;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::{EventLoopWaker, WebDriverCommandMsg, WebDriverUserPromptAction};
-use url::Url;
+use servo::{EventLoopWaker, ServoBuilder};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 use winit::window::WindowId;
 
-use super::app_state::AppState;
 use super::event_loop::AppEvent;
 use super::{headed_window, headless_window};
-use crate::desktop::app_state::RunningAppState;
 use crate::desktop::event_loop::ServoShellEventLoop;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
-use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
 use crate::prefs::ServoShellPreferences;
-use crate::running_app_state::RunningAppStateTrait;
+use crate::running_app_state::RunningAppState;
+use crate::window::PlatformWindow;
+
+pub(crate) enum AppState {
+    Initializing,
+    Running(Rc<RunningAppState>),
+    ShuttingDown,
+}
 
 pub struct App {
     opts: Opts,
     preferences: Preferences,
     servoshell_preferences: ServoShellPreferences,
     waker: Box<dyn EventLoopWaker>,
-    proxy: Option<EventLoopProxy<AppEvent>>,
+    event_loop_proxy: Option<EventLoopProxy<AppEvent>>,
     initial_url: ServoUrl,
     t_start: Instant,
     t: Instant,
     state: AppState,
-
-    // This is the last field of the struct to ensure that windows are dropped *after* all other
-    // references to the relevant rendering contexts have been destroyed.
-    // (https://github.com/servo/servo/issues/36711)
-    windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
-}
-
-/// Action to be taken by the caller of [`App::handle_events`].
-pub(crate) enum PumpResult {
-    /// The caller should shut down Servo and its related context.
-    Shutdown,
-    Continue {
-        needs_user_interface_update: bool,
-        need_window_redraw: bool,
-    },
 }
 
 impl App {
@@ -83,9 +67,8 @@ impl App {
             opts,
             preferences,
             servoshell_preferences: servo_shell_preferences,
-            windows: HashMap::new(),
             waker: event_loop.create_event_loop_waker(),
-            proxy: event_loop.event_loop_proxy(),
+            event_loop_proxy: event_loop.event_loop_proxy(),
             initial_url: initial_url.clone(),
             t_start: t,
             t,
@@ -94,27 +77,7 @@ impl App {
     }
 
     /// Initialize Application once event loop start running.
-    pub fn init(&mut self, event_loop: Option<&ActiveEventLoop>) {
-        let headless = self.servoshell_preferences.headless;
-        assert_eq!(headless, event_loop.is_none());
-
-        let window = match event_loop {
-            Some(event_loop) => {
-                let event_loop_proxy = self.proxy.take().expect("Must have a proxy available");
-                Rc::new(headed_window::Window::new(
-                    &self.servoshell_preferences,
-                    event_loop,
-                    event_loop_proxy,
-                    self.initial_url.clone(),
-                ))
-            },
-            None => headless_window::Window::new(&self.servoshell_preferences),
-        };
-
-        self.windows.insert(window.id(), window);
-
-        let (_, window) = self.windows.iter().next().unwrap();
-
+    pub fn init(&mut self, active_event_loop: Option<&ActiveEventLoop>) {
         let mut user_content_manager = UserContentManager::new();
         for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
             .expect("Loading userscripts failed")
@@ -141,35 +104,51 @@ impl App {
             .protocol_registry(protocol_registry)
             .event_loop_waker(self.waker.clone());
 
+        let platform_window =
+            self.create_platform_window(self.initial_url.clone(), active_event_loop);
         #[cfg(feature = "webxr")]
         let servo_builder =
             servo_builder.webxr_registry(super::webxr::XrDiscoveryWebXrRegistry::new_boxed(
-                window.clone(),
-                event_loop,
+                platform_window.clone(),
+                active_event_loop,
                 &self.preferences,
             ));
 
         let servo = servo_builder.build();
         servo.setup_logging();
 
-        // Initialize WebDriver server here before `servo` is moved.
-        let webdriver_receiver = self.servoshell_preferences.webdriver_port.map(|port| {
-            let (embedder_sender, embedder_receiver) = unbounded();
-            webdriver_server::start_server(port, embedder_sender, self.waker.clone());
-            embedder_receiver
-        });
-
         let running_state = Rc::new(RunningAppState::new(
             servo,
-            window.clone(),
             self.servoshell_preferences.clone(),
-            webdriver_receiver,
+            self.waker.clone(),
         ));
-
-        running_state.create_and_focus_toplevel_webview(self.initial_url.clone().into_url());
-        window.rebuild_user_interface(&running_state);
+        running_state.create_window(platform_window, self.initial_url.as_url().clone());
 
         self.state = AppState::Running(running_state);
+    }
+
+    fn create_platform_window(
+        &self,
+        url: ServoUrl,
+        active_event_loop: Option<&ActiveEventLoop>,
+    ) -> Rc<dyn PlatformWindow> {
+        assert_eq!(
+            self.servoshell_preferences.headless,
+            active_event_loop.is_none()
+        );
+
+        let Some(active_event_loop) = active_event_loop else {
+            return headless_window::Window::new(&self.servoshell_preferences);
+        };
+
+        headed_window::Window::new(
+            &self.servoshell_preferences,
+            active_event_loop,
+            self.event_loop_proxy
+                .clone()
+                .expect("Should always have event loop proxy in headed mode."),
+            url,
+        )
     }
 
     pub fn pump_servo_event_loop(&mut self) -> bool {
@@ -177,242 +156,11 @@ impl App {
             return false;
         };
 
-        self.handle_webdriver_messages();
-        match state.pump_event_loop() {
-            PumpResult::Shutdown => {
-                state.webview_collection_mut().clear();
-                self.state = AppState::ShuttingDown;
-                false
-            },
-            PumpResult::Continue {
-                needs_user_interface_update,
-                need_window_redraw,
-            } => {
-                // TODO: These results should eventually be stored per-`Window`.
-                for window in self.windows.values() {
-                    let updated_user_interface =
-                        needs_user_interface_update && window.update_user_interface_state(state);
-                    if updated_user_interface || need_window_redraw {
-                        window.request_repaint(state);
-                    }
-                }
-                true
-            },
+        if !state.spin_event_loop() {
+            self.state = AppState::ShuttingDown;
+            return false;
         }
-    }
-
-    pub(crate) fn handle_webdriver_messages(&self) {
-        let AppState::Running(running_state) = &self.state else {
-            return;
-        };
-
-        let Some(webdriver_receiver) = running_state.webdriver_receiver() else {
-            return;
-        };
-
-        while let Ok(msg) = webdriver_receiver.try_recv() {
-            match msg {
-                WebDriverCommandMsg::Shutdown => {
-                    running_state.servo().start_shutting_down();
-                },
-                WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
-                    let context = running_state.webview_by_id(webview_id);
-
-                    if let Err(error) = sender.send(context.is_some()) {
-                        warn!("Failed to send response of IsWebViewOpen: {error}");
-                    }
-                },
-                WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
-                    running_state.servo().execute_webdriver_command(msg);
-                },
-                WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
-                    let new_webview =
-                        running_state.create_toplevel_webview(Url::parse("about:blank").unwrap());
-
-                    if let Err(error) = response_sender.send(new_webview.id()) {
-                        warn!("Failed to send response of NewWebview: {error}");
-                    }
-                    if let Some(load_status_sender) = load_status_sender {
-                        running_state.set_load_status_sender(new_webview.id(), load_status_sender);
-                    }
-                },
-                WebDriverCommandMsg::CloseWebView(webview_id, response_sender) => {
-                    running_state.close_webview(webview_id);
-                    if let Err(error) = response_sender.send(()) {
-                        warn!("Failed to send response of CloseWebView: {error}");
-                    }
-                },
-                WebDriverCommandMsg::FocusWebView(webview_id) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        webview.focus_and_raise_to_top(true);
-                    }
-                },
-                WebDriverCommandMsg::FocusBrowsingContext(..) => {
-                    running_state.servo().execute_webdriver_command(msg);
-                },
-                WebDriverCommandMsg::GetAllWebViews(response_sender) => {
-                    let webviews = running_state.webviews().iter().map(|(id, _)| *id).collect();
-
-                    if let Err(error) = response_sender.send(webviews) {
-                        warn!("Failed to send response of GetAllWebViews: {error}");
-                    }
-                },
-                WebDriverCommandMsg::GetWindowRect(_webview_id, response_sender) => {
-                    let window = self
-                        .windows
-                        .values()
-                        .next()
-                        .expect("Should have at least one window in servoshell");
-
-                    if let Err(error) = response_sender.send(window.window_rect()) {
-                        warn!("Failed to send response of GetWindowSize: {error}");
-                    }
-                },
-                WebDriverCommandMsg::MaximizeWebView(webview_id, response_sender) => {
-                    let window = self
-                        .windows
-                        .values()
-                        .next()
-                        .expect("Should have at least one window in servoshell");
-                    window.maximize(
-                        &running_state
-                            .webview_by_id(webview_id)
-                            .expect("Webview must exists as we just verified"),
-                    );
-
-                    if let Err(error) = response_sender.send(window.window_rect()) {
-                        warn!("Failed to send response of GetWindowSize: {error}");
-                    }
-                },
-                WebDriverCommandMsg::SetWindowRect(webview_id, requested_rect, size_sender) => {
-                    let Some(webview) = running_state.webview_by_id(webview_id) else {
-                        continue;
-                    };
-
-                    let window = self
-                        .windows
-                        .values()
-                        .next()
-                        .expect("Should have at least one window in servoshell");
-                    let scale = window.hidpi_scale_factor();
-
-                    let requested_physical_rect =
-                        (requested_rect.to_f32() * scale).round().to_i32();
-
-                    // Step 17. Set Width/Height.
-                    window.request_resize(&webview, requested_physical_rect.size());
-
-                    // Step 18. Set position of the window.
-                    window.set_position(requested_physical_rect.min);
-
-                    if let Err(error) = size_sender.send(window.window_rect()) {
-                        warn!("Failed to send window size: {error}");
-                    }
-                },
-                WebDriverCommandMsg::GetViewportSize(_webview_id, response_sender) => {
-                    let window = self
-                        .windows
-                        .values()
-                        .next()
-                        .expect("Should have at least one window in servoshell");
-
-                    let size = window.rendering_context().size2d();
-
-                    if let Err(error) = response_sender.send(size) {
-                        warn!("Failed to send response of GetViewportSize: {error}");
-                    }
-                },
-                // This is only received when start new session.
-                WebDriverCommandMsg::GetFocusedWebView(sender) => {
-                    let focused_webview = running_state.focused_webview();
-
-                    if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
-                        warn!("Failed to send response of GetFocusedWebView: {error}");
-                    };
-                },
-                WebDriverCommandMsg::LoadUrl(webview_id, url, load_status_sender) => {
-                    running_state.handle_webdriver_load_url(webview_id, url, load_status_sender);
-                },
-                WebDriverCommandMsg::Refresh(webview_id, load_status_sender) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        running_state.set_load_status_sender(webview_id, load_status_sender);
-                        webview.reload();
-                    }
-                },
-                WebDriverCommandMsg::GoBack(webview_id, load_status_sender) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        let traversal_id = webview.go_back(1);
-                        running_state.set_pending_traversal(traversal_id, load_status_sender);
-                    }
-                },
-                WebDriverCommandMsg::GoForward(webview_id, load_status_sender) => {
-                    if let Some(webview) = running_state.webview_by_id(webview_id) {
-                        let traversal_id = webview.go_forward(1);
-                        running_state.set_pending_traversal(traversal_id, load_status_sender);
-                    }
-                },
-                WebDriverCommandMsg::InputEvent(webview_id, input_event, response_sender) => {
-                    running_state.handle_webdriver_input_event(
-                        webview_id,
-                        input_event,
-                        response_sender,
-                    );
-                },
-                WebDriverCommandMsg::ScriptCommand(_, ref webdriver_script_command) => {
-                    running_state.handle_webdriver_script_command(webdriver_script_command);
-                    running_state.servo().execute_webdriver_command(msg);
-                },
-                WebDriverCommandMsg::CurrentUserPrompt(webview_id, response_sender) => {
-                    let current_dialog =
-                        running_state.get_current_active_dialog_webdriver_type(webview_id);
-                    if let Err(error) = response_sender.send(current_dialog) {
-                        warn!("Failed to send response of CurrentUserPrompt: {error}");
-                    };
-                },
-                WebDriverCommandMsg::HandleUserPrompt(webview_id, action, response_sender) => {
-                    let response = if running_state.webview_has_active_dialog(webview_id) {
-                        let alert_text = running_state.alert_text_of_newest_dialog(webview_id);
-
-                        match action {
-                            WebDriverUserPromptAction::Accept => {
-                                running_state.accept_active_dialogs(webview_id)
-                            },
-                            WebDriverUserPromptAction::Dismiss => {
-                                running_state.dismiss_active_dialogs(webview_id)
-                            },
-                            WebDriverUserPromptAction::Ignore => {},
-                        };
-
-                        // Return success for AcceptAlert and DismissAlert commands.
-                        Ok(alert_text)
-                    } else {
-                        // Return error for AcceptAlert and DismissAlert commands
-                        // if there is no active dialog.
-                        Err(())
-                    };
-
-                    if let Err(error) = response_sender.send(response) {
-                        warn!("Failed to send response of HandleUserPrompt: {error}");
-                    };
-                },
-                WebDriverCommandMsg::GetAlertText(webview_id, response_sender) => {
-                    let response = match running_state.alert_text_of_newest_dialog(webview_id) {
-                        Some(text) => Ok(text),
-                        None => Err(()),
-                    };
-
-                    if let Err(error) = response_sender.send(response) {
-                        warn!("Failed to send response of GetAlertText: {error}");
-                    };
-                },
-                WebDriverCommandMsg::SendAlertText(webview_id, text) => {
-                    running_state.set_alert_text_of_newest_dialog(webview_id, text);
-                },
-                WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
-                    running_state.handle_webdriver_screenshot(webview_id, rect, result_sender);
-                },
-            };
-        }
+        true
     }
 }
 
@@ -440,10 +188,14 @@ impl ApplicationHandler<AppEvent> for App {
             let AppState::Running(state) = &self.state else {
                 return;
             };
-            let Some(window) = self.windows.get(&window_id) else {
-                return;
-            };
-            window.handle_winit_window_event(state.clone(), window_event);
+            let window_id: u64 = window_id.into();
+            if let Some(window) = state.window(window_id.into()) {
+                window.platform_window().handle_winit_window_event(
+                    state.clone(),
+                    &window,
+                    window_event,
+                );
+            }
         }
 
         if !self.pump_servo_event_loop() {
@@ -458,10 +210,16 @@ impl ApplicationHandler<AppEvent> for App {
             let AppState::Running(state) = &self.state else {
                 return;
             };
-            let Some(window) = self.windows.values().next() else {
-                return;
-            };
-            window.handle_winit_app_event(state.clone(), app_event);
+            if let Some(window_id) = app_event.window_id() {
+                let window_id: u64 = window_id.into();
+                if let Some(window) = state.window(window_id.into()) {
+                    window.platform_window().handle_winit_app_event(
+                        state.clone(),
+                        &window,
+                        app_event,
+                    );
+                }
+            }
         }
 
         if !self.pump_servo_event_loop() {

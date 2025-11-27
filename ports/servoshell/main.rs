@@ -25,8 +25,8 @@ fn main() {
         if #[cfg(not(any(target_os = "android", target_env = "ohos")))] {
             servoshell::main()
         } else {
-            // Android: see ports/servoshell/egl/android/simpleservo.rs.
-            // OpenHarmony: see ports/servoshell/egl/ohos/simpleservo.rs.
+            // Android: see ports/servoshell/egl/android/mod.rs.
+            // OpenHarmony: see ports/servoshell/egl/ohos/mod.rs.
             println!(
                 "Cannot run the servoshell `bin` executable on platforms such as \
                  Android or OpenHarmony. On these platforms you need to compile \
