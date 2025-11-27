@@ -9,7 +9,10 @@ use std::sync::Arc;
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
-use egui::{Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel, Vec2, pos2};
+use egui::{
+    Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel, Vec2, WidgetInfo,
+    WidgetType, pos2,
+};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
@@ -269,6 +272,11 @@ impl Gui {
             let close_button = tab_frame
                 .content_ui
                 .add(egui::Button::new("X").fill(egui::Color32::TRANSPARENT));
+            close_button.widget_info(|| {
+                let mut info = WidgetInfo::new(WidgetType::Button);
+                info.label = Some("Close".into());
+                info
+            });
             if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
                 event_queue.push(GuiCommand::CloseWebView(webview.id()))
             } else if !selected && tab.clicked() {
@@ -319,28 +327,48 @@ impl Gui {
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
-                            if ui
-                                .add_enabled(self.can_go_back, Gui::toolbar_button("⏴"))
-                                .clicked()
-                            {
+                            let back_button =
+                                ui.add_enabled(self.can_go_back, Gui::toolbar_button("⏴"));
+                            back_button.widget_info(|| {
+                                let mut info = WidgetInfo::new(WidgetType::Button);
+                                info.label = Some("Back".into());
+                                info
+                            });
+                            if back_button.clicked() {
                                 event_queue.push(GuiCommand::Back);
                             }
 
-                            if ui
-                                .add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"))
-                                .clicked()
-                            {
+                            let forward_button =
+                                ui.add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"));
+                            forward_button.widget_info(|| {
+                                let mut info = WidgetInfo::new(WidgetType::Button);
+                                info.label = Some("Forward".into());
+                                info
+                            });
+                            if forward_button.clicked() {
                                 event_queue.push(GuiCommand::Forward);
                             }
 
                             match self.load_status {
                                 LoadStatus::Started | LoadStatus::HeadParsed => {
-                                    if ui.add(Gui::toolbar_button("X")).clicked() {
+                                    let stop_button = ui.add(Gui::toolbar_button("X"));
+                                    stop_button.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Stop".into());
+                                        info
+                                    });
+                                    if stop_button.clicked() {
                                         warn!("Do not support stop yet.");
                                     }
                                 },
                                 LoadStatus::Complete => {
-                                    if ui.add(Gui::toolbar_button("↻")).clicked() {
+                                    let reload_button = ui.add(Gui::toolbar_button("↻"));
+                                    reload_button.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Reload".into());
+                                        info
+                                    });
+                                    if reload_button.clicked() {
                                         event_queue.push(GuiCommand::Reload);
                                     }
                                 },
@@ -354,6 +382,12 @@ impl Gui {
                                     let prefs_toggle = ui
                                         .toggle_value(&mut self.experimental_prefs_enabled, "☢")
                                         .on_hover_text("Enable experimental prefs");
+                                    prefs_toggle.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Enable experimental preferences".into());
+                                        info.selected = Some(self.experimental_prefs_enabled);
+                                        info
+                                    });
                                     if prefs_toggle.clicked() {
                                         let enable = self.experimental_prefs_enabled;
                                         for pref in EXPERIMENTAL_PREFS {
@@ -367,7 +401,9 @@ impl Gui {
                                     let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
-                                        egui::TextEdit::singleline(location).id(location_id),
+                                        egui::TextEdit::singleline(location)
+                                            .id(location_id)
+                                            .hint_text("Search or enter address"),
                                     );
 
                                     if location_field.changed() {
@@ -423,7 +459,13 @@ impl Gui {
                                     .copied();
                                 Self::browser_tab(ui, webview, event_queue, favicon);
                             }
-                            if ui.add(Gui::toolbar_button("+")).clicked() {
+                            let new_tab_button = ui.add(Gui::toolbar_button("+"));
+                            new_tab_button.widget_info(|| {
+                                let mut info = WidgetInfo::new(WidgetType::Button);
+                                info.label = Some("New tab".into());
+                                info
+                            });
+                            if new_tab_button.clicked() {
                                 event_queue.push(GuiCommand::NewWebView);
                             }
                         },
