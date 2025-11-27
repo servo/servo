@@ -719,14 +719,14 @@ impl Document {
         };
 
         let dirty_root = match self.dirty_root.get() {
-            None => {
+            Some(root) if root.is_connected() => root,
+            _ => {
                 element
                     .upcast::<Node>()
                     .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
                 self.dirty_root.set(Some(element));
                 return;
             },
-            Some(root) => root,
         };
 
         for ancestor in element.upcast::<Node>().inclusive_ancestors_in_flat_tree() {
