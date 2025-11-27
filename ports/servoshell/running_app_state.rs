@@ -272,7 +272,7 @@ impl RunningAppState {
         if self.servoshell_preferences.webdriver_port.is_none() {
             self.windows
                 .borrow_mut()
-                .retain(|_, window| !window.is_empty());
+                .retain(|_, window| !window.should_close());
             if self.windows.borrow().is_empty() {
                 self.servo.start_shutting_down();
             }

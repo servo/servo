@@ -43,10 +43,10 @@ pub(crate) struct ServoShellWindow {
     pub(crate) webview_collection: RefCell<WebViewCollection>,
     /// A handle to the [`PlatformWindow`] that servoshell is rendering in.
     platform_window: Rc<dyn PlatformWindow>,
+    /// Whether or not this window should be closed at the end of the spin of the next event loop.
+    close_scheduled: Cell<bool>,
     /// Whether or not the application interface needs to be updated.
     needs_update: Cell<bool>,
-    /// Whether or not the application interface needs to be rebuilt.
-    needs_user_interface_rebuild: Cell<bool>,
     /// Whether or not Servo needs to repaint its display. Currently this is global
     /// because every `WebView` shares a `RenderingContext`.
     needs_repaint: Cell<bool>,
@@ -60,8 +60,8 @@ impl ServoShellWindow {
         Self {
             webview_collection: Default::default(),
             platform_window,
+            close_scheduled: Default::default(),
             needs_update: Default::default(),
-            needs_user_interface_rebuild: Default::default(),
             needs_repaint: Default::default(),
             pending_favicon_loads: Default::default(),
         }
@@ -108,8 +108,8 @@ impl ServoShellWindow {
     }
 
     /// Whether or not this [`ServoShellWindow`] has any [`WebView`]s.
-    pub(crate) fn is_empty(&self) -> bool {
-        self.webview_collection.borrow().is_empty()
+    pub(crate) fn should_close(&self) -> bool {
+        self.webview_collection.borrow().is_empty() || self.close_scheduled.get()
     }
 
     pub(crate) fn contains_webview(&self, id: WebViewId) -> bool {
@@ -128,6 +128,10 @@ impl ServoShellWindow {
         self.needs_repaint.set(true)
     }
 
+    pub(crate) fn schedule_close(&self) {
+        self.close_scheduled.set(true)
+    }
+
     pub(crate) fn platform_window(&self) -> Rc<dyn PlatformWindow> {
         self.platform_window.clone()
     }
@@ -138,7 +142,7 @@ impl ServoShellWindow {
 
     pub(crate) fn add_webview(&self, webview: WebView) {
         self.webview_collection.borrow_mut().add(webview);
-        self.needs_user_interface_rebuild.set(true);
+        self.set_needs_repaint();
     }
 
     pub(crate) fn webview_ids(&self) -> Vec<WebViewId> {
@@ -173,19 +177,11 @@ impl ServoShellWindow {
         let updated_user_interface = self.needs_update.take() &&
             self.platform_window
                 .update_user_interface_state(state, self);
-        let rebuilt_user_interface = self.needs_user_interface_rebuild.take();
-        if rebuilt_user_interface {
-            self.platform_window.rebuild_user_interface(state, self);
-        }
 
         // Delegate handlers may have asked us to present or update compositor contents.
         // Currently, egui-file-dialog dialogs need to be constantly redrawn or animations aren't fluid.
         let needs_repaint = self.needs_repaint.take();
-        if rebuilt_user_interface ||
-            updated_user_interface ||
-            needs_repaint ||
-            self.has_active_dialog()
-        {
+        if updated_user_interface || needs_repaint {
             self.platform_window.request_repaint(self);
         }
     }
@@ -251,11 +247,6 @@ impl ServoShellWindow {
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
     pub(crate) fn take_pending_favicon_loads(&self) -> Vec<WebViewId> {
         std::mem::take(&mut *self.pending_favicon_loads.borrow_mut())
-    }
-
-    pub(crate) fn has_active_dialog(&self) -> bool {
-        //!self.embedder_controls.borrow().is_empty()
-        false
     }
 
     pub(crate) fn show_embedder_control(

@@ -796,7 +796,7 @@ impl PlatformWindow for Window {
                         );
                     },
                     WindowEvent::CloseRequested => {
-                        state.servo().start_shutting_down();
+                        window.schedule_close();
                     },
                     WindowEvent::ThemeChanged(theme) => {
                         webview.notify_theme_change(match theme {
