@@ -6,6 +6,7 @@
 use std::rc::Rc;
 
 use app_units::Au;
+use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::{
@@ -737,6 +738,64 @@ pub fn process_offset_parent_query(
     })
 }
 
+fn style_and_flags_for_node(node: &ServoLayoutNode) -> Option<(servo_arc::Arc<ComputedValues>, FragmentFlags)> {
+    let layout_data = node.inner_layout_data()?;
+    let layout_box = layout_data.self_box.borrow();
+    let layout_box = layout_box.as_ref()?;
+
+    layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+}
+
+fn is_containing_block_for_position(position: Position, ancestor: &ServoLayoutNode) -> bool {
+    let Some(layout_data) = ancestor.inner_layout_data() else {
+        return false;
+    };
+    let ancestor_layout_box = layout_data.self_box.borrow();
+    let Some(ancestor_layout_box) = ancestor_layout_box.as_ref() else {
+        return false;
+    };
+
+    let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
+        .with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+    else {
+        return false;
+    };
+
+    match position {
+        Position::Static | Position::Relative | Position::Sticky => {
+            !ancestor_style.is_inline_box(ancestor_flags)
+        },
+        Position::Absolute => {
+            ancestor_style.establishes_containing_block_for_absolute_descendants(ancestor_flags)
+        },
+        Position::Fixed => {
+            ancestor_style.establishes_containing_block_for_all_descendants(ancestor_flags)
+        },
+    }
+}
+
+fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayoutNode<'a>> {
+    let (style, _flags) = style_and_flags_for_node(&node)?;
+
+    let mut current_position_value = style.clone_position();
+    let mut current_ancestor = node;
+
+    #[expect(unsafe_code)]
+    while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
+        let Some((ancestor_style, _ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
+            continue;
+        };
+
+        if is_containing_block_for_position(current_position_value, &ancestor) {
+            return Some(ancestor);
+        }
+
+        current_position_value = ancestor_style.clone_position();
+        current_ancestor = ancestor;
+    }
+    None
+}
+
 /// An implementation of `scrollParent` that can also be used to for `scrollIntoView`:
 /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>.
 ///
@@ -750,15 +809,9 @@ pub(crate) fn process_scroll_container_query(
         return Some(ScrollContainerResponse::Viewport(viewport_overflow));
     };
 
-    let layout_data = node.inner_layout_data()?;
-
     // 1. If any of the following holds true, return null and terminate this algorithm:
     //  - The element does not have an associated box.
-    let layout_box = layout_data.self_box.borrow();
-    let layout_box = layout_box.as_ref()?;
-
-    let (style, flags) =
-        layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))?;
+    let (style, flags) = style_and_flags_for_node(&node)?;
 
     // - The element is the root element.
     // - The element is the body element.
@@ -808,32 +861,11 @@ pub(crate) fn process_scroll_container_query(
     while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
         current_ancestor = ancestor;
 
-        let Some(layout_data) = ancestor.inner_layout_data() else {
-            continue;
-        };
-        let ancestor_layout_box = layout_data.self_box.borrow();
-        let Some(ancestor_layout_box) = ancestor_layout_box.as_ref() else {
+        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
             continue;
         };
 
-        let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
-            .with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
-        else {
-            continue;
-        };
-
-        let is_containing_block = match current_position_value {
-            Position::Static | Position::Relative | Position::Sticky => {
-                !ancestor_style.is_inline_box(ancestor_flags)
-            },
-            Position::Absolute => {
-                ancestor_style.establishes_containing_block_for_absolute_descendants(ancestor_flags)
-            },
-            Position::Fixed => {
-                ancestor_style.establishes_containing_block_for_all_descendants(ancestor_flags)
-            },
-        };
-        if !is_containing_block {
+        if !is_containing_block_for_position(current_position_value, &ancestor) {
             continue;
         }
 
@@ -1394,6 +1426,13 @@ pub fn find_character_offset_in_fragment_descendants(
             .borrow()
             .character_offset(closest_fragment.point_in_fragment)
     })
+}
+
+pub fn process_containing_block_query(
+    node: ServoLayoutNode,
+) -> Option<UntrustedNodeAddress> {
+    let containing_block = containing_block_for_node(node);
+    containing_block.map(|node| node.opaque().into())
 }
 
 pub fn process_resolved_font_style_query<'dom, E>(
