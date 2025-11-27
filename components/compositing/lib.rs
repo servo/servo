@@ -31,7 +31,6 @@ mod render_notifier;
 mod screenshot;
 mod touch;
 mod webrender_external_images;
-mod webview_manager;
 mod webview_renderer;
 
 /// Data used to construct a compositor.

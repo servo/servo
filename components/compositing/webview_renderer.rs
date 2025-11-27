@@ -102,6 +102,8 @@ pub(crate) struct WebViewRenderer {
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
     /// by the embedding layer.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    /// Whether or not this [`WebViewRenderer`] is hidden.
+    hidden: bool,
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
@@ -143,6 +145,7 @@ impl WebViewRenderer {
             page_zoom: DEFAULT_PAGE_ZOOM,
             pinch_zoom: PinchZoom::new(rect),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
+            hidden: false,
             animating: false,
             viewport_description: None,
             embedder_to_constellation_sender,
@@ -171,6 +174,17 @@ impl WebViewRenderer {
 
     pub(crate) fn animating(&self) -> bool {
         self.animating
+    }
+
+    pub(crate) fn hidden(&self) -> bool {
+        self.hidden
+    }
+
+    /// Set whether this [`WebViewRenderer`] is in the hidden state or not. Return `true` if the
+    /// value changed or `false` otherwise.
+    pub(crate) fn set_hidden(&mut self, new_value: bool) -> bool {
+        let old_value = std::mem::replace(&mut self.hidden, new_value);
+        new_value != old_value
     }
 
     /// Returns the [`PipelineDetails`] for the given [`PipelineId`], creating it if needed.

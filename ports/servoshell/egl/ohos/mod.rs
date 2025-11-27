@@ -398,10 +398,10 @@ impl ServoAction {
                     NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
                 {
                     let webview = servo
-                        .focused_or_newest_webview()
+                        .active_or_newest_webview()
                         .expect("Should always start with at least one WebView");
                     if webview.id() != native_webview_components.id {
-                        servo.focus_webview(native_webview_components.id);
+                        servo.activate_webview(native_webview_components.id);
                         servo.pause_compositor();
                         let (window_handle, viewport_rect) = get_raw_window_handle(
                             native_webview_components.xcomponent.0,
@@ -417,13 +417,13 @@ impl ServoAction {
                             .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
                     }
                 } else {
-                    error!("Could not find webview to focus");
+                    error!("Could not find webview to activate");
                 }
             },
             NewWebview(xcomponent, window) => {
                 servo.pause_compositor();
                 let webview =
-                    servo.create_and_focus_toplevel_webview("about:blank".parse().unwrap());
+                    servo.create_and_activate_toplevel_webview("about:blank".parse().unwrap());
                 let (window_handle, viewport_rect) = get_raw_window_handle(xcomponent.0, window.0);
 
                 servo.resume_compositor(window_handle, viewport_rect);
@@ -506,7 +506,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             let servo = init_app(*init_opts, window.0, xc.0, wakeup, callbacks)
                 .expect("Servo initialization failed");
             let id = servo
-                .focused_or_newest_webview()
+                .active_or_newest_webview()
                 .expect("Should always start with at least one WebView")
                 .id();
             NATIVE_WEBVIEWS
