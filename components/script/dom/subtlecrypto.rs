@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod aes_operation;
+mod argon2_operation;
 mod cshake_operation;
 mod ecdh_operation;
 mod ecdsa_operation;
@@ -79,6 +80,9 @@ const ALG_SHA3_384: &str = "SHA3-384";
 const ALG_SHA3_512: &str = "SHA3-512";
 const ALG_CSHAKE_128: &str = "cSHAKE128";
 const ALG_CSHAKE_256: &str = "cSHAKE256";
+const ALG_ARGON2D: &str = "Argon2d";
+const ALG_ARGON2I: &str = "Argon2i";
+const ALG_ARGON2ID: &str = "Argon2id";
 
 static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_RSASSA_PKCS1,
@@ -104,6 +108,9 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_SHA3_512,
     ALG_CSHAKE_128,
     ALG_CSHAKE_256,
+    ALG_ARGON2D,
+    ALG_ARGON2I,
+    ALG_ARGON2ID,
 ];
 
 // Named elliptic curves
@@ -2895,6 +2902,14 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::CShakeParams(params.into())
                 },
 
+                // <https://wicg.github.io/webcrypto-modern-algos/#argon2-registration>
+                (ALG_ARGON2D | ALG_ARGON2I | ALG_ARGON2ID, Operation::ImportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 _ => return Err(Error::NotSupported(None)),
             };
 
@@ -3174,6 +3189,33 @@ impl NormalizedAlgorithm {
             (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
+            (ALG_ARGON2D, NormalizedAlgorithm::Algorithm(algo)) => argon2_operation::import_key(
+                global,
+                algo,
+                format,
+                key_data,
+                extractable,
+                usages,
+                can_gc,
+            ),
+            (ALG_ARGON2I, NormalizedAlgorithm::Algorithm(algo)) => argon2_operation::import_key(
+                global,
+                algo,
+                format,
+                key_data,
+                extractable,
+                usages,
+                can_gc,
+            ),
+            (ALG_ARGON2ID, NormalizedAlgorithm::Algorithm(algo)) => argon2_operation::import_key(
+                global,
+                algo,
+                format,
+                key_data,
+                extractable,
+                usages,
+                can_gc,
+            ),
             _ => Err(Error::NotSupported(None)),
         }
     }
