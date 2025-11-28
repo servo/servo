@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use base::id::PipelineId;
 use deny_public_fields::DenyPublicFields;
 use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::JSVal;
 use js::rust::HandleValue;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -38,6 +38,7 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
@@ -784,28 +785,39 @@ impl JsTimerTask {
                 // Step 6.4. Let settings object be global's relevant settings object.
                 // Step 6. Let realm be global's relevant realm.
                 let global = this.global();
-                // Step 7. Let initiating script be the active script.
-                let cx = GlobalScope::get_cx();
-                // Step 9.6.7. If initiating script is not null, then:
-                rooted!(in(*cx) let mut rval = UndefinedValue());
+                // TODO Step 7. Let initiating script be the active script.
+
+                // Step 9.6.5. Let fetch options be the default script fetch options.
+                let fetch_options = ScriptFetchOptions::default_classic_script(&global);
+
+                // Step 9.6.6. Let base URL be settings object's API base URL.
+                let base_url = global.api_base_url();
+                
+                // TODO Step 9.6.7. If initiating script is not null, then:
                 // Step 9.6.7.1. Set fetch options to a script fetch options whose cryptographic nonce
                 // is initiating script's fetch options's cryptographic nonce,
                 // integrity metadata is the empty string, parser metadata is "not-parser-inserted",
                 // credentials mode is initiating script's fetch options's credentials mode,
                 // referrer policy is initiating script's fetch options's referrer policy,
                 // and fetch priority is "auto".
+                // Step 9.6.7.2. Set base URL to initiating script's base URL.
+                
                 // Step 9.6.8. Let script be the result of creating a classic script given handler,
                 // settings object, base URL, and fetch options.
+                let script = global.create_a_classic_script(
+                    (*code_str.str()).into(),
+                    base_url,
+                    fetch_options,
+                    false,
+                    Some(IntroductionType::DOM_TIMER),
+                    1,
+                    false,
+                );
+
                 // Step 9.6.9. Run the classic script script.
                 //
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
-                _ = global.evaluate_js_on_global(
-                    (*code_str.str()).into(),
-                    "",
-                    Some(IntroductionType::DOM_TIMER),
-                    rval.handle_mut(),
-                    can_gc,
-                );
+                _ = global.run_a_classic_script(script, false, can_gc);
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and
             // "report", and with callback this value set to thisArg.
