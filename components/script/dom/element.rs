@@ -164,7 +164,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
-use crate::dom::scrolling_box::ScrollingBox;
+use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
@@ -855,11 +855,11 @@ impl Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>
-    fn scroll_into_view_with_options(
+    pub(crate) fn scroll_into_view_with_options(
         &self,
         behavior: ScrollBehavior,
-        block: ScrollLogicalPosition,
-        inline: ScrollLogicalPosition,
+        block: ScrollAxisState,
+        inline: ScrollAxisState,
         container: Option<&Element>,
         inner_target_rect: Option<Rect<Au>>,
     ) {
@@ -3477,13 +3477,19 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         };
 
         // Step 7: If the element does not have any associated box, or is not
-        // available to user-agent features, then return.
+        //         available to user-agent features, then return.
         if !self.has_css_layout_box() {
             return;
         }
 
         // Step 8: Scroll the element into view with behavior, block, inline, and container.
-        self.scroll_into_view_with_options(behavior, block, inline, container, None);
+        self.scroll_into_view_with_options(
+            behavior,
+            ScrollAxisState::new_always_scroll_position(block),
+            ScrollAxisState::new_always_scroll_position(inline),
+            container,
+            None,
+        );
 
         // Step 9: Optionally perform some other action that brings the
         // element to the user’s attention.

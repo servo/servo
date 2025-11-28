@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>scrollIntoView nearest shouldn't scroll a completely visible element</title>
+  <link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/cssom-view/#determine-the-scroll-into-view-position">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<style>
+#container {
+  width: 300px;
+  height: 300px;
+  overflow: scroll;
+}
+
+#target {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  top: 600px;
+  left: 800px;
+  background-color: aqua;
+}
+
+#overflowing {
+  width: 3000px;
+  height: 3000px;
+}
+</style>
+
+<div id="container">
+  <div id="target">
+  </div>
+  <div id="overflowing"></div>
+</div>
+
+<script>
+  test(function() {
+    container.scrollTop = 500;
+    container.scrollLeft = 700;
+    let initial_target_rect = target.getBoundingClientRect();
+    target.scrollIntoView({block: 'nearest', inline: 'nearest'});
+
+    let final_target_rect = target.getBoundingClientRect();
+    assert_equals(initial_target_rect.x, final_target_rect.x, 'Target x position remain unchanged');
+    assert_equals(initial_target_rect.y, final_target_rect.y, 'Target y position remain unchanged');
+  }, "scrollIntoView with `nearest` block and inline option shouldn't scroll a completely visible element");
+</script>
+</html>
