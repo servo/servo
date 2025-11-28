@@ -33,10 +33,10 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, CShakeParams, EcKeyAlgorithm, EcKeyGenParams,
-    EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams, HmacImportParams,
-    HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    RsaOtherPrimesInfo, SubtleCryptoMethods,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, EcKeyAlgorithm,
+    EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
+    HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
+    Pbkdf2Params, RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -2126,6 +2126,68 @@ impl From<RootedTraceableBox<CShakeParams>> for SubtleCShakeParams {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleArgon2Params {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-nonce>
+    nonce: Vec<u8>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-parallelism>
+    parallelism: u32,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-memory>
+    memory: u32,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-passes>
+    passes: u32,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-version>
+    version: Option<u8>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-secretValue>
+    secret_value: Option<Vec<u8>>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-associatedData>
+    associated_data: Option<Vec<u8>>,
+}
+
+impl From<RootedTraceableBox<Argon2Params>> for SubtleArgon2Params {
+    fn from(value: RootedTraceableBox<Argon2Params>) -> Self {
+        let nonce = match &value.nonce {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+        let secret_value = value
+            .secretValue
+            .as_ref()
+            .map(|secret_value| match secret_value {
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+            });
+        let associated_data =
+            value
+                .associatedData
+                .as_ref()
+                .map(|associated_data| match associated_data {
+                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+                });
+        SubtleArgon2Params {
+            name: value.parent.name.to_string(),
+            nonce,
+            parallelism: value.parallelism,
+            memory: value.memory,
+            passes: value.passes,
+            version: value.version,
+            secret_value,
+            associated_data,
+        }
+    }
+}
+
 /// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
 fn dictionary_from_jsval<T>(cx: JSContext, value: HandleValue, can_gc: CanGc) -> Fallible<T>
 where
@@ -2365,6 +2427,7 @@ enum NormalizedAlgorithm {
     HkdfParams(SubtleHkdfParams),
     Pbkdf2Params(SubtlePbkdf2Params),
     CShakeParams(SubtleCShakeParams),
+    Argon2Params(SubtleArgon2Params),
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
@@ -2903,7 +2966,22 @@ fn normalize_algorithm(
                 },
 
                 // <https://wicg.github.io/webcrypto-modern-algos/#argon2-registration>
+                (ALG_ARGON2D | ALG_ARGON2I | ALG_ARGON2ID, Operation::DeriveBits) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<Argon2Params>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Argon2Params(params.into())
+                },
                 (ALG_ARGON2D | ALG_ARGON2I | ALG_ARGON2ID, Operation::ImportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_ARGON2D | ALG_ARGON2I | ALG_ARGON2ID, Operation::GetKeyLength) => {
                     let mut params =
                         dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
                     params.name = DOMString::from(alg_name);
@@ -2938,6 +3016,7 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::HkdfParams(algo) => &algo.name,
             NormalizedAlgorithm::Pbkdf2Params(algo) => &algo.name,
             NormalizedAlgorithm::CShakeParams(algo) => &algo.name,
+            NormalizedAlgorithm::Argon2Params(algo) => &algo.name,
         }
     }
 
@@ -3093,6 +3172,15 @@ impl NormalizedAlgorithm {
             },
             (ALG_PBKDF2, NormalizedAlgorithm::Pbkdf2Params(algo)) => {
                 pbkdf2_operation::derive_bits(algo, key, length)
+            },
+            (ALG_ARGON2D, NormalizedAlgorithm::Argon2Params(algo)) => {
+                argon2_operation::derive_bits(algo, key, length)
+            },
+            (ALG_ARGON2I, NormalizedAlgorithm::Argon2Params(algo)) => {
+                argon2_operation::derive_bits(algo, key, length)
+            },
+            (ALG_ARGON2ID, NormalizedAlgorithm::Argon2Params(algo)) => {
+                argon2_operation::derive_bits(algo, key, length)
             },
             _ => Err(Error::NotSupported(None)),
         }
@@ -3258,6 +3346,15 @@ impl NormalizedAlgorithm {
             (ALG_HKDF, NormalizedAlgorithm::Algorithm(_algo)) => hkdf_operation::get_key_length(),
             (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::get_key_length()
+            },
+            (ALG_ARGON2D, NormalizedAlgorithm::Algorithm(_algo)) => {
+                argon2_operation::get_key_length()
+            },
+            (ALG_ARGON2I, NormalizedAlgorithm::Algorithm(_algo)) => {
+                argon2_operation::get_key_length()
+            },
+            (ALG_ARGON2ID, NormalizedAlgorithm::Algorithm(_algo)) => {
+                argon2_operation::get_key_length()
             },
             _ => Err(Error::NotSupported(None)),
         }
