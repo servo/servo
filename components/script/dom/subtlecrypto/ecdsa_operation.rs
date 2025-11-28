@@ -893,7 +893,7 @@ pub(crate) fn import_key(
             )
         },
         // If format is "raw":
-        KeyFormat::Raw => {
+        KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 2.1. If the namedCurve member of normalizedAlgorithm is not a named curve, then
             // throw a DataError.
             if !SUPPORTED_CURVES
@@ -974,6 +974,11 @@ pub(crate) fn import_key(
                 handle,
                 can_gc,
             )
+        },
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(None));
         },
     };
 
@@ -1231,7 +1236,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             ExportedKey::Jwk(Box::new(jwk))
         },
         // If format is "raw":
-        KeyFormat::Raw => {
+        KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
@@ -1272,7 +1277,11 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.3. Let result be data.
             ExportedKey::Bytes(data)
         },
-        // Otherwise: throw a NotSupportedError. (Unreachable)
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(None));
+        },
     };
 
     // Step 4. Return result.

@@ -78,7 +78,7 @@ pub(crate) fn import_key(
     // Step 1. Let keyData be the key data to be imported.
 
     // Step 2. If format is "raw":
-    if format == KeyFormat::Raw {
+    if matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
         // Step 2.1. If usages contains a value that is not "deriveKey" or "deriveBits", then throw
         // a SyntaxError.
         if usages

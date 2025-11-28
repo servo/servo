@@ -916,9 +916,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 16. Let result be the result of performing the import key operation
                 // specified by normalizedDerivedKeyAlgorithmImport using "raw" as format, secret
                 // as keyData, derivedKeyType as algorithm and using extractable and usages.
+                // NOTE: Use "raw-secret" instead, according to
+                // <https://wicg.github.io/webcrypto-modern-algos/#subtlecrypto-interface-keyformat>.
                 let result = match normalized_derived_key_algorithm_import.import_key(
                     &subtle.global(),
-                    KeyFormat::Raw,
+                    KeyFormat::Raw_secret,
                     &secret,
                     extractable,
                     usages.clone(),
@@ -1058,7 +1060,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 2.
         let key_data = match format {
             // If format is equal to the string "raw", "pkcs8", or "spki":
-            KeyFormat::Raw | KeyFormat::Pkcs8 | KeyFormat::Spki => {
+            // NOTE: Including other raw formats.
+            KeyFormat::Raw |
+            KeyFormat::Pkcs8 |
+            KeyFormat::Spki |
+            KeyFormat::Raw_public |
+            KeyFormat::Raw_private |
+            KeyFormat::Raw_seed |
+            KeyFormat::Raw_secret => {
                 match key_data {
                     // Step 2.1. If the keyData parameter passed to the importKey() method is a
                     // JsonWebKey dictionary, throw a TypeError.
@@ -1251,6 +1260,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     Let result be the result of converting result to an ECMAScript Object in
                 //     realm, as defined by [WebIDL].
                 // Step 11. Resolve promise with result.
+                // NOTE: We determine the format by pattern matching on result, which is an
+                // ExportedKey enum.
                 match result {
                     ExportedKey::Bytes(bytes) => {
                         subtle.resolve_promise_with_data(promise, bytes);
@@ -1375,6 +1386,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     JSON.stringify algorithm specified in [ECMA-262] in the context of a new
                 //     global object.
                 //     Step 14.2. Let bytes be the result of UTF-8 encoding json.
+                // NOTE: We determine the format by pattern matching on result, which is an
+                // ExportedKey enum.
                 let cx = GlobalScope::get_cx();
                 let bytes = match exported_key {
                     ExportedKey::Bytes(bytes) => bytes,
