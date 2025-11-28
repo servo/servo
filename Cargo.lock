@@ -1135,7 +1135,7 @@ dependencies = [
  "fonts",
  "futures-intrusive",
  "ipc-channel",
- "kurbo 0.12.0",
+ "kurbo 0.13.0",
  "log",
  "net_traits",
  "peniko",
@@ -1165,7 +1165,7 @@ dependencies = [
  "fonts_traits",
  "glow",
  "ipc-channel",
- "kurbo 0.12.0",
+ "kurbo 0.13.0",
  "malloc_size_of_derive",
  "pixels",
  "serde",
@@ -4903,6 +4903,17 @@ checksum = "ce9729cc38c18d86123ab736fd2e7151763ba226ac2490ec092d1dd148825e32"
 dependencies = [
  "arrayvec",
  "euclid",
+ "smallvec",
+]
+
+[[package]]
+name = "kurbo"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7564e90fe3c0d5771e1f0bc95322b21baaeaa0d9213fa6a0b61c99f8b17b3bfb"
+dependencies = [
+ "arrayvec",
+ "euclid",
  "serde",
  "smallvec",
 ]
@@ -4927,7 +4938,7 @@ dependencies = [
  "icu_segmenter",
  "ipc-channel",
  "itertools 0.14.0",
- "kurbo 0.12.0",
+ "kurbo 0.13.0",
  "layout_api",
  "log",
  "malloc_size_of_derive",
@@ -7488,7 +7499,7 @@ dependencies = [
  "itertools 0.14.0",
  "jstraceable_derive",
  "keyboard-types",
- "kurbo 0.12.0",
+ "kurbo 0.13.0",
  "layout_api",
  "libc",
  "log",
