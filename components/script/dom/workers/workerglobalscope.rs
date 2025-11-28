@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
@@ -989,21 +988,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    pub(crate) fn execute_script(&self, source: Cow<'_, str>, can_gc: CanGc) {
-        let global = self.upcast::<GlobalScope>();
-        let script = global.create_a_classic_script(
-            source,
-            self.worker_url.borrow().clone(),
-            ScriptFetchOptions::default_classic_script(global),
-            false,
-            Some(IntroductionType::WORKER),
-            1,
-            true,
-        );
-
-        _ = global.run_a_classic_script(script, false, can_gc);
-    }
-
     pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
