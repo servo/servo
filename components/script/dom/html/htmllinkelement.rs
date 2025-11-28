@@ -78,7 +78,7 @@ pub(crate) struct HTMLLinkElement {
 
     /// The link relations as they are used in practice.
     ///
-    /// The reason this is seperate from [HTMLLinkElement::rel_list] is that
+    /// The reason this is separate from [HTMLLinkElement::rel_list] is that
     /// a literal list is a bit unwieldy and that there are corner cases to consider
     /// (Like `rev="made"` implying an author relationship that is not represented in rel_list)
     #[no_trace]

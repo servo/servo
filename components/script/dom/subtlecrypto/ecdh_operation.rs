@@ -829,7 +829,7 @@ pub(crate) fn import_key(
             else {
                 // Step. 2.3.1. Perform any key import steps defined by other applicable
                 // specifications, passing format, keyData and obtaining key.
-                // Step. 2.3.2. If an error occured or there are no applicable specifications,
+                // Step. 2.3.2. If an error occurred or there are no applicable specifications,
                 // throw a DataError.
                 // NOTE: We currently do not support applicable specifications.
                 return Err(Error::NotSupported(None));
