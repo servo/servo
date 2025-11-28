@@ -446,7 +446,7 @@ impl Window {
                         .expect("Should be able to unconditionally parse 'servo:newtab' as URL"),
                 );
             })
-            .shortcut(CMD_OR_CONTROL, 'Q', || state.servo().start_shutting_down())
+            .shortcut(CMD_OR_CONTROL, 'Q', || state.schedule_exit())
             .otherwise(|| handled = false);
         handled
     }
