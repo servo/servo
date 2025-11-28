@@ -1267,7 +1267,7 @@ impl XMLHttpRequest {
         can_gc: CanGc,
     ) {
         // If partial_load is Ok(None), loading has completed and we can just use the value from the request body
-        // If an error occured, we pass 0 for both loaded and total
+        // If an error occurred, we pass 0 for both loaded and total
 
         let request_body_len = self.request_body_len.get() as u64;
         let (loaded, total) = match partial_load {

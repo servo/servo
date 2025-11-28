@@ -414,7 +414,7 @@ pub(crate) struct Window {
     compositor_api: CrossProcessCompositorApi,
 
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
-    /// It is used to avoid sending idle message more than once, which is unneccessary.
+    /// It is used to avoid sending idle message more than once, which is unnecessary.
     has_sent_idle_message: Cell<bool>,
 
     /// Unminify Css.
@@ -3095,7 +3095,7 @@ impl Window {
         self.theme.get()
     }
 
-    /// Handle a theme change request, triggering a reflow is any actual change occured.
+    /// Handle a theme change request, triggering a reflow is any actual change occurred.
     pub(crate) fn set_theme(&self, new_theme: Theme) {
         self.theme.set(new_theme);
         if !self.layout_mut().set_theme(new_theme) {

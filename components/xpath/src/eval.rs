@@ -28,7 +28,7 @@ impl Expression {
         context: &EvaluationCtx<D>,
     ) -> Result<Value<D::Node>, Error> {
         match self {
-            // And/Or expression are seperated because they can sometimes be evaluated
+            // And/Or expression are separated because they can sometimes be evaluated
             // without evaluating both operands.
             Expression::Binary(left, BinaryOperator::And, right) => {
                 let left_bool = left.evaluate(context)?.convert_to_boolean();
