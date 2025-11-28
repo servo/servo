@@ -32,7 +32,7 @@ use constellation::{
     Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
     NewScriptEventLoopProcessInfo, UnprivilegedContent,
 };
-use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationChan};
+use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
@@ -976,8 +976,8 @@ where
     }
 }
 
-fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
-    let con_logger = FromScriptLogger::new(script_to_constellation_chan);
+fn set_logger(script_to_constellation_sender: ScriptToConstellationSender) {
+    let con_logger = FromScriptLogger::new(script_to_constellation_sender);
     let env = env_logger::Env::default();
     let env_logger = EnvLoggerBuilder::from_env(env).build();
 
@@ -1019,7 +1019,7 @@ pub fn run_content_process(token: String) {
             set_logger(
                 new_event_loop_info
                     .initial_script_state
-                    .pipeline_to_constellation_sender
+                    .script_to_constellation_sender
                     .clone(),
             );
 
@@ -1035,7 +1035,6 @@ pub fn run_content_process(token: String) {
             let layout_factory = Arc::new(LayoutFactoryImpl());
             let script_join_handle = script::ScriptThread::create(
                 new_event_loop_info.initial_script_state,
-                new_event_loop_info.new_pipeline_info,
                 layout_factory,
                 Arc::new(ImageCacheFactoryImpl::new(
                     new_event_loop_info.broken_image_icon_data,

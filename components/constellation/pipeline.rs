@@ -4,51 +4,21 @@
 
 use std::collections::HashSet;
 use std::rc::Rc;
-use std::sync::Arc;
-use std::thread::JoinHandle;
 
-use background_hang_monitor_api::{
-    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
-};
-use base::generic_channel::{self, GenericSender};
-use base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
-    WebViewId,
-};
-#[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
-use canvas_traits::webgl::WebGLPipeline;
+use base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
-use constellation_traits::{LoadData, ScriptToConstellationChan};
-use crossbeam_channel::Sender;
-use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::user_content_manager::UserContentManager;
-use embedder_traits::{
-    AnimationState, FocusSequenceNumber, ScriptToEmbedderChan, Theme, ViewportDetails,
-};
-use fonts::SystemFontServiceProxy;
+use constellation_traits::{LoadData, ServiceWorkerManagerFactory};
+use embedder_traits::{AnimationState, FocusSequenceNumber};
 use ipc_channel::Error;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
-use layout_api::{LayoutFactory, ScriptThreadFactory};
+use layout_api::ScriptThreadFactory;
 use log::{debug, error, warn};
-use media::WindowGLContext;
-use net_traits::ResourceThreads;
-use net_traits::image_cache::ImageCacheFactory;
-use profile_traits::{mem as profile_mem, time};
 use script_traits::{
-    DiscardBrowsingContext, DocumentActivity, InitialScriptState, NewPipelineInfo,
-    ScriptThreadMessage,
+    DiscardBrowsingContext, DocumentActivity, NewPipelineInfo, ScriptThreadMessage,
 };
-use servo_config::opts::{self};
-use servo_config::prefs;
 use servo_url::ServoUrl;
-use storage_traits::StorageThreads;
 
-use crate::UnprivilegedContent;
-use crate::event_loop::{EventLoop, NewScriptEventLoopProcessInfo};
-use crate::process_manager::Process;
-use crate::sandboxing::spawn_multiprocess;
+use crate::Constellation;
+use crate::event_loop::EventLoop;
 
 /// A `Pipeline` is the constellation's view of a `Window`. Each pipeline has an event loop
 /// (executed by a script thread). A script thread may be responsible for many pipelines.
@@ -100,272 +70,36 @@ pub struct Pipeline {
     pub focus_sequence: FocusSequenceNumber,
 }
 
-/// Initial setup data needed to construct a pipeline.
-///
-/// *DO NOT* add any Senders to this unless you absolutely know what you're doing, or pcwalton will
-/// have to rewrite your code. Use IPC senders instead.
-pub struct InitialPipelineState {
-    /// The ID of the pipeline to create.
-    pub id: PipelineId,
-
-    /// The ID of the browsing context that contains this Pipeline.
-    pub browsing_context_id: BrowsingContextId,
-
-    /// The ID of the top-level browsing context that contains this Pipeline.
-    pub webview_id: WebViewId,
-
-    /// The ID of the parent pipeline and frame type, if any.
-    /// If `None`, this is the root.
-    pub parent_pipeline_id: Option<PipelineId>,
-
-    pub opener: Option<BrowsingContextId>,
-
-    /// A channel to the associated constellation.
-    pub script_to_constellation_chan: ScriptToConstellationChan,
-
-    /// A channel to the embedder.
-    pub script_to_embedder_chan: ScriptToEmbedderChan,
-
-    /// A sender to request pipeline namespace ids.
-    pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
-
-    /// A handle to register components for hang monitoring.
-    /// None when in multiprocess mode.
-    pub background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
-
-    /// A channel for the background hang monitor to send messages to the constellation.
-    pub background_hang_monitor_to_constellation_chan: GenericSender<HangMonitorAlert>,
-
-    /// A fatory for creating layouts to be used by the ScriptThread.
-    pub layout_factory: Arc<dyn LayoutFactory>,
-
-    /// A channel to the compositor.
-    pub compositor_proxy: CompositorProxy,
-
-    /// A channel to the developer tools, if applicable.
-    pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
-
-    /// A channel to the bluetooth thread.
-    #[cfg(feature = "bluetooth")]
-    pub bluetooth_thread: IpcSender<BluetoothRequest>,
-
-    /// A proxy to the system font service, responsible for managing the list of system fonts.
-    pub system_font_service: Arc<SystemFontServiceProxy>,
-
-    /// Channels to the resource-related threads.
-    pub resource_threads: ResourceThreads,
-
-    /// Channels to the storage-related threads.
-    pub storage_threads: StorageThreads,
-
-    /// A channel to the time profiler thread.
-    pub time_profiler_chan: time::ProfilerChan,
-
-    /// A channel to the memory profiler thread.
-    pub mem_profiler_chan: profile_mem::ProfilerChan,
-
-    /// The initial [`ViewportDetails`] to use when starting this new [`Pipeline`].
-    pub viewport_details: ViewportDetails,
-
-    /// The initial [`Theme`] to use when starting this new [`Pipeline`].
-    pub theme: Theme,
-
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
-
-    /// The event loop to run in, if applicable.
-    pub event_loop: Option<Rc<EventLoop>>,
-
-    /// Information about the page to load.
-    pub load_data: LoadData,
-
-    /// Whether the browsing context in which pipeline is embedded is throttled,
-    /// using less resources by stopping animations and running timers at a
-    /// heavily limited rate. This field is only used to notify script and
-    /// compositor threads after spawning a pipeline.
-    pub prev_throttled: bool,
-
-    /// A channel to the WebGL thread.
-    pub webgl_chan: Option<WebGLPipeline>,
-
-    /// The XR device registry
-    pub webxr_registry: Option<webxr_api::Registry>,
-
-    /// Application window's GL Context for Media player
-    pub player_context: WindowGLContext,
-
-    /// The image bytes associated with the BrokenImageIcon embedder resource.
-    pub broken_image_icon_data: Vec<u8>,
-
-    /// User content manager
-    pub user_content_manager: UserContentManager,
-
-    /// A list of URLs that can access privileged internal APIs.
-    pub privileged_urls: Vec<ServoUrl>,
-
-    /// The [`ImageCacheFactory`] used for the single-process mode.
-    pub image_cache_factory: Arc<dyn ImageCacheFactory>,
-}
-
-pub struct NewPipeline {
-    pub pipeline: Pipeline,
-    pub bhm_control_chan: Option<GenericSender<BackgroundHangMonitorControlMsg>>,
-    pub lifeline: Option<(IpcReceiver<()>, Process)>,
-    pub join_handle: Option<JoinHandle<()>>,
-}
-
 impl Pipeline {
     /// Possibly starts a script thread, in a new process if requested.
-    pub fn spawn<STF: ScriptThreadFactory>(
-        state: InitialPipelineState,
-    ) -> Result<NewPipeline, Error> {
-        let new_pipeline_info = NewPipelineInfo {
-            parent_info: state.parent_pipeline_id,
-            new_pipeline_id: state.id,
-            browsing_context_id: state.browsing_context_id,
-            webview_id: state.webview_id,
-            opener: state.opener,
-            load_data: state.load_data.clone(),
-            viewport_details: state.viewport_details,
-            theme: state.theme,
-        };
+    pub(crate) fn spawn<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
+        new_pipeline_info: NewPipelineInfo,
+        event_loop: Rc<EventLoop>,
+        constellation: &Constellation<STF, SWF>,
+        throttled: bool,
+    ) -> Result<Self, Error> {
+        if let Err(error) = event_loop.send(ScriptThreadMessage::SpawnPipeline(
+            new_pipeline_info.clone(),
+        )) {
+            error!("Could not spawn Pipeline in EventLoop: {error}");
+            return Err(error);
+        }
 
-        // Note: we allow channel creation to panic, since recovering from this
-        // probably requires a general low-memory strategy.
-        let (script_chan, (bhm_control_chan, lifeline, join_handle)) = match state.event_loop {
-            Some(script_chan) => {
-                if let Err(e) =
-                    script_chan.send(ScriptThreadMessage::SpawnPipeline(new_pipeline_info))
-                {
-                    warn!("Sending to script during pipeline creation failed ({})", e);
-                }
-                (script_chan, (None, None, None))
-            },
-            None => {
-                let (script_chan, script_port) =
-                    base::generic_channel::channel().expect("Pipeline script chan");
-
-                // Route messages coming from content to devtools as appropriate.
-                let script_to_devtools_ipc_sender =
-                    state.devtools_sender.as_ref().map(|devtools_sender| {
-                        let (script_to_devtools_ipc_sender, script_to_devtools_ipc_receiver) =
-                            ipc::channel().expect("Pipeline script to devtools chan");
-                        let devtools_sender = (*devtools_sender).clone();
-                        ROUTER.add_typed_route(
-                            script_to_devtools_ipc_receiver,
-                            Box::new(move |message| match message {
-                                Err(e) => {
-                                    error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
-                                },
-                                Ok(message) => {
-                                    if let Err(e) = devtools_sender
-                                        .send(DevtoolsControlMsg::FromScript(message))
-                                    {
-                                        warn!("Sending to devtools failed ({:?})", e)
-                                    }
-                                },
-                            }),
-                        );
-                        script_to_devtools_ipc_sender
-                    });
-
-                let event_loop = EventLoop::new(script_chan.clone());
-                let initial_script_state = InitialScriptState {
-                    id: event_loop.id(),
-                    pipeline_to_constellation_sender: state.script_to_constellation_chan.clone(),
-                    script_to_embedder_sender: state.script_to_embedder_chan,
-                    namespace_request_sender: state.namespace_request_sender,
-                    devtools_server_sender: script_to_devtools_ipc_sender,
-                    #[cfg(feature = "bluetooth")]
-                    bluetooth_sender: state.bluetooth_thread,
-                    system_font_service: state.system_font_service.to_sender(),
-                    resource_threads: state.resource_threads,
-                    storage_threads: state.storage_threads,
-                    time_profiler_sender: state.time_profiler_chan,
-                    memory_profiler_sender: state.mem_profiler_chan,
-                    constellation_to_script_sender: script_chan,
-                    constellation_to_script_receiver: script_port,
-                    pipeline_namespace_id: state.pipeline_namespace_id,
-                    cross_process_compositor_api: state
-                        .compositor_proxy
-                        .cross_process_compositor_api
-                        .clone(),
-                    webgl_chan: state.webgl_chan,
-                    webxr_registry: state.webxr_registry,
-                    player_context: state.player_context,
-                    user_content_manager: state.user_content_manager,
-                    privileged_urls: state.privileged_urls,
-                };
-
-                // Spawn the child process.
-                //
-                // Yes, that's all there is to it!
-                let multiprocess_data = if opts::get().multiprocess {
-                    let (constellation_to_bhm_sender, constellation_to_bhm_receiver) =
-                        generic_channel::channel().expect("Sampler chan");
-                    let (lifeline_sender, lifeline_receiver) =
-                        ipc::channel().expect("Failed to create lifeline channel");
-
-                    let process = spawn_multiprocess(UnprivilegedContent::ScriptEventLoop(
-                        NewScriptEventLoopProcessInfo {
-                            new_pipeline_info,
-                            initial_script_state,
-                            constellation_to_bhm_receiver,
-                            bhm_to_constellation_sender: state
-                                .background_hang_monitor_to_constellation_chan
-                                .clone(),
-                            lifeline_sender,
-                            opts: (*opts::get()).clone(),
-                            prefs: Box::new(prefs::get().clone()),
-                            broken_image_icon_data: state.broken_image_icon_data,
-                        },
-                    ))?;
-
-                    (
-                        Some(constellation_to_bhm_sender),
-                        Some((lifeline_receiver, process)),
-                        None,
-                    )
-                } else {
-                    // Should not be None in single-process mode.
-                    let background_hang_monitor_register = state
-                        .background_monitor_register
-                        .expect("Couldn't start content, no background monitor has been initiated");
-                    let join_handle = STF::create(
-                        initial_script_state,
-                        new_pipeline_info,
-                        state.layout_factory,
-                        state.image_cache_factory,
-                        background_hang_monitor_register,
-                    );
-                    (None, None, Some(join_handle))
-                };
-
-                (event_loop, multiprocess_data)
-            },
-        };
-
-        let pipeline = Pipeline::new(
-            state.id,
-            state.browsing_context_id,
-            state.webview_id,
-            state.opener,
-            script_chan,
-            state.compositor_proxy,
-            state.prev_throttled,
-            state.load_data,
-        );
-        Ok(NewPipeline {
-            pipeline,
-            bhm_control_chan,
-            lifeline,
-            join_handle,
-        })
+        Ok(Self::new_already_spawned(
+            new_pipeline_info.new_pipeline_id,
+            new_pipeline_info.browsing_context_id,
+            new_pipeline_info.webview_id,
+            new_pipeline_info.opener,
+            event_loop,
+            constellation.compositor_proxy.clone(),
+            throttled,
+            new_pipeline_info.load_data,
+        ))
     }
 
-    /// Creates a new `Pipeline`, after the script has been spawned.
+    /// Creates a new `Pipeline`, after it has been spawned in its [`EventLoop`].
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub fn new_already_spawned(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
@@ -374,8 +108,8 @@ impl Pipeline {
         compositor_proxy: CompositorProxy,
         throttled: bool,
         load_data: LoadData,
-    ) -> Pipeline {
-        let pipeline = Pipeline {
+    ) -> Self {
+        let pipeline = Self {
             id,
             browsing_context_id,
             webview_id,
@@ -392,9 +126,7 @@ impl Pipeline {
             title: String::new(),
             focus_sequence: FocusSequenceNumber::default(),
         };
-
         pipeline.set_throttled(throttled);
-
         pipeline
     }
 

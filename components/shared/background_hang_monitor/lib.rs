@@ -204,7 +204,7 @@ pub trait BackgroundHangMonitorExitSignal: Send {
 }
 
 /// Messages to control the sampling profiler.
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum BackgroundHangMonitorControlMsg {
     /// Toggle the sampler, with a given sampling rate and max total sampling duration.
     ToggleSampler(Duration, Duration),

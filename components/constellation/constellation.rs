@@ -121,8 +121,8 @@ use constellation_traits::{
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
     LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
     PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, TraversalDirection, WindowSizeType,
+    ScriptToConstellationMessage, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, TraversalDirection, WindowSizeType,
 };
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
@@ -137,8 +137,7 @@ use embedder_traits::{
     EmbedderMsg, EmbedderProxy, FocusSequenceNumber, InputEvent, InputEventAndId, JSValue,
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
-    WebDriverScriptCommand,
+    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -151,7 +150,7 @@ use layout_api::{LayoutFactory, ScriptThreadFactory};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheFactoryImpl;
-use net_traits::pub_domains::reg_host;
+use net_traits::pub_domains::registered_domain_name;
 use net_traits::{self, AsyncRuntime, ResourceThreads, exit_fetch_thread, start_fetch_thread};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
@@ -160,8 +159,8 @@ use rand::seq::IndexedRandom;
 use rand::{Rng, SeedableRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
-    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, ProgressiveWebMetricType,
-    ScriptThreadMessage, UpdatePipelineIdReason,
+    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, NewPipelineInfo,
+    ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -185,7 +184,7 @@ use crate::browsingcontext::{
 };
 use crate::constellation_webview::ConstellationWebView;
 use crate::event_loop::EventLoop;
-use crate::pipeline::{InitialPipelineState, Pipeline};
+use crate::pipeline::Pipeline;
 use crate::process_manager::ProcessManager;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
@@ -277,11 +276,16 @@ pub struct Constellation<STF, SWF> {
     /// to facilitate installing pipeline namespaces in threads
     /// via a per-process installer.
     namespace_receiver: RoutedReceiver<PipelineNamespaceRequest>,
-    namespace_ipc_sender: GenericSender<PipelineNamespaceRequest>,
+    pub(crate) namespace_ipc_sender: GenericSender<PipelineNamespaceRequest>,
+
+    /// A [`Vec`] of all [`EventLoop`]s that have been created for this [`Constellation`].
+    /// This will be cleaned up periodically. This stores weak references so that [`EventLoop`]s
+    /// can be stopped when they are no longer used.
+    event_loops: Vec<Weak<EventLoop>>,
 
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
-    script_sender: GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
+    pub(crate) script_sender: GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
@@ -290,19 +294,18 @@ pub struct Constellation<STF, SWF> {
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
-    background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
+    pub(crate) background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
     /// In single process mode, a join handle on the BHM worker thread.
     background_monitor_register_join_handle: Option<JoinHandle<()>>,
 
-    /// Channels to control all background-hang monitors.
-    /// TODO: store them on the relevant BrowsingContextGroup,
-    /// so that they could be controlled on a "per-tab/event-loop" basis.
-    background_monitor_control_senders: Vec<GenericSender<BackgroundHangMonitorControlMsg>>,
+    /// When running in single-process mode, this is a channel to the shared BackgroundHangMonitor
+    /// for all [`EventLoop`]s. This will be `None` in multiprocess mode.
+    background_monitor_control_sender: Option<GenericSender<BackgroundHangMonitorControlMsg>>,
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    background_hang_monitor_sender: GenericSender<HangMonitorAlert>,
+    pub(crate) background_hang_monitor_sender: GenericSender<HangMonitorAlert>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
@@ -311,17 +314,17 @@ pub struct Constellation<STF, SWF> {
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
     /// dependency between script and layout.
-    layout_factory: Arc<dyn LayoutFactory>,
+    pub(crate) layout_factory: Arc<dyn LayoutFactory>,
 
     /// A channel for the embedder (renderer and libservo) to send messages to the [`Constellation`].
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
 
     /// A channel through which messages can be sent to the embedder.
-    embedder_proxy: EmbedderProxy,
+    pub(crate) embedder_proxy: EmbedderProxy,
 
     /// A channel (the implementation of which is port-specific) for the
     /// constellation to send messages to the compositor thread.
-    compositor_proxy: CompositorProxy,
+    pub(crate) compositor_proxy: CompositorProxy,
 
     /// Bookkeeping data for all webviews in the constellation.
     webviews: FxHashMap<WebViewId, ConstellationWebView>,
@@ -329,37 +332,37 @@ pub struct Constellation<STF, SWF> {
     /// Channels for the constellation to send messages to the public
     /// resource-related threads. There are two groups of resource threads: one
     /// for public browsing, and one for private browsing.
-    public_resource_threads: ResourceThreads,
+    pub(crate) public_resource_threads: ResourceThreads,
 
     /// Channels for the constellation to send messages to the private
     /// resource-related threads.  There are two groups of resource
     /// threads: one for public browsing, and one for private
     /// browsing.
-    private_resource_threads: ResourceThreads,
+    pub(crate) private_resource_threads: ResourceThreads,
 
     /// Channels for the constellation to send messages to the public
     /// storage-related threads. There are two groups of storage threads: one
     /// for public browsing, and one for private browsing.
-    public_storage_threads: StorageThreads,
+    pub(crate) public_storage_threads: StorageThreads,
 
     /// Channels for the constellation to send messages to the private
     /// storage-related threads.  There are two groups of storage
     /// threads: one for public browsing, and one for private
     /// browsing.
-    private_storage_threads: StorageThreads,
+    pub(crate) private_storage_threads: StorageThreads,
 
     /// A channel for the constellation to send messages to the font
     /// cache thread.
-    system_font_service: Arc<SystemFontServiceProxy>,
+    pub(crate) system_font_service: Arc<SystemFontServiceProxy>,
 
     /// A channel for the constellation to send messages to the
     /// devtools thread.
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    pub(crate) devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
     #[cfg(feature = "bluetooth")]
-    bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
+    pub(crate) bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
@@ -376,11 +379,11 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the constellation to send messages to the
     /// time profiler thread.
-    time_profiler_chan: time::ProfilerChan,
+    pub(crate) time_profiler_chan: time::ProfilerChan,
 
     /// A channel for the constellation to send messages to the
     /// memory profiler thread.
-    mem_profiler_chan: mem::ProfilerChan,
+    pub(crate) mem_profiler_chan: mem::ProfilerChan,
 
     /// WebRender related objects required by WebGPU threads
     #[cfg(feature = "webgpu")]
@@ -419,7 +422,7 @@ pub struct Constellation<STF, SWF> {
 
     /// Pipeline IDs are namespaced in order to avoid name collisions,
     /// and the namespaces are allocated by the constellation.
-    next_pipeline_namespace_id: PipelineNamespaceId,
+    next_pipeline_namespace_id: Cell<PipelineNamespaceId>,
 
     /// An [`IpcSender`] to notify navigation events to webdriver.
     webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
@@ -442,10 +445,10 @@ pub struct Constellation<STF, SWF> {
     phantom: PhantomData<(STF, SWF)>,
 
     /// Entry point to create and get channels to a WebGLThread.
-    webgl_threads: Option<WebGLThreads>,
+    pub(crate) webgl_threads: Option<WebGLThreads>,
 
     /// The XR device registry
-    webxr_registry: Option<webxr_api::Registry>,
+    pub(crate) webxr_registry: Option<webxr_api::Registry>,
 
     /// Lazily initialized channels for canvas paint thread.
     canvas: OnceCell<(Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>)>,
@@ -469,27 +472,28 @@ pub struct Constellation<STF, SWF> {
     /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
-    broken_image_icon_data: Vec<u8>,
+    pub(crate) broken_image_icon_data: Vec<u8>,
 
     /// User content manager
-    user_content_manager: UserContentManager,
+    pub(crate) user_content_manager: UserContentManager,
 
     /// The process manager.
-    process_manager: ProcessManager,
+    pub(crate) process_manager: ProcessManager,
 
     /// The async runtime.
     async_runtime: Box<dyn AsyncRuntime>,
 
-    /// When in single-process mode, join handles for script-threads.
-    script_join_handles: FxHashMap<WebViewId, JoinHandle<()>>,
+    /// A vector of [`JoinHandle`]s used to ensure full termination of threaded [`EventLoop`]s
+    /// which are runnning in the same process.
+    event_loop_join_handles: Vec<JoinHandle<()>>,
 
     /// A list of URLs that can access privileged internal APIs.
-    privileged_urls: Vec<ServoUrl>,
+    pub(crate) privileged_urls: Vec<ServoUrl>,
 
     /// The [`ImageCacheFactory`] to use for all `ScriptThread`s when we are running in
     /// single-process mode. In multi-process mode, each process will create its own
     /// [`ImageCacheFactoryImpl`].
-    image_cache_factory: Arc<ImageCacheFactoryImpl>,
+    pub(crate) image_cache_factory: Arc<ImageCacheFactoryImpl>,
 
     /// Pending viewport changes for browsing contexts that are not
     /// yet known to the constellation.
@@ -573,7 +577,7 @@ enum ExitPipelineMode {
 const WARNINGS_BUFFER_SIZE: usize = 32;
 
 /// Route an ipc receiver to an crossbeam receiver, preserving any errors.
-fn route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors<T>(
+pub(crate) fn route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors<T>(
     ipc_receiver: IpcReceiver<T>,
 ) -> Receiver<Result<T, IpcError>>
 where
@@ -630,9 +634,9 @@ where
                 let (
                     background_monitor_register,
                     background_monitor_register_join_handle,
-                    background_hang_monitor_control_ipc_senders,
+                    background_monitor_control_sender
                 ) = if opts::get().multiprocess {
-                    (None, None, vec![])
+                    (None, None, None)
                 } else {
                     let (
                         background_hang_monitor_control_ipc_sender,
@@ -646,7 +650,7 @@ where
                     (
                         Some(register),
                         Some(join_handle),
-                        vec![background_hang_monitor_control_ipc_sender],
+                        Some(background_hang_monitor_control_ipc_sender),
                     )
                 };
 
@@ -664,6 +668,7 @@ where
                 let broken_image_icon_data = resources::read_bytes(Resource::BrokenImageIcon);
 
                 let mut constellation: Constellation<STF, SWF> = Constellation {
+                    event_loops: Default::default(),
                     namespace_receiver,
                     namespace_ipc_sender,
                     script_sender: script_ipc_sender,
@@ -671,7 +676,7 @@ where
                     background_hang_monitor_receiver,
                     background_monitor_register,
                     background_monitor_register_join_handle,
-                    background_monitor_control_senders: background_hang_monitor_control_ipc_senders,
+                    background_monitor_control_sender,
                     script_receiver,
                     embedder_to_constellation_receiver,
                     layout_factory,
@@ -699,7 +704,7 @@ where
                     pending_changes: vec![],
                     // We initialize the namespace at 2, since we reserved
                     // namespace 0 for the embedder, and 0 for the constellation
-                    next_pipeline_namespace_id: PipelineNamespaceId(2),
+                    next_pipeline_namespace_id: Cell::new(PipelineNamespaceId(2)),
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
@@ -728,7 +733,7 @@ where
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
-                    script_join_handles: Default::default(),
+                    event_loop_join_handles: Default::default(),
                     privileged_urls: state.privileged_urls,
                     image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
                         broken_image_icon_data,
@@ -740,6 +745,32 @@ where
                 constellation.run();
             })
             .expect("Thread spawning failed");
+    }
+
+    fn event_loops(&self) -> Vec<Rc<EventLoop>> {
+        self.event_loops
+            .iter()
+            .filter_map(|weak_event_loop| weak_event_loop.upgrade())
+            .collect()
+    }
+
+    pub(crate) fn add_event_loop(&mut self, event_loop: &Rc<EventLoop>) {
+        self.event_loops.push(Rc::downgrade(event_loop));
+    }
+
+    pub(crate) fn add_event_loop_join_handle(&mut self, join_handle: JoinHandle<()>) {
+        self.event_loop_join_handles.push(join_handle);
+    }
+
+    fn clean_up_finished_script_event_loops(&mut self) {
+        self.event_loop_join_handles.retain(|join_handle| {
+            if join_handle.is_finished() {
+                println!("cleaning");
+            }
+            !join_handle.is_finished()
+        });
+        self.event_loops
+            .retain(|event_loop| event_loop.upgrade().is_some());
     }
 
     /// The main event loop for the constellation.
@@ -754,6 +785,7 @@ where
             // This is for testing the hardening of the constellation.
             self.maybe_close_random_pipeline();
             self.handle_request();
+            self.clean_up_finished_script_event_loops();
         }
         self.handle_shutdown();
 
@@ -796,11 +828,11 @@ where
     }
 
     /// Generate a new pipeline id namespace.
-    fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
-        let namespace_id = self.next_pipeline_namespace_id;
-        let PipelineNamespaceId(ref mut i) = self.next_pipeline_namespace_id;
-        *i += 1;
-        namespace_id
+    pub(crate) fn next_pipeline_namespace_id(&self) -> PipelineNamespaceId {
+        let pipeline_namespace_id = self.next_pipeline_namespace_id.get();
+        self.next_pipeline_namespace_id
+            .set(PipelineNamespaceId(pipeline_namespace_id.0 + 1));
+        pipeline_namespace_id
     }
 
     fn next_browsing_context_group_id(&mut self) -> BrowsingContextGroupId {
@@ -810,7 +842,7 @@ where
     }
 
     fn get_event_loop(
-        &mut self,
+        &self,
         host: &Host,
         webview_id: &WebViewId,
         opener: &Option<BrowsingContextId>,
@@ -852,7 +884,7 @@ where
 
     fn set_event_loop(
         &mut self,
-        event_loop: Weak<EventLoop>,
+        event_loop: &Rc<EventLoop>,
         host: Host,
         webview_id: WebViewId,
         opener: Option<BrowsingContextId>,
@@ -888,7 +920,7 @@ where
         if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) {
             if bc_group
                 .event_loops
-                .insert(host.clone(), event_loop)
+                .insert(host.clone(), Rc::downgrade(event_loop))
                 .is_some()
             {
                 warn!(
@@ -899,11 +931,92 @@ where
         }
     }
 
+    fn get_event_loop_for_new_pipeline(
+        &self,
+        load_data: &LoadData,
+        webview_id: WebViewId,
+        opener: Option<BrowsingContextId>,
+        parent_pipeline_id: Option<PipelineId>,
+        registered_domain_name: &Option<Host>,
+    ) -> Option<Rc<EventLoop>> {
+        // Never reuse an existing EventLoop when requesting a sandboxed origin.
+        if load_data
+            .creation_sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG)
+        {
+            return None;
+        }
+
+        // If this is an about:blank or about:srcdoc load, it must share the creator's
+        // event loop. This must match the logic in the ScriptThread when determining
+        // the proper origin.
+        if load_data.url.as_str() == "about:blank" || load_data.url.as_str() == "about:srcdoc" {
+            if let Some(parent) =
+                parent_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+            {
+                return Some(parent.event_loop.clone());
+            }
+
+            if let Some(creator) = load_data
+                .creator_pipeline_id
+                .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+            {
+                return Some(creator.event_loop.clone());
+            }
+
+            // This might happen if a new Pipeline is requested and in the meantime the parent
+            // Pipeline has shut down. In this case, just make a new ScriptThread.
+            return None;
+        }
+
+        let Some(registered_domain_name) = registered_domain_name else {
+            return None;
+        };
+
+        self.get_event_loop(registered_domain_name, &webview_id, &opener)
+            .ok()?
+            .upgrade()
+    }
+
+    fn get_or_create_event_loop_for_new_pipeline(
+        &mut self,
+        webview_id: WebViewId,
+        opener: Option<BrowsingContextId>,
+        parent_pipeline_id: Option<PipelineId>,
+        load_data: &LoadData,
+        is_private: bool,
+    ) -> Result<Rc<EventLoop>, IpcError> {
+        let registered_domain_name = if load_data
+            .creation_sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG)
+        {
+            None
+        } else {
+            registered_domain_name(&load_data.url)
+        };
+
+        if let Some(event_loop) = self.get_event_loop_for_new_pipeline(
+            load_data,
+            webview_id,
+            opener,
+            parent_pipeline_id,
+            &registered_domain_name,
+        ) {
+            return Ok(event_loop);
+        }
+
+        let event_loop = EventLoop::spawn(self, is_private)?;
+        if let Some(registered_domain_name) = registered_domain_name {
+            self.set_event_loop(&event_loop, registered_domain_name, webview_id, opener);
+        }
+        Ok(event_loop)
+    }
+
     /// Helper function for creating a pipeline
     #[allow(clippy::too_many_arguments)]
     fn new_pipeline(
         &mut self,
-        pipeline_id: PipelineId,
+        new_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
         parent_pipeline_id: Option<PipelineId>,
@@ -921,6 +1034,7 @@ where
             return;
         }
 
+        debug!("Creating new pipeline ({new_pipeline_id:?}) in {browsing_context_id}");
         let Some(theme) = self
             .webviews
             .get(&webview_id)
@@ -930,142 +1044,34 @@ where
             return;
         };
 
-        debug!(
-            "{}: Creating new pipeline in {}",
-            pipeline_id, browsing_context_id
-        );
-
-        let (event_loop, host) = if !load_data
-            .creation_sandboxing_flag_set
-            .contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG)
-        {
-            // If this is an about:blank or about:srcdoc load, it must share the creator's
-            // event loop. This must match the logic in the script thread when determining
-            // the proper origin.
-            if load_data.url.as_str() != "about:blank" && load_data.url.as_str() != "about:srcdoc" {
-                match reg_host(&load_data.url) {
-                    None => (None, None),
-                    Some(host) => match self.get_event_loop(&host, &webview_id, &opener) {
-                        Err(err) => {
-                            warn!("{}", err);
-                            (None, Some(host))
-                        },
-                        Ok(event_loop) => {
-                            if let Some(event_loop) = event_loop.upgrade() {
-                                (Some(event_loop), None)
-                            } else {
-                                (None, Some(host))
-                            }
-                        },
-                    },
-                }
-            } else if let Some(parent) =
-                parent_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
-            {
-                (Some(parent.event_loop.clone()), None)
-            } else if let Some(creator) = load_data
-                .creator_pipeline_id
-                .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
-            {
-                (Some(creator.event_loop.clone()), None)
-            } else {
-                (None, None)
-            }
-        } else {
-            (None, None)
+        let event_loop = match self.get_or_create_event_loop_for_new_pipeline(
+            webview_id,
+            opener,
+            parent_pipeline_id,
+            &load_data,
+            is_private,
+        ) {
+            Ok(event_loop) => event_loop,
+            Err(error) => return self.handle_send_error(new_pipeline_id, error),
         };
 
-        let resource_threads = if is_private {
-            self.private_resource_threads.clone()
-        } else {
-            self.public_resource_threads.clone()
-        };
-        let storage_threads = if is_private {
-            self.private_storage_threads.clone()
-        } else {
-            self.public_storage_threads.clone()
-        };
-
-        let embedder_chan = self.embedder_proxy.sender.clone();
-        let eventloop_waker = self.embedder_proxy.event_loop_waker.clone();
-        let script_to_embedder_chan = ScriptToEmbedderChan::new(embedder_chan, eventloop_waker);
-
-        let result = Pipeline::spawn::<STF>(InitialPipelineState {
-            id: pipeline_id,
+        let new_pipeline_info = NewPipelineInfo {
+            parent_info: parent_pipeline_id,
+            new_pipeline_id,
             browsing_context_id,
             webview_id,
-            parent_pipeline_id,
             opener,
-            script_to_constellation_chan: ScriptToConstellationChan {
-                sender: self.script_sender.clone(),
-                webview_id,
-                pipeline_id,
-            },
-            script_to_embedder_chan,
-            namespace_request_sender: self.namespace_ipc_sender.clone(),
-            pipeline_namespace_id: self.next_pipeline_namespace_id(),
-            background_monitor_register: self.background_monitor_register.clone(),
-            background_hang_monitor_to_constellation_chan: self
-                .background_hang_monitor_sender
-                .clone(),
-            layout_factory: self.layout_factory.clone(),
-            compositor_proxy: self.compositor_proxy.clone(),
-            devtools_sender: self.devtools_sender.clone(),
-            #[cfg(feature = "bluetooth")]
-            bluetooth_thread: self.bluetooth_ipc_sender.clone(),
-            system_font_service: self.system_font_service.clone(),
-            resource_threads,
-            storage_threads,
-            time_profiler_chan: self.time_profiler_chan.clone(),
-            mem_profiler_chan: self.mem_profiler_chan.clone(),
+            load_data,
             viewport_details: initial_viewport_details,
             theme,
-            event_loop,
-            load_data,
-            prev_throttled: throttled,
-            webgl_chan: self
-                .webgl_threads
-                .as_ref()
-                .map(|threads| threads.pipeline()),
-            webxr_registry: self.webxr_registry.clone(),
-            player_context: WindowGLContext::get(),
-            broken_image_icon_data: self.broken_image_icon_data.clone(),
-            user_content_manager: self.user_content_manager.clone(),
-            privileged_urls: self.privileged_urls.clone(),
-            image_cache_factory: self.image_cache_factory.clone(),
-        });
-
-        let pipeline = match result {
-            Ok(result) => result,
-            Err(e) => return self.handle_send_error(pipeline_id, e),
+        };
+        let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, throttled) {
+            Ok(pipeline) => pipeline,
+            Err(error) => return self.handle_send_error(new_pipeline_id, error),
         };
 
-        if let Some(chan) = pipeline.bhm_control_chan {
-            self.background_monitor_control_senders.push(chan);
-        }
-
-        if let Some(join_handle) = pipeline.join_handle {
-            self.script_join_handles.insert(webview_id, join_handle);
-        }
-
-        if let Some(host) = host {
-            debug!("{}: Adding new host entry {}", webview_id, host,);
-            self.set_event_loop(
-                Rc::downgrade(&pipeline.pipeline.event_loop),
-                host,
-                webview_id,
-                opener,
-            );
-        }
-
-        if let Some((lifeline_receiver, process)) = pipeline.lifeline {
-            let crossbeam_receiver =
-                route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(lifeline_receiver);
-            self.process_manager.add(crossbeam_receiver, process);
-        }
-
-        assert!(!self.pipelines.contains_key(&pipeline_id));
-        self.pipelines.insert(pipeline_id, pipeline.pipeline);
+        assert!(!self.pipelines.contains_key(&new_pipeline_id));
+        self.pipelines.insert(new_pipeline_id, pipeline);
     }
 
     /// Get an iterator for the fully active browsing contexts in a subtree.
@@ -1483,13 +1489,9 @@ where
                 self.handle_refresh_cursor(pipeline_id)
             },
             EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
-                for background_monitor_control_sender in &self.background_monitor_control_senders {
-                    if let Err(e) = background_monitor_control_sender.send(
-                        BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration),
-                    ) {
-                        warn!("error communicating with sampling profiler: {}", e);
-                    }
-                }
+                self.send_message_to_all_background_hang_monitors(
+                    BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration),
+                );
             },
             EmbedderToConstellationMessage::ExitFullScreen(webview_id) => {
                 self.handle_exit_fullscreen_msg(webview_id);
@@ -1556,6 +1558,20 @@ where
             EmbedderToConstellationMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response);
             },
+        }
+    }
+
+    fn send_message_to_all_background_hang_monitors(
+        &self,
+        message: BackgroundHangMonitorControlMsg,
+    ) {
+        if let Some(background_monitor_control_sender) = &self.background_monitor_control_sender {
+            if let Err(error) = background_monitor_control_sender.send(message.clone()) {
+                error!("Could not send message ({message:?}) to BHM: {error}");
+            }
+        }
+        for event_loop in self.event_loops() {
+            event_loop.send_message_to_background_hang_monitor(&message);
         }
     }
 
@@ -1994,7 +2010,7 @@ where
         let Some(source_pipeline) = self.pipelines.get(&source_pipeline_id) else {
             return warn!("{source_pipeline_id}: ScriptMsg from closed pipeline");
         };
-        let Some(host) = reg_host(&source_pipeline.url) else {
+        let Some(host) = registered_domain_name(&source_pipeline.url) else {
             return warn!("Invalid host url");
         };
         let browsing_context_group = if let Some(bcg) = self
@@ -2501,19 +2517,10 @@ where
 
         self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
 
-        // Tell all BHMs to exit,
-        // and to ensure their monitored components exit
-        // even when currently hanging(on JS or sync XHR).
-        // This must be done before starting the process of closing all pipelines.
-        for chan in &self.background_monitor_control_senders {
-            // Note: the bhm worker thread will continue to run
-            // until all monitored components have exited,
-            // at which point we can join on the thread(done in `handle_shutdown`).
-            if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::Exit) {
-                warn!("error communicating with bhm: {}", e);
-                continue;
-            }
-        }
+        // Tell all BHMs to exit, and to ensure their monitored components exit even when currently
+        // hanging (on JS or sync XHR). This must be done before starting the process of closing all
+        // pipelines.
+        self.send_message_to_all_background_hang_monitors(BackgroundHangMonitorControlMsg::Exit);
 
         // Close the top-level browsing contexts
         let browsing_context_ids: Vec<BrowsingContextId> = self
@@ -2572,9 +2579,7 @@ where
     fn handle_shutdown(&mut self) {
         debug!("Handling shutdown.");
 
-        // In single process mode, join on script-threads
-        // from webview which haven't been manually closed before.
-        for (_, join_handle) in self.script_join_handles.drain() {
+        for join_handle in self.event_loop_join_handles.drain(..) {
             if join_handle.join().is_err() {
                 error!("Failed to join on a script-thread.");
             }
@@ -3089,11 +3094,6 @@ where
                 .remove(&browsing_context.bc_group_id);
         }
 
-        // Note: In single-process mode,
-        // if the webview is manually closed, we drop the join handle without joining on it.
-        // It is unlikely the thread will still run when the constellation shuts-down.
-        self.script_join_handles.remove(&webview_id);
-
         debug!("{webview_id}: Closed");
     }
 
@@ -3298,7 +3298,7 @@ where
                 },
             };
         let is_private = is_private || is_parent_private;
-        let pipeline = Pipeline::new(
+        let pipeline = Pipeline::new_already_spawned(
             new_pipeline_id,
             browsing_context_id,
             webview_id,
@@ -3375,7 +3375,7 @@ where
                 },
             };
         let new_pipeline_id = PipelineId::new();
-        let pipeline = Pipeline::new(
+        let pipeline = Pipeline::new_already_spawned(
             new_pipeline_id,
             new_browsing_context_id,
             new_webview_id,
@@ -3466,16 +3466,18 @@ where
                 let Some(pipeline) = self.pipelines.get(&browsing_context.pipeline_id) else {
                     continue;
                 };
-                animating_event_loops.insert(pipeline.event_loop.clone());
-            }
-        }
 
-        for event_loop in animating_event_loops {
-            // No error handling here. It's unclear what to do when this fails as the error isn't associated
-            // with a particular pipeline. In addition, the danger of not progressing animations is pretty
-            // low, so it's probably safe to ignore this error and handle the crashed ScriptThread on
-            // some other message.
-            let _ = event_loop.send(ScriptThreadMessage::TickAllAnimations(webview_ids.clone()));
+                let event_loop = &pipeline.event_loop;
+                if !animating_event_loops.contains(&event_loop.id()) {
+                    // No error handling here. It's unclear what to do when this fails as the error isn't associated
+                    // with a particular pipeline. In addition, the danger of not progressing animations is pretty
+                    // low, so it's probably safe to ignore this error and handle the crashed ScriptThread on
+                    // some other message.
+                    let _ = event_loop
+                        .send(ScriptThreadMessage::TickAllAnimations(webview_ids.clone()));
+                    animating_event_loops.insert(event_loop.id());
+                }
+            }
         }
     }
 
