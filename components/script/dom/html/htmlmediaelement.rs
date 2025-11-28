@@ -2148,7 +2148,11 @@ impl HTMLMediaElement {
 
         *self.player.borrow_mut() = None;
         self.video_renderer.lock().unwrap().reset();
-        self.handle_resize(None, None);
+
+        if let Some(video_element) = self.downcast::<HTMLVideoElement>() {
+            video_element.set_natural_dimensions(None, None);
+            self.upcast::<Node>().dirty(NodeDamage::Other);
+        }
     }
 
     pub(crate) fn set_audio_track(&self, idx: usize, enabled: bool) {
@@ -2481,7 +2485,11 @@ impl HTMLMediaElement {
         // Step 5. For video elements, set the videoWidth and videoHeight attributes, and queue a
         // media element task given the media element to fire an event named resize at the media
         // element.
-        self.handle_resize(Some(metadata.width), Some(metadata.height));
+        if let Some(video_element) = self.downcast::<HTMLVideoElement>() {
+            video_element.set_natural_dimensions(Some(metadata.width), Some(metadata.height));
+            self.queue_media_element_task_to_fire_event(atom!("resize"));
+            self.upcast::<Node>().dirty(NodeDamage::Other);
+        }
 
         // Step 6. Set the readyState attribute to HAVE_METADATA.
         self.change_ready_state(ReadyState::HaveMetadata);
@@ -2559,9 +2567,27 @@ impl HTMLMediaElement {
     }
 
     fn playback_video_frame_updated(&self) {
-        // Check if the frame was resized
+        let Some(video_element) = self.downcast::<HTMLVideoElement>() else {
+            return;
+        };
+
+        // Whenever the natural width or natural height of the video changes (including, for
+        // example, because the selected video track was changed), if the element's readyState
+        // attribute is not HAVE_NOTHING, the user agent must queue a media element task given
+        // the media element to fire an event named resize at the media element.
+        // Note that the event for the prerolled frame from media engine could reached us before the
+        // initial `metadata` event so let's silently ignore it.
+        if self.ready_state.get() == ReadyState::HaveNothing {
+            return;
+        }
+
         if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
-            self.handle_resize(Some(frame.width as u32), Some(frame.height as u32));
+            if video_element
+                .set_natural_dimensions(Some(frame.width as u32), Some(frame.height as u32))
+            {
+                self.queue_media_element_task_to_fire_event(atom!("resize"));
+            }
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         }
     }
 
@@ -2821,13 +2847,6 @@ impl HTMLMediaElement {
         }
 
         current_frame
-    }
-
-    fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
-        if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
-            video_elem.resize(width, height);
-            self.upcast::<Node>().dirty(NodeDamage::Other);
-        }
     }
 
     /// By default the audio is rendered through the audio sink automatically
