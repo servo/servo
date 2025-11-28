@@ -3066,7 +3066,6 @@ impl GlobalScope {
 
         // Step 5 Let evaluationStatus be null.
         rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
-        let mut result = false;
 
         match script.record {
             // Step 6 If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
@@ -3108,15 +3107,16 @@ impl GlobalScope {
                         );
                     }
 
-                    result = unsafe { JS_ExecuteScript(*cx, record.handle(), rval.handle_mut()) };
+                    _ = unsafe { JS_ExecuteScript(*cx, record.handle(), rval.handle_mut()) };
                 }
             },
         }
 
+        unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
+
         // Step 8 If evaluationStatus is an abrupt completion, then:
-        if !result {
+        if !evaluation_status.is_undefined() {
             debug!("Error evaluating script");
-            unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
 
             // Step 8.1 If rethrow errors is true and script's muted errors is false, then:
             if rethrow_errors && !script.muted_errors {
