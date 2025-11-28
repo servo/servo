@@ -869,6 +869,7 @@ impl Notification {
             request.url.clone(),
             global.origin().immutable().clone(),
             None, // TODO: check which CORS should be used
+            None,
         );
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
