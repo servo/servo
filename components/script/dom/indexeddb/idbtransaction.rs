@@ -130,6 +130,7 @@ impl IDBTransaction {
     }
 
     // Runs the transaction and waits for it to finish
+    // TODO: run in-parallel.
     pub fn wait(&self) {
         // Start the transaction
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
