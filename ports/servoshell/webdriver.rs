@@ -137,6 +137,10 @@ impl RunningAppState {
 
         while let Ok(msg) = webdriver_receiver.try_recv() {
             match msg {
+                WebDriverCommandMsg::ResetAllCookies(sender) => {
+                    self.servo().clear_cookies();
+                    let _ = sender.send(());
+                },
                 WebDriverCommandMsg::Shutdown => {
                     self.servo().start_shutting_down();
                 },

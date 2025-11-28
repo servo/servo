@@ -433,6 +433,14 @@ impl ResourceThreads {
     pub fn clear_cache(&self) {
         let _ = self.core_thread.send(CoreResourceMsg::ClearCache);
     }
+
+    pub fn clear_cookies(&self) {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::DeleteCookies(None, Some(sender)));
+        let _ = receiver.recv();
+    }
 }
 
 impl IpcSend<CoreResourceMsg> for ResourceThreads {
@@ -514,7 +522,7 @@ pub enum CoreResourceMsg {
     ),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
-    DeleteCookies(ServoUrl),
+    DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
