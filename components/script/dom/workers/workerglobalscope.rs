@@ -590,18 +590,17 @@ impl WorkerGlobalScope {
             .downcast::<DedicatedWorkerGlobalScope>()
             .expect("Only DedicatedWorkerGlobalScope is supported for now");
 
-        let Some(script) = script else {
-            // Step 1 Queue a global task on the DOM manipulation task source given
-            // worker's relevant global object to fire an event named error at worker.
-            dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
+        // If script is null or if script's error to rethrow is non-null, then:
+        let script = match script {
+            Some(script) if script.record.is_ok() => script,
+            _ => {
+                // Step 1 Queue a global task on the DOM manipulation task source given
+                // worker's relevant global object to fire an event named error at worker.
+                dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
 
-            // Step 2 TODO Run the environment discarding steps for inside settings.
-            return;
-        };
-
-        if let Err(_) = script.record {
-            dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
-            return;
+                // Step 2 TODO Run the environment discarding steps for inside settings.
+                return;
+            },
         };
 
         unsafe {
@@ -704,6 +703,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
+            // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
             let (url, bytes, muted_errors) = match load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
@@ -715,7 +715,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             ) {
                 Err(_) => return Err(Error::Network(None)),
                 Ok((metadata, bytes, muted_errors)) => {
-                    // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
                     // Step 7: Check if response status is not an ok status
                     if !metadata.status.is_success() {
                         return Err(Error::Network(None));
@@ -735,14 +734,22 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 },
             };
 
+            // Step 8 Let sourceText be the result of UTF-8 decoding bodyBytes.
             let (source, _, _) = UTF_8.decode(&bytes);
 
+            // Step 9 Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
+            // Note: done inside load_whole_resource
+
+            // Step 10 Let script be the result of creating a classic script
+            // given sourceText, settingsObject, response's URL, the default script fetch options, and mutedErrors.
             let script = self.globalscope.create_a_classic_script(
                 source,
                 url,
                 muted_errors,
                 Some(IntroductionType::WORKER),
             );
+
+            // Run the classic script script, with rethrow errors set to true.
             let result = self.globalscope.run_a_classic_script_(script, true, can_gc);
 
             if let Err(error) = result {
