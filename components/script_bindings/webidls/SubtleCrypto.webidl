@@ -231,3 +231,15 @@ dictionary CShakeParams : Algorithm {
   BufferSource functionName;
   BufferSource customization;
 };
+
+// https://wicg.github.io/webcrypto-modern-algos/#argon2-params
+
+dictionary Argon2Params : Algorithm {
+  required BufferSource nonce;
+  required [EnforceRange] unsigned long parallelism;
+  required [EnforceRange] unsigned long memory;
+  required [EnforceRange] unsigned long passes;
+  [EnforceRange] octet version;
+  BufferSource secretValue;
+  BufferSource associatedData;
+};
