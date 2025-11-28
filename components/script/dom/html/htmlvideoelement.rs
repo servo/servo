@@ -37,7 +37,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadyState};
-use crate::dom::node::{Node, NodeTraits};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
@@ -60,8 +60,6 @@ pub(crate) struct HTMLVideoElement {
     #[ignore_malloc_size_of = "VideoFrame"]
     #[no_trace]
     last_frame: DomRefCell<Option<VideoFrame>>,
-    /// Indicates if it has already sent a resize event for a given size
-    sent_resize: Cell<Option<(u32, u32)>>,
 }
 
 impl HTMLVideoElement {
@@ -77,7 +75,6 @@ impl HTMLVideoElement {
             generation_id: Cell::new(0),
             load_blocker: Default::default(),
             last_frame: Default::default(),
-            sent_resize: Cell::new(None),
         }
     }
 
@@ -107,29 +104,16 @@ impl HTMLVideoElement {
         self.video_height.get()
     }
 
-    /// <https://html.spec.whatwg.org/multipage#event-media-resize>
-    pub(crate) fn resize(&self, width: Option<u32>, height: Option<u32>) -> Option<(u32, u32)> {
+    pub(crate) fn set_natural_dimensions(&self, width: Option<u32>, height: Option<u32>) -> bool {
+        if self.video_width.get() == width && self.video_height.get() == height {
+            return false;
+        }
+
         self.video_width.set(width);
         self.video_height.set(height);
 
-        let width = width?;
-        let height = height?;
-        if self.sent_resize.get() == Some((width, height)) {
-            return None;
-        }
-
-        let sent_resize = if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
-            None
-        } else {
-            self.owner_global()
-                .task_manager()
-                .media_element_task_source()
-                .queue_simple_event(self.upcast(), atom!("resize"));
-            Some((width, height))
-        };
-
-        self.sent_resize.set(sent_resize);
-        sent_resize
+        self.upcast::<Node>().dirty(NodeDamage::Other);
+        true
     }
 
     /// Gets the copy of the video frame at the current playback position,
