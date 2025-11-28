@@ -39,15 +39,15 @@ pub(super) struct EmbeddedPlatformWindow {
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     /// A list of showing [`InputMethod`] interfaces.
     visible_input_methods: RefCell<Vec<EmbedderControlId>>,
-    /// The current title of the focused WebView in this window.
+    /// The current title of the active WebView in this window.
     current_title: RefCell<Option<String>>,
-    /// The current URL of the focused WebView in this window.
+    /// The current URL of the active WebView in this window.
     current_url: RefCell<Option<Url>>,
-    /// Whether or not the focused WebView is currently able to go back.
+    /// Whether or not the active WebView is currently able to go back.
     current_can_go_back: Cell<bool>,
-    /// Whether or not the focused WebView is currently able to go forward.
+    /// Whether or not the active WebView is currently able to go forward.
     current_can_go_forward: Cell<bool>,
-    /// The current load status of the focused WebView.
+    /// The current load status of the active WebView.
     current_load_status: Cell<Option<LoadStatus>>,
 }
 
@@ -85,18 +85,18 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         state: &RunningAppState,
         window: &ServoShellWindow,
     ) -> bool {
-        let Some(focused_webview) = window.focused_webview() else {
+        let Some(active_webview) = window.active_webview() else {
             return false;
         };
 
-        let new_title = focused_webview.page_title();
+        let new_title = active_webview.page_title();
         let title_changed = new_title != *self.current_title.borrow();
         if title_changed {
             *self.current_title.borrow_mut() = new_title.clone();
             self.host.on_title_changed(new_title);
         }
 
-        let new_url = focused_webview.url();
+        let new_url = active_webview.url();
         let url_changed = new_url != *self.current_url.borrow();
         if url_changed {
             let new_url_string = new_url.as_ref().map(Url::to_string).unwrap_or_default();
@@ -105,8 +105,8 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         }
 
         let new_back_forward = (
-            focused_webview.can_go_back(),
-            focused_webview.can_go_forward(),
+            active_webview.can_go_back(),
+            active_webview.can_go_forward(),
         );
         let old_back_forward = (
             self.current_can_go_back.get(),
@@ -120,7 +120,7 @@ impl PlatformWindow for EmbeddedPlatformWindow {
                 .on_history_changed(new_back_forward.0, new_back_forward.1);
         }
 
-        let new_load_status = focused_webview.load_status();
+        let new_load_status = active_webview.load_status();
         let load_status_changed = Some(new_load_status) != self.current_load_status.get();
         if load_status_changed {
             self.host.notify_load_status_changed(new_load_status);
@@ -332,21 +332,19 @@ impl App {
         &self.state.servoshell_preferences
     }
 
-    pub(crate) fn focused_or_newest_webview(&self) -> Option<WebView> {
-        self.state.any_window().focused_or_newest_webview()
+    pub(crate) fn active_or_newest_webview(&self) -> Option<WebView> {
+        self.state.any_window().active_or_newest_webview()
     }
 
-    pub(crate) fn create_and_focus_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
+    pub(crate) fn create_and_activate_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         self.state
             .any_window()
-            .create_and_focus_toplevel_webview(self.state.clone(), url)
+            .create_and_activate_toplevel_webview(self.state.clone(), url)
     }
 
-    /// The focused webview will not be immediately valid via `focused_or_newest_webview()`
-    pub(crate) fn focus_webview(&self, id: WebViewId) {
-        if let Some(webview) = self.state.webview_by_id(id) {
-            webview.focus();
-        }
+    /// The active webview will be immediately valid via `active_or_newest_webview()`
+    pub(crate) fn activate_webview(&self, id: WebViewId) {
+        self.state.window_for_webview_id(id).activate_webview(id);
     }
 
     /// Request shutdown. Will call on_shutdown_complete.
@@ -366,7 +364,7 @@ impl App {
 
     /// Load an URL.
     pub fn load_uri(&self, url: &str) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             let Some(url) = crate::parser::location_bar_input_to_url(
                 url,
                 &self.servoshell_preferences().searchpage,
@@ -380,7 +378,7 @@ impl App {
 
     /// Reload the page.
     pub fn reload(&self) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.reload();
             self.spin_event_loop();
         }
@@ -393,7 +391,7 @@ impl App {
 
     /// Go back in history.
     pub fn go_back(&self) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.go_back(1);
             self.spin_event_loop();
         }
@@ -401,7 +399,7 @@ impl App {
 
     /// Go forward in history.
     pub fn go_forward(&self) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.go_forward(1);
             self.spin_event_loop();
         }
@@ -409,10 +407,9 @@ impl App {
 
     /// Let Servo know that the window has been resized.
     pub fn resize(&self, viewport_rect: Rect<i32, DevicePixel>) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             info!("Setting viewport to {viewport_rect:?}");
             let size = viewport_rect.size;
-            webview.move_resize(size.to_f32().into());
             webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
         }
         *self.platform_window.viewport_rect.borrow_mut() = viewport_rect;
@@ -423,7 +420,7 @@ impl App {
     /// x/y are scroll coordinates.
     /// dx/dy are scroll deltas.
     pub fn scroll(&self, dx: f32, dy: f32, x: f32, y: f32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             let scroll = Scroll::Delta(DeviceVector2D::new(dx, dy).into());
             let point = DevicePoint::new(x, y).into();
             webview.notify_scroll_event(scroll, point);
@@ -433,7 +430,7 @@ impl App {
 
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Down,
                 TouchId(pointer_id),
@@ -445,7 +442,7 @@ impl App {
 
     /// Touch event: move touching finger
     pub fn touch_move(&self, x: f32, y: f32, pointer_id: i32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Move,
                 TouchId(pointer_id),
@@ -457,7 +454,7 @@ impl App {
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&self, x: f32, y: f32, pointer_id: i32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Up,
                 TouchId(pointer_id),
@@ -469,7 +466,7 @@ impl App {
 
     /// Cancel touch event
     pub fn touch_cancel(&self, x: f32, y: f32, pointer_id: i32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Cancel,
                 TouchId(pointer_id),
@@ -481,7 +478,7 @@ impl App {
 
     /// Register a mouse movement.
     pub fn mouse_move(&self, x: f32, y: f32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
                 DevicePoint::new(x, y).into(),
             )));
@@ -491,7 +488,7 @@ impl App {
 
     /// Register a mouse button press.
     pub fn mouse_down(&self, x: f32, y: f32, button: MouseButton) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Down,
                 button,
@@ -503,7 +500,7 @@ impl App {
 
     /// Register a mouse button release.
     pub fn mouse_up(&self, x: f32, y: f32, button: MouseButton) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
                 MouseButtonAction::Up,
                 button,
@@ -516,7 +513,7 @@ impl App {
     /// Start pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&self, factor: f32, x: f32, y: f32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
@@ -525,7 +522,7 @@ impl App {
     /// Pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom(&self, factor: f32, x: f32, y: f32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
@@ -534,14 +531,14 @@ impl App {
     /// End pinchzoom.
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_end(&self, factor: f32, x: f32, y: f32) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
 
     pub fn key_down(&self, key: Key) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
                 KeyState::Down,
                 key,
@@ -551,7 +548,7 @@ impl App {
     }
 
     pub fn key_up(&self, key: Key) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
                 KeyState::Up,
                 key,
@@ -566,7 +563,7 @@ impl App {
             return;
         }
 
-        let Some(webview) = self.focused_or_newest_webview() else {
+        let Some(webview) = self.active_or_newest_webview() else {
             return;
         };
 
@@ -586,21 +583,21 @@ impl App {
     }
 
     pub fn media_session_action(&self, action: MediaSessionActionType) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_media_session_action_event(action);
             self.spin_event_loop();
         }
     }
 
     pub fn set_throttled(&self, throttled: bool) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.set_throttled(throttled);
             self.spin_event_loop();
         }
     }
 
     pub fn ime_dismissed(&self) {
-        if let Some(webview) = self.focused_or_newest_webview() {
+        if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
             self.spin_event_loop();
         }

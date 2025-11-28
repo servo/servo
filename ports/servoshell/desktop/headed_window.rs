@@ -237,8 +237,8 @@ impl Window {
             return;
         }
 
-        // Then we deliver character and keyboard events to the page in the focused webview.
-        let Some(webview) = window.focused_webview() else {
+        // Then we deliver character and keyboard events to the page in the active webview.
+        let Some(webview) = window.active_webview() else {
             return;
         };
 
@@ -335,15 +335,15 @@ impl Window {
         window: &ServoShellWindow,
         key_event: &KeyboardEvent,
     ) -> bool {
-        let Some(focused_webview) = window.focused_webview() else {
+        let Some(active_webview) = window.active_webview() else {
             return false;
         };
 
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
-            .shortcut(CMD_OR_CONTROL, 'R', || focused_webview.reload())
+            .shortcut(CMD_OR_CONTROL, 'R', || active_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
-                window.close_webview(focused_webview.id());
+                window.close_webview(active_webview.id());
             })
             .shortcut(CMD_OR_CONTROL, 'P', || {
                 let rate = env::var("SAMPLING_RATE")
@@ -354,93 +354,93 @@ impl Window {
                     .ok()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(10);
-                focused_webview.toggle_sampling_profiler(
+                active_webview.toggle_sampling_profiler(
                     Duration::from_millis(rate),
                     Duration::from_secs(duration),
                 );
             })
             .shortcut(CMD_OR_CONTROL, 'X', || {
-                focused_webview
+                active_webview
                     .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Cut));
             })
             .shortcut(CMD_OR_CONTROL, 'C', || {
-                focused_webview
+                active_webview
                     .notify_input_event(InputEvent::EditingAction(servo::EditingActionEvent::Copy));
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
-                focused_webview.notify_input_event(InputEvent::EditingAction(
+                active_webview.notify_input_event(InputEvent::EditingAction(
                     servo::EditingActionEvent::Paste,
                 ));
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F9), || {
-                focused_webview.capture_webrender();
+                active_webview.capture_webrender();
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F10), || {
-                focused_webview.toggle_webrender_debugging(WebRenderDebugOption::RenderTargetDebug);
+                active_webview.toggle_webrender_debugging(WebRenderDebugOption::RenderTargetDebug);
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F11), || {
-                focused_webview.toggle_webrender_debugging(WebRenderDebugOption::TextureCacheDebug);
+                active_webview.toggle_webrender_debugging(WebRenderDebugOption::TextureCacheDebug);
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F12), || {
-                focused_webview.toggle_webrender_debugging(WebRenderDebugOption::Profiler);
+                active_webview.toggle_webrender_debugging(WebRenderDebugOption::Profiler);
             })
             .shortcut(CMD_OR_ALT, Key::Named(NamedKey::ArrowRight), || {
-                focused_webview.go_forward(1);
+                active_webview.go_forward(1);
             })
             .optional_shortcut(
                 cfg!(not(target_os = "windows")),
                 CMD_OR_CONTROL,
                 ']',
                 || {
-                    focused_webview.go_forward(1);
+                    active_webview.go_forward(1);
                 },
             )
             .shortcut(CMD_OR_ALT, Key::Named(NamedKey::ArrowLeft), || {
-                focused_webview.go_back(1);
+                active_webview.go_back(1);
             })
             .optional_shortcut(
                 cfg!(not(target_os = "windows")),
                 CMD_OR_CONTROL,
                 '[',
                 || {
-                    focused_webview.go_back(1);
+                    active_webview.go_back(1);
                 },
             )
             .optional_shortcut(
                 self.get_fullscreen(),
                 Modifiers::empty(),
                 Key::Named(NamedKey::Escape),
-                || focused_webview.exit_fullscreen(),
+                || active_webview.exit_fullscreen(),
             )
             // Select the first 8 tabs via shortcuts
-            .shortcut(CMD_OR_CONTROL, '1', || window.focus_webview_by_index(0))
-            .shortcut(CMD_OR_CONTROL, '2', || window.focus_webview_by_index(1))
-            .shortcut(CMD_OR_CONTROL, '3', || window.focus_webview_by_index(2))
-            .shortcut(CMD_OR_CONTROL, '4', || window.focus_webview_by_index(3))
-            .shortcut(CMD_OR_CONTROL, '5', || window.focus_webview_by_index(4))
-            .shortcut(CMD_OR_CONTROL, '6', || window.focus_webview_by_index(5))
-            .shortcut(CMD_OR_CONTROL, '7', || window.focus_webview_by_index(6))
-            .shortcut(CMD_OR_CONTROL, '8', || window.focus_webview_by_index(7))
+            .shortcut(CMD_OR_CONTROL, '1', || window.activate_webview_by_index(0))
+            .shortcut(CMD_OR_CONTROL, '2', || window.activate_webview_by_index(1))
+            .shortcut(CMD_OR_CONTROL, '3', || window.activate_webview_by_index(2))
+            .shortcut(CMD_OR_CONTROL, '4', || window.activate_webview_by_index(3))
+            .shortcut(CMD_OR_CONTROL, '5', || window.activate_webview_by_index(4))
+            .shortcut(CMD_OR_CONTROL, '6', || window.activate_webview_by_index(5))
+            .shortcut(CMD_OR_CONTROL, '7', || window.activate_webview_by_index(6))
+            .shortcut(CMD_OR_CONTROL, '8', || window.activate_webview_by_index(7))
             // Cmd/Ctrl 9 is a bit different in that it focuses the last tab instead of the 9th
             .shortcut(CMD_OR_CONTROL, '9', || {
                 let len = window.webviews().len();
                 if len > 0 {
-                    window.focus_webview_by_index(len - 1)
+                    window.activate_webview_by_index(len - 1)
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::PageDown), || {
-                if let Some(index) = window.get_focused_webview_index() {
-                    window.focus_webview_by_index((index + 1) % window.webviews().len())
+                if let Some(index) = window.get_active_webview_index() {
+                    window.activate_webview_by_index((index + 1) % window.webviews().len())
                 }
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::PageUp), || {
-                if let Some(index) = window.get_focused_webview_index() {
+                if let Some(index) = window.get_active_webview_index() {
                     let len = window.webviews().len();
-                    window.focus_webview_by_index((index + len - 1) % len);
+                    window.activate_webview_by_index((index + len - 1) % len);
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
-                window.create_and_focus_toplevel_webview(
+                window.create_and_activate_toplevel_webview(
                     state.clone(),
                     Url::parse("servo:newtab")
                         .expect("Should be able to unconditionally parse 'servo:newtab' as URL"),
@@ -481,24 +481,24 @@ impl Window {
                         warn!("failed to parse location");
                         break;
                     };
-                    if let Some(focused_webview) = window.focused_webview() {
-                        focused_webview.load(url.into_url());
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.load(url.into_url());
                     }
                 },
                 GuiCommand::Back => {
-                    if let Some(focused_webview) = window.focused_webview() {
-                        focused_webview.go_back(1);
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.go_back(1);
                     }
                 },
                 GuiCommand::Forward => {
-                    if let Some(focused_webview) = window.focused_webview() {
-                        focused_webview.go_forward(1);
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.go_forward(1);
                     }
                 },
                 GuiCommand::Reload => {
                     gui.update_location_dirty(false);
-                    if let Some(focused_webview) = window.focused_webview() {
-                        focused_webview.reload();
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.reload();
                     }
                 },
                 GuiCommand::ReloadAll => {
@@ -510,7 +510,7 @@ impl Window {
                 GuiCommand::NewWebView => {
                     gui.update_location_dirty(false);
                     let url = Url::parse("servo:newtab").expect("Should always be able to parse");
-                    window.create_and_focus_toplevel_webview(state.clone(), url);
+                    window.create_and_activate_toplevel_webview(state.clone(), url);
                 },
                 GuiCommand::CloseWebView(id) => {
                     gui.update_location_dirty(false);
@@ -540,11 +540,11 @@ impl Window {
         window: &ServoShellWindow,
         callback: impl Fn(&mut Dialog) -> bool,
     ) {
-        let Some(focused_webview) = window.focused_webview() else {
+        let Some(active_webview) = window.active_webview() else {
             return;
         };
         let mut dialogs = self.dialogs.borrow_mut();
-        let Some(dialogs) = dialogs.get_mut(&focused_webview.id()) else {
+        let Some(dialogs) = dialogs.get_mut(&active_webview.id()) else {
             return;
         };
         if dialogs.is_empty() {
@@ -630,7 +630,7 @@ impl PlatformWindow for Window {
 
     fn update_user_interface_state(&self, _: &RunningAppState, window: &ServoShellWindow) -> bool {
         let title = window
-            .focused_webview()
+            .active_webview()
             .and_then(|webview| {
                 webview
                     .page_title()
@@ -714,7 +714,7 @@ impl PlatformWindow for Window {
                 WindowEvent::MouseWheel { .. } |
                 WindowEvent::KeyboardInput { .. }
         ) && window
-            .focused_webview()
+            .active_webview()
             .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
         {
             consumed = true;
@@ -732,7 +732,7 @@ impl PlatformWindow for Window {
                 }
             }
 
-            if let Some(webview) = window.focused_webview() {
+            if let Some(webview) = window.active_webview() {
                 match event {
                     WindowEvent::KeyboardInput { event, .. } => {
                         self.handle_keyboard_input(state.clone(), window, event)
@@ -868,7 +868,7 @@ impl PlatformWindow for Window {
         // FIXME: This is a workaround for dialogs, which do not seem to animate, unless we
         // constantly repaint the egui scene.
         if window
-            .focused_webview()
+            .active_webview()
             .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
         {
             window.set_needs_repaint();
@@ -1040,7 +1040,7 @@ impl PlatformWindow for Window {
         self.winit_window.set_maximized(true);
     }
 
-    /// Handle servoshell key bindings that may have been prevented by the page in the focused webview.
+    /// Handle servoshell key bindings that may have been prevented by the page in the active webview.
     fn notify_input_event_handled(
         &self,
         webview: &WebView,

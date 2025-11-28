@@ -174,9 +174,8 @@ impl RunningAppState {
                     }
                 },
                 WebDriverCommandMsg::FocusWebView(webview_id) => {
-                    if let Some(webview) = self.webview_by_id(webview_id) {
-                        webview.focus_and_raise_to_top(true);
-                    }
+                    self.window_for_webview_id(webview_id)
+                        .activate_webview(webview_id);
                 },
                 WebDriverCommandMsg::FocusBrowsingContext(..) => {
                     self.servo().execute_webdriver_command(msg);
@@ -238,8 +237,8 @@ impl RunningAppState {
                 },
                 // This is only received when start new session.
                 WebDriverCommandMsg::GetFocusedWebView(sender) => {
-                    let focused_webview = self.any_window().focused_webview();
-                    if let Err(error) = sender.send(focused_webview.map(|w| w.id())) {
+                    let active_webview = self.any_window().active_webview();
+                    if let Err(error) = sender.send(active_webview.map(|w| w.id())) {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
                 },

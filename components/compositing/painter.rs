@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
-use std::iter::once;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -26,7 +25,7 @@ use embedder_traits::{
     CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId, InputEventResult,
     ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint, WebViewRect,
 };
-use euclid::{Point2D, Scale};
+use euclid::{Point2D, Rect, Scale, Size2D};
 use gleam::gl::RENDERER;
 use image::RgbaImage;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcSharedMemory};
@@ -43,15 +42,15 @@ use webrender::{
     MemoryReport, ONE_TIME_USAGE_HINT, RenderApi, ShaderPrecacheFlags, Transaction, UploadMethod,
 };
 use webrender_api::units::{
-    DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
-    LayoutTransform, LayoutVector2D, WorldPoint,
+    DevicePixel, DevicePoint, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D,
+    WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
     DocumentId, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
     FontInstanceOptions, FontKey, FontVariation, ImageKey, NativeFontHandle,
     PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons,
-    SampledScrollOffset, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
+    SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -62,7 +61,6 @@ use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
 use crate::webrender_external_images::WebGLExternalImages;
-use crate::webview_manager::WebViewManager;
 use crate::webview_renderer::{PinchZoomResult, ScrollResult, UnknownWebView, WebViewRenderer};
 
 /// A [`Painter`] is responsible for all of the painting to a particular [`RenderingContext`].
@@ -82,7 +80,7 @@ pub(crate) struct Painter {
     pub(crate) painter_id: PainterId,
 
     /// Our [`WebViewRenderer`]s, one for every `WebView`.
-    pub(crate) webview_renderers: WebViewManager<WebViewRenderer>,
+    pub(crate) webview_renderers: FxHashMap<WebViewId, WebViewRenderer>,
 
     /// Tracks whether or not the view needs to be repainted.
     pub(crate) needs_repaint: Cell<RepaintReason>,
@@ -284,7 +282,7 @@ impl Painter {
         let mut need_zoom = false;
         let scroll_offset_updates: Vec<_> = self
             .webview_renderers
-            .iter_mut()
+            .values_mut()
             .filter_map(|webview_renderer| {
                 let (zoom, scroll_result) = webview_renderer
                     .process_pending_scroll_and_pinch_zoom_events(&self.webrender_api);
@@ -324,14 +322,14 @@ impl Painter {
     }
 
     pub(crate) fn webview_renderer(&self, webview_id: WebViewId) -> Option<&WebViewRenderer> {
-        self.webview_renderers.get(webview_id)
+        self.webview_renderers.get(&webview_id)
     }
 
     pub(crate) fn webview_renderer_mut(
         &mut self,
         webview_id: WebViewId,
     ) -> Option<&mut WebViewRenderer> {
-        self.webview_renderers.get_mut(webview_id)
+        self.webview_renderers.get_mut(&webview_id)
     }
 
     /// Whether or not the renderer is waiting on a frame, either because it has been sent
@@ -359,13 +357,13 @@ impl Painter {
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
     pub(crate) fn animation_callbacks_running(&self) -> bool {
         self.webview_renderers
-            .iter()
+            .values()
             .any(WebViewRenderer::animation_callbacks_running)
     }
 
     pub(crate) fn animating_webviews(&self) -> Vec<WebViewId> {
         self.webview_renderers
-            .iter()
+            .values()
             .filter_map(|webview_renderer| {
                 if webview_renderer.animating() {
                     Some(webview_renderer.id)
@@ -446,7 +444,7 @@ impl Painter {
     /// the list.
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
-        for webview_renderer in self.webview_renderers.iter() {
+        for webview_renderer in self.webview_renderers.values() {
             for (pipeline_id, pipeline) in webview_renderer.pipelines.iter() {
                 let Some(current_epoch) = self
                     .webrender
@@ -570,6 +568,7 @@ impl Painter {
     }
 
     pub(crate) fn send_transaction(&mut self, transaction: Transaction) {
+        let _ = self.rendering_context.make_current();
         self.webrender_api
             .send_transaction(self.webrender_document, transaction);
     }
@@ -597,7 +596,10 @@ impl Painter {
 
         let root_clip_id = builder.define_clip_rect(root_reference_frame, viewport_rect);
         let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
-        for (_, webview_renderer) in self.webview_renderers.painting_order() {
+        for webview_renderer in self.webview_renderers.values() {
+            if webview_renderer.hidden() {
+                continue;
+            }
             let Some(pipeline_id) = webview_renderer.root_pipeline_id else {
                 continue;
             };
@@ -626,7 +628,7 @@ impl Painter {
                     should_snap: true,
                     paired_with_perspective: false,
                 },
-                SpatialTreeItemKey::new(0, 0),
+                webview_renderer.id.into(),
             );
 
             let scaled_webview_rect = webview_renderer.rect /
@@ -671,7 +673,7 @@ impl Painter {
     /// TODO(mrobinson): Could we only send offsets for the branch being modified
     /// and not the entire scene?
     fn update_transaction_with_all_scroll_offsets(&self, transaction: &mut Transaction) {
-        for webview_renderer in self.webview_renderers.iter() {
+        for webview_renderer in self.webview_renderers.values() {
             for details in webview_renderer.pipelines.values() {
                 for node in details.scroll_tree.nodes.iter() {
                     let (Some(offset), Some(external_id)) = (node.offset(), node.external_id())
@@ -758,7 +760,7 @@ impl Painter {
         pipeline_id: PipelineId,
         animation_state: embedder_traits::AnimationState,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
         if !webview_renderer.change_pipeline_running_animations_state(pipeline_id, animation_state)
@@ -780,7 +782,7 @@ impl Painter {
         debug!("{}: Setting frame tree for webview", frame_tree.pipeline.id);
 
         let webview_id = frame_tree.pipeline.webview_id;
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             warn!(
                 "Attempted to set frame tree on unknown WebView (perhaps closed?): {webview_id:?}"
             );
@@ -792,9 +794,8 @@ impl Painter {
     }
 
     pub(crate) fn remove_webview(&mut self, webview_id: WebViewId) {
-        debug!("{webview_id}: Removing");
-        if self.webview_renderers.remove(webview_id).is_err() {
-            warn!("{webview_id}: Removing unknown webview");
+        if self.webview_renderers.remove(&webview_id).is_none() {
+            warn!("Tried removing unknown WebView: {webview_id:?}");
             return;
         };
 
@@ -807,7 +808,7 @@ impl Painter {
         pipeline_id: PipelineId,
         throttled: bool,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
         if !webview_renderer.set_throttled(pipeline_id, throttled) {
@@ -830,7 +831,7 @@ impl Painter {
         pipeline_exit_source: PipelineExitSource,
     ) {
         debug!("Compositor got pipeline exited: {webview_id:?} {pipeline_id:?}",);
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
         self.lcp_calculator
@@ -842,7 +843,7 @@ impl Painter {
         webview_id: WebViewId,
         pipeline_id: WebRenderPipelineId,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };
 
@@ -864,7 +865,7 @@ impl Painter {
         offset: LayoutVector2D,
         external_scroll_id: webrender_api::ExternalScrollId,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
 
@@ -905,7 +906,7 @@ impl Painter {
         webview_id: WebViewId,
         delta: LayoutVector2D,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
         let (pinch_zoom_result, scroll_results) = webview_renderer.scroll_viewport_by_delta(delta);
@@ -921,7 +922,7 @@ impl Painter {
         pipeline_id: PipelineId,
         epoch: Epoch,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for Epoch update.");
         };
         webview_renderer
@@ -977,7 +978,7 @@ impl Painter {
         );
         let _span =
             profile_traits::trace_span!("ScriptToCompositorMsg::BuiltDisplayList",).entered();
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };
 
@@ -1176,7 +1177,7 @@ impl Painter {
         webview_id: WebViewId,
         viewport_description: ViewportDescription,
     ) {
-        if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
+        if let Some(webview) = self.webview_renderers.get_mut(&webview_id) {
             webview.set_viewport_description(viewport_description);
         }
     }
@@ -1206,72 +1207,20 @@ impl Painter {
             ));
     }
 
-    pub(crate) fn show_webview(
+    pub(crate) fn set_webview_hidden(
         &mut self,
         webview_id: WebViewId,
-        hide_others: bool,
+        hidden: bool,
     ) -> Result<(), UnknownWebView> {
-        debug!("{webview_id}: Showing webview; hide_others={hide_others}");
-        let painting_order_changed = if hide_others {
-            let result = self
-                .webview_renderers
-                .painting_order()
-                .map(|(&id, _)| id)
-                .ne(once(webview_id));
-            self.webview_renderers.hide_all();
-            self.webview_renderers.show(webview_id)?;
-            result
-        } else {
-            self.webview_renderers.show(webview_id)?
+        debug!("Setting WebView visiblity for {webview_id:?} to hidden={hidden}");
+        let Some(webview_renderer) = self.webview_renderer_mut(webview_id) else {
+            return Err(UnknownWebView(webview_id));
         };
-        if painting_order_changed {
-            self.send_root_pipeline_display_list();
+        if !webview_renderer.set_hidden(hidden) {
+            return Ok(());
         }
-        Ok(())
-    }
-
-    pub(crate) fn hide_webview(&mut self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
-        debug!("{webview_id}: Hiding webview");
-        if self.webview_renderers.hide(webview_id)? {
-            self.send_root_pipeline_display_list();
-        }
-        Ok(())
-    }
-
-    pub(crate) fn raise_webview_to_top(
-        &mut self,
-        webview_id: WebViewId,
-        hide_others: bool,
-    ) -> Result<(), UnknownWebView> {
-        debug!("{webview_id}: Raising webview to top; hide_others={hide_others}");
-        let painting_order_changed = if hide_others {
-            let result = self
-                .webview_renderers
-                .painting_order()
-                .map(|(&id, _)| id)
-                .ne(once(webview_id));
-            self.webview_renderers.hide_all();
-            self.webview_renderers.raise_to_top(webview_id)?;
-            result
-        } else {
-            self.webview_renderers.raise_to_top(webview_id)?
-        };
-        if painting_order_changed {
-            self.send_root_pipeline_display_list();
-        }
-        Ok(())
-    }
-
-    pub(crate) fn move_resize_webview(&mut self, webview_id: WebViewId, rect: DeviceRect) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
-            return;
-        };
-        if !webview_renderer.set_rect(rect) {
-            return;
-        }
-
         self.send_root_pipeline_display_list();
-        self.set_needs_repaint(RepaintReason::Resize);
+        Ok(())
     }
 
     pub(crate) fn set_hidpi_scale_factor(
@@ -1279,7 +1228,7 @@ impl Painter {
         webview_id: WebViewId,
         new_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
         if !webview_renderer.set_hidpi_scale_factor(new_scale_factor) {
@@ -1297,12 +1246,14 @@ impl Painter {
 
         self.rendering_context.resize(new_size);
 
+        let new_size = Size2D::new(new_size.width as f32, new_size.height as f32);
+        let new_viewport_rect = Rect::from(new_size).to_box2d();
+        for webview_renderer in self.webview_renderers.values_mut() {
+            webview_renderer.set_rect(new_viewport_rect);
+        }
+
         let mut transaction = Transaction::new();
-        let output_region = DeviceIntRect::new(
-            Point2D::zero(),
-            Point2D::new(new_size.width as i32, new_size.height as i32),
-        );
-        transaction.set_document_view(output_region);
+        transaction.set_document_view(new_viewport_rect.to_i32());
         self.send_transaction(transaction);
 
         self.send_root_pipeline_display_list();
@@ -1310,20 +1261,20 @@ impl Painter {
     }
 
     pub(crate) fn set_page_zoom(&mut self, webview_id: WebViewId, new_zoom: f32) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.set_page_zoom(Scale::new(new_zoom));
         }
     }
 
     pub(crate) fn page_zoom(&self, webview_id: WebViewId) -> f32 {
         self.webview_renderers
-            .get(webview_id)
+            .get(&webview_id)
             .map(|webview_renderer| webview_renderer.page_zoom.get())
             .unwrap_or_default()
     }
 
     pub(crate) fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEventAndId) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             match &event.event {
                 InputEvent::MouseMove(event) => {
                     // We only track the last mouse move position for non-touch events.
@@ -1351,7 +1302,7 @@ impl Painter {
         scroll: Scroll,
         point: WebViewPoint,
     ) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
         }
         self.disable_lcp_calculation_for_webview(webview_id);
@@ -1363,7 +1314,7 @@ impl Painter {
         pinch_zoom_delta: f32,
         center: DevicePoint,
     ) {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.adjust_pinch_zoom(pinch_zoom_delta, center);
         }
     }
@@ -1373,7 +1324,7 @@ impl Painter {
         webview_id: WebViewId,
     ) -> Scale<f32, CSSPixel, DevicePixel> {
         self.webview_renderers
-            .get(webview_id)
+            .get(&webview_id)
             .map(WebViewRenderer::device_pixels_per_page_pixel)
             .unwrap_or_default()
     }
@@ -1384,7 +1335,7 @@ impl Painter {
         rect: Option<WebViewRect>,
         callback: Box<dyn FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static>,
     ) {
-        let Some(webview) = self.webview_renderers.get(webview_id) else {
+        let Some(webview) = self.webview_renderers.get(&webview_id) else {
             return;
         };
 
@@ -1402,7 +1353,7 @@ impl Painter {
         input_event_id: InputEventId,
         result: InputEventResult,
     ) {
-        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             warn!("Handled input event for unknown webview: {webview_id}");
             return;
         };
@@ -1457,12 +1408,22 @@ impl Painter {
     pub(crate) fn webviews_needing_repaint(&self) -> Vec<WebViewId> {
         if self.needs_repaint() {
             self.webview_renderers
-                .iter()
+                .values()
                 .map(|webview_renderer| webview_renderer.id)
                 .collect()
         } else {
             Vec::new()
         }
+    }
+
+    pub(crate) fn scroll_trees_memory_usage(
+        &self,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> usize {
+        self.webview_renderers
+            .values()
+            .map(|renderer| renderer.scroll_trees_memory_usage(ops))
+            .sum::<usize>()
     }
 
     pub(crate) fn append_lcp_candidate(
@@ -1476,7 +1437,7 @@ impl Painter {
             .lcp_calculator
             .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
         {
-            if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
                 webview_renderer
                     .ensure_pipeline_details(pipeline_id)
                     .largest_contentful_paint_metric
