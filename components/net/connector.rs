@@ -19,8 +19,7 @@ use hyper_util::client::legacy::connect::proxy::Tunnel;
 use hyper_util::rt::TokioIo;
 use log::warn;
 use parking_lot::Mutex;
-use rustls::client::WebPkiServerVerifier;
-use rustls::{ClientConfig, RootCertStore};
+use rustls::ClientConfig;
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use tokio::net::TcpStream;
 use tower::Service;
@@ -138,9 +137,9 @@ impl CertificateErrorOverrideManager {
 }
 
 #[derive(Clone, Debug)]
-pub enum CACertificates {
+pub enum CACertificates<'de> {
     Default,
-    Override(RootCertStore),
+    Override(Vec<CertificateDer<'de>>),
 }
 
 /// Create a [TlsConfig] to use for managing a HTTP connection. This currently creates
@@ -150,7 +149,7 @@ pub enum CACertificates {
 /// is used when running the WPT tests, because rustls currently rejects the WPT certificiate.
 /// See <https://github.com/servo/servo/issues/30080>
 pub fn create_tls_config(
-    ca_certificates: CACertificates,
+    ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     override_manager: CertificateErrorOverrideManager,
 ) -> TlsConfig {
@@ -179,28 +178,67 @@ where
 
 #[derive(Debug)]
 struct CertificateVerificationOverrideVerifier {
-    webpki_verifier: Arc<WebPkiServerVerifier>,
+    #[cfg(not(target_os = "android"))]
+    main_verifier: Arc<rustls_platform_verifier::Verifier>,
+    #[cfg(target_os = "android")]
+    main_verifier: Arc<rustls::client::WebPkiServerVerifier>,
     ignore_certificate_errors: bool,
     override_manager: CertificateErrorOverrideManager,
 }
 
 impl CertificateVerificationOverrideVerifier {
+    #[cfg(not(target_os = "android"))]
     fn new(
-        ca_certficates: CACertificates,
+        ca_certficates: CACertificates<'static>,
         ignore_certificate_errors: bool,
         override_manager: CertificateErrorOverrideManager,
     ) -> Self {
-        let root_cert_store = match ca_certficates {
+        let crypto_provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
+        let main_verifier = Arc::new(
+            match ca_certficates {
+                CACertificates::Default => rustls_platform_verifier::Verifier::new(crypto_provider),
+                CACertificates::Override(root_cert_store) => {
+                    rustls_platform_verifier::Verifier::new_with_extra_roots(
+                        root_cert_store,
+                        crypto_provider,
+                    )
+                },
+            }
+            .expect("Could not initialize crypto"),
+        );
+
+        Self {
+            main_verifier,
+            ignore_certificate_errors,
+            override_manager,
+        }
+    }
+
+    #[cfg(target_os = "android")]
+    fn new(
+        ca_certficates: CACertificates<'static>,
+        ignore_certificate_errors: bool,
+        override_manager: CertificateErrorOverrideManager,
+    ) -> Self {
+        let root_cert_store = Arc::new(match ca_certficates {
             CACertificates::Default => rustls::RootCertStore {
                 roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
             },
-            CACertificates::Override(root_cert_store) => root_cert_store,
-        };
+            CACertificates::Override(root_certs) => {
+                let mut root_cert_store = rustls::RootCertStore::empty();
+                for cert in root_certs {
+                    if root_cert_store.add(cert).is_err() {
+                        log::error!("Could not add certificate");
+                    }
+                }
+                root_cert_store
+            },
+        });
 
         Self {
             // See https://github.com/rustls/rustls/blame/v/0.21.6/rustls/src/client/builder.rs#L141
             // This is the default verifier for Rustls that we are wrapping.
-            webpki_verifier: WebPkiServerVerifier::builder(root_cert_store.into())
+            main_verifier: rustls::client::WebPkiServerVerifier::builder(root_cert_store.into())
                 .build()
                 .unwrap(),
             ignore_certificate_errors,
@@ -216,7 +254,7 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
         cert: &CertificateDer<'_>,
         dss: &rustls::DigitallySignedStruct,
     ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
-        self.webpki_verifier
+        self.main_verifier
             .verify_tls12_signature(message, cert, dss)
     }
 
@@ -226,12 +264,12 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
         cert: &CertificateDer<'_>,
         dss: &rustls::DigitallySignedStruct,
     ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
-        self.webpki_verifier
+        self.main_verifier
             .verify_tls13_signature(message, cert, dss)
     }
 
     fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
-        self.webpki_verifier.supported_verify_schemes()
+        self.main_verifier.supported_verify_schemes()
     }
 
     fn verify_server_cert(
@@ -242,7 +280,7 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
         ocsp_response: &[u8],
         now: UnixTime,
     ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
-        let error = match self.webpki_verifier.verify_server_cert(
+        let error = match self.main_verifier.verify_server_cert(
             end_entity,
             intermediates,
             server_name,
