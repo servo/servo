@@ -249,7 +249,7 @@ jobs:
     continue-on-error: true
     runs-on: hos-runner
     needs: test-harmonyos-aarch64
-    # if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo'
     steps:
       - uses: actions/download-artifact@v4
         with:

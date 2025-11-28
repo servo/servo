@@ -523,14 +523,6 @@ class MachCommands(CommandBase):
     ) -> None:
         return self.speedometer_runner(servo_binary, bmf_output, build_type.profile)
 
-    @Command("test-speedometer-ohos", description="Run servo's speedometer on a ohos device", category="testing")
-    @CommandArgument("--bmf-output", default=None, help="Specifcy BMF JSON output file")
-    @CommandArgument("--profile", default=None, help="Specify a profile which will be prepended to the output")
-    # This needs to be a separate command because we do not need a binary locally
-
-    def test_speedometer_ohos(self, bmf_output: str | None = None, profile: str | None = None) -> None:
-        return self.speedometer_runner_ohos(bmf_output, profile)
-
     @Command("update-jquery", description="Update the jQuery test suite expected results", category="testing")
     @CommandBase.common_command_arguments(binary_selection=True)
     def update_jquery(self, servo_binary: str) -> int:
@@ -725,60 +717,6 @@ class MachCommands(CommandBase):
 
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
 
-        if bmf_output:
-            self.speedometer_to_bmf(speedometer, bmf_output, profile)
-
-    def speedometer_runner_ohos(self, bmf_output: str | None, profile: str | None) -> None:
-        hdc = HarmonyDeviceConnector()
-        log_path: str = "/data/app/el2/100/base/org.servo.servo/cache/servo.log"
-
-        hdc.cmd("aa force-stop org.servo.servo")
-
-        hdc.cmd(f"rm {log_path}")
-        with HarmonyDevicePerfMode(600, hdc):
-            start_command = (
-                "aa start -a EntryAbility -b org.servo.servo -U https://servospeedometer.netlify.app?headless=1"
-            )
-            start_command += " --ps --log-filter script::dom::console --psn --log-to-file"
-            hdc.cmd(start_command)
-            # A current (2025-06-23) run took 3m 49s = 229s. We keep a safety margin
-            # but we will exit earlier if we see "{"
-            whole_file = None
-            for i in range(10):
-                sleep(30)
-                whole_file: str | None = hdc.read_file(log_path)
-                if whole_file is None:
-                    continue
-                if "[INFO script::dom::console]" in whole_file:
-                    # technically the file could not have been written completely yet
-                    # on devices with slow flash, we might want to wait a bit more
-                    sleep(2)
-                    whole_file = hdc.read_file(log_path)
-                    break
-                check_live_output = hdc.cmd("pidof org.servo.servo || echo dead", capture_output=True).stdout
-                print(f"Output: `{check_live_output}`")
-                if check_live_output == "dead\n":
-                    print("Servo crashed, aborting speedometer test")
-                    exit(1)
-            if whole_file is None:
-                print("Empty logfile after timeout")
-                exit(1)
-            if "[INFO script::dom::console]" not in whole_file:
-                print("Error failed to find console logs in log file")
-                print(f"log-file contents: `{whole_file}`")
-                exit(1)
-            start_index: int = whole_file.index("[INFO script::dom::console]") + len("[INFO script::dom::console]") + 1
-            json_string = whole_file[start_index:]
-            try:
-                speedometer = json.loads(json_string)
-            except json.decoder.JSONDecodeError as e:
-                print(f"Error: Failed to convert log output to JSON: {e}")
-                pretty_print_json_decode_error(e)
-                print("Error: Failed to parse speedometer results")
-                print("This can happen if other log messages are printed while running servo...")
-                exit(1)
-
-        print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
         if bmf_output:
             self.speedometer_to_bmf(speedometer, bmf_output, profile)
 
