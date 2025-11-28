@@ -63,7 +63,7 @@ use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
 use crate::dom::globalscope::{ClassicScript, GlobalScope};
-use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, ScriptOrigin, ScriptType};
+use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -84,11 +84,9 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoop
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
-use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
-use crate::unminify::unminify_js;
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -984,20 +982,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    pub(crate) fn execute_script(&self, source: DOMString, can_gc: CanGc) {
-        let global = self.upcast::<GlobalScope>();
-        let mut script = ScriptOrigin::external(
-            Rc::new(source),
-            self.worker_url.borrow().clone(),
-            ScriptFetchOptions::default_classic_script(global),
-            ScriptType::Classic,
-            global.unminified_js_dir(),
-        );
-        unminify_js(&mut script);
-
-        global.run_a_classic_script(&script, 1, Some(IntroductionType::WORKER), can_gc);
-    }
-
     pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
