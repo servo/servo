@@ -8,7 +8,7 @@ use base::IpcSend;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
-use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -30,7 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
-use crate::indexed_db::is_valid_key_path;
+use crate::indexeddb::is_valid_key_path;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

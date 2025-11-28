@@ -10,7 +10,7 @@ use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::ErrorResult;
-use storage_traits::indexeddb_thread::{
+use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
     IndexedDBThreadMsg, SyncOperation,
 };
@@ -36,7 +36,7 @@ use crate::dom::indexeddb::idbcursor::{IDBCursor, IterationParam, ObjectStoreOrI
 use crate::dom::indexeddb::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
-use crate::indexed_db::{
+use crate::indexeddb::{
     self, ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -256,7 +256,7 @@ impl IDBObjectStore {
             return Err(Error::InvalidState(None));
         };
 
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
 
         // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.
         // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request with handle and operation.
@@ -341,7 +341,7 @@ impl IDBObjectStore {
             primary_key: None,
             count: None,
         };
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
         IDBRequest::execute_async(
             self,
             AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
@@ -393,7 +393,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         let serialized_query = convert_value_to_key_range(cx, query, Some(true));
         // Step 7. Let operation be an algorithm to run delete records from an object store with store and range.
         // Step 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|key_range| {
             IDBRequest::execute_async(
                 self,
@@ -422,7 +422,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6. Let operation be an algorithm to run clear an object store with store.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
 
         IDBRequest::execute_async(
             self,
@@ -449,7 +449,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6. Let operation be an algorithm to run retrieve a value from an object store with the current Realm record, store, and range.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
@@ -481,7 +481,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
         // The steps are run with this object store handle as source and the steps to retrieve a key from an object
         // store as operation, using store and range.
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
@@ -518,7 +518,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
         // The steps are run with this object store handle as source and the steps to retrieve a key from an object
         // store as operation, using store and range.
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
@@ -556,7 +556,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
         // The steps are run with this object store handle as source and the steps to retrieve a key from an object
         // store as operation, using store and range.
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
@@ -588,7 +588,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6. Let operation be an algorithm to run count the records in a range with store and range.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexed_db::create_channel(self.global());
+        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,

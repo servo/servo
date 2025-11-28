@@ -8,13 +8,13 @@ use js::rust::HandleValue;
 use script_bindings::codegen::GenericBindings::IDBKeyRangeBinding::IDBKeyRangeMethods;
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
-use storage_traits::indexeddb_thread::IndexedDBKeyRange;
+use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::globalscope::GlobalScope;
-use crate::indexed_db::{convert_value_to_key, key_type_to_jsval};
+use crate::indexeddb::{convert_value_to_key, key_type_to_jsval};
 
 #[dom_struct]
 pub struct IDBKeyRange {
