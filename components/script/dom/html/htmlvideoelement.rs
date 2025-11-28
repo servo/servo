@@ -182,6 +182,7 @@ impl HTMLVideoElement {
             poster_url.clone(),
             window.origin().immutable().clone(),
             None,
+            None,
         );
 
         let id = match cache_result {

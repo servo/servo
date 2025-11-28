@@ -67,6 +67,7 @@ const MAX_SVG_PIXMAP_DIMENSION: u32 = 5000;
 fn parse_svg_document_in_memory(
     bytes: &[u8],
     fontdb: Arc<fontdb::Database>,
+    svg_fallback_font_size: Option<f32>,
 ) -> Result<usvg::Tree, &'static str> {
     let image_string_href_resolver = Box::new(move |_: &str, _: &usvg::Options| {
         // Do not try to load `href` in <image> as local file path.
@@ -79,6 +80,7 @@ fn parse_svg_document_in_memory(
             resolve_string: image_string_href_resolver,
         },
         fontdb,
+        font_size: svg_fallback_font_size.unwrap_or_default(),
         ..usvg::Options::default()
     };
 
@@ -95,6 +97,7 @@ fn decode_bytes_sync(
     cors: CorsStatus,
     content_type: Option<Mime>,
     fontdb: Arc<fontdb::Database>,
+    svg_fallback_font_size: Option<f32>,
 ) -> DecoderMsg {
     let is_svg_document = content_type.is_some_and(|content_type| {
         (
@@ -105,12 +108,13 @@ fn decode_bytes_sync(
     });
 
     let image = if is_svg_document {
-        parse_svg_document_in_memory(bytes, fontdb)
+        parse_svg_document_in_memory(bytes, fontdb, svg_fallback_font_size)
             .ok()
             .map(|svg_tree| {
                 DecodedImage::Vector(VectorImageData {
                     svg_tree: Arc::new(svg_tree),
                     cors_status: cors,
+                    svg_fallback_font_size,
                 })
             })
     } else {
@@ -190,6 +194,7 @@ impl AllPendingLoads {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_status: Option<CorsSettings>,
+        svg_fallback_font_size: Option<f32>,
     ) -> CacheResult<'_> {
         match self
             .url_to_load_key
@@ -203,7 +208,8 @@ impl AllPendingLoads {
                 let load_key = self.keygen.next();
                 url_entry.insert(load_key);
 
-                let pending_load = PendingLoad::new(url, origin, cors_status);
+                let pending_load =
+                    PendingLoad::new(url, origin, cors_status, svg_fallback_font_size);
                 match self.loads.entry(load_key) {
                     Occupied(_) => unreachable!(),
                     Vacant(load_entry) => {
@@ -245,6 +251,7 @@ struct VectorImageData {
     #[conditional_malloc_size_of]
     svg_tree: Arc<usvg::Tree>,
     cors_status: CorsStatus,
+    svg_fallback_font_size: Option<f32>,
 }
 
 impl std::fmt::Debug for VectorImageData {
@@ -359,6 +366,9 @@ struct PendingLoad {
 
     /// The MIME type from the `Content-type` header of the HTTP response, if any.
     content_type: Option<Mime>,
+
+    /// TODO
+    svg_fallback_font_size: Option<f32>,
 }
 
 impl PendingLoad {
@@ -366,6 +376,7 @@ impl PendingLoad {
         url: ServoUrl,
         load_origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
+        svg_fallback_font_size: Option<f32>,
     ) -> PendingLoad {
         PendingLoad {
             bytes: ImageBytes::InProgress(vec![]),
@@ -378,6 +389,7 @@ impl PendingLoad {
             cors_setting,
             cors_status: CorsStatus::Unsafe,
             content_type: None,
+            svg_fallback_font_size,
         }
     }
 
@@ -775,6 +787,7 @@ impl ImageCache for ImageCacheImpl {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
+        svg_fallback_font_size: Option<f32>,
     ) -> ImageCacheResult {
         let mut store = self.store.lock();
         if let Some(result) =
@@ -796,9 +809,12 @@ impl ImageCache for ImageCacheImpl {
         }
 
         let (key, decoded) = {
-            let result = store
-                .pending_loads
-                .get_cached(url.clone(), origin.clone(), cors_setting);
+            let result = store.pending_loads.get_cached(
+                url.clone(),
+                origin.clone(),
+                cors_setting,
+                svg_fallback_font_size,
+            );
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
@@ -811,6 +827,7 @@ impl ImageCache for ImageCacheImpl {
                                 pl.cors_status,
                                 pl.content_type.clone(),
                                 self.fontdb.clone(),
+                                svg_fallback_font_size,
                             ),
                         )
                     },
@@ -1037,7 +1054,7 @@ impl ImageCache for ImageCacheImpl {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {
-                        let (bytes, cors_status, content_type) = {
+                        let (bytes, cors_status, content_type, svg_fallback_font_size) = {
                             let mut store = self.store.lock();
                             let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
                             pending_load.result = Some(Ok(()));
@@ -1046,14 +1063,21 @@ impl ImageCache for ImageCacheImpl {
                                 pending_load.bytes.mark_complete(),
                                 pending_load.cors_status,
                                 pending_load.content_type.clone(),
+                                pending_load.svg_fallback_font_size,
                             )
                         };
 
                         let local_store = self.store.clone();
                         let fontdb = self.fontdb.clone();
                         self.thread_pool.spawn(move || {
-                            let msg =
-                                decode_bytes_sync(key, &bytes, cors_status, content_type, fontdb);
+                            let msg = decode_bytes_sync(
+                                key,
+                                &bytes,
+                                cors_status,
+                                content_type,
+                                fontdb,
+                                svg_fallback_font_size,
+                            );
                             debug!("Image decoded");
                             local_store.lock().handle_decoder(msg);
                         });

@@ -191,6 +191,7 @@ pub trait ImageCache: Sync + Send {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
+        svg_fallback_font_size: Option<f32>,
     ) -> ImageCacheResult;
 
     /// Returns `Some` if the given `image_id` has already been rasterized at the given `size`.
