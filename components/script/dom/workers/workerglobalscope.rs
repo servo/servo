@@ -63,7 +63,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::{ClassicScript, GlobalScope};
 use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -227,9 +227,18 @@ impl FetchResponseListener for ScriptFetchContext {
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
+        let script = scope.globalscope.create_a_classic_script(
+            source,
+            scope.worker_url.borrow().clone(),
+            ScriptFetchOptions::default_classic_script(&scope.globalscope),
+            false,
+            Some(IntroductionType::WORKER),
+            1,
+            true,
+        );
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(Some(source), self.worker.clone(), CanGc::note());
+        scope.on_complete(Some(script), self.worker.clone(), CanGc::note());
 
         if let Ok(response) = response {
             submit_timing(&self, &response, CanGc::note());
@@ -576,7 +585,7 @@ impl WorkerGlobalScope {
     #[expect(unsafe_code)]
     fn on_complete(
         &self,
-        script: Option<Cow<'_, str>>,
+        script: Option<ClassicScript>,
         worker: TrustedWorkerAddress,
         can_gc: CanGc,
     ) {
@@ -584,13 +593,18 @@ impl WorkerGlobalScope {
             .downcast::<DedicatedWorkerGlobalScope>()
             .expect("Only DedicatedWorkerGlobalScope is supported for now");
 
-        let Some(script) = script else {
-            // Step 1 Queue a global task on the DOM manipulation task source given
-            // worker's relevant global object to fire an event named error at worker.
-            dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
+        // Step 1. If script is null or if script's error to rethrow is non-null, then:
+        let script = match script {
+            Some(script) if script.record.is_ok() => script,
+            _ => {
+                // Step 1.1 Queue a global task on the DOM manipulation task source given
+                // worker's relevant global object to fire an event named error at worker.
+                dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
 
-            // Step 2 TODO Run the environment discarding steps for inside settings.
-            return;
+                // TODO Step 1.2. Run the environment discarding steps for inside settings.
+                // Step 1.3 Abort these steps.
+                return;
+            },
         };
 
         unsafe {
@@ -611,7 +625,7 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            self.execute_script(script, can_gc);
+            _ = self.globalscope.run_a_classic_script(script, false, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }

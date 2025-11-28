@@ -3785,7 +3785,7 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
 pub struct ClassicScript {
     /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
     /// On failure <https://html.spec.whatwg.org/multipage/#concept-script-error-to-rethrow>
-    record: Result<NonNull<JSScript>, RethrowError>,
+    pub record: Result<NonNull<JSScript>, RethrowError>,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-script-fetch-options>
     fetch_options: ScriptFetchOptions,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
