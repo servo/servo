@@ -142,6 +142,10 @@ pub(crate) struct RunningAppState {
     /// for the `exit_after_stable_image` option.
     pub(crate) achieved_stable_image: Rc<Cell<bool>>,
 
+    /// Whether or not program exit has been triggered. This means that all windows
+    /// will be destroyed and shutdown will start at the end of the current event loop.
+    exit_scheduled: Rc<Cell<bool>>,
+
     /// The set of [`ServoShellWindow`]s that currently exist for this instance of servoshell.
     // This is the last field of the struct to ensure that windows are dropped *after* all
     // other references to the relevant rendering contexts have been destroyed.
@@ -185,6 +189,7 @@ impl RunningAppState {
             servoshell_preferences,
             servo,
             achieved_stable_image: Default::default(),
+            exit_scheduled: Default::default(),
         }
     }
 
@@ -241,6 +246,10 @@ impl RunningAppState {
         &self.servo
     }
 
+    pub(crate) fn schedule_exit(&self) {
+        self.exit_scheduled.set(true);
+    }
+
     /// Spins the internal application event loop.
     ///
     /// - Notifies Servo about incoming gamepad events
@@ -272,7 +281,7 @@ impl RunningAppState {
         if self.servoshell_preferences.webdriver_port.is_none() {
             self.windows
                 .borrow_mut()
-                .retain(|_, window| !window.should_close());
+                .retain(|_, window| !self.exit_scheduled.get() && !window.should_close());
             if self.windows.borrow().is_empty() {
                 self.servo.start_shutting_down();
             }
