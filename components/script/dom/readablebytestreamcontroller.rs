@@ -505,7 +505,10 @@ impl ReadableByteStreamController {
             }
 
             // Set firstDescriptor’s buffer to ! TransferArrayBuffer(firstDescriptor’s buffer).
-            first_descriptor.buffer = first_descriptor.buffer.transfer_array_buffer(cx)?;
+            first_descriptor.buffer = first_descriptor
+                .buffer
+                .transfer_array_buffer(cx)
+                .expect("TransferArrayBuffer failed");
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
@@ -540,7 +543,8 @@ impl ReadableByteStreamController {
             assert_eq!(bytes_written, 0);
 
             // Perform ! ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor).
-            self.respond_in_closed_state(cx, can_gc)?;
+            self.respond_in_closed_state(cx, can_gc)
+                .expect("respond_in_closed_state failed");
         } else {
             // Assert: state is "readable".
             assert!(stream.is_readable());
@@ -601,7 +605,8 @@ impl ReadableByteStreamController {
             // For each filledPullInto of filledPullIntos,
             for filled_pull_into in filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
-                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)?;
+                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)
+                    .expect("commit_pull_into_descriptor failed");
             }
         }
 
@@ -643,7 +648,8 @@ impl ReadableByteStreamController {
             for filled_pull_into in filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]]
                 // , filledPullInto).
-                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)?;
+                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)
+                    .expect("commit_pull_into_descriptor failed");
             }
 
             // Return.
@@ -692,12 +698,14 @@ impl ReadableByteStreamController {
         let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
 
         // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], pullIntoDescriptor).
-        self.commit_pull_into_descriptor(cx, &pull_into_descriptor, can_gc)?;
+        self.commit_pull_into_descriptor(cx, &pull_into_descriptor, can_gc)
+            .expect("commit_pull_into_descriptor failed");
 
         // For each filledPullInto of filledPullIntos,
         for filled_pull_into in filled_pull_intos {
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], filledPullInto).
-            self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)?;
+            self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)
+                .expect("commit_pull_into_descriptor failed");
         }
 
         Ok(())
@@ -829,7 +837,8 @@ impl ReadableByteStreamController {
                 &first_descriptor.buffer,
                 byte_offset as usize,
                 byte_length as usize,
-            )?;
+            )
+            .expect("Construct Uint8Array failed");
 
             // Let byobRequest be a new ReadableStreamBYOBRequest.
             let byob_request = ReadableStreamBYOBRequest::new(&self.global(), can_gc);
@@ -1018,7 +1027,10 @@ impl ReadableByteStreamController {
                 self.invalidate_byob_request();
 
                 // Set firstPendingPullInto’s buffer to ! TransferArrayBuffer(firstPendingPullInto’s buffer).
-                first_descriptor.buffer = first_descriptor.buffer.transfer_array_buffer(cx)?;
+                first_descriptor.buffer = first_descriptor
+                    .buffer
+                    .transfer_array_buffer(cx)
+                    .expect("TransferArrayBuffer failed");
 
                 // If firstPendingPullInto’s reader type is "none",
                 if first_descriptor.reader_type.is_none() {
@@ -1035,7 +1047,8 @@ impl ReadableByteStreamController {
         // If ! ReadableStreamHasDefaultReader(stream) is true,
         if stream.has_default_reader() {
             // Perform ! ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller).
-            self.process_read_requests_using_queue(cx, can_gc)?;
+            self.process_read_requests_using_queue(cx, can_gc)
+                .expect("process_read_requests_using_queue failed");
 
             // If ! ReadableStreamGetNumReadRequests(stream) is 0,
             if stream.get_num_read_requests() == 0 {
@@ -1075,7 +1088,8 @@ impl ReadableByteStreamController {
                     &transferred_buffer,
                     byte_offset,
                     byte_length,
-                )?;
+                )
+                .expect("Construct Uint8Array failed");
 
                 // Perform ! ReadableStreamFulfillReadRequest(stream, transferredView, false).
                 rooted!(in(*cx) let mut view_value = UndefinedValue());
@@ -1095,7 +1109,8 @@ impl ReadableByteStreamController {
             // For each filledPullInto of filledPullIntos,
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
             for filled_pull_into in filled_pull_intos {
-                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)?;
+                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)
+                    .expect("commit_pull_into_descriptor failed");
             }
         } else {
             // Assert: ! IsReadableStreamLocked(stream) is false.
@@ -1142,7 +1157,9 @@ impl ReadableByteStreamController {
         }
 
         // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor).
-        let filled_view = self.convert_pull_into_descriptor(cx, pull_into_descriptor)?;
+        let filled_view = self
+            .convert_pull_into_descriptor(cx, pull_into_descriptor)
+            .expect("convert_pull_into_descriptor failed");
 
         rooted!(in(*cx) let mut view_value = UndefinedValue());
         filled_view.get_buffer_view_value(cx, view_value.handle_mut());
@@ -1184,17 +1201,21 @@ impl ReadableByteStreamController {
         assert!(bytes_filled % element_size == 0);
 
         // Let buffer be ! TransferArrayBuffer(pullIntoDescriptor’s buffer).
-        let buffer = pull_into_descriptor.buffer.transfer_array_buffer(cx)?;
+        let buffer = pull_into_descriptor
+            .buffer
+            .transfer_array_buffer(cx)
+            .expect("TransferArrayBuffer failed");
 
         // Return ! Construct(pullIntoDescriptor’s view constructor,
         // « buffer, pullIntoDescriptor’s byte offset, bytesFilled ÷ elementSize »).
-        create_buffer_source_with_constructor(
+        Ok(create_buffer_source_with_constructor(
             cx,
             &pull_into_descriptor.view_constructor,
             &buffer,
             pull_into_descriptor.byte_offset as usize,
             (bytes_filled / element_size) as usize,
         )
+        .expect("Construct view failed"))
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-process-pull-into-descriptors-using-queue>
@@ -1534,7 +1555,8 @@ impl ReadableByteStreamController {
             &entry.buffer,
             entry.byte_offset,
             entry.byte_length,
-        )?;
+        )
+        .expect("Construct Uint8Array failed");
 
         // Perform readRequest’s chunk steps, given view.
         let result = RootedTraceableBox::new(Heap::default());
