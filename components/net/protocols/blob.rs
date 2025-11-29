@@ -84,4 +84,8 @@ impl ProtocolHandler for BlobProtocolHander {
 
         Box::pin(ready(response))
     }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler> {
+        Box::new(BlobProtocolHander::default())
+    }
 }

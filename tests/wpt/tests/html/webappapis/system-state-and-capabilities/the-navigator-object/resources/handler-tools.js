@@ -35,6 +35,7 @@ function runTest({ includeNull = false } = {}) {
     }
     a.href = `${scheme}:${codePoints.join("")}`;
     a.target = "_blank";
+    console.log(a.href);
     a.click();
     await new Promise(resolve => {
       bc.onmessage = t.step_func(e => {

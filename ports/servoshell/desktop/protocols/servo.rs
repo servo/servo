@@ -84,6 +84,10 @@ impl ProtocolHandler for ServoProtocolHandler {
             ))),
         }
     }
+
+    fn clone_box(&self) -> Box<dyn ProtocolHandler> {
+        Box::new(ServoProtocolHandler::default())
+    }
 }
 
 fn json_response(
