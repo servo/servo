@@ -51,6 +51,7 @@ bluetooth_traits = { workspace = true, optional = true }
 brotli = { workspace = true }
 canvas_traits = { workspace = true }
 cbc = { workspace = true }
+chacha20poly1305 = { workspace = true }
 chrono = { workspace = true }
 cipher = { workspace = true }
 compositing_traits = { workspace = true }
