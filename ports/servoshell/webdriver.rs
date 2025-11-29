@@ -142,7 +142,7 @@ impl RunningAppState {
                     let _ = sender.send(());
                 },
                 WebDriverCommandMsg::Shutdown => {
-                    self.servo().start_shutting_down();
+                    self.schedule_exit();
                 },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = self.webview_by_id(webview_id);

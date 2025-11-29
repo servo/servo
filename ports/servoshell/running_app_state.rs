@@ -297,7 +297,7 @@ impl RunningAppState {
         }
 
         if self.servoshell_preferences.exit_after_stable_image && self.achieved_stable_image.get() {
-            self.servo.start_shutting_down();
+            self.schedule_exit();
         }
 
         // When a ServoShellWindow has no more WebViews, close it. When no more windows are open, exit
