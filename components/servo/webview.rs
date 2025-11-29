@@ -29,10 +29,11 @@ use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::javascript_evaluator::JavaScriptEvaluator;
+use crate::proxies::ConstellationProxy;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
-    ColorPicker, ConstellationProxy, ContextMenu, EmbedderControl, InputMethodControl,
-    SelectElement, Servo, WebRenderDebugOption,
+    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
+    WebRenderDebugOption,
 };
 
 pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);

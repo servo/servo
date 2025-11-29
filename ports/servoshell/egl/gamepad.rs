@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::ipc_channel::ipc::IpcSender;
-use servo::{GamepadHapticEffectType, WebView};
+use servo::{GamepadHapticEffectType, IpcSender, WebView};
 
 /// A dummy version of [`crate::desktop::GamepadSupport`] used to avoid conditional compilation in
 /// servoshell and as a skeleton to implement gamepad support for platforms that do not

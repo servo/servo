@@ -17,12 +17,9 @@ use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
 use log::warn;
-use servo::base::id::WebViewId;
-use servo::servo_geometry::DeviceIndependentPixel;
-use servo::servo_url::ServoUrl;
-use servo::webrender_api::units::DevicePixel;
 use servo::{
-    Image, LoadStatus, OffscreenRenderingContext, PixelFormat, PrefValue, RenderingContext, WebView,
+    DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
+    PrefValue, RenderingContext, ServoUrl, WebView, WebViewId,
 };
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};

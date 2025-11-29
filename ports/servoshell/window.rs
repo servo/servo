@@ -6,13 +6,11 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use euclid::Scale;
-use servo::base::generic_channel::GenericSender;
-use servo::servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
-    AuthenticationRequest, Cursor, EmbedderControl, EmbedderControlId, InputEventId,
-    InputEventResult, MediaSessionEvent, PermissionRequest, RenderingContext, ScreenGeometry,
-    WebView, WebViewBuilder, WebViewId,
+    AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
+    DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, GenericSender,
+    InputEventId, InputEventResult, MediaSessionEvent, PermissionRequest, RenderingContext,
+    ScreenGeometry, WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
 
@@ -334,7 +332,7 @@ pub(crate) trait PlatformWindow {
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn servo::webxr::glwindow::GlWindow>;
+    ) -> Rc<dyn servo::webxr::GlWindow>;
     /// This returns [`RenderingContext`] matching the viewport.
     fn rendering_context(&self) -> Rc<dyn RenderingContext>;
     fn theme(&self) -> servo::Theme {

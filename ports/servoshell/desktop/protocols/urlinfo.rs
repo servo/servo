@@ -6,12 +6,10 @@ use std::future::Future;
 use std::pin::Pin;
 
 use headers::{ContentType, HeaderMapExt};
-use net::fetch::methods::{DoneChannel, FetchContext};
-use net::protocols::ProtocolHandler;
-use net_traits::ResourceFetchTiming;
-use net_traits::http_status::HttpStatus;
-use net_traits::request::Request;
-use net_traits::response::{Response, ResponseBody};
+use servo::protocol_handler::{
+    DoneChannel, FetchContext, HttpStatus, ProtocolHandler, Request, ResourceFetchTiming, Response,
+    ResponseBody,
+};
 
 #[derive(Default)]
 pub struct UrlInfoProtocolHander {}

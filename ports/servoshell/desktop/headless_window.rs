@@ -11,11 +11,11 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use euclid::{Point2D, Scale, Size2D};
-use servo::servo_geometry::{
-    DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
+use servo::{
+    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize,
+    DevicePixel, RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView,
+    convert_rect_to_css_pixel,
 };
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
-use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView};
 use winit::dpi::PhysicalSize;
 
 use crate::prefs::ServoShellPreferences;
@@ -130,7 +130,7 @@ impl PlatformWindow for Window {
     fn new_glwindow(
         &self,
         _event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn servo::webxr::GlWindow> {
         unimplemented!()
     }
 

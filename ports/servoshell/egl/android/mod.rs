@@ -26,10 +26,9 @@ use raw_window_handle::{
     WindowHandle,
 };
 use resources::ResourceReaderInstance;
-use servo::webrender_api::units::DevicePixel;
 use servo::{
-    self, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType, MouseButton,
-    PrefValue,
+    self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
+    MouseButton, PrefValue,
 };
 pub use servo::{MediaSessionPlaybackState, WindowRenderingContext};
 

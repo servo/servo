@@ -9,19 +9,13 @@ use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
 use log::{info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
-use servo::base::id::WebViewId;
-use servo::config::opts::Opts;
-use servo::config::prefs::Preferences;
-use servo::servo_geometry::{
-    DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
-};
-use servo::webrender_api::units::{DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D};
 use servo::{
-    AlertResponse, EmbedderControl, EmbedderControlId, EventLoopWaker, ImeEvent, InputEvent,
-    KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, RefreshDriver, RenderingContext,
-    ScreenGeometry, Scroll, Servo, ServoBuilder, SimpleDialog, TouchEvent, TouchEventType, TouchId,
-    WebView, WindowRenderingContext,
+    AlertResponse, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel,
+    DevicePoint, DeviceVector2D, EmbedderControl, EmbedderControlId, EventLoopWaker, ImeEvent,
+    InputEvent, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Opts, Preferences, RefreshDriver,
+    RenderingContext, ScreenGeometry, Scroll, Servo, ServoBuilder, SimpleDialog, TouchEvent,
+    TouchEventType, TouchId, WebView, WebViewId, WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 

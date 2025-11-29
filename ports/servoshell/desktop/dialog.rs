@@ -11,12 +11,11 @@ use egui::{
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use euclid::Length;
 use log::warn;
-use servo::base::generic_channel::GenericSender;
-use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ColorPicker, ConfirmResponse, ContextMenu,
-    ContextMenuItem, EmbedderControlId, FilePicker, PermissionRequest, PromptResponse, RgbColor,
-    SelectElement, SelectElementOption, SelectElementOptionOrOptgroup, SimpleDialog,
+    ContextMenuItem, DeviceIndependentPixel, EmbedderControlId, FilePicker, GenericSender,
+    PermissionRequest, PromptResponse, RgbColor, SelectElement, SelectElementOption,
+    SelectElementOptionOrOptgroup, SimpleDialog,
 };
 
 /// The minimum width of many UI elements including dialog boxes and menus,

@@ -9,12 +9,10 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use net::protocols::ProtocolRegistry;
-use servo::config::opts::Opts;
-use servo::config::prefs::Preferences;
-use servo::servo_url::ServoUrl;
-use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::{EventLoopWaker, ServoBuilder};
+use servo::protocol_handler::ProtocolRegistry;
+use servo::{
+    EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
+};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};

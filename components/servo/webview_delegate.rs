@@ -20,8 +20,9 @@ use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
+use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorSender;
-use crate::{ConstellationProxy, RegisterOrUnregister, WebView};
+use crate::{RegisterOrUnregister, WebView};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
 /// asynchronously. If not handled, the request will automatically be allowed.
@@ -801,7 +802,7 @@ mod test {
     fn test_allow_deny_request() {
         use base::generic_channel;
 
-        use crate::ServoErrorChannel;
+        use crate::responders::ServoErrorChannel;
 
         for default_response in [AllowOrDeny::Allow, AllowOrDeny::Deny] {
             // Explicit allow yields allow and nothing else
@@ -867,7 +868,7 @@ mod test {
     fn test_authentication_request() {
         use base::generic_channel;
 
-        use crate::ServoErrorChannel;
+        use crate::responders::ServoErrorChannel;
 
         let url = Url::parse("https://example.com").expect("Guaranteed by argument");
 
@@ -917,7 +918,7 @@ mod test {
         use base::generic_channel;
         use http::{HeaderMap, Method, StatusCode};
 
-        use crate::ServoErrorChannel;
+        use crate::responders::ServoErrorChannel;
 
         let web_resource_request = || WebResourceRequest {
             method: Method::GET,
