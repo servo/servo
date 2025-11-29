@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base64ct::{Base64UrlUnpadded, Encoding};
-use chacha20poly1305::Key;
+use chacha20poly1305::aead::{KeyInit, OsRng};
+use chacha20poly1305::{ChaCha20Poly1305, Key};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
@@ -19,6 +20,55 @@ use crate::dom::subtlecrypto::{
     SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-generate-key>
+pub(crate) fn generate_key(
+    global: &GlobalScope,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt", "wrapKey" or
+    // "unwrapKey", then throw a SyntaxError.
+    if usages.iter().any(|usage| {
+        !matches!(
+            usage,
+            KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
+        )
+    }) {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \"wrapKey\" \
+            or \"unwrapKey\""
+                .to_string(),
+        )));
+    }
+
+    // Step 2. Generate a 256-bit key.
+    // Step 3. If the key generation step fails, then throw an OperationError.
+    let generated_key = ChaCha20Poly1305::generate_key(&mut OsRng);
+
+    // Step 4. Let key be a new CryptoKey object representing the generated key.
+    // Step 5. Let algorithm be a new KeyAlgorithm.
+    // Step 6. Set the name attribute of algorithm to "ChaCha20-Poly1305".
+    // Step 7. Set the [[algorithm]] internal slot of key to algorithm.
+    // Step 8. Set the [[extractable]] internal slot of key to be extractable.
+    // Step 9. Set the [[usages]] internal slot of key to be usages.
+    let algorithm = SubtleKeyAlgorithm {
+        name: ALG_CHACHA20_POLY1305.to_string(),
+    };
+    let key = CryptoKey::new(
+        global,
+        KeyType::Secret,
+        extractable,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+        usages,
+        Handle::ChaCha20Poly1305Key(generated_key),
+        can_gc,
+    );
+
+    // Step 10. Return key.
+    Ok(key)
+}
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-import-key>
 pub(crate) fn import_key(

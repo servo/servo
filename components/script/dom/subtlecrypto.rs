@@ -2929,6 +2929,12 @@ fn normalize_algorithm(
                 },
 
                 // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
+                (ALG_CHACHA20_POLY1305, Operation::GenerateKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
                 (ALG_CHACHA20_POLY1305, Operation::ImportKey) => {
                     let mut params =
                         dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
@@ -3170,6 +3176,10 @@ impl NormalizedAlgorithm {
             },
             (ALG_HMAC, NormalizedAlgorithm::HmacKeyGenParams(algo)) => {
                 hmac_operation::generate_key(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
+            (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
+                chacha20_poly1305_operation::generate_key(global, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
             _ => Err(Error::NotSupported(None)),
