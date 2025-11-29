@@ -23,7 +23,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
 use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use constellation_traits::{
-    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan,
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
     StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::RecvTimeoutError;
@@ -58,7 +58,7 @@ use webrender_api::units::{DevicePixel, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
 /// The initial data required to create a new `Pipeline` attached to an existing `ScriptThread`.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct NewPipelineInfo {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is a root pipeline.
@@ -343,7 +343,7 @@ pub struct InitialScriptState {
     /// A port on which messages sent by the constellation to script can be received.
     pub constellation_to_script_receiver: GenericReceiver<ScriptThreadMessage>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub pipeline_to_constellation_sender: ScriptToConstellationChan,
+    pub script_to_constellation_sender: ScriptToConstellationSender,
     /// A channel which allows script to send messages directly to the Embedder
     /// This will pump the embedder event loop.
     pub script_to_embedder_sender: ScriptToEmbedderChan,

@@ -11,20 +11,35 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use base::generic_channel::{GenericReceiver, GenericSender};
+use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::ScriptEventLoopId;
-use ipc_channel::Error;
+use constellation_traits::ServiceWorkerManagerFactory;
+use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::ipc::IpcSender;
-use script_traits::{InitialScriptState, NewPipelineInfo, ScriptThreadMessage};
+use ipc_channel::router::ROUTER;
+use ipc_channel::{Error, ipc};
+use layout_api::ScriptThreadFactory;
+use log::{error, warn};
+use media::WindowGLContext;
+use script_traits::{InitialScriptState, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
-use servo_config::opts::Opts;
-use servo_config::prefs::Preferences;
+use servo_config::opts::{self, Opts};
+use servo_config::prefs::{self, Preferences};
+
+use crate::constellation::route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors;
+use crate::sandboxing::spawn_multiprocess;
+use crate::{Constellation, UnprivilegedContent};
 
 /// <https://html.spec.whatwg.org/multipage/#event-loop>
 pub struct EventLoop {
     script_chan: GenericSender<ScriptThreadMessage>,
-    dont_send_or_sync: PhantomData<Rc<()>>,
     id: ScriptEventLoopId,
+    /// When running in another process, this is an `IpcSender` to the BackgroundHangMonitor
+    /// on the other side of the process boundary. When running in the same process, the
+    /// BackgroundHangMonitor is shared among all [`EventLoop`]s so this will be `None`.
+    background_hang_monitor_sender: Option<GenericSender<BackgroundHangMonitorControlMsg>>,
+    dont_send_or_sync: PhantomData<Rc<()>>,
 }
 
 impl PartialEq for EventLoop {
@@ -43,17 +58,162 @@ impl Hash for EventLoop {
 
 impl Drop for EventLoop {
     fn drop(&mut self) {
-        let _ = self.script_chan.send(ScriptThreadMessage::ExitScriptThread);
+        self.send_message_to_background_hang_monitor(&BackgroundHangMonitorControlMsg::Exit);
+
+        if let Err(error) = self.script_chan.send(ScriptThreadMessage::ExitScriptThread) {
+            error!("Did not successfully request EventLoop exit: {error}");
+        }
     }
 }
 
 impl EventLoop {
-    /// Create a new event loop from the channel to its script thread.
-    pub fn new(script_chan: GenericSender<ScriptThreadMessage>) -> Rc<EventLoop> {
-        Rc::new(EventLoop {
+    pub(crate) fn spawn<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
+        constellation: &mut Constellation<STF, SWF>,
+        is_private: bool,
+    ) -> Result<Rc<Self>, Error> {
+        let (script_chan, script_port) =
+            base::generic_channel::channel().expect("Pipeline script chan");
+
+        // Route messages coming from content to devtools as appropriate.
+        let devtools_sender = constellation.devtools_sender.as_ref();
+        let script_to_devtools_ipc_sender = devtools_sender.map(|devtools_sender| {
+            let (script_to_devtools_ipc_sender, script_to_devtools_ipc_receiver) =
+                ipc::channel().expect("Pipeline script to devtools chan");
+            let devtools_sender = (*devtools_sender).clone();
+            ROUTER.add_typed_route(
+                script_to_devtools_ipc_receiver,
+                Box::new(move |message| match message {
+                    Err(error) => error!("Cast to ScriptToDevtoolsControlMsg failed ({error})."),
+                    Ok(message) => {
+                        if let Err(error) =
+                            devtools_sender.send(DevtoolsControlMsg::FromScript(message))
+                        {
+                            warn!("Sending to devtools failed ({error:?})")
+                        }
+                    },
+                }),
+            );
+            script_to_devtools_ipc_sender
+        });
+
+        let embedder_chan = constellation.embedder_proxy.sender.clone();
+        let eventloop_waker = constellation.embedder_proxy.event_loop_waker.clone();
+        let script_to_embedder_sender = ScriptToEmbedderChan::new(embedder_chan, eventloop_waker);
+
+        let resource_threads = if is_private {
+            constellation.private_resource_threads.clone()
+        } else {
+            constellation.public_resource_threads.clone()
+        };
+        let storage_threads = if is_private {
+            constellation.private_storage_threads.clone()
+        } else {
+            constellation.public_storage_threads.clone()
+        };
+
+        let event_loop_id = ScriptEventLoopId::new();
+        let initial_script_state = InitialScriptState {
+            id: event_loop_id,
+            script_to_constellation_sender: constellation.script_sender.clone(),
+            script_to_embedder_sender,
+            namespace_request_sender: constellation.namespace_ipc_sender.clone(),
+            devtools_server_sender: script_to_devtools_ipc_sender,
+            #[cfg(feature = "bluetooth")]
+            bluetooth_sender: constellation.bluetooth_ipc_sender.clone(),
+            system_font_service: constellation.system_font_service.to_sender(),
+            resource_threads,
+            storage_threads,
+            time_profiler_sender: constellation.time_profiler_chan.clone(),
+            memory_profiler_sender: constellation.mem_profiler_chan.clone(),
+            constellation_to_script_sender: script_chan,
+            constellation_to_script_receiver: script_port,
+            pipeline_namespace_id: constellation.next_pipeline_namespace_id(),
+            cross_process_compositor_api: constellation
+                .compositor_proxy
+                .cross_process_compositor_api
+                .clone(),
+            webgl_chan: constellation
+                .webgl_threads
+                .as_ref()
+                .map(|threads| threads.pipeline()),
+            webxr_registry: constellation.webxr_registry.clone(),
+            player_context: WindowGLContext::get(),
+            user_content_manager: constellation.user_content_manager.clone(),
+            privileged_urls: constellation.privileged_urls.clone(),
+        };
+
+        let event_loop = if opts::get().multiprocess {
+            Self::spawn_in_process(constellation, initial_script_state)?
+        } else {
+            Self::spawn_in_thread(constellation, initial_script_state)
+        };
+
+        let event_loop = Rc::new(event_loop);
+        constellation.add_event_loop(&event_loop);
+        Ok(event_loop)
+    }
+
+    fn spawn_in_thread<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
+        constellation: &mut Constellation<STF, SWF>,
+        initial_script_state: InitialScriptState,
+    ) -> Self {
+        let script_chan = initial_script_state.constellation_to_script_sender.clone();
+        let id = initial_script_state.id;
+        let background_hang_monitor_register = constellation
+            .background_monitor_register
+            .clone()
+            .expect("Couldn't start content, no background monitor has been initiated");
+        let join_handle = STF::create(
+            initial_script_state,
+            constellation.layout_factory.clone(),
+            constellation.image_cache_factory.clone(),
+            background_hang_monitor_register,
+        );
+        constellation.add_event_loop_join_handle(join_handle);
+
+        Self {
             script_chan,
+            id,
+            background_hang_monitor_sender: None,
             dont_send_or_sync: PhantomData,
-            id: ScriptEventLoopId::new(),
+        }
+    }
+
+    fn spawn_in_process<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
+        constellation: &mut Constellation<STF, SWF>,
+        initial_script_state: InitialScriptState,
+    ) -> Result<Self, Error> {
+        let script_chan = initial_script_state.constellation_to_script_sender.clone();
+        let id = initial_script_state.id;
+
+        let (background_hand_monitor_sender, backgrond_hand_monitor_receiver) =
+            generic_channel::channel().expect("Sampler chan");
+        let (lifeline_sender, lifeline_receiver) =
+            ipc::channel().expect("Failed to create lifeline channel");
+
+        let process = spawn_multiprocess(UnprivilegedContent::ScriptEventLoop(
+            NewScriptEventLoopProcessInfo {
+                initial_script_state,
+                constellation_to_bhm_receiver: backgrond_hand_monitor_receiver,
+                bhm_to_constellation_sender: constellation.background_hang_monitor_sender.clone(),
+                lifeline_sender,
+                opts: (*opts::get()).clone(),
+                prefs: Box::new(prefs::get().clone()),
+                broken_image_icon_data: constellation.broken_image_icon_data.clone(),
+            },
+        ))?;
+
+        let crossbeam_receiver =
+            route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(lifeline_receiver);
+        constellation
+            .process_manager
+            .add(crossbeam_receiver, process);
+
+        Ok(Self {
+            script_chan,
+            id,
+            background_hang_monitor_sender: Some(background_hand_monitor_sender),
+            dont_send_or_sync: PhantomData,
         })
     }
 
@@ -67,12 +227,24 @@ impl EventLoop {
             .send(msg)
             .map_err(|_err| Box::new(ipc_channel::ErrorKind::Custom("SendError".into())))
     }
+
+    /// If this is [`EventLoop`] is in another process, send a message to its `BackgroundHangMonitor`,
+    /// otherwise do nothing.
+    pub(crate) fn send_message_to_background_hang_monitor(
+        &self,
+        message: &BackgroundHangMonitorControlMsg,
+    ) {
+        if let Some(background_hang_monitor_sender) = &self.background_hang_monitor_sender {
+            if let Err(error) = background_hang_monitor_sender.send(message.clone()) {
+                error!("Could not send message ({message:?}) to BHM: {error}");
+            }
+        }
+    }
 }
 
 /// All of the information necessary to create a new script [`EventLoop`] in a new process.
 #[derive(Deserialize, Serialize)]
 pub struct NewScriptEventLoopProcessInfo {
-    pub new_pipeline_info: NewPipelineInfo,
     pub initial_script_state: InitialScriptState,
     pub constellation_to_bhm_receiver: GenericReceiver<BackgroundHangMonitorControlMsg>,
     pub bhm_to_constellation_sender: GenericSender<HangMonitorAlert>,

@@ -423,7 +423,6 @@ impl Drop for ScriptMemoryFailsafe<'_> {
 impl ScriptThreadFactory for ScriptThread {
     fn create(
         state: InitialScriptState,
-        new_pipeline_info: NewPipelineInfo,
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
@@ -453,9 +452,6 @@ impl ScriptThreadFactory for ScriptThread {
                 });
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
-
-                // TODO: Eventually this should happen as a separate message to this new `ScriptThread`.
-                script_thread.spawn_pipeline(new_pipeline_info);
 
                 memory_profiler_sender.run_with_memory_reporting(
                     || script_thread.start(CanGc::note()),
@@ -892,7 +888,7 @@ impl ScriptThread {
             #[cfg(feature = "bluetooth")]
             bluetooth_sender: state.bluetooth_sender,
             constellation_sender: state.constellation_to_script_sender,
-            pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
+            pipeline_to_constellation_sender: state.script_to_constellation_sender,
             pipeline_to_embedder_sender: state.script_to_embedder_sender.clone(),
             image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,

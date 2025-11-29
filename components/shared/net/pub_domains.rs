@@ -145,7 +145,7 @@ pub fn is_reg_domain(domain: &str) -> bool {
 /// Returns None if the URL has no host name.
 /// Returns the registered suffix for the host name if it is a domain.
 /// Leaves the host name alone if it is an IP address.
-pub fn reg_host(url: &ServoUrl) -> Option<Host> {
+pub fn registered_domain_name(url: &ServoUrl) -> Option<Host> {
     match url.origin() {
         ImmutableOrigin::Tuple(_, Host::Domain(domain), _) => {
             Some(Host::Domain(String::from(reg_suffix(&domain))))

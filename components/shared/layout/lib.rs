@@ -39,7 +39,7 @@ use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
 use rustc_hash::FxHashMap;
-use script_traits::{InitialScriptState, NewPipelineInfo, Painter, ScriptThreadMessage};
+use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -367,7 +367,6 @@ pub trait ScriptThreadFactory {
     /// Create a `ScriptThread`.
     fn create(
         state: InitialScriptState,
-        new_pipeline_info: NewPipelineInfo,
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,

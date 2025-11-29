@@ -45,11 +45,14 @@ use crate::{
     LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, TraversalDirection, WindowSizeType,
 };
 
+pub type ScriptToConstellationSender =
+    GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>;
+
 /// A Script to Constellation channel.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
-    pub sender: GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
+    pub sender: ScriptToConstellationSender,
     /// Used to identify the origin `WebView` of the message.
     pub webview_id: WebViewId,
     /// Used to identify the origin `Pipeline` of the message.
