@@ -8216,8 +8216,6 @@ dependencies = [
  "mime_guess",
  "napi-derive-ohos",
  "napi-ohos",
- "net",
- "net_traits",
  "nix",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",

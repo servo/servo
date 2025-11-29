@@ -7,12 +7,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use servo::config::pref;
-use servo::config::prefs::{self, Preferences};
-use servo::webxr::WebXrRegistry;
-use servo::webxr::glwindow::GlWindowDiscovery;
+use servo::webxr::{GlWindowDiscovery, WebXrRegistry};
 #[cfg(target_os = "windows")]
-use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
+use servo::webxr::{OpenXrAppInfo, OpenXrDiscovery};
+use servo::{Preferences, pref, prefs};
 use winit::event_loop::ActiveEventLoop;
 
 use crate::window::PlatformWindow;
@@ -42,7 +40,7 @@ impl XrDiscoveryWebXrRegistry {
         let xr_discovery = if preferences.dom_webxr_openxr_enabled {
             #[cfg(target_os = "windows")]
             {
-                let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
+                let app_info = OpenXrAppInfo::new("Servoshell", 0, "Servo", 0);
                 Some(XrDiscovery::OpenXr(OpenXrDiscovery::new(None, app_info)))
             }
             #[cfg(not(target_os = "windows"))]
@@ -75,7 +73,7 @@ impl prefs::PreferencesObserver for XrPrefObserver {
 
 impl WebXrRegistry for XrDiscoveryWebXrRegistry {
     fn register(&self, xr: &mut servo::webxr::MainThreadRegistry) {
-        use servo::webxr::headless::HeadlessMockDiscovery;
+        use servo::webxr::HeadlessMockDiscovery;
 
         let mock_enabled = Arc::new(AtomicBool::new(pref!(dom_webxr_test)));
         xr.register_mock(HeadlessMockDiscovery::new(mock_enabled.clone()));

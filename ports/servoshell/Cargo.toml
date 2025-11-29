@@ -115,8 +115,6 @@ egui_glow = { version = "0.33.2", features = ["winit"] }
 gilrs = "0.11.0"
 glow = { workspace = true }
 headers = { workspace = true }
-net = { path = "../../components/net" }
-net_traits = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator and servo_allocator/allocation-tracking
 servo_allocator = { path = "../../components/allocator" }

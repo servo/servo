@@ -17,21 +17,15 @@ use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vec
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info, warn};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
-use servo::base::generic_channel::GenericSender;
-use servo::servo_geometry::{
-    DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
-};
-use servo::servo_url::ServoUrl;
-use servo::webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
-};
 use servo::{
-    AuthenticationRequest, Cursor, EmbedderControl, EmbedderControlId, ImeEvent, InputEvent,
-    InputEventId, InputEventResult, InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers,
-    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, NamedKey, OffscreenRenderingContext, PermissionRequest, RenderingContext,
-    ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView,
-    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, EmbedderControl,
+    EmbedderControlId, GenericSender, ImeEvent, InputEvent, InputEventId, InputEventResult,
+    InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
+    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, ServoUrl,
+    Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WebViewId,
+    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -1002,10 +996,7 @@ impl PlatformWindow for Window {
     }
 
     #[cfg(feature = "webxr")]
-    fn new_glwindow(
-        &self,
-        event_loop: &ActiveEventLoop,
-    ) -> Rc<dyn servo::webxr::glwindow::GlWindow> {
+    fn new_glwindow(&self, event_loop: &ActiveEventLoop) -> Rc<dyn servo::webxr::GlWindow> {
         let size = self.winit_window.outer_size();
 
         let window_attr = winit::window::Window::default_attributes()
@@ -1196,12 +1187,12 @@ struct XRWindowPose {
 }
 
 #[cfg(feature = "webxr")]
-impl servo::webxr::glwindow::GlWindow for XRWindow {
+impl servo::webxr::GlWindow for XRWindow {
     fn get_render_target(
         &self,
         device: &mut surfman::Device,
         _context: &mut surfman::Context,
-    ) -> servo::webxr::glwindow::GlWindowRenderTarget {
+    ) -> servo::webxr::GlWindowRenderTarget {
         self.winit_window.set_visible(true);
         let window_handle = self
             .winit_window
@@ -1213,7 +1204,7 @@ impl servo::webxr::glwindow::GlWindow for XRWindow {
             .connection()
             .create_native_widget_from_window_handle(window_handle, size)
             .expect("Failed to create native widget");
-        servo::webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)
+        servo::webxr::GlWindowRenderTarget::NativeWidget(native_widget)
     }
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
@@ -1224,18 +1215,18 @@ impl servo::webxr::glwindow::GlWindow for XRWindow {
         self.pose.xr_translation.get()
     }
 
-    fn get_mode(&self) -> servo::webxr::glwindow::GlWindowMode {
-        use servo::servo_config::pref;
+    fn get_mode(&self) -> servo::webxr::GlWindowMode {
+        use servo::pref;
         if pref!(dom_webxr_glwindow_red_cyan) {
-            servo::webxr::glwindow::GlWindowMode::StereoRedCyan
+            servo::webxr::GlWindowMode::StereoRedCyan
         } else if pref!(dom_webxr_glwindow_left_right) {
-            servo::webxr::glwindow::GlWindowMode::StereoLeftRight
+            servo::webxr::GlWindowMode::StereoLeftRight
         } else if pref!(dom_webxr_glwindow_spherical) {
-            servo::webxr::glwindow::GlWindowMode::Spherical
+            servo::webxr::GlWindowMode::Spherical
         } else if pref!(dom_webxr_glwindow_cubemap) {
-            servo::webxr::glwindow::GlWindowMode::Cubemap
+            servo::webxr::GlWindowMode::Cubemap
         } else {
-            servo::webxr::glwindow::GlWindowMode::Blit
+            servo::webxr::GlWindowMode::Blit
         }
     }
 

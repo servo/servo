@@ -7,7 +7,7 @@ use std::panic::PanicHookInfo;
 use std::{env, thread};
 
 use log::{error, warn};
-use servo::config::opts;
+use servo::opts;
 
 use crate::crash_handler::raise_signal_or_exit_with_error;
 

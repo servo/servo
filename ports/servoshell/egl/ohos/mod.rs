@@ -36,11 +36,9 @@ use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
 };
-use servo::style::Zero;
-use servo::webrender_api::units::DevicePixel;
 use servo::{
-    self, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, WebViewId, WindowRenderingContext,
+    self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
+    MediaSessionPlaybackState, PrefValue, WebViewId, WindowRenderingContext, Zero,
 };
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -213,7 +211,7 @@ fn init_app(
     };
 
     if native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone {
-        preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
+        preferences.set_value("viewport_meta_enabled", PrefValue::Bool(true));
     }
 
     if servoshell_preferences.log_to_file {

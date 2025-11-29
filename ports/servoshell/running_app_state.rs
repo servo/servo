@@ -13,18 +13,13 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use log::{error, info, warn};
-use servo::base::generic_channel::GenericSender;
-use servo::base::id::WebViewId;
-use servo::config::pref;
-use servo::ipc_channel::ipc::IpcSender;
-use servo::style_traits::CSSPixel;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GamepadHapticEffectType, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
-    MediaSessionEvent, PermissionRequest, ScreenshotCaptureError, Servo, ServoDelegate, ServoError,
-    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, CSSPixel, DeviceIntPoint, DeviceIntSize,
+    EmbedderControl, EmbedderControlId, EventLoopWaker, GamepadHapticEffectType, GenericSender,
+    InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus, MediaSessionEvent,
+    PermissionRequest, ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate, WebViewId, pref,
 };
 use url::Url;
 

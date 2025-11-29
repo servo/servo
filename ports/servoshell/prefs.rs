@@ -16,10 +16,9 @@ use bpaf::*;
 use euclid::Size2D;
 use log::warn;
 use serde_json::Value;
-use servo::config::opts::{DebugOptions, Opts, OutputOptions};
-use servo::config::prefs::{PrefValue, Preferences};
-use servo::servo_geometry::DeviceIndependentPixel;
-use servo::servo_url::ServoUrl;
+use servo::{
+    DebugOptions, DeviceIndependentPixel, Opts, OutputOptions, PrefValue, Preferences, ServoUrl,
+};
 use url::Url;
 
 use crate::VERSION;

@@ -7,7 +7,7 @@ use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId};
 use rustc_hash::FxHashMap;
 
-use crate::ConstellationProxy;
+use crate::proxies::ConstellationProxy;
 
 struct PendingEvaluation {
     callback: Box<dyn FnOnce(Result<JSValue, JavaScriptEvaluationError>)>,

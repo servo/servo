@@ -13,12 +13,11 @@ use std::future::Future;
 use std::pin::Pin;
 
 use headers::{ContentType, HeaderMapExt};
-use net::fetch::methods::{DoneChannel, FetchContext};
-use net::protocols::ProtocolHandler;
-use net_traits::ResourceFetchTiming;
-use net_traits::request::Request;
-use net_traits::response::{Response, ResponseBody};
-use servo::config::prefs::UserAgentPlatform;
+use servo::UserAgentPlatform;
+use servo::protocol_handler::{
+    DoneChannel, FetchContext, ProtocolHandler, Request, ResourceFetchTiming, Response,
+    ResponseBody,
+};
 
 use crate::desktop::protocols::resource::ResourceProtocolHandler;
 use crate::prefs::EXPERIMENTAL_PREFS;
