@@ -4,6 +4,7 @@
 
 mod aes_operation;
 mod argon2_operation;
+mod chacha20_poly1305_operation;
 mod cshake_operation;
 mod ecdh_operation;
 mod ecdsa_operation;
@@ -75,6 +76,7 @@ const ALG_HKDF: &str = "HKDF";
 const ALG_PBKDF2: &str = "PBKDF2";
 
 // Regconized algorithm name from <https://wicg.github.io/webcrypto-modern-algos/>
+const ALG_CHACHA20_POLY1305: &str = "ChaCha20-Poly1305";
 const ALG_SHA3_256: &str = "SHA3-256";
 const ALG_SHA3_384: &str = "SHA3-384";
 const ALG_SHA3_512: &str = "SHA3-512";
@@ -103,6 +105,7 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_SHA512,
     ALG_HKDF,
     ALG_PBKDF2,
+    ALG_CHACHA20_POLY1305,
     ALG_SHA3_256,
     ALG_SHA3_384,
     ALG_SHA3_512,
@@ -2925,6 +2928,20 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
 
+                // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
+                (ALG_CHACHA20_POLY1305, Operation::ImportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_CHACHA20_POLY1305, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+
                 // <https://wicg.github.io/webcrypto-modern-algos/#sha3-registration>
                 (ALG_SHA3_256, Operation::Digest) => {
                     let mut params =
@@ -3277,6 +3294,16 @@ impl NormalizedAlgorithm {
             (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
+            (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
+                chacha20_poly1305_operation::import_key(
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
             (ALG_ARGON2D, NormalizedAlgorithm::Algorithm(algo)) => argon2_operation::import_key(
                 global,
                 algo,
@@ -3378,6 +3405,7 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
         ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
         ALG_AES_KW => aes_operation::export_key_aes_kw(format, key),
         ALG_HMAC => hmac_operation::export_key(format, key),
+        ALG_CHACHA20_POLY1305 => chacha20_poly1305_operation::export_key(format, key),
         _ => Err(Error::NotSupported(None)),
     }
 }

@@ -42,6 +42,7 @@ pub(crate) enum Handle {
     Pbkdf2(Vec<u8>),
     Hmac(Vec<u8>),
     Ed25519(Vec<u8>),
+    ChaCha20Poly1305Key(chacha20poly1305::Key),
     Argon2Password(Vec<u8>),
 }
 
@@ -228,6 +229,7 @@ impl MallocSizeOf for Handle {
             Handle::Pbkdf2(bytes) => bytes.size_of(ops),
             Handle::Hmac(bytes) => bytes.size_of(ops),
             Handle::Ed25519(bytes) => bytes.size_of(ops),
+            Handle::ChaCha20Poly1305Key(key) => key.size_of(ops),
             Handle::Argon2Password(password) => password.size_of(ops),
         }
     }
