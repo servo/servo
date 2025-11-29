@@ -279,30 +279,47 @@ impl GlobalCspReporting for GlobalScope {
             return;
         }
         warn!("Reporting CSP violations: {:?}", violations);
+        let source_position_was_provided = source_position.is_some();
         let source_position =
             source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
-            let (sample, resource) = match violation.resource {
-                ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
-                ViolationResource::Url(url) => (Some(String::new()), url.into()),
+            let (sample, resource, is_inline) = match violation.resource {
+                ViolationResource::Inline { sample } => (sample, "inline".to_owned(), true),
+                ViolationResource::Url(url) => (Some(String::new()), url.into(), false),
                 ViolationResource::TrustedTypePolicy { sample } => {
-                    (Some(sample), "trusted-types-policy".to_owned())
+                    (Some(sample), "trusted-types-policy".to_owned(), true)
                 },
                 ViolationResource::TrustedTypeSink { sample } => {
-                    (Some(sample), "trusted-types-sink".to_owned())
+                    (Some(sample), "trusted-types-sink".to_owned(), true)
                 },
-                ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
-                ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
+                ViolationResource::Eval { sample } => (sample, "eval".to_owned(), true),
+                ViolationResource::WasmEval => (None, "wasm-eval".to_owned(), true),
             };
+            // Determine source location based on violation type and whether position was provided
+            let (source_file, line_number, column_number) =
+                if source_position_was_provided || is_inline {
+                    // Use source position for:
+                    // - Inline violations (even if computed)
+                    // - External resources with explicit source position (like images)
+                    (
+                        source_position.source_file.clone(),
+                        source_position.line_number,
+                        source_position.column_number,
+                    )
+                } else {
+                    // External resource violations with computed source position (e.g., async script fetch)
+                    // Report document URL but not line/column numbers
+                    (self.get_url().to_string(), 0, 0)
+                };
             let report = CSPViolationReportBuilder::default()
                 .resource(resource)
                 .sample(sample)
                 .effective_directive(violation.directive.name)
                 .original_policy(violation.policy.to_string())
                 .report_only(violation.policy.disposition == PolicyDisposition::Report)
-                .source_file(source_position.source_file.clone())
-                .line_number(source_position.line_number)
-                .column_number(source_position.column_number)
+                .source_file(source_file)
+                .line_number(line_number)
+                .column_number(column_number)
                 .build(self);
             // Step 1: Let global be violation’s global object.
             // We use `self` as `global`;
