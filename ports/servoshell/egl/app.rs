@@ -349,7 +349,7 @@ impl App {
 
     /// Request shutdown. Will call on_shutdown_complete.
     pub fn request_shutdown(&self) {
-        self.state.servo.start_shutting_down();
+        self.state.schedule_exit();
         self.spin_event_loop();
     }
 
