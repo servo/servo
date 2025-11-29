@@ -326,6 +326,10 @@ inherits = "release"
 debug-assertions = true
 overflow-checks = true
 
+[profile.real-release]
+inherits = "release"
+debug-assertions = false
+
 # Disk-space is limited in CI, so we disabled features that are not needed for code coverage.
 # Locally using the default `dev` profile is perfectly fine.
 [profile.coverage]
