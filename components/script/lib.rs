@@ -34,7 +34,7 @@ pub(crate) mod document_loader;
 mod dom;
 pub(crate) use dom::canvas_context;
 pub(crate) mod fetch;
-pub(crate) mod indexed_db;
+pub(crate) mod indexeddb;
 mod init;
 mod layout_image;
 

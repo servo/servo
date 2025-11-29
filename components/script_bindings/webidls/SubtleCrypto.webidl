@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webcrypto/#subtlecrypto-interface
 
-enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
+// enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
 [SecureContext,Exposed=(Window,Worker),Pref="dom_crypto_subtle_enabled"]
 interface SubtleCrypto {
@@ -214,10 +214,32 @@ dictionary JsonWebKey {
   DOMString k;
 };
 
+// https://wicg.github.io/webcrypto-modern-algos/#subtlecrypto-interface-keyformat
+// * For all existing symmetric algorithms in [webcrypto], "raw-secret"
+//   acts as an alias of "raw".
+// * For all existing asymmetric algorithms in [webcrypto], "raw-public"
+//   acts as an alias of "raw".
+// * In the deriveKey() method, in the import key step, "raw-secret"
+//   must be used as the format instead of "raw".
+
+enum KeyFormat { "raw-public", "raw-private", "raw-seed", "raw-secret", "raw", "spki", "pkcs8", "jwk" };
+
 // https://wicg.github.io/webcrypto-modern-algos/#cshake-params
 
 dictionary CShakeParams : Algorithm {
   required [EnforceRange] unsigned long length;
   BufferSource functionName;
   BufferSource customization;
+};
+
+// https://wicg.github.io/webcrypto-modern-algos/#argon2-params
+
+dictionary Argon2Params : Algorithm {
+  required BufferSource nonce;
+  required [EnforceRange] unsigned long parallelism;
+  required [EnforceRange] unsigned long memory;
+  required [EnforceRange] unsigned long passes;
+  [EnforceRange] octet version;
+  BufferSource secretValue;
+  BufferSource associatedData;
 };

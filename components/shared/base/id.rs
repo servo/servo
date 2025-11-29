@@ -20,7 +20,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use webrender_api::{
     ExternalScrollId, FontInstanceKey, FontKey, IdNamespace, ImageKey,
-    PipelineId as WebRenderPipelineId,
+    PipelineId as WebRenderPipelineId, SpatialTreeItemKey,
 };
 
 use crate::generic_channel::{self, GenericReceiver, GenericSender};
@@ -328,6 +328,12 @@ size_of_test!(Option<WebViewId>, 12);
 impl fmt::Display for WebViewId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}, TopLevel{}", self.0, self.1)
+    }
+}
+
+impl From<WebViewId> for SpatialTreeItemKey {
+    fn from(webview_id: WebViewId) -> Self {
+        Self::new(webview_id.1.index.0.get() as u64, 0)
     }
 }
 

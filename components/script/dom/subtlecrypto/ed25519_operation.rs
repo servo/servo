@@ -380,7 +380,7 @@ pub(crate) fn import_key(
             // NOTE: Done in Step 2.9
         },
         // If format is "raw":
-        KeyFormat::Raw => {
+        KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
             if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
                 return Err(Error::Syntax(None));
@@ -410,7 +410,11 @@ pub(crate) fn import_key(
                 can_gc,
             )
         },
-        // Otherwise: throw a NotSupportedError. (Unreachable)
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(None));
+        },
     };
 
     // Step 3. Return key
@@ -536,7 +540,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             ExportedKey::Jwk(Box::new(jwk))
         },
         // If format is "raw":
-        KeyFormat::Raw => {
+        KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
@@ -548,7 +552,11 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.3. Let result be data.
             ExportedKey::Bytes(key_data.to_vec())
         },
-        // Otherwise: throw a NotSupportedError. (Unreachable)
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(None));
+        },
     };
 
     // Step 4. Return result.

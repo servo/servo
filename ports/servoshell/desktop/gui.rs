@@ -9,7 +9,10 @@ use std::sync::Arc;
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
-use egui::{Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel, Vec2, pos2};
+use egui::{
+    Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel, Vec2, WidgetInfo,
+    WidgetType, pos2,
+};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
@@ -211,6 +214,7 @@ impl Gui {
     /// supports that, so we arrange multiple Widgets in a way that they look connected.
     fn browser_tab(
         ui: &mut egui::Ui,
+        window: &ServoShellWindow,
         webview: WebView,
         event_queue: &mut Vec<GuiCommand>,
         favicon_texture: Option<egui::load::SizedTexture>,
@@ -223,7 +227,7 @@ impl Gui {
 
         let inactive_bg_color = ui.visuals().window_fill;
         let active_bg_color = ui.visuals().widgets.active.weak_bg_fill;
-        let selected = webview.focused();
+        let active = window.active_webview().map(|webview| webview.id()) == Some(webview.id());
 
         // Setup a tab frame that will contain the favicon, title and close button
         let mut tab_frame = egui::Frame::NONE.corner_radius(4).begin(ui);
@@ -259,7 +263,7 @@ impl Gui {
             let tab = tab_frame
                 .content_ui
                 .add(Button::selectable(
-                    selected,
+                    active,
                     truncate_with_ellipsis(&label, 20),
                 ))
                 .on_hover_ui(|ui| {
@@ -269,15 +273,20 @@ impl Gui {
             let close_button = tab_frame
                 .content_ui
                 .add(egui::Button::new("X").fill(egui::Color32::TRANSPARENT));
+            close_button.widget_info(|| {
+                let mut info = WidgetInfo::new(WidgetType::Button);
+                info.label = Some("Close".into());
+                info
+            });
             if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
                 event_queue.push(GuiCommand::CloseWebView(webview.id()))
-            } else if !selected && tab.clicked() {
-                webview.focus();
+            } else if !active && tab.clicked() {
+                window.activate_webview(webview.id());
             }
         }
 
         let response = tab_frame.allocate_space(ui);
-        let fill_color = if selected || response.hovered() {
+        let fill_color = if active || response.hovered() {
             active_bg_color
         } else {
             inactive_bg_color
@@ -319,28 +328,48 @@ impl Gui {
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
-                            if ui
-                                .add_enabled(self.can_go_back, Gui::toolbar_button("⏴"))
-                                .clicked()
-                            {
+                            let back_button =
+                                ui.add_enabled(self.can_go_back, Gui::toolbar_button("⏴"));
+                            back_button.widget_info(|| {
+                                let mut info = WidgetInfo::new(WidgetType::Button);
+                                info.label = Some("Back".into());
+                                info
+                            });
+                            if back_button.clicked() {
                                 event_queue.push(GuiCommand::Back);
                             }
 
-                            if ui
-                                .add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"))
-                                .clicked()
-                            {
+                            let forward_button =
+                                ui.add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"));
+                            forward_button.widget_info(|| {
+                                let mut info = WidgetInfo::new(WidgetType::Button);
+                                info.label = Some("Forward".into());
+                                info
+                            });
+                            if forward_button.clicked() {
                                 event_queue.push(GuiCommand::Forward);
                             }
 
                             match self.load_status {
                                 LoadStatus::Started | LoadStatus::HeadParsed => {
-                                    if ui.add(Gui::toolbar_button("X")).clicked() {
+                                    let stop_button = ui.add(Gui::toolbar_button("X"));
+                                    stop_button.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Stop".into());
+                                        info
+                                    });
+                                    if stop_button.clicked() {
                                         warn!("Do not support stop yet.");
                                     }
                                 },
                                 LoadStatus::Complete => {
-                                    if ui.add(Gui::toolbar_button("↻")).clicked() {
+                                    let reload_button = ui.add(Gui::toolbar_button("↻"));
+                                    reload_button.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Reload".into());
+                                        info
+                                    });
+                                    if reload_button.clicked() {
                                         event_queue.push(GuiCommand::Reload);
                                     }
                                 },
@@ -354,6 +383,12 @@ impl Gui {
                                     let prefs_toggle = ui
                                         .toggle_value(&mut self.experimental_prefs_enabled, "☢")
                                         .on_hover_text("Enable experimental prefs");
+                                    prefs_toggle.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Enable experimental preferences".into());
+                                        info.selected = Some(self.experimental_prefs_enabled);
+                                        info
+                                    });
                                     if prefs_toggle.clicked() {
                                         let enable = self.experimental_prefs_enabled;
                                         for pref in EXPERIMENTAL_PREFS {
@@ -367,7 +402,9 @@ impl Gui {
                                     let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
-                                        egui::TextEdit::singleline(location).id(location_id),
+                                        egui::TextEdit::singleline(location)
+                                            .id(location_id)
+                                            .hint_text("Search or enter address"),
                                     );
 
                                     if location_field.changed() {
@@ -421,9 +458,15 @@ impl Gui {
                                     .get(&id)
                                     .map(|(_, favicon)| favicon)
                                     .copied();
-                                Self::browser_tab(ui, webview, event_queue, favicon);
+                                Self::browser_tab(ui, window, webview, event_queue, favicon);
                             }
-                            if ui.add(Gui::toolbar_button("+")).clicked() {
+                            let new_tab_button = ui.add(Gui::toolbar_button("+"));
+                            new_tab_button.widget_info(|| {
+                                let mut info = WidgetInfo::new(WidgetType::Button);
+                                info.label = Some("New tab".into());
+                                info
+                            });
+                            if new_tab_button.clicked() {
                                 event_queue.push(GuiCommand::NewWebView);
                             }
                         },
@@ -446,10 +489,9 @@ impl Gui {
             let rect = ctx.available_rect();
             let size = Size2D::new(rect.width(), rect.height()) * scale;
             let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
-            if let Some(webview) = window.focused_webview() &&
+            if let Some(webview) = window.active_webview() &&
                 rect != webview.rect()
             {
-                webview.move_resize(rect);
                 // `rect` is sized to just the WebView viewport, which is required by
                 // `OffscreenRenderingContext` See:
                 // <https://github.com/servo/servo/issues/38369#issuecomment-3138378527>
@@ -502,7 +544,7 @@ impl Gui {
         }
 
         let current_url_string = window
-            .focused_webview()
+            .active_webview()
             .and_then(|webview| Some(webview.url()?.to_string()));
         match current_url_string {
             Some(location) if location != self.location => {
@@ -519,7 +561,7 @@ impl Gui {
 
     fn update_load_status(&mut self, window: &ServoShellWindow) -> bool {
         let state_status = window
-            .focused_webview()
+            .active_webview()
             .map(|webview| webview.load_status())
             .unwrap_or(LoadStatus::Complete);
         let old_status = std::mem::replace(&mut self.load_status, state_status);
@@ -528,7 +570,7 @@ impl Gui {
 
     fn update_status_text(&mut self, window: &ServoShellWindow) -> bool {
         let state_status = window
-            .focused_webview()
+            .active_webview()
             .and_then(|webview| webview.status_text());
         let old_status = std::mem::replace(&mut self.status_text, state_status);
         old_status != self.status_text
@@ -536,7 +578,7 @@ impl Gui {
 
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
         let (can_go_back, can_go_forward) = window
-            .focused_webview()
+            .active_webview()
             .map(|webview| (webview.can_go_back(), webview.can_go_forward()))
             .unwrap_or((false, false));
         let old_can_go_back = std::mem::replace(&mut self.can_go_back, can_go_back);

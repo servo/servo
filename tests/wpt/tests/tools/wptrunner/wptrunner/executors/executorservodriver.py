@@ -2,7 +2,13 @@
 
 import os
 
-from .executorwebdriver import WebDriverProtocol, WebDriverTestharnessExecutor, WebDriverRefTestExecutor, WebDriverCrashtestExecutor
+from .executorwebdriver import (
+    WebDriverProtocol,
+    WebDriverTestharnessExecutor,
+    WebDriverTestharnessProtocolPart,
+    WebDriverRefTestExecutor,
+    WebDriverCrashtestExecutor,
+)
 
 webdriver = None
 ServoCommandExtensions = None
@@ -36,6 +42,10 @@ def do_delayed_imports():
             body = {}
             return self.session.send_session_command("DELETE", "servo/shutdown", body)
 
+        # Clear all cookies for all origins.
+        def reset_all_cookies(self):
+            body = {}
+            return self.session.send_session_command("POST", "servo/cookies/reset", body)
 
         def change_prefs(self, old_prefs, new_prefs):
             # Servo interprets reset with an empty list as reset everything
@@ -56,10 +66,23 @@ def parse_pref_value(value):
         return value
 
 
+class ServoDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
+    def reset_browser_state(self):
+        self.parent.webdriver.extension.reset_all_cookies()
+
+
 class ServoWebDriverProtocol(WebDriverProtocol):
+    implements = [
+        ServoDriverTestharnessProtocolPart,
+    ]
+    for base_part in WebDriverProtocol.implements:
+        if base_part.name not in {part.name for part in implements}:
+            implements.append(base_part)
+
     def __init__(self, executor, browser, capabilities, **kwargs):
         do_delayed_imports()
-        WebDriverProtocol.__init__(self, executor, browser, capabilities, **kwargs)
+        self.implements = list(ServoWebDriverProtocol.implements)
+        super().__init__(executor, browser, capabilities, **kwargs)
 
     def connect(self):
         """Connect to browser via WebDriver and crete a WebDriver session."""

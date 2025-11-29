@@ -106,6 +106,11 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
             "/session/{sessionId}/custom-handlers/set-mode",
             ServoExtensionRoute::CustomHandlersSetMode,
         ),
+        (
+            Method::POST,
+            "/session/{sessionId}/servo/cookies/reset",
+            ServoExtensionRoute::ResetAllCookies,
+        ),
     ]
 }
 
@@ -193,6 +198,7 @@ enum ServoExtensionRoute {
     /// passing any dummy sessionID.
     Shutdown,
     CustomHandlersSetMode,
+    ResetAllCookies,
 }
 
 impl WebDriverExtensionRoute for ServoExtensionRoute {
@@ -222,6 +228,7 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
                 ServoExtensionCommand::CustomHandlersSetMode(parameters)
             },
             ServoExtensionRoute::Shutdown => ServoExtensionCommand::Shutdown,
+            ServoExtensionRoute::ResetAllCookies => ServoExtensionCommand::ResetAllCookies,
         };
         Ok(WebDriverCommand::Extension(command))
     }
@@ -235,6 +242,7 @@ enum ServoExtensionCommand {
     ResetPrefs(GetPrefsParameters),
     CustomHandlersSetMode(CustomHandlersSetModeParameters),
     Shutdown,
+    ResetAllCookies,
 }
 
 impl WebDriverExtensionCommand for ServoExtensionCommand {
@@ -244,7 +252,7 @@ impl WebDriverExtensionCommand for ServoExtensionCommand {
             ServoExtensionCommand::SetPrefs(ref x) => serde_json::to_value(x).ok(),
             ServoExtensionCommand::ResetPrefs(ref x) => serde_json::to_value(x).ok(),
             ServoExtensionCommand::CustomHandlersSetMode(ref x) => serde_json::to_value(x).ok(),
-            ServoExtensionCommand::Shutdown => None,
+            ServoExtensionCommand::Shutdown | ServoExtensionCommand::ResetAllCookies => None,
         }
     }
 }
@@ -2523,6 +2531,15 @@ impl Handler {
         Ok(WebDriverResponse::Void)
     }
 
+    fn handle_reset_all_cookies(&self) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = unbounded();
+        self.send_message_to_embedder(WebDriverCommandMsg::ResetAllCookies(sender))?;
+        if receiver.recv().is_err() {
+            log::warn!("Communication failure while clearing cookies; status unknown");
+        }
+        Ok(WebDriverResponse::Void)
+    }
+
     fn verify_top_level_browsing_context_is_open(
         &self,
         webview_id: WebViewId,
@@ -2583,7 +2600,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::NewSession(_) |
             WebDriverCommand::Status |
             WebDriverCommand::DeleteSession |
-            WebDriverCommand::Extension(ServoExtensionCommand::Shutdown) => {},
+            WebDriverCommand::Extension(ServoExtensionCommand::Shutdown) |
+            WebDriverCommand::Extension(ServoExtensionCommand::ResetAllCookies) => {},
             _ => {
                 self.session()?;
             },
@@ -2683,6 +2701,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                     self.handle_custom_handlers_set_mode(x)
                 },
                 ServoExtensionCommand::Shutdown => self.handle_shutdown(),
+                ServoExtensionCommand::ResetAllCookies => self.handle_reset_all_cookies(),
             },
             _ => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,

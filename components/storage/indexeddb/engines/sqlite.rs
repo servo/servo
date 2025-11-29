@@ -11,7 +11,7 @@ use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use serde::Serialize;
-use storage_traits::indexeddb_thread::{
+use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
     CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
     KeyPath, PutItemResult,
@@ -672,7 +672,7 @@ mod tests {
     use base::threadpool::ThreadPool;
     use serde::{Deserialize, Serialize};
     use servo_url::ImmutableOrigin;
-    use storage_traits::indexeddb_thread::{
+    use storage_traits::indexeddb::{
         AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
         IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult,
     };

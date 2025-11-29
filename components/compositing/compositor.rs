@@ -43,7 +43,7 @@ use webgl::webgl_thread::WebGLContextBusyMap;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
 use webrender::{CaptureBits, MemoryReport};
-use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect};
+use webrender_api::units::{DevicePixel, DevicePoint};
 
 use crate::InitialCompositorState;
 use crate::painter::Painter;
@@ -524,13 +524,11 @@ impl IOCompositor {
         ];
 
         perform_memory_report(|ops| {
-            let mut scroll_trees_memory_usage = 0;
-            for painter in &self.painters {
-                scroll_trees_memory_usage += painter
-                    .borrow()
-                    .webview_renderers
-                    .scroll_trees_memory_usage(ops);
-            }
+            let scroll_trees_memory_usage = self
+                .painters
+                .iter()
+                .map(|painter| painter.borrow().scroll_trees_memory_usage(ops))
+                .sum();
             reports.push(Report {
                 path: path!["compositor", "scroll-tree"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
@@ -588,34 +586,14 @@ impl IOCompositor {
             .add_webview(webview, viewport_details);
     }
 
-    pub fn show_webview(
-        &self,
-        webview_id: WebViewId,
-        hide_others: bool,
-    ) -> Result<(), UnknownWebView> {
+    pub fn show_webview(&self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
         self.painter_mut(webview_id.into())
-            .show_webview(webview_id, hide_others)
+            .set_webview_hidden(webview_id, false)
     }
 
     pub fn hide_webview(&self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
-        self.painter_mut(webview_id.into()).hide_webview(webview_id)
-    }
-
-    pub fn raise_webview_to_top(
-        &self,
-        webview_id: WebViewId,
-        hide_others: bool,
-    ) -> Result<(), UnknownWebView> {
         self.painter_mut(webview_id.into())
-            .raise_webview_to_top(webview_id, hide_others)
-    }
-
-    pub fn move_resize_webview(&self, webview_id: WebViewId, rect: DeviceRect) {
-        if self.shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
-        }
-        self.painter_mut(webview_id.into())
-            .move_resize_webview(webview_id, rect);
+            .set_webview_hidden(webview_id, true)
     }
 
     pub fn set_hidpi_scale_factor(

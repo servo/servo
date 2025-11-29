@@ -71,13 +71,13 @@ impl ServoShellWindow {
         self.platform_window().id()
     }
 
-    pub(crate) fn create_and_focus_toplevel_webview(
+    pub(crate) fn create_and_activate_toplevel_webview(
         &self,
         state: Rc<RunningAppState>,
         url: Url,
     ) -> WebView {
         let webview = self.create_toplevel_webview(state, url);
-        webview.focus_and_raise_to_top(true);
+        self.activate_webview(webview.id());
         webview
     }
 
@@ -95,7 +95,7 @@ impl ServoShellWindow {
 
     /// Repaint the focused [`WebView`].
     pub(crate) fn repaint_webviews(&self) {
-        let Some(webview) = self.focused_webview() else {
+        let Some(webview) = self.active_webview() else {
             return;
         };
 
@@ -142,6 +142,7 @@ impl ServoShellWindow {
 
     pub(crate) fn add_webview(&self, webview: WebView) {
         self.webview_collection.borrow_mut().add(webview);
+        self.set_needs_update();
         self.set_needs_repaint();
     }
 
@@ -158,19 +159,27 @@ impl ServoShellWindow {
             .collect()
     }
 
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
-    pub(crate) fn focus_webview_by_index(&self, index: usize) {
-        if let Some((_, webview)) = self.webviews().get(index) {
-            webview.focus();
-        }
+    pub(crate) fn activate_webview(&self, webview_id: WebViewId) {
+        self.webview_collection
+            .borrow_mut()
+            .activate_webview(webview_id);
+        self.set_needs_update();
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
-    pub(crate) fn get_focused_webview_index(&self) -> Option<usize> {
-        let focused_id = self.webview_collection.borrow().focused_id()?;
+    pub(crate) fn activate_webview_by_index(&self, index_to_activate: usize) {
+        self.webview_collection
+            .borrow_mut()
+            .activate_webview_by_index(index_to_activate);
+        self.set_needs_update();
+    }
+
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    pub(crate) fn get_active_webview_index(&self) -> Option<usize> {
+        let active_id = self.webview_collection.borrow().active_id()?;
         self.webviews()
             .iter()
-            .position(|webview| webview.0 == focused_id)
+            .position(|webview| webview.0 == active_id)
     }
 
     pub(crate) fn update_and_request_repaint_if_necessary(&self, state: &RunningAppState) {
@@ -198,20 +207,8 @@ impl ServoShellWindow {
         self.platform_window
             .dismiss_embedder_controls_for_webview(webview_id);
 
-        if let Some(newest_webview) = webview_collection.newest() {
-            newest_webview.focus();
-        }
-    }
-
-    pub(crate) fn notify_focus_changed(&self, webview: WebView, focused: bool) {
-        let mut webview_collection = self.webview_collection.borrow_mut();
-        if focused {
-            webview.show(true);
-            self.set_needs_update();
-            webview_collection.set_focused(Some(webview.id()));
-        } else if webview_collection.focused_id() == Some(webview.id()) {
-            webview_collection.set_focused(None);
-        }
+        self.set_needs_update();
+        self.set_needs_repaint();
     }
 
     pub(crate) fn notify_favicon_changed(&self, webview: WebView) {
@@ -227,18 +224,18 @@ impl ServoShellWindow {
         }
     }
 
-    pub(crate) fn focused_webview(&self) -> Option<WebView> {
-        self.webview_collection.borrow().focused().cloned()
+    pub(crate) fn active_webview(&self) -> Option<WebView> {
+        self.webview_collection.borrow().active().cloned()
     }
 
     #[cfg_attr(
         not(any(target_os = "android", target_env = "ohos")),
         expect(dead_code)
     )]
-    pub(crate) fn focused_or_newest_webview(&self) -> Option<WebView> {
+    pub(crate) fn active_or_newest_webview(&self) -> Option<WebView> {
         let webview_collection = self.webview_collection.borrow();
         webview_collection
-            .focused()
+            .active()
             .or(webview_collection.newest())
             .cloned()
     }

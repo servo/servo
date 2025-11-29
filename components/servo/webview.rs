@@ -335,21 +335,6 @@ impl WebView {
         self.inner().rect
     }
 
-    pub fn move_resize(&self, rect: DeviceRect) {
-        if self.inner().rect == rect {
-            return;
-        }
-
-        let rect =
-            DeviceRect::from_origin_and_size(rect.min, rect.size().max(Size2D::new(1.0, 1.0)));
-
-        self.inner_mut().rect = rect;
-        self.inner()
-            .compositor
-            .borrow()
-            .move_resize_webview(self.id(), rect);
-    }
-
     /// Request that the given [`WebView`]'s rendering area be resized. Note that the
     /// minimum size for a WebView is 1 pixel by 1 pixel so any requested size will be
     /// clamped by that value.
@@ -384,11 +369,11 @@ impl WebView {
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
     }
 
-    pub fn show(&self, hide_others: bool) {
+    pub fn show(&self) {
         self.inner()
             .compositor
             .borrow()
-            .show_webview(self.id(), hide_others)
+            .show_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
 
@@ -398,19 +383,6 @@ impl WebView {
             .borrow()
             .hide_webview(self.id())
             .expect("BUG: invalid WebView instance");
-    }
-
-    pub fn raise_to_top(&self, hide_others: bool) {
-        self.inner()
-            .compositor
-            .borrow()
-            .raise_webview_to_top(self.id(), hide_others)
-            .expect("BUG: invalid WebView instance");
-    }
-
-    pub fn focus_and_raise_to_top(&self, hide_others: bool) {
-        self.focus();
-        self.raise_to_top(hide_others);
     }
 
     pub fn notify_theme_change(&self, theme: Theme) {

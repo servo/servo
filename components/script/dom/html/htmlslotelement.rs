@@ -155,7 +155,7 @@ pub(crate) struct Slottable(pub Dom<Node>);
 ///
 /// Note that the [slottable name](https://dom.spec.whatwg.org/#slotable-name) is not
 /// part of this. While the spec says that all slottables have a name, only Element's
-/// can ever have a non-empty name, so they store it seperately
+/// can ever have a non-empty name, so they store it separately
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct SlottableData {

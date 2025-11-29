@@ -97,11 +97,15 @@ impl CookieStorage {
         }
     }
 
-    pub fn clear_storage(&mut self, url: &ServoUrl) {
-        let domain = reg_host(url.host_str().unwrap_or(""));
-        let cookies = self.cookies_map.entry(domain).or_default();
-        for cookie in cookies.iter_mut() {
-            cookie.set_expiry_time_in_past();
+    pub fn clear_storage(&mut self, url: Option<&ServoUrl>) {
+        if let Some(url) = url {
+            let domain = reg_host(url.host_str().unwrap_or(""));
+            let cookies = self.cookies_map.entry(domain).or_default();
+            for cookie in cookies.iter_mut() {
+                cookie.set_expiry_time_in_past();
+            }
+        } else {
+            self.cookies_map.clear();
         }
     }
 

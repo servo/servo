@@ -52,17 +52,6 @@ impl ::servo::WebViewDelegate for AppState {
     fn notify_new_frame_ready(&self, _: WebView) {
         self.window.request_redraw();
     }
-
-    fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-        let webview = WebViewBuilder::new_auxiliary(&self.servo, self.rendering_context.clone())
-            .hidpi_scale_factor(Scale::new(self.window.scale_factor() as f32))
-            .delegate(parent_webview.delegate())
-            .build();
-        webview.focus_and_raise_to_top(true);
-
-        self.webviews.borrow_mut().push(webview.clone());
-        Some(webview)
-    }
 }
 
 enum App {
@@ -116,8 +105,6 @@ impl ApplicationHandler<WakerEvent> for App {
                     .hidpi_scale_factor(Scale::new(app_state.window.scale_factor() as f32))
                     .delegate(app_state.clone())
                     .build();
-
-            webview.focus_and_raise_to_top(true);
 
             app_state.webviews.borrow_mut().push(webview);
             *self = Self::Running(app_state);
@@ -174,25 +161,11 @@ impl ApplicationHandler<WakerEvent> for App {
                     }
                 }
             },
-            WindowEvent::KeyboardInput { event, .. } => {
-                // When pressing 'q' close the latest WebView, then show the next most recently
-                // opened view or quit when none are left.
-                if event.logical_key.to_text() == Some("q") {
-                    if let Self::Running(state) = self {
-                        let _ = state.webviews.borrow_mut().pop();
-                        match state.webviews.borrow().last() {
-                            Some(last) => last.show(true),
-                            None => event_loop.exit(),
-                        }
-                    }
-                }
-            },
             WindowEvent::Resized(new_size) => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.webviews.borrow().last() {
                         let mut rect = webview.rect();
                         rect.set_size(winit_size_to_euclid_size(new_size).to_f32());
-                        webview.move_resize(rect);
                         webview.resize(new_size);
                     }
                 }

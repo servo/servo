@@ -90,7 +90,7 @@ use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
-use net_traits::{exit_fetch_thread, start_fetch_thread};
+use net_traits::{ResourceThreads, exit_fetch_thread, start_fetch_thread};
 use profile::{mem as profile_mem, system_reporter, time as profile_time};
 use profile_traits::mem::{MemoryReportResult, ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
@@ -192,6 +192,8 @@ pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
+    public_resource_threads: ResourceThreads,
+    private_resource_threads: ResourceThreads,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -291,6 +293,19 @@ impl Servo {
             webxr_registry: builder.webxr_registry,
         });
 
+        let protocols = Arc::new(protocols);
+        let (public_resource_threads, private_resource_threads, async_runtime) =
+            new_resource_threads(
+                devtools_sender.clone(),
+                time_profiler_chan.clone(),
+                mem_profiler_chan.clone(),
+                embedder_proxy.clone(),
+                opts.config_dir.clone(),
+                opts.certificate_path.clone(),
+                opts.ignore_certificate_errors,
+                protocols.clone(),
+            );
+
         create_constellation(
             embedder_to_constellation_receiver,
             &compositor.borrow(),
@@ -302,6 +317,9 @@ impl Servo {
             devtools_sender,
             protocols,
             builder.user_content_manager,
+            public_resource_threads.clone(),
+            private_resource_threads.clone(),
+            async_runtime,
         );
 
         if opts::get().multiprocess {
@@ -319,6 +337,8 @@ impl Servo {
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
+            public_resource_threads,
+            private_resource_threads,
             _js_engine_setup: js_engine_setup,
         }
     }
@@ -859,6 +879,11 @@ impl Servo {
         preferences.set_value(name, value);
         prefs::set(preferences);
     }
+
+    pub fn clear_cookies(&self) {
+        self.public_resource_threads.clear_cookies();
+        self.private_resource_threads.clear_cookies();
+    }
 }
 
 fn create_embedder_channel(
@@ -910,8 +935,11 @@ fn create_constellation(
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-    protocols: ProtocolRegistry,
+    protocols: Arc<ProtocolRegistry>,
     user_content_manager: UserContentManager,
+    public_resource_threads: ResourceThreads,
+    private_resource_threads: ResourceThreads,
+    async_runtime: Box<dyn net_traits::AsyncRuntime>,
 ) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -921,17 +949,6 @@ fn create_constellation(
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let privileged_urls = protocols.privileged_urls();
-
-    let (public_resource_threads, private_resource_threads, async_runtime) = new_resource_threads(
-        devtools_sender.clone(),
-        time_profiler_chan.clone(),
-        mem_profiler_chan.clone(),
-        embedder_proxy.clone(),
-        config_dir.clone(),
-        opts.certificate_path.clone(),
-        opts.ignore_certificate_errors,
-        Arc::new(protocols),
-    );
 
     let (private_storage_threads, public_storage_threads) =
         new_storage_threads(mem_profiler_chan.clone(), config_dir);

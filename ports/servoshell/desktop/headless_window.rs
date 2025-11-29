@@ -101,7 +101,6 @@ impl PlatformWindow for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.move_resize(new_size.to_f32().into());
         webview.resize(PhysicalSize::new(
             new_size.width as u32,
             new_size.height as u32,
@@ -152,7 +151,6 @@ impl PlatformWindow for Window {
         // Because we are managing the rendering surface ourselves, there will be no other
         // notification (such as from the display manager) that it has changed size, so we
         // must notify the compositor here.
-        webview.move_resize(self.screen_size.to_f32().into());
         webview.resize(PhysicalSize::new(
             self.screen_size.width as u32,
             self.screen_size.height as u32,

@@ -167,7 +167,8 @@ use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use storage_traits::client_storage::ClientStorageThreadMessage;
+use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
@@ -190,7 +191,6 @@ use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
-use crate::webview_manager::WebViewManager;
 
 type PendingApprovalNavigations = FxHashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
 
@@ -324,7 +324,7 @@ pub struct Constellation<STF, SWF> {
     compositor_proxy: CompositorProxy,
 
     /// Bookkeeping data for all webviews in the constellation.
-    webviews: WebViewManager<ConstellationWebView>,
+    webviews: FxHashMap<WebViewId, ConstellationWebView>,
 
     /// Channels for the constellation to send messages to the public
     /// resource-related threads. There are two groups of resource threads: one
@@ -677,7 +677,7 @@ where
                     layout_factory,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
-                    webviews: WebViewManager::default(),
+                    webviews: Default::default(),
                     devtools_sender: state.devtools_sender,
                     #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
@@ -923,7 +923,7 @@ where
 
         let Some(theme) = self
             .webviews
-            .get(webview_id)
+            .get(&webview_id)
             .map(ConstellationWebView::theme)
         else {
             warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
@@ -1432,7 +1432,6 @@ where
                 self.handle_focus_web_view(webview_id);
             },
             EmbedderToConstellationMessage::BlurWebView => {
-                self.webviews.unfocus();
                 self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
@@ -2594,10 +2593,12 @@ where
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
-        let (storage_ipc_sender, storage_ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
+        let (client_storage_generic_sender, client_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
         let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
+        let (web_storage_generic_sender, web_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
 
         debug!("Exiting core resource threads.");
         if let Err(e) = self
@@ -2615,14 +2616,13 @@ where
             }
         }
 
-        debug!("Exiting storage resource threads.");
+        debug!("Exiting client storage thread.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            WebStorageThreadMsg::Exit(storage_ipc_sender),
+            ClientStorageThreadMessage::Exit(client_storage_generic_sender),
         ) {
-            warn!("Exit storage thread failed ({})", e);
+            warn!("Exit client storage thread failed ({})", e);
         }
-
         debug!("Exiting indexeddb resource threads.");
         if let Err(e) =
             self.public_storage_threads
@@ -2631,6 +2631,13 @@ where
                 )))
         {
             warn!("Exit indexeddb thread failed ({})", e);
+        }
+        debug!("Exiting web storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.public_storage_threads,
+            WebStorageThreadMsg::Exit(web_storage_generic_sender),
+        ) {
+            warn!("Exit web storage thread failed ({})", e);
         }
 
         #[cfg(feature = "bluetooth")]
@@ -2700,11 +2707,14 @@ where
         if let Err(e) = core_ipc_receiver.recv() {
             warn!("Exit resource thread failed ({:?})", e);
         }
-        if let Err(e) = storage_ipc_receiver.recv() {
-            warn!("Exit storage thread failed ({:?})", e);
+        if let Err(e) = client_storage_generic_receiver.recv() {
+            warn!("Exit client storage thread failed ({:?})", e);
         }
         if let Err(e) = indexeddb_ipc_receiver.recv() {
             warn!("Exit indexeddb thread failed ({:?})", e);
+        }
+        if let Err(e) = web_storage_generic_receiver.recv() {
+            warn!("Exit web storage thread failed ({:?})", e);
         }
 
         debug!("Shutting-down IPC router thread in constellation.");
@@ -2856,12 +2866,8 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
-        let focused = self.webviews.focus(webview_id).is_ok();
-        if !focused {
-            warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
-        }
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, focused));
+            .send(EmbedderMsg::WebViewFocused(webview_id, true));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -2966,7 +2972,7 @@ where
         let active_keyboard_modifiers = self.active_keyboard_modifiers;
 
         let event_id = event.id;
-        let Some(webview) = self.webviews.get_mut(webview_id) else {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
             warn!("Got input event for unknown WebViewId: {webview_id:?}");
             self.embedder_proxy.send(EmbedderMsg::InputEventHandled(
                 webview_id,
@@ -3007,7 +3013,7 @@ where
 
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
-        self.webviews.add(
+        self.webviews.insert(
             webview_id,
             ConstellationWebView::new(webview_id, browsing_context_id),
         );
@@ -3057,10 +3063,7 @@ where
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
-        if self.webviews.focused_webview().map(|(id, _)| id) == Some(webview_id) {
-            self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
-        }
-        self.webviews.remove(webview_id);
+        self.webviews.remove(&webview_id);
         self.compositor_proxy
             .send(CompositorMsg::RemoveWebView(webview_id));
         self.embedder_proxy
@@ -3389,7 +3392,7 @@ where
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
-        self.webviews.add(
+        self.webviews.insert(
             new_webview_id,
             ConstellationWebView::new(new_webview_id, new_browsing_context_id),
         );
@@ -4013,7 +4016,7 @@ where
     ) {
         let length = self
             .webviews
-            .get(webview_id)
+            .get(&webview_id)
             .map(|webview| webview.session_history.history_length())
             .unwrap_or(1);
         let _ = response_sender.send(length as u32);
@@ -4178,9 +4181,8 @@ where
         }
 
         // Focus the top-level browsing context.
-        let focused = self.webviews.focus(webview_id);
         self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, focused.is_ok()));
+            .send(EmbedderMsg::WebViewFocused(webview_id, true));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -4235,7 +4237,7 @@ where
         };
 
         // Update the webview’s focused browsing context.
-        let old_focused_browsing_context_id = match self.webviews.get_mut(webview_id) {
+        let old_focused_browsing_context_id = match self.webviews.get_mut(&webview_id) {
             Some(browser) => replace(
                 &mut browser.focused_browsing_context_id,
                 focused_browsing_context_id,
@@ -4526,7 +4528,7 @@ where
         // URLs of inner frames are ignored and replaced with the URL
         // of the parent.
 
-        let session_history = match self.webviews.get(webview_id) {
+        let session_history = match self.webviews.get(&webview_id) {
             Some(webview) => &webview.session_history,
             None => {
                 return warn!(
@@ -4637,8 +4639,8 @@ where
         // If the currently focused browsing context is a child of the browsing
         // context in which the page is being loaded, then update the focused
         // browsing context to be the one where the page is being loaded.
-        if self.focused_browsing_context_is_descendant_of(change.browsing_context_id) {
-            if let Some(webview) = self.webviews.get_mut(change.webview_id) {
+        if self.focused_browsing_context_is_descendant_of(&change) {
+            if let Some(webview) = self.webviews.get_mut(&change.webview_id) {
                 webview.focused_browsing_context_id = change.browsing_context_id;
             }
         }
@@ -4780,7 +4782,7 @@ where
             return warn!("Pipeline {pipeline_id} is closed");
         };
 
-        let is_focused = match self.webviews.get(pipeline.webview_id) {
+        let is_focused = match self.webviews.get(&pipeline.webview_id) {
             Some(webview) => webview.focused_browsing_context_id == pipeline.browsing_context_id,
             None => {
                 return warn!(
@@ -4802,18 +4804,15 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn focused_browsing_context_is_descendant_of(
-        &self,
-        browsing_context_id: BrowsingContextId,
-    ) -> bool {
+    fn focused_browsing_context_is_descendant_of(&self, change: &SessionHistoryChange) -> bool {
         let focused_browsing_context_id = self
             .webviews
-            .focused_webview()
-            .map(|(_, webview)| webview.focused_browsing_context_id);
-        focused_browsing_context_id.is_some_and(|focus_ctx_id| {
-            focus_ctx_id == browsing_context_id ||
-                self.fully_active_descendant_browsing_contexts_iter(browsing_context_id)
-                    .any(|nested_ctx| nested_ctx.id == focus_ctx_id)
+            .get(&change.webview_id)
+            .map(|webview| webview.focused_browsing_context_id);
+        focused_browsing_context_id.is_some_and(|focused_browsing_context_id| {
+            focused_browsing_context_id == change.browsing_context_id ||
+                self.fully_active_descendant_browsing_contexts_iter(change.browsing_context_id)
+                    .any(|nested_ctx| nested_ctx.id == focused_browsing_context_id)
         })
     }
 
@@ -5164,7 +5163,7 @@ where
     /// Handle theme change events from the embedder and forward them to all appropriate `ScriptThread`s.
     #[servo_tracing::instrument(skip_all)]
     fn handle_theme_change(&mut self, webview_id: WebViewId, theme: Theme) {
-        let Some(webview) = self.webviews.get_mut(webview_id) else {
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
             warn!("Received theme change request for uknown WebViewId: {webview_id:?}");
             return;
         };
@@ -5239,7 +5238,7 @@ where
 
                     // If `browsing_context_id` has focus, focus the parent
                     // browsing context
-                    if let Some(webview) = self.webviews.get_mut(browsing_context.webview_id) {
+                    if let Some(webview) = self.webviews.get_mut(&browsing_context.webview_id) {
                         if webview.focused_browsing_context_id == browsing_context_id {
                             trace!(
                                 "About-to-be-closed browsing context {} is currently focused, so \
@@ -5310,7 +5309,7 @@ where
         let Some(load_data) = self.refresh_load_data(pipeline_id) else {
             return warn!("{}: Discarding closed pipeline", pipeline_id);
         };
-        match self.webviews.get_mut(webview_id) {
+        match self.webviews.get_mut(&webview_id) {
             Some(webview) => {
                 webview.session_history.replace_reloader(
                     NeedsToReload::No(pipeline_id),
@@ -5446,7 +5445,7 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn get_joint_session_history(&mut self, webview_id: WebViewId) -> &mut JointSessionHistory {
         self.webviews
-            .get_mut(webview_id)
+            .get_mut(&webview_id)
             .map(|webview| &mut webview.session_history)
             .expect("Unknown top-level browsing context")
     }

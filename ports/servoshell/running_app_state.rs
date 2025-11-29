@@ -43,9 +43,9 @@ pub struct WebViewCollection {
     /// The order in which the webviews were created.
     pub(crate) creation_order: Vec<WebViewId>,
 
-    /// The webview that is currently focused.
-    /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
-    focused_webview_id: Option<WebViewId>,
+    /// The [`WebView`] that is currently active. This is the [`WebView`] that is shown and has
+    /// input focus.
+    active_webview_id: Option<WebViewId>,
 }
 
 impl WebViewCollection {
@@ -55,15 +55,20 @@ impl WebViewCollection {
         self.webviews.insert(id, webview);
     }
 
-    /// Removes a webview from the collection by ID.
-    /// If the removed webview was focused, clears the focus.
-    /// Returns the removed webview, if it existed.
+    /// Removes a webview from the collection by [`WebViewId`]. If the removed [`WebView`] was the active
+    /// [`WebView`] then the next newest [`WebView`] will be activated.
     pub fn remove(&mut self, id: WebViewId) -> Option<WebView> {
         self.creation_order.retain(|&webview_id| webview_id != id);
-        if self.focused_webview_id == Some(id) {
-            self.focused_webview_id = None;
+        let removed_webview = self.webviews.remove(&id);
+
+        if self.active_webview_id == Some(id) {
+            self.active_webview_id = None;
+            if let Some(newest) = self.creation_order.last() {
+                self.activate_webview(*newest);
+            }
         }
-        self.webviews.remove(&id)
+
+        removed_webview
     }
 
     pub fn get(&self, id: WebViewId) -> Option<&WebView> {
@@ -74,17 +79,12 @@ impl WebViewCollection {
         self.webviews.contains_key(&id)
     }
 
-    pub fn focused(&self) -> Option<&WebView> {
-        self.focused_webview_id
-            .and_then(|id| self.webviews.get(&id))
+    pub fn active(&self) -> Option<&WebView> {
+        self.active_webview_id.and_then(|id| self.webviews.get(&id))
     }
 
-    pub fn focused_id(&self) -> Option<WebViewId> {
-        self.focused_webview_id
-    }
-
-    pub fn set_focused(&mut self, id: Option<WebViewId>) {
-        self.focused_webview_id = id;
+    pub fn active_id(&self) -> Option<WebViewId> {
+        self.active_webview_id
     }
 
     /// Gets a reference to the most recently created webview, if any.
@@ -108,6 +108,31 @@ impl WebViewCollection {
     /// Returns true if the collection contains no webviews.
     pub fn is_empty(&self) -> bool {
         self.webviews.is_empty()
+    }
+
+    pub(crate) fn activate_webview(&mut self, id_to_activate: WebViewId) {
+        assert!(self.creation_order.contains(&id_to_activate));
+
+        self.active_webview_id = Some(id_to_activate);
+        for (webview_id, webview) in self.all_in_creation_order() {
+            if id_to_activate == webview_id {
+                webview.show();
+                webview.focus();
+            } else {
+                webview.hide();
+                webview.blur();
+            }
+        }
+    }
+
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    pub(crate) fn activate_webview_by_index(&mut self, index: usize) {
+        self.activate_webview(
+            *self
+                .creation_order
+                .get(index)
+                .expect("Tried to activate an unknown WebView"),
+        );
     }
 }
 
@@ -141,6 +166,10 @@ pub(crate) struct RunningAppState {
     /// Whether or not the application has achieved stable image output. This is used
     /// for the `exit_after_stable_image` option.
     pub(crate) achieved_stable_image: Rc<Cell<bool>>,
+
+    /// Whether or not program exit has been triggered. This means that all windows
+    /// will be destroyed and shutdown will start at the end of the current event loop.
+    exit_scheduled: Rc<Cell<bool>>,
 
     /// The set of [`ServoShellWindow`]s that currently exist for this instance of servoshell.
     // This is the last field of the struct to ensure that windows are dropped *after* all
@@ -185,6 +214,7 @@ impl RunningAppState {
             servoshell_preferences,
             servo,
             achieved_stable_image: Default::default(),
+            exit_scheduled: Default::default(),
         }
     }
 
@@ -194,7 +224,7 @@ impl RunningAppState {
         initial_url: Url,
     ) {
         let window = Rc::new(ServoShellWindow::new(platform_window));
-        window.create_and_focus_toplevel_webview(self.clone(), initial_url);
+        window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows.borrow_mut().insert(window.id(), window);
     }
 
@@ -241,6 +271,10 @@ impl RunningAppState {
         &self.servo
     }
 
+    pub(crate) fn schedule_exit(&self) {
+        self.exit_scheduled.set(true);
+    }
+
     /// Spins the internal application event loop.
     ///
     /// - Notifies Servo about incoming gamepad events
@@ -272,7 +306,7 @@ impl RunningAppState {
         if self.servoshell_preferences.webdriver_port.is_none() {
             self.windows
                 .borrow_mut()
-                .retain(|_, window| !window.should_close());
+                .retain(|_, window| !self.exit_scheduled.get() && !window.should_close());
             if self.windows.borrow().is_empty() {
                 self.servo.start_shutting_down();
             }
@@ -458,7 +492,7 @@ impl RunningAppState {
     pub(crate) fn handle_gamepad_events(&self) {
         let Some(active_webview) = self
             .focused_window()
-            .and_then(|window| window.focused_webview())
+            .and_then(|window| window.active_webview())
         else {
             return;
         };
@@ -550,14 +584,16 @@ impl WebViewDelegate for RunningAppState {
 
         webview.notify_theme_change(platform_window.theme());
 
+        window.add_webview(webview.clone());
+
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
         if self.servoshell_preferences.webdriver_port.is_none() {
-            webview.focus_and_raise_to_top(true);
+            window.activate_webview(webview.id());
+        } else {
+            webview.hide();
         }
-
-        window.add_webview(webview.clone());
 
         Some(webview)
     }
@@ -565,11 +601,6 @@ impl WebViewDelegate for RunningAppState {
     fn notify_closed(&self, webview: WebView) {
         self.window_for_webview_id(webview.id())
             .close_webview(webview.id())
-    }
-
-    fn notify_focus_changed(&self, webview: WebView, focused: bool) {
-        self.window_for_webview_id(webview.id())
-            .notify_focus_changed(webview, focused);
     }
 
     fn notify_input_event_handled(

@@ -87,7 +87,7 @@ pub(crate) fn import_key(
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If format is not "raw", throw a NotSupportedError
-    if format != KeyFormat::Raw {
+    if !matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
         return Err(Error::NotSupported(None));
     }
 

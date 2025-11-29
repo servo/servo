@@ -144,6 +144,7 @@ pub enum WebDriverCommandMsg {
     SendAlertText(WebViewId, String),
     FocusBrowsingContext(BrowsingContextId),
     Shutdown,
+    ResetAllCookies(Sender<()>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

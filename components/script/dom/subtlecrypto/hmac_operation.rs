@@ -174,7 +174,7 @@ pub(crate) fn import_key(
     let data;
     match format {
         // If format is "raw":
-        KeyFormat::Raw => {
+        KeyFormat::Raw | KeyFormat::Raw_secret => {
             // Step 4.1. Let data be keyData.
             data = key_data.to_vec();
 
@@ -322,7 +322,7 @@ pub(crate) fn import_key(
 /// <https://w3c.github.io/webcrypto/#hmac-operations-export-key>
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match format {
-        KeyFormat::Raw => match key.handle() {
+        KeyFormat::Raw | KeyFormat::Raw_secret => match key.handle() {
             Handle::Hmac(key_data) => Ok(ExportedKey::Bytes(key_data.as_slice().to_vec())),
             _ => Err(Error::Operation(None)),
         },
@@ -364,7 +364,11 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
             Ok(ExportedKey::Jwk(Box::new(jwk)))
         },
-        _ => Err(Error::NotSupported(None)),
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            Err(Error::NotSupported(None))
+        },
     }
 }
 

@@ -29,6 +29,7 @@ aes-gcm = "0.10.3"
 aes-kw = { version = "0.2.1", features = ["alloc"] }
 app_units = "0.7"
 arboard = "3"
+argon2 = { version = "0.5", features = ["alloc"] }
 arrayvec = "0.7"
 async-tungstenite = { version = "0.32", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"

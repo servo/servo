@@ -9,7 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
-use euclid::{Point2D, Size2D};
+use euclid::Point2D;
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue,
@@ -28,10 +28,6 @@ fn show_webview_and_wait_for_rendering_to_be_ready(
     webview: &WebView,
     delegate: &Rc<WebViewDelegateImpl>,
 ) {
-    webview.focus();
-    webview.show(true);
-    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
-
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
@@ -344,11 +340,6 @@ fn test_resize_webview_zero() {
             .unwrap(),
         )
         .build();
-
-    webview.focus();
-    webview.show(true);
-
-    webview.move_resize(Size2D::new(-100.0, -100.0).into());
     webview.resize(PhysicalSize::new(0, 0));
 
     let load_webview = webview.clone();
@@ -437,10 +428,6 @@ fn test_viewport_meta_tag_initial_zoom() {
             .unwrap(),
         )
         .build();
-
-    webview.focus();
-    webview.show(true);
-    webview.move_resize(servo_test.rendering_context.size2d().to_f32().into());
 
     let load_webview = webview.clone();
     let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);

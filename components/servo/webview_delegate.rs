@@ -351,7 +351,7 @@ pub struct ContextMenu {
 }
 
 impl ContextMenu {
-    /// Return the [`EmbedderComtrolId`] associated with this element.
+    /// Return the [`EmbedderControlId`] associated with this element.
     pub fn id(&self) -> EmbedderControlId {
         self.id
     }
@@ -418,7 +418,7 @@ pub struct SelectElement {
 }
 
 impl SelectElement {
-    /// Return the [`EmbedderComtrolId`] associated with this element.
+    /// Return the [`EmbedderControlId`] associated with this element.
     pub fn id(&self) -> EmbedderControlId {
         self.id
     }
@@ -481,7 +481,7 @@ pub struct ColorPicker {
 }
 
 impl ColorPicker {
-    /// Return the [`EmbedderComtrolId`] associated with this element.
+    /// Return the [`EmbedderControlId`] associated with this element.
     pub fn id(&self) -> EmbedderControlId {
         self.id
     }

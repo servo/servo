@@ -1544,7 +1544,7 @@ pub(crate) fn handle_delete_cookies(
         .window()
         .as_global_scope()
         .resource_threads()
-        .send(DeleteCookies(url))
+        .send(DeleteCookies(Some(url), None))
         .unwrap();
     reply.send(Ok(())).unwrap();
 }
