@@ -5183,10 +5183,23 @@ impl Element {
             }
         }
 
-        // Dirty the node so that it is laid out again if necessary.
-        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+        if !which.contains(ElementState::FOCUS) {
+            self.state.set(state);
+            return;
+        }
 
+        // Changing the focus state can affect the selection, see `selection_for_layout()`
+        // in `LayoutHTMLInputElementHelpersin` and `LayoutHTMLTextAreaElementHelpers`.
+        // In that case, dirty the node so that it is laid out again.
+        // TODO: Selection changes shouldn't require a new layout.
+        let node = self.upcast::<Node>();
+        #[expect(unsafe_code)]
+        let get_selection = || unsafe { Dom::from_ref(node).to_layout().selection() };
+        let previous_selection = get_selection();
         self.state.set(state);
+        if get_selection() != previous_selection {
+            node.dirty(NodeDamage::ContentOrHeritage);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
