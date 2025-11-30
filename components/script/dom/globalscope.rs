@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
 use std::ops::Index;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -36,13 +37,16 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
-    Compile1, CurrentGlobalOrNull, DelazificationOption, GetNonCCWObjectGlobal, HandleObject, Heap,
-    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
+    Compile1, CurrentGlobalOrNull, DelazificationOption, ExceptionStackBehavior,
+    GetNonCCWObjectGlobal, HandleObject, Heap, InstantiateGlobalStencil, InstantiateOptions,
+    JS_ClearPendingException, JSContext, JSObject, JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
-use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
+use js::rust::wrappers::{
+    JS_ExecuteScript, JS_GetPendingException, JS_GetScriptPrivate, JS_SetPendingException,
+};
 use js::rust::{
     CompileOptionsWrapper, CustomAutoRooter, CustomAutoRooterGuard, HandleValue,
     MutableHandleValue, ParentRuntime, Runtime, get_object_class, transform_str_to_source_text,
@@ -75,7 +79,6 @@ use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 #[cfg(feature = "webgpu")]
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
-use super::bindings::error::Fallible;
 use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use super::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use super::transformstream::CrossRealmTransform;
@@ -92,7 +95,8 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
 use crate::dom::bindings::error::{
-    Error, ErrorInfo, report_pending_exception, take_and_report_pending_exception_for_api,
+    Error, ErrorInfo, ErrorResult, Fallible, report_pending_exception,
+    take_and_report_pending_exception_for_api,
 };
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
@@ -142,7 +146,8 @@ use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ResolvedModule, ScriptFetchOptions,
+    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ResolvedModule, RethrowError,
+    ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -2998,6 +3003,151 @@ impl GlobalScope {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
+    #[expect(unsafe_code)]
+    pub(crate) fn create_a_classic_script(
+        &self,
+        source: Cow<'_, str>,
+        url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
+        muted_errors: bool,
+        introduction_type: Option<&'static CStr>,
+    ) -> ClassicScript {
+        let cx = GlobalScope::get_cx();
+
+        let line_number = 1;
+
+        let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
+        if let Some(introduction_type) = introduction_type {
+            options.set_introduction_type(introduction_type);
+        }
+
+        rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+        compiled_script
+            .set(unsafe { Compile1(*cx, options.ptr, &mut transform_str_to_source_text(&source)) });
+
+        let record = if compiled_script.get().is_null() {
+            rooted!(in(*cx) let mut exception = UndefinedValue());
+
+            assert!(unsafe { JS_GetPendingException(*cx, exception.handle_mut()) });
+            unsafe { JS_ClearPendingException(*cx) };
+
+            Err(RethrowError::new(Heap::boxed(exception.get())))
+        } else {
+            Ok(NonNull::new(*compiled_script).expect("Can't be null"))
+        };
+
+        ClassicScript {
+            record,
+            url,
+            fetch_options,
+            muted_errors,
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
+    #[expect(unsafe_code)]
+    pub(crate) fn run_a_classic_script_(
+        &self,
+        script: ClassicScript,
+        rethrow_errors: bool,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // TODO use a settings object
+        // Step 2 Check if we can run script with settings. If this returns "do not run", then return NormalCompletion(empty).
+        if !self.can_run_script() {
+            return Ok(());
+        }
+
+        // Once dropped this will run "Clean up after running script" steps
+        let _aes = AutoEntryScript::new(self);
+
+        let cx = GlobalScope::get_cx();
+
+        // Step 5 Let evaluationStatus be null.
+        rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
+
+        match script.record {
+            // Step 6 If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
+            Err(error_to_rethrow) => unsafe {
+                // Set the previously cleared exception since bindings code expect it
+                // when returning Error::JSFailed
+                JS_SetPendingException(
+                    *cx,
+                    error_to_rethrow.handle(),
+                    ExceptionStackBehavior::Capture,
+                )
+            },
+            // Step 7 Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
+            Ok(compiled_script) => {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                rooted!(in(*cx) let record = compiled_script.as_ptr());
+                rooted!(in(*cx) let mut script_private = UndefinedValue());
+
+                unsafe { JS_GetScriptPrivate(*record, script_private.handle_mut()) };
+
+                // When `ScriptPrivate` for the compiled script is undefined,
+                // we need to set it so that it can be used in dynamic import context.
+                if script_private.is_undefined() {
+                    debug!("Set script private for {}", script.url);
+
+                    let module_script_data = Rc::new(ModuleScript::new(
+                        script.url,
+                        script.fetch_options,
+                        // We can't initialize an module owner here because
+                        // the executing context of script might be different
+                        // from the dynamic import script's executing context.
+                        None,
+                    ));
+
+                    unsafe {
+                        SetScriptPrivate(
+                            *record,
+                            &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+                        );
+                    }
+
+                    _ = unsafe { JS_ExecuteScript(*cx, record.handle(), rval.handle_mut()) };
+                }
+            },
+        }
+
+        unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
+
+        // Step 8 If evaluationStatus is an abrupt completion, then:
+        if !evaluation_status.is_undefined() {
+            debug!("Error evaluating script");
+
+            // Step 8.1 If rethrow errors is true and script's muted errors is false, then:
+            if rethrow_errors && !script.muted_errors {
+                // Rethrow evaluationStatus.[[Value]].
+                return Err(Error::JSFailed);
+            }
+
+            // Step 8.2 If rethrow errors is true and script's muted errors is true, then:
+            if rethrow_errors && script.muted_errors {
+                // Clear the pending exception since bindings code doesn't expect one
+                // when returning a DOMException
+                unsafe { JS_ClearPendingException(*cx) };
+
+                // Throw a "NetworkError" DOMException.
+                return Err(Error::Network(None));
+            }
+
+            // Step 8.3 Otherwise, rethrow errors is false. Perform the following steps:
+            if !rethrow_errors {
+                // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
+                self.report_an_exception(cx, evaluation_status.handle(), can_gc);
+
+                // Return evaluationStatus.
+                return Err(Error::JSFailed);
+            }
+        }
+
+        maybe_resume_unwind();
+        Ok(())
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     pub(crate) fn schedule_callback(
         &self,
@@ -3728,4 +3878,17 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     fn is_secure_context(&self) -> bool {
         self.is_secure_context()
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#classic-script>
+pub struct ClassicScript {
+    /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
+    /// On failure <https://html.spec.whatwg.org/multipage/#concept-script-error-to-rethrow>
+    pub record: Result<NonNull<JSScript>, RethrowError>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-script-fetch-options>
+    fetch_options: ScriptFetchOptions,
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
+    url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#muted-errors>
+    muted_errors: bool,
 }
