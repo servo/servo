@@ -792,7 +792,7 @@ impl JsTimerTask {
 
                 // Step 9.6.6. Let base URL be settings object's API base URL.
                 let base_url = global.api_base_url();
-                
+
                 // TODO Step 9.6.7. If initiating script is not null, then:
                 // Step 9.6.7.1. Set fetch options to a script fetch options whose cryptographic nonce
                 // is initiating script's fetch options's cryptographic nonce,
@@ -801,7 +801,7 @@ impl JsTimerTask {
                 // referrer policy is initiating script's fetch options's referrer policy,
                 // and fetch priority is "auto".
                 // Step 9.6.7.2. Set base URL to initiating script's base URL.
-                
+
                 // Step 9.6.8. Let script be the result of creating a classic script given handler,
                 // settings object, base URL, and fetch options.
                 let script = global.create_a_classic_script(
