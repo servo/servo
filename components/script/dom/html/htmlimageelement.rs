@@ -343,10 +343,15 @@ impl HTMLImageElement {
     fn fetch_image(&self, img_url: &ServoUrl, can_gc: CanGc) {
         let window = self.owner_window();
 
+        let svg_fallback_font_size = self
+            .upcast::<Node>()
+            .style()
+            .and_then(|style| Some(style.get_font().font_size.computed_size.px()));
         let cache_result = window.image_cache().get_cached_image_status(
             img_url.clone(),
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
+            svg_fallback_font_size,
         );
 
         match cache_result {
@@ -1135,10 +1140,15 @@ impl HTMLImageElement {
 
         // Step 14
         let window = self.owner_window();
+        let svg_fallback_font_size = self
+            .upcast::<Node>()
+            .style()
+            .and_then(|style| Some(style.get_font().font_size.computed_size.px()));
         let cache_result = window.image_cache().get_cached_image_status(
             img_url.clone(),
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
+            svg_fallback_font_size,
         );
 
         let change_type = ChangeType::Environment {

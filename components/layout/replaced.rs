@@ -14,12 +14,18 @@ use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
+use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::computed_values::object_fit::T as ObjectFit;
+use style::context::QuirksMode;
 use style::logical_geometry::{Direction, WritingMode};
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, StyleBuilder};
+use style::rule_cache::RuleCacheConditions;
 use style::servo::url::ComputedUrl;
+use style::str::char_is_whitespace;
+use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
+use style::values::computed::{Context, ToComputedValue};
 use url::Url;
 use webrender_api::ImageKey;
 
@@ -187,12 +193,20 @@ impl ReplacedContents {
                     Some(Ok(svg_source)) => svg_source,
                 };
 
+                let svg_fallback_font_size = Some(
+                    node.selected_style()
+                        .get_font()
+                        .font_size
+                        .computed_size
+                        .px(),
+                );
                 let result = context
                     .image_resolver
                     .get_cached_image_for_url(
                         node.opaque(),
                         svg_source,
                         LayoutImageDestination::BoxTreeConstruction,
+                        svg_fallback_font_size,
                     )
                     .ok();
 
@@ -200,10 +214,62 @@ impl ReplacedContents {
                     Image::Vector(vector_image) => vector_image,
                     _ => unreachable!("SVG element can't contain a raster image."),
                 });
+
+                let rule_cache_conditions = &mut RuleCacheConditions::default();
+                let parent_style = &node.selected_style();
+                let style_builder = StyleBuilder::new(
+                    context.style_context.stylist.device(),
+                    Some(context.style_context.stylist),
+                    Some(parent_style),
+                    None,
+                    None,
+                    false,
+                );
+
+                let to_computed_context = Context::new(
+                    style_builder,
+                    QuirksMode::Quirks,
+                    rule_cache_conditions,
+                    ContainerSizeQuery::none(),
+                );
+
+                let attr_to_computed = |attr_val: &AttrValue| {
+                    if let AttrValue::Length(_, length) = attr_val {
+                        length.to_computed_value(&to_computed_context)
+                    } else {
+                        None
+                    }
+                };
+                let width = svg_data.width.and_then(attr_to_computed);
+                let height = svg_data.height.and_then(attr_to_computed);
+
+                let ratio = if let (Some(width), Some(height)) = (width, height) &&
+                    !width.is_zero() &&
+                    !height.is_zero()
+                {
+                    Some(width.px() / height.px())
+                } else {
+                    svg_data.view_box.and_then(|view_box| {
+                        let mut iter = view_box.chars();
+                        let _min_x = parse_integer(&mut iter).ok()?;
+                        let _min_y = parse_integer(&mut iter).ok()?;
+                        let width = parse_unsigned_integer(&mut iter).ok()?;
+                        if width == 0 {
+                            return None;
+                        }
+                        let height = parse_unsigned_integer(&mut iter).ok()?;
+                        if height == 0 {
+                            return None;
+                        }
+                        let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
+                        iter.next().is_none().then(|| width as f32 / height as f32)
+                    })
+                };
+
                 let natural_size = NaturalSizes {
-                    width: svg_data.width.map(Au::from_px),
-                    height: svg_data.height.map(Au::from_px),
-                    ratio: svg_data.ratio,
+                    width: width.map(|w| Au::from_f32_px(w.px())),
+                    height: height.map(|h| Au::from_f32_px(h.px())),
+                    ratio,
                 };
                 (ReplacedContentKind::SVGElement(vector_image), natural_size)
             } else {
@@ -230,10 +296,18 @@ impl ReplacedContents {
         image_url: &ComputedUrl,
     ) -> Option<Self> {
         if let ComputedUrl::Valid(image_url) = image_url {
+            let svg_fallback_font_size = Some(
+                node.selected_style()
+                    .get_font()
+                    .font_size
+                    .computed_size
+                    .px(),
+            );
             let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
                 node.opaque(),
                 image_url.clone().into(),
                 LayoutImageDestination::BoxTreeConstruction,
+                svg_fallback_font_size,
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
