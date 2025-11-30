@@ -42,6 +42,7 @@ rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
 servo_url = { path = "../../url" }
+tower = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }
