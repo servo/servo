@@ -21,8 +21,6 @@ assert_not_inherited('shape-inside', 'auto', 'url("https://example/com/")');
 assert_not_inherited('shape-subtract', 'auto', 'url("https://example/com/")');
 assert_not_inherited('shape-margin', '0px', '10px');
 assert_inherited('text-anchor', 'start', 'middle');
-assert_not_inherited('text-decoration-fill', 'none', 'url("https://example/com/")');
-assert_not_inherited('text-decoration-stroke', 'none', 'url("https://example/com/")');
 
   ]]></script>
 </svg>

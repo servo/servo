@@ -13,6 +13,8 @@
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Use measureText to create a rect for the whole text
@@ -75,6 +77,8 @@ test(t => {
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Use measureText to create a rect for the whole text
@@ -137,6 +141,8 @@ test(t => {
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Use measureText to create a rect for the whole text
@@ -211,6 +217,8 @@ test(t => {
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Use measureText to create a rect for the whole text
@@ -284,4 +292,3 @@ test(t => {
 }, "Test TextMetrics::getActualBoundingBox() for the full length of the string for some edge cases, with direction rtl and directional-override");
 
 </script>
-</div>

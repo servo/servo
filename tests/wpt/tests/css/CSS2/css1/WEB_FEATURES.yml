@@ -15,3 +15,6 @@ features:
   files:
   - c534-bgre-*
   - c534-bgreps-*
+- name: word-spacing
+  files:
+    - c541-word-sp*

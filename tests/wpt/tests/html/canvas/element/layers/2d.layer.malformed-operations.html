@@ -13,6 +13,8 @@
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Shouldn't throw on its own.
@@ -27,6 +29,8 @@ test(t => {
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   const canvas2 = new OffscreenCanvas(200, 200);
@@ -43,6 +47,8 @@ test(t => {
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Shouldn't throw on its own.
@@ -57,6 +63,8 @@ test(t => {
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   const canvas2 = new OffscreenCanvas(200, 200);
@@ -74,6 +82,8 @@ test(t => {
 
 test(t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Shouldn't throw on its own.
@@ -87,4 +97,3 @@ test(t => {
 }, "Throws if toDataURL is called while layers are open.");
 
 </script>
-</div>

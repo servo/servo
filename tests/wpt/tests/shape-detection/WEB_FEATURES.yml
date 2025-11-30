@@ -1,0 +1,25 @@
+features:
+- name: barcode
+  files:
+  - detected-boundingBox-read-only.https.html
+  - detected-postMessage.https.html
+  - detection-Blob.https.window.js
+  - detection-HTMLCanvasElement.https.html
+  - detection-HTMLImageElement-empty-src.https.html
+  - detection-HTMLImageElement-zero-dimension-image.https.html
+  - detection-HTMLImageElement.https.html
+  - detection-HTMLVideoElement.https.html
+  - detection-ImageBitmap-closed.https.window.js
+  - detection-ImageBitmap.https.html
+  - detection-ImageData-detached.https.html
+  - detection-ImageData.https.html
+  - detection-SVGImageElement.https.window.js
+  - detection-VideoFrame.https.window.js
+  - detection-getSupportedFormats.https.html
+  - detection-on-worker.https.worker.js
+  - detection-options.https.html
+  - detection-security-test.https.html
+  - detector-same-object.https.html
+  - idlharness.https.any.js
+  - shapedetection-cross-origin.sub.https.html
+  - single-barcode-detection.https.html

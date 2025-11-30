@@ -1,0 +1,11 @@
+features:
+- name: capture-stream-audio-video
+  files:
+  - capture-muted.html
+  - capture.html
+  - creation.html
+  - cross-origin.html
+  - ended.html
+- name: capture-stream-canvas
+  files:
+  - HTMLCanvasElement-*

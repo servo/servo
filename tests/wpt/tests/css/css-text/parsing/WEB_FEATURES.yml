@@ -23,3 +23,6 @@ features:
 - name: text-wrap-mode
   files:
   - text-wrap-mode-*
+- name: word-spacing
+  files:
+  - word-spacing-*

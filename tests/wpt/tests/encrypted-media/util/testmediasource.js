@@ -12,6 +12,18 @@ function testmediasource(config) {
         Promise.all(fetches).then(function(resources) {
             config.audioMedia = resources[0];
             config.videoMedia = resources[1];
+            if (Object.hasOwn(config, 'audioBlankBytes')) {
+                audioMedia = new Uint8Array(config.audioMedia);
+                for (const pos of config.audioBlankBytes) {
+                    audioMedia[pos] = ' '.charCodeAt();
+                }
+            }
+            if (Object.hasOwn(config, 'videoBlankBytes')) {
+                videoMedia = new Uint8Array(config.videoMedia);
+                for (const pos of config.videoBlankBytes) {
+                    videoMedia[pos] = ' '.charCodeAt();
+                }
+            }
 
             // Create media source
             var source = new MediaSource();

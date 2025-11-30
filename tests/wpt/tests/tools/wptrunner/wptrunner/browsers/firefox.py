@@ -243,7 +243,6 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "remoteAsyncEvents": (bool_pref("remote.events.async.mouse.enabled") or
                                 bool_pref("remote.events.async.wheel.enabled")),
           "incOriginInit": os.environ.get("MOZ_ENABLE_INC_ORIGIN_INIT") == "1",
-          "navigationApi": bool_pref("dom.navigation.webidl.enabled"),
           }
     rv.update(run_info_browser_version(**kwargs))
 

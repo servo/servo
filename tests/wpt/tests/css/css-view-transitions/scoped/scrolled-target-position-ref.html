@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: Scrolled target capture position (ref)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+  background: lightblue;
+}
+#child {
+  width: 50px;
+  height: 75px;
+  background: green;
+}
+#content {
+  width: 100px;
+  height: 400px;
+  background: yellow;
+}
+</style>
+
+<div id="target">
+  <div id="content"><div id=child></div></div>
+</div>
+
+<script>
+onload = () => {
+  target.scrollTop = 25;
+  takeScreenshot();
+}
+</script>
+
+</html>

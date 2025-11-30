@@ -50,6 +50,13 @@
 // Run each test a number of times to increase the likelyhood that failure is not the cause of random chance.
 const iterations = 5;
 
+// Since actual and expected values are generated randomly, `assert_equals()`
+// does not generate deterministic test failure output. Chrome relies on test
+// failure output to be deterministic and stable for failing test expectations.
+function test_random_equals(actual, expected, message = "Random values should be equal") {
+  assert_true(actual === expected, message);
+}
+
 function test_random_computed_value(property, specified, computed, titleExtra, options = {}) {
   if (!computed)
     computed = specified;
@@ -68,12 +75,12 @@ function test_random_computed_value(property, specified, computed, titleExtra, o
       } else if (Array.isArray(computed)) {
         assert_in_array(readValue, computed);
       } else {
-        assert_equals(readValue, computed);
+        test_random_equals(readValue, computed);
       }
       if (readValue !== specified) {
         target.style[property] = '';
         target.style[property] = readValue;
-        assert_equals(getComputedStyle(target)[property], readValue,
+        test_random_equals(getComputedStyle(target)[property], readValue,
                       'computed value should round-trip');
       }
     }
@@ -163,15 +170,15 @@ function test_random_computed_value_has_fixed(property, specified, minPercentage
       // split fixed component into its two components
       let [fixedString, fixedValue] = fixedComponent.split(' ');
 
-      assert_equals(fixedString, 'fixed', specified);
+      test_random_equals(fixedString, 'fixed', `Computed value for ${specified} should include 'fixed'`);
       if (expectedFixedValue) {
-        assert_equals(parseFloat(fixedValue), expectedFixedValue);
+        test_random_equals(parseFloat(fixedValue), expectedFixedValue, `Random value for ${specified} should be ${expectedFixedValue}`);
       } else {
         assert_greater_than_equal(parseFloat(fixedValue), 0, specified);
         assert_less_than(parseFloat(fixedValue), 1, specified);
       }
-      assert_equals(minComponent, minPercentage, specified);
-      assert_equals(maxComponent, maxPercentage, specified);
+      test_random_equals(minComponent, minPercentage, specified);
+      test_random_equals(maxComponent, maxPercentage, specified);
     }
   }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
@@ -323,7 +330,7 @@ test(() => {
   } finally {
     document.body.removeChild(holder);
   }
-}, `Maximum random - shorthand: random(a, b))`);
+}, `Maximum random - shorthand: random(a, b)`);
 
 test(() => {
   const holder = document.createElement('div');
@@ -338,7 +345,8 @@ test(() => {
       let elComputedWidth = getComputedStyle(el)['width'];
       let elComputedHeight = getComputedStyle(el)['height'];
 
-      assert_equals(elComputedWidth, elComputedHeight);
+      test_random_equals(elComputedWidth, elComputedHeight,
+                           "width and height values on same element should be equal");
     }
   } finally {
     document.body.removeChild(holder);
@@ -384,7 +392,8 @@ test(() => {
       let t1ComputedWidth = getComputedStyle(t1)['width'];
       let t2ComputedWidth = getComputedStyle(t2)['width'];
 
-      assert_equals(t1ComputedWidth, t2ComputedWidth);
+      test_random_equals(t1ComputedWidth, t2ComputedWidth,
+                           "width values on different elements should be equal");
     }
   } finally {
     document.body.removeChild(holder);
@@ -430,7 +439,8 @@ test(() => {
       let t1ComputedWidth = getComputedStyle(t1)['width'];
       let t2ComputedHeight = getComputedStyle(t2)['height'];
 
-      assert_equals(t1ComputedWidth, t2ComputedHeight);
+      test_random_equals(t1ComputedWidth, t2ComputedHeight,
+                           "width and height values on different elements should be equal");
     }
   } finally {
     document.body.removeChild(holder);
@@ -472,7 +482,7 @@ test(() => {
 
       let t1ComputedWidth = getComputedStyle(t1)['width'];
 
-      assert_equals(t1ComputedWidth, "55px");
+      test_random_equals(t1ComputedWidth, "55px", "Random value with fixed should be 55px");
     }
   } finally {
     document.body.removeChild(holder);

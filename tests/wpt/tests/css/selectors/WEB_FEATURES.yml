@@ -26,3 +26,6 @@ features:
   files:
   - user-invalid.html
   - user-valid.html
+- name: caret-color
+  files:
+  - caret-color-visited-inheritance.html

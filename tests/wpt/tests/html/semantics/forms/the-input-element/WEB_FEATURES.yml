@@ -18,3 +18,6 @@ features:
   files:
   - type-change-file-to-text-crash.html
   - input-value-invalidstateerr.html
+- name: change-event
+  files:
+  - change-to-empty-value.html

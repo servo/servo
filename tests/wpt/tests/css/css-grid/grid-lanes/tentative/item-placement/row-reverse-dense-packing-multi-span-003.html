@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-reverse-dense-packing-multi-span-003-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+  display: grid-lanes;
+  item-tolerance: 0;
+  grid-auto-flow: dense;
+  grid-lanes-direction: row-reverse;
+  grid-template-rows: repeat(5, 50px);
+}
+</style>
+<body>
+<p>Ensure that dense-packing with multi-span items follows the grid-lanes dense packing algorithm.</p>
+<div class="grid-lanes">
+  <div style="background: brown; width: 80px;"></div>
+  <div style="background: brown; width: 60px;"></div>
+  <div style="background: brown; width: 40px;"></div>
+  <div style="background: brown; width: 30px;"></div>
+  <div style="background: brown; width: 20px;"></div>
+  <div style="background: brown; width: 20px; grid-row: span 5;"></div>
+  <div style="background: pink; width: 30px; grid-row: span 4;">
+      Item that should not end up in gap.
+  </div>
+  <div name="item_that_should_end_up_in_gap" style="background: yellow; width: 20px; grid-row: span 4;"></div>
+</div>
+</body>
+</html>

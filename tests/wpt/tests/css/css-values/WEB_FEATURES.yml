@@ -36,6 +36,9 @@ features:
 - name: rch
   files:
   - rch-*
+- name: ex
+  files:
+  - ex-*
 - name: rex
   files:
   - rex-*

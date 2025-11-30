@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DOMParser: parseFromString() with stylesheets</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-domparser-parsefromstring">
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-document-stylesheets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString("<style>div { color: green; }</style>", "text/html");
+
+  assert_equals(doc.styleSheets.length, 1, "Document should have one stylesheet");
+}, "DOMParser-created document should have accessible styleSheets collection with one style element");
+
+test(() => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString("<style>div { color: green; }</style>", "text/html");
+
+  assert_equals(doc.styleSheets.length, 1, "Document should have one stylesheet");
+  const sheet = doc.styleSheets[0];
+  assert_true(sheet instanceof CSSStyleSheet, "styleSheets[0] should be a CSSStyleSheet");
+}, "DOMParser-created document styleSheets should contain CSSStyleSheet objects");
+
+test(() => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString("<style>div { color: green; } p { color: red; }</style>", "text/html");
+
+  assert_equals(doc.styleSheets.length, 1, "Document should have one stylesheet");
+  const sheet = doc.styleSheets[0];
+  assert_equals(sheet.cssRules.length, 2, "Stylesheet should have two CSS rules");
+}, "DOMParser-created document styleSheets should have accessible cssRules");
+
+test(() => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(
+    "<style>div { color: green; }</style><style>p { color: red; }</style>",
+    "text/html"
+  );
+
+  assert_equals(doc.styleSheets.length, 2, "Document should have two stylesheets");
+}, "DOMParser-created document should expose multiple style elements in styleSheets");
+
+test(() => {
+  const parser = new DOMParser();
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          .test { color: blue; }
+        </style>
+      </head>
+      <body>
+        <div class="test">Hello</div>
+      </body>
+    </html>
+  `;
+  const doc = parser.parseFromString(html, "text/html");
+
+  assert_equals(doc.styleSheets.length, 1, "Document should have one stylesheet");
+  const sheet = doc.styleSheets[0];
+  assert_equals(sheet.cssRules.length, 1, "Stylesheet should have one CSS rule");
+  assert_equals(sheet.cssRules[0].selectorText, ".test", "CSS rule should have correct selector");
+}, "DOMParser-created document with full HTML structure should have accessible styleSheets");
+
+test(() => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString("<div>No styles</div>", "text/html");
+
+  assert_equals(doc.styleSheets.length, 0, "Document without style elements should have empty styleSheets");
+}, "DOMParser-created document without style elements should have empty styleSheets collection");
+
+</script>

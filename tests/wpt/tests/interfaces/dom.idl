@@ -313,7 +313,7 @@ interface Document : Node {
 interface XMLDocument : Document {};
 
 dictionary ElementCreationOptions {
-  CustomElementRegistry customElementRegistry;
+  CustomElementRegistry? customElementRegistry;
   DOMString is;
 };
 
@@ -412,7 +412,7 @@ dictionary ShadowRootInit {
   SlotAssignmentMode slotAssignment = "named";
   boolean clonable = false;
   boolean serializable = false;
-  CustomElementRegistry? customElementRegistry = null;
+  CustomElementRegistry? customElementRegistry;
 };
 
 [Exposed=Window,

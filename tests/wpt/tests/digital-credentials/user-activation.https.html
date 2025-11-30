@@ -14,7 +14,7 @@
       navigator.userActivation.isActive,
       "User activation should not be active"
     );
-    const options = makeGetOptions("openid4vp");
+    const options = makeGetOptions("openid4vp-v1-unsigned");
     await promise_rejects_dom(
       t,
       "NotAllowedError",
@@ -25,7 +25,7 @@
   promise_test(async (t) => {
     await test_driver.bless();
     const abort = new AbortController();
-    const options = makeGetOptions("openid4vp");
+    const options = makeGetOptions("openid4vp-v1-unsigned");
     options.signal = abort.signal;
     assert_true(
       navigator.userActivation.isActive,

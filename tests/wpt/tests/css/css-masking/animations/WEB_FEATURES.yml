@@ -6,3 +6,7 @@ features:
   - mask-image-interpolation.html
   - mask-no-interpolation.html
   - mask-position-interpolation.html
+- name: clip
+  files:
+  - clip-*
+  - "!clip-path-*"

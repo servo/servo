@@ -9,6 +9,13 @@ features:
 - name: outline
   files:
   - outline-*
+- name: resize
+  files:
+  - resize-*
 - name: user-select
   files:
   - user-select-*
+- name: caret-color
+  files:
+  - caret-color-*
+  - caret-eol-*

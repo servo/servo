@@ -14,7 +14,7 @@ async_test(test => {
     const frame = document.querySelector('iframe');
     const child = frame.contentWindow;
     assert_equals(child.document.readyState, 'complete', 'readyState is complete');
-    assert_array_equals(events, ["loading", "DOMContentLoaded", "stop", "complete"], 'no load event was fired');
+    assert_array_equals(events, ["loading", "stop"], 'no load event was fired');
     events = [];
     frame.src = "abort-document-load-2.html";
 

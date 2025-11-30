@@ -1,0 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web Extensions (https://w3c.github.io/webextensions/specification/)
+
+enum RunAt {
+    "document_start",
+    "document_end",
+    "document_idle"
+};
+
+enum ExecutionWorld {
+    "ISOLATED",
+    "MAIN"
+};

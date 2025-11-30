@@ -14,6 +14,9 @@ const setupIframe = (t, attrs) => {
   return {iframe, watcher};
 };
 
+// This test is outdated, see
+// https://github.com/whatwg/html/issues/3267#issuecomment-2788132131
+
 promise_test(async t => {
   const {iframe, watcher} = setupIframe(t, {});
 

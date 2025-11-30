@@ -17,7 +17,6 @@ const response = await p;
 const result = {
   'root-fenced-frame-headers': {
     'sec-ch-viewport-width': '{{header_or_default(sec-ch-viewport-width, )}}',
-    'sec-ch-ua-reduced': '{{header_or_default(sec-ch-ua-reduced, )}}',
     'sec-ch-ua-mobile': '{{header_or_default(sec-ch-ua-mobile, )}}',
   },
   'iframe-headers': response.headers,

@@ -9,3 +9,6 @@ features:
 - name: registerprotocolhandler
   files:
   - protocol-*
+- name: window-controls-overlay
+  files:
+  - navigator-window-controls-overlay.tentative.html

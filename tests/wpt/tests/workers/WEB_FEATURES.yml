@@ -13,3 +13,7 @@ features:
   - WorkerNavigator_userAgentData.http.html
   - WorkerNavigator_userAgentData.https.html
   - WorkerNavigator_userAgentData.https.tentative.html
+- name: postmessage
+  files:
+  - Worker-postMessage-happens-in-parallel.https.html
+  - postMessage_*

@@ -1,0 +1,7 @@
+features:
+- name: rgb
+  files:
+  - colors-001*
+  - colors-002*
+  - colors-003*
+  - colors-004*

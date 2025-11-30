@@ -15,3 +15,6 @@ features:
   - transition-timing-function-004-manual.html
   - transition-timing-function-005-manual.html
   - transition-timing-function-006-manual.html
+- name: clip
+  files:
+  - transition-property-017-manual.html

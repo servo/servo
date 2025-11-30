@@ -51,6 +51,14 @@ promise_test(async t => {
 promise_test(async t => {
   const id = token();
 
+  w = window.open("about:blank", id);
+  w.location = `resources/window-name.sub.html?cross|same|report=${id}|close`;
+  await pollResultAndCheck(t, id, id);
+}, "Window.name is not reset at the first navigation away from loaded initial about:blank");
+
+promise_test(async t => {
+  const id = token();
+
   window.open(`resources/window-name.sub.html?report=${id}|close`, id, "noopener");
   await pollResultAndCheck(t, id, id);
 }, "Window.name is not reset at the first navigation away from initial about:blank with noopener");

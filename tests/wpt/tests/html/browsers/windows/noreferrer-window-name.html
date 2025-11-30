@@ -65,22 +65,33 @@
 
   async_test(function(t) {
     var win = window.open("", "sufficientlyrandomwindownameamiright3");
-    t.add_cleanup(function() {
-      win.close();
-    });
+    t.add_cleanup(() => win.close());
+
+    const channel = new BroadcastChannel('sufficientlyrandomchannelnameamiright3');
+    t.add_cleanup(() => channel.close());
+
+    const targetHtml = `
+      <script>
+        const channel = new BroadcastChannel('sufficientlyrandomchannelnameamiright3');
+        channel.postMessage({ name: window.name, hasOpener: window.opener === null });
+      </scr`+`ipt>
+    `;
 
     var hyperlink = document.body.appendChild(document.createElement("a"));
-    t.add_cleanup(function() {
-      hyperlink.remove();
-    });
+    t.add_cleanup(() => hyperlink.remove());
     hyperlink.rel = "noreferrer";
-    hyperlink.href = URL.createObjectURL(new Blob(["hello window"],
+    hyperlink.href = URL.createObjectURL(new Blob([targetHtml],
                                                   { type: "text/html"}));
     hyperlink.target = "sufficientlyrandomwindownameamiright3";
-    win.onload = t.step_func_done(function() {
-      assert_equals(win.document.documentElement.textContent,
-                    "hello window");
+
+    // win already loaded about:blank, the next load won't reuse the window. So we cannot
+    // add a load listener and rather need to use a channel.
+    channel.onmessage = t.step_func_done(function({ data }) {
+      assert_equals(data.name, 'sufficientlyrandomwindownameamiright3');
+      assert_equals(data.hasOpener, false);
+      assert_equals(win.location.href, hyperlink.href);
     });
+
     hyperlink.click();
   }, "Targeting a rel=noreferrer link at an existing named window should work");
 </script>

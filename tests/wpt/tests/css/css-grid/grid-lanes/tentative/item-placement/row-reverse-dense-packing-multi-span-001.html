@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-reverse-dense-packing-multi-span-001-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+  display: grid-lanes;
+  item-tolerance: 0;
+  grid-auto-flow: dense;
+  grid-lanes-direction: row-reverse;
+  grid-template-rows: repeat(4, 50px);
+}
+</style>
+<body>
+<p>Ensure that dense-packing places multi-spanning item into highest eligible track opening. The yellow item should be placed in track opening.</p>
+<div class="grid-lanes">
+  <div style="background: lightskyblue; width: 70px;">
+    1
+  </div>
+  <div style="background: lightblue; width: 20px; grid-row: 1;">
+    2
+  </div>
+  <div style="background: darkblue; width: 20px; grid-row: 1 / span 2;">
+    3
+  </div>
+  <div style="background: lightsteelblue; width: 20px; grid-row: span 4;">
+    4
+  </div>
+  <div style="background: yellow; width: 10px; grid-row: span 2;">
+    5
+  </div>
+</div>
+</body>
+</html>

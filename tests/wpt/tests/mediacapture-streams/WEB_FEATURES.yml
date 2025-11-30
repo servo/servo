@@ -1,0 +1,4 @@
+features:
+- name: element-capture
+  files:
+  - 'BrowserCaptureMediaStreamTrack-restrictTo.https.html'

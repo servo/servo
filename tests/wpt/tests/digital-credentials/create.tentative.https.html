@@ -17,7 +17,6 @@
 
   const iframeSameOrigin = document.querySelector("iframe#same-origin");
   const iframeCrossOrigin = document.querySelector("iframe#cross-origin");
-  const mediations = ["silent", "optional", "conditional", "required"];
 
   promise_setup(async () => {
     const hostInfo = get_host_info();
@@ -209,6 +208,8 @@
   }, "navigator.credentials.create() promise is rejected if abort controller is aborted after call to create() in cross-origin iframe.");
 
   promise_test(async (t) => {
+    /** @type sequence<CredentialMediationRequirement> */
+    const mediations = ["silent", "optional", "conditional", "required"];
     const abortController = new AbortController();
     const { signal } = abortController;
     abortController.abort();
@@ -219,16 +220,7 @@
       });
       await promise_rejects_dom(t, "AbortError", requestPromise);
     }
-  }, "Adding mediations together with abort signal respects the abort signal.");
-
-  promise_test(async (t) => {
-    /** @type sequence<CredentialMediationRequirement> */
-    const disallowedMediations = [ "conditional", "optional", "silent"];
-    for (const mediation of disallowedMediations) {
-      const options = makeCreateOptions("default", mediation);
-      await promise_rejects_js(t, TypeError, navigator.credentials.create(options));
-    }
-  }, "Mediation is required to create a DigitalCredential.");
+  }, "Mediation is implicitly required and hence ignored. Request is aborted regardless.");
 
   promise_test(async (t) => {
     await promise_rejects_js(

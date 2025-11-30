@@ -13,6 +13,8 @@
 
 promise_test(async t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Shouldn't throw on its own.
@@ -27,6 +29,8 @@ promise_test(async t => {
 
 promise_test(async t => {
   const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 200;
   const ctx = canvas.getContext('2d');
 
   // Shouldn't throw on its own.
@@ -40,4 +44,3 @@ promise_test(async t => {
 }, "Throws if toBlob is called while layers are open.");
 
 </script>
-</div>

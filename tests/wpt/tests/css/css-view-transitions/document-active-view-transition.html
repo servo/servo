@@ -42,5 +42,7 @@ promise_test(async t => {
 
   assert_equals(document.activeViewTransition, null, "activeViewTransition is null after transition is skipped");
 
+  let [result] = await Promise.allSettled([transition2.ready]);
+  assert_equals(result.status, "rejected", "ready promise should be rejected due to skipTransition call");
 }, "document.activeViewTransition returns the active transition");
 </script>

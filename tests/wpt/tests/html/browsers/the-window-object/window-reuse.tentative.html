@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test window reuse on initial navigation away from about:blank</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+promise_test(async t => {
+  const w = window.open("/common/blank.html");
+  t.add_cleanup(() => w.close());
+
+  assert_equals(w.location.href, 'about:blank', 'window initially on a transient about:blank');
+  w.foo = 'bar';
+
+  await new Promise(res => w.onload = res);
+  assert_true(w.location.href.endsWith('/common/blank.html'), 'loaded initial navigation target');
+  assert_equals(w.foo, 'bar', 'did reuse window');
+}, 'Initially navigating window to non-about:blank page should reuse synchonously available window');
+
+promise_test(async t => {
+  const name = 'unique-name-11sep25';
+  const channel = new BroadcastChannel(name);
+  const w = window.open("about:blank", name);
+  t.add_cleanup(() => w.close());
+
+  assert_equals(w.location.href, 'about:blank', 'loaded about:blank');
+  w.foo = 'bar';
+
+  w.location.href = 'support/window-open-popup-target.html';
+  await new Promise(res => channel.onmessage = res);
+  assert_true(true, 'completed non-initial load onto initial about:blank');
+  assert_equals(w.foo, undefined, 'did reuse window');
+}, 'synchronously navigating window away from initial about:blank should not reuse window');
+</script>

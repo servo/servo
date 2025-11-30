@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-reverse-dense-packing-multi-span-002-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+  display: grid-lanes;
+  item-tolerance: 0;
+  grid-auto-flow: dense;
+  grid-lanes-direction: column-reverse;
+  grid-template-columns: 10px 10px 20px 15px 5px;
+}
+</style>
+<body>
+<p>Ensure that dense-packing with multi-span items are placed into tracks with the same used size and the same number of tracks.</p>
+<div class="grid-lanes">
+  <div style="background: lightskyblue; height: 20px; grid-column: 3" >
+    1
+  </div>
+  <div style="background: lightblue; height: 20px; grid-column: span 5" >
+    2
+  </div>
+  <div style="background: darkblue; height: 20px; grid-column: span 3;">
+    3
+  </div>
+  <div style="background: yellow; height: 20px; grid-column: span 2;" >
+    4
+  </div>
+</div>
+</body>
+</html>

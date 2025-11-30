@@ -141,50 +141,6 @@ const quantizeLinearTests = [
     }
   },
   {
-    'name': 'quantizeLinear float32 1D constant tensor with negative scale',
-    'graph': {
-      'inputs': {
-        'quantizeLinearInput': {
-          'data': [
-            -2.549168109893799, -4.794857501983643, 8.413617134094238,
-            6.108623504638672
-          ],
-          'descriptor': {shape: [4], dataType: 'float32'},
-          'constant': true
-        },
-        'quantizeLinearScale': {
-          'data': [
-            9.343092918395996,
-            0.2800687253475189,
-            -4.617084980010986,
-            1.1202747821807861,
-          ],
-          'descriptor': {shape: [4], dataType: 'float32'},
-          'constant': true
-        },
-        'quantizeLinearZeroPoint': {
-          'data': [128, 128, 128, 128],
-          'descriptor': {shape: [4], dataType: 'uint8'},
-          'constant': true
-        }
-      },
-      'operators': [{
-        'name': 'quantizeLinear',
-        'arguments': [
-          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
-          {'zeroPoint': 'quantizeLinearZeroPoint'}
-        ],
-        'outputs': 'quantizeLinearOutput'
-      }],
-      'expectedOutputs': {
-        'quantizeLinearOutput': {
-          'data': [128, 111, 126, 133],
-          'descriptor': {shape: [4], dataType: 'uint8'}
-        }
-      }
-    }
-  },
-  {
     'name':
         'quantizeLinear float32 2D tensor broadcasting zeroPoint and scale',
     'graph': {
@@ -278,8 +234,8 @@ const quantizeLinearTests = [
         },
         'quantizeLinearScale': {
           'data': [
-            0.2800687253475189, -4.617084980010986, 0.2800687253475189,
-            -4.617084980010986
+            0.2800687253475189, 4.617084980010986, 0.2800687253475189,
+            4.617084980010986
           ],
           'descriptor': {shape: [1, 1, 2, 2], dataType: 'float32'},
           'constant': true
@@ -300,7 +256,7 @@ const quantizeLinearTests = [
       }],
       'expectedOutputs': {
         'quantizeLinearOutput': {
-          'data': [119, 129, 158, 127],
+          'data': [119, 127, 158, 129],
           'descriptor': {shape: [1, 1, 2, 2], dataType: 'uint8'}
         }
       }
@@ -320,7 +276,7 @@ const quantizeLinearTests = [
           'constant': false
         },
         'quantizeLinearScale': {
-          'data': [0.2800687253475189, -4.617084980010986],
+          'data': [0.2800687253475189, 4.617084980010986],
           'descriptor': {shape: [1, 2, 1], dataType: 'float32'},
           'constant': true
         },
@@ -340,7 +296,7 @@ const quantizeLinearTests = [
       }],
       'expectedOutputs': {
         'quantizeLinearOutput': {
-          'data': [119, 111, 187, 188],
+          'data': [119, 111, 191, 190],
           'descriptor': {shape: [1, 4, 1], dataType: 'uint8'}
         }
       }
@@ -759,42 +715,6 @@ const quantizeLinearTests = [
     }
   },
   {
-    'name': 'quantizeLinear float16 1D tensor with negative scale',
-    'graph': {
-      'inputs': {
-        'quantizeLinearInput': {
-          'data': [-2.548828125, -4.79296875, 8.4140625, 6.109375],
-          'descriptor': {'shape': [4], 'dataType': 'float16'},
-          'constant': false
-        },
-        'quantizeLinearScale': {
-          'data': [9.34375, 0.280029296875, -4.6171875, 1.1201171875],
-          'descriptor': {'shape': [4], 'dataType': 'float16'},
-          'constant': true
-        },
-        'quantizeLinearZeroPoint': {
-          'data': [128, 128, 128, 128],
-          'descriptor': {'shape': [4], 'dataType': 'uint8'},
-          'constant': true
-        }
-      },
-      'operators': [{
-        'name': 'quantizeLinear',
-        'arguments': [
-          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
-          {'zeroPoint': 'quantizeLinearZeroPoint'}
-        ],
-        'outputs': 'quantizeLinearOutput'
-      }],
-      'expectedOutputs': {
-        'quantizeLinearOutput': {
-          'data': [128, 111, 126, 133],
-          'descriptor': {'shape': [4], 'dataType': 'uint8'}
-        }
-      }
-    }
-  },
-  {
     'name':
         'quantizeLinear float16 2D tensor broadcasting zeroPoint and scale',
     'graph': {
@@ -878,7 +798,7 @@ const quantizeLinearTests = [
           'constant': false
         },
         'quantizeLinearScale': {
-          'data': [0.280029296875, -4.6171875, 0.280029296875, -4.6171875],
+          'data': [0.280029296875, 4.6171875, 0.280029296875, 4.6171875],
           'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'float16'},
           'constant': true
         },
@@ -898,7 +818,7 @@ const quantizeLinearTests = [
       }],
       'expectedOutputs': {
         'quantizeLinearOutput': {
-          'data': [119, 129, 158, 127],
+          'data': [119, 127, 158, 129],
           'descriptor': {'shape': [1, 1, 2, 2], 'dataType': 'uint8'}
         }
       }
@@ -915,7 +835,7 @@ const quantizeLinearTests = [
           'constant': false
         },
         'quantizeLinearScale': {
-          'data': [0.280029296875, -4.6171875],
+          'data': [0.280029296875, 4.6171875],
           'descriptor': {'shape': [1, 2, 1], 'dataType': 'float16'},
           'constant': true
         },
@@ -935,7 +855,7 @@ const quantizeLinearTests = [
       }],
       'expectedOutputs': {
         'quantizeLinearOutput': {
-          'data': [119, 111, 187, 188],
+          'data': [119, 111, 191, 190],
           'descriptor': {'shape': [1, 4, 1], 'dataType': 'uint8'}
         }
       }

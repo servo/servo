@@ -1,0 +1,14 @@
+features:
+- name: clip
+  files:
+  - clip-*
+  - clipping-001.xht
+  - clipping-009.xht
+  - clipping-010.xht
+  - clipping-011.xht
+  - clipping-012.xht
+  - clipping-013.xht
+  - clipping-014.xht
+  - clipping-016.xht
+  - clipping-017.xht
+  - shape-spaces-001.xht

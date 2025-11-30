@@ -29,7 +29,7 @@ promise_test(async t => {
   });
 
   let iframe1Loaded = false, iframe2Loaded = false;
-  iframe1.onload = e => {
+  iframe1.onload = t.step_func(e => {
     // iframe1 assertions:
     iframe1Loaded = true;
     assert_equals(window.frames.length, 1,
@@ -45,15 +45,15 @@ promise_test(async t => {
     assert_equals(iframe2.contentWindow, null,
         "... but iframe1 cannot observe iframe2's contentWindow because " +
         "iframe2's insertion steps have not been run yet");
-  };
+  });
 
-  iframe2.onload = e => {
+  iframe2.onload = t.step_func(e => {
     iframe2Loaded = true;
     assert_equals(window.frames.length, 2,
         "iframe2 load event can observe its own participation in the frame tree");
     assert_equals(iframe1.contentWindow, window.frames[0]);
     assert_equals(iframe2.contentWindow, window.frames[1]);
-  };
+  });
 
   // Synchronously consecutively adds both `iframe1` and `iframe2` to the DOM,
   // invoking their insertion steps (and thus firing each of their `load`
@@ -91,7 +91,7 @@ function runRemovalTest(removal_method) {
     // mutations (removals) are only observed atomically at the end. Specifically,
     // the observer's callback is not invoked synchronously for each removal.
     let observerCallbackInvoked = false;
-    const removalObserver = new MutationObserver(mutations => {
+    const removalObserver = new MutationObserver(t.step_func(mutations => {
       assert_false(observerCallbackInvoked,
           "MO callback is only invoked once, not multiple times, i.e., for " +
           "each removal");
@@ -103,7 +103,7 @@ function runRemovalTest(removal_method) {
       assert_equals(document.querySelector('iframe'), null,
           "No iframe elements are connected to the DOM when the MO callback is " +
           "run");
-    });
+    }));
 
     removalObserver.observe(div, {childList: true});
     t.add_cleanup(() => removalObserver.disconnect());

@@ -27,12 +27,16 @@
         assert_equals(stats.averageLatency, 0);
 
         // Asynchronously wait for 1.5 seconds. We will then check that the
-        // stats reflect that the context has been playing for at least 1
-        // second. The extra 0.5 seconds is to avoid flakiness.
+        // stats reflect that the context has been playing for at least 0.9
+        // seconds. The 0.1 second margin is needed because the stats are
+        // updated once per second, and the context is not guaranteed to have
+        // been playing for exactly 1 second by the time they are updated.
+        // The extra 0.5 seconds of margin after the 1 second mark is to avoid
+        // flakiness.
         // Note that awaiting moves us to a new task in the execution cycle,
         // which allows the stats to change.
         await new Promise((r) => step_timeout(r, 1500));
-        assert_greater_than(stats.totalFramesDuration, 1000);
+        assert_greater_than(stats.totalFramesDuration, 900);
         should_be_in_range(
           stats.fallbackFramesDuration,
           0,
@@ -105,9 +109,9 @@
         assert_greater_than(stats.totalFramesDuration, 1000);
         let beforeWait = stats.toJSON();
 
-        // Synchronously wait 500 ms.
+        // Synchronously wait 1500 ms.
         const start = performance.now();
-        while (performance.now() - start < 500);
+        while (performance.now() - start < 1500);
 
         // We are still in the same execution cycle, so the stats shouldn't
         // have changed.

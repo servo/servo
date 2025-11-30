@@ -28,6 +28,18 @@ async def test_add_preload_script(
     )
     assert result == {"type": "string", "value": "bar"}
 
+    await bidi_session.browsing_context.reload(
+        context=new_context["context"], wait="complete"
+    )
+
+    # Check that preload script was applied after reload
+    result = await bidi_session.script.evaluate(
+        expression="window.foo",
+        target=ContextTarget(new_context["context"]),
+        await_promise=True,
+    )
+    assert result == {"type": "string", "value": "bar"}
+
     url = inline("<div>foo</div>")
     await bidi_session.browsing_context.navigate(
         context=new_context["context"],

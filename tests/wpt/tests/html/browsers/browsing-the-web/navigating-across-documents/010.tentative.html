@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Link with onclick form submit to javascript url with delayed document.write and href navigation </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var flag = false;
+</script>
+<div id="log"></div>
+<iframe id="test" name="test"></iframe>
+<form target="test" action="javascript:(function() {parent.flag = true; var x = new XMLHttpRequest(); x.open('GET', 'resources/blank.html?pipe=trickle(d2)', false); x.send(); document.write('WRITE <script>parent.postMessage(&quot;write&quot;, &quot;*&quot;)</script>'); return 'RETURN <script>parent.postMessage(&quot;click&quot;, &quot;*&quot;)</script>'})()"></form>
+<a target="test" onclick="document.forms[0].submit()" href="resources/href.html">Test</a>
+<script>
+var t = async_test();
+onload = t.step_func(function() {document.getElementsByTagName("a")[0].click()});
+onmessage = t.step_func(
+  function(e) {
+    assert_equals(flag, true);
+    assert_equals(e.data, "write");
+    t.done();
+  });
+</script>
+<!--
+Tentative, because:
+ * Chrome doesn't appear to execute the javascript: URL at all.
+ * Safari seems to start the navigation to href.html to the extent
+   that the sync XHR goes away, but then document.write() takes
+   place so that postMessage succeeds and then the DOM for href.html
+   replaces the DOM for the document.write().
+ * In Firefox, the navigation to href.html makes the sync XHR go
+   away, but then document.write() wins over the href.html parse.
+-->

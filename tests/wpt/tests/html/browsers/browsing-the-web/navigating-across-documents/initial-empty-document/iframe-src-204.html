@@ -175,4 +175,24 @@ promise_test(async t => {
   assert_equals(history.length, startingHistoryLength + 1,
     "history.length increases after normal navigation from  non-initial empty document");
 }, "Navigating to a different document with form submission");
+
+promise_test(async t => {
+  // The ready state is asserted to be what it is currently Blink, Gecko, WebKit
+  const iframe = insertIframeWith204Src(t);
+  assert_equals(iframe.contentDocument.readyState, "complete");
+
+  let loaded = false;
+  iframe.onload = () => loaded = true;
+
+  iframe.src = "about:blank";
+  assert_false(loaded, "No sync load event");
+  assert_equals(iframe.contentDocument.readyState, "complete");
+
+  await Promise.resolve();
+  assert_false(loaded, "No load event after microtask checkpoint");
+
+  await waitForLoad(t, iframe, "about:blank");
+  assert_true(loaded, "Iframe loaded eventually");
+  assert_equals(iframe.contentDocument.readyState, "complete");
+}, "about:blank on top of 204 loads async");
 </script>

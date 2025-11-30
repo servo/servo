@@ -1,14 +1,16 @@
 features:
 - name: webvtt
   files:
-  - align.html
   - constructor-exceptions.html
   - getCueAsHTML.html
+  - text.html
+- name: webvtt-cue-settings
+  files:
+  - align.html
   - line.html
   - position.html
   - size.html
   - snapToLines.html
-  - text.html
   - vertical.html
 - name: webvtt-cue-alignment
   files:

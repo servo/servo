@@ -5,3 +5,6 @@ features:
 - name: user-select
   files:
   - user-select-*
+- name: caret-color
+  files:
+  - caret-color-*

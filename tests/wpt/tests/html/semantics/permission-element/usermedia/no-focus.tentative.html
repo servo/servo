@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<!-- The usermedia element should not be focusable by script.
+-->
+<usermedia tabindex="0" id="valid_usermedia_element" type="camera"></usermedia>
+
+<span tabindex="0" id="focusable_span">This is some text</span>
+
+<!-- style needed to allow the invalid element to have a width -->
+<usermedia style="width: auto; padding-left: 10px" tabindex="0" id="invalid_usermedia_element" type="invalid"></usermedia>
+
+<script>
+  promise_test(async() => {
+    invalid_usermedia_element.focus();
+    assert_equals(document.activeElement, invalid_usermedia_element,
+      "Invalid usermedia element should be focusable");
+
+    focusable_span.focus();
+    valid_usermedia_element.focus();
+    assert_equals(document.activeElement, focusable_span,
+      "UserMedia element should not be focused.");
+
+    focusable_span.focus();
+    await test_driver.bless('Focus with user activation', () => {
+      valid_usermedia_element.focus();
+    });
+    assert_equals(document.activeElement, valid_usermedia_element,
+      "Focus is allowed with user activation");
+
+    focusable_span.focus();
+    actions = new test_driver.Actions()
+       .pointerMove(1, 1, {origin: valid_usermedia_element})
+       .pointerDown()
+       .addTick();
+    await actions.send();
+    assert_equals(document.activeElement, valid_usermedia_element,
+      "Users can focus the element");
+
+    focusable_span.focus();
+    assert_equals(document.activeElement, focusable_span,
+        "Other element should be focused");
+}, "UserMedia element is not focusable by script without user activation");
+</script>
+</body>

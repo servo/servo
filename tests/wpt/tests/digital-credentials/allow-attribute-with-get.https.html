@@ -108,13 +108,16 @@
                                 // NotAllowedError when disallowed
                                 requests: [],
                             },
-                            mediation: "required",
                         };
                         await test_driver.bless("User activation");
                         const { data } = await new Promise((resolve) => {
-                            window.addEventListener("message", resolve, {
-                                once: true,
-                            });
+                            const callback = (e) => {
+                                if (e.source === iframe.contentWindow) {
+                                    window.removeEventListener('message', callback);
+                                    resolve(e);
+                                }
+                            }
+                            window.addEventListener("message", callback);
                             iframe.contentWindow.postMessage(
                                 { action, options, needsActivation: true },
                                 "*"

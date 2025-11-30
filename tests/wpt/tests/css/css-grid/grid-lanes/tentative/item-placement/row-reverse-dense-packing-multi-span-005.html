@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="row-reverse-dense-packing-multi-span-005-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+  display: grid-lanes;
+  item-tolerance: 0;
+  grid-auto-flow: dense;
+  grid-lanes-direction: row-reverse;
+  grid-template-rows: repeat(5, 50px);
+}
+</style>
+<body>
+<p>Ensure that dense-packing in grid-lanes properly handles "split" track openings.</p>
+<div class="grid-lanes">
+  <div style="background: brown; width: 80px;"></div>
+  <div style="background: brown; width: 20px; grid-row: span 2"></div>
+  <div style="background: brown; width: 40px;"></div>
+  <div style="background: brown; width: 100px;"></div>
+  <div style="background: brown; width: 10px; grid-row: span 5;"></div>
+  <div style="background: pink; width: 10px; grid-row: span 4;"></div>
+  <div style="background: lightgreen; width: 10px; grid-row: span 2;"></div>
+</div>
+</body>
+</html>

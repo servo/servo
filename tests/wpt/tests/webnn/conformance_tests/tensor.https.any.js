@@ -1330,6 +1330,28 @@ const testDispatchTensor = (testName) => {
         mlContext, outputTensor,
         new Float32Array(sizeOfShape(shape)).fill(1.0));
   }, `${testName} / same constant multiple graphs`);
+
+  promise_test(async () => {
+    // Construct a simple graph: OUTPUT = IDENTITY(INPUT) to test whether the default
+    // tensor is initialized to zero.
+    const builder = new MLGraphBuilder(mlContext);
+    const inputOperand = builder.input('input', {dataType: 'int32', shape: [1024]});
+    const graph = await builder.build({'output': builder.identity(inputOperand)});
+
+    const inputTensor = await mlContext.createTensor({
+      dataType: inputOperand.dataType,
+      shape: inputOperand.shape
+    });
+
+    const outputTensor = await mlContext.createTensor({
+      dataType: inputOperand.dataType,
+      shape: inputOperand.shape,
+      readable: true
+    });
+
+    mlContext.dispatch(graph, {'input': inputTensor}, {'output': outputTensor});
+    await assert_tensor_data_equals(mlContext, outputTensor, new Uint32Array(1024));
+  }, `${testName} / default tensor uninitialized`);
 };
 
 /**

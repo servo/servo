@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inheritance of CSS Fill and Stroket properties</title>
+<link rel="help" href="https://drafts.fxtf.org/fill-stroke/#property-index">
+<meta name="assert" content="Properties inherit according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+<div id="target"></div>
+</div>
+<script>
+// https://drafts.fxtf.org/fill-stroke/#text-decor
+assert_not_inherited('text-decoration-fill', 'match-text', 'red');
+assert_not_inherited('text-decoration-stroke', 'match-text', 'red');
+</script>
+</body>
+</html>

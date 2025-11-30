@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Break Test: Fragmentation of abspos element in a vertical-rl multicol container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+.multicol {
+  writing-mode: vertical-rl;
+  block-size: 100px;
+  inline-size: 100px;
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 0;
+  background: red;
+}
+.container {
+  display: flex;
+  position: relative;
+  border-block: 20px solid green;
+  block-size: 160px;
+}
+
+.abspos {
+  position: absolute;
+  inline-size: 100%;
+  block-size: 160px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="container">
+    <div class="abspos"></div>
+  </div>
+</div>

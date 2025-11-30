@@ -1,0 +1,28 @@
+<!doctype HTML>
+<title>Test that the fallback size is used.</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+iframe {
+  border: none;
+  contain-intrinsic-block-size: from-element 100px;
+}
+</style>
+<iframe id=target frameborder=0 src="resources/iframe-contents-slow.html"></iframe>
+<script>
+async_test(t => {
+  window.addEventListener('DOMContentLoaded', t.step_func(e => {
+    requestAnimationFrame(t.step_func(() => {
+      assert_equals(target.offsetHeight, 100);
+    }));
+  }));
+  window.addEventListener('load', t.step_func(e => {
+    requestAnimationFrame(t.step_func(() => {
+      assert_equals(target.offsetHeight, 400);
+      t.done();
+    }));
+  }));
+}, "The fallback size is used");
+</script>

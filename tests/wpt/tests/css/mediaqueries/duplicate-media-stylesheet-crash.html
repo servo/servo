@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Crash test: duplicate stylesheet with non-matching media</title>
+<link rel="help" href="https://issues.chromium.org/issues/463405540">
+<style media="unknown">
+  p {}
+</style>
+<style media="unknown">
+  p {}
+</style>
+PASS if no crash

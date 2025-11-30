@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: WebXR Plane Detection Module (https://immersive-web.github.io/real-world-geometry/plane-detection.html)
+// Source: WebXR Plane Detection Module (https://immersive-web.github.io/plane-detection/)
 
 enum XRPlaneOrientation {
     "horizontal",

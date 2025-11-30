@@ -44,4 +44,36 @@ promise_test(async t => {
 
 }, "Tests that multiple read requests are eventually settled");
 
+promise_test(async t => {
+  // The generator will be used as the source for the processor to
+  // produce frames in a controlled manner.
+  const generator = new VideoTrackGenerator();
+  t.add_cleanup(() => generator.track.stop());
+
+  generator.track.enabled = false;
+  const processor = new MediaStreamTrackProcessor({track: generator.track, maxBufferSize:10});
+  const reader = processor.readable.getReader();
+  const writer = generator.writable.getWriter();
+
+  await writer.write(makeVideoFrame(0));
+  await writer.write(makeVideoFrame(1));
+
+  let hasVideoFrame = false;
+  const promise = reader.read().then(chunk => {
+    hasVideoFrame = true;
+    chunk.value.close();
+  });
+
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+  assert_false(hasVideoFrame, "test1");
+
+  generator.track.enabled = true;
+
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+  assert_false(hasVideoFrame, "test2");
+
+  await writer.write(makeVideoFrame(2));
+  await promise;
+}, "Tests that MediaStreamTrackProcess respects track.enabled");
+
 done();
