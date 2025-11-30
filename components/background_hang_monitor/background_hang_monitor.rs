@@ -218,10 +218,13 @@ impl BackgroundHangMonitorWorker {
 
     fn finish_sampled_profile(&mut self) {
         let mut bytes = vec![];
+        let sampling_rate = self.sampling_duration
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
         bytes.extend(
             format!(
                 "{{ \"rate\": {}, \"start\": {}, \"data\": [\n",
-                self.sampling_duration.unwrap().as_millis(),
+                sampling_rate,
                 (self.sampling_baseline - self.creation).as_millis(),
             )
             .as_bytes(),
@@ -415,7 +418,9 @@ impl BackgroundHangMonitorWorker {
             if monitored.is_waiting {
                 continue;
             }
-            let last_annotation = monitored.last_annotation.unwrap();
+            let Some(last_annotation) = monitored.last_annotation else {
+                continue;
+            };
             if monitored.last_activity.elapsed() > monitored.permanent_hang_timeout {
                 if monitored.sent_permanent_alert {
                     continue;
