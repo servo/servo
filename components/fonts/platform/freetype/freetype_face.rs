@@ -248,7 +248,7 @@ impl Drop for FreeTypeFace {
         // See https://freetype.org/freetype2/docs/reference/ft2-library_setup.html.
         let _guard = FreeTypeLibraryHandle::get().lock();
         if unsafe { FT_Done_Face(self.face.as_ptr()) } != 0 {
-            panic!("FT_Done_Face failed");
+            log::error!("FT_Done_Face failed, leaking memory");
         }
     }
 }

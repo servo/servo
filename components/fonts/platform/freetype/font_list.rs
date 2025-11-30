@@ -86,17 +86,32 @@ where
         let mut font_set = FcConfigGetFonts(config, FcSetSystem);
         let font_set_array_ptr = &mut font_set;
         let pattern = FcPatternCreate();
-        assert!(!pattern.is_null());
-        let family_name_cstr: CString = CString::new(family_name).unwrap();
+        debug_assert!(!pattern.is_null());
+        if pattern.is_null() {
+            log::error!("Failed to create FcPattern");
+            return;
+        }
+
+        let Ok(family_name_cstr) = CString::new(family_name) else {
+            return;
+        };
         let ok = FcPatternAddString(
             pattern,
             FC_FAMILY.as_ptr() as *mut c_char,
             family_name_cstr.as_ptr() as *const FcChar8,
         );
-        assert_ne!(ok, 0);
+        debug_assert_ne!(ok, 0);
+        if ok == 0 {
+            log::error!("Failed to create FcPattern");
+            return;
+        }
 
         let object_set = FcObjectSetCreate();
-        assert!(!object_set.is_null());
+        debug_assert!(!object_set.is_null());
+        if object_set.is_null() {
+            log::error!("Failed to create FcObjectSet");
+            return;
+        }
 
         FcObjectSetAdd(object_set, FC_FILE.as_ptr() as *mut c_char);
         FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut c_char);
@@ -209,17 +224,15 @@ pub(crate) fn default_system_generic_font_family(
     generic: GenericFontFamily,
 ) -> LowercaseFontFamilyName {
     let generic_string = match generic {
-        GenericFontFamily::None | GenericFontFamily::Serif => "serif",
-        GenericFontFamily::SansSerif => "sans-serif",
-        GenericFontFamily::Monospace => "monospace",
-        GenericFontFamily::Cursive => "cursive",
-        GenericFontFamily::Fantasy => "fantasy",
-        GenericFontFamily::SystemUi => "sans-serif",
+        GenericFontFamily::None | GenericFontFamily::Serif => c"serif",
+        GenericFontFamily::SansSerif => c"sans-serif",
+        GenericFontFamily::Monospace => c"monospace",
+        GenericFontFamily::Cursive => c"cursive",
+        GenericFontFamily::Fantasy => c"fantasy",
+        GenericFontFamily::SystemUi => c"sans-serif",
     };
 
-    let generic_name_c = CString::new(generic_string).unwrap();
-    let generic_name_ptr = generic_name_c.as_ptr();
-
+    let generic_name_ptr = generic_string.as_ptr();
     unsafe {
         let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
         FcConfigSubstitute(ptr::null_mut(), pattern, FcMatchPattern);
