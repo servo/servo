@@ -279,6 +279,7 @@ impl GlobalCspReporting for GlobalScope {
             return;
         }
         warn!("Reporting CSP violations: {:?}", violations);
+        let source_position_was_provided = source_position.is_some();
         let source_position =
             source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
@@ -295,6 +296,13 @@ impl GlobalCspReporting for GlobalScope {
                 ViolationResource::Eval { sample } => (sample.clone(), "eval".to_owned()),
                 ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
             };
+            // Assert that source position is not provided for URL resources
+            if let ViolationResource::Url(_) = &violation.resource {
+                debug_assert!(
+                    !source_position_was_provided,
+                    "Source position should not be provided for URL resources"
+                );
+            }
             // Determine source location based on violation type
             let (source_file, line_number, column_number) = match resource {
                 ViolationResource::Url(_) => {
