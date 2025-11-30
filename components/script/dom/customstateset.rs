@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
+
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomStateSetMethods;
@@ -48,6 +50,10 @@ impl CustomStateSet {
         for state in self.internal.borrow().iter() {
             callback(&AtomIdent::from(&*state.str()));
         }
+    }
+
+    pub(crate) fn set<'a>(&'a self) -> Ref<'a, IndexSet<DOMString>> {
+        self.internal.borrow()
     }
 
     fn states_did_change(&self) {
