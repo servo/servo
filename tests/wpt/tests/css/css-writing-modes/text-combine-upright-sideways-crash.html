@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Changing writing-mode of an element with text-combine-upright should not crash</title>
+<link rel="author" title="Kent Tamura" href="mailto:tkent@chromium.orgm"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright"/>
+<link rel="help" href="https://crbug.com/461332428"/>
+<body>
+<div id="target" style="display: list-item; text-combine-upright: all; writing-mode: vertical-rl;"></div>
+<script>
+target.offsetTop;
+target.style.writingMode = "sideways-rl";
+target.offsetTop;
+</script>
+</body>

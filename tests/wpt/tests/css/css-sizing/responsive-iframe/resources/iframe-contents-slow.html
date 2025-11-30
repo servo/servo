@@ -1,0 +1,19 @@
+<!doctype HTML>
+<head>
+<style>
+* { margin: 0 }
+</style>
+<meta name="responsive-embedded-sizing">
+<script>
+// Force a sleep for 0.5 second, to make sure the rest of the parsing is done
+// via a timer.
+const start = new Date().getTime();
+while (true) {
+  const now = new Date().getTime();
+  if (now - start > 500) {
+    break;
+  }
+}
+</script>
+</head>
+<div style="width: 100px; height: 400px"></div>

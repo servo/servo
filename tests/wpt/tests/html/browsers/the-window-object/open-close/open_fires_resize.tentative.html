@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that a resize event is fired on newly opened windows</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(async t => {
+  popup = window.open("about:blank", "_blank", "width=500,height=500");
+  await new Promise(resolve => popup.onresize = resolve);
+  assert_true(true, "Got resize event");
+}, "Opening a popup with specified size fires a resize event");
+
+promise_test(async t => {
+  popup = window.open("about:blank", "_blank", "popup");
+  await new Promise(resolve => popup.onresize = resolve);
+  assert_true(true, "Got resize event");
+}, "Opening a popup fires a resize event");
+
+promise_test(async t => {
+  popup = window.open("about:blank");
+  await new Promise(resolve => popup.onresize = resolve);
+  assert_true(true, "Got resize event");
+}, "Opening a window fires a resize event");
+
+</script>

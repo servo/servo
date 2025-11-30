@@ -9,7 +9,7 @@
 </head>
 <body>
   <script>
-    function testValidGridLanes(gridTemplateRowsValue, gridTemplateColumnsValue, gridTemplateAreasValue, masonryDirectionValue, masonryFillValue, serializedGridLanesValue) {
+    function testValidGridLanes(gridTemplateRowsValue, gridTemplateColumnsValue, gridTemplateAreasValue, masonryDirectionValue, gridLanesFillValue, serializedGridLanesValue) {
     test(()=>{
       const root = document.documentElement;
     const properties = [
@@ -17,7 +17,7 @@
       ["gridTemplateColumns", gridTemplateColumnsValue],
       ["gridTemplateAreas", gridTemplateAreasValue],
       ["masonryDirection", masonryDirectionValue],
-      ["masonryFill", masonryFillValue],
+      ["gridLanesFill", gridLanesFillValue],
     ];
     for (const [property, value] of properties) {
       root.style[property] = "";
@@ -28,7 +28,7 @@
       grid-template-columns: ${gridTemplateColumnsValue},
       grid-template-areas: ${gridTemplateAreasValue},
       masonry-direction: ${masonryDirectionValue},
-      masonry-fill: ${masonryFillValue} should be valid.`);
+      grid-lanes-fill: ${gridLanesFillValue} should be valid.`);
 }
 
   testValidGridLanes("none", "none", "none", "column", "normal", "none column normal");

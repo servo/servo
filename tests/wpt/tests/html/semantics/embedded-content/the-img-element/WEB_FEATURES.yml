@@ -7,3 +7,8 @@ features:
   - relevant-mutations-lazy.html
   - remove-element-and-scroll.html
   - scrolling-below-viewport-image-lazy-loading-in-iframe.html
+- name: srcset
+  files:
+  - responsive-image-select-print.html
+  - update-the-source-set.html
+  - null-image-source.html

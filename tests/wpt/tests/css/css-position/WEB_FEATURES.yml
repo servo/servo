@@ -8,3 +8,6 @@ features:
   - backdrop-inherit-rendered.html
   - backdrop-tree-abiding-slotted.html
   - replaced-object-backdrop.html
+- name: z-index
+  files:
+  - '*z-index*'

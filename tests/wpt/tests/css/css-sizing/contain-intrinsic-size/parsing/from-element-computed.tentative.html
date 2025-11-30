@@ -12,7 +12,19 @@
 <body>
 <div id=target></div>
 <script>
-test_computed_value("contain-intrinsic-size", "from-element");
+test_computed_value("contain-intrinsic-width", "from-element none");
+test_computed_value("contain-intrinsic-height", "from-element none");
+
+test_computed_value("contain-intrinsic-inline-size", "from-element none");
+test_computed_value("contain-intrinsic-block-size", "from-element none");
+
+test_computed_value("contain-intrinsic-width", "from-element 200px");
+test_computed_value("contain-intrinsic-height", "from-element 200px");
+
+test_computed_value("contain-intrinsic-size", "from-element none");
+test_computed_value("contain-intrinsic-size", "from-element 200px");
+test_computed_value("contain-intrinsic-size", "from-element 300px 200px");
+test_computed_value("contain-intrinsic-size", "300px from-element 200px");
 </script>
 </body>
 </html>

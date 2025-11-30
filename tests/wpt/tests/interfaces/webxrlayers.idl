@@ -118,6 +118,7 @@ dictionary XRProjectionLayerInit {
 
 dictionary XRLayerInit {
   required XRSpace space;
+  XRTextureType textureType = "texture";
   GLenum colorFormat = 0x1908; // RGBA
   GLenum? depthFormat;
   unsigned long mipLevels = 1;
@@ -129,14 +130,12 @@ dictionary XRLayerInit {
 };
 
 dictionary XRQuadLayerInit : XRLayerInit {
-  XRTextureType textureType = "texture";
   XRRigidTransform? transform;
   float width = 1.0;
   float height = 1.0;
 };
 
 dictionary XRCylinderLayerInit : XRLayerInit {
-  XRTextureType textureType = "texture";
   XRRigidTransform? transform;
   float radius = 2.0;
   float centralAngle = 0.78539;
@@ -144,7 +143,6 @@ dictionary XRCylinderLayerInit : XRLayerInit {
 };
 
 dictionary XREquirectLayerInit : XRLayerInit {
-  XRTextureType textureType = "texture";
   XRRigidTransform? transform;
   float radius = 0;
   float centralHorizontalAngle = 6.28318;

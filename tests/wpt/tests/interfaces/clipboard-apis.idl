@@ -13,6 +13,18 @@ interface ClipboardEvent : Event {
   readonly attribute DataTransfer? clipboardData;
 };
 
+dictionary ClipboardChangeEventInit : EventInit {
+  sequence<DOMString> types = [];
+  bigint changeId = 0;
+};
+
+[Exposed=Window]
+interface ClipboardChangeEvent : Event {
+  constructor(DOMString type, optional ClipboardChangeEventInit eventInitDict = {});
+  readonly attribute FrozenArray<DOMString> types;
+  readonly attribute bigint changeId;
+};
+
 partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Clipboard clipboard;
 };

@@ -31,6 +31,11 @@ promise_test(async t => {
   param = sender.getParameters();
   assert_equals(param.degradationPreference, 'balanced');
 
+  param.degradationPreference = 'maintain-framerate-and-resolution';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'maintain-framerate-and-resolution');
+
   param.degradationPreference = undefined;
   await sender.setParameters(param);
   param = sender.getParameters();
@@ -90,6 +95,11 @@ promise_test(async t => {
   await sender.setParameters(param);
   param = sender.getParameters();
   assert_equals(param.degradationPreference, 'balanced');
+
+  param.degradationPreference = 'maintain-framerate-and-resolution';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'maintain-framerate-and-resolution');
 
   param.degradationPreference = undefined;
   await sender.setParameters(param);

@@ -319,7 +319,9 @@
 
         function startTestsWhenIframesLoaded() {
           if (testframe1.contentWindow.document.readyState != 'complete' ||
-              testframe2.contentWindow.document.readyState != 'complete') {
+              testframe2.contentWindow.document.readyState != 'complete' ||
+              testframe1.contentDocument.location.href == 'about:blank' ||
+              testframe2.contentDocument.location.href == 'about:blank') {
             return;
           }
           testframe1.removeEventListener('load', startTestsWhenIframesLoaded, false);

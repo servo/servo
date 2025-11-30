@@ -25,6 +25,26 @@ promise_test(async t => {
   // response code.
   const {exec, tryToActivate} =
       await create_prerendered_page(t, {'prerendering': params});
+
+  // Open new window with url to clear cache data through Clear-Site-Data header.
+  // Ensure that the cache is cleared before the navigation.
+  //
+  // This is a hack for Chromium that may trigger prefetch prior to prerender,
+  // and serve the same prefetched response multiple times (This is known as
+  // PrefetchReusable). This breaks the assumption of this test that the first
+  // prerender request fails for non-OK status code and then the next real
+  // navigation succeeds with 200. With the PrefetchReusable, the real
+  // navigation sees the prefetched error response and fails.
+  const gotMessage = new Promise(resolve => {
+      window.addEventListener('message', e => {
+          resolve(e.data);
+        }, {
+          once: true
+      });
+  });
+  window.open("/../../clear-site-data/support/clear-site-data-prefetchCache.py");
+  await gotMessage;
+
   const result = await tryToActivate();
   assert_equals(result, 'discarded');
 },`Responses with code ${params.get('code')} should be discarded`);

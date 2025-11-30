@@ -1613,7 +1613,7 @@ OffscreenCanvasRenderingContext2D includes CanvasPathDrawingStyles;
 OffscreenCanvasRenderingContext2D includes CanvasTextDrawingStyles;
 OffscreenCanvasRenderingContext2D includes CanvasPath;
 
-enum PredefinedColorSpace { "srgb", "display-p3" };
+enum PredefinedColorSpace { "srgb", "srgb-linear", "display-p3", "display-p3-linear" };
 
 [Exposed=Window]
 interface CustomElementRegistry {

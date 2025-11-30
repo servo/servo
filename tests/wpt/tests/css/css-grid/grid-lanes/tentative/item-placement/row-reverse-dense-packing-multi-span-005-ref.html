@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-auto-columns: min-content;
+  grid-template-rows: repeat(5, 50px);
+}
+</style>
+<body>
+<p>Ensure that dense-packing in grid-lanes properly handles "split" track openings.</p>
+<div class="grid">
+  <div style="background: brown; width: 80px; grid-row: 5;"></div>
+  <div style="background: brown; width: 20px; grid-row: 3 / span 2"></div>
+  <div style="background: brown; width: 40px; grid-row: 2;"></div>
+  <div style="background: brown; width: 100px; grid-row: 1;"></div>
+  <div style="background: brown; width: 10px; grid-row: 1 / span 5;"></div>
+  <div style="background: pink; width: 10px; grid-row: 2 / span 4; transform: translateX(-30px);"></div>
+  <div style="background: lightgreen; width: 10px; grid-row: 3 / span 2; transform: translateX(-100px);"></div>
+</div>
+</body>
+</html>

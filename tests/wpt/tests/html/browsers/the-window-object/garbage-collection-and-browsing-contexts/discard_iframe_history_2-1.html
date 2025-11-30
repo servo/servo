@@ -9,7 +9,7 @@ onload = t.step_func(function() {
      var iframe = document.getElementsByTagName("iframe")[0];
      iframe.onload = t.step_func(function() {
        setTimeout(t.step_func(function() {
-         opener.assert_equals(history.length, history_length + 1, "History length before iframe removal");
+         opener.assert_equals(history.length, history_length, "History length before iframe removal");
          document.body.innerHTML = "";
          opener.assert_equals(history.length, history_length, "History length after iframe removal");
          t.done();

@@ -1,0 +1,4 @@
+features:
+- name: change-event
+  files:
+  - legacy-pre-activation-behavior.window.js

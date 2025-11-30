@@ -1,0 +1,4 @@
+features:
+- name: window-controls-overlay
+  files:
+  - '*window-controls-overlay*'

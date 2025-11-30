@@ -34,4 +34,7 @@ promise_test(async () => {
 
   const clone_result = await cloned_session.prompt(kTestPrompt);
   assert_equals(typeof clone_result, 'string');
+  assert_greater_than(
+      cloned_session.inputUsage, session.inputUsage,
+      'cloned session should have increased inputUsage after prompting.');
 });

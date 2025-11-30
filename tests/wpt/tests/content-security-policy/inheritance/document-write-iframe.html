@@ -35,7 +35,9 @@
 
     promise_test(async () => {
       let iframe = document.createElement('iframe');
+      let loaded = new Promise(resolve => iframe.onload = resolve);
       document.body.appendChild(iframe);
+      await loaded;
 
       let msg = message_from(iframe.contentWindow);
       let doc = iframe.contentWindow.document;
@@ -43,7 +45,7 @@
       doc.write("<html><body>" + documentBody(false) + "</body></html>");
       doc.close();
       assert_equals(await msg, "blocked");
-    }, "document.open() keeps inherited CSPs on empty iframe.");
+    }, "document.open() keeps inherited CSPs on initial about:blank.");
 
     promise_test(async () => {
       let iframe = document.createElement('iframe');
@@ -59,6 +61,22 @@
       doc.close();
       assert_equals(await msg, "loaded");
     }, "document.open() does not change delivered CSPs.");
+
+    promise_test(async () => {
+      let iframe = document.createElement('iframe');
+      iframe.src = "/common/blank.html";
+      let loaded = false;
+      iframe.onload = () => loaded = true;
+      document.body.appendChild(iframe);
+      assert_false(loaded, "iframe document should be transient");
+
+      let msg = message_from(iframe.contentWindow);
+      let doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write("<html><body>" + documentBody(false) + "</body></html>");
+      doc.close();
+      assert_equals(await msg, "blocked");
+    }, "document.open() keeps inherited CSPs on transient about:blank.");
 
   </script>
 </body>

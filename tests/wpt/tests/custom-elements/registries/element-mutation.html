@@ -20,6 +20,15 @@
     </div>
 </div>
 
+<template id="template">
+    <div id="template-host-1">
+        <template shadowrootmode="open" shadowrootclonable><x-foo></x-foo></template>
+    </div>
+    <div id="template-host-2">
+        <template shadowrootmode="open" shadowrootclonable shadowrootcustomelementregistry><x-foo></x-foo></template>
+    </div>
+</template>
+
 <script>
 
 test(() => {
@@ -65,6 +74,14 @@ test(() => {
     shadowRoot2.appendChild(element);
     assert_equals(element.customElementRegistry, registry1);
 }, "An element with scoped registry should not change its registry when moved into another shadow tree with different scoped registry.")
+
+test(() => {
+    customElements.define('x-foo', class extends HTMLElement {});
+    const template = document.getElementById('template');
+    document.body.append(template.content.cloneNode(true));
+    assert_equals(document.querySelector('#template-host-1').shadowRoot.querySelector('x-foo').customElementRegistry, customElements);
+    assert_equals(document.querySelector('#template-host-2').shadowRoot.querySelector('x-foo').customElementRegistry, null);
+}, "Declarative shadow DOM with shadowrootcustomelementregistry attribute without registry initialized should remain null registry after adoption.")
 
 </script>
 </body>

@@ -75,9 +75,9 @@ test.html
 ```html
 <!doctype html>
 <title>call example</title>
-<script src="/resources/testharness.js">
-<script src="/resources/testharnessreport.js">
-<script src="/resources/channel.js">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/channels.sub.js"></script>
 
 <script>
 promise_test(async t => {
@@ -94,7 +94,8 @@ promise_test(async t => {
 child.html
 
 ```html
-<script src="/resources/channel.js">
+<!doctype html>
+<script src="/resources/channels.sub.js"></script>
 
 <p id="nottest">FAIL</p>
 <p id="test">PASS</p>

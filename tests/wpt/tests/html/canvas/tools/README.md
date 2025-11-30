@@ -611,10 +611,10 @@ In practice, we have found bugs in the canvas what only happen for very specific
 combinations of states, like, using a specific `globalCompositeOperation`, with
 transforms and shadows enabled, but only when `drawImage` is used. We might want
 be thorough and test as many combinations of these states as we can, but testing
-all permutations would require $3*2*26*2*2*2*2*3 = 7488$ tests. Putting all of
+all permutations would require $`3*2*26*2*2*2*2*3 = 7488`$ tests. Putting all of
 these in different files would be unmanageable. Comes variant grids to the
 rescue! If we generated test files each testing all composite operations in a
-grid, we'd only need a much more reasonable $3*2*2*2*2*2*3 = 288$ files.
+grid, we'd only need a much more reasonable $`3*2*2*2*2*2*3 = 288`$ files.
 
 To generate a variant grid, use the `variants_layout:` config. This has to be a
 list of the same lengths as the `variants:` list (as long as there are variant
@@ -649,8 +649,8 @@ would be generated:
   - grid-example.B2.D1
   - grid-example.B2.D2
 
-Then, the 3 `single_file` dimensions would produce $2*2*2 = 8$ tests in each of
-these files. For JavaScript tests, each of these test would be generated in
+Then, the 3 `single_file` dimensions would produce $`2*2*2 = 8`$ tests in each
+of these files. For JavaScript tests, each of these test would be generated in
 sequence, each with their own `test()`, `async_test()` or `promise_test()`
 fixture. Reftest on the other hand would produce a 2x2x2 grid, as follows:
 ```

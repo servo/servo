@@ -7,10 +7,10 @@ partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Attribution attribution;
 };
 
-enum AttributionAggregationProtocol { "dap-15-histogram", "tee-00" };
+enum AttributionAggregationProtocol { "dap-15-histogram" };
 
 dictionary AttributionAggregationService {
-  required DOMString protocol;
+  required AttributionAggregationProtocol protocol;
 };
 
 [SecureContext, Exposed=Window]

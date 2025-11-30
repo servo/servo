@@ -4,16 +4,18 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-
-    test(() => {
+  promise_test(async () => {
     assert_implements(document.startViewTransition);
-    const { types } = document.startViewTransition();
-    assert_true(types instanceof ViewTransitionTypeSet);
+    let transition = document.startViewTransition();
+    assert_true(transition.types instanceof ViewTransitionTypeSet);
+    await transition.finished;
   }, "ViewTransition.types is a ViewTransitionTypeSet");
 
-  test(() => {
+  promise_test(async () => {
     assert_implements(document.startViewTransition);
-    const { types } = document.startViewTransition();
+    let transition = document.startViewTransition();
+    let types = transition.types;
+    assert_equals(types, transition.types, "Should return the same object");
     types.add("a");
     types.add("b");
     assert_array_equals([...types], ["a", "b"]);
@@ -27,6 +29,7 @@
     types.add("");
     types.add("123");
     assert_array_equals([...types], ["a", ".", "", "123"]);
+    await transition.finished;
   }, "ViewTransitionTypeSet behaves like an ordinary Set of strings");
 
   promise_test(async () => {

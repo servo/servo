@@ -2,10 +2,8 @@
 [Exposed=*]
 interface Origin {
   constructor();
-  constructor(USVString serializedOrigin);
 
-  static Origin? parse(USVString serializedOrigin);
-  static Origin? fromURL(USVString serializedURL);
+  static Origin from(any value);
 
   readonly attribute boolean opaque;
 

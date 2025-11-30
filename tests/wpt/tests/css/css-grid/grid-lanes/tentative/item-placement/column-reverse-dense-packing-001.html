@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-reverse-dense-packing-001-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    item-tolerance: 0;
+    grid-template-columns: repeat(4, 50px) 15px;
+    gap: 10px;
+    grid-lanes-direction: column-reverse;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+<p>Test that grid-lanes items with reverse auto placement and explicit placement are correctly positioned within the grid axis during dense-packing.</p>
+<div class="grid-lanes">
+  <div style="background: lavender; height: 60px; grid-column: 3;">
+    1
+  </div>
+  <div style="background: lightgreen; height: 60px; grid-column: 1;">
+    2
+  </div>
+  <div style="background: lightpink; grid-column: span 4; height: 10px;">
+    3
+  </div>
+  <!--Item 4 is densely packed into start-most gap of the same layout size as auto-placement without dense-packing.-->
+  <div style="background: yellow; height: 20px;">
+    4
+  </div>
+  <!--Item 5 is densely-packed into a specified track.-->
+  <div style="background: yellow; height: 10px; grid-column: 4;">
+    5
+  </div>
+  <!--Item 6 is densely-packed into highest, but not earliest, found gap.-->
+  <div style="background: yellow; height: 10px;">
+    6
+  </div>
+</div>
+</body>
+</html>

@@ -259,6 +259,23 @@ a <!-- comment --> b
 |   xlink href="about:blank"
 
 </script>
+<script id="defaults-with-attributes-per-element" type="html5lib-testcases">
+#data
+<div start=1 value=5 lang=en><ol start=1 value=5 lang=en><li start=1 value=5 lang=en>xx
+#config
+"default"
+#document
+| <div>
+|   lang="en"
+|   <ol>
+|     lang="en"
+|     start="1"
+|     <li>
+|       lang="en"
+|       value="5"
+|       "xx"
+
+</script>
 <script>
 for(const group of
     document.querySelectorAll("script[type='html5lib-testcases']")) {

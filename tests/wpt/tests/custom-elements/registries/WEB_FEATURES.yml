@@ -2,7 +2,7 @@ features:
 - name: autonomous-custom-elements
   files:
   - define.html
-  - per-global.html
+  - per-document.html
   - upgrade.html
   - valid-custom-element-names.html
 - name: customized-built-in-elements
@@ -13,6 +13,6 @@ features:
   - "*"
   - "!define-customized-builtins.html"
   - "!define.html"
-  - "!per-global.html"
+  - "!per-document.html"
   - "!upgrade.html"
   - "!valid-custom-element-names.html"

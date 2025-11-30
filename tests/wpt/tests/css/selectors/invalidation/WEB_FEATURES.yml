@@ -23,3 +23,8 @@ features:
 - name: state
   files:
   - state-in-has.html
+- name: shadow-parts
+  files:
+  - part-dir.html
+  - part-lang.html
+  - part-pseudo.html

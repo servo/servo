@@ -29,3 +29,8 @@ features:
 - name: relative-color
   files:
   - relative-*
+- name: rgb
+  files:
+  - rgb-*
+  - rgba-*
+  - hex-*
