@@ -484,7 +484,6 @@ jobs:
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
           ./mach bootstrap --skip-lints --skip-nextest
       - name: Install cargo-llvm-cov
-        if: ${{ runner.environment != 'self-hosted' }}
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-llvm-cov
@@ -504,6 +503,14 @@ jobs:
               --log-raw-stable-unexpected wpt-filtered-logs/linux.log \
               --filter-intermittents wpt-filtered-logs/linux.json \
               || echo "Unexpected wpt results. This may cause code-coverage to be inaccurate."
+      - name: Archive raw profile data
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: wpt-code-coverage-raw-linux
+          # We didn't do a build in this job, so this will only contain the raw profile data
+          # and the servo binary we downloaded an unpacked. We need both to generate the report.
+          path: target/
       - name: Generate report
         run: |
           ./mach coverage-report --profile real-release \
