@@ -65,7 +65,13 @@ impl AudioNode {
             .audio_context_impl()
             .lock()
             .unwrap()
-            .create_node(node_type, ch);
+            .create_node(node_type, ch)
+            .map_err(|_| {
+                Error::InvalidState(Some(
+                    "Cannot create an AudioNode from a closed AudioContext".into(),
+                ))
+            })?;
+
         Ok(AudioNode::new_inherited_for_id(
             node_id,
             context,
