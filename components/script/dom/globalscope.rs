@@ -120,7 +120,6 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
-use crate::dom::htmlscriptelement::ScriptOrigin;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -3012,10 +3011,9 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         muted_errors: bool,
         introduction_type: Option<&'static CStr>,
+        line_number: u32,
     ) -> ClassicScript {
         let cx = GlobalScope::get_cx();
-
-        let line_number = 1;
 
         let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
         if let Some(introduction_type) = introduction_type {
@@ -3047,7 +3045,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
     #[expect(unsafe_code)]
-    pub(crate) fn run_a_classic_script_(
+    pub(crate) fn run_a_classic_script(
         &self,
         script: ClassicScript,
         rethrow_errors: bool,
@@ -3706,34 +3704,6 @@ impl GlobalScope {
             // Step 4. Append record to global's resolved module set.
             self.resolved_module_set.borrow_mut().insert(record);
         }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
-    pub(crate) fn run_a_classic_script(
-        &self,
-        script: &ScriptOrigin,
-        line_number: u32,
-        introduction_type: Option<&'static CStr>,
-        can_gc: CanGc,
-    ) {
-        // TODO use a settings object
-        // Step 2
-        if !self.can_run_script() {
-            return;
-        }
-
-        // Steps 4-10
-        rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-        _ = self.evaluate_script_on_global_with_result(
-            &script.code,
-            script.url.as_str(),
-            rval.handle_mut(),
-            line_number,
-            script.fetch_options.clone(),
-            script.url.clone(),
-            can_gc,
-            introduction_type,
-        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>

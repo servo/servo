@@ -232,6 +232,7 @@ impl FetchResponseListener for ScriptFetchContext {
             ScriptFetchOptions::default_classic_script(&scope.globalscope),
             false,
             Some(IntroductionType::WORKER),
+            1,
         );
 
         // Step 6 Run onComplete given script.
@@ -621,9 +622,7 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            _ = self
-                .globalscope
-                .run_a_classic_script_(script, false, can_gc);
+            _ = self.globalscope.run_a_classic_script(script, false, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
@@ -748,10 +747,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 ScriptFetchOptions::default_classic_script(&self.globalscope),
                 muted_errors,
                 Some(IntroductionType::WORKER),
+                1,
             );
 
             // Run the classic script script, with rethrow errors set to true.
-            let result = self.globalscope.run_a_classic_script_(script, true, can_gc);
+            let result = self.globalscope.run_a_classic_script(script, true, can_gc);
 
             if let Err(error) = result {
                 if self.is_closing() {

@@ -408,8 +408,9 @@ impl ServiceWorkerGlobalScope {
                         ScriptFetchOptions::default_classic_script(global_scope),
                         false,
                         Some(IntroductionType::WORKER),
+                        1,
                     );
-                    _ = global_scope.run_a_classic_script_(script, false, CanGc::note());
+                    _ = global_scope.run_a_classic_script(script, false, CanGc::note());
                     global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }
 

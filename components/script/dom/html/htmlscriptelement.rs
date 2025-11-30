@@ -458,6 +458,7 @@ impl FetchResponseListener for ClassicContext {
             self.fetch_options.clone(),
             muted_errors,
             introduction_type,
+            1,
         );
 
         /*
@@ -930,6 +931,7 @@ impl HTMLScriptElement {
                         options,
                         false,
                         introduction_type_override.or(Some(IntroductionType::INLINE_SCRIPT)),
+                        self.line_number as u32,
                     );
                     let result = Ok(Script::Classic(script));
 
@@ -1075,16 +1077,10 @@ impl HTMLScriptElement {
                     document.set_current_script(Some(self))
                 }
 
-                /*let _line_number = if script.external {
-                    1
-                } else {
-                    self.line_number as u32
-                };*/
-
                 _ = self
                     .owner_window()
                     .as_global_scope()
-                    .run_a_classic_script_(script, false, can_gc);
+                    .run_a_classic_script(script, false, can_gc);
 
                 document.set_current_script(old_script.as_deref());
             },

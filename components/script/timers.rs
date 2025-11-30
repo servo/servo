@@ -803,12 +803,13 @@ impl JsTimerTask {
                     ScriptFetchOptions::default_classic_script(&global),
                     false,
                     Some(IntroductionType::DOM_TIMER),
+                    1,
                 );
 
                 // Step 9.6.9. Run the classic script script.
                 //
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
-                _ = global.run_a_classic_script_(script, false, can_gc);
+                _ = global.run_a_classic_script(script, false, can_gc);
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and
             // "report", and with callback this value set to thisArg.
