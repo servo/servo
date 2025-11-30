@@ -131,6 +131,18 @@ impl WebViewCollection {
     }
 }
 
+/// A command received via the user interacting with the user interface.
+pub(crate) enum UserInterfaceCommand {
+    Go(String),
+    Back,
+    Forward,
+    Reload,
+    ReloadAll,
+    NewWebView,
+    CloseWebView(WebViewId),
+    NewWindow,
+}
+
 pub(crate) struct RunningAppState {
     /// Gamepad support, which may be `None` if it failed to initialize.
     gamepad_support: RefCell<Option<GamepadSupport>>,
@@ -213,7 +225,7 @@ impl RunningAppState {
         }
     }
 
-    pub(crate) fn create_window(
+    pub(crate) fn open_window(
         self: &Rc<Self>,
         platform_window: Rc<dyn PlatformWindow>,
         initial_url: Url,
@@ -308,6 +320,20 @@ impl RunningAppState {
         }
 
         true
+    }
+
+    pub(crate) fn foreach_window_and_interface_commands(
+        self: &Rc<Self>,
+        callback: impl Fn(&ServoShellWindow, Vec<UserInterfaceCommand>),
+    ) {
+        // We clone here to avoid a double borrow. User interface commands can update the list of windows.
+        let windows: Vec<_> = self.windows.borrow().values().cloned().collect();
+        for window in windows {
+            callback(
+                &window,
+                window.platform_window().take_user_interface_commands(),
+            )
+        }
     }
 
     pub(crate) fn maybe_window_for_webview_id(

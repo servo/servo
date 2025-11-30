@@ -14,6 +14,8 @@ use servo::{
 };
 use url::Url;
 
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
+use crate::running_app_state::UserInterfaceCommand;
 use crate::running_app_state::{RunningAppState, WebViewCollection};
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
@@ -100,7 +102,7 @@ impl ServoShellWindow {
         self.platform_window()
             .rendering_context()
             .make_current()
-            .unwrap();
+            .expect("Could not make PlatformWindow RenderingContext current");
         webview.paint();
         self.platform_window().rendering_context().present();
     }
@@ -307,12 +309,10 @@ pub(crate) trait PlatformWindow {
     /// TODO: This should be handled internally in the winit window if possible so that it
     /// makes more sense when we are mixing headed and headless windows.
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]
-    fn handle_winit_app_event(
-        &self,
-        _: Rc<RunningAppState>,
-        _: &ServoShellWindow,
-        _: crate::desktop::event_loop::AppEvent,
-    ) {
+    fn handle_winit_app_event(&self, _: crate::desktop::event_loop::AppEvent) {}
+    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
+    fn take_user_interface_commands(&self) -> Vec<UserInterfaceCommand> {
+        Default::default()
     }
     /// Request that the window redraw itself. It is up to the window to do this
     /// once the windowing system is ready. If this is a headless window, the redraw
