@@ -65,6 +65,10 @@ pub fn init_async_runtime() -> Box<dyn AsyncRuntime> {
     Box::new(AsyncRuntimeHolder::new(runtime))
 }
 
+pub fn async_runtime_initialized() -> bool {
+    ASYNC_RUNTIME_HANDLE.get().is_some()
+}
+
 /// Spawn a task using the handle to the runtime.
 pub fn spawn_task<F>(task: F)
 where

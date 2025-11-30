@@ -14,6 +14,9 @@ path = "lib.rs"
 test = false
 doctest = false
 
+[features]
+test-util = ["hyper-util/server-graceful"]
+
 [dependencies]
 async-compression = { version = "0.4.12", default-features = false, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
 async-recursion = "1.1"
@@ -85,6 +88,7 @@ fst = "0.4"
 futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
+net = { path = "../net", features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 
 [[test]]
