@@ -22,7 +22,7 @@ use crate::dom::readablestreamdefaultreader::ReadRequest;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub(crate) enum TeeCancelAlgorithm {
+pub(crate) enum DefaultTeeCancelAlgorithm {
     Cancel1Algorithm,
     Cancel2Algorithm,
 }
@@ -53,7 +53,7 @@ pub(crate) struct DefaultTeeUnderlyingSource {
     reason_2: Rc<Box<Heap<Value>>>,
     #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
-    tee_cancel_algorithm: TeeCancelAlgorithm,
+    tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
 }
 
 impl DefaultTeeUnderlyingSource {
@@ -71,7 +71,7 @@ impl DefaultTeeUnderlyingSource {
         reason_1: Rc<Box<Heap<Value>>>,
         reason_2: Rc<Box<Heap<Value>>>,
         cancel_promise: Rc<Promise>,
-        tee_cancel_algorithm: TeeCancelAlgorithm,
+        tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
         can_gc: CanGc,
     ) -> DomRoot<DefaultTeeUnderlyingSource> {
         reflect_dom_object(
@@ -161,7 +161,7 @@ impl DefaultTeeUnderlyingSource {
         can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match self.tee_cancel_algorithm {
-            TeeCancelAlgorithm::Cancel1Algorithm => {
+            DefaultTeeCancelAlgorithm::Cancel1Algorithm => {
                 // Set canceled_1 to true.
                 self.canceled_1.set(true);
 
@@ -175,7 +175,7 @@ impl DefaultTeeUnderlyingSource {
                 // Return cancelPromise.
                 Some(Ok(self.cancel_promise.clone()))
             },
-            TeeCancelAlgorithm::Cancel2Algorithm => {
+            DefaultTeeCancelAlgorithm::Cancel2Algorithm => {
                 // Set canceled_2 to true.
                 self.canceled_2.set(true);
 
