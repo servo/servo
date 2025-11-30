@@ -38,6 +38,7 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
@@ -799,6 +800,7 @@ impl JsTimerTask {
                     // Step 9.6.6. Let base URL be settings object's API base URL.
                     // Step 9.7.2. Set base URL to initiating script's base URL.
                     global.api_base_url(),
+                    ScriptFetchOptions::default_classic_script(&global),
                     false,
                     Some(IntroductionType::DOM_TIMER),
                 );
