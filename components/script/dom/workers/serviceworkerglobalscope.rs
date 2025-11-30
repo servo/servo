@@ -56,6 +56,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
     CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
 };
@@ -404,6 +405,7 @@ impl ServiceWorkerGlobalScope {
                     let script = global_scope.create_a_classic_script(
                         String::from_utf8_lossy(&source),
                         worker_scope.get_url().clone(),
+                        ScriptFetchOptions::default_classic_script(global),
                         false,
                         Some(IntroductionType::WORKER),
                     );

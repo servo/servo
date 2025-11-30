@@ -3009,13 +3009,13 @@ impl GlobalScope {
         &self,
         source: Cow<'_, str>,
         url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
         muted_errors: bool,
         introduction_type: Option<&'static CStr>,
     ) -> ClassicScript {
         let cx = GlobalScope::get_cx();
 
         let line_number = 1;
-        let fetch_options = ScriptFetchOptions::default_classic_script(self);
 
         let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
         if let Some(introduction_type) = introduction_type {

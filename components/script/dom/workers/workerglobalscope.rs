@@ -84,6 +84,7 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoop
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
@@ -228,6 +229,7 @@ impl FetchResponseListener for ScriptFetchContext {
         let script = scope.globalscope.create_a_classic_script(
             source,
             scope.worker_url.borrow().clone(),
+            ScriptFetchOptions::default_classic_script(scope.globalscope),
             false,
             Some(IntroductionType::WORKER),
         );
@@ -743,6 +745,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             let script = self.globalscope.create_a_classic_script(
                 source,
                 url,
+                ScriptFetchOptions::default_classic_script(self.globalscope),
                 muted_errors,
                 Some(IntroductionType::WORKER),
             );
