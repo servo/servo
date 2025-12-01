@@ -548,6 +548,10 @@ pub(crate) struct HTMLMediaElement {
     volume: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seeking>
     seeking: Cell<bool>,
+    /// The latest seek position (in seconds) is used to distinguish whether the seek request was
+    /// initiated by a script or by the user agent itself, rather than by the media engine and to
+    /// abort other running instance of the `seek` algorithm.
+    current_seek_position: Cell<f64>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
     muted: Cell<bool>,
     /// Loading state from source, if any.
@@ -651,6 +655,7 @@ impl HTMLMediaElement {
             default_playback_start_position: Cell::new(0.),
             volume: Cell::new(1.0),
             seeking: Cell::new(false),
+            current_seek_position: Cell::new(f64::NAN),
             resource_url: DomRefCell::new(None),
             blob_url: DomRefCell::new(None),
             played: DomRefCell::new(TimeRangesContainer::default()),
@@ -1732,6 +1737,8 @@ impl HTMLMediaElement {
             // Step 7.7. If seeking is true, set it to false.
             self.seeking.set(false);
 
+            self.current_seek_position.set(f64::NAN);
+
             // Step 7.8. Set the current playback position to 0.
             // Set the official playback position to 0.
             // If this changed the official playback position, then queue a media element task given
@@ -1933,9 +1940,10 @@ impl HTMLMediaElement {
             return;
         }
 
-        // TODO Step 3. If the element's seeking IDL attribute is true, then another instance of
-        // this algorithm is already running. Abort that other instance of the algorithm without
-        // waiting for the step that it is running to complete.
+        // Step 3. If the element's seeking IDL attribute is true, then another instance of this
+        // algorithm is already running. Abort that other instance of the algorithm without waiting
+        // for the step that it is running to complete.
+        self.current_seek_position.set(f64::NAN);
 
         // Step 4. Set the seeking IDL attribute to true.
         self.seeking.set(true);
@@ -2009,10 +2017,12 @@ impl HTMLMediaElement {
         self.current_playback_position.set(time);
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(e) = player.lock().unwrap().seek(time) {
-                error!("Seek error {:?}", e);
+            if let Err(error) = player.lock().unwrap().seek(time) {
+                error!("Could not seek player: {error:?}");
             }
         }
+
+        self.current_seek_position.set(time);
 
         // Step 12. Wait until the user agent has established whether or not the media data for the
         // new playback position is available, and, if it is, until it has decoded enough data to
@@ -2030,6 +2040,8 @@ impl HTMLMediaElement {
 
         // Step 14. Set the seeking IDL attribute to false.
         self.seeking.set(false);
+
+        self.current_seek_position.set(f64::NAN);
 
         // Step 15. Run the time marches on steps.
         self.time_marches_on();
@@ -2277,6 +2289,11 @@ impl HTMLMediaElement {
     }
 
     fn playback_end(&self) {
+        // Abort the following steps of the end of playback if seeking is in progress.
+        if self.seeking.get() {
+            return;
+        }
+
         match self.direction_of_playback() {
             PlaybackDirection::Forwards => self.end_of_playback_in_forwards_direction(),
             PlaybackDirection::Backwards => self.end_of_playback_in_backwards_direction(),
@@ -2546,22 +2563,27 @@ impl HTMLMediaElement {
     }
 
     fn playback_duration_changed(&self, duration: Option<Duration>) {
-        // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
-        // => "Once enough of the media data has been fetched to determine the duration..."
-
-        // Step 4. Update the duration attribute with the time of the last frame of the resource, if
-        // known, on the media timeline established above. If it is not known (e.g. a stream that is
-        // in principle infinite), update the duration attribute to the value positive Infinity.
-        // Note: The user agent will queue a media element task given the media element to fire an
-        // event named durationchange at the element at this point.
         let duration = duration.map_or(f64::INFINITY, |duration| duration.as_secs_f64());
 
-        if duration == self.duration.get() {
+        if self.duration.get() == duration {
             return;
         }
 
         self.duration.set(duration);
+
+        // When the length of the media resource changes to a known value (e.g. from being unknown
+        // to known, or from a previously established length to a new length), the user agent must
+        // queue a media element task given the media element to fire an event named durationchange
+        // at the media element.
+        // <https://html.spec.whatwg.org/multipage/#offsets-into-the-media-resource:media-resource-22>
         self.queue_media_element_task_to_fire_event(atom!("durationchange"));
+
+        // If the duration is changed such that the current playback position ends up being greater
+        // than the time of the end of the media resource, then the user agent must also seek to the
+        // time of the end of the media resource.
+        if self.current_playback_position.get() > duration {
+            self.seek(duration, /* approximate_for_speed */ false);
+        }
     }
 
     fn playback_video_frame_updated(&self) {
@@ -2645,6 +2667,11 @@ impl HTMLMediaElement {
     }
 
     fn playback_position_changed(&self, position: f64) {
+        // Abort the following steps of the current time update if seeking is in progress.
+        if self.seeking.get() {
+            return;
+        }
+
         let _ = self
             .played
             .borrow_mut()
@@ -2662,7 +2689,13 @@ impl HTMLMediaElement {
         self.send_media_session_event(MediaSessionEvent::SetPositionState(media_position_state));
     }
 
-    fn playback_seek_done(&self) {
+    fn playback_seek_done(&self, position: f64) {
+        // If the seek was initiated by script or by the user agent itself continue with the
+        // following steps, otherwise abort.
+        if !self.seeking.get() || position != self.current_seek_position.get() {
+            return;
+        }
+
         // <https://html.spec.whatwg.org/multipage/#dom-media-seek>
         // Step 13. Await a stable state.
         let task = MediaElementMicrotask::Seeked {
@@ -2730,7 +2763,7 @@ impl HTMLMediaElement {
             PlayerEvent::SeekData(p, ref seek_lock) => {
                 self.fetch_request(Some(p), Some(seek_lock.clone()))
             },
-            PlayerEvent::SeekDone(_) => self.playback_seek_done(),
+            PlayerEvent::SeekDone(position) => self.playback_seek_done(position),
             PlayerEvent::StateChanged(ref state) => self.playback_state_changed(state),
         }
     }
@@ -3167,16 +3200,11 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         Finite::wrap(if self.default_playback_start_position.get() != 0. {
             self.default_playback_start_position.get()
         } else if self.seeking.get() {
-            // Following the specification, any time the user agent provides a stable state, the
-            // official playback position must be set to the current playback position, and
-            // the `await a stable state` for `seek` (step 13) will be reached on receiving the
-            // `seek completion` signal from media engine, so the current playback position should
-            // be returned until the official playback position will be updated in `seek_end`.
-            // <https://html.spec.whatwg.org/multipage/#playing-the-media-resource:official-playback-position-2>
-            // <https://html.spec.whatwg.org/multipage/#dom-media-seek>
-            // Note that the other browsers do the similar (by checking `seeking` value or make no
-            // difference between `current` and `official` playback positions).
-            self.current_playback_position.get()
+            // Note that the other browsers do the similar (by checking `seeking` value or clamp the
+            // `official` position to the earliest possible position, the duration, and the seekable
+            // ranges.
+            // <https://github.com/whatwg/html/issues/11773>
+            self.current_seek_position.get()
         } else {
             self.official_playback_position.get()
         })
