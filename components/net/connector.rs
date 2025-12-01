@@ -276,8 +276,9 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 
 fn create_maybe_proxy_connector() -> MaybeProxyConnector {
-    if servo_config::pref!(network_http_proxy_enable) {
-        if let Ok(http_proxy_uri) = servo_config::pref!(network_http_proxy_uri).parse() {
+    let network_http_proxy_uri = servo_config::pref!(network_http_proxy_uri);
+    if !network_http_proxy_uri.is_empty() {
+        if let Ok(http_proxy_uri) = network_http_proxy_uri.parse() {
             log::info!("Using proxy specified via {:?}", http_proxy_uri);
             return MaybeProxyConnector::Right(TunnelErrorMasker(Tunnel::new(
                 http_proxy_uri,
@@ -293,7 +294,6 @@ fn create_maybe_proxy_connector() -> MaybeProxyConnector {
 pub type MaybeProxyConnector = tower::util::Either<ServoHttpConnector, TunnelErrorMasker>;
 
 #[derive(Debug)]
-#[allow(unused)]
 /// The error type for the MaybeProxyConnector
 pub enum ConnectionError {
     HttpError(String),
