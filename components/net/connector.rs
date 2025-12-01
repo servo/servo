@@ -21,6 +21,7 @@ use log::warn;
 use parking_lot::Mutex;
 use rustls::ClientConfig;
 use rustls::client::danger::ServerCertVerifier;
+use rustls::crypto::aws_lc_rs;
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use tokio::net::TcpStream;
 use tower::Service;
@@ -193,7 +194,7 @@ impl CertificateVerificationOverrideVerifier {
         override_manager: CertificateErrorOverrideManager,
     ) -> Self {
         let crypto_provider = rustls::crypto::CryptoProvider::get_default()
-            .expect("Could not get a crypto provider. ")
+            .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
             .clone();
         let main_verifier = match ca_certficates {
             #[cfg(not(target_os = "android"))]
