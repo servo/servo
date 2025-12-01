@@ -8,12 +8,14 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
-use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{
+    BackendResult, IndexedDBThreadMsg, OpenDatabaseResult, SyncOperation,
+};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -22,6 +24,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
+use crate::dom::indexeddb::idbfactory::DBName;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
@@ -34,53 +37,73 @@ struct OpenRequestListener {
 }
 
 impl OpenRequestListener {
-    /// <https://www.w3.org/TR/IndexedDB-2/#open-a-database>
-    fn handle_open_db(
-        &self,
-        name: String,
-        request_version: Option<u64>,
-        db_version: u64,
-        can_gc: CanGc,
-    ) -> (Fallible<DomRoot<IDBDatabase>>, bool) {
-        // Step 5-6
-        let request_version = match request_version {
-            Some(v) => v,
-            None => {
-                if db_version == 0 {
-                    1
-                } else {
-                    db_version
-                }
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+    /// The steps that continue on the script-thread.
+    fn handle_open_db(&self, name: String, response: OpenDatabaseResult, can_gc: CanGc) {
+        let request = self.open_request.root();
+        let global = request.global();
+        let idb_factory = global.get_indexeddb();
+        let name = DBName(name);
+        let dom_exception = match response {
+            OpenDatabaseResult::VersionError => Error::Version(None),
+            OpenDatabaseResult::AbortError => Error::Abort(None),
+            OpenDatabaseResult::Connection { version, upgraded } => {
+                // Step 2.2: Otherwise,
+                // set request’s result to result,
+                // set request’s done flag,
+                // and fire an event named success at request.
+                let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
+                    if upgraded {
+                        unreachable!("A connection should exist for the upgraded db.");
+                    }
+                    let connection = IDBDatabase::new(
+                        &global,
+                        DOMString::from_string(name.0.clone()),
+                        version,
+                        can_gc,
+                    );
+                    idb_factory.note_connection(name.clone(), &connection);
+                    connection
+                });
+                request.dispatch_success(&connection);
+                return;
+            },
+            OpenDatabaseResult::Upgrade {
+                version,
+                transaction,
+            } => {
+                // TODO: link with backend connection concept.
+                let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
+                    let connection = IDBDatabase::new(
+                        &global,
+                        DOMString::from_string(name.0.clone()),
+                        version,
+                        can_gc,
+                    );
+                    idb_factory.note_connection(name.clone(), &connection);
+                    connection
+                });
+                request.upgrade_db_version(&connection, version, transaction, can_gc);
+                return;
             },
         };
 
-        // Step 7
-        if request_version < db_version {
-            return (Err(Error::Version(None)), false);
-        }
-
-        // Step 8-9
-        let open_request = self.open_request.root();
-        let global = open_request.global();
-        let connection = IDBDatabase::new(
+        // Step 2.1 If result is an error,
+        // set request’s result to undefined,
+        // set request’s error to result,
+        // set request’s done flag,
+        // and fire an event named error at request
+        // with its bubbles and cancelable attributes initialized to true.
+        request.set_result(HandleValue::undefined());
+        request.set_error(Some(dom_exception), CanGc::note());
+        let event = Event::new(
             &global,
-            DOMString::from_string(name.clone()),
-            request_version,
-            can_gc,
+            Atom::from("error"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            CanGc::note(),
         );
-
-        // Step 10
-        if request_version > db_version {
-            // FIXME:(rasviitanen) Do step 10.1-10.5
-            // connection.dispatch_versionchange(db_version, Some(request_version));
-            // Step 10.6
-            open_request.upgrade_db_version(&connection, request_version, CanGc::note());
-            // Step 11
-            (Ok(connection), true)
-        } else {
-            // Step 11
-            (Ok(connection), false)
-        }
+        event.fire(request.upcast(), CanGc::note());
     }
 
     fn handle_delete_db(&self, result: BackendResult<()>, can_gc: CanGc) {
@@ -139,84 +162,83 @@ impl IDBOpenDBRequest {
         reflect_dom_object(Box::new(IDBOpenDBRequest::new_inherited()), global, can_gc)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#run-an-upgrade-transaction>
-    fn upgrade_db_version(&self, connection: &IDBDatabase, version: u64, can_gc: CanGc) {
+    /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
+    /// Step 10: Queue a database task to run these steps:
+    /// The below are the steps in the task.
+    fn upgrade_db_version(
+        &self,
+        connection: &IDBDatabase,
+        version: u64,
+        transaction: u64,
+        can_gc: CanGc,
+    ) {
         let global = self.global();
-        // Step 2
-        let transaction = IDBTransaction::new(
+        let cx = GlobalScope::get_cx();
+
+        // Note: the transaction should link wiht one created on the backend.
+        // Steps here are meant to create the corresponding webidl object.
+        let transaction = IDBTransaction::new_with_id(
             &global,
             connection,
             IDBTransactionMode::Versionchange,
             &connection.object_stores(),
+            transaction,
             can_gc,
         );
-
-        // Step 3
         connection.set_transaction(&transaction);
 
-        // Associate the open request with the upgrade transaction so that
-        // its "success" event is dispatched only once the transaction finishes.
-        transaction.set_open_request(self);
+        rooted!(in(*cx) let mut connection_val = UndefinedValue());
+        connection.safe_to_jsval(cx, connection_val.handle_mut(), can_gc);
 
-        // Step 4
-        transaction.set_active_flag(false);
+        // Step 10.1: Set request’s result to connection.
+        self.idbrequest.set_result(connection_val.handle());
 
-        // Step 5-7
+        // Step 10.2: Set request’s transaction to transaction.
+        self.idbrequest.set_transaction(&transaction);
+
+        // Step 10.3: Set request’s done flag to true.
+        self.idbrequest.set_ready_state_done();
+
+        // Step 10.4: Set transaction’s state to active.
+        // TODO: message to set state of backend transaction.
+        transaction.set_active_flag(true);
+
+        // Step 10.5: Let didThrow be the result of
+        // firing a version change event named upgradeneeded
+        // at request with old version and version.
         let old_version = connection.version();
-        transaction.upgrade_db_version(version);
-
-        // Step 8
-        let this = Trusted::new(self);
-        let connection = Trusted::new(connection);
-        let trusted_transaction = Trusted::new(&*transaction);
-        global.task_manager().database_access_task_source().queue(
-            task!(send_upgradeneeded_notification: move || {
-                let this = this.root();
-                let txn = trusted_transaction.root();
-                let conn = connection.root();
-                let global = this.global();
-                let cx = GlobalScope::get_cx();
-
-                // Step 8.1
-                let _ac = enter_realm(&*conn);
-                rooted!(in(*cx) let mut connection_val = UndefinedValue());
-                conn.safe_to_jsval(cx, connection_val.handle_mut(), CanGc::note());
-                this.idbrequest.set_result(connection_val.handle());
-
-                // Step 8.2
-                this.idbrequest.set_transaction(&txn);
-
-                // Step 8.3
-                this.idbrequest.set_ready_state_done();
-
-                let event = IDBVersionChangeEvent::new(
-                    &global,
-                    Atom::from("upgradeneeded"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    old_version,
-                    Some(version),
-                    CanGc::note(),
-                );
-
-                // Step 8.4
-                txn.set_active_flag(true);
-                // Step 8.5
-                let _did_throw = event.upcast::<Event>().fire(this.upcast(), CanGc::note());
-                // FIXME:(rasviitanen) Handle throw (Step 8.5)
-                // https://www.w3.org/TR/IndexedDB-2/#run-an-upgrade-transaction
-                // Step 8.6
-                txn.set_active_flag(false);
-
-                // Wait for the upgrade transaction to finish; its completion
-                // handler will now dispatch the open request's "success" event
-                // after all other queued request success events.
-                txn.wait();
-            }),
+        let event = IDBVersionChangeEvent::new(
+            &global,
+            Atom::from("upgradeneeded"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            old_version,
+            Some(version),
+            CanGc::note(),
         );
+        let _did_throw = event.upcast::<Event>().fire(self.upcast(), CanGc::note());
 
-        // Step 9: Starts and waits for the transaction to finish
-        transaction.wait();
+        // Step 10.6: If transaction’s state is active, then:
+        if transaction.is_active() {
+            // Step 10.6.1: Set transaction’s state to inactive.
+            transaction.set_active_flag(false);
+
+            // Step 10.6.2: If didThrow is true,
+            // run abort a transaction with transaction
+            // and a newly created "AbortError" DOMException.
+            // TODO: implement.
+        }
+
+        if global
+            .storage_threads()
+            .send(IndexedDBThreadMsg::OpenTransactionInactive {
+                name: connection.get_name().to_string(),
+                transaction: transaction.get_serial_number(),
+            })
+            .is_err()
+        {
+            error!("Failed to send OpenTransactionInactive.");
+        }
     }
 
     pub fn set_result(&self, result: HandleValue) {
@@ -227,6 +249,7 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_error(error, can_gc);
     }
 
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     pub fn open_database(&self, name: DOMString, version: Option<u64>) -> Result<(), ()> {
         let global = self.global();
 
@@ -238,54 +261,25 @@ impl IDBOpenDBRequest {
             .task_manager()
             .database_access_task_source()
             .to_sendable();
-
-        let trusted_request = Trusted::new(self);
         let name = name.to_string();
         let name_copy = name.clone();
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-            let trusted_request = trusted_request.clone();
             let response_listener = response_listener.clone();
             let name = name_copy.clone();
-
-            task_source.queue(
-                    task!(set_request_result_to_database: move || {
-                        let (result, did_upgrade) =
-                            response_listener.handle_open_db(name, version, message.unwrap(), CanGc::note());
-                        // If an upgrade event was created, it will be responsible for
-                        // dispatching the success event
-                        if did_upgrade {
-                            return;
-                        }
-                        let request = trusted_request.root();
-                        let global = request.global();
-                        match result {
-                            Ok(db) => {
-                                request.dispatch_success(&db);
-                            },
-                            Err(dom_exception) => {
-                                request.set_result(HandleValue::undefined());
-                                request.set_error(Some(dom_exception), CanGc::note());
-                                let event = Event::new(
-                                    &global,
-                                    Atom::from("error"),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
-                                    CanGc::note()
-                                );
-                                event.fire(request.upcast(), CanGc::note());
-                            }
-                        }
-                    }),
-                );
-        }).expect("Could not set callback");
+            task_source.queue(task!(set_request_result_to_database: move || {
+                response_listener.handle_open_db(name, message.unwrap(), CanGc::note());
+            }));
+        })
+        .expect("Could not create delete database callback");
 
         let open_operation = SyncOperation::OpenDatabase(
             callback,
             global.origin().immutable().clone(),
-            name,
+            name.to_string(),
             version,
         );
 
+        // Note: algo continues in parallel.
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::Sync(open_operation))

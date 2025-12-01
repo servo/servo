@@ -31,7 +31,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
-use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::script_runtime::CanGc;
 
@@ -55,10 +54,6 @@ pub struct IDBTransaction {
     // transaction’s request list and decremented once the request has
     // finished.
     pending_request_count: Cell<usize>,
-    // When the transaction belongs to a database open request (i.e. during an
-    // upgrade), the corresponding IDBOpenDBRequest is stored so we can fire its
-    // "success" event after the transaction is fully finished.
-    open_request: MutNullableDom<IDBOpenDBRequest>,
 
     // An unique identifier, used to commit and revert this transaction
     // FIXME:(rasviitanen) Replace this with a channel
@@ -84,11 +79,12 @@ impl IDBTransaction {
             active: Cell::new(true),
             finished: Cell::new(false),
             pending_request_count: Cell::new(0),
-            open_request: Default::default(),
             serial_number,
         }
     }
 
+    /// Does a blocking call to get an id from the backend.
+    /// TODO: remove in favor of something like `new_with_id` below.
     pub fn new(
         global: &GlobalScope,
         connection: &IDBDatabase,
@@ -103,6 +99,29 @@ impl IDBTransaction {
                 mode,
                 scope,
                 serial_number,
+            )),
+            global,
+            can_gc,
+        )
+    }
+
+    /// Create a new WebIDL object,
+    /// based on an existign transaction on the backend.
+    /// The two are linked via the `transaction_id`.
+    pub(crate) fn new_with_id(
+        global: &GlobalScope,
+        connection: &IDBDatabase,
+        mode: IDBTransactionMode,
+        scope: &DOMStringList,
+        transaction_id: u64,
+        can_gc: CanGc,
+    ) -> DomRoot<IDBTransaction> {
+        reflect_dom_object(
+            Box::new(IDBTransaction::new_inherited(
+                connection,
+                mode,
+                scope,
+                transaction_id,
             )),
             global,
             can_gc,
@@ -127,32 +146,6 @@ impl IDBTransaction {
             .unwrap();
 
         receiver.recv().unwrap()
-    }
-
-    // Runs the transaction and waits for it to finish
-    // TODO: run in-parallel.
-    pub fn wait(&self) {
-        // Start the transaction
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-
-        let start_operation = SyncOperation::StartTransaction(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.db.get_name().to_string(),
-            self.serial_number,
-        );
-
-        self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(start_operation))
-            .unwrap();
-
-        // Wait for the transaction to complete
-        let _ = receiver.recv();
-        // Mark the transaction as finished and dispatch the complete event.
-        // This also takes care of firing the open request "success" event
-        // (if any) in the correct order.
-        self.finished.set(true);
-        self.dispatch_complete();
     }
 
     pub fn set_active_flag(&self, status: bool) {
@@ -181,13 +174,6 @@ impl IDBTransaction {
         self.serial_number
     }
 
-    /// Associate an `IDBOpenDBRequest` with this transaction so that its
-    /// "success" event is dispatched only once the transaction has truly
-    /// finished (after the "complete" event).
-    pub fn set_open_request(&self, request: &IDBOpenDBRequest) {
-        self.open_request.set(Some(request));
-    }
-
     pub fn add_request(&self, request: &IDBRequest) {
         self.requests.borrow_mut().push(Dom::from_ref(request));
         // Increase the number of outstanding requests so that we can detect when
@@ -213,26 +199,6 @@ impl IDBTransaction {
         }
     }
 
-    pub fn upgrade_db_version(&self, version: u64) {
-        // Runs the previous request and waits for them to finish
-        self.wait();
-        // Queue a request to upgrade the db version
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-        let upgrade_version_operation = SyncOperation::UpgradeVersion(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.db.get_name().to_string(),
-            self.serial_number,
-            version,
-        );
-        self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(upgrade_version_operation))
-            .unwrap();
-        // Wait for the version to be updated
-        // TODO(jdm): This returns a Result; what do we do with an error?
-        let _ = receiver.recv().unwrap();
-    }
-
     fn dispatch_complete(&self) {
         let global = self.global();
         let this = Trusted::new(self);
@@ -248,14 +214,6 @@ impl IDBTransaction {
                     CanGc::note()
                 );
                 event.fire(this.upcast(), CanGc::note());
-
-                // If this transaction was created as part of an IDBOpenDBRequest,
-                // fire the "success" event for that
-                // request after the complete event to respect spec ordering.
-                if let Some(open_req) = this.open_request.get() {
-                    open_req.dispatch_success(&this.db);
-                    this.open_request.set(None);
-                }
             }),
         );
     }

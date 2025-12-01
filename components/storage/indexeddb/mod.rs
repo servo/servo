@@ -13,14 +13,14 @@ use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use base::threadpool::ThreadPool;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use profile_traits::generic_callback::GenericCallback;
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, SyncOperation,
+    IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
 };
 use uuid::Uuid;
 
@@ -196,11 +196,21 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 }
 
+/// Keeping track of pending upgrade transactions.
+/// TODO: move into general transaction lifecycle.
+struct PendingUpgrade {
+    sender: GenericCallback<OpenDatabaseResult>,
+    db_version: u64,
+}
+
 struct IndexedDBManager {
     port: GenericReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
     thread_pool: Arc<ThreadPool>,
+    /// Tracking pending upgrade transactions.
+    /// TODO: move into general transaction lifecyle.
+    pending_upgrades: HashMap<(String, u64), PendingUpgrade>,
 }
 
 impl IndexedDBManager {
@@ -220,6 +230,7 @@ impl IndexedDBManager {
             idb_base_dir,
             databases: HashMap::new(),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
+            pending_upgrades: Default::default(),
         }
     }
 }
@@ -258,8 +269,30 @@ impl IndexedDBManager {
                         db.start_transaction(txn, None);
                     }
                 },
+                IndexedDBThreadMsg::OpenTransactionInactive { name, transaction } => {
+                    self.handle_open_transaction_inactive(name, transaction);
+                },
             }
         }
+    }
+
+    /// Handle when an open transaction becomes inactive.
+    /// TODO: transaction lifecyle.
+    fn handle_open_transaction_inactive(&mut self, name: String, transaction: u64) {
+        let Some(pending_upgrade) = self.pending_upgrades.remove(&(name, transaction)) else {
+            error!("OpenTransactionInactive received for non-existent pending upgrade.");
+            return;
+        };
+        if pending_upgrade
+            .sender
+            .send(OpenDatabaseResult::Connection {
+                version: pending_upgrade.db_version,
+                upgraded: true,
+            })
+            .is_err()
+        {
+            error!("Failed to send OpenDatabaseResult::Connection to script.");
+        };
     }
 
     fn get_database(
@@ -288,9 +321,175 @@ impl IndexedDBManager {
         self.databases.get_mut(&idb_description)
     }
 
+    /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
+    /// To upgrade a database with connection (a connection),
+    /// a new version, and a request, run these steps:
+    /// TODO: connection and request.
+    fn upgrade_database(
+        &mut self,
+        idb_description: IndexedDBDescription,
+        new_version: u64,
+        db_name: String,
+        sender: GenericCallback<OpenDatabaseResult>,
+    ) {
+        // Step 1: Let db be connection’s database.
+        // TODO: connection.
+        let db = self
+            .databases
+            .get_mut(&idb_description)
+            .expect("Db should have been opened.");
+
+        // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
+        let transaction_id = db.serial_number_counter;
+        db.serial_number_counter += 1;
+
+        // Step 3: Set transaction’s scope to connection’s object store set.
+        // Step 4: Set db’s upgrade transaction to transaction.
+        // Step 5: Set transaction’s state to inactive.
+        // Step 6: Start transaction.
+        // TODO: implement transactions and their lifecyle.
+
+        // Step 7: Let old version be db’s version.
+        // Note: done in script.
+
+        // Step 8: Set db’s version to version.
+        // This change is considered part of the transaction,
+        // and so if the transaction is aborted, this change is reverted.
+        // TODO: wrap in transaction.
+        db.set_version(new_version)
+            .expect("Setting the version should not fail");
+
+        // Step 9: Set request’s processed flag to true.
+        // TODO: implement requests.
+
+        // Step 10: Queue a database task to run these steps:
+        if sender
+            .send(OpenDatabaseResult::Upgrade {
+                version: new_version,
+                transaction: transaction_id,
+            })
+            .is_err()
+        {
+            error!("Couldn't queue task for indexeddb upgrade event.");
+        }
+
+        // Step 11: Wait for transaction to finish.
+        self.pending_upgrades.insert(
+            (db_name, transaction_id),
+            PendingUpgrade {
+                sender,
+                db_version: new_version,
+            },
+        );
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+    fn open_database(
+        &mut self,
+        sender: GenericCallback<OpenDatabaseResult>,
+        origin: ImmutableOrigin,
+        db_name: String,
+        version: Option<u64>,
+    ) {
+        // Step 1: Let queue be the connection queue for storageKey and name.
+        // Step 2: Add request to queue.
+        // Step 3: Wait until all previous requests in queue have been processed.
+        // TODO: implement #request-connection-queue
+        // TODO: use a storage key.
+
+        let idb_description = IndexedDBDescription {
+            origin,
+            name: db_name.clone(),
+        };
+
+        let idb_base_dir = self.idb_base_dir.as_path();
+
+        // Step 4: Let db be the database named name in origin, or null otherwise.
+        let (db_version, version) = match self.databases.entry(idb_description.clone()) {
+            Entry::Vacant(e) => {
+                // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
+                // Note: done below with the zero as first tuple item.
+
+                // Step 6: If db is null, let db be a new database
+                // with name name, version 0 (zero), and with no object stores.
+                // If this fails for any reason, return an appropriate error
+                // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
+                // TODO: return error.
+                let mut db = IndexedDBEnvironment::new(
+                    SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
+                        .expect("Failed to create sqlite engine"),
+                );
+                db.set_version(0)
+                    .expect("Setting the version of a newly created DB should not fail.");
+                e.insert(db);
+                (0, version.unwrap_or(1))
+            },
+            Entry::Occupied(db) => {
+                let db_version = db.get().version().expect("Db should have a version.");
+                // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
+                (db_version, version.unwrap_or(db_version))
+            },
+        };
+
+        // Step 7: If db’s version is greater than version,
+        // return a newly created "VersionError" DOMException
+        // and abort these steps.
+        if version < db_version {
+            if sender.send(OpenDatabaseResult::VersionError).is_err() {
+                debug!("Script exit during indexeddb database open");
+            }
+            return;
+        }
+
+        // Let connection be a new connection to db.
+        // Set connection’s version to version.
+        // TODO: track connections in the backend(each script `IDBDatabase` should have a matching connection).
+
+        // Step 10: If db’s version is less than version, then:
+        if db_version < version {
+            // Step 10.1: Let openConnections be the set of all connections,
+            // except connection, associated with db.
+            // Step 10.2: For each entry of openConnections
+            // that does not have its close pending flag set to true,
+            // queue a database task to fire a version change event
+            // named versionchange at entry with db’s version and version.
+            // Step 10.3: Wait for all of the events to be fired.
+            // Step 10.4: If any of the connections in openConnections are still not closed,
+            // queue a database task to fire a version change event named blocked
+            // at request with db’s version and version.
+            // Step 10.5: Wait until all connections in openConnections are closed.
+            // TODO: implement connections.
+
+            // Step 10.6: Run upgrade a database using connection, version and request.
+            self.upgrade_database(idb_description, version, db_name, sender);
+            return;
+        }
+
+        // Step 11:
+        if sender
+            .send(OpenDatabaseResult::Connection {
+                version: db_version,
+                upgraded: false,
+            })
+            .is_err()
+        {
+            error!("Failed to send OpenDatabaseResult::Connection to script.");
+        };
+    }
+
+    /// Returns the id of the transaction if the db exists.
+    fn register_transaction(&mut self, origin: ImmutableOrigin, db_name: String) -> Option<u64> {
+        self.get_database_mut(origin, db_name).map(|db| {
+            db.serial_number_counter += 1;
+            db.serial_number_counter
+        })
+    }
+
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
             SyncOperation::CloseDatabase(sender, origin, db_name) => {
+                // TODO: Wait for all transactions created using connection to complete.
+                // Note: current behavior is as if the `forced` flag is always set.
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
@@ -301,32 +500,7 @@ impl IndexedDBManager {
                 let _ = sender.send(Ok(()));
             },
             SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
-                let idb_description = IndexedDBDescription {
-                    origin,
-                    name: db_name,
-                };
-
-                let idb_base_dir = self.idb_base_dir.as_path();
-
-                let version = version.unwrap_or(0);
-
-                match self.databases.entry(idb_description.clone()) {
-                    Entry::Vacant(e) => {
-                        let db = IndexedDBEnvironment::new(
-                            SqliteEngine::new(
-                                idb_base_dir,
-                                &idb_description,
-                                self.thread_pool.clone(),
-                            )
-                            .expect("Failed to create sqlite engine"),
-                        );
-                        let _ = sender.send(db.version().unwrap_or(version));
-                        e.insert(db);
-                    },
-                    Entry::Occupied(db) => {
-                        let _ = sender.send(db.get().version().unwrap_or(version));
-                    },
-                }
+                self.open_database(sender, origin, db_name, version);
             },
             SyncOperation::DeleteDatabase(callback, origin, db_name) => {
                 // https://w3c.github.io/IndexedDB/#delete-a-database
@@ -433,9 +607,8 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.serial_number_counter += 1;
-                    let _ = sender.send(db.serial_number_counter);
+                if let Some(transaction_id) = self.register_transaction(origin, db_name) {
+                    let _ = sender.send(transaction_id);
                 }
             },
             SyncOperation::Exit(_) => {
