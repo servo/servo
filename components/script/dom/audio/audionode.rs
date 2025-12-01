@@ -65,7 +65,8 @@ impl AudioNode {
             .audio_context_impl()
             .lock()
             .unwrap()
-            .create_node(node_type, ch);
+            .create_node(node_type, ch)
+            .expect("Failed to create audio node");
         Ok(AudioNode::new_inherited_for_id(
             node_id,
             context,
