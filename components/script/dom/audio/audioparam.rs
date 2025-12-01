@@ -28,7 +28,7 @@ pub(crate) struct AudioParam {
     context: Dom<BaseAudioContext>,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
-    node: NodeId,
+    node: Option<NodeId>,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     node_type: AudioNodeType,
@@ -45,7 +45,7 @@ impl AudioParam {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
         context: &BaseAudioContext,
-        node: NodeId,
+        node: Option<NodeId>,
         node_type: AudioNodeType,
         param: ParamType,
         automation_rate: AutomationRate,
@@ -71,7 +71,7 @@ impl AudioParam {
     pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
-        node: NodeId,
+        node: Option<NodeId>,
         node_type: AudioNodeType,
         param: ParamType,
         automation_rate: AutomationRate,
@@ -94,18 +94,20 @@ impl AudioParam {
     }
 
     fn message_node(&self, message: AudioNodeMessage) {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .message_node(self.node, message);
+        if let Some(node_id) = self.node {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .message_node(node_id, message);
+        }
     }
 
     pub(crate) fn context(&self) -> &BaseAudioContext {
         &self.context
     }
 
-    pub(crate) fn node_id(&self) -> NodeId {
+    pub(crate) fn node_id(&self) -> Option<NodeId> {
         self.node
     }
 
@@ -143,6 +145,9 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-value>
     fn Value(&self) -> Finite<f32> {
+        if self.node.is_none() {
+            return Finite::wrap(self.default_value);
+        }
         let (tx, rx) = mpsc::channel();
         self.message_node(AudioNodeMessage::GetParamValue(self.param, tx));
         Finite::wrap(rx.recv().unwrap())
