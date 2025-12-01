@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use log::warn;
 use script_bindings::codegen::InheritTypes::{
     AudioNodeTypeId, AudioScheduledSourceNodeTypeId, EventTargetTypeId,
 };
@@ -22,7 +23,10 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::console::Console;
 use crate::dom::eventtarget::EventTarget;
 
 // 32 is the minimum required by the spec for createBuffer() and the deprecated
@@ -35,7 +39,7 @@ pub(crate) struct AudioNode {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
-    node_id: NodeId,
+    node_id: Option<NodeId>,
     context: Dom<BaseAudioContext>,
     number_of_inputs: u32,
     number_of_outputs: u32,
@@ -61,12 +65,22 @@ impl AudioNode {
             interpretation: options.interpretation.convert(),
             context_channel_count: context.channel_count() as u8,
         };
-        let node_id = context
+        let node_id = match context
             .audio_context_impl()
             .lock()
             .unwrap()
             .create_node(node_type, ch)
-            .expect("Failed to create audio node");
+        {
+            Ok(node_id) => Some(node_id),
+            Err(_) => {
+                // Follow Chromuim and Gecko, we just warn and create an inert AudioNode.
+                const MESSAGE: &str = "Failed to create an AudioNode backend. The constructed AudioNode will be inert.";
+                warn!("{MESSAGE}");
+                Console::internal_warn(&context.global(), DOMString::from(MESSAGE));
+                None
+            },
+        };
+
         Ok(AudioNode::new_inherited_for_id(
             node_id,
             context,
@@ -77,7 +91,7 @@ impl AudioNode {
     }
 
     pub(crate) fn new_inherited_for_id(
-        node_id: NodeId,
+        node_id: Option<NodeId>,
         context: &BaseAudioContext,
         options: UnwrappedAudioNodeOptions,
         number_of_inputs: u32,
@@ -96,14 +110,16 @@ impl AudioNode {
     }
 
     pub(crate) fn message(&self, message: AudioNodeMessage) {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .message_node(self.node_id, message);
+        if let Some(node_id) = self.node_id {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .message_node(node_id, message);
+        }
     }
 
-    pub(crate) fn node_id(&self) -> NodeId {
+    pub(crate) fn node_id(&self) -> Option<NodeId> {
         self.node_id
     }
 }
@@ -126,14 +142,18 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
 
         // servo-media takes care of ignoring duplicated connections.
 
+        let Some(source_id) = self.node_id() else {
+            return Ok(DomRoot::from_ref(destination));
+        };
+        let Some(dest_id) = destination.node_id() else {
+            return Ok(DomRoot::from_ref(destination));
+        };
+
         self.context
             .audio_context_impl()
             .lock()
             .unwrap()
-            .connect_ports(
-                self.node_id().output(output),
-                destination.node_id().input(input),
-            );
+            .connect_ports(source_id.output(output), dest_id.input(input));
 
         Ok(DomRoot::from_ref(destination))
     }
@@ -150,13 +170,20 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
 
         // servo-media takes care of ignoring duplicated connections.
 
+        let Some(source_id) = self.node_id() else {
+            return Ok(());
+        };
+        let Some(param_node) = dest.node_id() else {
+            return Ok(());
+        };
+
         self.context
             .audio_context_impl()
             .lock()
             .unwrap()
             .connect_ports(
-                self.node_id().output(output),
-                dest.node_id().param(dest.param_type()),
+                source_id.output(output),
+                param_node.param(dest.param_type()),
             );
 
         Ok(())
@@ -164,74 +191,88 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect>
     fn Disconnect(&self) -> ErrorResult {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .disconnect_all_from(self.node_id());
+        if let Some(node_id) = self.node_id() {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .disconnect_all_from(node_id);
+        }
         Ok(())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output>
     fn Disconnect_(&self, out: u32) -> ErrorResult {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .disconnect_output(self.node_id().output(out));
+        if let Some(node_id) = self.node_id() {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .disconnect_output(node_id.output(out));
+        }
         Ok(())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode>
     fn Disconnect__(&self, to: &AudioNode) -> ErrorResult {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .disconnect_between(self.node_id(), to.node_id());
+        if let (Some(from_node), Some(to_node)) = (self.node_id(), to.node_id()) {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .disconnect_between(from_node, to_node);
+        }
         Ok(())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output>
     fn Disconnect___(&self, to: &AudioNode, out: u32) -> ErrorResult {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .disconnect_output_between(self.node_id().output(out), to.node_id());
+        if let (Some(from_node), Some(to_node)) = (self.node_id(), to.node_id()) {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .disconnect_output_between(from_node.output(out), to_node);
+        }
         Ok(())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input>
     fn Disconnect____(&self, to: &AudioNode, out: u32, inp: u32) -> ErrorResult {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .disconnect_output_between_to(self.node_id().output(out), to.node_id().input(inp));
+        if let (Some(from_node), Some(to_node)) = (self.node_id(), to.node_id()) {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .disconnect_output_between_to(from_node.output(out), to_node.input(inp));
+        }
         Ok(())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect>
     fn Disconnect_____(&self, param: &AudioParam) -> ErrorResult {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .disconnect_to(self.node_id(), param.node_id().param(param.param_type()));
+        if let (Some(from_node), Some(param_node)) = (self.node_id(), param.node_id()) {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .disconnect_to(from_node, param_node.param(param.param_type()));
+        }
         Ok(())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect>
     fn Disconnect______(&self, param: &AudioParam, out: u32) -> ErrorResult {
-        self.context
-            .audio_context_impl()
-            .lock()
-            .unwrap()
-            .disconnect_output_between_to(
-                self.node_id().output(out),
-                param.node_id().param(param.param_type()),
-            );
+        if let (Some(from_node), Some(param_node)) = (self.node_id(), param.node_id()) {
+            self.context
+                .audio_context_impl()
+                .lock()
+                .unwrap()
+                .disconnect_output_between_to(
+                    from_node.output(out),
+                    param_node.param(param.param_type()),
+                );
+        }
         Ok(())
     }
 

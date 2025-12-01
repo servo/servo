@@ -29,7 +29,7 @@ impl AudioDestinationNode {
             options.unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         AudioDestinationNode {
             node: AudioNode::new_inherited_for_id(
-                context.destination_node(),
+                Some(context.destination_node()),
                 context,
                 node_options,
                 1,

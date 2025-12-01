@@ -42,7 +42,7 @@ impl AudioListener {
         let position_x = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Position(ParamDir::X),
             AutomationRate::A_rate,
@@ -54,7 +54,7 @@ impl AudioListener {
         let position_y = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Position(ParamDir::Y),
             AutomationRate::A_rate,
@@ -66,7 +66,7 @@ impl AudioListener {
         let position_z = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Position(ParamDir::Z),
             AutomationRate::A_rate,
@@ -78,7 +78,7 @@ impl AudioListener {
         let forward_x = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Forward(ParamDir::X),
             AutomationRate::A_rate,
@@ -90,7 +90,7 @@ impl AudioListener {
         let forward_y = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Forward(ParamDir::Y),
             AutomationRate::A_rate,
@@ -102,7 +102,7 @@ impl AudioListener {
         let forward_z = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Forward(ParamDir::Z),
             AutomationRate::A_rate,
@@ -114,7 +114,7 @@ impl AudioListener {
         let up_x = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Up(ParamDir::X),
             AutomationRate::A_rate,
@@ -126,7 +126,7 @@ impl AudioListener {
         let up_y = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Up(ParamDir::Y),
             AutomationRate::A_rate,
@@ -138,7 +138,7 @@ impl AudioListener {
         let up_z = AudioParam::new(
             window,
             context,
-            node,
+            Some(node),
             AudioNodeType::AudioListenerNode,
             ParamType::Up(ParamDir::Z),
             AutomationRate::A_rate,
