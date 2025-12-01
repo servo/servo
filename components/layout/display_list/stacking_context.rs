@@ -304,10 +304,11 @@ impl StackingContextContent {
         }
     }
 
-    fn build_display_list(
+    fn build_display_list_with_section_override(
         &self,
         builder: &mut DisplayListBuilder,
         inline_stacking_containers: &[StackingContext],
+        section_override: Option<StackingContextSection>,
     ) {
         match self {
             Self::Fragment {
@@ -327,7 +328,7 @@ impl StackingContextContent {
                 fragment.build_display_list(
                     builder,
                     containing_block,
-                    *section,
+                    section_override.unwrap_or(*section),
                     *is_hit_test_for_scrollable_overflow,
                     *is_collapsed_table_borders,
                     text_decorations,
@@ -336,6 +337,28 @@ impl StackingContextContent {
             Self::AtomicInlineStackingContainer { index } => {
                 inline_stacking_containers[*index].build_display_list(builder);
             },
+        }
+    }
+
+    fn build_display_list(
+        &self,
+        builder: &mut DisplayListBuilder,
+        inline_stacking_containers: &[StackingContext],
+    ) {
+        self.build_display_list_with_section_override(builder, inline_stacking_containers, None);
+    }
+
+    fn has_outline(&self) -> bool {
+        match self {
+            StackingContextContent::Fragment { fragment, .. } => match fragment {
+                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment
+                    .borrow()
+                    .style
+                    .get_outline()
+                    .outline_has_nonzero_width(),
+                _ => false,
+            },
+            StackingContextContent::AtomicInlineStackingContainer { .. } => false,
         }
     }
 }
@@ -670,6 +693,7 @@ impl StackingContext {
         // means positioned descendants that do not generate stacking contexts.
 
         // Steps 1 and 2: Borders and background for the root
+        let mut content_with_outlines = Vec::new();
         let mut contents = self.contents.iter().enumerate().peekable();
         while contents.peek().is_some_and(|(_, child)| {
             child.section() == StackingContextSection::OwnBackgroundsAndBorders
@@ -677,6 +701,10 @@ impl StackingContext {
             let (i, child) = contents.next().unwrap();
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
+
+            if child.has_outline() {
+                content_with_outlines.push(child);
+            }
         }
 
         // Step 3: Stacking contexts with negative ‘z-index’
@@ -706,6 +734,10 @@ impl StackingContext {
             let (i, child) = contents.next().unwrap();
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
+
+            if child.has_outline() {
+                content_with_outlines.push(child);
+            }
         }
 
         // Step 5: Float stacking containers
@@ -722,6 +754,10 @@ impl StackingContext {
             let (i, child) = contents.next().unwrap();
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
+
+            if child.has_outline() {
+                content_with_outlines.push(child);
+            }
         }
 
         // Steps 8 and 9: Stacking contexts with non-negative ‘z-index’, and
@@ -735,13 +771,12 @@ impl StackingContext {
         }
 
         // Step 10: Outline
-        while contents
-            .peek()
-            .is_some_and(|(_, child)| child.section() == StackingContextSection::Outline)
-        {
-            let (i, child) = contents.next().unwrap();
-            self.debug_push_print_item(DebugPrintField::Contents, i);
-            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
+        for content in content_with_outlines {
+            content.build_display_list_with_section_override(
+                builder,
+                &self.atomic_inline_stacking_containers,
+                Some(StackingContextSection::Outline),
+            );
         }
 
         if pushed_context {
@@ -1230,9 +1265,6 @@ impl BoxFragment {
 
         let section = self.get_stacking_context_section();
         add_fragment(section);
-        if !self.style.get_outline().outline_width.is_zero() {
-            add_fragment(StackingContextSection::Outline);
-        }
 
         // Spatial tree node that will affect the transform of the fragment. Note that the next frame,
         // scroll frame, does not affect the transform of the fragment but affect the transform of it
