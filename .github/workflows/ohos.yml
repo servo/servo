@@ -293,6 +293,7 @@ jobs:
       - name: Run speedometer
         id: BencherRun
         run: uv run ./etc/ci/scenario/servo_speedometer.py ${{ inputs.profile }}
+        timeout-minutes: 10
         continue-on-error: true
       - name: Handle failed speedometer
         if: ${{ steps.BencherRun.outcome == 'failure' }}
