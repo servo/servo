@@ -198,7 +198,7 @@ webxr-api = { path = "components/shared/webxr" }
 wgpu-core = "26"
 wgpu-types = "26"
 winapi = "0.3"
-windows-sys = "0.61"
+windows-sys = { version = "0.61", features = ["Win32_System_Console"] }
 winit = "0.30.12"
 wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.68" }
