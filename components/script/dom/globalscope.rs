@@ -3064,6 +3064,7 @@ impl GlobalScope {
 
         // Step 5 Let evaluationStatus be null.
         rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
+        let mut result = false;
 
         match script.record {
             // Step 6 If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
@@ -3105,7 +3106,7 @@ impl GlobalScope {
                         );
                     }
 
-                    _ = unsafe { JS_ExecuteScript(*cx, record.handle(), rval.handle_mut()) };
+                    result = unsafe { JS_ExecuteScript(*cx, record.handle(), rval.handle_mut()) };
                 }
             },
         }
@@ -3143,7 +3144,18 @@ impl GlobalScope {
         }
 
         maybe_resume_unwind();
-        Ok(())
+
+        // Step 10 If evaluationStatus is a normal completion, then return evaluationStatus.
+        if result {
+            return Ok(());
+        }
+
+        // Step 11 If we've reached this point, evaluationStatus was left as null because the script
+        // was aborted prematurely during evaluation. Return ThrowCompletion(a new QuotaExceededError).
+        Err(Error::QuotaExceeded {
+            quota: None,
+            requested: None,
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
