@@ -164,7 +164,7 @@ pub(crate) struct RunningAppState {
 
     /// Whether or not program exit has been triggered. This means that all windows
     /// will be destroyed and shutdown will start at the end of the current event loop.
-    exit_scheduled: Rc<Cell<bool>>,
+    exit_scheduled: Cell<bool>,
 
     /// The set of [`ServoShellWindow`]s that currently exist for this instance of servoshell.
     // This is the last field of the struct to ensure that windows are dropped *after* all
@@ -193,7 +193,7 @@ impl RunningAppState {
             None
         };
 
-        let webdriver_receiver = servoshell_preferences.webdriver_port.map(|port| {
+        let webdriver_receiver = servoshell_preferences.webdriver_port.get().map(|port| {
             let (embedder_sender, embedder_receiver) = unbounded();
             webdriver_server::start_server(port, embedder_sender, event_loop_waker);
             embedder_receiver
@@ -267,6 +267,12 @@ impl RunningAppState {
     }
 
     pub(crate) fn schedule_exit(&self) {
+        // When explicitly required to shutdown, unset webdriver port
+        // which allows normal shutdown.
+        // Note that when not explicitly required to shutdown, we still keep Servo alive
+        // when all tabs are closed when `webdriver_port` enabled, which is necessary
+        // to run wpt test using servodriver.
+        self.servoshell_preferences.webdriver_port.set(None);
         self.exit_scheduled.set(true);
     }
 
@@ -298,7 +304,7 @@ impl RunningAppState {
         // When a ServoShellWindow has no more WebViews, close it. When no more windows are open, exit
         // the application. Do not do this when running WebDriver, which expects to keep running with
         // no WebView open.
-        if self.servoshell_preferences.webdriver_port.is_none() {
+        if self.servoshell_preferences.webdriver_port.get().is_none() {
             self.windows
                 .borrow_mut()
                 .retain(|_, window| !self.exit_scheduled.get() && !window.should_close());
@@ -584,7 +590,7 @@ impl WebViewDelegate for RunningAppState {
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
         // as that is what the specification expects. Otherwise, we would like `window.open()`
         // to create a new foreground tab
-        if self.servoshell_preferences.webdriver_port.is_none() {
+        if self.servoshell_preferences.webdriver_port.get().is_none() {
             window.activate_webview(webview.id());
         } else {
             webview.hide();
@@ -687,7 +693,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
-        if self.servoshell_preferences.webdriver_port.is_some() {
+        if self.servoshell_preferences.webdriver_port.get().is_some() {
             if matches!(&embedder_control, EmbedderControl::SimpleDialog(..)) {
                 self.interrupt_webdriver_script_evaluation();
 
@@ -712,7 +718,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn hide_embedder_control(&self, webview: WebView, embedder_control_id: EmbedderControlId) {
-        if self.servoshell_preferences.webdriver_port.is_some() {
+        if self.servoshell_preferences.webdriver_port.get().is_some() {
             self.webdriver_embedder_controls
                 .hide_embedder_control(webview.id(), embedder_control_id);
             return;
