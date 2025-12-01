@@ -180,8 +180,10 @@ impl Servo {
 
         use std::sync::atomic::Ordering;
 
-        style::context::DEFAULT_DISABLE_STYLE_SHARING_CACHE
-            .store(opts.debug.disable_share_style_cache, Ordering::Relaxed);
+        style::context::DEFAULT_DISABLE_STYLE_SHARING_CACHE.store(
+            !pref!(layout_style_sharing_cache_enabled),
+            Ordering::Relaxed,
+        );
         style::context::DEFAULT_DUMP_STYLE_STATISTICS
             .store(opts.debug.dump_style_statistics, Ordering::Relaxed);
         style::traversal::IS_SERVO_NONINCREMENTAL_LAYOUT

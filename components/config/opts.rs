@@ -117,9 +117,6 @@ pub struct DebugOptions {
     /// Periodically print out on which events script threads spend their processing time.
     pub profile_script_events: bool,
 
-    /// Disable the style sharing cache.
-    pub disable_share_style_cache: bool,
-
     /// Whether to show in stdout style sharing cache stats after a restyle.
     pub dump_style_statistics: bool,
 
@@ -132,7 +129,6 @@ impl DebugOptions {
         for option in debug_string.split(',') {
             match option {
                 "help" => self.help = true,
-                "disable-share-style-cache" => self.disable_share_style_cache = true,
                 "dump-display-list" => self.dump_display_list = true,
                 "dump-stacking-context-tree" => self.dump_stacking_context_tree = true,
                 "dump-flow-tree" => self.dump_flow_tree = true,
