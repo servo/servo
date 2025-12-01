@@ -468,7 +468,7 @@ impl Servo {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().show_embedder_control(
                         webview,
-                        EmbedderControl::SimpleDialog(simple_dialog),
+                        EmbedderControl::SimpleDialog(simple_dialog.into()),
                     );
                 }
             },

@@ -518,7 +518,7 @@ fn test_show_and_hide_ime() {
 #[test]
 fn test_alert_dialog() {
     test_simple_dialog("window.alert('Alert');", |dialog| {
-        let SimpleDialog::Alert { .. } = dialog else {
+        let SimpleDialog::Alert(..) = dialog else {
             unreachable!("Expected dialog to be a SimpleDialog::Alert");
         };
         assert_eq!(dialog.message(), "Alert");
@@ -528,7 +528,7 @@ fn test_alert_dialog() {
 #[test]
 fn test_prompt_dialog() {
     test_simple_dialog("window.prompt('Prompt');", |dialog| {
-        let SimpleDialog::Prompt { .. } = dialog else {
+        let SimpleDialog::Prompt(..) = dialog else {
             unreachable!("Expected dialog to be a SimpleDialog::Prompt");
         };
         assert_eq!(dialog.message(), "Prompt");
@@ -538,7 +538,7 @@ fn test_prompt_dialog() {
 #[test]
 fn test_confirm_dialog() {
     test_simple_dialog("window.confirm('Confirm');", |dialog| {
-        let SimpleDialog::Confirm { .. } = dialog else {
+        let SimpleDialog::Confirm(..) = dialog else {
             unreachable!("Expected dialog to be a SimpleDialog::Confirm");
         };
         assert_eq!(dialog.message(), "Confirm");

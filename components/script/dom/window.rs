@@ -39,7 +39,7 @@ use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
-    ScriptToEmbedderChan, SimpleDialog, Theme, UntrustedNodeAddress, ViewportDetails,
+    ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
     WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
@@ -1014,7 +1014,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let dialog = SimpleDialog::Alert {
+        let dialog = SimpleDialogRequest::Alert {
             id: self.Document().embedder_controls().next_control_id(),
             message: message.to_string(),
             response_sender: sender,
@@ -1047,7 +1047,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // the user to respond with a positive or negative response.
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let dialog = SimpleDialog::Confirm {
+        let dialog = SimpleDialogRequest::Confirm {
             id: self.Document().embedder_controls().next_control_id(),
             message: message.to_string(),
             response_sender: sender,
@@ -1098,7 +1098,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // defaulted to the value given by default.
         let (sender, receiver) =
             ProfiledGenericChannel::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let dialog = SimpleDialog::Prompt {
+        let dialog = SimpleDialogRequest::Prompt {
             id: self.Document().embedder_controls().next_control_id(),
             message: message.to_string(),
             default: default.to_string(),

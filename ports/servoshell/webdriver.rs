@@ -57,13 +57,13 @@ impl WebDriverEmbedderControls {
         // > set type to "prompt".
         let embedder_controls = self.embedder_controls.borrow();
         match embedder_controls.get(&webview_id)?.last()? {
-            EmbedderControl::SimpleDialog(SimpleDialog::Alert { .. }) => {
+            EmbedderControl::SimpleDialog(SimpleDialog::Alert(..)) => {
                 Some(WebDriverUserPrompt::Alert)
             },
-            EmbedderControl::SimpleDialog(SimpleDialog::Confirm { .. }) => {
+            EmbedderControl::SimpleDialog(SimpleDialog::Confirm(..)) => {
                 Some(WebDriverUserPrompt::Confirm)
             },
-            EmbedderControl::SimpleDialog(SimpleDialog::Prompt { .. }) => {
+            EmbedderControl::SimpleDialog(SimpleDialog::Prompt(..)) => {
                 Some(WebDriverUserPrompt::Prompt)
             },
             EmbedderControl::FilePicker { .. } => Some(WebDriverUserPrompt::File),
@@ -84,48 +84,45 @@ impl WebDriverEmbedderControls {
         let Some(controls) = embedder_controls.get_mut(&webview_id) else {
             return Err(());
         };
-        let Some(last_control) = controls.last() else {
-            return Err(());
-        };
-        let EmbedderControl::SimpleDialog(simple_dialog) = last_control else {
+        let Some(&EmbedderControl::SimpleDialog(simple_dialog)) = controls.last().as_ref() else {
             return Err(());
         };
 
         let result_text = simple_dialog.message().to_owned();
-        match action {
-            WebDriverUserPromptAction::Accept => simple_dialog.accept(),
-            WebDriverUserPromptAction::Dismiss => simple_dialog.dismiss(),
-            WebDriverUserPromptAction::Ignore => return Ok(result_text),
-        };
+        if action == WebDriverUserPromptAction::Ignore {
+            return Ok(result_text);
+        }
 
-        controls.pop();
+        let Some(EmbedderControl::SimpleDialog(simple_dialog)) = controls.pop() else {
+            return Err(());
+        };
+        match action {
+            WebDriverUserPromptAction::Accept => simple_dialog.confirm(),
+            WebDriverUserPromptAction::Dismiss => simple_dialog.dismiss(),
+            WebDriverUserPromptAction::Ignore => unreachable!("Should have returned early above"),
+        }
         Ok(result_text)
     }
 
-    pub(crate) fn alert_text_of_newest_dialog(&self, webview_id: WebViewId) -> Option<String> {
+    pub(crate) fn message_of_newest_dialog(&self, webview_id: WebViewId) -> Option<String> {
         let embedder_controls = self.embedder_controls.borrow();
         match embedder_controls.get(&webview_id)?.last()? {
-            EmbedderControl::SimpleDialog(simple_dialog) => {
-                Some(simple_dialog.message().to_owned())
-            },
+            EmbedderControl::SimpleDialog(simple_dialog) => Some(simple_dialog.message().into()),
             _ => None,
         }
     }
 
-    pub(crate) fn set_alert_text_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
+    pub(crate) fn set_prompt_value_of_newest_dialog(&self, webview_id: WebViewId, text: String) {
         let mut embedder_controls = self.embedder_controls.borrow_mut();
         let Some(controls) = embedder_controls.get_mut(&webview_id) else {
             return;
         };
-        let Some(last_control) = controls.last_mut() else {
+        let Some(&mut EmbedderControl::SimpleDialog(SimpleDialog::Prompt(ref mut prompt_dialog))) =
+            controls.last_mut()
+        else {
             return;
         };
-        // FIXME: This should be setting the prompt result of the dialog and not the
-        // message text according to the WebDriver specification at:
-        // <https://www.w3.org/TR/webdriver2/#dfn-send-alert-text>
-        if let EmbedderControl::SimpleDialog(simple_dialog) = last_control {
-            simple_dialog.set_message(text)
-        }
+        prompt_dialog.set_current_value(&text);
     }
 }
 
@@ -288,7 +285,7 @@ impl RunningAppState {
                 WebDriverCommandMsg::GetAlertText(webview_id, response_sender) => {
                     let response = match self
                         .webdriver_embedder_controls
-                        .alert_text_of_newest_dialog(webview_id)
+                        .message_of_newest_dialog(webview_id)
                     {
                         Some(text) => Ok(text),
                         None => Err(()),
@@ -300,7 +297,7 @@ impl RunningAppState {
                 },
                 WebDriverCommandMsg::SendAlertText(webview_id, text) => {
                     self.webdriver_embedder_controls
-                        .set_alert_text_of_newest_dialog(webview_id, text);
+                        .set_prompt_value_of_newest_dialog(webview_id, text);
                 },
                 WebDriverCommandMsg::TakeScreenshot(webview_id, rect, result_sender) => {
                     self.handle_webdriver_screenshot(webview_id, rect, result_sender);

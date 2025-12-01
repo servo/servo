@@ -8,6 +8,7 @@
 //! is not exposed in the API or doesn't involve messages sent to the embedding/libservo layer, it
 //! is probably a better fit for the `constellation_traits` crate.
 
+pub mod embedder_controls;
 pub mod input_events;
 pub mod resources;
 pub mod user_content_manager;
@@ -20,12 +21,9 @@ use std::hash::Hash;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::SystemTime;
 
-use base::Epoch;
 use base::generic_channel::{GenericCallback, GenericSender, SendResult};
 use base::id::{PipelineId, WebViewId};
-use bitflags::bitflags;
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -48,6 +46,7 @@ use webrender_api::units::{
     DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
 
+pub use crate::embedder_controls::*;
 pub use crate::input_events::*;
 pub use crate::webdriver::*;
 
@@ -267,144 +266,12 @@ pub trait RefreshDriver {
     fn observe_next_frame(&self, start_frame_callback: Box<dyn Fn() + Send + 'static>);
 }
 
-/// [Simple dialogs](https://html.spec.whatwg.org/multipage/#simple-dialogs) are synchronous dialogs
-/// that can be opened by web content. Since their messages are controlled by web content, they
-/// should be presented to the user in a way that makes them impossible to mistake for browser UI.
-#[derive(Deserialize, Serialize)]
-pub enum SimpleDialog {
-    /// [`alert()`](https://html.spec.whatwg.org/multipage/#dom-alert).
-    /// TODO: Include details about the document origin.
-    Alert {
-        id: EmbedderControlId,
-        message: String,
-        response_sender: GenericSender<AlertResponse>,
-    },
-    /// [`confirm()`](https://html.spec.whatwg.org/multipage/#dom-confirm).
-    /// TODO: Include details about the document origin.
-    Confirm {
-        id: EmbedderControlId,
-        message: String,
-        response_sender: GenericSender<ConfirmResponse>,
-    },
-    /// [`prompt()`](https://html.spec.whatwg.org/multipage/#dom-prompt).
-    /// TODO: Include details about the document origin.
-    Prompt {
-        id: EmbedderControlId,
-        message: String,
-        default: String,
-        response_sender: GenericSender<PromptResponse>,
-    },
-}
-
-impl SimpleDialog {
-    /// Returns the message of the dialog.
-    pub fn message(&self) -> &str {
-        match self {
-            SimpleDialog::Alert { message, .. } => message,
-            SimpleDialog::Confirm { message, .. } => message,
-            SimpleDialog::Prompt { message, .. } => message,
-        }
-    }
-
-    pub fn set_message(&mut self, text: String) {
-        match self {
-            SimpleDialog::Alert { message, .. } => *message = text,
-            SimpleDialog::Confirm { message, .. } => *message = text,
-            SimpleDialog::Prompt { message, .. } => *message = text,
-        }
-    }
-
-    pub fn dismiss(&self) {
-        match self {
-            SimpleDialog::Alert {
-                response_sender, ..
-            } => {
-                let _ = response_sender.send(AlertResponse::Ok);
-            },
-            SimpleDialog::Confirm {
-                response_sender, ..
-            } => {
-                let _ = response_sender.send(ConfirmResponse::Cancel);
-            },
-            SimpleDialog::Prompt {
-                response_sender, ..
-            } => {
-                let _ = response_sender.send(PromptResponse::Cancel);
-            },
-        }
-    }
-
-    pub fn accept(&self) {
-        match self {
-            SimpleDialog::Alert {
-                response_sender, ..
-            } => {
-                let _ = response_sender.send(AlertResponse::Ok);
-            },
-            SimpleDialog::Confirm {
-                response_sender, ..
-            } => {
-                let _ = response_sender.send(ConfirmResponse::Ok);
-            },
-            SimpleDialog::Prompt {
-                default,
-                response_sender,
-                ..
-            } => {
-                let _ = response_sender.send(PromptResponse::Ok(default.clone()));
-            },
-        }
-    }
-
-    pub fn id(&self) -> EmbedderControlId {
-        match self {
-            SimpleDialog::Alert { id, .. } |
-            SimpleDialog::Confirm { id, .. } |
-            SimpleDialog::Prompt { id, .. } => *id,
-        }
-    }
-}
-
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct AuthenticationResponse {
     /// Username for http request authentication
     pub username: String,
     /// Password for http request authentication
     pub password: String,
-}
-
-#[derive(Default, Deserialize, PartialEq, Serialize)]
-pub enum AlertResponse {
-    // Per <https://html.spec.whatwg.org/multipage/#dom-alert>,
-    // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
-    // all modal dialogs, we need to return (which represents Ok).
-    #[default]
-    /// The user chose Ok, or the dialog was otherwise dismissed or ignored.
-    Ok,
-}
-
-#[derive(Default, Deserialize, PartialEq, Serialize)]
-pub enum ConfirmResponse {
-    /// The user chose Ok.
-    Ok,
-    // Per <https://html.spec.whatwg.org/multipage/#dom-confirm>,
-    // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
-    // all modal dialogs, we need to return false (which represents Cancel), not true (Ok).
-    #[default]
-    /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
-    Cancel,
-}
-
-#[derive(Default, Deserialize, PartialEq, Serialize)]
-pub enum PromptResponse {
-    /// The user chose Ok, with the given input.
-    Ok(String),
-    // Per <https://html.spec.whatwg.org/multipage/#dom-prompt>,
-    // if we **cannot show simple dialogs**, including cases where the user or user agent decides to ignore
-    // all modal dialogs, we need to return null (which represents Cancel), not the default input.
-    #[default]
-    /// The user chose Cancel, or the dialog was otherwise dismissed or ignored.
-    Cancel,
 }
 
 /// A response to a request to allow or deny an action.
@@ -429,26 +296,6 @@ pub struct ProtocolHandlerUpdateRegistration {
     pub url: ServoUrl,
     /// Whether this update is to register or unregister the protocol handler
     pub register_or_unregister: RegisterOrUnregister,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SelectElementOption {
-    /// A unique identifier for the option that can be used to select it.
-    pub id: usize,
-    /// The label that should be used to display the option to the user.
-    pub label: String,
-    /// Whether or not the option is selectable
-    pub is_disabled: bool,
-}
-
-/// Represents the contents of either an `<option>` or an `<optgroup>` element
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum SelectElementOptionOrOptgroup {
-    Option(SelectElementOption),
-    Optgroup {
-        label: String,
-        options: Vec<SelectElementOption>,
-    },
 }
 
 /// Data about a `WebView` or `<iframe>` viewport: its size and also the
@@ -551,7 +398,7 @@ pub enum EmbedderMsg {
     /// Show the user a [simple dialog](https://html.spec.whatwg.org/multipage/#simple-dialogs) (`alert()`, `confirm()`,
     /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
     /// way that makes them impossible to mistake for browser UI.
-    ShowSimpleDialog(WebViewId, SimpleDialog),
+    ShowSimpleDialog(WebViewId, SimpleDialogRequest),
     /// Request authentication for a load or navigation from the embedder.
     RequestAuthentication(
         WebViewId,
@@ -660,140 +507,6 @@ impl Debug for EmbedderMsg {
         write!(formatter, "{string}")
     }
 }
-
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct EmbedderControlId {
-    pub webview_id: WebViewId,
-    pub pipeline_id: PipelineId,
-    pub index: Epoch,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum EmbedderControlRequest {
-    /// Indicates that the user has activated a `<select>` element.
-    SelectElement(Vec<SelectElementOptionOrOptgroup>, Option<usize>),
-    /// Indicates that the user has activated a `<input type=color>` element.
-    ColorPicker(RgbColor),
-    /// Indicates that the user has activated a `<input type=file>` element.
-    FilePicker(FilePickerRequest),
-    /// Indicates that the the user has activated a text or input control that should show
-    /// an IME.
-    InputMethod(InputMethodRequest),
-    /// Indicates that the the user has triggered the display of a context menu.
-    ContextMenu(ContextMenuRequest),
-}
-
-/// Request to present a context menu to the user. This is triggered by things like
-/// right-clicking on web content.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ContextMenuRequest {
-    pub element_info: ContextMenuElementInformation,
-    pub items: Vec<ContextMenuItem>,
-}
-
-/// An item in a context menu.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ContextMenuItem {
-    Item {
-        label: String,
-        action: ContextMenuAction,
-        enabled: bool,
-    },
-    Separator,
-}
-
-/// A particular action associated with a [`ContextMenuItem`]. These actions are
-/// context-sensitive, which means that some of them are available only for some
-/// page elements.
-#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub enum ContextMenuAction {
-    GoBack,
-    GoForward,
-    Reload,
-
-    CopyLink,
-    OpenLinkInNewWebView,
-
-    CopyImageLink,
-    OpenImageInNewView,
-
-    Cut,
-    Copy,
-    Paste,
-    SelectAll,
-}
-
-bitflags! {
-    #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
-    pub struct ContextMenuElementInformationFlags: u8 {
-        /// Whether or not the element this context menu was activated for was a link.
-        const Link = 1 << 1;
-        /// Whether or not the element this context menu was activated for was an image.
-        const Image = 1 << 2;
-        /// Whether or not the element this context menu was activated for was editable
-        /// text.
-        const EditableText = 1 << 3;
-        /// Whether or not the element this context menu was activated for was covered by
-        /// a selection.
-        const Selection = 1 << 4;
-    }
-}
-
-/// Information about the element that a context menu was activated for. values which
-/// do not apply to this element will be `None`.
-///
-/// Note that an element might be both an image and a link, if the element is an `<img>`
-/// tag nested inside of a `<a>` tag.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-pub struct ContextMenuElementInformation {
-    pub flags: ContextMenuElementInformationFlags,
-    pub link_url: Option<Url>,
-    pub image_url: Option<Url>,
-}
-
-/// Request to present an IME to the user when an editable element is focused. If `type` is
-/// [`InputMethodType::Text`], then the `text` parameter specifies the pre-existing text content and
-/// `insertion_point` the zero-based index into the string of the insertion point.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct InputMethodRequest {
-    pub input_method_type: InputMethodType,
-    pub text: String,
-    pub insertion_point: Option<u32>,
-    pub multiline: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct FilePickerRequest {
-    pub origin: String,
-    pub current_paths: Vec<PathBuf>,
-    pub filter_patterns: Vec<FilterPattern>,
-    pub allow_select_multiple: bool,
-    pub accept_current_paths_for_testing: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum EmbedderControlResponse {
-    SelectElement(Option<usize>),
-    ColorPicker(Option<RgbColor>),
-    FilePicker(Option<Vec<SelectedFile>>),
-    ContextMenu(Option<ContextMenuAction>),
-}
-
-/// Response to file selection request
-#[derive(Debug, Deserialize, Serialize)]
-pub struct SelectedFile {
-    pub id: Uuid,
-    pub filename: PathBuf,
-    pub modified: SystemTime,
-    pub size: u64,
-    // https://w3c.github.io/FileAPI/#dfn-type
-    pub type_string: String,
-}
-
-/// Filter for file selection;
-/// the `String` content is expected to be extension (e.g, "doc", without the prefixing ".")
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct FilterPattern(pub String);
 
 /// <https://w3c.github.io/mediasession/#mediametadata>
 #[derive(Clone, Debug, Deserialize, Serialize)]
