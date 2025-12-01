@@ -15,5 +15,4 @@ doctest = false
 
 [dependencies]
 base = { workspace = true }
-ipc-channel = { workspace = true }
 serde = { workspace = true }

@@ -750,7 +750,6 @@ name = "background_hang_monitor_api"
 version = "0.0.1"
 dependencies = [
  "base",
- "ipc-channel",
  "serde",
 ]
 
@@ -5033,7 +5032,6 @@ dependencies = [
  "fonts",
  "fonts_traits",
  "html5ever",
- "ipc-channel",
  "libc",
  "malloc_size_of_derive",
  "net_traits",
