@@ -68,12 +68,8 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 
     let certs = rustls_pemfile::certs(&mut pem)
         .filter_map(|cert| {
-            if let Err(e) = cert {
-                log::error!("Could not load certificate ({e}). Ignoring it.");
-                None
-            } else {
-                Some(cert.unwrap())
-            }
+            cert.inspect_err(|e| log::error!("Could not load certificate ({e}). Ignoring it."))
+                .ok()
         })
         .collect();
     Ok(certs)

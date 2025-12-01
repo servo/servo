@@ -193,7 +193,9 @@ impl CertificateVerificationOverrideVerifier {
         ignore_certificate_errors: bool,
         override_manager: CertificateErrorOverrideManager,
     ) -> Self {
-        let crypto_provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
+        let crypto_provider = rustls::crypto::CryptoProvider::get_default()
+            .expect("Could not get a crypto provider. ")
+            .clone();
         let main_verifier = Arc::new(
             match ca_certficates {
                 CACertificates::Default => rustls_platform_verifier::Verifier::new(crypto_provider),
@@ -227,8 +229,8 @@ impl CertificateVerificationOverrideVerifier {
             CACertificates::Override(root_certs) => {
                 let mut root_cert_store = rustls::RootCertStore::empty();
                 for cert in root_certs {
-                    if root_cert_store.add(cert).is_err() {
-                        log::error!("Could not add certificate");
+                    if let Err(e) = root_cert_store.add(cert) {
+                        log::error!("Could not add certificate ({cert:?}) with error {e}");
                     }
                 }
                 root_cert_store
