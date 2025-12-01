@@ -175,7 +175,7 @@ time = { package = "time", version = "0.3", features = ["large-dates", "local-of
 tokio = "1"
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
 tower-service = "0.3"
-tracing = "0.1.41"
+tracing = "0.1.43"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.20"
 tungstenite = "0.28"
