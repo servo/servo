@@ -146,12 +146,16 @@ jobs:
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
+        id: run_unit_tests
         env:
           NEXTEST_RETRIES: 3 # https://github.com/servo/servo/issues/30683
         run: ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
       # We upload the test-results to Codecov to help us identify flaky unit-tests.
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() && inputs.unit-tests }}
+        # Upload test results to Codecov, also for failed unit-tests, but only
+        # if unit-tests were supposed to run, and not if they were skipped (e.g., due
+        # to an earlier failure).
+        if: ${{ !cancelled() && steps.run_unit_tests.conclusion != 'skipped' }}
         uses: codecov/codecov-action@v5
         with:
           report_type: test_results
