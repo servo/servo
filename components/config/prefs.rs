@@ -233,6 +233,7 @@ pub struct Preferences {
     pub layout_container_queries_enabled: bool,
     pub layout_css_transition_behavior_enabled: bool,
     pub layout_flexbox_enabled: bool,
+    pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
     pub layout_variable_fonts_enabled: bool,
@@ -416,6 +417,7 @@ impl Preferences {
             layout_css_transition_behavior_enabled: true,
             layout_flexbox_enabled: true,
             layout_grid_enabled: false,
+            layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_unimplemented: false,
