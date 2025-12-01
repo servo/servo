@@ -250,6 +250,7 @@ impl From<crossbeam_channel::TryRecvError> for TryReceiveError {
 }
 
 pub type RoutedReceiver<T> = crossbeam_channel::Receiver<Result<T, ipc_channel::Error>>;
+
 pub type ReceiveResult<T> = Result<T, ReceiveError>;
 pub type TryReceiveResult<T> = Result<T, TryReceiveError>;
 pub type RoutedReceiverReceiveResult<T> =
@@ -273,6 +274,16 @@ where
 {
     Ipc(ipc_channel::ipc::IpcReceiver<T>),
     Crossbeam(RoutedReceiver<T>),
+}
+
+impl<T: for<'de> Deserialize<'de> + Serialize> MallocSizeOf for GenericReceiver<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match &self.0 {
+            GenericReceiverVariants::Ipc(ipc_receiver) => ipc_receiver.size_of(ops),
+            // crossbeam channels does not have malloc_size_of implemented
+            GenericReceiverVariants::Crossbeam(_receiver) => 0,
+        }
+    }
 }
 
 impl<T> GenericReceiver<T>

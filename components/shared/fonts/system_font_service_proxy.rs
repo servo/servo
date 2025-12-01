@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use base::generic_channel::GenericSender;
 use base::id::PainterId;
 use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
@@ -42,7 +43,7 @@ pub enum SystemFontServiceMessage {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct SystemFontServiceProxySender(pub IpcSender<SystemFontServiceMessage>);
+pub struct SystemFontServiceProxySender(pub GenericSender<SystemFontServiceMessage>);
 
 impl SystemFontServiceProxySender {
     pub fn to_proxy(&self) -> SystemFontServiceProxy {
@@ -63,7 +64,7 @@ struct FontTemplateCacheKey {
 /// `FontContext` instances.
 #[derive(Debug, MallocSizeOf)]
 pub struct SystemFontServiceProxy {
-    sender: IpcSender<SystemFontServiceMessage>,
+    sender: GenericSender<SystemFontServiceMessage>,
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
 }
 

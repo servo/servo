@@ -2847,7 +2847,6 @@ dependencies = [
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",
- "ipc-channel",
  "itertools 0.14.0",
  "libc",
  "log",
