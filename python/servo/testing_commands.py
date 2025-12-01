@@ -18,7 +18,6 @@ import shutil
 import subprocess
 import sys
 import textwrap
-from time import sleep
 from typing import Any, Optional, List
 from pathlib import Path
 
@@ -38,8 +37,6 @@ import servo.try_parser
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.post_build_commands import PostBuildCommands
 from servo.util import delete
-
-from python.servo.util import HarmonyDeviceConnector, HarmonyDevicePerfMode
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
