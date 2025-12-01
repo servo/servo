@@ -13,14 +13,14 @@ use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use base::threadpool::ThreadPool;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use profile_traits::generic_callback::GenericCallback;
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, SyncOperation,
+    IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
 };
 use uuid::Uuid;
 
@@ -288,6 +288,80 @@ impl IndexedDBManager {
         self.databases.get_mut(&idb_description)
     }
 
+    /// <https://www.w3.org/TR/IndexedDB-2/#open-a-database>
+    fn open_database(
+        &mut self,
+        sender: GenericCallback<OpenDatabaseResult>,
+        origin: ImmutableOrigin,
+        db_name: String,
+        version: Option<u64>,
+    ) {
+        // Step 1: Let queue be the connection queue for origin and name.
+        // Step 2: Add request to queue.
+        // Step 3: Wait until all previous requests in queue have been processed.
+        // TODO: implement #request-connection-queue
+
+        let idb_description = IndexedDBDescription {
+            origin,
+            name: db_name,
+        };
+
+        let idb_base_dir = self.idb_base_dir.as_path();
+
+        // Step 4: Let db be the database named name in origin, or null otherwise.
+        let db_version = match self.databases.entry(idb_description.clone()) {
+            Entry::Vacant(e) => {
+                // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
+                let db_version = version.unwrap_or(1);
+
+                // Step 6: If db is null, let db be a new database
+                // with name name, version 0 (zero), and with no object stores.
+                // If this fails for any reason, return an appropriate error
+                // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
+                // TODO: return error.
+                let db = IndexedDBEnvironment::new(
+                    SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
+                        .expect("Failed to create sqlite engine"),
+                );
+                e.insert(db);
+                db_version
+            },
+            Entry::Occupied(db) => {
+                // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
+                version.unwrap_or(db.get().version().expect("Db should have a version."))
+            },
+        };
+
+        let version = version.unwrap_or(1);
+
+        // Step 7: If db’s version is greater than version,
+        // return a newly created "VersionError" DOMException
+        // and abort these steps.
+        if version < db_version {
+            sender.send(OpenDatabaseResult::VersionError);
+            return;
+        }
+
+        // Let connection be a new connection to db.
+        // Set connection’s version to version.
+        // TODO: track connections in the backend(each script `IDBDatabase` should have a matching connection).
+
+        // Step 10: If db’s version is less than version, then:
+        // TODO: run the upgrade transaction here.
+        let upgraded = if db_version < version { true } else { false };
+
+        // Step 11:
+        if sender
+            .send(OpenDatabaseResult::Connection {
+                version: db_version,
+                upgraded,
+            })
+            .is_err()
+        {
+            error!("Failed to send OpenDatabaseResult::Connection to script.");
+        };
+    }
+
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
             SyncOperation::CloseDatabase(sender, origin, db_name) => {
@@ -301,32 +375,7 @@ impl IndexedDBManager {
                 let _ = sender.send(Ok(()));
             },
             SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
-                let idb_description = IndexedDBDescription {
-                    origin,
-                    name: db_name,
-                };
-
-                let idb_base_dir = self.idb_base_dir.as_path();
-
-                let version = version.unwrap_or(0);
-
-                match self.databases.entry(idb_description.clone()) {
-                    Entry::Vacant(e) => {
-                        let db = IndexedDBEnvironment::new(
-                            SqliteEngine::new(
-                                idb_base_dir,
-                                &idb_description,
-                                self.thread_pool.clone(),
-                            )
-                            .expect("Failed to create sqlite engine"),
-                        );
-                        let _ = sender.send(db.version().unwrap_or(version));
-                        e.insert(db);
-                    },
-                    Entry::Occupied(db) => {
-                        let _ = sender.send(db.get().version().unwrap_or(version));
-                    },
-                }
+                self.open_database(sender, origin, db_name, version);
             },
             SyncOperation::DeleteDatabase(callback, origin, db_name) => {
                 // https://w3c.github.io/IndexedDB/#delete-a-database

@@ -315,6 +315,17 @@ pub enum CreateObjectResult {
     AlreadyExists,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum OpenDatabaseResult {
+    VersionError,
+    AbortError,
+    /// A connection with a version, updgraded or not.
+    Connection {
+        version: u64,
+        upgraded: bool,
+    },
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum SyncOperation {
     /// Upgrades the version of the database
@@ -394,7 +405,7 @@ pub enum SyncOperation {
     ),
 
     OpenDatabase(
-        GenericCallback<u64>, // Returns the version
+        GenericCallback<OpenDatabaseResult>, // Returns the result
         ImmutableOrigin,
         String,      // Database
         Option<u64>, // Eventual version

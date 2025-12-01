@@ -8,12 +8,14 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
-use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{
+    BackendResult, IndexedDBThreadMsg, OpenDatabaseResult, SyncOperation,
+};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -34,53 +36,51 @@ struct OpenRequestListener {
 }
 
 impl OpenRequestListener {
-    /// <https://www.w3.org/TR/IndexedDB-2/#open-a-database>
-    fn handle_open_db(
-        &self,
-        name: String,
-        request_version: Option<u64>,
-        db_version: u64,
-        can_gc: CanGc,
-    ) -> (Fallible<DomRoot<IDBDatabase>>, bool) {
-        // Step 5-6
-        let request_version = match request_version {
-            Some(v) => v,
-            None => {
-                if db_version == 0 {
-                    1
-                } else {
-                    db_version
-                }
+    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-open>
+    /// The steps that continue on the script-thread.
+    fn handle_open_db(&self, name: String, response: OpenDatabaseResult, can_gc: CanGc) {
+        let request = self.open_request.root();
+        let global = request.global();
+        let dom_exception = match response {
+            OpenDatabaseResult::VersionError => Error::Version(None),
+            OpenDatabaseResult::AbortError => Error::Abort(None),
+            OpenDatabaseResult::Connection {
+                version,
+                upgraded: _,
+            } => {
+                // Step 2.2: Otherwise,
+                // set request’s result to result,
+                // set request’s done flag,
+                // and fire an event named success at request.
+                // If the steps above resulted in an upgrade transaction being run,
+                // then firing the "success" event must be done after the upgrade transaction completes.
+                let connection = IDBDatabase::new(
+                    &global,
+                    DOMString::from_string(name.clone()),
+                    version,
+                    can_gc,
+                );
+                request.dispatch_success(&connection);
+                return;
             },
         };
 
-        // Step 7
-        if request_version < db_version {
-            return (Err(Error::Version(None)), false);
-        }
-
-        // Step 8-9
-        let open_request = self.open_request.root();
-        let global = open_request.global();
-        let connection = IDBDatabase::new(
+        // Step 2.1 If result is an error,
+        // set request’s result to undefined,
+        // set request’s error to result,
+        // set request’s done flag,
+        // and fire an event named error at request
+        // with its bubbles and cancelable attributes initialized to true.
+        request.set_result(HandleValue::undefined());
+        request.set_error(Some(dom_exception), CanGc::note());
+        let event = Event::new(
             &global,
-            DOMString::from_string(name.clone()),
-            request_version,
-            can_gc,
+            Atom::from("error"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            CanGc::note(),
         );
-
-        // Step 10
-        if request_version > db_version {
-            // FIXME:(rasviitanen) Do step 10.1-10.5
-            // connection.dispatch_versionchange(db_version, Some(request_version));
-            // Step 10.6
-            open_request.upgrade_db_version(&connection, request_version, CanGc::note());
-            // Step 11
-            (Ok(connection), true)
-        } else {
-            // Step 11
-            (Ok(connection), false)
-        }
+        event.fire(request.upcast(), CanGc::note());
     }
 
     fn handle_delete_db(&self, result: BackendResult<()>, can_gc: CanGc) {
@@ -148,7 +148,7 @@ impl IDBOpenDBRequest {
         // Note: done throught the `connection` variable.
 
         let global = self.global();
-        // Step 2: Let transaction be a new upgrade transaction with connection used as connection. 
+        // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
         // TODO: The scope of transaction includes every object store in connection.
         let transaction = IDBTransaction::new(
             &global,
@@ -174,10 +174,10 @@ impl IDBOpenDBRequest {
         // Step 6: Let old version be db’s version.
         let old_version = connection.version();
 
-        // Step 7: Set the version of db to version. 
-        // This change is considered part of the transaction, 
+        // Step 7: Set the version of db to version.
+        // This change is considered part of the transaction,
         // and so if the transaction is aborted, this change is reverted.
-        // TODO: unblock. 
+        // TODO: unblock.
         transaction.upgrade_db_version(version);
 
         // Step 8: Queue a task to run these steps:
@@ -254,51 +254,21 @@ impl IDBOpenDBRequest {
             .task_manager()
             .database_access_task_source()
             .to_sendable();
-
-        let trusted_request = Trusted::new(self);
         let name = name.to_string();
         let name_copy = name.clone();
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-            let trusted_request = trusted_request.clone();
             let response_listener = response_listener.clone();
             let name = name_copy.clone();
-
-            task_source.queue(
-                    task!(set_request_result_to_database: move || {
-                        let (result, did_upgrade) =
-                            response_listener.handle_open_db(name, version, message.unwrap(), CanGc::note());
-                        // If an upgrade event was created, it will be responsible for
-                        // dispatching the success event
-                        if did_upgrade {
-                            return;
-                        }
-                        let request = trusted_request.root();
-                        let global = request.global();
-                        match result {
-                            Ok(db) => {
-                                request.dispatch_success(&db);
-                            },
-                            Err(dom_exception) => {
-                                request.set_result(HandleValue::undefined());
-                                request.set_error(Some(dom_exception), CanGc::note());
-                                let event = Event::new(
-                                    &global,
-                                    Atom::from("error"),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
-                                    CanGc::note()
-                                );
-                                event.fire(request.upcast(), CanGc::note());
-                            }
-                        }
-                    }),
-                );
-        }).expect("Could not set callback");
+            task_source.queue(task!(set_request_result_to_database: move || {
+                response_listener.handle_open_db(name, message.unwrap(), CanGc::note());
+            }));
+        })
+        .expect("Could not create delete database callback");
 
         let open_operation = SyncOperation::OpenDatabase(
             callback,
             global.origin().immutable().clone(),
-            name,
+            name.to_string(),
             version,
         );
 
