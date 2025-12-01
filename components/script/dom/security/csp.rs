@@ -15,6 +15,7 @@ use content_security_policy::{
 };
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
+use js::rust::describe_scripted_caller;
 use log::warn;
 
 use super::csppolicyviolationreport::CSPViolationReportBuilder;
@@ -254,6 +255,18 @@ pub(crate) trait GlobalCspReporting {
     );
 }
 
+#[expect(unsafe_code)]
+fn compute_scripted_caller_source_position() -> SourcePosition {
+    let scripted_caller =
+        unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
+
+    SourcePosition {
+        source_file: scripted_caller.filename,
+        line_number: scripted_caller.line,
+        column_number: scripted_caller.col + 1,
+    }
+}
+
 impl GlobalCspReporting for GlobalScope {
     /// <https://www.w3.org/TR/CSP/#report-violation>
     fn report_csp_violations(
@@ -266,6 +279,9 @@ impl GlobalCspReporting for GlobalScope {
             return;
         }
         warn!("Reporting CSP violations: {:?}", violations);
+        let source_position_was_provided = source_position.is_some();
+        let source_position =
+            source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
             let resource = &violation.resource;
             let (sample, resource_str) = match resource {
@@ -281,13 +297,16 @@ impl GlobalCspReporting for GlobalScope {
                 ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
             };
 
-            let (source_file, line_number, column_number) = if let Some(ref pos) = source_position {
-                (pos.source_file.clone(), pos.line_number, pos.column_number)
+            let (source_file, line_number, column_number) = if source_position_was_provided ||
+                // if it is not a URL resource, use the computed fallback source position
+                !matches!(violation.resource, ViolationResource::Url(_))
+            {
+                (
+                    source_position.source_file.clone(),
+                    source_position.line_number,
+                    source_position.column_number,
+                )
             } else {
-                debug_assert!(
-                    matches!(violation.resource, ViolationResource::Url(_)),
-                    "Only ViolationResource::Url are expected to not have source position info"
-                );
                 (self.get_url().to_string(), 0, 0)
             };
             let report = CSPViolationReportBuilder::default()
