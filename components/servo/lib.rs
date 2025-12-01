@@ -45,7 +45,7 @@ pub use net_traits::pub_domains::is_reg_domain;
 // This should be replaced with an API on ServoBuilder.
 // See <https://github.com/servo/servo/issues/40950>.
 pub use resources;
-pub use servo_config::opts::{DebugOptions, Opts, OutputOptions};
+pub use servo_config::opts::{DiagnosticsLogging, Opts, OutputOptions};
 pub use servo_config::prefs::{PrefValue, Preferences, UserAgentPlatform};
 pub use servo_config::{opts, pref, prefs};
 pub use servo_geometry::{

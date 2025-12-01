@@ -18,7 +18,7 @@ use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
-use servo_config::opts::DebugOptions;
+use servo_config::opts::DiagnosticsLogging;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -172,7 +172,7 @@ impl DisplayListBuilder<'_> {
         image_resolver: Arc<ImageResolver>,
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         highlighted_dom_node: Option<OpaqueNode>,
-        debug: &DebugOptions,
+        debug: &DiagnosticsLogging,
         lcp_candidate_collector: Option<&mut LargestContentfulPaintCandidateCollector>,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
@@ -186,7 +186,7 @@ impl DisplayListBuilder<'_> {
         // the display list for printing the serialized version when `finalize()` is called.
         // We need to call this before adding any display items so that they are printed
         // during `finalize()`.
-        if debug.dump_display_list {
+        if debug.display_list {
             webrender_display_list_builder.dump_serialized_display_list();
         }
 

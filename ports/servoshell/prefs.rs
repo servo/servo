@@ -18,7 +18,8 @@ use euclid::Size2D;
 use log::warn;
 use serde_json::Value;
 use servo::{
-    DebugOptions, DeviceIndependentPixel, Opts, OutputOptions, PrefValue, Preferences, ServoUrl,
+    DeviceIndependentPixel, DiagnosticsLogging, Opts, OutputOptions, PrefValue, Preferences,
+    ServoUrl,
 };
 use url::Url;
 
@@ -696,7 +697,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         ..Default::default()
     };
 
-    let mut debug_options = DebugOptions::default();
+    let mut debug_options = DiagnosticsLogging::default();
     for debug_string in cmd_args.debug {
         let result = debug_options.extend(debug_string);
         if let Err(error) = result {
