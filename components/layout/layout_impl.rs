@@ -43,7 +43,7 @@ use rustc_hash::FxHashMap;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
-use servo_config::opts::{self, DebugOptions};
+use servo_config::opts::{self, DiagnosticsLogging};
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::animation::DocumentAnimationSet;
@@ -197,7 +197,7 @@ pub struct LayoutThread {
 
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
-    debug: DebugOptions,
+    debug: DiagnosticsLogging,
 
     /// Tracks the node that was highlighted by the devtools during the last reflow.
     ///
@@ -1155,13 +1155,13 @@ impl LayoutThread {
 
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
-        if self.debug.dump_style_tree {
+        if self.debug.style_tree {
             println!(
                 "{:?}",
                 ShowSubtreeDataAndPrimaryValues(root_element.as_node())
             );
         }
-        if self.debug.dump_rule_tree {
+        if self.debug.rule_tree {
             recalc_style_traversal
                 .context()
                 .style_context
@@ -1188,7 +1188,7 @@ impl LayoutThread {
 
         if let Some(fragment_tree) = &*self.fragment_tree.borrow() {
             fragment_tree.calculate_scrollable_overflow();
-            if self.debug.dump_flow_tree {
+            if self.debug.flow_tree {
                 fragment_tree.print();
             }
         }
@@ -1245,7 +1245,7 @@ impl LayoutThread {
                 .set_all_scroll_offsets(&old_scroll_offsets);
         }
 
-        if self.debug.dump_scroll_tree {
+        if self.debug.scroll_tree {
             new_stacking_context_tree
                 .compositor_info
                 .scroll_tree

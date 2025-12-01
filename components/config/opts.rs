@@ -37,7 +37,7 @@ pub struct Opts {
 
     /// Debug options that are used by developers to control Servo
     /// behavior for debugging purposes.
-    pub debug: DebugOptions,
+    pub debug: DiagnosticsLogging,
 
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
@@ -89,53 +89,57 @@ pub struct Opts {
 
 /// Debug options for Servo, currently set on the command line with -Z
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct DebugOptions {
+pub struct DiagnosticsLogging {
     /// List all the debug options.
     pub help: bool,
 
     /// Print the DOM after each restyle.
-    pub dump_style_tree: bool,
+    pub style_tree: bool,
 
-    /// Dumps the rule tree.
-    pub dump_rule_tree: bool,
+    /// Log the rule tree.
+    pub rule_tree: bool,
 
-    /// Print the fragment tree after each layout.
-    pub dump_flow_tree: bool,
+    /// Log the fragment tree after each layout.
+    pub flow_tree: bool,
 
-    /// Print the stacking context tree after each layout.
-    pub dump_stacking_context_tree: bool,
+    /// Log the stacking context tree after each layout.
+    pub stacking_context_tree: bool,
 
-    /// Print the scroll tree after each layout.
-    pub dump_scroll_tree: bool,
+    /// Log the scroll tree after each layout.
+    ///
+    /// Displays the hierarchy of scrollable areas and their properties.
+    pub scroll_tree: bool,
 
-    /// Print the display list after each layout.
-    pub dump_display_list: bool,
+    /// Log the display list after each layout.
+    pub display_list: bool,
 
-    /// Print notifications when there is a relayout.
+    /// Log notifications when a relayout occurs.
     pub relayout_event: bool,
 
-    /// Periodically print out on which events script threads spend their processing time.
+    /// Periodically log on which events script threads spend their processing time.
     pub profile_script_events: bool,
 
-    /// Whether to show in stdout style sharing cache stats after a restyle.
-    pub dump_style_statistics: bool,
+    /// Log style sharing cache statistics to after each restyle.
+    ///
+    /// Shows hit/miss statistics for the style sharing cache
+    pub style_statistics: bool,
 
-    /// Log GC passes and their durations.
+    /// Log garbage collection passes and their durations.
     pub gc_profile: bool,
 }
 
-impl DebugOptions {
+impl DiagnosticsLogging {
     pub fn extend(&mut self, debug_string: String) -> Result<(), String> {
         for option in debug_string.split(',') {
             match option {
                 "help" => self.help = true,
-                "dump-display-list" => self.dump_display_list = true,
-                "dump-stacking-context-tree" => self.dump_stacking_context_tree = true,
-                "dump-flow-tree" => self.dump_flow_tree = true,
-                "dump-rule-tree" => self.dump_rule_tree = true,
-                "dump-style-tree" => self.dump_style_tree = true,
-                "dump-style-stats" => self.dump_style_statistics = true,
-                "dump-scroll-tree" => self.dump_scroll_tree = true,
+                "display-list" => self.display_list = true,
+                "stacking-context-tree" => self.stacking_context_tree = true,
+                "flow-tree" => self.flow_tree = true,
+                "rule-tree" => self.rule_tree = true,
+                "style-tree" => self.style_tree = true,
+                "style-stats" => self.style_statistics = true,
+                "scroll-tree" => self.scroll_tree = true,
                 "gc-profile" => self.gc_profile = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,

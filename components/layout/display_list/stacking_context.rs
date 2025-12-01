@@ -19,7 +19,7 @@ use euclid::SideOffsets2D;
 use euclid::default::{Point2D, Rect, Size2D};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use servo_config::opts::DebugOptions;
+use servo_config::opts::DiagnosticsLogging;
 use style::Zero;
 use style::color::AbsoluteColor;
 use style::computed_values::float::T as ComputedFloat;
@@ -126,7 +126,7 @@ impl StackingContextTree {
         viewport_details: ViewportDetails,
         pipeline_id: wr::PipelineId,
         first_reflow: bool,
-        debug: &DebugOptions,
+        debug: &DiagnosticsLogging,
     ) -> Self {
         let scrollable_overflow = fragment_tree.scrollable_overflow();
         let scrollable_overflow = LayoutSize::from_untyped(Size2D::new(
@@ -191,7 +191,7 @@ impl StackingContextTree {
         }
         root_stacking_context.sort();
 
-        if debug.dump_stacking_context_tree {
+        if debug.stacking_context_tree {
             root_stacking_context.debug_print();
         }
 
@@ -446,7 +446,7 @@ impl StackingContext {
         }
     }
 
-    fn create_root(root_scroll_node_id: ScrollTreeNodeId, debug: &DebugOptions) -> Self {
+    fn create_root(root_scroll_node_id: ScrollTreeNodeId, debug: &DiagnosticsLogging) -> Self {
         Self {
             scroll_tree_node_id: root_scroll_node_id,
             clip_id: None,
@@ -456,7 +456,7 @@ impl StackingContext {
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
-            debug_print_items: debug.dump_stacking_context_tree.then(|| vec![].into()),
+            debug_print_items: debug.stacking_context_tree.then(|| vec![].into()),
         }
     }
 
