@@ -28,21 +28,53 @@ env:
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
 
 jobs:
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+  runner-select:
+    runs-on: ubuntu-24.04
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique-id }}
+      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      runner-type-label: ${{ steps.select.outputs.runner-type-label }}
+      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
+    steps:
+      - name: Runner select
+        id: select
+        uses: servo/ci-runners/actions/runner-select@3fde8fcc735354a1b17223c80b7d4170af7a8551
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Before updating the GH action runner image for the nightly job, ensure
+          # that the system has a glibc version that is compatible with the one
+          # used by the wpt.fyi runners.
+          github-hosted-runner-label: ubuntu-22.04
+          self-hosted-image-name: servo-ubuntu2204-wpt
+          self-hosted-runner-count: 2
+          # You can disable self-hosted runners globally by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
+          # Any other boolean conditions that disable self-hosted runners go here.
+          force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
   chunks:
+    needs:
+      - runner-select
     name: Generate chunks array
     runs-on: ubuntu-22.04
     outputs:
       chunks-array: ${{ steps.generate-chunks-array.outputs.result }}
+      number-of-chunks: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && 2 || inputs.number-of-wpt-chunks }}
     steps:
       - uses: actions/github-script@v7
         id: generate-chunks-array
         with:
           script: |
-            return Array.from({length: ${{ inputs.number-of-wpt-chunks }}}, (_, i) => i + 1)
+            return Array.from({length: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && 2 || inputs.number-of-wpt-chunks }}}, (_, i) => i + 1)
   linux-wpt:
-    name: WPT
-    runs-on: ubuntu-22.04
-    needs: chunks
+    needs:
+      - runner-select
+      - chunks
+    name: WPT [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     strategy:
       fail-fast: false
       matrix:
@@ -63,8 +95,10 @@ jobs:
       - name: unPackage binary
         run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
       - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
       - name: Change Mirror Priorities
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         run: |
@@ -75,14 +109,18 @@ jobs:
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
           ./mach update-wpt --sync --patch
+      - run: |
+          apt purge -y fonts-droid-fallback
+          apt install -y fonts-dejavu-extra
       - name: Run tests
         run: |
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
+          nproc=$(nproc)
           ./mach test-wpt \
             $WPT_ALWAYS_SUCCEED_ARG \
-            --profile ${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \
+            --profile ${{ inputs.profile }} --processes $((nproc * 4)) --timeout-multiplier 2 \
+            --total-chunks ${{ needs.chunks.outputs.number-of-chunks }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
             --log-raw-stable-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
