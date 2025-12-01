@@ -193,8 +193,8 @@ impl SystemFontService {
         if !self
             .free_font_keys
             .get(&painter_id)
-            .is_none_or(|v| v.is_empty())
-            && !self
+            .is_none_or(|v| v.is_empty()) &&
+            !self
                 .free_font_instance_keys
                 .get(&painter_id)
                 .is_none_or(|v| v.is_empty())

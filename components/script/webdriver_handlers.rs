@@ -17,7 +17,7 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self};
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
@@ -142,7 +142,7 @@ pub(crate) fn handle_get_known_window(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     webview_id: String,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    reply: GenericSender<Result<(), ErrorStatus>>,
 ) {
     if reply
         .send(
@@ -170,7 +170,7 @@ pub(crate) fn handle_get_known_shadow_root(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     shadow_root_id: String,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    reply: GenericSender<Result<(), ErrorStatus>>,
 ) {
     let result = get_known_shadow_root(documents, pipeline, shadow_root_id).map(|_| ());
     if reply.send(result).is_err() {
@@ -225,7 +225,7 @@ pub(crate) fn handle_get_known_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    reply: GenericSender<Result<(), ErrorStatus>>,
 ) {
     let result = get_known_element(documents, pipeline, element_id).map(|_| ());
     if reply.send(result).is_err() {
@@ -626,7 +626,7 @@ fn clone_an_object(
 pub(crate) fn handle_execute_script(
     window: Option<DomRoot<Window>>,
     eval: String,
-    reply: IpcSender<WebDriverJSResult>,
+    reply: GenericSender<WebDriverJSResult>,
     can_gc: CanGc,
 ) {
     match window {
@@ -664,7 +664,7 @@ pub(crate) fn handle_execute_script(
 pub(crate) fn handle_execute_async_script(
     window: Option<DomRoot<Window>>,
     eval: String,
-    reply: IpcSender<WebDriverJSResult>,
+    reply: GenericSender<WebDriverJSResult>,
     can_gc: CanGc,
 ) {
     match window {
@@ -702,7 +702,7 @@ pub(crate) fn handle_execute_async_script(
 pub(crate) fn handle_get_parent_frame_id(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Result<BrowsingContextId, ErrorStatus>>,
+    reply: GenericSender<Result<BrowsingContextId, ErrorStatus>>,
 ) {
     // Step 2. If session's current parent browsing context is no longer open,
     // return error with error code no such window.
@@ -726,7 +726,7 @@ pub(crate) fn handle_get_browsing_context_id(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     webdriver_frame_id: WebDriverFrameId,
-    reply: IpcSender<Result<BrowsingContextId, ErrorStatus>>,
+    reply: GenericSender<Result<BrowsingContextId, ErrorStatus>>,
 ) {
     reply
         .send(match webdriver_frame_id {
@@ -802,7 +802,7 @@ pub(crate) fn handle_get_element_in_view_center_point(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>,
+    reply: GenericSender<Result<Option<(i64, i64)>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -837,7 +837,7 @@ pub(crate) fn handle_find_elements_css_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
@@ -862,7 +862,7 @@ pub(crate) fn handle_find_elements_link_text(
     pipeline: PipelineId,
     selector: String,
     partial: bool,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
@@ -880,7 +880,7 @@ pub(crate) fn handle_find_elements_tag_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
@@ -959,7 +959,7 @@ pub(crate) fn handle_find_elements_xpath_selector(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
@@ -981,7 +981,7 @@ pub(crate) fn handle_find_element_elements_css_selector(
     pipeline: PipelineId,
     element_id: String,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1007,7 +1007,7 @@ pub(crate) fn handle_find_element_elements_link_text(
     element_id: String,
     selector: String,
     partial: bool,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1023,7 +1023,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
     pipeline: PipelineId,
     element_id: String,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1044,7 +1044,7 @@ pub(crate) fn handle_find_element_elements_xpath_selector(
     pipeline: PipelineId,
     element_id: String,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1070,7 +1070,7 @@ pub(crate) fn handle_find_shadow_elements_css_selector(
     pipeline: PipelineId,
     shadow_root_id: String,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1096,7 +1096,7 @@ pub(crate) fn handle_find_shadow_elements_link_text(
     shadow_root_id: String,
     selector: String,
     partial: bool,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1112,7 +1112,7 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
     pipeline: PipelineId,
     shadow_root_id: String,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
 ) {
     // According to spec, we should use `getElementsByTagName`. But it is wrong, as only
     // Document and Element implement this method. So we use `querySelectorAll` instead.
@@ -1142,7 +1142,7 @@ pub(crate) fn handle_find_shadow_elements_xpath_selector(
     pipeline: PipelineId,
     shadow_root_id: String,
     selector: String,
-    reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1167,7 +1167,7 @@ pub(crate) fn handle_get_element_shadow_root(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Option<String>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1188,7 +1188,7 @@ fn is_keyboard_interactable(element: &Element) -> bool {
 fn handle_send_keys_file(
     file_input: &HTMLInputElement,
     text: &str,
-    reply_sender: IpcSender<Result<bool, ErrorStatus>>,
+    reply_sender: GenericSender<Result<bool, ErrorStatus>>,
 ) {
     // Step 1. Let files be the result of splitting text
     // on the newline (\n) character.
@@ -1280,7 +1280,7 @@ pub(crate) fn handle_will_send_keys(
     element_id: String,
     text: String,
     strict_file_interactability: bool,
-    reply: IpcSender<Result<bool, ErrorStatus>>,
+    reply: GenericSender<Result<bool, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     // Set 5. Let element be the result of trying to get a known element.
@@ -1370,7 +1370,7 @@ pub(crate) fn handle_will_send_keys(
 pub(crate) fn handle_get_active_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Option<String>>,
+    reply: GenericSender<Option<String>>,
 ) {
     reply
         .send(
@@ -1386,7 +1386,7 @@ pub(crate) fn handle_get_computed_role(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Option<String>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1399,7 +1399,7 @@ pub(crate) fn handle_get_computed_role(
 pub(crate) fn handle_get_page_source(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Result<String, ErrorStatus>>,
+    reply: GenericSender<Result<String, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1428,7 +1428,7 @@ pub(crate) fn handle_get_page_source(
 pub(crate) fn handle_get_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1455,7 +1455,7 @@ pub(crate) fn handle_get_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     name: String,
-    reply: IpcSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
+    reply: GenericSender<Result<Vec<Serde<Cookie<'static>>>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1486,7 +1486,7 @@ pub(crate) fn handle_add_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     cookie: Cookie<'static>,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    reply: GenericSender<Result<(), ErrorStatus>>,
 ) {
     // TODO: Return a different error if the pipeline doesn't exist
     let document = match documents.find_document(pipeline) {
@@ -1531,7 +1531,7 @@ pub(crate) fn handle_add_cookie(
 pub(crate) fn handle_delete_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    reply: GenericSender<Result<(), ErrorStatus>>,
 ) {
     let document = match documents.find_document(pipeline) {
         Some(document) => document,
@@ -1554,7 +1554,7 @@ pub(crate) fn handle_delete_cookie(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     name: String,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    reply: GenericSender<Result<(), ErrorStatus>>,
 ) {
     let document = match documents.find_document(pipeline) {
         Some(document) => document,
@@ -1575,7 +1575,7 @@ pub(crate) fn handle_delete_cookie(
 pub(crate) fn handle_get_title(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<String>,
+    reply: GenericSender<String>,
 ) {
     reply
         .send(
@@ -1619,7 +1619,7 @@ pub(crate) fn handle_get_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<Rect<f64>, ErrorStatus>>,
+    reply: GenericSender<Result<Rect<f64>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1645,7 +1645,7 @@ pub(crate) fn handle_scroll_and_get_bounding_client_rect(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<Rect<f32>, ErrorStatus>>,
+    reply: GenericSender<Result<Rect<f32>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1668,7 +1668,7 @@ pub(crate) fn handle_get_text(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Result<String, ErrorStatus>>,
+    reply: GenericSender<Result<String, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1691,7 +1691,7 @@ pub(crate) fn handle_get_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Result<String, ErrorStatus>>,
+    reply: GenericSender<Result<String, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1706,7 +1706,7 @@ pub(crate) fn handle_get_attribute(
     pipeline: PipelineId,
     node_id: String,
     name: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Option<String>, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1732,7 +1732,7 @@ pub(crate) fn handle_get_property(
     pipeline: PipelineId,
     node_id: String,
     name: String,
-    reply: IpcSender<Result<JSValue, ErrorStatus>>,
+    reply: GenericSender<Result<JSValue, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1776,7 +1776,7 @@ pub(crate) fn handle_get_css(
     pipeline: PipelineId,
     node_id: String,
     name: String,
-    reply: IpcSender<Result<String, ErrorStatus>>,
+    reply: GenericSender<Result<String, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -1795,7 +1795,7 @@ pub(crate) fn handle_get_css(
 pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<String>,
+    reply: GenericSender<String>,
     _can_gc: CanGc,
 ) {
     reply
@@ -1890,7 +1890,7 @@ pub(crate) fn handle_element_clear(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<(), ErrorStatus>>,
+    reply: GenericSender<Result<(), ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -1955,7 +1955,7 @@ pub(crate) fn handle_element_click(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    reply: GenericSender<Result<Option<String>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply
@@ -2110,7 +2110,7 @@ pub(crate) fn handle_is_enabled(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<bool, ErrorStatus>>,
+    reply: GenericSender<Result<bool, ErrorStatus>>,
 ) {
     reply
         .send(
@@ -2138,7 +2138,7 @@ pub(crate) fn handle_is_selected(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<bool, ErrorStatus>>,
+    reply: GenericSender<Result<bool, ErrorStatus>>,
 ) {
     reply
         .send(

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel;
 use base::id::BrowsingContextId;
 use embedder_traits::WebDriverScriptCommand;
-use ipc_channel::ipc;
 use serde_json::Value;
 use webdriver::command::JavascriptCommandParameters;
 use webdriver::common::{ELEMENT_KEY, FRAME_KEY, SHADOW_KEY, WINDOW_KEY};
@@ -45,7 +45,7 @@ impl Handler {
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::GetKnownElement(element_ref.clone(), sender),
             VerifyBrowsingContextIsOpen::No,
@@ -65,7 +65,7 @@ impl Handler {
         };
 
         // Step 3. Let element be the result of trying to get a known element with session and reference.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::GetKnownShadowRoot(shadow_root_ref.clone(), sender),
             VerifyBrowsingContextIsOpen::No,
@@ -113,7 +113,7 @@ impl Handler {
 
         // Step 3. Let browsing context be the browsing context whose window handle is reference,
         // or null if no such browsing context exists.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::GetKnownWindow(window_ref.clone(), sender),
             VerifyBrowsingContextIsOpen::No,

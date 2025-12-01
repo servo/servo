@@ -7,7 +7,9 @@
 use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::time::Duration;
 
+use crossbeam_channel::RecvTimeoutError;
 use ipc_channel::ipc::IpcError;
 use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -249,6 +251,17 @@ impl From<crossbeam_channel::TryRecvError> for TryReceiveError {
     }
 }
 
+impl From<crossbeam_channel::RecvTimeoutError> for TryReceiveError {
+    fn from(value: crossbeam_channel::RecvTimeoutError) -> Self {
+        match value {
+            RecvTimeoutError::Timeout => TryReceiveError::Empty,
+            RecvTimeoutError::Disconnected => {
+                TryReceiveError::ReceiveError(ReceiveError::Disconnected)
+            },
+        }
+    }
+}
+
 pub type RoutedReceiver<T> = crossbeam_channel::Receiver<Result<T, ipc_channel::Error>>;
 
 pub type ReceiveResult<T> = Result<T, ReceiveError>;
@@ -311,6 +324,29 @@ where
             GenericReceiverVariants::Crossbeam(ref receiver) => {
                 let msg = receiver.try_recv()?;
                 Ok(msg.expect("Infallible"))
+            },
+        }
+    }
+
+    /// Blocks up to the specific duration attempting to receive a message.
+    #[inline]
+    pub fn try_recv_timeout(&self, timeout: Duration) -> Result<T, TryReceiveError> {
+        match self.0 {
+            GenericReceiverVariants::Ipc(ref ipc_receiver) => {
+                ipc_receiver.try_recv_timeout(timeout).map_err(|e| {
+                    println!("E {e:?}");
+                    e.into()
+                })
+            },
+            GenericReceiverVariants::Crossbeam(ref receiver) => {
+                match receiver.recv_timeout(timeout) {
+                    Ok(Ok(value)) => Ok(value),
+                    Ok(Err(_)) => unreachable!("Infallable"),
+                    Err(RecvTimeoutError::Disconnected) => {
+                        Err(TryReceiveError::ReceiveError(ReceiveError::Disconnected))
+                    },
+                    Err(RecvTimeoutError::Timeout) => Err(TryReceiveError::Empty),
+                }
             },
         }
     }
@@ -570,5 +606,29 @@ mod single_process_channel_tests {
                 assert_eq!(res, 42);
             });
         });
+    }
+
+    #[test]
+    fn test_timeout_ipc() {
+        let (tx, rx) = new_generic_channel_ipc().unwrap();
+        let timeout_duration = std::time::Duration::from_secs(4);
+        std::thread::spawn(move || {
+            std::thread::sleep(timeout_duration);
+            assert!(tx.send(()).is_ok());
+        });
+        let received = rx.try_recv_timeout(timeout_duration);
+        assert!(received.is_ok());
+    }
+
+    #[test]
+    fn test_timeout_crossbeam() {
+        let (tx, rx) = new_generic_channel_crossbeam();
+        let timeout_duration = std::time::Duration::from_secs(4);
+        std::thread::spawn(move || {
+            std::thread::sleep(timeout_duration);
+            assert!(tx.send(()).is_ok());
+        });
+        let received = rx.try_recv_timeout(timeout_duration);
+        assert!(received.is_ok());
     }
 }

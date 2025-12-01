@@ -55,6 +55,9 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 
+[dev-dependencies]
+ipc-channel = { workspace = true }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
 core-foundation = "0.9"

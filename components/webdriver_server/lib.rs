@@ -22,7 +22,7 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 use std::{env, fmt, process, thread};
 
-use base::generic_channel::{self, GenericSender, RoutedReceiver};
+use base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
@@ -37,7 +37,6 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat};
-use ipc_channel::ipc::{self, IpcReceiver, TryRecvError};
 use keyboard_types::webdriver::{Event as DispatchStringEvent, KeyInputState, send_keys};
 use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, NamedKey};
 use log::{debug, error, info};
@@ -538,7 +537,7 @@ impl Handler {
     }
 
     fn focused_webview_id(&self) -> WebDriverResult<Option<WebViewId>> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
         // Wait until the document is ready before returning the top-level browsing context id.
         wait_for_ipc_response(receiver)
@@ -621,7 +620,7 @@ impl Handler {
             None => {
                 // This happens when there is no open webview.
                 // We need to create a new one. See https://github.com/servo/servo/issues/37408
-                let (sender, receiver) = ipc::channel().unwrap();
+                let (sender, receiver) = generic_channel::channel().unwrap();
 
                 self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(
                     sender,
@@ -848,7 +847,7 @@ impl Handler {
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(webview_id)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.top_level_script_command(
             WebDriverScriptCommand::GetUrl(sender),
             VerifyBrowsingContextIsOpen::No,
@@ -866,7 +865,7 @@ impl Handler {
         &self,
         verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let webview_id = self.webview_id()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
@@ -928,7 +927,7 @@ impl Handler {
             params.width.unwrap_or_else(|| current.width),
             params.height.unwrap_or_else(|| current.height),
         );
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         // Step 16 - 17. Set the width/height in CSS pixels.
         // This should be done as long as one of width/height is not null.
 
@@ -972,7 +971,7 @@ impl Handler {
         // Step 5. (TODO) Restore the window.
 
         // Step 6. Maximize the window of session's current top-level browsing context.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::MaximizeWebView(webview_id, sender))?;
 
         let window_rect = wait_for_ipc_response(receiver)?;
@@ -996,7 +995,7 @@ impl Handler {
         let webview_id = self.webview_id()?;
         self.handle_any_user_prompts(webview_id)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::IsEnabled(element.to_string(), sender),
             VerifyBrowsingContextIsOpen::No,
@@ -1017,7 +1016,7 @@ impl Handler {
         let webview_id = self.webview_id()?;
         self.handle_any_user_prompts(webview_id)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::IsSelected(element.to_string(), sender),
             VerifyBrowsingContextIsOpen::No,
@@ -1095,7 +1094,7 @@ impl Handler {
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(webview_id)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         self.top_level_script_command(
             WebDriverScriptCommand::GetTitle(sender),
@@ -1153,7 +1152,7 @@ impl Handler {
     }
 
     fn get_all_webview_ids(&self) -> Vec<WebViewId> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))
             .unwrap();
         wait_for_ipc_response(receiver).unwrap_or_default()
@@ -1170,7 +1169,7 @@ impl Handler {
         self.handle_any_user_prompts(webview_id)?;
 
         // Step 3. Close session's current top-level browsing context.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         let cmd_msg = WebDriverCommandMsg::CloseWebView(webview_id, sender);
         self.send_message_to_embedder(cmd_msg)?;
@@ -1195,7 +1194,7 @@ impl Handler {
         &mut self,
         _parameters: &NewWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         let webview_id = self.webview_id()?;
 
@@ -1286,7 +1285,7 @@ impl Handler {
 
         // Step 2. If session's current parent browsing context is no longer open,
         // return error with error code no such window.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetParentFrameId(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
 
@@ -1337,7 +1336,7 @@ impl Handler {
         &mut self,
         frame_id: WebDriverFrameId,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetBrowsingContextId(frame_id, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         self.handle_any_user_prompts(self.webview_id()?)?;
@@ -1413,7 +1412,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         self.implicit_wait(|| {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
             let cmd = match parameters.using {
                 LocatorStrategy::CSSSelector => WebDriverScriptCommand::FindElementsCSSSelector(
                     parameters.value.clone(),
@@ -1479,7 +1478,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         self.implicit_wait(|| {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
 
             let cmd = match parameters.using {
                 LocatorStrategy::CSSSelector => {
@@ -1544,7 +1543,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         self.implicit_wait(|| {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
 
             let cmd = match parameters.using {
                 LocatorStrategy::CSSSelector => {
@@ -1610,7 +1609,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementShadowRoot(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         // Step 5. If shadow root is null, return error with error code no such shadow root.
@@ -1629,7 +1628,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         let rect = wait_for_ipc_response_flatten(receiver)?;
@@ -1649,7 +1648,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1664,7 +1663,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         let value =
@@ -1691,7 +1690,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1706,7 +1705,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementTagName(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         Ok(WebDriverResponse::Generic(ValueResponse(
@@ -1725,7 +1724,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementAttribute(
             element.to_string(),
             name.to_owned(),
@@ -1748,7 +1747,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         let cmd = WebDriverScriptCommand::GetElementProperty(
             element.to_string(),
@@ -1773,7 +1772,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd =
             WebDriverScriptCommand::GetElementCSS(element.to_string(), name.to_owned(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -1789,7 +1788,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookies(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         let cookies = wait_for_ipc_response_flatten(receiver)?;
@@ -1807,7 +1806,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         let cookies = wait_for_ipc_response_flatten(receiver)?;
@@ -1831,7 +1830,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         let mut cookie_builder =
             CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
@@ -1873,7 +1872,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         wait_for_ipc_response_flatten(receiver)?;
@@ -1887,7 +1886,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
         wait_for_ipc_response_flatten(receiver)?;
@@ -1937,7 +1936,7 @@ impl Handler {
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
         // Step 2. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         let cmd = WebDriverScriptCommand::GetPageSource(sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
@@ -2029,7 +2028,7 @@ impl Handler {
         // Step 3. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
@@ -2074,7 +2073,7 @@ impl Handler {
         // Step 3. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.browsing_context_script_command(
             WebDriverScriptCommand::ExecuteAsyncScript(script, sender),
             VerifyBrowsingContextIsOpen::No,
@@ -2150,7 +2149,7 @@ impl Handler {
         // Step 4. Handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::WillSendKeys(
             element.to_string(),
             keys.text.to_string(),
@@ -2233,7 +2232,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         // Step 3-11 handled in script thread.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
@@ -2251,7 +2250,7 @@ impl Handler {
         // Step 2. Handle any user prompts.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         // Steps 3-7 + Step 8 for <option> are handled in script thread.
         let cmd = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
@@ -2419,7 +2418,7 @@ impl Handler {
 
         // Step 3. Trying to get element.
         // Step 4. Scroll into view into element.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd =
             WebDriverScriptCommand::ScrollAndGetBoundingClientRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
@@ -2544,7 +2543,7 @@ impl Handler {
         &self,
         webview_id: WebViewId,
     ) -> Result<(), WebDriverError> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::IsWebViewOpen(webview_id, sender))?;
         if wait_for_ipc_response(receiver)? {
             Ok(())
@@ -2557,7 +2556,7 @@ impl Handler {
         &self,
         browsing_context_id: BrowsingContextId,
     ) -> Result<(), WebDriverError> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::IsBrowsingContextOpen(
             browsing_context_id,
             sender,
@@ -2715,7 +2714,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     }
 }
 
-fn wait_for_ipc_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError>
+fn wait_for_ipc_response<T>(receiver: GenericReceiver<T>) -> Result<T, WebDriverError>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
@@ -2727,7 +2726,7 @@ where
 /// This function is like `wait_for_ipc_response`, but works on a channel that
 /// returns a `Result<T, ErrorStatus>`, mapping all errors into `WebDriverError`.
 fn wait_for_ipc_response_flatten<T>(
-    receiver: IpcReceiver<Result<T, ErrorStatus>>,
+    receiver: GenericReceiver<Result<T, ErrorStatus>>,
 ) -> Result<T, WebDriverError>
 where
     T: for<'de> Deserialize<'de> + Serialize,
@@ -2740,7 +2739,7 @@ where
 }
 
 fn wait_for_script_ipc_response_with_timeout<T>(
-    receiver: IpcReceiver<T>,
+    receiver: GenericReceiver<T>,
     timeout: Option<Duration>,
 ) -> Result<T, WebDriverError>
 where
@@ -2752,8 +2751,12 @@ where
     receiver
         .try_recv_timeout(timeout)
         .map_err(|error| match error {
-            TryRecvError::IpcError(_) => WebDriverError::new(ErrorStatus::NoSuchWindow, ""),
-            TryRecvError::Empty => WebDriverError::new(ErrorStatus::ScriptTimeout, ""),
+            generic_channel::TryReceiveError::ReceiveError(_) => {
+                WebDriverError::new(ErrorStatus::NoSuchWindow, "")
+            },
+            generic_channel::TryReceiveError::Empty => {
+                WebDriverError::new(ErrorStatus::ScriptTimeout, "")
+            },
         })
 }
 

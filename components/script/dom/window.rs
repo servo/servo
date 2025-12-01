@@ -345,7 +345,7 @@ pub(crate) struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[no_trace]
-    webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
+    webdriver_script_chan: DomRefCell<Option<GenericSender<WebDriverJSResult>>>,
 
     /// A channel to notify webdriver if there is a navigation
     #[no_trace]
@@ -3186,7 +3186,7 @@ impl Window {
         }
     }
 
-    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<IpcSender<WebDriverJSResult>>) {
+    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
 
