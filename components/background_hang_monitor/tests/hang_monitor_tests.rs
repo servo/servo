@@ -16,7 +16,6 @@ use background_hang_monitor_api::{
 };
 use base::generic_channel;
 use base::id::TEST_SCRIPT_EVENT_LOOP_ID;
-use ipc_channel::ipc;
 
 static SERIAL: Mutex<()> = Mutex::new(());
 

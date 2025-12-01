@@ -736,7 +736,6 @@ dependencies = [
  "backtrace",
  "base",
  "crossbeam-channel",
- "ipc-channel",
  "libc",
  "log",
  "mach2",
