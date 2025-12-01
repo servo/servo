@@ -233,6 +233,7 @@ struct ImageContext {
     /// The document associated with this request
     doc: Trusted<Document>,
     url: ServoUrl,
+    element: Trusted<HTMLImageElement>,
 }
 
 impl FetchResponseListener for ImageContext {
@@ -315,7 +316,11 @@ impl FetchResponseListener for ImageContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        let elem = self.element.root();
+        let source_position = elem
+            .upcast::<Element>()
+            .compute_source_position(elem.line_number as u32);
+        global.report_csp_violations(violations, None, Some(source_position));
     }
 }
 
@@ -420,6 +425,7 @@ impl HTMLImageElement {
             id,
             aborted: false,
             doc: Trusted::new(&document),
+            element: Trusted::new(self),
             url: img_url.clone(),
         };
 
