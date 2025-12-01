@@ -4980,7 +4980,6 @@ dependencies = [
  "html5ever",
  "icu_locid",
  "icu_segmenter",
- "ipc-channel",
  "itertools 0.14.0",
  "kurbo 0.12.0",
  "layout_api",
