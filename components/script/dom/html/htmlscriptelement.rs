@@ -440,7 +440,7 @@ impl FetchResponseListener for ClassicContext {
         let elem = self.elem.root();
         let global = elem.global();
 
-        elem.substitute_with_local_script(&mut source_text, final_url.clone());
+        // elem.substitute_with_local_script(&mut source_text, final_url.clone());
 
         let introduction_type = elem
             .introduction_type_override
@@ -1044,8 +1044,9 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        let Some(script_type) = self.get_script_type() else {
-            return;
+        let script_type = match script {
+            Script::Classic(_) => ScriptType::Classic,
+            Script::Other(ref script) => script.type_,
         };
 
         /*if script.type_ == ScriptType::Classic {
