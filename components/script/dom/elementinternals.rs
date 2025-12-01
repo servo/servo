@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::UnionTypes::FileOrUSVStringOrFormData;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::customstateset::CustomStateSet;
 use crate::dom::element::Element;
@@ -194,6 +194,13 @@ impl ElementInternals {
 
     pub(crate) fn custom_states(&self) -> Option<DomRoot<CustomStateSet>> {
         self.states.get()
+    }
+
+    pub(crate) fn custom_states_for_layout<'a>(&'a self) -> Option<LayoutDom<'a, CustomStateSet>> {
+        #[expect(unsafe_code)]
+        unsafe {
+            self.states.get_inner_as_layout()
+        }
     }
 }
 

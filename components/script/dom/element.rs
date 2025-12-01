@@ -1025,9 +1025,7 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     ) -> Option<&'dom AttrValue>;
     fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
     fn get_attr_vals_for_layout(self, name: &LocalName) -> impl Iterator<Item = &'dom AttrValue>;
-    fn each_custom_state<F>(self, callback: F)
-    where
-        F: FnMut(&AtomIdent);
+    fn each_custom_state_for_layout(self, allback: impl FnMut(&AtomIdent));
 }
 
 impl LayoutDom<'_, Element> {
@@ -1516,11 +1514,23 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         })
     }
 
-    fn each_custom_state<F>(self, callback: F)
-    where
-        F: FnMut(&AtomIdent),
-    {
-        self.unsafe_get().each_custom_state(callback)
+    #[expect(unsafe_code)]
+    fn each_custom_state_for_layout(self, mut callback: impl FnMut(&AtomIdent)) {
+        let rare_data = self.unsafe_get().rare_data();
+        let Some(rare_data) = rare_data.as_ref() else {
+            return;
+        };
+        let Some(element_internals) = rare_data.element_internals.as_ref() else {
+            return;
+        };
+
+        let element_internals = unsafe { element_internals.to_layout() };
+        if let Some(states) = element_internals.unsafe_get().custom_states_for_layout() {
+            for state in states.unsafe_get().set().iter() {
+                // FIXME: This creates new atoms whenever it is called, which is not optimal.
+                callback(&AtomIdent::from(&*state.str()));
+            }
+        }
     }
 }
 
