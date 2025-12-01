@@ -391,9 +391,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             self.document.has_browsing_context(),
         ) {
             Some(e) => {
-                let retargeted_node = self
-                    .upcast::<EventTarget>()
-                    .retarget(e.upcast::<EventTarget>());
+                let retargeted_node = e.upcast::<EventTarget>().retarget(self.upcast());
                 retargeted_node.downcast::<Element>().map(DomRoot::from_ref)
             },
             None => None,
@@ -410,9 +408,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             .elements_from_point(x, y, None, self.document.has_browsing_context())
             .iter()
         {
-            let retargeted_node = self
-                .upcast::<EventTarget>()
-                .retarget(e.upcast::<EventTarget>());
+            let retargeted_node = e.upcast::<EventTarget>().retarget(self.upcast());
             if let Some(element) = retargeted_node.downcast::<Element>().map(DomRoot::from_ref) {
                 elements.push(element);
             }
