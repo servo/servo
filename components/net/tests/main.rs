@@ -107,7 +107,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         http_cache: RwLock::new(net::http_cache::HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
-            net::connector::CACertificates::Default,
+            net::connector::CACertificates::PlatformVerifier,
             false, /* ignore_certificate_errors */
             override_manager.clone(),
         )),
@@ -139,7 +139,7 @@ fn new_fetch_context(
         ))),
         protocols: Arc::new(ProtocolRegistry::with_internal_protocols()),
         websocket_chan: None,
-        ca_certificates: CACertificates::Default,
+        ca_certificates: CACertificates::PlatformVerifier,
         ignore_certificate_errors: false,
     }
 }

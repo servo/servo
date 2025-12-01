@@ -768,7 +768,7 @@ fn test_fetch_with_hsts() {
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
         websocket_chan: None,
-        ca_certificates: CACertificates::Default,
+        ca_certificates: CACertificates::PlatformVerifier,
         ignore_certificate_errors: false,
     };
 
@@ -832,7 +832,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
         websocket_chan: None,
-        ca_certificates: CACertificates::Default,
+        ca_certificates: CACertificates::PlatformVerifier,
         ignore_certificate_errors: false,
     };
 
@@ -901,7 +901,7 @@ fn test_fetch_self_signed() {
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
         websocket_chan: None,
-        ca_certificates: CACertificates::Default,
+        ca_certificates: CACertificates::PlatformVerifier,
         ignore_certificate_errors: false,
     };
 
@@ -1552,7 +1552,7 @@ fn test_fetch_request_intercepted() {
         ))),
         protocols: Arc::new(ProtocolRegistry::default()),
         websocket_chan: None,
-        ca_certificates: CACertificates::Default,
+        ca_certificates: CACertificates::PlatformVerifier,
         ignore_certificate_errors: false,
     };
 

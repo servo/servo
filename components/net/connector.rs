@@ -20,6 +20,7 @@ use hyper_util::rt::TokioIo;
 use log::warn;
 use parking_lot::Mutex;
 use rustls::ClientConfig;
+use rustls::client::danger::ServerCertVerifier;
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use tokio::net::TcpStream;
 use tower::Service;
@@ -138,7 +139,9 @@ impl CertificateErrorOverrideManager {
 
 #[derive(Clone, Debug)]
 pub enum CACertificates<'de> {
-    Default,
+    #[cfg(not(target_os = "android"))]
+    PlatformVerifier,
+    WebPKI,
     Override(Vec<CertificateDer<'de>>),
 }
 
@@ -178,16 +181,12 @@ where
 
 #[derive(Debug)]
 struct CertificateVerificationOverrideVerifier {
-    #[cfg(not(target_os = "android"))]
-    main_verifier: Arc<rustls_platform_verifier::Verifier>,
-    #[cfg(target_os = "android")]
-    main_verifier: Arc<rustls::client::WebPkiServerVerifier>,
+    main_verifier: Arc<dyn ServerCertVerifier>,
     ignore_certificate_errors: bool,
     override_manager: CertificateErrorOverrideManager,
 }
 
 impl CertificateVerificationOverrideVerifier {
-    #[cfg(not(target_os = "android"))]
     fn new(
         ca_certficates: CACertificates<'static>,
         ignore_certificate_errors: bool,
@@ -196,53 +195,32 @@ impl CertificateVerificationOverrideVerifier {
         let crypto_provider = rustls::crypto::CryptoProvider::get_default()
             .expect("Could not get a crypto provider. ")
             .clone();
-        let main_verifier = Arc::new(
-            match ca_certficates {
-                CACertificates::Default => rustls_platform_verifier::Verifier::new(crypto_provider),
-                CACertificates::Override(root_cert_store) => {
-                    rustls_platform_verifier::Verifier::new_with_extra_roots(
-                        root_cert_store,
-                        crypto_provider,
-                    )
-                },
-            }
-            .expect("Could not initialize crypto"),
-        );
+        let main_verifier = match ca_certficates {
+            #[cfg(not(target_os = "android"))]
+            CACertificates::PlatformVerifier => Arc::new(
+                rustls_platform_verifier::Verifier::new(crypto_provider)
+                    .expect("Could not initialize platform certificate verifier"),
+            ),
+            CACertificates::WebPKI => {
+                let root_store = Arc::new(rustls::RootCertStore::from_iter(
+                    webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+                ));
+
+                rustls::client::WebPkiServerVerifier::builder(root_store)
+                    .build()
+                    .expect("G") as Arc<dyn ServerCertVerifier>
+            },
+            CACertificates::Override(root_cert_store) => Arc::new(
+                rustls_platform_verifier::Verifier::new_with_extra_roots(
+                    root_cert_store,
+                    crypto_provider,
+                )
+                .expect("Could not build platform verifier with additional certs"),
+            ),
+        };
 
         Self {
             main_verifier,
-            ignore_certificate_errors,
-            override_manager,
-        }
-    }
-
-    #[cfg(target_os = "android")]
-    fn new(
-        ca_certficates: CACertificates<'static>,
-        ignore_certificate_errors: bool,
-        override_manager: CertificateErrorOverrideManager,
-    ) -> Self {
-        let root_cert_store = Arc::new(match ca_certficates {
-            CACertificates::Default => rustls::RootCertStore {
-                roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
-            },
-            CACertificates::Override(root_certs) => {
-                let mut root_cert_store = rustls::RootCertStore::empty();
-                for cert in root_certs {
-                    if let Err(e) = root_cert_store.add(cert) {
-                        log::error!("Could not add certificate ({cert:?}) with error {e}");
-                    }
-                }
-                root_cert_store
-            },
-        });
-
-        Self {
-            // See https://github.com/rustls/rustls/blame/v/0.21.6/rustls/src/client/builder.rs#L141
-            // This is the default verifier for Rustls that we are wrapping.
-            main_verifier: rustls::client::WebPkiServerVerifier::builder(root_cert_store.into())
-                .build()
-                .unwrap(),
             ignore_certificate_errors,
             override_manager,
         }

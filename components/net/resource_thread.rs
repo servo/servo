@@ -43,6 +43,7 @@ use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::async_runtime::{init_async_runtime, spawn_task};
@@ -95,10 +96,16 @@ pub fn new_resource_threads(
             Ok(root_cert_store) => CACertificates::Override(root_cert_store),
             Err(error) => {
                 warn!("Could not load CA file. Falling back to defaults. {error:?}");
-                CACertificates::Default
+                CACertificates::PlatformVerifier
             },
         },
-        None => CACertificates::Default,
+        None => {
+            if pref!(network_webpki_roots) {
+                CACertificates::WebPKI
+            } else {
+                CACertificates::PlatformVerifier
+            }
+        },
     };
 
     let (public_core, private_core) = new_core_resource_thread(
