@@ -74,7 +74,7 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }
 tokio-stream = "0.1"
 tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
-tower-service = { workspace = true }
+tower = { workspace = true }
 tungstenite = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }

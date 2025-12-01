@@ -246,6 +246,8 @@ pub struct Preferences {
     pub network_enforce_tls_localhost: bool,
     pub network_enforce_tls_onion: bool,
     pub network_http_cache_disabled: bool,
+    /// A url for a http proxy. We treat an empty string as no proxy.
+    pub network_http_proxy_uri: String,
     pub network_local_directory_listing_enabled: bool,
     pub network_mime_sniff: bool,
     pub session_history_max_length: i64,
@@ -429,6 +431,7 @@ impl Preferences {
             network_enforce_tls_localhost: false,
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
+            network_http_proxy_uri: String::new(),
             network_local_directory_listing_enabled: true,
             network_mime_sniff: false,
             session_history_max_length: 20,

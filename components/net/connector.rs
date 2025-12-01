@@ -6,8 +6,8 @@ use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::Arc;
 
-use futures::Future;
 use futures::task::{Context, Poll};
+use futures::{Future, TryFutureExt};
 use http::uri::{Authority, Uri as Destination};
 use http_body_util::combinators::BoxBody;
 use hyper::body::Bytes;
@@ -15,12 +15,15 @@ use hyper::rt::Executor;
 use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
 use hyper_util::client::legacy::Client;
 use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
+use hyper_util::client::legacy::connect::proxy::Tunnel;
+use hyper_util::rt::TokioIo;
 use log::warn;
 use parking_lot::Mutex;
 use rustls::client::WebPkiServerVerifier;
 use rustls::{ClientConfig, RootCertStore};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
-use tower_service::Service;
+use tokio::net::TcpStream;
+use tower::Service;
 
 use crate::async_runtime::spawn_task;
 use crate::hosts::replace_host;
@@ -42,9 +45,10 @@ impl ServoHttpConnector {
 }
 
 impl Service<Destination> for ServoHttpConnector {
-    type Response = <HyperHttpConnector as Service<Destination>>::Response;
-    type Error = <HyperHttpConnector as Service<Destination>>::Error;
-    type Future = <HyperHttpConnector as Service<Destination>>::Future;
+    type Response = TokioIo<TcpStream>;
+    type Error = ConnectionError;
+    type Future =
+        std::pin::Pin<Box<dyn Future<Output = Result<TokioIo<TcpStream>, ConnectionError>> + Send>>;
 
     fn call(&mut self, dest: Destination) -> Self::Future {
         // Perform host replacement when making the actual TCP connection.
@@ -69,7 +73,11 @@ impl Service<Destination> for ServoHttpConnector {
             }
         }
 
-        self.inner.call(new_dest)
+        Box::pin(
+            self.inner
+                .call(new_dest)
+                .map_err(|e| ConnectionError::HttpError(format!("{e}"))),
+        )
     }
 
     fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -267,13 +275,76 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 
-pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, BoxedBody> {
+fn create_maybe_proxy_connector() -> MaybeProxyConnector {
+    let network_http_proxy_uri = servo_config::pref!(network_http_proxy_uri);
+    if !network_http_proxy_uri.is_empty() {
+        if let Ok(http_proxy_uri) = network_http_proxy_uri.parse() {
+            log::info!("Using proxy specified via {:?}", http_proxy_uri);
+            return MaybeProxyConnector::Right(TunnelErrorMasker(Tunnel::new(
+                http_proxy_uri,
+                ServoHttpConnector::new(),
+            )));
+        }
+    }
+
+    MaybeProxyConnector::Left(ServoHttpConnector::new())
+}
+
+/// Either a proxy tunnel or the ServoHttpConnector
+pub type MaybeProxyConnector = tower::util::Either<ServoHttpConnector, TunnelErrorMasker>;
+
+#[derive(Debug)]
+/// The error type for the MaybeProxyConnector
+pub enum ConnectionError {
+    HttpError(String),
+    // It looks like currently the type is not exported.
+    ProxyError(String),
+}
+
+impl std::fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl std::error::Error for ConnectionError {}
+
+#[derive(Clone)]
+/// This is just used to give us control over the error types 'Tunnel<>' returns.
+pub struct TunnelErrorMasker(Tunnel<ServoHttpConnector>);
+
+// Just forward everything to the inner type except that we modify the errors returned.
+impl Service<Destination> for TunnelErrorMasker {
+    type Response = TokioIo<TcpStream>;
+    type Error = ConnectionError;
+    type Future =
+        std::pin::Pin<Box<dyn Future<Output = Result<TokioIo<TcpStream>, ConnectionError>> + Send>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.0
+            .poll_ready(cx)
+            .map_err(|e| ConnectionError::ProxyError(format!("{e}")))
+    }
+
+    fn call(&mut self, req: Destination) -> Self::Future {
+        Box::pin(
+            self.0
+                .call(req)
+                .map_err(|e| ConnectionError::ProxyError(format!("{e}"))),
+        )
+    }
+}
+
+pub type ServoClient = Client<hyper_rustls::HttpsConnector<MaybeProxyConnector>, BoxedBody>;
+
+pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
+    let maybe_proxy_connector = create_maybe_proxy_connector();
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
         .enable_http2()
-        .wrap_connector(ServoHttpConnector::new());
+        .wrap_connector(maybe_proxy_connector);
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
