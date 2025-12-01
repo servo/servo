@@ -623,6 +623,10 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
                 return true;
             }
 
+            if old.get_position().order != new.get_position().order {
+                return true;
+            }
+
             // Only consider changes to the `quotes` attribute if they actually apply to this
             // style (if it is a pseudo-element that supports it).
             if matches!(
