@@ -243,6 +243,9 @@ jobs:
 
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64
+    env:
+      # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
+      UV_PROJECT: "etc/ci/scenario"
     continue-on-error: true
     runs-on: hos-runner
     needs: test-harmonyos-aarch64
@@ -289,7 +292,7 @@ jobs:
         continue-on-error: true
       - name: Run speedometer
         id: BencherRun
-        run: ./mach test-speedometer-ohos --bmf-output speedometer.json --profile ${{ inputs.profile }}
+        run: uv run ./etc/ci/scenario/servo_speedometer.py ${{ inputs.profile }}
         continue-on-error: true
       - name: Handle failed speedometer
         if: ${{ steps.BencherRun.outcome == 'failure' }}
