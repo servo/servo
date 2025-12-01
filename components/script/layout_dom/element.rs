@@ -133,10 +133,7 @@ impl<'dom> ServoLayoutElement<'dom> {
 
     /// Returns the parent element of this element, if it has one.
     fn parent_element(&self) -> Option<Self> {
-        self.element
-            .upcast()
-            .composed_parent_node_ref()
-            .and_then(|node| node.downcast().map(ServoLayoutElement::from_layout_js))
+        self.as_node().parent_element()
     }
 
     fn is_root(&self) -> bool {
@@ -218,9 +215,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             return self.pseudo_element_originating_element();
         }
 
-        // FIXME: By default the inheritance parent would be the Self::parent_element
-        //        but probably we should use the flattened tree parent.
-        self.parent_element()
+        self.traversal_parent()
     }
 
     fn is_html_element(&self) -> bool {
