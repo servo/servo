@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
@@ -132,24 +132,16 @@ mod media_platform {
     }
 }
 
-/// The in-process interface to Servo.
-///
-/// It does everything necessary to render the web, primarily
-/// orchestrating the interaction between JavaScript, CSS layout,
-/// rendering, and the client window.
-///
-// Clients create an event loop to pump messages between the embedding
-// application and various browser components.
-pub struct Servo {
+struct ServoInner {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
-    pub(crate) compositor: Rc<RefCell<IOCompositor>>,
-    pub(crate) constellation_proxy: ConstellationProxy,
+    compositor: Rc<RefCell<IOCompositor>>,
+    constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
-    pub(crate) javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
+    javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
     /// Tracks whether we are in the process of shutting down, or have shut down.
     /// This is shared with `WebView`s and the `ServoRenderer`.
     shutdown_state: Rc<Cell<ShutdownState>>,
@@ -157,13 +149,24 @@ pub struct Servo {
     /// as `Weak` references so that the embedding application can control their lifetime.
     /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
     /// references.
-    pub(crate) webviews: RefCell<FxHashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
+    webviews: RefCell<FxHashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
     servo_errors: ServoErrorChannel,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
     _js_engine_setup: Option<JSEngineSetup>,
 }
+
+/// An in-process handle to a `Servo` instance. Cloning the handle does not create a new instance
+/// of `Servo`.
+///
+/// A `Servo` instance does everything necessary to render the web, primarily orchestrating the
+/// interaction between JavaScript, CSS layout, rendering, and the client window.
+///
+/// Clients create an event loop to pump messages between the embedding
+/// application and various browser components.
+#[derive(Clone)]
+pub struct Servo(Rc<ServoInner>);
 
 impl Servo {
     #[servo_tracing::instrument(skip(builder))]
@@ -281,7 +284,7 @@ impl Servo {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
 
-        Self {
+        Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor,
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
@@ -295,15 +298,15 @@ impl Servo {
             public_resource_threads,
             private_resource_threads,
             _js_engine_setup: js_engine_setup,
-        }
+        }))
     }
 
     pub fn delegate(&self) -> Rc<dyn ServoDelegate> {
-        self.delegate.borrow().clone()
+        self.0.delegate.borrow().clone()
     }
 
     pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
-        *self.delegate.borrow_mut() = delegate;
+        *self.0.delegate.borrow_mut() = delegate;
     }
 
     /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number
@@ -321,12 +324,12 @@ impl Servo {
     /// The return value of this method indicates whether or not Servo, false indicates that Servo
     /// has finished shutting down and you should not spin the event loop any longer.
     pub fn spin_event_loop(&self) -> bool {
-        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+        if self.0.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
         {
-            let compositor = self.compositor.borrow();
+            let compositor = self.0.compositor.borrow();
             let mut messages = Vec::new();
             while let Ok(message) = compositor.receiver().try_recv() {
                 match message {
@@ -340,25 +343,25 @@ impl Servo {
         }
 
         // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
-        while let Ok(message) = self.embedder_receiver.try_recv() {
+        while let Ok(message) = self.0.embedder_receiver.try_recv() {
             self.handle_embedder_message(message);
 
-            if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+            if self.0.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
                 break;
             }
         }
 
-        if self.constellation_proxy.disconnected() {
+        if self.0.constellation_proxy.disconnected() {
             self.delegate()
                 .notify_error(self, ServoError::LostConnectionWithBackend);
         }
 
-        self.compositor.borrow_mut().perform_updates();
+        self.0.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
 
-        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+        if self.0.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
         }
 
@@ -366,7 +369,7 @@ impl Servo {
     }
 
     fn send_new_frame_ready_messages(&self) {
-        let webviews_needing_repaint = self.compositor.borrow().webviews_needing_repaint();
+        let webviews_needing_repaint = self.0.compositor.borrow().webviews_needing_repaint();
 
         for webview in webviews_needing_repaint
             .iter()
@@ -377,7 +380,7 @@ impl Servo {
     }
 
     fn handle_delegate_errors(&self) {
-        while let Some(error) = self.servo_errors.try_recv() {
+        while let Some(error) = self.0.servo_errors.try_recv() {
             self.delegate().notify_error(self, error);
         }
     }
@@ -387,13 +390,14 @@ impl Servo {
         // Note that `retain` is O(capacity) because it visits empty buckets, so it may be worth
         // calling `shrink_to_fit` at some point to deal with cases where a long-running Servo
         // instance goes from many open webviews to only a few.
-        self.webviews
+        self.0
+            .webviews
             .borrow_mut()
             .retain(|_webview_id, webview| webview.strong_count() > 0);
     }
 
     pub fn setup_logging(&self) {
-        let constellation_chan = self.constellation_proxy.sender();
+        let constellation_chan = self.0.constellation_proxy.sender();
         let env = env_logger::Env::default();
         let env_logger = EnvLoggerBuilder::from_env(env).build();
         let con_logger = FromEmbedderLogger::new(constellation_chan);
@@ -406,34 +410,39 @@ impl Servo {
     }
 
     pub fn create_memory_report(&self, snd: IpcSender<MemoryReportResult>) {
-        self.constellation_proxy
+        self.0
+            .constellation_proxy
             .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
     }
 
     pub fn start_shutting_down(&self) {
-        if self.shutdown_state.get() != ShutdownState::NotShuttingDown {
+        if self.0.shutdown_state.get() != ShutdownState::NotShuttingDown {
             warn!("Requested shutdown while already shutting down");
             return;
         }
 
         debug!("Sending Exit message to Constellation");
-        self.constellation_proxy
+        self.0
+            .constellation_proxy
             .send(EmbedderToConstellationMessage::Exit);
-        self.shutdown_state.set(ShutdownState::ShuttingDown);
+        self.0.shutdown_state.set(ShutdownState::ShuttingDown);
     }
 
     fn finish_shutting_down(&self) {
         debug!("Servo received message that Constellation shutdown is complete");
-        self.shutdown_state.set(ShutdownState::FinishedShuttingDown);
-        self.compositor.borrow_mut().finish_shutting_down();
+        self.0
+            .shutdown_state
+            .set(ShutdownState::FinishedShuttingDown);
+        self.0.compositor.borrow_mut().finish_shutting_down();
     }
 
     pub fn deinit(&self) {
-        self.compositor.borrow_mut().deinit();
+        self.0.compositor.borrow_mut().deinit();
     }
 
     fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
-        self.webviews
+        self.0
+            .webviews
             .borrow()
             .get(&id)
             .and_then(WebView::from_weak_handle)
@@ -477,7 +486,7 @@ impl Servo {
                     let request = NavigationRequest {
                         url: servo_url.into_url(),
                         pipeline_id,
-                        constellation_proxy: self.constellation_proxy.clone(),
+                        constellation_proxy: self.0.constellation_proxy.clone(),
                         response_sent: false,
                     };
                     webview.delegate().request_navigation(webview, request);
@@ -502,7 +511,7 @@ impl Servo {
                     let allow_deny_request = AllowOrDenyRequest::new(
                         response_sender,
                         AllowOrDeny::Deny,
-                        self.servo_errors.sender(),
+                        self.0.servo_errors.sender(),
                     );
                     webview.delegate().request_protocol_handler(
                         webview,
@@ -527,7 +536,7 @@ impl Servo {
             },
             EmbedderMsg::WebViewFocused(webview_id, focus_result) => {
                 if focus_result {
-                    for id in self.webviews.borrow().keys() {
+                    for id in self.0.webviews.borrow().keys() {
                         if let Some(webview) = self.get_webview_handle(*id) {
                             let focused = webview.id() == webview_id;
                             webview.set_focused(focused);
@@ -536,7 +545,7 @@ impl Servo {
                 }
             },
             EmbedderMsg::WebViewBlurred => {
-                for id in self.webviews.borrow().keys() {
+                for id in self.0.webviews.borrow().keys() {
                     if let Some(webview) = self.get_webview_handle(*id) {
                         webview.set_focused(false);
                     }
@@ -547,18 +556,19 @@ impl Servo {
                     let request = AllowOrDenyRequest::new(
                         response_sender,
                         AllowOrDeny::Allow,
-                        self.servo_errors.sender(),
+                        self.0.servo_errors.sender(),
                     );
                     webview.delegate().request_unload(webview, request);
                 }
             },
             EmbedderMsg::FinishJavaScriptEvaluation(evaluation_id, result) => {
-                self.javascript_evaluator
+                self.0
+                    .javascript_evaluator
                     .borrow_mut()
                     .finish_evaluation(evaluation_id, result);
             },
             EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
-                self.compositor.borrow_mut().notify_input_event_handled(
+                self.0.compositor.borrow_mut().notify_input_event_handled(
                     webview_id,
                     input_event_id,
                     result,
@@ -632,7 +642,7 @@ impl Servo {
                     let web_resource_load = WebResourceLoad::new(
                         web_resource_request,
                         response_sender,
-                        self.servo_errors.sender(),
+                        self.0.servo_errors.sender(),
                     );
                     webview
                         .delegate()
@@ -641,7 +651,7 @@ impl Servo {
                     let web_resource_load = WebResourceLoad::new(
                         web_resource_request,
                         response_sender,
-                        self.servo_errors.sender(),
+                        self.0.servo_errors.sender(),
                     );
                     self.delegate().load_web_resource(web_resource_load);
                 }
@@ -685,7 +695,7 @@ impl Servo {
                         url.into_url(),
                         for_proxy,
                         response_sender,
-                        self.servo_errors.sender(),
+                        self.0.servo_errors.sender(),
                     );
                     webview
                         .delegate()
@@ -699,7 +709,7 @@ impl Servo {
                         allow_deny_request: AllowOrDenyRequest::new(
                             response_sender,
                             AllowOrDeny::Deny,
-                            self.servo_errors.sender(),
+                            self.0.servo_errors.sender(),
                         ),
                     };
                     webview
@@ -729,7 +739,7 @@ impl Servo {
                     AllowOrDenyRequest::new(
                         response_sender,
                         AllowOrDeny::Deny,
-                        self.servo_errors.sender(),
+                        self.0.servo_errors.sender(),
                     ),
                 );
             },
@@ -821,11 +831,12 @@ impl Servo {
     }
 
     pub fn constellation_sender(&self) -> Sender<EmbedderToConstellationMessage> {
-        self.constellation_proxy.sender()
+        self.0.constellation_proxy.sender()
     }
 
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
-        self.constellation_proxy
+        self.0
+            .constellation_proxy
             .send(EmbedderToConstellationMessage::WebDriverCommand(command));
     }
 
@@ -836,8 +847,30 @@ impl Servo {
     }
 
     pub fn clear_cookies(&self) {
-        self.public_resource_threads.clear_cookies();
-        self.private_resource_threads.clear_cookies();
+        self.0.public_resource_threads.clear_cookies();
+        self.0.private_resource_threads.clear_cookies();
+    }
+
+    pub(crate) fn compositor<'a>(&'a self) -> Ref<'a, IOCompositor> {
+        self.0.compositor.borrow()
+    }
+
+    pub(crate) fn compositor_mut<'a>(&'a self) -> RefMut<'a, IOCompositor> {
+        self.0.compositor.borrow_mut()
+    }
+
+    pub(crate) fn webviews_mut<'a>(
+        &'a self,
+    ) -> RefMut<'a, FxHashMap<WebViewId, Weak<RefCell<WebViewInner>>>> {
+        self.0.webviews.borrow_mut()
+    }
+
+    pub(crate) fn constellation_proxy(&self) -> &ConstellationProxy {
+        &self.0.constellation_proxy
+    }
+
+    pub(crate) fn javascript_evaluator_mut<'a>(&'a self) -> RefMut<'a, JavaScriptEvaluator> {
+        self.0.javascript_evaluator.borrow_mut()
     }
 }
 
