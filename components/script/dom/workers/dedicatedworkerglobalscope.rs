@@ -6,14 +6,13 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
+use base::generic_channel::{GenericReceiver, RoutedReceiver};
 use base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
-use ipc_channel::ipc::IpcReceiver;
-use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
@@ -252,7 +251,7 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -298,7 +297,7 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -344,7 +343,7 @@ impl DedicatedWorkerGlobalScope {
         mut init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
         worker_url: ServoUrl,
-        from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
+        from_devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -428,11 +427,7 @@ impl DedicatedWorkerGlobalScope {
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
 
-                let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
-                ROUTER.route_ipc_receiver_to_crossbeam_sender(
-                    from_devtools_receiver,
-                    devtools_mpsc_chan,
-                );
+                let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
 
                 // Step 8 "Set up a worker environment settings object [...]"
                 //

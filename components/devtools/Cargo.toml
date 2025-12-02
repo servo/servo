@@ -20,7 +20,6 @@ devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
-ipc-channel = { workspace = true }
 log = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }

@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use base::generic_channel::{self, GenericSender};
 use base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReply::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
@@ -19,7 +20,6 @@ use devtools_traits::{
     CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleLog, ConsoleMessage,
     DevtoolScriptControlMsg, PageError,
 };
-use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
 use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
@@ -141,7 +141,7 @@ impl ConsoleActor {
     fn script_chan<'a>(
         &self,
         registry: &'a ActorRegistry,
-    ) -> &'a IpcSender<DevtoolScriptControlMsg> {
+    ) -> &'a GenericSender<DevtoolScriptControlMsg> {
         match &self.root {
             Root::BrowsingContext(bc) => &registry.find::<BrowsingContextActor>(bc).script_chan,
             Root::DedicatedWorker(worker) => &registry.find::<WorkerActor>(worker).script_chan,
@@ -166,7 +166,7 @@ impl ConsoleActor {
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
-        let (chan, port) = ipc::channel().unwrap();
+        let (chan, port) = generic_channel::channel().unwrap();
         // FIXME: Redesign messages so we don't have to fake pipeline ids when
         //        communicating with workers.
         let pipeline = match self.current_unique_id(registry) {

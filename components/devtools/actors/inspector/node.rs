@@ -8,9 +8,9 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ShadowRootMode};
-use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -101,7 +101,7 @@ pub struct NodeActorMsg {
 
 pub struct NodeActor {
     name: String,
-    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub walker: String,
     pub style_rules: RefCell<HashMap<(String, usize), String>>,
@@ -156,7 +156,7 @@ impl Actor for NodeActor {
             },
 
             "getUniqueSelector" => {
-                let (tx, rx) = ipc::channel().unwrap();
+                let (tx, rx) = generic_channel::channel().unwrap();
                 self.script_chan
                     .send(DevtoolScriptControlMsg::GetDocumentElement(
                         self.pipeline,
@@ -187,7 +187,7 @@ impl Actor for NodeActor {
                     .as_str()
                     .ok_or(ActorError::BadParameterType)?;
 
-                let (tx, rx) = ipc::channel().unwrap();
+                let (tx, rx) = generic_channel::channel().unwrap();
                 self.script_chan
                     .send(DevtoolScriptControlMsg::GetXPath(
                         self.pipeline,
@@ -214,7 +214,7 @@ pub trait NodeInfoToProtocol {
     fn encode(
         self,
         actors: &ActorRegistry,
-        script_chan: IpcSender<DevtoolScriptControlMsg>,
+        script_chan: GenericSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
         walker: String,
     ) -> NodeActorMsg;
@@ -224,7 +224,7 @@ impl NodeInfoToProtocol for NodeInfo {
     fn encode(
         self,
         actors: &ActorRegistry,
-        script_chan: IpcSender<DevtoolScriptControlMsg>,
+        script_chan: GenericSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
         walker: String,
     ) -> NodeActorMsg {
@@ -263,7 +263,7 @@ impl NodeInfoToProtocol for NodeInfo {
                 return None;
             }
 
-            let (tx, rx) = ipc::channel().ok()?;
+            let (tx, rx) = generic_channel::channel()?;
             script_chan
                 .send(DevtoolScriptControlMsg::GetChildren(
                     pipeline,

@@ -9,10 +9,10 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::iter::once;
 
+use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg};
-use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -91,7 +91,7 @@ pub struct PageStyleMsg {
 
 pub struct PageStyleActor {
     pub name: String,
-    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
 }
 
@@ -160,7 +160,7 @@ impl PageStyleActor {
 
             // Get the css selectors that match this node present in the currently active stylesheets.
             let selectors = (|| {
-                let (selectors_sender, selector_receiver) = ipc::channel().ok()?;
+                let (selectors_sender, selector_receiver) = generic_channel::channel()?;
                 walker
                     .script_chan
                     .send(GetSelectors(
@@ -268,8 +268,10 @@ impl PageStyleActor {
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let (computed_node_sender, computed_node_receiver) =
-            ipc::channel().map_err(|_| ActorError::Internal)?;
+        let Some((computed_node_sender, computed_node_receiver)) = generic_channel::channel()
+        else {
+            return Err(ActorError::Internal);
+        };
         self.script_chan
             .send(GetLayout(
                 self.pipeline,
