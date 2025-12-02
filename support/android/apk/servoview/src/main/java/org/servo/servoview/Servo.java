@@ -19,8 +19,6 @@ public class Servo {
     private static final String LOGTAG = "Servo";
     private JNIServo mJNI = new JNIServo();
     private RunCallback mRunCallback;
-    private boolean mShuttingDown;
-    private boolean mShutdownComplete;
     private boolean mSuspended;
     private Callbacks mServoCallbacks;
 
@@ -41,35 +39,6 @@ public class Servo {
 
     public void resetGfxCallbacks(GfxCallbacks gfxcb) {
       mServoCallbacks.resetGfxCallbacks(gfxcb);
-    }
-
-    public void shutdown() {
-        mShuttingDown = true;
-        FutureTask<Void> task = new FutureTask<>(new Callable<Void>() {
-            public Void call() throws Exception {
-                mJNI.requestShutdown();
-                // Wait until Servo gets back to us to finalize shutdown.
-                while (!mShutdownComplete) {
-                    try {
-                        Thread.sleep(10);
-                    } catch (Exception e) {
-                        mShutdownComplete = true;
-                        e.printStackTrace();
-                        return null;
-                    }
-                    mJNI.performUpdates();
-                }
-                mJNI.deinit();
-                return null;
-            }
-        });
-        mRunCallback.inGLThread(task);
-        // Block until task is complete.
-        try {
-            task.get();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public String version() {
@@ -227,7 +196,7 @@ public class Servo {
         }
 
         public void wakeup() {
-            if (!mSuspended && !mShuttingDown) {
+            if (!mSuspended) {
                 mRunCallback.inGLThread(() -> mJNI.performUpdates());
             }
         }
@@ -244,10 +213,6 @@ public class Servo {
 
         public void onAlert(String message) {
             mRunCallback.inUIThread(() -> mClient.onAlert(message));
-        }
-
-        public void onShutdownComplete() {
-            mShutdownComplete = true;
         }
 
         public void onImeShow() {

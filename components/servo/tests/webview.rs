@@ -298,7 +298,7 @@ fn test_cursor_change() {
 fn test_negative_resize_to_request() {
     let servo_test = ServoTest::new();
     struct WebViewResizeTestDelegate {
-        servo: Rc<Servo>,
+        servo: Servo,
         rendering_context: Rc<dyn RenderingContext>,
         popup: RefCell<Option<WebView>>,
         resize_request: Cell<Option<DeviceIntSize>>,

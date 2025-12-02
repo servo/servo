@@ -189,12 +189,6 @@ pub(crate) struct RunningAppState {
     windows: RefCell<HashMap<ServoShellWindowId, Rc<ServoShellWindow>>>,
 }
 
-impl Drop for RunningAppState {
-    fn drop(&mut self) {
-        self.servo.deinit();
-    }
-}
-
 impl RunningAppState {
     pub(crate) fn new(
         servo: Servo,
@@ -325,9 +319,7 @@ impl RunningAppState {
             self.handle_gamepad_events();
         }
 
-        if !self.servo.spin_event_loop() {
-            return false;
-        }
+        self.servo.spin_event_loop();
 
         for window in self.windows.borrow().values() {
             window.update_and_request_repaint_if_necessary(self);
@@ -345,11 +337,11 @@ impl RunningAppState {
                 .borrow_mut()
                 .retain(|_, window| !self.exit_scheduled.get() && !window.should_close());
             if self.windows.borrow().is_empty() {
-                self.servo.start_shutting_down();
+                self.schedule_exit()
             }
         }
 
-        true
+        !self.exit_scheduled.get()
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
@@ -797,15 +789,15 @@ impl WebViewDelegate for RunningAppState {
 
 struct ServoShellServoDelegate;
 impl ServoDelegate for ServoShellServoDelegate {
-    fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
+    fn notify_devtools_server_started(&self, port: u16, _token: String) {
         info!("Devtools Server running on port {port}");
     }
 
-    fn request_devtools_connection(&self, _servo: &Servo, request: AllowOrDenyRequest) {
+    fn request_devtools_connection(&self, request: AllowOrDenyRequest) {
         request.allow();
     }
 
-    fn notify_error(&self, _servo: &Servo, error: ServoError) {
+    fn notify_error(&self, error: ServoError) {
         error!("Saw Servo error: {error:?}!");
     }
 }

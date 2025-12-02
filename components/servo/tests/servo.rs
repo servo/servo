@@ -16,7 +16,7 @@ use common::ServoTest;
 
 #[test]
 fn test_simple_start_and_stop_servo() {
-    let servo_test = ServoTest::new();
-    servo_test.servo().start_shutting_down();
-    while servo_test.servo().spin_event_loop() {}
+    // The drop implementation of `Servo` will trigger the shutdown processs and also spin the
+    // event loop until shutdown is complete.
+    ServoTest::new();
 }

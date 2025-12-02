@@ -17,18 +17,8 @@ use servo::{
 };
 
 pub struct ServoTest {
-    pub servo: Rc<Servo>,
+    pub servo: Servo,
     pub rendering_context: Rc<dyn RenderingContext>,
-}
-
-impl Drop for ServoTest {
-    fn drop(&mut self) {
-        self.servo.start_shutting_down();
-        while self.servo.spin_event_loop() {
-            std::thread::sleep(Duration::from_millis(1));
-        }
-        self.servo.deinit();
-    }
 }
 
 impl ServoTest {
@@ -65,9 +55,8 @@ impl ServoTest {
         let builder = ServoBuilder::default()
             .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)));
         let builder = customize(builder);
-        let servo = Rc::new(builder.build());
         Self {
-            servo,
+            servo: builder.build(),
             rendering_context,
         }
     }
@@ -79,16 +68,10 @@ impl ServoTest {
     /// Spin the Servo event loop until one of:
     ///  - The given callback returns `Ok(false)`.
     ///  - The given callback returns an `Error`, in which case the `Error` will be returned.
-    ///  - Servo has indicated that shut down is complete and we cannot spin the event loop
-    ///    any longer.
-    // The dead code exception here is because not all test suites that use `common` also
-    // use `spin()`.
     pub fn spin(&self, callback: impl Fn() -> bool + 'static) {
         while callback() {
+            self.servo.spin_event_loop();
             std::thread::sleep(Duration::from_millis(1));
-            if !self.servo.spin_event_loop() {
-                return;
-            }
         }
     }
 }

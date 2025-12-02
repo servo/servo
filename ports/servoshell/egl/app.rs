@@ -328,12 +328,6 @@ impl App {
         self.state.window_for_webview_id(id).activate_webview(id);
     }
 
-    /// Request shutdown. Will call on_shutdown_complete.
-    pub fn request_shutdown(&self) {
-        self.state.schedule_exit();
-        self.spin_event_loop();
-    }
-
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
