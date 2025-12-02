@@ -46,36 +46,9 @@ env:
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
 
 jobs:
-  # Runs the underlying job (“workload”) on a self-hosted runner if available,
-  # with the help of a `runner-select` job and a `runner-timeout` job.
-  runner-select:
-    runs-on: ubuntu-24.04
-    outputs:
-      unique-id: ${{ steps.select.outputs.unique-id }}
-      selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
-      runner-type-label: ${{ steps.select.outputs.runner-type-label }}
-      is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
-    steps:
-      - name: Runner select
-        id: select
-        uses: servo/ci-runners/actions/runner-select@44317e3cd86c5ff2ef0b08878b90da246bc237da
-        with:
-          GITHUB_TOKEN: ${{ github.token }}
-          github-hosted-runner-label: ubuntu-22.04
-          self-hosted-image-name: servo-ubuntu2204-bench
-          # You can disable self-hosted runners globally by creating a repository variable named
-          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
-          # <https://github.com/servo/servo/settings/variables/actions>
-          NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
-          # Any other boolean conditions that disable self-hosted runners go here.
-          # No need to use self-hosted runners if we’re only measuring binary size.
-          force-github-hosted-runner: ${{ !(inputs.speedometer || inputs.dromaeo) || inputs.force-github-hosted-runner }}
-
   bencher:
-    needs:
-      - runner-select
-    name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
-    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    name: Bencher (${{ inputs.target }})
+    runs-on: self-hosted-image:servo-ubuntu2204-bench  # GitHub-hosted: ubuntu-22.04
     steps:
       - uses: servo/ci-runners/actions/checkout@44317e3cd86c5ff2ef0b08878b90da246bc237da
       - uses: actions/download-artifact@v4
@@ -161,7 +134,7 @@ jobs:
         continue-on-error: true
         run: |
           ./etc/ci/bencher.py merge ${{ env.SERVO_FILE_SIZE_RESULT }} ${{ env.SERVO_STRIPPED_FILE_SIZE_RESULT }} ${{ env.SERVO_SPEEDOMETER_RESULT }} ${{ env.SERVO_DROMAEO_RESULT }} --bmf-output b.json
-          testbed='${{ needs.runner-select.outputs.runner-type-label }}'
+          testbed='${{ runner.environment == "self-hosted" && "servo-ubuntu2204-bench" || "ubuntu-22.04" }}'
           bencher run --adapter json --file b.json \
             --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed "$testbed" \
             $RUN_BENCHER_OPTIONS
