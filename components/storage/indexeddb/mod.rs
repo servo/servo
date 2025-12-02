@@ -11,9 +11,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
+use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use base::threadpool::ThreadPool;
-use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
+use profile_traits::generic_callback::GenericCallback;
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -29,9 +30,9 @@ pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
 }
 
-impl IndexedDBThreadFactory for IpcSender<IndexedDBThreadMsg> {
-    fn new(config_dir: Option<PathBuf>) -> IpcSender<IndexedDBThreadMsg> {
-        let (chan, port) = ipc::channel().unwrap();
+impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
+    fn new(config_dir: Option<PathBuf>) -> GenericSender<IndexedDBThreadMsg> {
+        let (chan, port) = generic_channel::channel().unwrap();
 
         let mut idb_base_dir = PathBuf::new();
         if let Some(p) = config_dir {
@@ -116,7 +117,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     // Executes all requests for a transaction (without committing)
-    fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<BackendResult<()>>>) {
+    fn start_transaction(&mut self, txn: u64, sender: Option<GenericSender<BackendResult<()>>>) {
         // FIXME:(arihant2math) find optimizations in this function
         //   rather than on the engine level code (less repetition)
         if let Some(txn) = self.transactions.remove(&txn) {
@@ -175,7 +176,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         result.map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_database(self, sender: IpcSender<BackendResult<()>>) {
+    fn delete_database(self, sender: GenericCallback<BackendResult<()>>) {
         let result = self.engine.delete_database();
         let _ = sender.send(
             result
@@ -196,14 +197,14 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 }
 
 struct IndexedDBManager {
-    port: IpcReceiver<IndexedDBThreadMsg>,
+    port: GenericReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
     thread_pool: Arc<ThreadPool>,
 }
 
 impl IndexedDBManager {
-    fn new(port: IpcReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
+    fn new(port: GenericReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
         debug!("New indexedDBManager");
 
         // Uses an estimate of the system cpus to process IndexedDB transactions
@@ -230,14 +231,12 @@ impl IndexedDBManager {
             // the ipc sender has been dropped, so we break the look
             let message = match self.port.recv() {
                 Ok(msg) => msg,
-                Err(e) => match e {
-                    IpcError::Disconnected => {
-                        break;
-                    },
-                    other => {
-                        warn!("Error in IndexedDB thread: {:?}", other);
-                        continue;
-                    },
+                Err(ReceiveError::Disconnected) => {
+                    break;
+                },
+                Err(e) => {
+                    warn!("Error in IndexedDB thread: {e:?}");
+                    continue;
                 },
             };
             match message {
@@ -329,7 +328,7 @@ impl IndexedDBManager {
                     },
                 }
             },
-            SyncOperation::DeleteDatabase(sender, origin, db_name) => {
+            SyncOperation::DeleteDatabase(callback, origin, db_name) => {
                 // https://w3c.github.io/IndexedDB/#delete-a-database
                 // Step 4. Let db be the database named name in storageKey,
                 // if one exists. Otherwise, return 0 (zero).
@@ -338,9 +337,9 @@ impl IndexedDBManager {
                     name: db_name,
                 };
                 if let Some(db) = self.databases.remove(&idb_description) {
-                    db.delete_database(sender);
+                    db.delete_database(callback);
                 } else {
-                    let _ = sender.send(Ok(()));
+                    let _ = callback.send(Ok(()));
                 }
             },
             SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {

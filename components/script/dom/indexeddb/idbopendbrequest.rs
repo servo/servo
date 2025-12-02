@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::IpcSend;
+use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
-use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
-use profile_traits::ipc;
+use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
 use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
@@ -231,17 +230,9 @@ impl IDBOpenDBRequest {
     pub fn open_database(&self, name: DOMString, version: Option<u64>) -> Result<(), ()> {
         let global = self.global();
 
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let response_listener = OpenRequestListener {
             open_request: Trusted::new(self),
         };
-
-        let open_operation = SyncOperation::OpenDatabase(
-            sender,
-            global.origin().immutable().clone(),
-            name.to_string(),
-            version,
-        );
 
         let task_source = global
             .task_manager()
@@ -250,14 +241,13 @@ impl IDBOpenDBRequest {
 
         let trusted_request = Trusted::new(self);
         let name = name.to_string();
-        ROUTER.add_typed_route(
-            receiver.to_ipc_receiver(),
-            Box::new(move |message| {
-                let trusted_request = trusted_request.clone();
-                let response_listener = response_listener.clone();
-                let name = name.clone();
+        let name_copy = name.clone();
+        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+            let trusted_request = trusted_request.clone();
+            let response_listener = response_listener.clone();
+            let name = name_copy.clone();
 
-                task_source.queue(
+            task_source.queue(
                     task!(set_request_result_to_database: move || {
                         let (result, did_upgrade) =
                             response_listener.handle_open_db(name, version, message.unwrap(), CanGc::note());
@@ -287,7 +277,13 @@ impl IDBOpenDBRequest {
                         }
                     }),
                 );
-            }),
+        }).expect("Could not set callback");
+
+        let open_operation = SyncOperation::OpenDatabase(
+            callback,
+            global.origin().immutable().clone(),
+            name,
+            version,
         );
 
         if global
@@ -303,7 +299,6 @@ impl IDBOpenDBRequest {
     pub fn delete_database(&self, name: String) -> Result<(), ()> {
         let global = self.global();
 
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let task_source = global
             .task_manager()
             .database_access_task_source()
@@ -311,19 +306,16 @@ impl IDBOpenDBRequest {
         let response_listener = OpenRequestListener {
             open_request: Trusted::new(self),
         };
+        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+            let response_listener = response_listener.clone();
+            task_source.queue(task!(request_callback: move || {
+                response_listener.handle_delete_db(message.unwrap(), CanGc::note());
+            }))
+        })
+        .expect("Could not create delete database callback");
 
         let delete_operation =
-            SyncOperation::DeleteDatabase(sender, global.origin().immutable().clone(), name);
-
-        ROUTER.add_typed_route(
-            receiver.to_ipc_receiver(),
-            Box::new(move |message| {
-                let response_listener = response_listener.clone();
-                task_source.queue(task!(request_callback: move || {
-                    response_listener.handle_delete_db(message.unwrap(), CanGc::note());
-                }));
-            }),
-        );
+            SyncOperation::DeleteDatabase(callback, global.origin().immutable().clone(), name);
 
         if global
             .storage_threads()

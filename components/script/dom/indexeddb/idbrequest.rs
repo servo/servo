@@ -4,13 +4,12 @@
 
 use std::cell::Cell;
 
-use base::IpcSend;
+use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
-use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
-use profile_traits::ipc::IpcReceiver;
+use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
@@ -350,16 +349,16 @@ impl IDBRequest {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
-    pub fn execute_async<T>(
+    pub fn execute_async<T, F>(
         source: &IDBObjectStore,
-        operation: AsyncOperation,
-        receiver: IpcReceiver<BackendResult<T>>,
+        operation_fn: F,
         request: Option<DomRoot<IDBRequest>>,
         iteration_param: Option<IterationParam>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>>
     where
         T: Into<IdbResult> + for<'a> Deserialize<'a> + Serialize + Send + Sync + 'static,
+        F: FnOnce(GenericCallback<BackendResult<T>>) -> AsyncOperation,
     {
         // Step 1: Let transaction be the transaction associated with source.
         let transaction = source.transaction();
@@ -389,6 +388,31 @@ impl IDBRequest {
             IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
         };
 
+        let response_listener = RequestListener {
+            request: Trusted::new(&request),
+            iteration_param: iteration_param.clone(),
+        };
+
+        let task_source = global
+            .task_manager()
+            .database_access_task_source()
+            .to_sendable();
+
+        let closure = move |message: Result<BackendResult<T>, ipc_channel::Error>| {
+            let response_listener = response_listener.clone();
+            task_source.queue(task!(request_callback: move || {
+                response_listener.handle_async_request_finished(
+                    message.expect("Could not unwrap message").inspect_err(|e| {
+                        if let BackendError::DbErr(e) = e {
+                            error!("Error in IndexedDB operation: {}", e);
+                        }
+                    }).map(|t| t.into()), CanGc::note());
+            }));
+        };
+        let callback = GenericCallback::new(global.time_profiler_chan().clone(), closure)
+            .expect("Could not create callback");
+        let operation = operation_fn(callback);
+
         if matches!(
             operation,
             AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate { .. })
@@ -403,31 +427,6 @@ impl IDBRequest {
                 "iteration_param should not be provided for operation other than Iterate"
             );
         }
-
-        let response_listener = RequestListener {
-            request: Trusted::new(&request),
-            iteration_param,
-        };
-
-        let task_source = global
-            .task_manager()
-            .database_access_task_source()
-            .to_sendable();
-
-        ROUTER.add_typed_route(
-            receiver.to_ipc_receiver(),
-            Box::new(move |message| {
-                let response_listener = response_listener.clone();
-                task_source.queue(task!(request_callback: move || {
-                    response_listener.handle_async_request_finished(
-                        message.expect("Could not unwrap message").inspect_err(|e| {
-                            if let BackendError::DbErr(e) = e {
-                                error!("Error in IndexedDB operation: {}", e);
-                            }
-                        }).map(|t| t.into()), CanGc::note());
-                }));
-            }),
-        );
 
         transaction
             .global()

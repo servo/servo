@@ -5,7 +5,6 @@
 use std::path::PathBuf;
 
 use base::generic_channel::GenericSender;
-use ipc_channel::ipc::IpcSender;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
@@ -21,7 +20,7 @@ pub fn new_storage_threads(
 ) -> (StorageThreads, StorageThreads) {
     let client_storage: GenericSender<ClientStorageThreadMessage> =
         ClientStorageThreadFactory::new(config_dir.clone());
-    let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
+    let idb: GenericSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
     let web_storage: GenericSender<WebStorageThreadMsg> =
         WebStorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
