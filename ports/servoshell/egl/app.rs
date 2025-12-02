@@ -172,24 +172,11 @@ impl PlatformWindow for EmbeddedPlatformWindow {
                 self.host.on_ime_show(input_method_control);
             },
             EmbedderControl::SimpleDialog(simple_dialog) => match simple_dialog {
-                SimpleDialog::Alert {
-                    message,
-                    response_sender,
-                    ..
-                } => {
-                    self.host.show_alert(message);
-                    let _ = response_sender.send(AlertResponse::Ok);
+                SimpleDialog::Alert(alert_dialog) => {
+                    self.host.show_alert(alert_dialog.message().into());
+                    alert_dialog.confirm();
                 },
-                SimpleDialog::Confirm {
-                    response_sender, ..
-                } => {
-                    let _ = response_sender.send(Default::default());
-                },
-                SimpleDialog::Prompt {
-                    response_sender, ..
-                } => {
-                    let _ = response_sender.send(Default::default());
-                },
+                _ => {}, // The drop implementation will send the default response.
             },
             _ => {},
         }
