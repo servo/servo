@@ -23,7 +23,6 @@ use webdriver::actions::{
     PointerMoveAction, PointerOrigin, PointerType, PointerUpAction, WheelAction, WheelActionItem,
     WheelScrollAction,
 };
-use webdriver::command::ActionsParameters;
 use webdriver::error::{ErrorStatus, WebDriverError};
 
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_ipc_response};
@@ -788,16 +787,6 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
     pub(crate) fn extract_an_action_sequence(
-        &mut self,
-        params: ActionsParameters,
-    ) -> ActionsByTick {
-        // Step 1. Let actions be the result of getting a property named "actions" from parameters.
-        // Step 2. (ignored because params is already validated earlier). If actions is not a list,
-        // return an error with status InvalidArgument.
-        self.actions_by_tick_from_sequence(params.actions)
-    }
-
-    pub(crate) fn actions_by_tick_from_sequence(
         &mut self,
         actions: Vec<ActionSequence>,
     ) -> ActionsByTick {
