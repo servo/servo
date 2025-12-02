@@ -23,7 +23,6 @@ use webdriver::actions::{
     PointerMoveAction, PointerOrigin, PointerType, PointerUpAction, WheelAction, WheelActionItem,
     WheelScrollAction,
 };
-use webdriver::command::ActionsParameters;
 use webdriver::error::{ErrorStatus, WebDriverError};
 
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_ipc_response};
@@ -138,20 +137,10 @@ fn compute_tick_duration(tick_actions: &TickActions) -> u64 {
 
 impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions>
-    pub(crate) fn dispatch_actions(
-        &mut self,
-        actions_by_tick: ActionsByTick,
-        browsing_context: BrowsingContextId,
-    ) -> Result<(), ErrorStatus> {
-        // Step 1. Wait for an action queue token with input state.
-        // Step 2. Let actions result be the result of dispatch actions inner.
-        // Step 3. Dequeue input state's actions queue.
-        // Step 4. Return actions result.
-        self.dispatch_actions_inner(actions_by_tick, browsing_context)
-    }
-
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-actions-inner>
-    fn dispatch_actions_inner(
+    /// For Servo, "dispatch actions" is identical to "dispatch actions inner",
+    /// as they are only different for a session that can run commands in parallel.
+    pub(crate) fn dispatch_actions(
         &mut self,
         actions_by_tick: ActionsByTick,
         browsing_context: BrowsingContextId,
@@ -228,7 +217,10 @@ impl Handler {
             // Step 6. Let subtype be action object's subtype.
             // Steps 7, 8. Try to run specific algorithm based on the action type.
             match action {
-                ActionItem::Null(_) | ActionItem::Key(KeyActionItem::General(_)) => {
+                ActionItem::Null(_) |
+                ActionItem::Key(KeyActionItem::General(_)) |
+                ActionItem::Pointer(PointerActionItem::General(_)) |
+                ActionItem::Wheel(WheelActionItem::General(_)) => {
                     self.dispatch_pause_action(input_id);
                 },
                 ActionItem::Key(KeyActionItem::Key(KeyAction::Down(keydown_action))) => {
@@ -245,9 +237,6 @@ impl Handler {
                 },
                 ActionItem::Key(KeyActionItem::Key(KeyAction::Up(keyup_action))) => {
                     self.dispatch_keyup_action(input_id, keyup_action);
-                },
-                ActionItem::Pointer(PointerActionItem::General(_)) => {
-                    self.dispatch_pause_action(input_id);
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Down(
                     pointer_down_action,
@@ -276,13 +265,12 @@ impl Handler {
                 ))) => {
                     self.dispatch_pointerup_action(input_id, pointer_up_action);
                 },
-                ActionItem::Wheel(WheelActionItem::General(_)) => {
-                    self.dispatch_pause_action(input_id);
-                },
                 ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(scroll_action))) => {
                     self.dispatch_scroll_action(input_id, scroll_action, tick_duration)?;
                 },
-                _ => {},
+                ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Cancel)) => {
+                    info!("dispatch_tick_actions: PointerCancel action is not implemented yet");
+                },
             }
         }
 
@@ -800,34 +788,25 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence>
     pub(crate) fn extract_an_action_sequence(
         &mut self,
-        params: ActionsParameters,
-    ) -> ActionsByTick {
-        // Step 1. Let actions be the result of getting a property named "actions" from parameters.
-        // Step 2. (ignored because params is already validated earlier). If actions is not a list,
-        // return an error with status InvalidArgument.
-        self.actions_by_tick_from_sequence(params.actions)
-    }
-
-    pub(crate) fn actions_by_tick_from_sequence(
-        &mut self,
         actions: Vec<ActionSequence>,
     ) -> ActionsByTick {
-        // Step 3. Let actions by tick be an empty list.
+        // Step 3. Let "actions by tick" be an empty list.
         let mut actions_by_tick: ActionsByTick = Vec::new();
 
-        // Step 4. For each value action sequence corresponding to an indexed property in actions
+        // Step 4. For each value "action sequence" corresponding to an indexed property in actions
         for action_sequence in actions {
-            // Store id before moving action_sequence
             let id = action_sequence.id.clone();
-            // Step 4.1. Let source actions be the result of trying to process an input source action sequence
+            // Step 4.1. Let "source actions" be the result of trying to process an input source action sequence
+            // given "action sequence".
             let source_actions = self.process_an_input_source_action_sequence(action_sequence);
 
             // Step 4.2.2. Ensure we have enough ticks to hold all actions
-            while actions_by_tick.len() < source_actions.len() {
-                actions_by_tick.push(Vec::new());
+            if actions_by_tick.len() < source_actions.len() {
+                actions_by_tick.resize_with(source_actions.len(), Vec::new);
             }
 
-            // Step 4.2.3. Append action to the List at index i in actions by tick.
+            // Step 4.2.3. Append "action" to the List at index i in "actions by tick",
+            // for each "action" in "source actions".
             for (tick_index, action_item) in source_actions.into_iter().enumerate() {
                 actions_by_tick[tick_index].push((id.clone(), action_item));
             }
@@ -842,7 +821,7 @@ impl Handler {
         action_sequence: ActionSequence,
     ) -> Vec<ActionItem> {
         // Step 2. Let id be the value of the id property of action sequence.
-        let id = action_sequence.id.clone();
+        let id = action_sequence.id;
         match action_sequence.actions {
             ActionsType::Null {
                 actions: null_actions,
