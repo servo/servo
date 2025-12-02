@@ -36,7 +36,7 @@ struct OpenRequestListener {
 }
 
 impl OpenRequestListener {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-open>
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     /// The steps that continue on the script-thread.
     fn handle_open_db(&self, name: String, response: OpenDatabaseResult, can_gc: CanGc) {
         let request = self.open_request.root();
@@ -52,8 +52,6 @@ impl OpenRequestListener {
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                // If the steps above resulted in an upgrade transaction being run,
-                // then firing the "success" event must be done after the upgrade transaction completes.
                 let connection = IDBDatabase::new(
                     &global,
                     DOMString::from_string(name.clone()),
@@ -242,7 +240,7 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_error(error, can_gc);
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#open-a-database
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     pub fn open_database(&self, name: DOMString, version: Option<u64>) -> Result<(), ()> {
         let global = self.global();
 

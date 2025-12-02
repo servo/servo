@@ -288,7 +288,7 @@ impl IndexedDBManager {
         self.databases.get_mut(&idb_description)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#open-a-database>
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     fn open_database(
         &mut self,
         sender: GenericCallback<OpenDatabaseResult>,
@@ -296,10 +296,11 @@ impl IndexedDBManager {
         db_name: String,
         version: Option<u64>,
     ) {
-        // Step 1: Let queue be the connection queue for origin and name.
+        // Step 1: Let queue be the connection queue for storageKey and name.
         // Step 2: Add request to queue.
         // Step 3: Wait until all previous requests in queue have been processed.
         // TODO: implement #request-connection-queue
+        // TODO: use a storage key.
 
         let idb_description = IndexedDBDescription {
             origin,

@@ -34,7 +34,7 @@ impl IDBFactory {
 }
 
 impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-open>
+    /// <https://w3c.github.io/IndexedDB/#dom-idbfactory-open>
     fn Open(&self, name: DOMString, version: Option<u64>) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: If version is 0 (zero), throw a TypeError.
         if version == Some(0) {
@@ -45,11 +45,15 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 2: Let origin be the origin of the global scope used to
         // access this IDBFactory.
+        // TODO: update to 3.0 spec.
+        // Let environment be this’s relevant settings object.
         let global = self.global();
         let origin = global.origin();
 
         // Step 3: if origin is an opaque origin,
         // throw a "SecurityError" DOMException and abort these steps.
+        // TODO: update to 3.0 spec.
+        // Let storageKey be the result of running obtain a storage key given environment.
         if let ImmutableOrigin::Opaque(_) = origin.immutable() {
             return Err(Error::Security(None));
         }
