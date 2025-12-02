@@ -736,7 +736,6 @@ dependencies = [
  "backtrace",
  "base",
  "crossbeam-channel",
- "ipc-channel",
  "libc",
  "log",
  "mach2",
@@ -751,7 +750,6 @@ name = "background_hang_monitor_api"
 version = "0.0.1"
 dependencies = [
  "base",
- "ipc-channel",
  "serde",
 ]
 
@@ -4980,7 +4978,6 @@ dependencies = [
  "html5ever",
  "icu_locid",
  "icu_segmenter",
- "ipc-channel",
  "itertools 0.14.0",
  "kurbo 0.12.0",
  "layout_api",
@@ -5035,7 +5032,6 @@ dependencies = [
  "fonts",
  "fonts_traits",
  "html5ever",
- "ipc-channel",
  "libc",
  "malloc_size_of_derive",
  "net_traits",
