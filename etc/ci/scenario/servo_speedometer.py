@@ -17,8 +17,7 @@ from typing import Any
 import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-
-from python.servo.util import HarmonyDevicePerfMode
+from hdc_py.hdc import HarmonyDevicePerfMode
 
 
 def speedometer_to_bmf(speedometer: dict[str, Any], bmf_output: str, profile: str | None = None) -> None:
