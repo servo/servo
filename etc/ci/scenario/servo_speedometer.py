@@ -18,6 +18,8 @@ import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
+from python.servo.util import HarmonyDevicePerfMode
+
 
 def speedometer_to_bmf(speedometer: dict[str, Any], bmf_output: str, profile: str | None = None) -> None:
     output = dict()
@@ -118,6 +120,7 @@ def run():
 
 
 if __name__ == "__main__":
-    result = run()
-    if not result:
-        sys.exit(1)
+    with HarmonyDevicePerfMode():
+        result = run()
+        if not result:
+            sys.exit(1)
