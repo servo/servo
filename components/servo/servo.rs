@@ -9,7 +9,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 
 use background_hang_monitor::HangMonitorRegister;
-use base::generic_channel::{GenericCallback, RoutedReceiver};
+use base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
 pub use base::id::WebViewId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
@@ -933,7 +933,7 @@ fn create_constellation(
     let opts = opts::get();
 
     #[cfg(feature = "bluetooth")]
-    let bluetooth_thread: IpcSender<BluetoothRequest> =
+    let bluetooth_thread: GenericSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let privileged_urls = protocols.privileged_urls();

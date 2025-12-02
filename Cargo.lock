@@ -944,7 +944,6 @@ dependencies = [
  "blurmock",
  "blurz",
  "embedder_traits",
- "ipc-channel",
  "log",
  "rand 0.9.2",
  "servo_config",

@@ -17,7 +17,6 @@ bitflags = { workspace = true }
 bluetooth_traits = { workspace = true }
 blurmock = { version = "0.1.2", optional = true }
 embedder_traits = { workspace = true }
-ipc-channel = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
 servo_config = { path = "../config" }

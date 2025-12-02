@@ -342,7 +342,7 @@ pub(crate) struct ScriptThreadSenders {
     /// A handle to the bluetooth thread.
     #[no_trace]
     #[cfg(feature = "bluetooth")]
-    pub(crate) bluetooth_sender: IpcSender<BluetoothRequest>,
+    pub(crate) bluetooth_sender: GenericSender<BluetoothRequest>,
 
     /// A [`Sender`] that sends messages to the `Constellation`.
     #[no_trace]

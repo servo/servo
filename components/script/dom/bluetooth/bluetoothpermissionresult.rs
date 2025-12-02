@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
+use base::generic_channel::GenericSender;
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionResultMethods;
@@ -61,7 +61,7 @@ impl BluetoothPermissionResult {
         self.global().as_window().Navigator().Bluetooth()
     }
 
-    pub(crate) fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    pub(crate) fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 
