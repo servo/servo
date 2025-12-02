@@ -79,6 +79,7 @@ impl WebSocketChannel {
     }
 }
 
+#[derive(Clone)]
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
@@ -111,7 +112,7 @@ impl CancellationListener {
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) {
+pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
     {
@@ -119,7 +120,7 @@ pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext)
         timing_guard.set_attribute(ResourceAttribute::FetchStart);
         timing_guard.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
     }
-    fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
+    fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await
 }
 
 /// Continuation of fetch from step 8.
@@ -130,7 +131,7 @@ pub async fn fetch_with_cors_cache(
     cache: &mut CorsCache,
     target: Target<'_>,
     context: &FetchContext,
-) {
+) -> Response {
     // Step 8. Let fetchParams be a new fetch params whose request is request
     let mut fetch_params = FetchParams::new(request);
     let request = &mut fetch_params.request;
@@ -202,7 +203,7 @@ pub async fn fetch_with_cors_cache(
     }
 
     // Step 17: Run main fetch given fetchParams.
-    main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await;
+    main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await
 
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec

@@ -20,6 +20,7 @@ use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
 pub type FileOrigin = String;
 
 /// A token modulating access to a file for a blob URL.
+#[derive(Clone)]
 pub enum FileTokenCheck {
     /// Checking against a token not required,
     /// used for accessing a file
