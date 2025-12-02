@@ -33,7 +33,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
+    AeadParams, AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, EcKeyAlgorithm,
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
     HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
@@ -2088,6 +2088,42 @@ impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleAeadParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams-iv>
+    iv: Vec<u8>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams-additionalData>
+    additional_data: Option<Vec<u8>>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams-tagLength>
+    tag_length: Option<u8>,
+}
+
+impl From<RootedTraceableBox<AeadParams>> for SubtleAeadParams {
+    fn from(value: RootedTraceableBox<AeadParams>) -> Self {
+        let iv = match &value.iv {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+        let additional_data = value.additionalData.as_ref().map(|data| match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        });
+
+        SubtleAeadParams {
+            name: value.parent.name.to_string(),
+            iv,
+            additional_data,
+            tag_length: value.tagLength,
+        }
+    }
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams>
 #[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleCShakeParams {
@@ -2429,6 +2465,7 @@ enum NormalizedAlgorithm {
     HmacKeyGenParams(SubtleHmacKeyGenParams),
     HkdfParams(SubtleHkdfParams),
     Pbkdf2Params(SubtlePbkdf2Params),
+    AeadParams(SubtleAeadParams),
     CShakeParams(SubtleCShakeParams),
     Argon2Params(SubtleArgon2Params),
 }
@@ -2929,6 +2966,24 @@ fn normalize_algorithm(
                 },
 
                 // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
+                (ALG_CHACHA20_POLY1305, Operation::Encrypt) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AeadParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::AeadParams(params.into())
+                },
+                (ALG_CHACHA20_POLY1305, Operation::Decrypt) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<AeadParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::AeadParams(params.into())
+                },
                 (ALG_CHACHA20_POLY1305, Operation::GenerateKey) => {
                     let mut params =
                         dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
@@ -2942,6 +2997,12 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::Algorithm(params.into())
                 },
                 (ALG_CHACHA20_POLY1305, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_CHACHA20_POLY1305, Operation::GetKeyLength) => {
                     let mut params =
                         dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
                     params.name = DOMString::from(alg_name);
@@ -3038,6 +3099,7 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::HmacKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::HkdfParams(algo) => &algo.name,
             NormalizedAlgorithm::Pbkdf2Params(algo) => &algo.name,
+            NormalizedAlgorithm::AeadParams(algo) => &algo.name,
             NormalizedAlgorithm::CShakeParams(algo) => &algo.name,
             NormalizedAlgorithm::Argon2Params(algo) => &algo.name,
         }
@@ -3054,6 +3116,9 @@ impl NormalizedAlgorithm {
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::encrypt_aes_gcm(algo, key, plaintext)
             },
+            (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::AeadParams(algo)) => {
+                chacha20_poly1305_operation::encrypt(algo, key, plaintext)
+            },
             _ => Err(Error::NotSupported(None)),
         }
     }
@@ -3068,6 +3133,9 @@ impl NormalizedAlgorithm {
             },
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::decrypt_aes_gcm(algo, key, ciphertext)
+            },
+            (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::AeadParams(algo)) => {
+                chacha20_poly1305_operation::decrypt(algo, key, ciphertext)
             },
             _ => Err(Error::NotSupported(None)),
         }
@@ -3383,6 +3451,9 @@ impl NormalizedAlgorithm {
             (ALG_HKDF, NormalizedAlgorithm::Algorithm(_algo)) => hkdf_operation::get_key_length(),
             (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::get_key_length()
+            },
+            (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
+                chacha20_poly1305_operation::get_key_length()
             },
             (ALG_ARGON2D, NormalizedAlgorithm::Algorithm(_algo)) => {
                 argon2_operation::get_key_length()

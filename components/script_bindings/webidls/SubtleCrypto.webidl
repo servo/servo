@@ -224,6 +224,14 @@ dictionary JsonWebKey {
 
 enum KeyFormat { "raw-public", "raw-private", "raw-seed", "raw-secret", "raw", "spki", "pkcs8", "jwk" };
 
+// https://wicg.github.io/webcrypto-modern-algos/#aead-params
+
+dictionary AeadParams : Algorithm {
+  required BufferSource iv;
+  BufferSource additionalData;
+  [EnforceRange] octet tagLength;
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#cshake-params
 
 dictionary CShakeParams : Algorithm {

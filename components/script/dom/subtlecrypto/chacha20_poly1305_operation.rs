@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base64ct::{Base64UrlUnpadded, Encoding};
-use chacha20poly1305::aead::{KeyInit, OsRng};
+use chacha20poly1305::aead::{AeadMutInPlace, KeyInit, OsRng};
 use chacha20poly1305::{ChaCha20Poly1305, Key};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -17,9 +17,135 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_CHACHA20_POLY1305, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives,
-    SubtleKeyAlgorithm,
+    SubtleAeadParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-encrypt>
+pub(crate) fn encrypt(
+    normalized_algorithm: &SubtleAeadParams,
+    key: &CryptoKey,
+    plaintext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the iv member of normalizedAlgorithm does not have a length of 12 bytes, then
+    // throw an OperationError.
+    if normalized_algorithm.iv.len() != 12 {
+        return Err(Error::Operation(Some(
+            "The iv member of normalizedAlgorithm does not have a length of 12 bytes".to_string(),
+        )));
+    }
+
+    // Step 2. If the tagLength member of normalizedAlgorithm is present and is not 128, then throw
+    // an OperationError.
+    if normalized_algorithm
+        .tag_length
+        .is_some_and(|tag_length| tag_length != 128)
+    {
+        return Err(Error::Operation(Some(
+            "The tagLength member of normalizedAlgorithm is present and is not 128".to_string(),
+        )));
+    }
+
+    // Step 3. Let additionalData be the additionalData member of normalizedAlgorithm if present or
+    // the empty octet string otherwise.
+    let additional_data = normalized_algorithm
+        .additional_data
+        .as_deref()
+        .unwrap_or_default();
+
+    // Step 4. Let ciphertext be the output that results from performing the AEAD_CHACHA20_POLY1305
+    // encryption algorithm described in Section 2.8 of [RFC8439], using the key represented by
+    // [[handle]] internal slot of key as the key input parameter, the iv member of
+    // normalizedAlgorithm as the nonce input parameter, plaintext as the plaintext input
+    // parameter, and additionalData as the additional authenticated data (AAD) input parameter.
+    let Handle::ChaCha20Poly1305Key(handle) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "Unable to access key represented by [[handle]] internal slot".to_string(),
+        )));
+    };
+    let mut cipher = ChaCha20Poly1305::new(handle);
+    let nonce = normalized_algorithm.iv.as_slice();
+    let mut ciphertext = plaintext.to_vec();
+    cipher
+        .encrypt_in_place(nonce.into(), additional_data, &mut ciphertext)
+        .map_err(|_| {
+            Error::Operation(Some(
+                "ChaCha20-Poly1305 fails to encrypt plaintext".to_string(),
+            ))
+        })?;
+
+    // Step 5. Return ciphertext.
+    Ok(ciphertext)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-decrypt>
+pub(crate) fn decrypt(
+    normalized_algorithm: &SubtleAeadParams,
+    key: &CryptoKey,
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the iv member of normalizedAlgorithm does not have a length of 12 bytes, then
+    // throw an OperationError.
+    if normalized_algorithm.iv.len() != 12 {
+        return Err(Error::Operation(Some(
+            "The iv member of normalizedAlgorithm does not have a length of 12 bytes".to_string(),
+        )));
+    }
+
+    // Step 2. If the tagLength member of normalizedAlgorithm is present and is not 128, then throw
+    // an OperationError.
+    if normalized_algorithm
+        .tag_length
+        .is_some_and(|tag_length| tag_length != 128)
+    {
+        return Err(Error::Operation(Some(
+            "The tagLength member of normalizedAlgorithm is present and is not 128".to_string(),
+        )));
+    }
+
+    // Step 3. If ciphertext has a length less than 128 bits, then throw an OperationError.
+    if ciphertext.len() < 16 {
+        return Err(Error::Operation(Some(
+            "Ciphertext has a length less than 128 bits".to_string(),
+        )));
+    }
+
+    // Step 4. Let additionalData be the additionalData member of normalizedAlgorithm if present or
+    // the empty octet string otherwise.
+    let additional_data = normalized_algorithm
+        .additional_data
+        .as_deref()
+        .unwrap_or_default();
+
+    // Step 5. Perform the AEAD_CHACHA20_POLY1305 decryption algorithm described in Section 2.8 of
+    // [RFC8439], using the key represented by [[handle]] internal slot of key as the key input
+    // parameter, the iv member of normalizedAlgorithm as the nonce input parameter, ciphertext as
+    // the ciphertext input parameter, and additionalData as the additional authenticated data
+    // (AAD) input parameter.
+    //
+    // If the result of the algorithm is the indication of authentication failure:
+    //     throw an OperationError
+    // Otherwise:
+    //     Let plaintext be the resulting plaintext.
+    let Handle::ChaCha20Poly1305Key(handle) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "Unable to access key represented by [[handle]] internal slot".to_string(),
+        )));
+    };
+    let mut cipher = ChaCha20Poly1305::new(handle);
+    let nonce = normalized_algorithm.iv.as_slice();
+    let mut plaintext = ciphertext.to_vec();
+    cipher
+        .decrypt_in_place(nonce.into(), additional_data, &mut plaintext)
+        .map_err(|_| {
+            Error::Operation(Some(
+                "ChaCha20-Poly1305 fails to decrypt ciphertext".to_string(),
+            ))
+        })?;
+
+    // Step 6. Return plaintext.
+    Ok(plaintext)
+}
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-generate-key>
 pub(crate) fn generate_key(
@@ -237,4 +363,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
     // Step 3. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-get-key-length>
+pub(crate) fn get_key_length() -> Result<Option<u32>, Error> {
+    // Step 1. Return 256.
+    Ok(Some(256))
 }
