@@ -36,7 +36,6 @@ use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpoints
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::realms::enter_realm;
-use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 
 #[dom_struct]
@@ -129,14 +128,8 @@ impl DebuggerGlobalScope {
         can_gc: CanGc,
     ) -> Result<(), JavaScriptEvaluationError> {
         rooted!(in (*Self::get_cx()) let mut rval = UndefinedValue());
-        self.global_scope.evaluate_js_on_global_with_result(
-            script,
-            rval.handle_mut(),
-            ScriptFetchOptions::default_classic_script(&self.global_scope),
-            self.global_scope.api_base_url(),
-            can_gc,
-            None,
-        )
+        self.global_scope
+            .evaluate_js_on_global(script, "", None, rval.handle_mut(), can_gc)
     }
 
     pub(crate) fn execute(&self, can_gc: CanGc) {

@@ -326,6 +326,7 @@ fn finish_fetching_a_classic_script(
 pub(crate) type ScriptResult = Result<Script, NoTrace<NetworkError>>;
 
 // TODO merge classic and module scripts
+#[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
     Classic(ClassicScript),
     Other(ScriptOrigin),

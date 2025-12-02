@@ -36,7 +36,6 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_realm;
-use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 
 #[dom_struct]
@@ -142,13 +141,12 @@ impl WorkletGlobalScope {
     ) -> Result<(), JavaScriptEvaluationError> {
         debug!("Evaluating Dom in a worklet.");
         rooted!(in (*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-        self.globalscope.evaluate_js_on_global_with_result(
+        self.globalscope.evaluate_js_on_global(
             script,
-            rval.handle_mut(),
-            ScriptFetchOptions::default_classic_script(&self.globalscope),
-            self.globalscope.api_base_url(),
-            can_gc,
+            "",
             Some(IntroductionType::WORKLET),
+            rval.handle_mut(),
+            can_gc,
         )
     }
 

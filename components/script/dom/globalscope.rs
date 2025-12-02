@@ -7,6 +7,7 @@ use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
+use std::mem;
 use std::ops::Index;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -14,7 +15,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use std::{mem, ptr};
 
 use base::IpcSend;
 use base::id::{
@@ -37,9 +37,8 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
-    Compile1, CurrentGlobalOrNull, DelazificationOption, ExceptionStackBehavior,
-    GetNonCCWObjectGlobal, HandleObject, Heap, InstantiateGlobalStencil, InstantiateOptions,
-    JS_ClearPendingException, JSContext, JSObject, JSScript, SetScriptPrivate,
+    Compile1, CurrentGlobalOrNull, ExceptionStackBehavior, GetNonCCWObjectGlobal, HandleObject,
+    Heap, JS_ClearPendingException, JSContext, JSObject, JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
@@ -120,7 +119,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
+use crate::dom::html::htmlscriptelement::ScriptId;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -2883,128 +2882,45 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    pub(crate) fn evaluate_js_on_global_with_result(
+    pub(crate) fn evaluate_js_on_global(
         &self,
         code: Cow<'_, str>,
-        rval: MutableHandleValue,
-        fetch_options: ScriptFetchOptions,
-        script_base_url: ServoUrl,
-        can_gc: CanGc,
-        introduction_type: Option<&'static CStr>,
-    ) -> Result<(), JavaScriptEvaluationError> {
-        let source_code = SourceCode::Text(Rc::new(DOMString::from_string(code.into_owned())));
-        self.evaluate_script_on_global_with_result(
-            &source_code,
-            "",
-            rval,
-            1,
-            fetch_options,
-            script_base_url,
-            can_gc,
-            introduction_type,
-        )
-    }
-
-    /// Evaluate a JS script on this global scope.
-    #[expect(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn evaluate_script_on_global_with_result(
-        &self,
-        code: &SourceCode,
         filename: &str,
-        rval: MutableHandleValue,
-        line_number: u32,
-        fetch_options: ScriptFetchOptions,
-        script_base_url: ServoUrl,
-        can_gc: CanGc,
         introduction_type: Option<&'static CStr>,
+        rval: MutableHandleValue,
+        can_gc: CanGc,
     ) -> Result<(), JavaScriptEvaluationError> {
         let cx = GlobalScope::get_cx();
-
         let ar = enter_realm(self);
-
         let _aes = AutoEntryScript::new(self);
 
-        unsafe {
-            rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-            match code {
-                SourceCode::Text(text_code) => {
-                    let mut options = CompileOptionsWrapper::new_raw(*cx, filename, line_number);
-                    if let Some(introduction_type) = introduction_type {
-                        options.set_introduction_type(introduction_type);
-                    }
+        let url = self.api_base_url();
+        let fetch_options = ScriptFetchOptions::default_classic_script(self);
 
-                    debug!("compiling dom string");
-                    compiled_script.set(Compile1(
-                        *cx,
-                        options.ptr,
-                        &mut transform_str_to_source_text(&text_code.str()),
-                    ));
+        rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+        compiled_script.set(compile_script(cx, &code, filename, 1, introduction_type));
 
-                    if compiled_script.is_null() {
-                        debug!("error compiling Dom string");
-                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
-                        return Err(JavaScriptEvaluationError::CompilationFailure);
-                    }
-                },
-                SourceCode::Compiled(pre_compiled_script) => {
-                    let options = InstantiateOptions {
-                        skipFilenameValidation: false,
-                        hideScriptFromDebugger: false,
-                        deferDebugMetadata: false,
-                        eagerDelazificationStrategy_: DelazificationOption::OnDemandOnly,
-                    };
-                    let script = InstantiateGlobalStencil(
-                        *cx,
-                        &options,
-                        *pre_compiled_script.source_code,
-                        ptr::null_mut(),
-                    );
-                    compiled_script.set(script);
-                },
-            };
-
-            assert!(!compiled_script.is_null());
-
-            rooted!(in(*cx) let mut script_private = UndefinedValue());
-            JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
-
-            // When `ScriptPrivate` for the compiled script is undefined,
-            // we need to set it so that it can be used in dynamic import context.
-            if script_private.is_undefined() {
-                debug!("Set script private for {}", script_base_url);
-
-                let module_script_data = Rc::new(ModuleScript::new(
-                    script_base_url,
-                    fetch_options,
-                    // We can't initialize an module owner here because
-                    // the executing context of script might be different
-                    // from the dynamic import script's executing context.
-                    None,
-                ));
-
-                SetScriptPrivate(
-                    *compiled_script,
-                    &PrivateValue(Rc::into_raw(module_script_data) as *const _),
-                );
-            }
-
-            let result = JS_ExecuteScript(*cx, compiled_script.handle(), rval);
-
-            if !result {
-                debug!("error evaluating Dom string");
-                let error_info =
-                    take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
-                return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
-            }
-
-            maybe_resume_unwind();
-            Ok(())
+        if compiled_script.is_null() {
+            debug!("error compiling Dom string");
+            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+            return Err(JavaScriptEvaluationError::CompilationFailure);
         }
+
+        let script = NonNull::new(*compiled_script).expect("Can't be null");
+
+        if !evaluate_script(cx, script, url, fetch_options, rval) {
+            let error_info =
+                take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
+            return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
+        }
+
+        maybe_resume_unwind();
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
     #[expect(unsafe_code)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn create_a_classic_script(
         &self,
         source: Cow<'_, str>,
@@ -3018,14 +2934,14 @@ impl GlobalScope {
         let source_code = Rc::new(DOMString::from(source.clone()));
         let cx = GlobalScope::get_cx();
 
-        let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
-        if let Some(introduction_type) = introduction_type {
-            options.set_introduction_type(introduction_type);
-        }
-
         rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-        compiled_script
-            .set(unsafe { Compile1(*cx, options.ptr, &mut transform_str_to_source_text(&source)) });
+        compiled_script.set(compile_script(
+            cx,
+            &source,
+            url.as_str(),
+            line_number,
+            introduction_type,
+        ));
 
         let record = if compiled_script.get().is_null() {
             rooted!(in(*cx) let mut exception = UndefinedValue());
@@ -3088,34 +3004,13 @@ impl GlobalScope {
             // Step 7 Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
             Ok(compiled_script) => {
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                rooted!(in(*cx) let record = compiled_script.as_ptr());
-                rooted!(in(*cx) let mut script_private = UndefinedValue());
-
-                unsafe { JS_GetScriptPrivate(*record, script_private.handle_mut()) };
-
-                // When `ScriptPrivate` for the compiled script is undefined,
-                // we need to set it so that it can be used in dynamic import context.
-                if script_private.is_undefined() {
-                    debug!("Set script private for {}", script.url);
-
-                    let module_script_data = Rc::new(ModuleScript::new(
-                        script.url,
-                        script.fetch_options,
-                        // We can't initialize an module owner here because
-                        // the executing context of script might be different
-                        // from the dynamic import script's executing context.
-                        None,
-                    ));
-
-                    unsafe {
-                        SetScriptPrivate(
-                            *record,
-                            &PrivateValue(Rc::into_raw(module_script_data) as *const _),
-                        );
-                    }
-
-                    result = unsafe { JS_ExecuteScript(*cx, record.handle(), rval.handle_mut()) };
-                }
+                result = evaluate_script(
+                    cx,
+                    compiled_script,
+                    script.url,
+                    script.fetch_options,
+                    rval.handle_mut(),
+                );
             },
         }
 
@@ -3160,6 +3055,7 @@ impl GlobalScope {
 
         // Step 11 If we've reached this point, evaluationStatus was left as null because the script
         // was aborted prematurely during evaluation. Return ThrowCompletion(a new QuotaExceededError).
+        unsafe { JS_ClearPendingException(*cx) };
         Err(Error::QuotaExceeded {
             quota: None,
             requested: None,
@@ -3907,4 +3803,58 @@ impl ScriptSource for ClassicScript {
     fn is_external(&self) -> bool {
         self.external
     }
+}
+
+#[expect(unsafe_code)]
+fn compile_script(
+    cx: SafeJSContext,
+    text: &str,
+    filename: &str,
+    line_number: u32,
+    introduction_type: Option<&'static CStr>,
+) -> *mut JSScript {
+    let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, filename, line_number) };
+    if let Some(introduction_type) = introduction_type {
+        options.set_introduction_type(introduction_type);
+    }
+
+    debug!("Compiling script");
+    unsafe { Compile1(*cx, options.ptr, &mut transform_str_to_source_text(text)) }
+}
+
+#[expect(unsafe_code)]
+fn evaluate_script(
+    cx: SafeJSContext,
+    compiled_script: NonNull<JSScript>,
+    url: ServoUrl,
+    fetch_options: ScriptFetchOptions,
+    rval: MutableHandleValue,
+) -> bool {
+    rooted!(in(*cx) let record = compiled_script.as_ptr());
+    rooted!(in(*cx) let mut script_private = UndefinedValue());
+
+    unsafe { JS_GetScriptPrivate(*record, script_private.handle_mut()) };
+
+    // When `ScriptPrivate` for the compiled script is undefined,
+    // we need to set it so that it can be used in dynamic import context.
+    if script_private.is_undefined() {
+        debug!("Set script private for {}", url);
+        let module_script_data = Rc::new(ModuleScript::new(
+            url,
+            fetch_options,
+            // We can't initialize an module owner here because
+            // the executing context of script might be different
+            // from the dynamic import script's executing context.
+            None,
+        ));
+
+        unsafe {
+            SetScriptPrivate(
+                *record,
+                &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+            );
+        }
+    }
+
+    unsafe { JS_ExecuteScript(*cx, record.handle(), rval) }
 }

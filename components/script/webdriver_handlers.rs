@@ -90,7 +90,6 @@ use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -637,13 +636,12 @@ pub(crate) fn handle_execute_script(
 
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let global = window.as_global_scope();
-            let evaluation_result = global.evaluate_js_on_global_with_result(
+            let evaluation_result = global.evaluate_js_on_global(
                 eval.into(),
-                rval.handle_mut(),
-                ScriptFetchOptions::default_classic_script(global),
-                global.api_base_url(),
-                can_gc,
+                "",
                 None, // No known `introductionType` for JS code from WebDriver
+                rval.handle_mut(),
+                can_gc,
             );
 
             let result = evaluation_result
@@ -675,13 +673,12 @@ pub(crate) fn handle_execute_async_script(
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
-            if let Err(error) = global_scope.evaluate_js_on_global_with_result(
+            if let Err(error) = global_scope.evaluate_js_on_global(
                 eval.into(),
-                rval.handle_mut(),
-                ScriptFetchOptions::default_classic_script(global_scope),
-                global_scope.api_base_url(),
-                can_gc,
+                "",
                 None, // No known `introductionType` for JS code from WebDriver
+                rval.handle_mut(),
+                can_gc,
             ) {
                 reply_sender.send(Err(error)).unwrap_or_else(|error| {
                     error!("ExecuteAsyncScript Failed to send reply: {error}");
