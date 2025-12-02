@@ -82,7 +82,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
     options = ArgOptions()
     options.set_capability("browserName", "servo")
     # Wait at most 10 minutes for a script to execute and 5 minutes and 1.3 minutes for element finding
-    options.timeouts = {"script": 36000, "pageLoad": 18000, "implicit": 5000}
+    options.timeouts = {"script": 600, "pageLoad": 600, "implicit": 600}
     driver = None
     start_time = time.time()
     while driver is None and time.time() - start_time < timeout:
