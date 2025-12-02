@@ -5193,9 +5193,6 @@ impl Element {
             }
         }
 
-        // Dirty the node so that it is laid out again if necessary.
-        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
-
         self.state.set(state);
     }
 
