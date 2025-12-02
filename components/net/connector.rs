@@ -200,7 +200,7 @@ impl CertificateVerificationOverrideVerifier {
             #[cfg(not(target_os = "android"))]
             CACertificates::PlatformVerifier => Arc::new(
                 rustls_platform_verifier::Verifier::new(crypto_provider)
-                    .expect("Could not initialize platform certificate verifier"),
+                    .expect("Could not initialize platform certificate verifier."),
             ),
             CACertificates::WebPKI => {
                 let root_store = Arc::new(rustls::RootCertStore::from_iter(
@@ -209,15 +209,33 @@ impl CertificateVerificationOverrideVerifier {
 
                 rustls::client::WebPkiServerVerifier::builder(root_store)
                     .build()
-                    .expect("G") as Arc<dyn ServerCertVerifier>
+                    .expect("Could not initialize platform certificate verifier.")
+                    as Arc<dyn ServerCertVerifier>
             },
+            #[cfg(not(target_os = "android"))]
             CACertificates::Override(root_cert_store) => Arc::new(
                 rustls_platform_verifier::Verifier::new_with_extra_roots(
                     root_cert_store,
                     crypto_provider,
                 )
-                .expect("Could not build platform verifier with additional certs"),
+                .expect("Could not build platform verifier with additional certs."),
             ),
+            #[cfg(target_os = "android")]
+            CACertificates::Override(root_cert_store) => {
+                // Android does not support rustls_platform_verifier::Verifier::new_with_extra_roots.
+                let mut main_store = rustls::RootCertStore::from_iter(
+                    webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+                );
+                for i in root_cert_store {
+                    if main_store.add(i).is_err() {
+                        log::error!("Could not add an override certificate.");
+                    }
+                }
+                rustls::client::WebPkiServerVerifier::builder(main_store.into())
+                    .build()
+                    .expect("Could not initialize platform certificate verifier.")
+                    as Arc<dyn ServerCertVerifier>
+            },
         };
 
         Self {

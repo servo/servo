@@ -91,19 +91,24 @@ pub fn new_resource_threads(
     // Initialize the async runtime, and get a handle to it for use in clean shutdown.
     let async_runtime = init_async_runtime();
 
+    #[cfg(target_os = "android")]
+    let default_verifier = CACertificates::WebPKI;
+    #[cfg(not(target_os = "android"))]
+    let default_verifier = CACertificates::PlatformVerifier;
+
     let ca_certificates = match certificate_path {
         Some(path) => match load_root_cert_store_from_file(path) {
             Ok(root_cert_store) => CACertificates::Override(root_cert_store),
             Err(error) => {
                 warn!("Could not load CA file. Falling back to defaults. {error:?}");
-                CACertificates::PlatformVerifier
+                default_verifier
             },
         },
         None => {
             if pref!(network_webpki_roots) {
                 CACertificates::WebPKI
             } else {
-                CACertificates::PlatformVerifier
+                default_verifier
             }
         },
     };
