@@ -233,6 +233,7 @@ impl FetchResponseListener for ScriptFetchContext {
             false,
             Some(IntroductionType::WORKER),
             1,
+            true,
         );
 
         // Step 6 Run onComplete given script.
@@ -748,6 +749,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 muted_errors,
                 Some(IntroductionType::WORKER),
                 1,
+                true,
             );
 
             // Run the classic script script, with rethrow errors set to true.

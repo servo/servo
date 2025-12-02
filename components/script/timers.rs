@@ -804,6 +804,7 @@ impl JsTimerTask {
                     false,
                     Some(IntroductionType::DOM_TIMER),
                     1,
+                    true,
                 );
 
                 // Step 9.6.9. Run the classic script script.

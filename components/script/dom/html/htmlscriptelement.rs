@@ -440,7 +440,7 @@ impl FetchResponseListener for ClassicContext {
         let elem = self.elem.root();
         let global = elem.global();
 
-        // elem.substitute_with_local_script(&mut source_text, final_url.clone());
+        elem.substitute_with_local_script(&mut source_text, final_url.clone());
 
         let introduction_type = elem
             .introduction_type_override
@@ -459,6 +459,7 @@ impl FetchResponseListener for ClassicContext {
             muted_errors,
             introduction_type,
             1,
+            true,
         );
 
         /*
@@ -932,6 +933,7 @@ impl HTMLScriptElement {
                         false,
                         introduction_type_override.or(Some(IntroductionType::INLINE_SCRIPT)),
                         self.line_number as u32,
+                        false,
                     );
                     let result = Ok(Script::Classic(script));
 
