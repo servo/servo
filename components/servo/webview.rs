@@ -8,7 +8,6 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 
 use base::id::WebViewId;
-use compositing::IOCompositor;
 use compositing_traits::WebViewTrait;
 use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
@@ -28,8 +27,6 @@ use url::Url;
 use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
-use crate::javascript_evaluator::JavaScriptEvaluator;
-use crate::proxies::ConstellationProxy;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
@@ -81,13 +78,10 @@ impl Hash for WebView {
 }
 
 pub(crate) struct WebViewInner {
-    // TODO: ensure that WebView instances interact with the correct Servo instance
     pub(crate) id: WebViewId,
-    pub(crate) constellation_proxy: ConstellationProxy,
-    pub(crate) compositor: Rc<RefCell<IOCompositor>>,
+    pub(crate) servo: Servo,
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
-    javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
 
     /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     rect: DeviceRect,
@@ -109,7 +103,8 @@ pub(crate) struct WebViewInner {
 
 impl Drop for WebViewInner {
     fn drop(&mut self) {
-        self.constellation_proxy
+        self.servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::CloseWebView(self.id));
     }
 }
@@ -122,19 +117,16 @@ impl WebView {
             |size| Size2D::new(size.width as f32, size.height as f32),
         );
 
-        let compositor = builder.servo.compositor.clone();
-        let painter_id = compositor
-            .borrow_mut()
+        let painter_id = servo
+            .compositor_mut()
             .register_rendering_context(builder.rendering_context);
 
         let id = WebViewId::new(painter_id);
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
-            constellation_proxy: servo.constellation_proxy.clone(),
-            compositor,
+            servo: servo.clone(),
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
-            javascript_evaluator: servo.javascript_evaluator.clone(),
             rect: DeviceRect::from_origin_and_size(Point2D::origin(), size),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
@@ -149,7 +141,7 @@ impl WebView {
         })));
 
         let viewport_details = webview.viewport_details();
-        servo.compositor.borrow().add_webview(
+        servo.compositor().add_webview(
             Box::new(ServoRendererWebView {
                 weak_handle: webview.weak_handle(),
                 id,
@@ -158,8 +150,7 @@ impl WebView {
         );
 
         servo
-            .webviews
-            .borrow_mut()
+            .webviews_mut()
             .insert(webview.id(), webview.weak_handle());
 
         if !builder.auxiliary {
@@ -167,9 +158,8 @@ impl WebView {
                 Url::parse("about:blank").expect("Should always be able to parse 'about:blank'."),
             );
 
-            builder
-                .servo
-                .constellation_proxy
+            servo
+                .constellation_proxy()
                 .send(EmbedderToConstellationMessage::NewWebView(
                     url.into(),
                     webview.id(),
@@ -306,13 +296,15 @@ impl WebView {
 
     pub fn focus(&self) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::FocusWebView(self.id()));
     }
 
     pub fn blur(&self) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::BlurWebView);
     }
 
@@ -346,8 +338,8 @@ impl WebView {
         };
 
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .resize_rendering_context(self.id(), new_size);
     }
 
@@ -365,30 +357,31 @@ impl WebView {
 
         self.inner_mut().hidpi_scale_factor = new_scale_factor;
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
     }
 
     pub fn show(&self) {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .show_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
 
     pub fn hide(&self) {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .hide_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
 
     pub fn notify_theme_change(&self, theme: Theme) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::ThemeChange(
                 self.id(),
                 theme,
@@ -397,7 +390,8 @@ impl WebView {
 
     pub fn load(&self, url: Url) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::LoadUrl(
                 self.id(),
                 url.into(),
@@ -406,7 +400,8 @@ impl WebView {
 
     pub fn reload(&self) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
@@ -416,13 +411,13 @@ impl WebView {
 
     pub fn go_back(&self, amount: usize) -> TraversalId {
         let traversal_id = TraversalId::new();
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::TraverseHistory(
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Back(amount),
                 traversal_id.clone(),
-            ));
+            ),
+        );
         traversal_id
     }
 
@@ -433,13 +428,13 @@ impl WebView {
 
     pub fn go_forward(&self, amount: usize) -> TraversalId {
         let traversal_id = TraversalId::new();
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::TraverseHistory(
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::TraverseHistory(
                 self.id(),
                 TraversalDirection::Forward(amount),
                 traversal_id.clone(),
-            ));
+            ),
+        );
         traversal_id
     }
 
@@ -447,8 +442,8 @@ impl WebView {
     /// content on the bottom and right of the page.
     pub fn notify_scroll_event(&self, scroll: Scroll, point: WebViewPoint) {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .notify_scroll_event(self.id(), scroll, point);
     }
 
@@ -459,11 +454,11 @@ impl WebView {
         // Events with a `point` first go to the compositor for hit testing.
         if event.event.point().is_some() {
             self.inner()
-                .compositor
-                .borrow()
+                .servo
+                .compositor()
                 .notify_input_event(self.id(), event);
         } else {
-            self.inner().constellation_proxy.send(
+            self.inner().servo.constellation_proxy().send(
                 EmbedderToConstellationMessage::ForwardInputEvent(
                     self.id(),
                     event,
@@ -477,7 +472,8 @@ impl WebView {
 
     pub fn notify_media_session_action_event(&self, event: MediaSessionActionType) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::MediaSessionAction(event));
     }
 
@@ -494,14 +490,14 @@ impl WebView {
     /// `Prefs::viewport_meta_enabled`.
     pub fn set_page_zoom(&self, new_zoom: f32) {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .set_page_zoom(self.id(), new_zoom);
     }
 
     /// Get the page zoom of the [`WebView`].
     pub fn page_zoom(&self) -> f32 {
-        self.inner().compositor.borrow().page_zoom(self.id())
+        self.inner().servo.compositor().page_zoom(self.id())
     }
 
     /// Adjust the pinch zoom on this [`WebView`] multiplying the current pinch zoom
@@ -515,59 +511,52 @@ impl WebView {
     /// the inclusive range [1.0, 10.0]).
     pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .pinch_zoom(self.id(), pinch_zoom_delta, center);
     }
 
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .device_pixels_per_page_pixel(self.id())
     }
 
     pub fn exit_fullscreen(&self) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::ExitFullScreen(self.id()));
     }
 
     pub fn set_throttled(&self, throttled: bool) {
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::SetWebViewThrottled(
-                self.id(),
-                throttled,
-            ));
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::SetWebViewThrottled(self.id(), throttled),
+        );
     }
 
     pub fn toggle_webrender_debugging(&self, debugging: WebRenderDebugOption) {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .toggle_webrender_debug(debugging);
     }
 
     pub fn capture_webrender(&self) {
-        self.inner()
-            .compositor
-            .borrow()
-            .capture_webrender(self.id());
+        self.inner().servo.compositor().capture_webrender(self.id());
     }
 
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
-        self.inner()
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::ToggleProfiler(
-                rate,
-                max_duration,
-            ));
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration),
+        );
     }
 
     pub fn send_error(&self, message: String) {
         self.inner()
-            .constellation_proxy
+            .servo
+            .constellation_proxy()
             .send(EmbedderToConstellationMessage::SendError(
                 Some(self.id()),
                 message,
@@ -576,7 +565,7 @@ impl WebView {
 
     /// Paint the contents of this [`WebView`] into its `RenderingContext`.
     pub fn paint(&self) {
-        self.inner().compositor.borrow().render(self.id());
+        self.inner().servo.compositor().render(self.id());
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
@@ -586,7 +575,7 @@ impl WebView {
         script: T,
         callback: impl FnOnce(Result<JSValue, JavaScriptEvaluationError>) + 'static,
     ) {
-        self.inner().javascript_evaluator.borrow_mut().evaluate(
+        self.inner().servo.javascript_evaluator_mut().evaluate(
             self.id(),
             script.to_string(),
             Box::new(callback),
@@ -616,8 +605,8 @@ impl WebView {
         callback: impl FnOnce(Result<RgbaImage, ScreenshotCaptureError>) + 'static,
     ) {
         self.inner()
-            .compositor
-            .borrow()
+            .servo
+            .compositor()
             .request_screenshot(self.id(), rect, Box::new(callback));
     }
 
@@ -650,7 +639,7 @@ impl WebView {
         position: DeviceIntRect,
         embedder_control_request: EmbedderControlRequest,
     ) {
-        let constellation_proxy = self.inner().constellation_proxy.clone();
+        let constellation_proxy = self.inner().servo.constellation_proxy().clone();
         let embedder_control = match embedder_control_request {
             EmbedderControlRequest::SelectElement(options, selected_option) => {
                 EmbedderControl::SelectElement(SelectElement {
@@ -740,8 +729,8 @@ impl WebViewTrait for ServoRendererWebView {
     }
 }
 
-pub struct WebViewBuilder<'servo> {
-    servo: &'servo Servo,
+pub struct WebViewBuilder {
+    servo: Servo,
     rendering_context: Rc<dyn RenderingContext>,
     delegate: Rc<dyn WebViewDelegate>,
     auxiliary: bool,
@@ -750,10 +739,10 @@ pub struct WebViewBuilder<'servo> {
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
-impl<'servo> WebViewBuilder<'servo> {
-    pub fn new(servo: &'servo Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
+impl WebViewBuilder {
+    pub fn new(servo: &Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
         Self {
-            servo,
+            servo: servo.clone(),
             rendering_context,
             auxiliary: false,
             url: None,
@@ -763,10 +752,7 @@ impl<'servo> WebViewBuilder<'servo> {
         }
     }
 
-    pub fn new_auxiliary(
-        servo: &'servo Servo,
-        rendering_context: Rc<dyn RenderingContext>,
-    ) -> Self {
+    pub fn new_auxiliary(servo: &Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
         let mut builder = Self::new(servo, rendering_context);
         builder.auxiliary = true;
         builder
