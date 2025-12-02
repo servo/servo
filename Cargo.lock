@@ -4903,8 +4903,7 @@ dependencies = [
 [[package]]
 name = "keyboard-types"
 version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fbe853b403ae61a04233030ae8a79d94975281ed9770a1f9e246732b534b28d"
+source = "git+https://github.com/yezhizhen/keyboard-types?branch=do-not-unwrap#24446d6fe974bca4303affd07072939f4a7aab6f"
 dependencies = [
  "bitflags 2.10.0",
  "serde",
