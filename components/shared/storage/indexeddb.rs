@@ -316,6 +316,11 @@ pub enum CreateObjectResult {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+/// Result of <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+/// `Upgrade` is an optional first message,
+/// followed by the ultimate result.
+/// TODO: refactor messaging into a coherent whole
+/// and with a persistent communication mechanism.
 pub enum OpenDatabaseResult {
     VersionError,
     AbortError,
@@ -324,6 +329,9 @@ pub enum OpenDatabaseResult {
         version: u64,
         upgraded: bool,
     },
+    /// An upgrade transaction for a version,
+    /// reply sender so backend blocks until transaction 
+    /// completes(TODO: remove block).
     Upgrade {
         version: u64,
         sender: GenericCallback<()>,
