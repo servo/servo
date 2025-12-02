@@ -8,12 +8,13 @@ use base::generic_channel::{GenericSender, SendResult};
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AllowOrDeny, AuthenticationResponse, ContextMenuAction, ContextMenuElementInformation,
-    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
-    FilterPattern, GamepadHapticEffectType, InputEventId, InputEventResult, InputMethodType,
-    LoadStatus, MediaSessionEvent, Notification, PermissionFeature, RgbColor, ScreenGeometry,
-    SelectElementOptionOrOptgroup, SimpleDialog, TraversalId, WebResourceRequest,
-    WebResourceResponse, WebResourceResponseMsg,
+    AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ContextMenuAction,
+    ContextMenuElementInformation, ContextMenuItem, Cursor, EmbedderControlId,
+    EmbedderControlResponse, FilePickerRequest, FilterPattern, GamepadHapticEffectType,
+    InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
+    PermissionFeature, PromptResponse, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
+    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
@@ -623,6 +624,211 @@ impl InputMethodControl {
     }
 }
 
+/// [Simple dialogs](https://html.spec.whatwg.org/multipage/#simple-dialogs) are synchronous dialogs
+/// that can be opened by web content. Since their messages are controlled by web content, they
+/// should be presented to the user in a way that makes them impossible to mistake for browser UI.
+pub enum SimpleDialog {
+    Alert(AlertDialog),
+    Confirm(ConfirmDialog),
+    Prompt(PromptDialog),
+}
+
+impl SimpleDialog {
+    pub fn message(&self) -> &str {
+        match self {
+            SimpleDialog::Alert(alert_dialog) => alert_dialog.message(),
+            SimpleDialog::Confirm(confirm_dialog) => confirm_dialog.message(),
+            SimpleDialog::Prompt(prompt_dialog) => prompt_dialog.message(),
+        }
+    }
+
+    pub fn confirm(self) {
+        match self {
+            SimpleDialog::Alert(alert_dialog) => alert_dialog.confirm(),
+            SimpleDialog::Confirm(confirm_dialog) => confirm_dialog.confirm(),
+            SimpleDialog::Prompt(prompt_dialog) => prompt_dialog.confirm(),
+        }
+    }
+
+    pub fn dismiss(self) {
+        match self {
+            SimpleDialog::Alert(alert_dialog) => alert_dialog.confirm(),
+            SimpleDialog::Confirm(confirm_dialog) => confirm_dialog.dismiss(),
+            SimpleDialog::Prompt(prompt_dialog) => prompt_dialog.dismiss(),
+        }
+    }
+}
+
+impl SimpleDialog {
+    fn id(&self) -> EmbedderControlId {
+        match self {
+            SimpleDialog::Alert(alert_dialog) => alert_dialog.id,
+            SimpleDialog::Confirm(confirm_dialog) => confirm_dialog.id,
+            SimpleDialog::Prompt(prompt_dialog) => prompt_dialog.id,
+        }
+    }
+}
+
+impl From<SimpleDialogRequest> for SimpleDialog {
+    fn from(simple_dialog_request: SimpleDialogRequest) -> Self {
+        match simple_dialog_request {
+            SimpleDialogRequest::Alert {
+                id,
+                message,
+                response_sender,
+            } => Self::Alert(AlertDialog {
+                id,
+                message,
+                response_sender,
+                response_sent: false,
+            }),
+            SimpleDialogRequest::Confirm {
+                id,
+                message,
+                response_sender,
+            } => Self::Confirm(ConfirmDialog {
+                id,
+                message,
+                response_sender,
+                response_sent: false,
+            }),
+            SimpleDialogRequest::Prompt {
+                id,
+                message,
+                default,
+                response_sender,
+            } => Self::Prompt(PromptDialog {
+                id,
+                message,
+                current_value: default,
+                response_sender,
+                response_sent: false,
+            }),
+        }
+    }
+}
+
+/// [`alert()`](https://html.spec.whatwg.org/multipage/#dom-alert).
+///
+/// The confirm dialog is expected to be represented by a message and an "Ok" button.
+/// Pressing "Ok" always causes the DOM API to return `undefined`.
+pub struct AlertDialog {
+    id: EmbedderControlId,
+    message: String,
+    response_sender: GenericSender<AlertResponse>,
+    response_sent: bool,
+}
+
+impl Drop for AlertDialog {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            let _ = self.response_sender.send(AlertResponse::Ok);
+        }
+    }
+}
+
+impl AlertDialog {
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// This should be called when the dialog button is pressed.
+    pub fn confirm(self) {
+        // The result will be send via the `Drop` implementation.
+    }
+}
+
+/// [`confirm()`](https://html.spec.whatwg.org/multipage/#dom-confirm).
+///
+/// The confirm dialog is expected to be represented by a message and "Ok" and "Cancel"
+/// buttons. When "Ok" is selected `true` is sent as a response to the DOM API, while
+/// "Cancel" will send `false`.
+pub struct ConfirmDialog {
+    id: EmbedderControlId,
+    message: String,
+    response_sender: GenericSender<ConfirmResponse>,
+    response_sent: bool,
+}
+
+impl ConfirmDialog {
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// This should be called when the dialog "Cancel" button is pressed.
+    pub fn dismiss(mut self) {
+        let _ = self.response_sender.send(ConfirmResponse::Cancel);
+        self.response_sent = true;
+    }
+
+    /// This should be called when the dialog "Ok" button is pressed.
+    pub fn confirm(mut self) {
+        let _ = self.response_sender.send(ConfirmResponse::Ok);
+        self.response_sent = true;
+    }
+}
+
+impl Drop for ConfirmDialog {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            let _ = self.response_sender.send(ConfirmResponse::Cancel);
+        }
+    }
+}
+
+/// A [`prompt()`](https://html.spec.whatwg.org/multipage/#dom-prompt).
+///
+/// The prompt dialog is expected to be represented by a mesage, a text entry field, and
+/// an "Ok" and "Cancel" buttons. When "Ok" is selected the current prompt value is sent
+/// as the response to the DOM API. A default value may be sent with the [`PromptDialog`],
+/// which be be retrieved by calling [`Self::current_value`]. Before calling [`Self::ok`]
+/// or as the prompt field changes, the embedder is expected to call
+/// [`Self::set_current_value`].
+pub struct PromptDialog {
+    id: EmbedderControlId,
+    message: String,
+    current_value: String,
+    response_sender: GenericSender<PromptResponse>,
+    response_sent: bool,
+}
+
+impl Drop for PromptDialog {
+    fn drop(&mut self) {
+        if !self.response_sent {
+            let _ = self.response_sender.send(PromptResponse::Cancel);
+        }
+    }
+}
+
+impl PromptDialog {
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn current_value(&self) -> &str {
+        &self.current_value
+    }
+
+    pub fn set_current_value(&mut self, new_value: &str) {
+        self.current_value = new_value.to_owned()
+    }
+
+    /// This should be called when the dialog "Cancel" button is pressed.
+    pub fn dismiss(mut self) {
+        let _ = self.response_sender.send(PromptResponse::Cancel);
+        self.response_sent = true;
+    }
+
+    /// This should be called when the dialog "Ok" button is pressed, the current prompt value will
+    /// be sent to web content.
+    pub fn confirm(mut self) {
+        let _ = self
+            .response_sender
+            .send(PromptResponse::Ok(self.current_value.clone()));
+        self.response_sent = true;
+    }
+}
+
 pub trait WebViewDelegate {
     /// Get the [`ScreenGeometry`] for this [`WebView`]. If this is unimplemented or returns `None`
     /// the screen will have the size of the [`WebView`]'s `RenderingContext` and `WebView` will be
@@ -742,23 +948,7 @@ pub trait WebViewDelegate {
 
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.
-    fn show_embedder_control(&self, _webview: WebView, embedder_control: EmbedderControl) {
-        let EmbedderControl::SimpleDialog(simple_dialog) = embedder_control else {
-            return;
-        };
-        // Return the DOM-specified default value for when we **cannot show simple dialogs**.
-        let _ = match simple_dialog {
-            SimpleDialog::Alert {
-                response_sender, ..
-            } => response_sender.send(Default::default()),
-            SimpleDialog::Confirm {
-                response_sender, ..
-            } => response_sender.send(Default::default()),
-            SimpleDialog::Prompt {
-                response_sender, ..
-            } => response_sender.send(Default::default()),
-        };
-    }
+    fn show_embedder_control(&self, _webview: WebView, _embedder_control: EmbedderControl) {}
 
     /// Request that the embedder hide and ignore a previous [`EmbedderControl`] request, if it hasn’t
     /// already responded to it.
