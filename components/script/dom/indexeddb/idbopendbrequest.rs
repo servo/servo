@@ -169,7 +169,6 @@ impl IDBOpenDBRequest {
         );
         connection.set_transaction(&transaction);
 
-        let _ac = enter_realm(&*connection);
         rooted!(in(*cx) let mut connection_val = UndefinedValue());
         connection.safe_to_jsval(cx, connection_val.handle_mut(), can_gc);
 
