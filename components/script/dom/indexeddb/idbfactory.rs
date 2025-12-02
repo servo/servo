@@ -66,7 +66,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             return Err(Error::Operation(None));
         }
 
-        // Step 6
+        // Step 6: Return a new IDBOpenDBRequest object for request.
         Ok(request)
     }
 

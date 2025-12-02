@@ -315,7 +315,7 @@ pub enum CreateObjectResult {
     AlreadyExists,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum OpenDatabaseResult {
     VersionError,
     AbortError,
@@ -323,6 +323,10 @@ pub enum OpenDatabaseResult {
     Connection {
         version: u64,
         upgraded: bool,
+    },
+    Upgrade {
+        version: u64,
+        sender: GenericCallback<()>,
     },
 }
 

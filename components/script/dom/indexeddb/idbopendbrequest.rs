@@ -61,6 +61,20 @@ impl OpenRequestListener {
                 request.dispatch_success(&connection);
                 return;
             },
+            OpenDatabaseResult::Upgrade { version, sender } => {
+                // TODO: link with backend connection concept.
+                let connection = IDBDatabase::new(
+                    &global,
+                    DOMString::from_string(name.clone()),
+                    version,
+                    can_gc,
+                );
+                request.upgrade_db_version(&connection, version, can_gc);
+                if sender.send(()).is_err() {
+                    error!("Couldn't send reply to indexeddb after script upgrade workflow.");
+                }
+                return;
+            },
         };
 
         // Step 2.1 If result is an error,
@@ -137,17 +151,15 @@ impl IDBOpenDBRequest {
         reflect_dom_object(Box::new(IDBOpenDBRequest::new_inherited()), global, can_gc)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#run-an-upgrade-transaction>
-    /// Note: this algo runs in-parallel in the spec,
-    /// we should at least move the waiting on a transaction to in-parallel
-    /// to avoig blocking the script-thread.
+    /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
+    /// Step 10: Queue a database task to run these steps:
+    /// The below are the steps in the task.
     fn upgrade_db_version(&self, connection: &IDBDatabase, version: u64, can_gc: CanGc) {
-        // Step 1: Let db be connection’s database.
-        // Note: done throught the `connection` variable.
-
         let global = self.global();
-        // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
-        // TODO: The scope of transaction includes every object store in connection.
+        let cx = GlobalScope::get_cx();
+
+        // Note: the transaction should link wiht one created on the backend.
+        // Steps here are meant to create the corresponding webidl object.
         let transaction = IDBTransaction::new(
             &global,
             connection,
@@ -155,81 +167,50 @@ impl IDBOpenDBRequest {
             &connection.object_stores(),
             can_gc,
         );
-
-        // Step 3: Set database’s upgrade transaction to transaction.
         connection.set_transaction(&transaction);
 
-        // Associate the open request with the upgrade transaction so that
-        // its "success" event is dispatched only once the transaction finishes.
-        transaction.set_open_request(self);
+        let _ac = enter_realm(&*connection);
+        rooted!(in(*cx) let mut connection_val = UndefinedValue());
+        connection.safe_to_jsval(cx, connection_val.handle_mut(), can_gc);
 
-        // Step 4: Unset transaction’s active flag.
+        // Step 10.1: Set request’s result to connection.
+        self.idbrequest.set_result(connection_val.handle());
+
+        // Step 10.2: Set request’s transaction to transaction.
+        self.idbrequest.set_transaction(&transaction);
+
+        // Step 10.3: Set request’s done flag to true.
+        self.idbrequest.set_ready_state_done();
+
+        // Step 10.4: Set transaction’s state to active.
+        // TODO: message to set state of backend transaction.
         transaction.set_active_flag(false);
 
-        // Step 5: Start transaction.
-        // TODO: send message to start transaction on the backend.
-
-        // Step 6: Let old version be db’s version.
+        // Step 10.5: Let didThrow be the result of
+        // firing a version change event named upgradeneeded
+        // at request with old version and version.
         let old_version = connection.version();
-
-        // Step 7: Set the version of db to version.
-        // This change is considered part of the transaction,
-        // and so if the transaction is aborted, this change is reverted.
-        // TODO: unblock.
-        transaction.upgrade_db_version(version);
-
-        // Step 8: Queue a task to run these steps:
-        let this = Trusted::new(self);
-        let connection = Trusted::new(connection);
-        let trusted_transaction = Trusted::new(&*transaction);
-        global.task_manager().database_access_task_source().queue(
-            task!(send_upgradeneeded_notification: move || {
-                let this = this.root();
-                let txn = trusted_transaction.root();
-                let conn = connection.root();
-                let global = this.global();
-                let cx = GlobalScope::get_cx();
-
-                // Step 8.1
-                let _ac = enter_realm(&*conn);
-                rooted!(in(*cx) let mut connection_val = UndefinedValue());
-                conn.safe_to_jsval(cx, connection_val.handle_mut(), CanGc::note());
-                this.idbrequest.set_result(connection_val.handle());
-
-                // Step 8.2
-                this.idbrequest.set_transaction(&txn);
-
-                // Step 8.3
-                this.idbrequest.set_ready_state_done();
-
-                let event = IDBVersionChangeEvent::new(
-                    &global,
-                    Atom::from("upgradeneeded"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    old_version,
-                    Some(version),
-                    CanGc::note(),
-                );
-
-                // Step 8.4
-                txn.set_active_flag(true);
-                // Step 8.5
-                let _did_throw = event.upcast::<Event>().fire(this.upcast(), CanGc::note());
-                // FIXME:(rasviitanen) Handle throw (Step 8.5)
-                // https://www.w3.org/TR/IndexedDB-2/#run-an-upgrade-transaction
-                // Step 8.6
-                txn.set_active_flag(false);
-
-                // Wait for the upgrade transaction to finish; its completion
-                // handler will now dispatch the open request's "success" event
-                // after all other queued request success events.
-                txn.wait();
-            }),
+        let event = IDBVersionChangeEvent::new(
+            &global,
+            Atom::from("upgradeneeded"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            old_version,
+            Some(version),
+            CanGc::note(),
         );
+        let _did_throw = event.upcast::<Event>().fire(self.upcast(), CanGc::note());
 
-        // Step 9: Starts and waits for the transaction to finish
-        transaction.wait();
+        // Step 10.6: If transaction’s state is active, then:
+        if transaction.is_active() {
+            // Step 10.6.1: Set transaction’s state to inactive.
+            transaction.set_active_flag(false);
+
+            // Step 10.6.2: If didThrow is true,
+            // run abort a transaction with transaction
+            // and a newly created "AbortError" DOMException.
+            // TODO: implement.
+        }
     }
 
     pub fn set_result(&self, result: HandleValue) {

@@ -288,6 +288,62 @@ impl IndexedDBManager {
         self.databases.get_mut(&idb_description)
     }
 
+    /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
+    /// To upgrade a database with connection (a connection),
+    /// a new version, and a request, run these steps:
+    /// TODO: connection and request.
+    fn upgrade_database(
+        &mut self,
+        idb_description: IndexedDBDescription,
+        new_version: u64,
+        task_sender: &IpcSender<OpenDatabaseResult>,
+    ) {
+        // Step 1: Let db be connection’s database.
+        // TODO: connection.
+        let db = self
+            .databases
+            .get_mut(&idb_description)
+            .expect("Db should have been opened.");
+
+        // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
+        // Step 3: Set transaction’s scope to connection’s object store set.
+        // Step 4: Set db’s upgrade transaction to transaction.
+        // Step 5: Set transaction’s state to inactive.
+        // Step 6: Start transaction.
+        // TODO: implement transactions and their lifecyle.
+
+        // Step 7: Let old version be db’s version.
+        // Note: done in script.
+
+        // Step 8: Set db’s version to version.
+        // This change is considered part of the transaction,
+        // and so if the transaction is aborted, this change is reverted.
+        // TODO: wrap in transaction.
+        db.set_version(new_version)
+            .expect("Setting the version should not fail");
+
+        // Step 9: Set request’s processed flag to true.
+        // TODO: implement requests.
+
+        // Step 10: Queue a database task to run these steps:
+        let (sender, receiver) = ipc::channel().unwrap();
+        if task_sender
+            .send(OpenDatabaseResult::Upgrade {
+                version: new_version,
+                sender,
+            })
+            .is_err()
+        {
+            error!("Couldn't queue task for indexeddb upgrade event.");
+        }
+
+        // Step 11: Wait for transaction to finish.
+        // TODO: track transaction state asynchronously.
+        if receiver.recv().is_err() {
+            debug!("Script exit during indexeddb upgrade.");
+        }
+    }
+
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     fn open_database(
         &mut self,
@@ -339,7 +395,9 @@ impl IndexedDBManager {
         // return a newly created "VersionError" DOMException
         // and abort these steps.
         if version < db_version {
-            sender.send(OpenDatabaseResult::VersionError);
+            if sender.send(OpenDatabaseResult::VersionError).is_err() {
+                debug!("Script exit during indexeddb database open");
+            }
             return;
         }
 
@@ -349,7 +407,26 @@ impl IndexedDBManager {
 
         // Step 10: If db’s version is less than version, then:
         // TODO: run the upgrade transaction here.
-        let upgraded = if db_version < version { true } else { false };
+        let upgraded = if db_version < version {
+            // Step 10.1: Let openConnections be the set of all connections,
+            // except connection, associated with db.
+            // Step 10.2: For each entry of openConnections
+            // that does not have its close pending flag set to true,
+            // queue a database task to fire a version change event
+            // named versionchange at entry with db’s version and version.
+            // Step 10.3: Wait for all of the events to be fired.
+            // Step 10.4: If any of the connections in openConnections are still not closed,
+            // queue a database task to fire a version change event named blocked
+            // at request with db’s version and version.
+            // Step 10.5: Wait until all connections in openConnections are closed.
+            // TODO: implement connections.
+
+            // Step 10.6: Run upgrade a database using connection, version and request.
+            self.upgrade_database(idb_description, version, &sender);
+            true
+        } else {
+            false
+        };
 
         // Step 11:
         if sender
