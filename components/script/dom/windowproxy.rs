@@ -571,23 +571,42 @@ impl WindowProxy {
             } else {
                 target_window.as_global_scope().get_referrer()
             };
+            // Propagate CSP list from opener to new document
+            let csp_list = existing_document.get_csp_list();
+            target_document.set_csp_list(csp_list);
+
             // Step 15.5 Otherwise, navigate targetNavigable to urlRecord using sourceDocument,
             // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
             // FIXME: referrerPolicy may not be used properly here. exceptionsEnabled not used.
-            let referrer_policy = target_document.get_referrer_policy();
-            let pipeline_id = target_window.pipeline_id();
-            let secure = target_window.as_global_scope().is_secure_context();
-            let load_data = LoadData::new(
+            let mut load_data = LoadData::new(
                 LoadOrigin::Script(existing_document.origin().immutable().clone()),
                 url,
-                Some(pipeline_id),
+                Some(target_window.pipeline_id()),
                 referrer,
-                referrer_policy,
-                Some(secure),
+                target_document.get_referrer_policy(),
+                Some(target_window.as_global_scope().is_secure_context()),
                 Some(target_document.insecure_requests_policy()),
                 has_trustworthy_ancestor_origin,
                 target_document.creation_sandboxing_flag_set_considering_parent_iframe(),
             );
+
+            // Handle javascript: URLs specially to report CSP violations to the source window
+            // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
+            if load_data.url.scheme() == "javascript" {
+                let existing_global = existing_document.global();
+
+                // Check CSP and report violations to the source (existing) window
+                if !ScriptThread::can_navigate_to_javascript_url(
+                    &existing_global,
+                    &mut load_data,
+                    None,
+                    can_gc,
+                ) {
+                    // CSP blocked the navigation, don't proceed
+                    return Ok(target_document.browsing_context());
+                }
+            }
+
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace
             } else {

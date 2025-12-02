@@ -624,9 +624,8 @@ impl ScriptThread {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>
-    pub(crate) fn navigate_to_javascript_url(
+    pub(crate) fn can_navigate_to_javascript_url(
         global: &GlobalScope,
-        containing_global: &GlobalScope,
         load_data: &mut LoadData,
         container: Option<&Element>,
         can_gc: CanGc,
@@ -644,6 +643,20 @@ impl ScriptThread {
             .get_csp_list()
             .should_navigation_request_be_blocked(global, load_data, container, can_gc)
         {
+            return false;
+        }
+
+        true
+    }
+
+    pub(crate) fn navigate_to_javascript_url(
+        global: &GlobalScope,
+        containing_global: &GlobalScope,
+        load_data: &mut LoadData,
+        container: Option<&Element>,
+        can_gc: CanGc,
+    ) -> bool {
+        if !Self::can_navigate_to_javascript_url(global, load_data, container, can_gc) {
             return false;
         }
 
