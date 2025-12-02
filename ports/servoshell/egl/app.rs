@@ -10,9 +10,9 @@ use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey
 use log::{info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::{
-    AlertResponse, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel,
-    DevicePoint, DeviceVector2D, EmbedderControl, EmbedderControlId, EventLoopWaker, ImeEvent,
-    InputEvent, KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel, DevicePoint,
+    DeviceVector2D, EmbedderControl, EmbedderControlId, EventLoopWaker, ImeEvent, InputEvent,
+    KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Opts, Preferences, RefreshDriver,
     RenderingContext, ScreenGeometry, Scroll, Servo, ServoBuilder, SimpleDialog, TouchEvent,
     TouchEventType, TouchId, WebView, WebViewId, WindowRenderingContext, convert_rect_to_css_pixel,
@@ -297,7 +297,7 @@ impl App {
             current_can_go_forward: Default::default(),
             current_load_status: Default::default(),
         });
-        state.create_window(platform_window.clone(), initial_url);
+        state.open_window(platform_window.clone(), initial_url);
 
         Rc::new(Self {
             state,

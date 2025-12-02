@@ -9,10 +9,12 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
+use log::warn;
 use servo::protocol_handler::ProtocolRegistry;
 use servo::{
     EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
 };
+use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
@@ -23,10 +25,10 @@ use super::{headed_window, headless_window};
 use crate::desktop::event_loop::ServoShellEventLoop;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
-use crate::parser::get_default_url;
+use crate::parser::{get_default_url, location_bar_input_to_url};
 use crate::prefs::ServoShellPreferences;
-use crate::running_app_state::RunningAppState;
-use crate::window::PlatformWindow;
+use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
+use crate::window::{PlatformWindow, ServoShellWindow};
 
 pub(crate) enum AppState {
     Initializing,
@@ -102,8 +104,9 @@ impl App {
             .protocol_registry(protocol_registry)
             .event_loop_waker(self.waker.clone());
 
-        let platform_window =
-            self.create_platform_window(self.initial_url.clone(), active_event_loop);
+        let url = self.initial_url.as_url().clone();
+        let platform_window = self.create_platform_window(url, active_event_loop);
+
         #[cfg(feature = "webxr")]
         let servo_builder =
             servo_builder.webxr_registry(super::webxr::XrDiscoveryWebXrRegistry::new_boxed(
@@ -120,14 +123,14 @@ impl App {
             self.servoshell_preferences.clone(),
             self.waker.clone(),
         ));
-        running_state.create_window(platform_window, self.initial_url.as_url().clone());
+        running_state.open_window(platform_window, self.initial_url.as_url().clone());
 
         self.state = AppState::Running(running_state);
     }
 
     fn create_platform_window(
         &self,
-        url: ServoUrl,
+        url: Url,
         active_event_loop: Option<&ActiveEventLoop>,
     ) -> Rc<dyn PlatformWindow> {
         assert_eq!(
@@ -149,16 +152,86 @@ impl App {
         )
     }
 
-    pub fn pump_servo_event_loop(&mut self) -> bool {
+    pub fn pump_servo_event_loop(&mut self, active_event_loop: Option<&ActiveEventLoop>) -> bool {
         let AppState::Running(state) = &self.state else {
             return false;
         };
+
+        state.foreach_window_and_interface_commands(|window, commands| {
+            self.handle_interface_commands_for_window(active_event_loop, state, window, commands);
+        });
 
         if !state.spin_event_loop() {
             self.state = AppState::ShuttingDown;
             return false;
         }
         true
+    }
+
+    /// Takes any events generated during `egui` updates and performs their actions.
+    fn handle_interface_commands_for_window(
+        &self,
+        active_event_loop: Option<&ActiveEventLoop>,
+        state: &Rc<RunningAppState>,
+        window: &ServoShellWindow,
+        commands: Vec<UserInterfaceCommand>,
+    ) {
+        for event in commands {
+            match event {
+                UserInterfaceCommand::Go(location) => {
+                    window.set_needs_update();
+                    let Some(url) = location_bar_input_to_url(
+                        &location.clone(),
+                        &state.servoshell_preferences.searchpage,
+                    ) else {
+                        warn!("failed to parse location");
+                        break;
+                    };
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.load(url.into_url());
+                    }
+                },
+                UserInterfaceCommand::Back => {
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.go_back(1);
+                    }
+                },
+                UserInterfaceCommand::Forward => {
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.go_forward(1);
+                    }
+                },
+                UserInterfaceCommand::Reload => {
+                    window.set_needs_update();
+                    if let Some(active_webview) = window.active_webview() {
+                        active_webview.reload();
+                    }
+                },
+                UserInterfaceCommand::ReloadAll => {
+                    for window in state.windows().values() {
+                        window.set_needs_update();
+                        for (_, webview) in window.webviews() {
+                            webview.reload();
+                        }
+                    }
+                },
+                UserInterfaceCommand::NewWebView => {
+                    window.set_needs_update();
+                    let url = Url::parse("servo:newtab").expect("Should always be able to parse");
+                    window.create_and_activate_toplevel_webview(state.clone(), url);
+                },
+                UserInterfaceCommand::CloseWebView(id) => {
+                    window.set_needs_update();
+                    window.close_webview(id);
+                },
+                UserInterfaceCommand::NewWindow => {
+                    let url = Url::parse("servo:newtab").unwrap();
+                    let platform_window =
+                        self.create_platform_window(url.clone(), active_event_loop);
+                    state.open_window(platform_window, url);
+                },
+            }
+        }
     }
 }
 
@@ -196,7 +269,7 @@ impl ApplicationHandler<AppEvent> for App {
             }
         }
 
-        if !self.pump_servo_event_loop() {
+        if !self.pump_servo_event_loop(event_loop.into()) {
             event_loop.exit();
         }
         // Block until the window gets an event
@@ -211,16 +284,12 @@ impl ApplicationHandler<AppEvent> for App {
             if let Some(window_id) = app_event.window_id() {
                 let window_id: u64 = window_id.into();
                 if let Some(window) = state.window(window_id.into()) {
-                    window.platform_window().handle_winit_app_event(
-                        state.clone(),
-                        &window,
-                        app_event,
-                    );
+                    window.platform_window().handle_winit_app_event(app_event);
                 }
             }
         }
 
-        if !self.pump_servo_event_loop() {
+        if !self.pump_servo_event_loop(event_loop.into()) {
             event_loop.exit();
         }
 

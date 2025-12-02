@@ -19,8 +19,9 @@ use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
 use log::warn;
 use servo::{
     DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
-    PrefValue, RenderingContext, ServoUrl, WebView, WebViewId,
+    RenderingContext, WebView, WebViewId,
 };
+use url::Url;
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::Window;
@@ -28,8 +29,7 @@ use winit::window::Window;
 use super::geometry::winit_position_to_euclid_point;
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
-use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
-use crate::running_app_state::RunningAppState;
+use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::ServoShellWindow;
 
 /// The user interface of a headed servoshell. Currently this is implemented via
@@ -37,7 +37,7 @@ use crate::window::ServoShellWindow;
 pub struct Gui {
     rendering_context: Rc<OffscreenRenderingContext>,
     context: EguiGlow,
-    event_queue: Vec<GuiCommand>,
+    event_queue: Vec<UserInterfaceCommand>,
     toolbar_height: Length<f32, DeviceIndependentPixel>,
 
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
@@ -62,21 +62,6 @@ pub struct Gui {
     ///
     /// These need to be cached across egui draw calls.
     favicon_textures: HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
-
-    /// Whether the user has enabled experimental preferences.
-    experimental_prefs_enabled: bool,
-}
-
-/// A command received via the user interacting with the user interface.
-pub enum GuiCommand {
-    /// Go button clicked.
-    Go(String),
-    Back,
-    Forward,
-    Reload,
-    ReloadAll,
-    NewWebView,
-    CloseWebView(WebViewId),
 }
 
 fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
@@ -90,6 +75,9 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
 
 impl Drop for Gui {
     fn drop(&mut self) {
+        self.rendering_context
+            .make_current()
+            .expect("Could not make window RenderingContext current");
         self.context.destroy();
     }
 }
@@ -100,10 +88,11 @@ impl Gui {
         event_loop: &ActiveEventLoop,
         event_loop_proxy: EventLoopProxy<AppEvent>,
         rendering_context: Rc<OffscreenRenderingContext>,
-        initial_url: ServoUrl,
-        preferences: &ServoShellPreferences,
+        initial_url: Url,
     ) -> Self {
-        #[allow(clippy::arc_with_non_send_sync)]
+        rendering_context
+            .make_current()
+            .expect("Could not make window RenderingContext current");
         let mut context = EguiGlow::new(
             event_loop,
             rendering_context.glow_gl_api(),
@@ -140,11 +129,10 @@ impl Gui {
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
-            experimental_prefs_enabled: preferences.experimental_prefs_enabled,
         }
     }
 
-    pub(crate) fn take_commands(&mut self) -> Vec<GuiCommand> {
+    pub(crate) fn take_user_interface_commands(&mut self) -> Vec<UserInterfaceCommand> {
         std::mem::take(&mut self.event_queue)
     }
 
@@ -169,7 +157,7 @@ impl Gui {
                 button: MouseButton::Forward,
                 ..
             } => {
-                self.event_queue.push(GuiCommand::Forward);
+                self.event_queue.push(UserInterfaceCommand::Forward);
                 true
             },
             WindowEvent::MouseInput {
@@ -177,7 +165,7 @@ impl Gui {
                 button: MouseButton::Back,
                 ..
             } => {
-                self.event_queue.push(GuiCommand::Back);
+                self.event_queue.push(UserInterfaceCommand::Back);
                 true
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
@@ -206,14 +194,14 @@ impl Gui {
             .min_size(Vec2 { x: 20.0, y: 20.0 })
     }
 
-    /// Draws a browser tab, checking for clicks and queues appropriate [`GuiCommand`]s.
+    /// Draws a browser tab, checking for clicks and queues appropriate [`UserInterfaceCommand`]s.
     /// Using a custom widget here would've been nice, but it doesn't seem as though egui
     /// supports that, so we arrange multiple Widgets in a way that they look connected.
     fn browser_tab(
         ui: &mut egui::Ui,
         window: &ServoShellWindow,
         webview: WebView,
-        event_queue: &mut Vec<GuiCommand>,
+        event_queue: &mut Vec<UserInterfaceCommand>,
         favicon_texture: Option<egui::load::SizedTexture>,
     ) {
         let label = match (webview.page_title(), webview.url()) {
@@ -276,7 +264,7 @@ impl Gui {
                 info
             });
             if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
-                event_queue.push(GuiCommand::CloseWebView(webview.id()))
+                event_queue.push(UserInterfaceCommand::CloseWebView(webview.id()))
             } else if !active && tab.clicked() {
                 window.activate_webview(webview.id());
             }
@@ -299,6 +287,9 @@ impl Gui {
         window: &ServoShellWindow,
         headed_window: &headed_window::Window,
     ) {
+        self.rendering_context
+            .make_current()
+            .expect("Could not make RenderingContext current");
         let Self {
             rendering_context,
             context,
@@ -333,7 +324,8 @@ impl Gui {
                                 info
                             });
                             if back_button.clicked() {
-                                event_queue.push(GuiCommand::Back);
+                                *location_dirty = false;
+                                event_queue.push(UserInterfaceCommand::Back);
                             }
 
                             let forward_button =
@@ -344,7 +336,8 @@ impl Gui {
                                 info
                             });
                             if forward_button.clicked() {
-                                event_queue.push(GuiCommand::Forward);
+                                *location_dirty = false;
+                                event_queue.push(UserInterfaceCommand::Forward);
                             }
 
                             match self.load_status {
@@ -367,7 +360,8 @@ impl Gui {
                                         info
                                     });
                                     if reload_button.clicked() {
-                                        event_queue.push(GuiCommand::Reload);
+                                        *location_dirty = false;
+                                        event_queue.push(UserInterfaceCommand::Reload);
                                     }
                                 },
                             }
@@ -377,23 +371,23 @@ impl Gui {
                                 ui.available_size(),
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
+                                    let mut experimental_preferences_enabled =
+                                        state.experimental_preferences_enabled();
                                     let prefs_toggle = ui
-                                        .toggle_value(&mut self.experimental_prefs_enabled, "☢")
+                                        .toggle_value(&mut experimental_preferences_enabled, "☢")
                                         .on_hover_text("Enable experimental prefs");
                                     prefs_toggle.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
                                         info.label = Some("Enable experimental preferences".into());
-                                        info.selected = Some(self.experimental_prefs_enabled);
+                                        info.selected = Some(experimental_preferences_enabled);
                                         info
                                     });
                                     if prefs_toggle.clicked() {
-                                        let enable = self.experimental_prefs_enabled;
-                                        for pref in EXPERIMENTAL_PREFS {
-                                            state
-                                                .servo()
-                                                .set_preference(pref, PrefValue::Bool(enable));
-                                        }
-                                        event_queue.push(GuiCommand::ReloadAll);
+                                        state.set_experimental_preferences_enabled(
+                                            experimental_preferences_enabled,
+                                        );
+                                        *location_dirty = false;
+                                        event_queue.push(UserInterfaceCommand::ReloadAll);
                                     }
 
                                     let location_id = egui::Id::new("location_input");
@@ -436,7 +430,8 @@ impl Gui {
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
-                                        event_queue.push(GuiCommand::Go(location.clone()));
+                                        event_queue
+                                            .push(UserInterfaceCommand::Go(location.clone()));
                                     }
                                 },
                             );
@@ -457,6 +452,7 @@ impl Gui {
                                     .copied();
                                 Self::browser_tab(ui, window, webview, event_queue, favicon);
                             }
+
                             let new_tab_button = ui.add(Gui::toolbar_button("+"));
                             new_tab_button.widget_info(|| {
                                 let mut info = WidgetInfo::new(WidgetType::Button);
@@ -464,7 +460,17 @@ impl Gui {
                                 info
                             });
                             if new_tab_button.clicked() {
-                                event_queue.push(GuiCommand::NewWebView);
+                                event_queue.push(UserInterfaceCommand::NewWebView);
+                            }
+
+                            let new_window_button = ui.add(Gui::toolbar_button("⊞"));
+                            new_window_button.widget_info(|| {
+                                let mut info = WidgetInfo::new(WidgetType::Button);
+                                info.label = Some("New window".into());
+                                info
+                            });
+                            if new_window_button.clicked() {
+                                event_queue.push(UserInterfaceCommand::NewWindow);
                             }
                         },
                     );
@@ -526,6 +532,9 @@ impl Gui {
     /// Paint the GUI, as of the last update.
     pub(crate) fn paint(&mut self, window: &Window) {
         self.rendering_context
+            .make_current()
+            .expect("Could not make RenderingContext current");
+        self.rendering_context
             .parent_context()
             .prepare_for_rendering();
         self.context.paint(window);
@@ -552,17 +561,21 @@ impl Gui {
         }
     }
 
-    pub(crate) fn update_location_dirty(&mut self, dirty: bool) {
-        self.location_dirty = dirty;
-    }
-
     fn update_load_status(&mut self, window: &ServoShellWindow) -> bool {
         let state_status = window
             .active_webview()
             .map(|webview| webview.load_status())
             .unwrap_or(LoadStatus::Complete);
         let old_status = std::mem::replace(&mut self.load_status, state_status);
-        old_status != self.load_status
+        let status_changed = old_status != self.load_status;
+
+        // When the load status changes, we want the new changes to the URL to start
+        // being reflected in the location bar.
+        if status_changed {
+            self.location_dirty = false;
+        }
+
+        status_changed
     }
 
     fn update_status_text(&mut self, window: &ServoShellWindow) -> bool {
@@ -590,8 +603,8 @@ impl Gui {
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        self.update_location_in_toolbar(window) |
-            self.update_load_status(window) |
+        self.update_load_status(window) |
+            self.update_location_in_toolbar(window) |
             self.update_status_text(window) |
             self.update_can_go_back_and_forward(window)
     }

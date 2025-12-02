@@ -14,7 +14,7 @@ use servo::{
 };
 use url::Url;
 
-use crate::running_app_state::{RunningAppState, WebViewCollection};
+use crate::running_app_state::{RunningAppState, UserInterfaceCommand, WebViewCollection};
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
@@ -100,7 +100,7 @@ impl ServoShellWindow {
         self.platform_window()
             .rendering_context()
             .make_current()
-            .unwrap();
+            .expect("Could not make PlatformWindow RenderingContext current");
         webview.paint();
         self.platform_window().rendering_context().present();
     }
@@ -126,6 +126,7 @@ impl ServoShellWindow {
         self.needs_repaint.set(true)
     }
 
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
     pub(crate) fn schedule_close(&self) {
         self.close_scheduled.set(true)
     }
@@ -281,6 +282,7 @@ pub(crate) trait PlatformWindow {
     /// Request that the `Window` rebuild its user interface, if it has one. This should
     /// not repaint, but should prepare the user interface for painting when it is
     /// actually requested.
+    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
     fn rebuild_user_interface(&self, _: &RunningAppState, _: &ServoShellWindow) {}
     /// Inform the `Window` that the state of a `WebView` has changed and that it should
     /// do an incremental update of user interface state. Returns `true` if the user
@@ -307,12 +309,9 @@ pub(crate) trait PlatformWindow {
     /// TODO: This should be handled internally in the winit window if possible so that it
     /// makes more sense when we are mixing headed and headless windows.
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]
-    fn handle_winit_app_event(
-        &self,
-        _: Rc<RunningAppState>,
-        _: &ServoShellWindow,
-        _: crate::desktop::event_loop::AppEvent,
-    ) {
+    fn handle_winit_app_event(&self, _: crate::desktop::event_loop::AppEvent) {}
+    fn take_user_interface_commands(&self) -> Vec<UserInterfaceCommand> {
+        Default::default()
     }
     /// Request that the window redraw itself. It is up to the window to do this
     /// once the windowing system is ready. If this is a headless window, the redraw
