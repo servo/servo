@@ -9,7 +9,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_bindings::conversions::SafeToJSValConvertible;
-use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{BackendError, BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
@@ -40,10 +40,31 @@ impl OpenRequestListener {
         &self,
         name: String,
         request_version: Option<u64>,
-        db_version: u64,
+        db_version: BackendResult<u64>,
         can_gc: CanGc,
     ) -> (Fallible<DomRoot<IDBDatabase>>, bool) {
-        // Step 5-6
+        // Step 5
+        // If db is null, let db be a new database with name name, version 0 (zero), and with no object stores.
+        // If this fails for any reason, return an appropriate error
+        // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
+        let db_version = match db_version {
+            Ok(version) => version,
+            Err(err) => {
+                let dom_error = match err {
+                    BackendError::QuotaExceeded => Error::QuotaExceeded {
+                        quota: None,
+                        requested: None,
+                    },
+                    BackendError::DbErr(message) => Error::Operation(Some(message)),
+                    BackendError::DbNotFound | BackendError::StoreNotFound => {
+                        Error::Operation(None)
+                    },
+                };
+                return (Err(dom_error), false);
+            },
+        };
+
+        // Step 6
         let request_version = match request_version {
             Some(v) => v,
             None => {

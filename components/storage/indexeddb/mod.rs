@@ -14,6 +14,7 @@ use std::thread;
 use base::threadpool::ThreadPool;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use log::{debug, warn};
+use rusqlite::ErrorCode;
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -301,7 +302,7 @@ impl IndexedDBManager {
                 }
                 let _ = sender.send(Ok(()));
             },
-            SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
+            SyncOperation::OpenDatabase(sender, origin, db_name, _version) => {
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
@@ -309,23 +310,45 @@ impl IndexedDBManager {
 
                 let idb_base_dir = self.idb_base_dir.as_path();
 
-                let version = version.unwrap_or(0);
-
                 match self.databases.entry(idb_description.clone()) {
                     Entry::Vacant(e) => {
-                        let db = IndexedDBEnvironment::new(
-                            SqliteEngine::new(
-                                idb_base_dir,
-                                &idb_description,
-                                self.thread_pool.clone(),
-                            )
-                            .expect("Failed to create sqlite engine"),
-                        );
-                        let _ = sender.send(db.version().unwrap_or(version));
-                        e.insert(db);
+                        match SqliteEngine::new(
+                            idb_base_dir,
+                            &idb_description,
+                            self.thread_pool.clone(),
+                        ) {
+                            Ok(engine) => {
+                                let db = IndexedDBEnvironment::new(engine);
+                                match db.version() {
+                                    Ok(db_version) => {
+                                        let _ = sender.send(Ok(db_version));
+                                        e.insert(db);
+                                    },
+                                    Err(err) => {
+                                        let _ = sender.send(Err(BackendError::from(err)));
+                                    },
+                                }
+                            },
+                            Err(err) => {
+                                // https://www.w3.org/TR/IndexedDB-2/#open-a-database
+                                // Step 5
+                                // If db is null, let db be a new database with name name, version 0 (zero), and with no object stores.
+                                // If this fails for any reason, return an appropriate error
+                                // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
+                                let backend_error = match &err {
+                                    rusqlite::Error::SqliteFailure(failure, _)
+                                        if failure.code == ErrorCode::DiskFull =>
+                                    {
+                                        BackendError::QuotaExceeded
+                                    },
+                                    _ => BackendError::DbErr(format!("{err:?}")),
+                                };
+                                let _ = sender.send(Err(backend_error));
+                            },
+                        }
                     },
                     Entry::Occupied(db) => {
-                        let _ = sender.send(db.get().version().unwrap_or(version));
+                        let _ = sender.send(db.get().version().map_err(BackendError::from));
                     },
                 }
             },
