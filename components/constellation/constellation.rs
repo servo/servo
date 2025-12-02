@@ -763,12 +763,8 @@ where
     }
 
     fn clean_up_finished_script_event_loops(&mut self) {
-        self.event_loop_join_handles.retain(|join_handle| {
-            if join_handle.is_finished() {
-                println!("cleaning");
-            }
-            !join_handle.is_finished()
-        });
+        self.event_loop_join_handles
+            .retain(|join_handle| !join_handle.is_finished());
         self.event_loops
             .retain(|event_loop| event_loop.upgrade().is_some());
     }
