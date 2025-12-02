@@ -332,7 +332,7 @@ pub(crate) struct Window {
     /// A handle for communicating messages to the bluetooth thread.
     #[no_trace]
     #[cfg(feature = "bluetooth")]
-    bluetooth_thread: IpcSender<BluetoothRequest>,
+    bluetooth_thread: GenericSender<BluetoothRequest>,
 
     #[cfg(feature = "bluetooth")]
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
@@ -627,7 +627,7 @@ impl Window {
     }
 
     #[cfg(feature = "bluetooth")]
-    pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    pub(crate) fn bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
 
@@ -3420,7 +3420,7 @@ impl Window {
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
-        #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
+        #[cfg(feature = "bluetooth")] bluetooth_thread: GenericSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

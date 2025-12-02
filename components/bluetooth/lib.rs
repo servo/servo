@@ -19,7 +19,7 @@ use std::string::String;
 use std::thread;
 use std::time::Duration;
 
-use base::generic_channel;
+use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
 use bitflags::bitflags;
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
@@ -32,7 +32,6 @@ use bluetooth_traits::{
     BluetoothServiceMsg, GATTType,
 };
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::warn;
 use rand::{self, Rng};
 use servo_config::pref;
@@ -75,9 +74,9 @@ pub trait BluetoothThreadFactory {
     fn new(embedder_proxy: EmbedderProxy) -> Self;
 }
 
-impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
-    fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
-        let (sender, receiver) = ipc::channel().unwrap();
+impl BluetoothThreadFactory for GenericSender<BluetoothRequest> {
+    fn new(embedder_proxy: EmbedderProxy) -> GenericSender<BluetoothRequest> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let adapter = if pref!(dom_bluetooth_enabled) {
             BluetoothAdapter::new()
         } else {
@@ -199,7 +198,7 @@ fn is_mock_adapter(adapter: &BluetoothAdapter) -> bool {
 }
 
 pub struct BluetoothManager {
-    receiver: IpcReceiver<BluetoothRequest>,
+    receiver: GenericReceiver<BluetoothRequest>,
     adapter: Option<BluetoothAdapter>,
     address_to_id: HashMap<String, String>,
     service_to_device: HashMap<String, String>,
@@ -215,7 +214,7 @@ pub struct BluetoothManager {
 
 impl BluetoothManager {
     pub fn new(
-        receiver: IpcReceiver<BluetoothRequest>,
+        receiver: GenericReceiver<BluetoothRequest>,
         adapter: Option<BluetoothAdapter>,
         embedder_proxy: EmbedderProxy,
     ) -> BluetoothManager {

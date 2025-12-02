@@ -6,12 +6,12 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use base::generic_channel::GenericSender;
 use bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
     BluetoothServiceMsg,
 };
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 
 use crate::conversions::Convert;
@@ -197,7 +197,7 @@ impl BluetoothDevice {
         bt_descriptor
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 

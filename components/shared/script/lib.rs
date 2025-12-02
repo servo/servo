@@ -355,7 +355,7 @@ pub struct InitialScriptState {
     pub storage_threads: StorageThreads,
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
-    pub bluetooth_sender: IpcSender<BluetoothRequest>,
+    pub bluetooth_sender: GenericSender<BluetoothRequest>,
     /// A channel to the time profiler thread.
     pub time_profiler_sender: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.

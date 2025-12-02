@@ -362,7 +362,7 @@ pub struct Constellation<STF, SWF> {
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
     #[cfg(feature = "bluetooth")]
-    pub(crate) bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
+    pub(crate) bluetooth_ipc_sender: GenericSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
@@ -518,7 +518,7 @@ pub struct InitialConstellationState {
 
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
-    pub bluetooth_thread: IpcSender<BluetoothRequest>,
+    pub bluetooth_thread: GenericSender<BluetoothRequest>,
 
     /// A proxy to the `SystemFontService` which manages the list of system fonts.
     pub system_font_service: Arc<SystemFontServiceProxy>,
