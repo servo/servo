@@ -5,12 +5,12 @@
 use std::collections::HashMap;
 use std::str;
 
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
-use ipc_channel::ipc::IpcSender;
 use js::conversions::jsstr_to_string;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
@@ -48,7 +48,7 @@ use crate::script_runtime::{CanGc, IntroductionType};
 pub(crate) fn handle_evaluate_js(
     global: &GlobalScope,
     eval: String,
-    reply: IpcSender<EvaluateJSReply>,
+    reply: GenericSender<EvaluateJSReply>,
     can_gc: CanGc,
 ) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
@@ -100,7 +100,7 @@ pub(crate) fn handle_evaluate_js(
 pub(crate) fn handle_get_root_node(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Option<NodeInfo>>,
+    reply: GenericSender<Option<NodeInfo>>,
     can_gc: CanGc,
 ) {
     let info = documents
@@ -112,7 +112,7 @@ pub(crate) fn handle_get_root_node(
 pub(crate) fn handle_get_document_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
-    reply: IpcSender<Option<NodeInfo>>,
+    reply: GenericSender<Option<NodeInfo>>,
     can_gc: CanGc,
 ) {
     let info = documents
@@ -139,7 +139,7 @@ pub(crate) fn handle_get_children(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Option<Vec<NodeInfo>>>,
+    reply: GenericSender<Option<Vec<NodeInfo>>>,
     can_gc: CanGc,
 ) {
     match find_node_by_unique_id(documents, pipeline, &node_id) {
@@ -195,7 +195,7 @@ pub(crate) fn handle_get_attribute_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Option<Vec<NodeStyle>>>,
+    reply: GenericSender<Option<Vec<NodeStyle>>>,
     can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
@@ -231,7 +231,7 @@ pub(crate) fn handle_get_stylesheet_style(
     node_id: String,
     selector: String,
     stylesheet: usize,
-    reply: IpcSender<Option<Vec<NodeStyle>>>,
+    reply: GenericSender<Option<Vec<NodeStyle>>>,
     can_gc: CanGc,
 ) {
     let msg = (|| {
@@ -276,7 +276,7 @@ pub(crate) fn handle_get_selectors(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Option<Vec<(String, usize)>>>,
+    reply: GenericSender<Option<Vec<(String, usize)>>>,
     can_gc: CanGc,
 ) {
     let msg = (|| {
@@ -313,7 +313,7 @@ pub(crate) fn handle_get_computed_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Option<Vec<NodeStyle>>>,
+    reply: GenericSender<Option<Vec<NodeStyle>>>,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -344,7 +344,7 @@ pub(crate) fn handle_get_layout(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Option<ComputedNodeLayout>>,
+    reply: GenericSender<Option<ComputedNodeLayout>>,
     can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
@@ -394,7 +394,7 @@ pub(crate) fn handle_get_xpath(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<String>,
+    reply: GenericSender<String>,
 ) {
     let Some(node) = find_node_by_unique_id(documents, pipeline, &node_id) else {
         return reply.send(Default::default()).unwrap();
@@ -542,7 +542,7 @@ pub(crate) fn handle_set_timeline_markers(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     marker_types: Vec<TimelineMarkerType>,
-    reply: IpcSender<Option<TimelineMarker>>,
+    reply: GenericSender<Option<TimelineMarker>>,
 ) {
     match documents.find_window(pipeline) {
         None => reply.send(None).unwrap(),
@@ -570,7 +570,7 @@ pub(crate) fn handle_request_animation_frame(
     }
 }
 
-pub(crate) fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
+pub(crate) fn handle_get_css_database(reply: GenericSender<HashMap<String, CssDatabaseProperty>>) {
     let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
         .iter()
         .map(|l| {

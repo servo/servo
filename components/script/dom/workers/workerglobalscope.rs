@@ -12,16 +12,15 @@ use std::time::Duration;
 
 use base::IpcSend;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{PipelineId, PipelineNamespace};
 use constellation_traits::WorkerGlobalScopeInit;
 use content_security_policy::CspList;
-use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use ipc_channel::ipc::IpcSender;
 use js::jsapi::JS_AddInterruptCallback;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
@@ -94,7 +93,7 @@ use crate::timers::{IsInterval, TimerCallback};
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
-    devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
 ) -> WorkerGlobalScopeInit {
     WorkerGlobalScopeInit {
@@ -288,16 +287,16 @@ pub(crate) struct WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
     policy_container: DomRefCell<PolicyContainer>,
 
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    #[ignore_malloc_size_of = "Defined in base"]
     #[no_trace]
     /// A `Sender` for sending messages to devtools. This is unused but is stored here to
     /// keep the channel alive.
-    _devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    _devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
 
-    #[ignore_malloc_size_of = "Defined in crossbeam"]
+    #[ignore_malloc_size_of = "Defined in base"]
     #[no_trace]
     /// A `Receiver` for receiving messages from devtools.
-    devtools_receiver: Option<Receiver<DevtoolScriptControlMsg>>,
+    devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
 
     #[no_trace]
     navigation_start: CrossProcessInstant,
@@ -332,7 +331,7 @@ impl WorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
-        devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,
@@ -430,7 +429,7 @@ impl WorkerGlobalScope {
             .prepare_for_new_child()
     }
 
-    pub(crate) fn devtools_receiver(&self) -> Option<&Receiver<DevtoolScriptControlMsg>> {
+    pub(crate) fn devtools_receiver(&self) -> Option<&RoutedReceiver<DevtoolScriptControlMsg>> {
         self.devtools_receiver.as_ref()
     }
 

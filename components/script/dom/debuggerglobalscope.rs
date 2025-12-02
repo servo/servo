@@ -5,13 +5,13 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 
+use base::generic_channel::{GenericCallback, GenericSender};
 use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
-use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
@@ -45,10 +45,10 @@ use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 pub(crate) struct DebuggerGlobalScope {
     global_scope: GlobalScope,
     #[no_trace]
-    devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
+    devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
     #[no_trace]
     get_possible_breakpoints_result_sender:
-        RefCell<Option<IpcSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
+        RefCell<Option<GenericSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -62,8 +62,8 @@ impl DebuggerGlobalScope {
     #[expect(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn new(
         debugger_pipeline_id: PipelineId,
-        script_to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-        devtools_to_script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_to_devtools_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -169,7 +169,7 @@ impl DebuggerGlobalScope {
         &self,
         can_gc: CanGc,
         spidermonkey_id: u32,
-        result_sender: IpcSender<Vec<devtools_traits::RecommendedBreakpointLocation>>,
+        result_sender: GenericSender<Vec<devtools_traits::RecommendedBreakpointLocation>>,
     ) {
         assert!(
             self.get_possible_breakpoints_result_sender

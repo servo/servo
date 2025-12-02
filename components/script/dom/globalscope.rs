@@ -17,6 +17,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base::IpcSend;
+use base::generic_channel::GenericCallback;
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
@@ -33,7 +34,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
 use fonts::FontContext;
 use indexmap::IndexSet;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
@@ -259,7 +260,7 @@ pub(crate) struct GlobalScope {
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
-    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the memory profiler.
     #[ignore_malloc_size_of = "channels are hard"]
@@ -763,7 +764,7 @@ impl GlobalScope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
         pipeline_id: PipelineId,
-        devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -2487,7 +2488,7 @@ impl GlobalScope {
 
     /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages
     /// to the devtools thread when available.
-    pub(crate) fn devtools_chan(&self) -> Option<&IpcSender<ScriptToDevtoolsControlMsg>> {
+    pub(crate) fn devtools_chan(&self) -> Option<&GenericCallback<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.as_ref()
     }
 
