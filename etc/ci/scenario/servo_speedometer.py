@@ -17,6 +17,7 @@ from typing import Any
 import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from hdc_py.hdc import HarmonyDevicePerfMode
 
 
 def speedometer_to_bmf(speedometer: dict[str, Any], bmf_output: str, profile: str | None = None) -> None:
@@ -82,39 +83,40 @@ def run():
     time.sleep(5)
 
     common_function_for_servo_test.setup_hdc_forward()
-    driver = common_function_for_servo_test.create_driver()
-    if driver is not None:
-        try:
-            start_button = driver.find_element(By.CLASS_NAME, "start-tests-button")
-            time.sleep(10)
-            print("Clicking start button")
-            start_button.click()
-            print("Waiting for speedometer run to finish")
-            for i in range(10):
-                time.sleep(30)
-                finished = driver.execute_script("return globalThis.benchmarkClient._hasResults")
-                if finished:
-                    break
-            print("Getting benchmark result")
-            result = driver.execute_script("return globalThis.benchmarkClient._formattedJSONResult({modern: true})")
-            speedometer_json = json.loads(result)
-
-            print("Writing to file")
+    with HarmonyDevicePerfMode():
+        driver = common_function_for_servo_test.create_driver()
+        if driver is not None:
             try:
-                speedometer_to_bmf(speedometer_json, "speedometer.json", sys.argv[1])
-                return True
-            except IndexError:
-                print("You need to supply a profile")
+                start_button = driver.find_element(By.CLASS_NAME, "start-tests-button")
+                time.sleep(10)
+                print("Clicking start button")
+                start_button.click()
+                print("Waiting for speedometer run to finish")
+                for i in range(10):
+                    time.sleep(30)
+                    finished = driver.execute_script("return globalThis.benchmarkClient._hasResults")
+                    if finished:
+                        break
+                print("Getting benchmark result")
+                result = driver.execute_script("return globalThis.benchmarkClient._formattedJSONResult({modern: true})")
+                speedometer_json = json.loads(result)
+
+                print("Writing to file")
+                try:
+                    speedometer_to_bmf(speedometer_json, "speedometer.json", sys.argv[1])
+                    return True
+                except IndexError:
+                    print("You need to supply a profile")
+                    return False
+            except json.decoder.JSONDecodeError:
+                print("Error: Failed to parse speedometer results")
                 return False
-        except json.decoder.JSONDecodeError:
-            print("Error: Failed to parse speedometer results")
-            return False
-        except NoSuchElementException:
-            print("Could not find element, we probably did not load the page.")
-            return False
-        except Exception as e:  # noqa: E722
-            print(f"Exception caught: {e}")
-            return False
+            except NoSuchElementException:
+                print("Could not find element, we probably did not load the page.")
+                return False
+            except Exception as e:  # noqa: E722
+                print(f"Exception caught: {e}")
+                return False
 
 
 if __name__ == "__main__":

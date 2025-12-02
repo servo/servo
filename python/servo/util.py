@@ -289,6 +289,7 @@ class HarmonyDeviceConnector:
 class HarmonyDevicePerfMode:
     """
     A helper class to enter performance mode using python `with` syntax.
+    Currently does wake up the screen.
     """
 
     def __init__(self, screen_timeout_seconds: int = 600, hdc: Optional[HarmonyDeviceConnector] = None) -> None:
