@@ -385,6 +385,7 @@ impl Image {
     }
 }
 
+/// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
