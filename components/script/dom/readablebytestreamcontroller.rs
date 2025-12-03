@@ -15,7 +15,6 @@ use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::cell::DomRefCell;
-use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::Dom;
 use super::readablestreambyobreader::ReadIntoRequest;
@@ -273,7 +272,7 @@ impl ReadableByteStreamController {
         cx: SafeJSContext,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
-        options: &ReadableStreamBYOBReaderReadOptions,
+        min: u64,
         can_gc: CanGc,
     ) {
         // Let stream be controller.[[stream]].
@@ -297,7 +296,7 @@ impl ReadableByteStreamController {
         }
 
         // Let minimumFill be min × elementSize.
-        let minimum_fill = options.min * element_size;
+        let minimum_fill = min * element_size;
 
         // Assert: minimumFill ≥ 0 and minimumFill ≤ view.[[ByteLength]].
         assert!(minimum_fill <= (view.byte_length() as u64));
@@ -1458,7 +1457,7 @@ impl ReadableByteStreamController {
         can_gc: CanGc,
     ) -> Fallible<()> {
         // Let cloneResult be CloneArrayBuffer(buffer, byteOffset, byteLength, %ArrayBuffer%).
-        if let Some(clone_result) =
+        if let Ok(clone_result) =
             buffer.clone_array_buffer(cx, byte_offset as usize, byte_length as usize)
         {
             // Perform ! ReadableByteStreamControllerEnqueueChunkToQueue
@@ -1564,7 +1563,7 @@ impl ReadableByteStreamController {
         view.get_buffer_view_value(cx, view_value.handle_mut());
         result.set(*view_value);
 
-        read_request.chunk_steps(result, can_gc);
+        read_request.chunk_steps(result, &self.global(), can_gc);
 
         Ok(())
     }
@@ -1944,6 +1943,10 @@ impl ReadableByteStreamController {
 
     pub(crate) fn get_queue_total_size(&self) -> f64 {
         self.queue_total_size.get()
+    }
+
+    pub(crate) fn get_pending_pull_intos_size(&self) -> usize {
+        self.pending_pull_intos.borrow().len()
     }
 }
 
