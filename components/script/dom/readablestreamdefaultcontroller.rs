@@ -631,7 +631,7 @@ impl ReadableStreamDefaultController {
                 self.call_pull_if_needed(can_gc);
             }
             // Perform readRequest’s chunk steps, given chunk.
-            read_request.chunk_steps(result, can_gc);
+            read_request.chunk_steps(result, &self.global(), can_gc);
         } else {
             // Perform ! ReadableStreamAddReadRequest(stream, readRequest).
             stream.add_read_request(read_request);

@@ -14,6 +14,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::MutNullableDom;
+use super::byteteereadrequest::ByteTeeReadRequest;
 use super::readablebytestreamcontroller::ReadableByteStreamController;
 use super::types::ReadableStreamDefaultController;
 use crate::dom::bindings::cell::DomRefCell;
@@ -102,11 +103,19 @@ pub(crate) enum ReadRequest {
         #[conditional_malloc_size_of]
         bytes: Rc<DomRefCell<Vec<u8>>>,
     },
+    ByteTee {
+        byte_tee_read_request: Dom<ByteTeeReadRequest>,
+    },
 }
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
-    pub(crate) fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>, can_gc: CanGc) {
+    pub(crate) fn chunk_steps(
+        &self,
+        chunk: RootedTraceableBox<Heap<JSVal>>,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) {
         match self {
             ReadRequest::Read(promise) => {
                 // chunk steps, given chunk
@@ -121,6 +130,11 @@ impl ReadRequest {
             },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.enqueue_chunk_steps(chunk);
+            },
+            ReadRequest::ByteTee {
+                byte_tee_read_request,
+            } => {
+                byte_tee_read_request.enqueue_chunk_steps(global, chunk);
             },
             ReadRequest::ReadLoop {
                 success_steps: _,
@@ -187,6 +201,13 @@ impl ReadRequest {
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.close_steps(can_gc);
             },
+            ReadRequest::ByteTee {
+                byte_tee_read_request,
+            } => {
+                byte_tee_read_request
+                    .close_steps(can_gc)
+                    .expect("ByteTeeReadRequest close steps should not fail");
+            },
             ReadRequest::ReadLoop {
                 success_steps,
                 reader,
@@ -214,6 +235,11 @@ impl ReadRequest {
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();
             },
+            ReadRequest::ByteTee {
+                byte_tee_read_request,
+            } => {
+                byte_tee_read_request.error_steps();
+            },
             ReadRequest::ReadLoop {
                 failure_steps,
                 reader,
@@ -232,10 +258,50 @@ impl ReadRequest {
 }
 
 /// The rejection handler for
+/// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ByteTeeClosedPromiseRejectionHandler {
+    branch_1_controller: Dom<ReadableByteStreamController>,
+    branch_2_controller: Dom<ReadableByteStreamController>,
+    #[conditional_malloc_size_of]
+    canceled_1: Rc<Cell<bool>>,
+    #[conditional_malloc_size_of]
+    canceled_2: Rc<Cell<bool>>,
+    #[conditional_malloc_size_of]
+    cancel_promise: Rc<Promise>,
+    #[conditional_malloc_size_of]
+    reader_version: Rc<Cell<u64>>,
+    expected_version: u64,
+}
+
+impl Callback for ByteTeeClosedPromiseRejectionHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
+    /// Upon rejection of reader.[[closedPromise]] with reason r,
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        // If thisReader is not the current `reader`, return.
+        if self.reader_version.get() != self.expected_version {
+            return;
+        }
+
+        // Perform ! ReadableByteStreamControllerError(branch1.[[controller]], r).
+        self.branch_1_controller.error(v, can_gc);
+
+        // Perform ! ReadableByteStreamControllerError(branch2.[[controller]], r).
+        self.branch_2_controller.error(v, can_gc);
+
+        // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
+        if !self.canceled_1.get() || !self.canceled_2.get() {
+            self.cancel_promise.resolve_native(&(), can_gc);
+        }
+    }
+}
+
+/// The rejection handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-tee>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-struct ClosedPromiseRejectionHandler {
+struct DefaultTeeClosedPromiseRejectionHandler {
     branch_1_controller: Dom<ReadableStreamDefaultController>,
     branch_2_controller: Dom<ReadableStreamDefaultController>,
     #[conditional_malloc_size_of]
@@ -246,17 +312,14 @@ struct ClosedPromiseRejectionHandler {
     cancel_promise: Rc<Promise>,
 }
 
-impl Callback for ClosedPromiseRejectionHandler {
-    /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
-    /// Upon rejection of `reader.closedPromise` with reason `r``,
+impl Callback for DefaultTeeClosedPromiseRejectionHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
+    /// Upon rejection of reader.[[closedPromise]] with reason r,
     fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
-        let branch_1_controller = &self.branch_1_controller;
-        let branch_2_controller = &self.branch_2_controller;
-
         // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], r).
-        branch_1_controller.error(v, can_gc);
+        self.branch_1_controller.error(v, can_gc);
         // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], r).
-        branch_2_controller.error(v, can_gc);
+        self.branch_2_controller.error(v, can_gc);
 
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
@@ -444,8 +507,50 @@ impl ReadableStreamDefaultReader {
         }
     }
 
+    /// Attach the byte-tee error handler to this reader's closedPromise.
+    /// Used by ReadableByteStreamTee.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn byte_tee_append_native_handler_to_closed_promise(
+        &self,
+        branch_1: &ReadableStream,
+        branch_2: &ReadableStream,
+        canceled_1: Rc<Cell<bool>>,
+        canceled_2: Rc<Cell<bool>>,
+        cancel_promise: Rc<Promise>,
+        reader_version: Rc<Cell<u64>>,
+        expected_version: u64,
+        can_gc: CanGc,
+    ) {
+        // Note: for byte tee we always operate on *byte controllers*.
+        let branch_1_controller = branch_1.get_byte_controller();
+        let branch_2_controller = branch_2.get_byte_controller();
+
+        let global = self.global();
+        let handler = PromiseNativeHandler::new(
+            &global,
+            None,
+            Some(Box::new(ByteTeeClosedPromiseRejectionHandler {
+                branch_1_controller: Dom::from_ref(&branch_1_controller),
+                branch_2_controller: Dom::from_ref(&branch_2_controller),
+                canceled_1,
+                canceled_2,
+                cancel_promise,
+                reader_version,
+                expected_version,
+            })),
+            can_gc,
+        );
+
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+
+        self.closed_promise
+            .borrow()
+            .append_native_handler(&handler, comp, can_gc);
+    }
+
     /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
-    pub(crate) fn append_native_handler_to_closed_promise(
+    pub(crate) fn default_tee_append_native_handler_to_closed_promise(
         &self,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,
@@ -462,7 +567,7 @@ impl ReadableStreamDefaultReader {
         let handler = PromiseNativeHandler::new(
             &global,
             None,
-            Some(Box::new(ClosedPromiseRejectionHandler {
+            Some(Box::new(DefaultTeeClosedPromiseRejectionHandler {
                 branch_1_controller: Dom::from_ref(&branch_1_controller),
                 branch_2_controller: Dom::from_ref(&branch_2_controller),
                 canceled_1,
