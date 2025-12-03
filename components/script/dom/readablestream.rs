@@ -357,6 +357,36 @@ impl Callback for PipeTo {
 }
 
 impl PipeTo {
+    fn delay_cancel_until_abort(
+        &self,
+        global: &GlobalScope,
+        source: &ReadableStream,
+        reason: SafeHandleValue,
+        abort_promise: Rc<Promise>,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Spec demands the actions list run in order, so have cancel wait
+        // for abort promise before starting (to meet abort.any.js expectations).
+        let delayed_cancel = Promise::new(global, can_gc);
+        let stored_reason = Heap::default();
+        stored_reason.set(reason.get());
+        let handler = StartCancelAfterAbortHandler {
+            source: Dom::from_ref(source),
+            reason: stored_reason,
+            result: delayed_cancel.clone(),
+            triggered: Rc::new(Cell::new(false)),
+        };
+        let native_handler = PromiseNativeHandler::new(
+            global,
+            Some(Box::new(handler.clone())),
+            Some(Box::new(handler)),
+            can_gc,
+        );
+        abort_promise.append_native_handler(&native_handler, realm, can_gc);
+        delayed_cancel
+    }
+
     /// Setting shutdown error in a way that ensures it isn't
     /// moved after it has been set.
     fn set_shutdown_error(&self, error: SafeHandleValue) {
@@ -717,7 +747,11 @@ impl PipeTo {
                 error.set(self.abort_reason.get());
 
                 // Let actions be an empty ordered set.
+                // Ordered set of actions from
+                // https://streams.spec.whatwg.org/#readable-stream-pipe-to
+                // (abort must settle before cancel so its rejection wins).
                 let mut actions = vec![];
+                let mut abort_action_promise = None;
 
                 // If preventAbort is false, append the following action to actions:
                 if !self.prevent_abort {
@@ -734,6 +768,7 @@ impl PipeTo {
                         // Otherwise, return a promise resolved with undefined.
                         Promise::new_resolved(global, cx, (), can_gc)
                     };
+                    abort_action_promise = Some(promise.clone());
                     actions.push(promise);
                 }
 
@@ -744,7 +779,18 @@ impl PipeTo {
                     // If source.[[state]] is "readable",
                     let promise = if source.is_readable() {
                         // return ! ReadableStreamCancel(source, error).
-                        source.cancel(cx, global, error.handle(), can_gc)
+                        if let Some(abort_promise) = abort_action_promise.clone() {
+                            self.delay_cancel_until_abort(
+                                global,
+                                &source,
+                                error.handle(),
+                                abort_promise,
+                                realm,
+                                can_gc,
+                            )
+                        } else {
+                            source.cancel(cx, global, error.handle(), can_gc)
+                        }
                     } else {
                         // Otherwise, return a promise resolved with undefined.
                         Promise::new_resolved(global, cx, (), can_gc)
@@ -835,6 +881,87 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         self.result.reject_native(&v, can_gc);
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct ForwardPromiseFulfillmentHandler {
+    #[conditional_malloc_size_of]
+    target: Rc<Promise>,
+}
+
+impl Callback for ForwardPromiseFulfillmentHandler {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        self.target.resolve(cx, v, can_gc);
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct ForwardPromiseRejectionHandler {
+    #[conditional_malloc_size_of]
+    target: Rc<Promise>,
+}
+
+impl Callback for ForwardPromiseRejectionHandler {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        self.target.reject(cx, v, can_gc);
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct StartCancelAfterAbortHandler {
+    source: Dom<ReadableStream>,
+    #[ignore_malloc_size_of = "mozjs"]
+    reason: Heap<JSVal>,
+    #[conditional_malloc_size_of]
+    result: Rc<Promise>,
+    #[conditional_malloc_size_of]
+    triggered: Rc<Cell<bool>>,
+}
+
+impl Clone for StartCancelAfterAbortHandler {
+    fn clone(&self) -> Self {
+        let reason = {
+            let heap = Heap::default();
+            heap.set(self.reason.get());
+            heap
+        };
+        StartCancelAfterAbortHandler {
+            source: self.source.clone(),
+            reason,
+            result: self.result.clone(),
+            triggered: self.triggered.clone(),
+        }
+    }
+}
+
+impl Callback for StartCancelAfterAbortHandler {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        if self.triggered.replace(true) {
+            return;
+        }
+
+        let global = GlobalScope::from_safe_context(cx, realm);
+        let source = self.source.as_rooted();
+        rooted!(in(*cx) let mut reason = UndefinedValue());
+        reason.set(self.reason.get());
+        let cancel_promise = if source.is_readable() {
+            source.cancel(cx, &global, reason.handle(), can_gc)
+        } else {
+            Promise::new_resolved(&global, cx, (), can_gc)
+        };
+
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(Box::new(ForwardPromiseFulfillmentHandler {
+                target: self.result.clone(),
+            })),
+            Some(Box::new(ForwardPromiseRejectionHandler {
+                target: self.result.clone(),
+            })),
+            can_gc,
+        );
+        cancel_promise.append_native_handler(&handler, realm, can_gc);
     }
 }
 
