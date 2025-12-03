@@ -210,7 +210,7 @@ struct IndexedDBManager {
     thread_pool: Arc<ThreadPool>,
     /// Tracking pending upgrade transactions.
     /// TODO: move into general transaction lifecyle.
-    pending_upgrades: HashMap<u64, PendingUpgrade>,
+    pending_upgrades: HashMap<(String, u64), PendingUpgrade>,
 }
 
 impl IndexedDBManager {
@@ -269,8 +269,8 @@ impl IndexedDBManager {
                         db.start_transaction(txn, None);
                     }
                 },
-                IndexedDBThreadMsg::OpenTransactionInactive(transaction_id) => {
-                    self.handle_open_transaction_inactive(transaction_id);
+                IndexedDBThreadMsg::OpenTransactionInactive { name, transaction } => {
+                    self.handle_open_transaction_inactive(name, transaction);
                 },
             }
         }
@@ -278,9 +278,9 @@ impl IndexedDBManager {
 
     /// Handle when an open transaction becomes inactive.
     /// TODO: transaction lifecyle.
-    fn handle_open_transaction_inactive(&mut self, transaction_id: u64) {
-        let Some(pending_upgrade) = self.pending_upgrades.remove(&transaction_id) else {
-            error!("IndexedDB: OpenTransactionInactive received for non-existent pending upgrade.");
+    fn handle_open_transaction_inactive(&mut self, name: String, transaction: u64) {
+        let Some(pending_upgrade) = self.pending_upgrades.remove(&(name, transaction)) else {
+            error!("OpenTransactionInactive received for non-existent pending upgrade.");
             return;
         };
         if pending_upgrade
@@ -329,6 +329,7 @@ impl IndexedDBManager {
         &mut self,
         idb_description: IndexedDBDescription,
         new_version: u64,
+        db_name: String,
         sender: IpcSender<OpenDatabaseResult>,
     ) {
         // Step 1: Let db be connection’s database.
@@ -339,8 +340,8 @@ impl IndexedDBManager {
             .expect("Db should have been opened.");
 
         // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
-        db.serial_number_counter += 1;
         let transaction_id = db.serial_number_counter;
+        db.serial_number_counter += 1;
 
         // Step 3: Set transaction’s scope to connection’s object store set.
         // Step 4: Set db’s upgrade transaction to transaction.
@@ -362,7 +363,6 @@ impl IndexedDBManager {
         // TODO: implement requests.
 
         // Step 10: Queue a database task to run these steps:
-        let (sender, receiver) = ipc::channel().unwrap();
         if sender
             .send(OpenDatabaseResult::Upgrade {
                 version: new_version,
@@ -375,7 +375,7 @@ impl IndexedDBManager {
 
         // Step 11: Wait for transaction to finish.
         self.pending_upgrades.insert(
-            transaction_id,
+            (db_name, transaction_id),
             PendingUpgrade {
                 sender,
                 db_version: new_version,
@@ -399,7 +399,7 @@ impl IndexedDBManager {
 
         let idb_description = IndexedDBDescription {
             origin,
-            name: db_name,
+            name: db_name.clone(),
         };
 
         let idb_base_dir = self.idb_base_dir.as_path();
@@ -408,7 +408,7 @@ impl IndexedDBManager {
         let db_version = match self.databases.entry(idb_description.clone()) {
             Entry::Vacant(e) => {
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
-                let db_version = version.unwrap_or(1);
+                let db_version = version.unwrap_or(0);
 
                 // Step 6: If db is null, let db be a new database
                 // with name name, version 0 (zero), and with no object stores.
@@ -460,7 +460,7 @@ impl IndexedDBManager {
             // TODO: implement connections.
 
             // Step 10.6: Run upgrade a database using connection, version and request.
-            self.upgrade_database(idb_description, version, sender);
+            self.upgrade_database(idb_description, version, db_name, sender);
             return;
         }
 

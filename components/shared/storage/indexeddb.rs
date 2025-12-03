@@ -468,7 +468,10 @@ pub enum IndexedDBThreadMsg {
         IndexedDBTxnMode,
         AsyncOperation,
     ),
-    OpenTransactionInactive(u64),
+    OpenTransactionInactive {
+        name: String,
+        transaction: u64,
+    },
 }
 
 #[cfg(test)]

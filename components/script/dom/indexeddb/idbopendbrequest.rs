@@ -190,7 +190,7 @@ impl IDBOpenDBRequest {
 
         // Step 10.4: Set transaction’s state to active.
         // TODO: message to set state of backend transaction.
-        transaction.set_active_flag(false);
+        transaction.set_active_flag(true);
 
         // Step 10.5: Let didThrow be the result of
         // firing a version change event named upgradeneeded
@@ -214,9 +214,10 @@ impl IDBOpenDBRequest {
 
             if global
                 .storage_threads()
-                .send(IndexedDBThreadMsg::OpenTransactionInactive(
-                    transaction.get_serial_number(),
-                ))
+                .send(IndexedDBThreadMsg::OpenTransactionInactive {
+                    name: connection.get_name().to_string(),
+                    transaction: transaction.get_serial_number(),
+                })
                 .is_err()
             {
                 error!("Indexeddb: Failed to send OpenTransactionInactive.");
