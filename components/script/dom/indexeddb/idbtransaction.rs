@@ -103,6 +103,26 @@ impl IDBTransaction {
         )
     }
 
+    pub fn new_with_id(
+        global: &GlobalScope,
+        connection: &IDBDatabase,
+        mode: IDBTransactionMode,
+        scope: &DOMStringList,
+        transaction_id: u64,
+        can_gc: CanGc,
+    ) -> DomRoot<IDBTransaction> {
+        reflect_dom_object(
+            Box::new(IDBTransaction::new_inherited(
+                connection,
+                mode,
+                scope,
+                transaction_id,
+            )),
+            global,
+            can_gc,
+        )
+    }
+
     // Registers a new transaction in the idb thread, and gets an unique serial number in return.
     // The serial number is used when placing requests against a transaction
     // and allows us to commit/abort transactions running in our idb thread.

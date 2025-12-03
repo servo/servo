@@ -196,11 +196,21 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 }
 
+/// Keeping track of pending upgrade transactions.
+/// TODO: move into general transaction lifecycle.
+struct PendingUpgrade {
+    sender: IpcSender<OpenDatabaseResult>,
+    db_version: u64,
+}
+
 struct IndexedDBManager {
     port: GenericReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
     thread_pool: Arc<ThreadPool>,
+    /// Tracking pending upgrade transactions.
+    /// TODO: move into general transaction lifecyle.
+    pending_upgrades: HashMap<u64, PendingUpgrade>,
 }
 
 impl IndexedDBManager {
@@ -220,6 +230,7 @@ impl IndexedDBManager {
             idb_base_dir,
             databases: HashMap::new(),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
+            pending_upgrades: Default::default(),
         }
     }
 }
@@ -258,8 +269,30 @@ impl IndexedDBManager {
                         db.start_transaction(txn, None);
                     }
                 },
+                IndexedDBThreadMsg::OpenTransactionInactive(transaction_id) => {
+                    self.handle_open_transaction_inactive(transaction_id);
+                },
             }
         }
+    }
+
+    /// Handle when an open transaction becomes inactive.
+    /// TODO: transaction lifecyle.
+    fn handle_open_transaction_inactive(&mut self, transaction_id: u64) {
+        let Some(pending_upgrade) = self.pending_upgrades.remove(&transaction_id) else {
+            error!("IndexedDB: OpenTransactionInactive received for non-existent pending upgrade.");
+            return;
+        };
+        if pending_upgrade
+            .sender
+            .send(OpenDatabaseResult::Connection {
+                version: pending_upgrade.db_version,
+                upgraded: true,
+            })
+            .is_err()
+        {
+            error!("Failed to send OpenDatabaseResult::Connection to script.");
+        };
     }
 
     fn get_database(
@@ -296,7 +329,7 @@ impl IndexedDBManager {
         &mut self,
         idb_description: IndexedDBDescription,
         new_version: u64,
-        task_sender: &IpcSender<OpenDatabaseResult>,
+        sender: IpcSender<OpenDatabaseResult>,
     ) {
         // Step 1: Let db be connection’s database.
         // TODO: connection.
@@ -306,6 +339,9 @@ impl IndexedDBManager {
             .expect("Db should have been opened.");
 
         // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
+        db.serial_number_counter += 1;
+        let transaction_id = db.serial_number_counter;
+
         // Step 3: Set transaction’s scope to connection’s object store set.
         // Step 4: Set db’s upgrade transaction to transaction.
         // Step 5: Set transaction’s state to inactive.
@@ -327,10 +363,10 @@ impl IndexedDBManager {
 
         // Step 10: Queue a database task to run these steps:
         let (sender, receiver) = ipc::channel().unwrap();
-        if task_sender
+        if sender
             .send(OpenDatabaseResult::Upgrade {
                 version: new_version,
-                sender,
+                transaction: transaction_id,
             })
             .is_err()
         {
@@ -338,10 +374,13 @@ impl IndexedDBManager {
         }
 
         // Step 11: Wait for transaction to finish.
-        // TODO: track transaction state asynchronously.
-        if receiver.recv().is_err() {
-            debug!("Script exit during indexeddb upgrade.");
-        }
+        self.pending_upgrades.insert(
+            transaction_id,
+            PendingUpgrade {
+                sender,
+                db_version: new_version,
+            },
+        );
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
@@ -406,8 +445,7 @@ impl IndexedDBManager {
         // TODO: track connections in the backend(each script `IDBDatabase` should have a matching connection).
 
         // Step 10: If db’s version is less than version, then:
-        // TODO: run the upgrade transaction here.
-        let upgraded = if db_version < version {
+        if db_version < version {
             // Step 10.1: Let openConnections be the set of all connections,
             // except connection, associated with db.
             // Step 10.2: For each entry of openConnections
@@ -422,22 +460,28 @@ impl IndexedDBManager {
             // TODO: implement connections.
 
             // Step 10.6: Run upgrade a database using connection, version and request.
-            self.upgrade_database(idb_description, version, &sender);
-            true
-        } else {
-            false
-        };
+            self.upgrade_database(idb_description, version, sender);
+            return;
+        }
 
         // Step 11:
         if sender
             .send(OpenDatabaseResult::Connection {
                 version: db_version,
-                upgraded,
+                upgraded: false,
             })
             .is_err()
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
         };
+    }
+
+    /// Returns the id of the transaction if the db exists.
+    fn register_transaction(&mut self, origin: ImmutableOrigin, db_name: String) -> Option<u64> {
+        self.get_database_mut(origin, db_name).map(|db| {
+            db.serial_number_counter += 1;
+            db.serial_number_counter
+        })
     }
 
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
@@ -560,9 +604,8 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.serial_number_counter += 1;
-                    let _ = sender.send(db.serial_number_counter);
+                if let Some(transaction_id) = self.register_transaction(origin, db_name) {
+                    let _ = sender.send(transaction_id);
                 }
             },
             SyncOperation::Exit(_) => {

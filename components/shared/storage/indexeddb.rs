@@ -329,12 +329,10 @@ pub enum OpenDatabaseResult {
         version: u64,
         upgraded: bool,
     },
-    /// An upgrade transaction for a version,
-    /// reply sender so backend blocks until transaction 
-    /// completes(TODO: remove block).
+    /// An upgrade transaction for a version started.
     Upgrade {
         version: u64,
-        sender: GenericCallback<()>,
+        transaction: u64,
     },
 }
 
@@ -470,6 +468,7 @@ pub enum IndexedDBThreadMsg {
         IndexedDBTxnMode,
         AsyncOperation,
     ),
+    OpenTransactionInactive(u64),
 }
 
 #[cfg(test)]

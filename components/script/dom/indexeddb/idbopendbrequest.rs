@@ -61,7 +61,10 @@ impl OpenRequestListener {
                 request.dispatch_success(&connection);
                 return;
             },
-            OpenDatabaseResult::Upgrade { version, sender } => {
+            OpenDatabaseResult::Upgrade {
+                version,
+                transaction,
+            } => {
                 // TODO: link with backend connection concept.
                 let connection = IDBDatabase::new(
                     &global,
@@ -69,10 +72,7 @@ impl OpenRequestListener {
                     version,
                     can_gc,
                 );
-                request.upgrade_db_version(&connection, version, can_gc);
-                if sender.send(()).is_err() {
-                    error!("Couldn't send reply to indexeddb after script upgrade workflow.");
-                }
+                request.upgrade_db_version(&connection, version, transaction, can_gc);
                 return;
             },
         };
@@ -154,17 +154,24 @@ impl IDBOpenDBRequest {
     /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
     /// Step 10: Queue a database task to run these steps:
     /// The below are the steps in the task.
-    fn upgrade_db_version(&self, connection: &IDBDatabase, version: u64, can_gc: CanGc) {
+    fn upgrade_db_version(
+        &self,
+        connection: &IDBDatabase,
+        version: u64,
+        transaction: u64,
+        can_gc: CanGc,
+    ) {
         let global = self.global();
         let cx = GlobalScope::get_cx();
 
         // Note: the transaction should link wiht one created on the backend.
         // Steps here are meant to create the corresponding webidl object.
-        let transaction = IDBTransaction::new(
+        let transaction = IDBTransaction::new_with_id(
             &global,
             connection,
             IDBTransactionMode::Versionchange,
             &connection.object_stores(),
+            transaction,
             can_gc,
         );
         connection.set_transaction(&transaction);
@@ -204,6 +211,16 @@ impl IDBOpenDBRequest {
         if transaction.is_active() {
             // Step 10.6.1: Set transaction’s state to inactive.
             transaction.set_active_flag(false);
+
+            if global
+                .storage_threads()
+                .send(IndexedDBThreadMsg::OpenTransactionInactive(
+                    transaction.get_serial_number(),
+                ))
+                .is_err()
+            {
+                error!("Indexeddb: Failed to send OpenTransactionInactive.");
+            }
 
             // Step 10.6.2: If didThrow is true,
             // run abort a transaction with transaction
