@@ -24,6 +24,10 @@ ignore = [
     "RUSTSEC-2025-0098",
     # The crate `unic-ucd-ident` is unmaintained.
     "RUSTSEC-2025-0100",
+    # The crate `rsa` is vulnerable to Marvin Attack that leaks
+    # cryptographic secret via side channel. Wait for a patch in stable
+    # release version from upstream.
+    "RUSTSEC-2023-0071",
 ]
 
 # This section is considered when running `cargo deny check licenses`
