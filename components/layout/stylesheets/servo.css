@@ -141,7 +141,6 @@ input[type="range"] {
   width: 100px;
   height: 16px;
   position: relative;
-  display: inline-block;
   cursor: pointer;
   background: none;
   border: none;

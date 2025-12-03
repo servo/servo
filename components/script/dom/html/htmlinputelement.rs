@@ -1544,13 +1544,7 @@ impl HTMLInputElement {
         let min = self.minimum().unwrap_or(0.0);
         let max = self.maximum().unwrap_or(100.0);
         let value_num = self.convert_string_to_number(&value.str()).unwrap_or(0.0);
-        let clamped_value = if value_num < min {
-            min
-        } else if value_num > max {
-            max
-        } else {
-            value_num
-        };
+        let clamped_value = value_num.clamp(min, max);
         let percent = if (max - min).abs() < f64::EPSILON {
             0.0
         } else {
@@ -1596,7 +1590,6 @@ impl HTMLInputElement {
     fn may_have_embedder_control(&self) -> bool {
         let el = self.upcast::<Element>();
         self.input_type() == InputType::Color && !el.disabled_state()
-        // TODO: Add embedder control for slider
     }
 
     fn handle_key_reaction(&self, action: KeyReaction, event: &Event, can_gc: CanGc) {
