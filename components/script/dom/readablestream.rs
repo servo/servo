@@ -359,6 +359,7 @@ impl Callback for PipeTo {
 impl PipeTo {
     fn delay_cancel_until_abort(
         &self,
+        cx: SafeJSContext,
         global: &GlobalScope,
         source: &ReadableStream,
         reason: SafeHandleValue,
@@ -369,18 +370,29 @@ impl PipeTo {
         // Spec demands the actions list run in order, so have cancel wait
         // for abort promise before starting (to meet abort.any.js expectations).
         let delayed_cancel = Promise::new(global, can_gc);
-        let stored_reason = Heap::default();
-        stored_reason.set(reason.get());
-        let handler = StartCancelAfterAbortHandler {
+        let triggered = Rc::new(Cell::new(false));
+        rooted!(in(*cx) let mut fulfillment_handler = Some(StartCancelAfterAbortHandler {
             source: Dom::from_ref(source),
-            reason: stored_reason,
+            reason: RootedTraceableBox::new(Heap::default()),
             result: delayed_cancel.clone(),
-            triggered: Rc::new(Cell::new(false)),
-        };
+            triggered: triggered.clone(),
+        }));
+        fulfillment_handler
+            .as_ref()
+            .unwrap()
+            .reason
+            .set(reason.get());
+        rooted!(in(*cx) let mut rejection_handler = Some(StartCancelAfterAbortHandler {
+            source: Dom::from_ref(source),
+            reason: RootedTraceableBox::new(Heap::default()),
+            result: delayed_cancel.clone(),
+            triggered,
+        }));
+        rejection_handler.as_ref().unwrap().reason.set(reason.get());
         let native_handler = PromiseNativeHandler::new(
             global,
-            Some(Box::new(handler.clone())),
-            Some(Box::new(handler)),
+            fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+            rejection_handler.take().map(|h| Box::new(h) as Box<_>),
             can_gc,
         );
         abort_promise.append_native_handler(&native_handler, realm, can_gc);
@@ -781,6 +793,7 @@ impl PipeTo {
                         // return ! ReadableStreamCancel(source, error).
                         if let Some(abort_promise) = abort_action_promise.clone() {
                             self.delay_cancel_until_abort(
+                                cx,
                                 global,
                                 &source,
                                 error.handle(),
@@ -908,31 +921,18 @@ impl Callback for ForwardPromiseRejectionHandler {
     }
 }
 
+impl js::gc::Rootable for StartCancelAfterAbortHandler {}
+
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartCancelAfterAbortHandler {
     source: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "mozjs"]
-    reason: Heap<JSVal>,
+    reason: RootedTraceableBox<Heap<JSVal>>,
     #[conditional_malloc_size_of]
     result: Rc<Promise>,
     #[conditional_malloc_size_of]
     triggered: Rc<Cell<bool>>,
-}
-
-impl Clone for StartCancelAfterAbortHandler {
-    fn clone(&self) -> Self {
-        let reason = {
-            let heap = Heap::default();
-            heap.set(self.reason.get());
-            heap
-        };
-        StartCancelAfterAbortHandler {
-            source: self.source.clone(),
-            reason,
-            result: self.result.clone(),
-            triggered: self.triggered.clone(),
-        }
-    }
 }
 
 impl Callback for StartCancelAfterAbortHandler {
