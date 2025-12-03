@@ -243,24 +243,29 @@ impl ByteTeeReadIntoRequest {
         }
 
         // If chunk is not undefined,
-        if chunk.is_some() && !chunk.clone().unwrap().is_undefined() {
-            let chunk = chunk.unwrap();
-            // Assert: chunk.[[ByteLength]] is 0.
-            assert_eq!(chunk.byte_length(), 0);
+        if let Some(chunk_value) = chunk {
+            if chunk_value.is_undefined() {
+                // Nothing to respond with if the provided chunk is undefined.
+                // Continue with the remaining close steps.
+            } else {
+                let chunk = chunk_value;
+                // Assert: chunk.[[ByteLength]] is 0.
+                assert_eq!(chunk.byte_length(), 0);
 
-            // If byobCanceled is false, perform !
-            // ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
-            if !byob_canceled {
-                let byob_branch_controller = self.byob_branch.get_byte_controller();
-                byob_branch_controller.respond_with_new_view(cx, chunk, can_gc)?;
-            }
+                // If byobCanceled is false, perform !
+                // ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
+                if !byob_canceled {
+                    let byob_branch_controller = self.byob_branch.get_byte_controller();
+                    byob_branch_controller.respond_with_new_view(cx, chunk, can_gc)?;
+                }
 
-            // If otherCanceled is false and otherBranch.[[controller]].[[pendingPullIntos]] is not empty,
-            // perform ! ReadableByteStreamControllerRespond(otherBranch.[[controller]], 0).
-            if !other_canceled {
-                let other_branch_controller = self.other_branch.get_byte_controller();
-                if other_branch_controller.get_pending_pull_intos_size() > 0 {
-                    other_branch_controller.respond(cx, 0, can_gc)?;
+                // If otherCanceled is false and otherBranch.[[controller]].[[pendingPullIntos]] is not empty,
+                // perform ! ReadableByteStreamControllerRespond(otherBranch.[[controller]], 0).
+                if !other_canceled {
+                    let other_branch_controller = self.other_branch.get_byte_controller();
+                    if other_branch_controller.get_pending_pull_intos_size() > 0 {
+                        other_branch_controller.respond(cx, 0, can_gc)?;
+                    }
                 }
             }
         }

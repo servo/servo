@@ -358,6 +358,7 @@ impl ReadableStreamBYOBReader {
             .expect("read into requests is empty")
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn byte_tee_append_native_handler_to_closed_promise(
         &self,
         branch_1: &ReadableStream,

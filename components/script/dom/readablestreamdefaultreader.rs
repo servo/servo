@@ -509,6 +509,7 @@ impl ReadableStreamDefaultReader {
 
     /// Attach the byte-tee error handler to this reader's closedPromise.
     /// Used by ReadableByteStreamTee.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn byte_tee_append_native_handler_to_closed_promise(
         &self,
         branch_1: &ReadableStream,

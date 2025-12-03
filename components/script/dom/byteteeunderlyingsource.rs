@@ -365,17 +365,18 @@ impl ByteTeeUnderlyingSource {
                     .get_byob_request(cx, can_gc)
                     .expect("Byob request should be set.");
 
-                // If byobRequest is null, perform pullWithDefaultReader.
-                if byob_request.is_none() {
-                    self.pull_with_default_reader(cx, &self.stream.global(), can_gc)
-                        .expect("Pull with default reader should be successful.");
-                } else {
-                    // Otherwise, perform pullWithBYOBReader, given byobRequest.[[view]] and false.
-                    let view = byob_request
-                        .expect("Byob request should be set.")
-                        .get_view();
+                match byob_request {
+                    // If byobRequest is null, perform pullWithDefaultReader.
+                    None => {
+                        self.pull_with_default_reader(cx, &self.stream.global(), can_gc)
+                            .expect("Pull with default reader should be successful.");
+                    },
+                    Some(request) => {
+                        // Otherwise, perform pullWithBYOBReader, given byobRequest.[[view]] and false.
+                        let view = request.get_view();
 
-                    self.pull_with_byob_reader(view, false, cx, &self.stream.global(), can_gc);
+                        self.pull_with_byob_reader(view, false, cx, &self.stream.global(), can_gc);
+                    },
                 }
 
                 // Return a promise resolved with undefined.
@@ -406,17 +407,17 @@ impl ByteTeeUnderlyingSource {
                     .get_byob_request(cx, can_gc)
                     .expect("Byob request should be set.");
 
-                // If byobRequest is null, perform pullWithDefaultReader.
-                if byob_request.is_none() {
-                    self.pull_with_default_reader(cx, &self.stream.global(), can_gc)
-                        .expect("Pull with default reader should be successful.");
-                } else {
-                    // Otherwise, perform pullWithBYOBReader, given byobRequest.[[view]] and true.
-                    let view = byob_request
-                        .expect("Byob request should be set.")
-                        .get_view();
+                match byob_request {
+                    None => {
+                        self.pull_with_default_reader(cx, &self.stream.global(), can_gc)
+                            .expect("Pull with default reader should be successful.");
+                    },
+                    Some(request) => {
+                        // Otherwise, perform pullWithBYOBReader, given byobRequest.[[view]] and true.
+                        let view = request.get_view();
 
-                    self.pull_with_byob_reader(view, true, cx, &self.stream.global(), can_gc);
+                        self.pull_with_byob_reader(view, true, cx, &self.stream.global(), can_gc);
+                    },
                 }
 
                 // Return a promise resolved with undefined.
