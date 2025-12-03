@@ -418,6 +418,9 @@ jobs:
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
         run: ./mach bootstrap --skip-lints --skip-nextest
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Build servo with coverage instrumentation
         run: ./mach build --locked --profile real-release --coverage
       - name: Build package for target
