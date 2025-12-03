@@ -10,7 +10,7 @@ use std::cell::Cell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::num::NonZeroU32;
-use std::sync::atomic::AtomicU32;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, LazyLock};
 
 use malloc_size_of::MallocSizeOfOps;
@@ -448,7 +448,7 @@ impl fmt::Display for PainterId {
 
 impl PainterId {
     pub fn next() -> Self {
-        Self(PAINTER_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+        Self(PAINTER_ID.fetch_add(1, Ordering::Relaxed))
     }
 }
 
@@ -490,9 +490,10 @@ thread_local!(pub static INSTALLED_SCRIPT_EVENT_LOOP_ID: Cell<Option<ScriptEvent
     Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Hash, Eq, Serialize, Deserialize, MallocSizeOf,
 )]
 pub struct ScriptEventLoopId(u32);
+
 impl ScriptEventLoopId {
     pub fn new() -> Self {
-        Self(SCRIPT_EVENT_LOOP_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+        Self(SCRIPT_EVENT_LOOP_ID.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Each script and layout thread should have the [`ScriptEventLoopId`] installed,
@@ -503,5 +504,11 @@ impl ScriptEventLoopId {
 
     pub fn installed() -> Option<Self> {
         INSTALLED_SCRIPT_EVENT_LOOP_ID.with(|tls| tls.get())
+    }
+}
+
+impl fmt::Display for ScriptEventLoopId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

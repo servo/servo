@@ -433,7 +433,7 @@ impl ScriptThreadFactory for ScriptThread {
 
         let script_thread_id = state.id;
         thread::Builder::new()
-            .name(format!("Script{script_thread_id:?}"))
+            .name(format!("Script#{script_thread_id}"))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
