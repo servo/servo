@@ -224,6 +224,7 @@ impl From<crossbeam_channel::RecvError> for ReceiveError {
     }
 }
 
+#[derive(Debug)]
 pub enum TryReceiveError {
     Empty,
     ReceiveError(ReceiveError),
@@ -333,10 +334,7 @@ where
     pub fn try_recv_timeout(&self, timeout: Duration) -> Result<T, TryReceiveError> {
         match self.0 {
             GenericReceiverVariants::Ipc(ref ipc_receiver) => {
-                ipc_receiver.try_recv_timeout(timeout).map_err(|e| {
-                    println!("E {e:?}");
-                    e.into()
-                })
+                ipc_receiver.try_recv_timeout(timeout).map_err(|e| e.into())
             },
             GenericReceiverVariants::Crossbeam(ref receiver) => {
                 match receiver.recv_timeout(timeout) {
@@ -611,9 +609,9 @@ mod single_process_channel_tests {
     #[test]
     fn test_timeout_ipc() {
         let (tx, rx) = new_generic_channel_ipc().unwrap();
-        let timeout_duration = std::time::Duration::from_secs(4);
+        let timeout_duration = std::time::Duration::from_secs(3);
         std::thread::spawn(move || {
-            std::thread::sleep(timeout_duration);
+            std::thread::sleep(timeout_duration - std::time::Duration::from_secs(1));
             assert!(tx.send(()).is_ok());
         });
         let received = rx.try_recv_timeout(timeout_duration);
@@ -623,9 +621,9 @@ mod single_process_channel_tests {
     #[test]
     fn test_timeout_crossbeam() {
         let (tx, rx) = new_generic_channel_crossbeam();
-        let timeout_duration = std::time::Duration::from_secs(4);
+        let timeout_duration = std::time::Duration::from_secs(3);
         std::thread::spawn(move || {
-            std::thread::sleep(timeout_duration);
+            std::thread::sleep(timeout_duration - std::time::Duration::from_secs(1));
             assert!(tx.send(()).is_ok());
         });
         let received = rx.try_recv_timeout(timeout_duration);
