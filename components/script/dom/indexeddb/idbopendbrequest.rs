@@ -212,21 +212,21 @@ impl IDBOpenDBRequest {
             // Step 10.6.1: Set transaction’s state to inactive.
             transaction.set_active_flag(false);
 
-            if global
-                .storage_threads()
-                .send(IndexedDBThreadMsg::OpenTransactionInactive {
-                    name: connection.get_name().to_string(),
-                    transaction: transaction.get_serial_number(),
-                })
-                .is_err()
-            {
-                error!("Indexeddb: Failed to send OpenTransactionInactive.");
-            }
-
             // Step 10.6.2: If didThrow is true,
             // run abort a transaction with transaction
             // and a newly created "AbortError" DOMException.
             // TODO: implement.
+        }
+
+        if global
+            .storage_threads()
+            .send(IndexedDBThreadMsg::OpenTransactionInactive {
+                name: connection.get_name().to_string(),
+                transaction: transaction.get_serial_number(),
+            })
+            .is_err()
+        {
+            error!("Failed to send OpenTransactionInactive.");
         }
     }
 
