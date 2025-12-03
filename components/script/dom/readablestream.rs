@@ -357,6 +357,7 @@ impl Callback for PipeTo {
 }
 
 impl PipeTo {
+    #[allow(clippy::too_many_arguments)]
     fn delay_cancel_until_abort(
         &self,
         cx: SafeJSContext,
