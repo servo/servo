@@ -1,5 +1,5 @@
 button {
-    cursor: default;
+  cursor: default;
 }
 
 button,
@@ -135,6 +135,49 @@ input[type="color"] {
   border-radius: 2px;
   background: lightgrey;
   border: 1px solid gray;
+}
+
+input[type="range"] {
+  width: 100px;
+  height: 16px;
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+input[type="range"]::-servo-range-track {
+  width: 100%;
+  height: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #ddd;
+  border-radius: 5px;
+  position: absolute;
+  cursor: pointer;
+}
+
+input[type="range"]::-servo-range-progress {
+  height: 8px;
+  background-color: #7a3;
+  border-radius: 5px;
+  position: absolute;
+  cursor: pointer;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+input[type="range"]::-servo-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: gray;
+  border: 2px solid white;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
 }
 
 td[align="left"]    { text-align: left; }

@@ -161,10 +161,19 @@ struct InputTypeColorShadowTree {
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct InputTypeRangeShadowTree {
+    range_progress: Dom<Element>,
+    range_thumb: Dom<Element>,
+    range_track: Dom<Element>,
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[non_exhaustive]
 enum ShadowTree {
     Text(InputTypeTextShadowTree),
     Color(InputTypeColorShadowTree),
+    Range(InputTypeRangeShadowTree),
     // TODO: Add shadow trees for other input types (range etc) here
 }
 
@@ -1337,6 +1346,96 @@ impl HTMLInputElement {
         .expect("UA shadow tree was not created")
     }
 
+    fn create_range_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let shadow_root = self.shadow_root(can_gc);
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc); // Clear all the child inside.
+
+        let range_progress = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        let range_thumb = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        let range_track = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(range_track.upcast::<Node>(), can_gc)
+            .unwrap();
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(range_progress.upcast::<Node>(), can_gc)
+            .unwrap();
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(range_thumb.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        range_progress
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoRangeProgress);
+        range_thumb
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoRangeThumb);
+        range_track
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoRangeTrack);
+
+        let _ = self
+            .shadow_tree
+            .borrow_mut()
+            .insert(ShadowTree::Range(InputTypeRangeShadowTree {
+                range_progress: range_progress.as_traced(),
+                range_thumb: range_thumb.as_traced(),
+                range_track: range_track.as_traced(),
+            }));
+    }
+
+    fn range_shadow_tree(&self, can_gc: CanGc) -> Ref<'_, InputTypeRangeShadowTree> {
+        let has_range_shadow_tree = self
+            .shadow_tree
+            .borrow()
+            .as_ref()
+            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::Range(_)));
+        if !has_range_shadow_tree {
+            self.create_range_shadow_tree(can_gc);
+        }
+
+        let shadow_tree = self.shadow_tree.borrow();
+        Ref::filter_map(shadow_tree, |shadow_tree| {
+            let shadow_tree = shadow_tree.as_ref()?;
+            match shadow_tree {
+                ShadowTree::Range(range_tree) => Some(range_tree),
+                _ => None,
+            }
+        })
+        .ok()
+        .expect("UA shadow tree was not created")
+    }
+
     /// Should this input type render as a basic text UA widget.
     // TODO(#38251): Ideally, the most basic shadow dom should cover only `text`, `password`, `url`, `tel`,
     //               and `email`. But we are leaving the others textual inputs here while tackling them one
@@ -1350,7 +1449,6 @@ impl HTMLInputElement {
                 InputType::Month |
                 InputType::Number |
                 InputType::Password |
-                InputType::Range |
                 InputType::Search |
                 InputType::Tel |
                 InputType::Text |
@@ -1420,10 +1518,77 @@ impl HTMLInputElement {
         );
     }
 
+    fn update_range_shadow_tree(&self, can_gc: CanGc) {
+        // Should only do this for `type=range` input.
+        debug_assert_eq!(self.input_type(), InputType::Range);
+
+        if self.owner_document().has_script_or_layout_blocker() {
+            let input_element = DomRoot::from_ref(self);
+            self.owner_document().add_delayed_task(task!(
+                ThumbPositionUpdate: |input_element: DomRoot<HTMLInputElement>| {
+                    input_element.update_range_position(CanGc::note());
+                }
+            ));
+            return;
+        }
+        self.update_range_position(can_gc);
+    }
+
+    fn update_range_position(&self, can_gc: CanGc) {
+        let mut value = self.Value();
+        if value.is_valid_floating_point_number_string() {
+            value.make_ascii_lowercase();
+        } else {
+            value = DOMString::from("0");
+        }
+        let min = self.minimum().unwrap_or(0.0);
+        let max = self.maximum().unwrap_or(100.0);
+        let value_num = self.convert_string_to_number(&value.str()).unwrap_or(0.0);
+        let clamped_value = if value_num < min {
+            min
+        } else if value_num > max {
+            max
+        } else {
+            value_num
+        };
+        let percent = if (max - min).abs() < f64::EPSILON {
+            0.0
+        } else {
+            (clamped_value - min) / (max - min) * 100.0
+        };
+        let range_shadow_tree: Ref<'_, InputTypeRangeShadowTree> = self.range_shadow_tree(can_gc);
+
+        let track_rect_width = range_shadow_tree.range_track.upcast::<Node>().client_rect().width() as f64;
+        let thumb_rect_width = range_shadow_tree
+            .range_thumb
+            .upcast::<Node>()
+            .border_box()
+            .unwrap_or_default()
+            .width()
+            .to_f64_px();
+        let thumb_style = format!(
+            "left: {}px",
+            percent / 100.0 * (track_rect_width - thumb_rect_width) +
+                thumb_rect_width / 2.0
+        );
+        let progress_style = format!("width: {percent}%;");
+        range_shadow_tree.range_thumb.set_string_attribute(
+            &local_name!("style"),
+            thumb_style.into(),
+            can_gc,
+        );
+        range_shadow_tree.range_progress.set_string_attribute(
+            &local_name!("style"),
+            progress_style.into(),
+            can_gc,
+        );
+    }
+
     fn update_shadow_tree(&self, can_gc: CanGc) {
         match self.input_type() {
             _ if self.is_textual_widget() => self.update_textual_shadow_tree(can_gc),
             InputType::Color => self.update_color_shadow_tree(can_gc),
+            InputType::Range => self.update_range_shadow_tree(can_gc),
             _ => {},
         }
     }
@@ -1431,6 +1596,7 @@ impl HTMLInputElement {
     fn may_have_embedder_control(&self) -> bool {
         let el = self.upcast::<Element>();
         self.input_type() == InputType::Color && !el.disabled_state()
+        // TODO: Add embedder control for slider
     }
 
     fn handle_key_reaction(&self, action: KeyReaction, event: &Event, can_gc: CanGc) {

@@ -3627,6 +3627,10 @@ impl Document {
             task.run_box();
         }
     }
+    /// Returns whether there are any active script or layout blockers.
+    pub(crate) fn has_script_or_layout_blocker(&self) -> bool {
+        self.script_and_layout_blockers.get() > 0
+    }
 
     /// Enqueue a task to run as soon as any JS and layout blockers are removed.
     pub(crate) fn add_delayed_task<T: 'static + NonSendTaskBox>(&self, task: T) {
