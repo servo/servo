@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::thread;
 
+use base::generic_channel::{self, GenericReceiver, GenericReceiverSet, GenericSelectionResult};
 use base::id::CookieStoreId;
 use base::threadpool::ThreadPool;
 use cookie::Cookie;
@@ -19,7 +20,7 @@ use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -130,9 +131,9 @@ pub fn new_core_resource_thread(
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
 ) -> (CoreResourceThread, CoreResourceThread) {
-    let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
-    let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
-    let (report_chan, report_port) = ipc::channel().unwrap();
+    let (public_setup_chan, public_setup_port) = generic_channel::channel().unwrap();
+    let (private_setup_chan, private_setup_port) = generic_channel::channel().unwrap();
+    let (report_chan, report_port) = generic_channel::channel().unwrap();
 
     thread::Builder::new()
         .name("ResourceManager".to_owned())
@@ -166,7 +167,7 @@ pub fn new_core_resource_thread(
                 },
                 String::from("network-cache-reporter"),
                 report_chan,
-                |report_chan| report_chan,
+                CoreResourceMsg::CollectMemoryReport,
             );
         })
         .expect("Thread spawning failed");
@@ -236,9 +237,9 @@ fn create_http_states(
 impl ResourceChannelManager {
     fn start(
         &mut self,
-        public_receiver: IpcReceiver<CoreResourceMsg>,
-        private_receiver: IpcReceiver<CoreResourceMsg>,
-        memory_reporter: IpcReceiver<ReportsChan>,
+        public_receiver: GenericReceiver<CoreResourceMsg>,
+        private_receiver: GenericReceiver<CoreResourceMsg>,
+        memory_reporter: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
         embedder_proxy: EmbedderProxy,
     ) {
@@ -249,36 +250,41 @@ impl ResourceChannelManager {
             embedder_proxy,
         );
 
-        let mut rx_set = IpcReceiverSet::new().unwrap();
-        let private_id = rx_set.add(private_receiver).unwrap();
-        let public_id = rx_set.add(public_receiver).unwrap();
-        let reporter_id = rx_set.add(memory_reporter).unwrap();
+        let mut rx_set = GenericReceiverSet::new();
+        let private_id = rx_set.add(private_receiver);
+        let public_id = rx_set.add(public_receiver);
+        let reporter_id = rx_set.add(memory_reporter);
 
         loop {
-            for receiver in rx_set.select().unwrap().into_iter() {
+            for received in rx_set.select().unwrap().into_iter() {
                 // Handles case where profiler thread shuts down before resource thread.
-                if let ipc::IpcSelectionResult::ChannelClosed(..) = receiver {
-                    continue;
-                }
-                let (id, data) = receiver.unwrap();
-                // If message is memory report, get the size_of of public and private http caches
-                if id == reporter_id {
-                    if let Ok(msg) = data.to() {
-                        self.process_report(msg, &public_http_state, &private_http_state);
-                        continue;
-                    }
-                } else {
-                    let group = if id == private_id {
-                        &private_http_state
-                    } else {
-                        assert_eq!(id, public_id);
-                        &public_http_state
-                    };
-                    if let Ok(msg) = data.to() {
-                        if !self.process_msg(msg, group, Arc::clone(&protocols)) {
-                            return;
+                match received {
+                    GenericSelectionResult::ChannelClosed(_) => continue,
+                    GenericSelectionResult::Error => log::error!("Found selection error"),
+                    GenericSelectionResult::MessageReceived(id, msg) => {
+                        if id == reporter_id {
+                            if let CoreResourceMsg::CollectMemoryReport(report_chan) = msg {
+                                self.process_report(
+                                    report_chan,
+                                    &public_http_state,
+                                    &private_http_state,
+                                );
+                                continue;
+                            } else {
+                                log::error!("memory reporter should only send CollectMemoryReport");
+                            }
+                        } else {
+                            let group = if id == private_id {
+                                &private_http_state
+                            } else {
+                                assert_eq!(id, public_id);
+                                &public_http_state
+                            };
+                            if !self.process_msg(msg, group, Arc::clone(&protocols)) {
+                                return;
+                            }
                         }
-                    }
+                    },
                 }
             }
         }
@@ -576,6 +582,8 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
                 return false;
             },
+            // Ignore this message as we handle it only in the reporter chan
+            CoreResourceMsg::CollectMemoryReport(_) => {},
         }
         true
     }
