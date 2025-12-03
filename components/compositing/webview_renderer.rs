@@ -785,6 +785,9 @@ impl WebViewRenderer {
                 scroll_result.external_scroll_id,
                 scroll_result.hit_test_result.clone(),
             );
+        } else {
+            // No scroll happened, so if we were flinging, stop the fling.
+            self.touch_handler.stop_fling_if_needed();
         }
 
         (self.set_pinch_zoom(new_pinch_zoom), scroll_result)
