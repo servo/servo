@@ -83,6 +83,8 @@ impl IDBTransaction {
         }
     }
 
+    /// Does a blocking call to get an id from the backend.
+    /// TODO: remove in favor of something like `new_with_id` below.
     pub fn new(
         global: &GlobalScope,
         connection: &IDBDatabase,
@@ -103,7 +105,10 @@ impl IDBTransaction {
         )
     }
 
-    pub fn new_with_id(
+    /// Create a new WebIDL object,
+    /// based on an existign transaction on the backend.
+    /// The two are linked via the `transaction_id`.
+    pub(crate) fn new_with_id(
         global: &GlobalScope,
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
