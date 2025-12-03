@@ -9,8 +9,8 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{GenericSend, GenericSender, SendResult};
 use base::id::{CookieStoreId, HistoryStateId};
-use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -18,11 +18,12 @@ use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader}
 use http::{Error as HttpError, HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
-use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
+use profile_traits::mem::ReportsChan;
 use rand::{RngCore, rng};
 use request::RequestId;
 use rustc_hash::FxHashMap;
@@ -413,7 +414,7 @@ pub trait AsyncRuntime: Send {
 }
 
 /// Handle to a resource thread
-pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
+pub type CoreResourceThread = GenericSender<CoreResourceMsg>;
 
 // FIXME: Originally we will construct an Arc<ResourceThread> from ResourceThread
 // in script_thread to avoid some performance pitfall. Now we decide to deal with
@@ -443,12 +444,12 @@ impl ResourceThreads {
     }
 }
 
-impl IpcSend<CoreResourceMsg> for ResourceThreads {
-    fn send(&self, msg: CoreResourceMsg) -> IpcSendResult {
-        self.core_thread.send(msg).map_err(IpcError::Bincode)
+impl GenericSend<CoreResourceMsg> for ResourceThreads {
+    fn send(&self, msg: CoreResourceMsg) -> SendResult {
+        self.core_thread.send(msg)
     }
 
-    fn sender(&self) -> IpcSender<CoreResourceMsg> {
+    fn sender(&self) -> GenericSender<CoreResourceMsg> {
         self.core_thread.clone()
     }
 }
@@ -542,6 +543,7 @@ pub enum CoreResourceMsg {
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
     Exit(IpcSender<()>),
+    CollectMemoryReport(ReportsChan),
 }
 
 // FIXME: https://github.com/servo/servo/issues/34591
