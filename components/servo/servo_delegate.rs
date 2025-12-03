@@ -4,7 +4,6 @@
 use base::generic_channel;
 use embedder_traits::Notification;
 
-use crate::Servo;
 use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
 
 #[derive(Debug)]
@@ -21,13 +20,13 @@ pub enum ServoError {
 
 pub trait ServoDelegate {
     /// Notification that Servo has received a major error.
-    fn notify_error(&self, _servo: &Servo, _error: ServoError) {}
+    fn notify_error(&self, _error: ServoError) {}
     /// Report that the DevTools server has started on the given `port`. The `token` that
     /// be used to bypass the permission prompt from the DevTools client.
-    fn notify_devtools_server_started(&self, _servo: &Servo, _port: u16, _token: String) {}
+    fn notify_devtools_server_started(&self, _port: u16, _token: String) {}
     /// Request a DevTools connection from a DevTools client. Typically an embedder application
     /// will show a permissions prompt when this happens to confirm a connection is allowed.
-    fn request_devtools_connection(&self, _servo: &Servo, _request: AllowOrDenyRequest) {}
+    fn request_devtools_connection(&self, _request: AllowOrDenyRequest) {}
     /// Triggered when Servo will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling
     /// [`WebResourceLoad::intercept`]. If not handled, the load will continue as normal.

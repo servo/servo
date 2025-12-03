@@ -7,6 +7,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
+use std::time::Duration;
 
 use background_hang_monitor::HangMonitorRegister;
 use base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
@@ -155,6 +156,488 @@ struct ServoInner {
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
     _js_engine_setup: Option<JSEngineSetup>,
+}
+
+impl ServoInner {
+    fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
+        self.webviews
+            .borrow()
+            .get(&id)
+            .and_then(WebView::from_weak_handle)
+    }
+
+    fn spin_event_loop(&self) -> bool {
+        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+            return false;
+        }
+
+        {
+            let compositor = self.compositor.borrow();
+            let mut messages = Vec::new();
+            while let Ok(message) = compositor.receiver().try_recv() {
+                match message {
+                    Ok(message) => messages.push(message),
+                    Err(error) => {
+                        warn!("Router deserialization error: {error}. Ignoring this CompositorMsg.")
+                    },
+                }
+            }
+            compositor.handle_messages(messages);
+        }
+
+        // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
+        while let Ok(message) = self.embedder_receiver.try_recv() {
+            self.handle_embedder_message(message);
+
+            if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+                break;
+            }
+        }
+
+        if self.constellation_proxy.disconnected() {
+            self.delegate
+                .borrow()
+                .notify_error(ServoError::LostConnectionWithBackend);
+        }
+
+        self.compositor.borrow_mut().perform_updates();
+        self.send_new_frame_ready_messages();
+        self.handle_delegate_errors();
+        self.clean_up_destroyed_webview_handles();
+
+        if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
+            return false;
+        }
+
+        true
+    }
+
+    fn send_new_frame_ready_messages(&self) {
+        let webviews_needing_repaint = self.compositor.borrow().webviews_needing_repaint();
+
+        for webview in webviews_needing_repaint
+            .iter()
+            .filter_map(|webview_id| self.get_webview_handle(*webview_id))
+        {
+            webview.delegate().notify_new_frame_ready(webview);
+        }
+    }
+
+    fn handle_delegate_errors(&self) {
+        while let Some(error) = self.servo_errors.try_recv() {
+            self.delegate.borrow().notify_error(error);
+        }
+    }
+
+    fn clean_up_destroyed_webview_handles(&self) {
+        // Remove any webview handles that have been destroyed and would not be upgradable.
+        // Note that `retain` is O(capacity) because it visits empty buckets, so it may be worth
+        // calling `shrink_to_fit` at some point to deal with cases where a long-running Servo
+        // instance goes from many open webviews to only a few.
+        self.webviews
+            .borrow_mut()
+            .retain(|_webview_id, webview| webview.strong_count() > 0);
+    }
+
+    fn finish_shutting_down(&self) {
+        debug!("Servo received message that Constellation shutdown is complete");
+        self.shutdown_state.set(ShutdownState::FinishedShuttingDown);
+        self.compositor.borrow_mut().finish_shutting_down();
+    }
+
+    fn handle_embedder_message(&self, message: EmbedderMsg) {
+        match message {
+            EmbedderMsg::ShutdownComplete => self.finish_shutting_down(),
+            EmbedderMsg::Status(webview_id, status_text) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_status_text(status_text);
+                }
+            },
+            EmbedderMsg::ChangePageTitle(webview_id, title) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_page_title(title);
+                }
+            },
+            EmbedderMsg::MoveTo(webview_id, position) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().request_move_to(webview, position);
+                }
+            },
+            EmbedderMsg::ResizeTo(webview_id, size) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .request_resize_to(webview, size.max(MINIMUM_WEBVIEW_SIZE));
+                }
+            },
+            EmbedderMsg::ShowSimpleDialog(webview_id, simple_dialog) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().show_embedder_control(
+                        webview,
+                        EmbedderControl::SimpleDialog(simple_dialog.into()),
+                    );
+                }
+            },
+            EmbedderMsg::AllowNavigationRequest(webview_id, pipeline_id, servo_url) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let request = NavigationRequest {
+                        url: servo_url.into_url(),
+                        pipeline_id,
+                        constellation_proxy: self.constellation_proxy.clone(),
+                        response_sent: false,
+                    };
+                    webview.delegate().request_navigation(webview, request);
+                }
+            },
+            EmbedderMsg::AllowProtocolHandlerRequest(
+                webview_id,
+                registration_update,
+                response_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let ProtocolHandlerUpdateRegistration {
+                        scheme,
+                        url,
+                        register_or_unregister,
+                    } = registration_update;
+                    let protocol_handler_registration = ProtocolHandlerRegistration {
+                        scheme,
+                        url: url.into_url(),
+                        register_or_unregister,
+                    };
+                    let allow_deny_request = AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Deny,
+                        self.servo_errors.sender(),
+                    );
+                    webview.delegate().request_protocol_handler(
+                        webview,
+                        protocol_handler_registration,
+                        allow_deny_request,
+                    );
+                }
+            },
+            EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let webview_id_and_viewport_details = webview
+                        .delegate()
+                        .request_open_auxiliary_webview(webview)
+                        .map(|webview| (webview.id(), webview.viewport_details()));
+                    let _ = response_sender.send(webview_id_and_viewport_details);
+                }
+            },
+            EmbedderMsg::WebViewClosed(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().notify_closed(webview);
+                }
+            },
+            EmbedderMsg::WebViewFocused(webview_id, focus_result) => {
+                if focus_result {
+                    for id in self.webviews.borrow().keys() {
+                        if let Some(webview) = self.get_webview_handle(*id) {
+                            let focused = webview.id() == webview_id;
+                            webview.set_focused(focused);
+                        }
+                    }
+                }
+            },
+            EmbedderMsg::WebViewBlurred => {
+                for id in self.webviews.borrow().keys() {
+                    if let Some(webview) = self.get_webview_handle(*id) {
+                        webview.set_focused(false);
+                    }
+                }
+            },
+            EmbedderMsg::AllowUnload(webview_id, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let request = AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Allow,
+                        self.servo_errors.sender(),
+                    );
+                    webview.delegate().request_unload(webview, request);
+                }
+            },
+            EmbedderMsg::FinishJavaScriptEvaluation(evaluation_id, result) => {
+                self.javascript_evaluator
+                    .borrow_mut()
+                    .finish_evaluation(evaluation_id, result);
+            },
+            EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
+                self.compositor.borrow_mut().notify_input_event_handled(
+                    webview_id,
+                    input_event_id,
+                    result,
+                );
+
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_input_event_handled(webview, input_event_id, result);
+                }
+            },
+            EmbedderMsg::ClearClipboard(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.clipboard_delegate().clear(webview);
+                }
+            },
+            EmbedderMsg::GetClipboardText(webview_id, result_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .clipboard_delegate()
+                        .get_text(webview, StringRequest::from(result_sender));
+                }
+            },
+            EmbedderMsg::SetClipboardText(webview_id, string) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.clipboard_delegate().set_text(webview, string);
+                }
+            },
+            EmbedderMsg::SetCursor(webview_id, cursor) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_cursor(cursor);
+                }
+            },
+            EmbedderMsg::NewFavicon(webview_id, image) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_favicon(image);
+                }
+            },
+            EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_load_status(load_status);
+                }
+            },
+            EmbedderMsg::HistoryTraversalComplete(webview_id, traversal_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_traversal_complete(webview.clone(), traversal_id);
+                }
+            },
+            EmbedderMsg::HistoryChanged(webview_id, new_back_forward_list, current_list_index) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_history(new_back_forward_list, current_list_index);
+                }
+            },
+            EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_fullscreen_state_changed(webview, fullscreen);
+                }
+            },
+            EmbedderMsg::WebResourceRequested(
+                webview_id,
+                web_resource_request,
+                response_sender,
+            ) => {
+                if let Some(webview) =
+                    webview_id.and_then(|webview_id| self.get_webview_handle(webview_id))
+                {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
+                        .delegate()
+                        .load_web_resource(webview, web_resource_load);
+                } else {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    self.delegate.borrow().load_web_resource(web_resource_load);
+                }
+            },
+            EmbedderMsg::Panic(webview_id, reason, backtrace) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_crashed(webview, reason, backtrace);
+                }
+            },
+            EmbedderMsg::GetSelectedBluetoothDevice(webview_id, items, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().show_bluetooth_device_dialog(
+                        webview,
+                        items,
+                        response_sender,
+                    );
+                }
+            },
+            EmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
+                if file_picker_request.accept_current_paths_for_testing {
+                    let _ = response_sender.send(Some(file_picker_request.current_paths));
+                    return;
+                }
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    webview.delegate().show_embedder_control(
+                        webview,
+                        EmbedderControl::FilePicker(FilePicker {
+                            id: control_id,
+                            file_picker_request,
+                            response_sender,
+                            response_sent: false,
+                        }),
+                    );
+                }
+            },
+            EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let authentication_request = AuthenticationRequest::new(
+                        url.into_url(),
+                        for_proxy,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
+                        .delegate()
+                        .request_authentication(webview, authentication_request);
+                }
+            },
+            EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let permission_request = PermissionRequest {
+                        requested_feature,
+                        allow_deny_request: AllowOrDenyRequest::new(
+                            response_sender,
+                            AllowOrDeny::Deny,
+                            self.servo_errors.sender(),
+                        ),
+                    };
+                    webview
+                        .delegate()
+                        .request_permission(webview, permission_request);
+                }
+            },
+            EmbedderMsg::ReportProfile(_items) => {},
+            EmbedderMsg::MediaSessionEvent(webview_id, media_session_event) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_media_session_event(webview, media_session_event);
+                }
+            },
+            EmbedderMsg::OnDevtoolsStarted(port, token) => match port {
+                Ok(port) => self
+                    .delegate
+                    .borrow()
+                    .notify_devtools_server_started(port, token),
+                Err(()) => self
+                    .delegate
+                    .borrow()
+                    .notify_error(ServoError::DevtoolsFailedToStart),
+            },
+            EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
+                self.delegate
+                    .borrow()
+                    .request_devtools_connection(AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Deny,
+                        self.servo_errors.sender(),
+                    ));
+            },
+            EmbedderMsg::PlayGamepadHapticEffect(
+                webview_id,
+                gamepad_index,
+                gamepad_haptic_effect_type,
+                ipc_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().play_gamepad_haptic_effect(
+                        webview,
+                        gamepad_index,
+                        gamepad_haptic_effect_type,
+                        ipc_sender,
+                    );
+                }
+            },
+            EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, ipc_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().stop_gamepad_haptic_effect(
+                        webview,
+                        gamepad_index,
+                        ipc_sender,
+                    );
+                }
+            },
+            EmbedderMsg::ShowNotification(webview_id, notification) => {
+                match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
+                    Some(webview) => webview.delegate().show_notification(webview, notification),
+                    None => self.delegate.borrow().show_notification(notification),
+                }
+            },
+            EmbedderMsg::ShowEmbedderControl(control_id, position, embedder_control_request) => {
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    webview.show_embedder_control(control_id, position, embedder_control_request);
+                }
+            },
+            EmbedderMsg::HideEmbedderControl(control_id) => {
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    webview
+                        .delegate()
+                        .hide_embedder_control(webview, control_id);
+                }
+            },
+            EmbedderMsg::GetWindowRect(webview_id, response_sender) => {
+                let window_rect = || {
+                    let Some(webview) = self.get_webview_handle(webview_id) else {
+                        return DeviceIndependentIntRect::default();
+                    };
+                    let hidpi_scale_factor = webview.hidpi_scale_factor();
+                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
+                        return DeviceIndependentIntRect::default();
+                    };
+
+                    convert_rect_to_css_pixel(screen_geometry.window_rect, hidpi_scale_factor)
+                };
+
+                if let Err(error) = response_sender.send(window_rect()) {
+                    warn!("Failed to respond to GetWindowRect: {error}");
+                }
+            },
+            EmbedderMsg::GetScreenMetrics(webview_id, response_sender) => {
+                let screen_metrics = || {
+                    let Some(webview) = self.get_webview_handle(webview_id) else {
+                        return ScreenMetrics::default();
+                    };
+                    let hidpi_scale_factor = webview.hidpi_scale_factor();
+                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
+                        return ScreenMetrics::default();
+                    };
+
+                    ScreenMetrics {
+                        screen_size: convert_size_to_css_pixel(
+                            screen_geometry.size,
+                            hidpi_scale_factor,
+                        ),
+                        available_size: convert_size_to_css_pixel(
+                            screen_geometry.available_size,
+                            hidpi_scale_factor,
+                        ),
+                    }
+                };
+                if let Err(error) = response_sender.send(screen_metrics()) {
+                    warn!("Failed to respond to GetScreenMetrics: {error}");
+                }
+            },
+        }
+    }
+}
+
+impl Drop for ServoInner {
+    fn drop(&mut self) {
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::Exit);
+        self.shutdown_state.set(ShutdownState::ShuttingDown);
+        while self.spin_event_loop() {
+            std::thread::sleep(Duration::from_micros(500));
+        }
+        self.compositor.borrow_mut().deinit();
+    }
 }
 
 /// An in-process handle to a `Servo` instance. Cloning the handle does not create a new instance
@@ -320,80 +803,8 @@ impl Servo {
     ///   - Performs updates in the compositor, such as queued pinch zoom events
     ///   - Runs delebgate methods on all `WebView`s and `Servo` itself
     ///   - Maybe update the rendered compositor output, but *without* swapping buffers.
-    ///
-    /// The return value of this method indicates whether or not Servo, false indicates that Servo
-    /// has finished shutting down and you should not spin the event loop any longer.
-    pub fn spin_event_loop(&self) -> bool {
-        if self.0.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
-            return false;
-        }
-
-        {
-            let compositor = self.0.compositor.borrow();
-            let mut messages = Vec::new();
-            while let Ok(message) = compositor.receiver().try_recv() {
-                match message {
-                    Ok(message) => messages.push(message),
-                    Err(error) => {
-                        warn!("Router deserialization error: {error}. Ignoring this CompositorMsg.")
-                    },
-                }
-            }
-            compositor.handle_messages(messages);
-        }
-
-        // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
-        while let Ok(message) = self.0.embedder_receiver.try_recv() {
-            self.handle_embedder_message(message);
-
-            if self.0.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
-                break;
-            }
-        }
-
-        if self.0.constellation_proxy.disconnected() {
-            self.delegate()
-                .notify_error(self, ServoError::LostConnectionWithBackend);
-        }
-
-        self.0.compositor.borrow_mut().perform_updates();
-        self.send_new_frame_ready_messages();
-        self.handle_delegate_errors();
-        self.clean_up_destroyed_webview_handles();
-
-        if self.0.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
-            return false;
-        }
-
-        true
-    }
-
-    fn send_new_frame_ready_messages(&self) {
-        let webviews_needing_repaint = self.0.compositor.borrow().webviews_needing_repaint();
-
-        for webview in webviews_needing_repaint
-            .iter()
-            .filter_map(|webview_id| self.get_webview_handle(*webview_id))
-        {
-            webview.delegate().notify_new_frame_ready(webview);
-        }
-    }
-
-    fn handle_delegate_errors(&self) {
-        while let Some(error) = self.0.servo_errors.try_recv() {
-            self.delegate().notify_error(self, error);
-        }
-    }
-
-    fn clean_up_destroyed_webview_handles(&self) {
-        // Remove any webview handles that have been destroyed and would not be upgradable.
-        // Note that `retain` is O(capacity) because it visits empty buckets, so it may be worth
-        // calling `shrink_to_fit` at some point to deal with cases where a long-running Servo
-        // instance goes from many open webviews to only a few.
-        self.0
-            .webviews
-            .borrow_mut()
-            .retain(|_webview_id, webview| webview.strong_count() > 0);
+    pub fn spin_event_loop(&self) {
+        self.0.spin_event_loop();
     }
 
     pub fn setup_logging(&self) {
@@ -413,421 +824,6 @@ impl Servo {
         self.0
             .constellation_proxy
             .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
-    }
-
-    pub fn start_shutting_down(&self) {
-        if self.0.shutdown_state.get() != ShutdownState::NotShuttingDown {
-            warn!("Requested shutdown while already shutting down");
-            return;
-        }
-
-        debug!("Sending Exit message to Constellation");
-        self.0
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::Exit);
-        self.0.shutdown_state.set(ShutdownState::ShuttingDown);
-    }
-
-    fn finish_shutting_down(&self) {
-        debug!("Servo received message that Constellation shutdown is complete");
-        self.0
-            .shutdown_state
-            .set(ShutdownState::FinishedShuttingDown);
-        self.0.compositor.borrow_mut().finish_shutting_down();
-    }
-
-    pub fn deinit(&self) {
-        self.0.compositor.borrow_mut().deinit();
-    }
-
-    fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
-        self.0
-            .webviews
-            .borrow()
-            .get(&id)
-            .and_then(WebView::from_weak_handle)
-    }
-
-    fn handle_embedder_message(&self, message: EmbedderMsg) {
-        match message {
-            EmbedderMsg::ShutdownComplete => self.finish_shutting_down(),
-            EmbedderMsg::Status(webview_id, status_text) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_status_text(status_text);
-                }
-            },
-            EmbedderMsg::ChangePageTitle(webview_id, title) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_page_title(title);
-                }
-            },
-            EmbedderMsg::MoveTo(webview_id, position) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().request_move_to(webview, position);
-                }
-            },
-            EmbedderMsg::ResizeTo(webview_id, size) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .request_resize_to(webview, size.max(MINIMUM_WEBVIEW_SIZE));
-                }
-            },
-            EmbedderMsg::ShowSimpleDialog(webview_id, simple_dialog) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().show_embedder_control(
-                        webview,
-                        EmbedderControl::SimpleDialog(simple_dialog.into()),
-                    );
-                }
-            },
-            EmbedderMsg::AllowNavigationRequest(webview_id, pipeline_id, servo_url) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let request = NavigationRequest {
-                        url: servo_url.into_url(),
-                        pipeline_id,
-                        constellation_proxy: self.0.constellation_proxy.clone(),
-                        response_sent: false,
-                    };
-                    webview.delegate().request_navigation(webview, request);
-                }
-            },
-            EmbedderMsg::AllowProtocolHandlerRequest(
-                webview_id,
-                registration_update,
-                response_sender,
-            ) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let ProtocolHandlerUpdateRegistration {
-                        scheme,
-                        url,
-                        register_or_unregister,
-                    } = registration_update;
-                    let protocol_handler_registration = ProtocolHandlerRegistration {
-                        scheme,
-                        url: url.into_url(),
-                        register_or_unregister,
-                    };
-                    let allow_deny_request = AllowOrDenyRequest::new(
-                        response_sender,
-                        AllowOrDeny::Deny,
-                        self.0.servo_errors.sender(),
-                    );
-                    webview.delegate().request_protocol_handler(
-                        webview,
-                        protocol_handler_registration,
-                        allow_deny_request,
-                    );
-                }
-            },
-            EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let webview_id_and_viewport_details = webview
-                        .delegate()
-                        .request_open_auxiliary_webview(webview)
-                        .map(|webview| (webview.id(), webview.viewport_details()));
-                    let _ = response_sender.send(webview_id_and_viewport_details);
-                }
-            },
-            EmbedderMsg::WebViewClosed(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().notify_closed(webview);
-                }
-            },
-            EmbedderMsg::WebViewFocused(webview_id, focus_result) => {
-                if focus_result {
-                    for id in self.0.webviews.borrow().keys() {
-                        if let Some(webview) = self.get_webview_handle(*id) {
-                            let focused = webview.id() == webview_id;
-                            webview.set_focused(focused);
-                        }
-                    }
-                }
-            },
-            EmbedderMsg::WebViewBlurred => {
-                for id in self.0.webviews.borrow().keys() {
-                    if let Some(webview) = self.get_webview_handle(*id) {
-                        webview.set_focused(false);
-                    }
-                }
-            },
-            EmbedderMsg::AllowUnload(webview_id, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let request = AllowOrDenyRequest::new(
-                        response_sender,
-                        AllowOrDeny::Allow,
-                        self.0.servo_errors.sender(),
-                    );
-                    webview.delegate().request_unload(webview, request);
-                }
-            },
-            EmbedderMsg::FinishJavaScriptEvaluation(evaluation_id, result) => {
-                self.0
-                    .javascript_evaluator
-                    .borrow_mut()
-                    .finish_evaluation(evaluation_id, result);
-            },
-            EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
-                self.0.compositor.borrow_mut().notify_input_event_handled(
-                    webview_id,
-                    input_event_id,
-                    result,
-                );
-
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_input_event_handled(webview, input_event_id, result);
-                }
-            },
-            EmbedderMsg::ClearClipboard(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.clipboard_delegate().clear(webview);
-                }
-            },
-            EmbedderMsg::GetClipboardText(webview_id, result_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .clipboard_delegate()
-                        .get_text(webview, StringRequest::from(result_sender));
-                }
-            },
-            EmbedderMsg::SetClipboardText(webview_id, string) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.clipboard_delegate().set_text(webview, string);
-                }
-            },
-            EmbedderMsg::SetCursor(webview_id, cursor) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_cursor(cursor);
-                }
-            },
-            EmbedderMsg::NewFavicon(webview_id, image) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_favicon(image);
-                }
-            },
-            EmbedderMsg::NotifyLoadStatusChanged(webview_id, load_status) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_load_status(load_status);
-                }
-            },
-            EmbedderMsg::HistoryTraversalComplete(webview_id, traversal_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_traversal_complete(webview.clone(), traversal_id);
-                }
-            },
-            EmbedderMsg::HistoryChanged(webview_id, new_back_forward_list, current_list_index) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_history(new_back_forward_list, current_list_index);
-                }
-            },
-            EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_fullscreen_state_changed(webview, fullscreen);
-                }
-            },
-            EmbedderMsg::WebResourceRequested(
-                webview_id,
-                web_resource_request,
-                response_sender,
-            ) => {
-                if let Some(webview) =
-                    webview_id.and_then(|webview_id| self.get_webview_handle(webview_id))
-                {
-                    let web_resource_load = WebResourceLoad::new(
-                        web_resource_request,
-                        response_sender,
-                        self.0.servo_errors.sender(),
-                    );
-                    webview
-                        .delegate()
-                        .load_web_resource(webview, web_resource_load);
-                } else {
-                    let web_resource_load = WebResourceLoad::new(
-                        web_resource_request,
-                        response_sender,
-                        self.0.servo_errors.sender(),
-                    );
-                    self.delegate().load_web_resource(web_resource_load);
-                }
-            },
-            EmbedderMsg::Panic(webview_id, reason, backtrace) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_crashed(webview, reason, backtrace);
-                }
-            },
-            EmbedderMsg::GetSelectedBluetoothDevice(webview_id, items, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().show_bluetooth_device_dialog(
-                        webview,
-                        items,
-                        response_sender,
-                    );
-                }
-            },
-            EmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
-                if file_picker_request.accept_current_paths_for_testing {
-                    let _ = response_sender.send(Some(file_picker_request.current_paths));
-                    return;
-                }
-                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
-                    webview.delegate().show_embedder_control(
-                        webview,
-                        EmbedderControl::FilePicker(FilePicker {
-                            id: control_id,
-                            file_picker_request,
-                            response_sender,
-                            response_sent: false,
-                        }),
-                    );
-                }
-            },
-            EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let authentication_request = AuthenticationRequest::new(
-                        url.into_url(),
-                        for_proxy,
-                        response_sender,
-                        self.0.servo_errors.sender(),
-                    );
-                    webview
-                        .delegate()
-                        .request_authentication(webview, authentication_request);
-                }
-            },
-            EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let permission_request = PermissionRequest {
-                        requested_feature,
-                        allow_deny_request: AllowOrDenyRequest::new(
-                            response_sender,
-                            AllowOrDeny::Deny,
-                            self.0.servo_errors.sender(),
-                        ),
-                    };
-                    webview
-                        .delegate()
-                        .request_permission(webview, permission_request);
-                }
-            },
-            EmbedderMsg::ReportProfile(_items) => {},
-            EmbedderMsg::MediaSessionEvent(webview_id, media_session_event) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_media_session_event(webview, media_session_event);
-                }
-            },
-            EmbedderMsg::OnDevtoolsStarted(port, token) => match port {
-                Ok(port) => self
-                    .delegate()
-                    .notify_devtools_server_started(self, port, token),
-                Err(()) => self
-                    .delegate()
-                    .notify_error(self, ServoError::DevtoolsFailedToStart),
-            },
-            EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
-                self.delegate().request_devtools_connection(
-                    self,
-                    AllowOrDenyRequest::new(
-                        response_sender,
-                        AllowOrDeny::Deny,
-                        self.0.servo_errors.sender(),
-                    ),
-                );
-            },
-            EmbedderMsg::PlayGamepadHapticEffect(
-                webview_id,
-                gamepad_index,
-                gamepad_haptic_effect_type,
-                ipc_sender,
-            ) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().play_gamepad_haptic_effect(
-                        webview,
-                        gamepad_index,
-                        gamepad_haptic_effect_type,
-                        ipc_sender,
-                    );
-                }
-            },
-            EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, ipc_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().stop_gamepad_haptic_effect(
-                        webview,
-                        gamepad_index,
-                        ipc_sender,
-                    );
-                }
-            },
-            EmbedderMsg::ShowNotification(webview_id, notification) => {
-                match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
-                    Some(webview) => webview.delegate().show_notification(webview, notification),
-                    None => self.delegate().show_notification(notification),
-                }
-            },
-            EmbedderMsg::ShowEmbedderControl(control_id, position, embedder_control_request) => {
-                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
-                    webview.show_embedder_control(control_id, position, embedder_control_request);
-                }
-            },
-            EmbedderMsg::HideEmbedderControl(control_id) => {
-                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
-                    webview
-                        .delegate()
-                        .hide_embedder_control(webview, control_id);
-                }
-            },
-            EmbedderMsg::GetWindowRect(webview_id, response_sender) => {
-                let window_rect = || {
-                    let Some(webview) = self.get_webview_handle(webview_id) else {
-                        return DeviceIndependentIntRect::default();
-                    };
-                    let hidpi_scale_factor = webview.hidpi_scale_factor();
-                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
-                        return DeviceIndependentIntRect::default();
-                    };
-
-                    convert_rect_to_css_pixel(screen_geometry.window_rect, hidpi_scale_factor)
-                };
-
-                if let Err(error) = response_sender.send(window_rect()) {
-                    warn!("Failed to respond to GetWindowRect: {error}");
-                }
-            },
-            EmbedderMsg::GetScreenMetrics(webview_id, response_sender) => {
-                let screen_metrics = || {
-                    let Some(webview) = self.get_webview_handle(webview_id) else {
-                        return ScreenMetrics::default();
-                    };
-                    let hidpi_scale_factor = webview.hidpi_scale_factor();
-                    let Some(screen_geometry) = webview.delegate().screen_geometry(webview) else {
-                        return ScreenMetrics::default();
-                    };
-
-                    ScreenMetrics {
-                        screen_size: convert_size_to_css_pixel(
-                            screen_geometry.size,
-                            hidpi_scale_factor,
-                        ),
-                        available_size: convert_size_to_css_pixel(
-                            screen_geometry.available_size,
-                            hidpi_scale_factor,
-                        ),
-                    }
-                };
-                if let Err(error) = response_sender.send(screen_metrics()) {
-                    warn!("Failed to respond to GetScreenMetrics: {error}");
-                }
-            },
-        }
     }
 
     pub fn constellation_sender(&self) -> Sender<EmbedderToConstellationMessage> {

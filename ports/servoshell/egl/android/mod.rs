@@ -243,26 +243,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_setExperimentalMode<'local>(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_requestShutdown<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass<'local>,
-) {
-    debug!("requestShutdown");
-    call(&mut env, |s| s.request_shutdown());
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_deinit<'local>(
-    _env: JNIEnv<'local>,
-    _class: JClass<'local>,
-) {
-    debug!("deinit");
-    APP.with(|app| {
-        *app.borrow_mut() = None;
-    });
-}
-
-#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_resize<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -655,9 +635,6 @@ impl HostTrait for HostCallbacks {
 
     fn on_shutdown_complete(&self) {
         debug!("on_shutdown_complete");
-        let mut env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "onShutdownComplete", "()V", &[])
-            .unwrap();
     }
 
     fn on_title_changed(&self, title: Option<String>) {

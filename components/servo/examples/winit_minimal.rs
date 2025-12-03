@@ -30,15 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .build()
         .expect("Failed to create EventLoop");
     let mut app = App::new(&event_loop);
-    event_loop.run_app(&mut app)?;
-
-    if let App::Running(state) = app {
-        if let Some(state) = Rc::into_inner(state) {
-            state.servo.deinit();
-        }
-    }
-
-    Ok(())
+    Ok(event_loop.run_app(&mut app)?)
 }
 
 struct AppState {
