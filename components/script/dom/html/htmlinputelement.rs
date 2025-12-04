@@ -1552,7 +1552,13 @@ impl HTMLInputElement {
         };
         let range_shadow_tree: Ref<'_, InputTypeRangeShadowTree> = self.range_shadow_tree(can_gc);
 
-        let track_rect_width = range_shadow_tree.range_track.upcast::<Node>().client_rect().width() as f64;
+        let track_rect_width = range_shadow_tree
+            .range_track
+            .upcast::<Node>()
+            .padding_box()
+            .unwrap_or_default()
+            .width()
+            .to_f64_px();
         let thumb_rect_width = range_shadow_tree
             .range_thumb
             .upcast::<Node>()
@@ -1562,8 +1568,7 @@ impl HTMLInputElement {
             .to_f64_px();
         let thumb_style = format!(
             "left: {}px",
-            percent / 100.0 * (track_rect_width - thumb_rect_width) +
-                thumb_rect_width / 2.0
+            percent / 100.0 * (track_rect_width - thumb_rect_width) + thumb_rect_width / 2.0
         );
         let progress_style = format!("width: {percent}%;");
         range_shadow_tree.range_thumb.set_string_attribute(
