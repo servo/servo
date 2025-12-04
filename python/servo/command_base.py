@@ -529,7 +529,6 @@ class CommandBase(object):
         libdir = self.get_correct_clang_lib_path()
         if libdir is not None:
             env.setdefault("LIBCLANG_PATH", libdir)
-        
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
