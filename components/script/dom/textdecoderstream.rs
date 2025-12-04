@@ -110,7 +110,7 @@ pub(crate) struct TextDecoderStream {
     transform: Dom<TransformStream>,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl TextDecoderStream {
     fn new_inherited(
         decoder: Rc<TextDecoderCommon>,
@@ -147,7 +147,6 @@ impl TextDecoderStream {
     }
 }
 
-#[allow(non_snake_case)]
 impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
     /// <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
     fn Constructor(

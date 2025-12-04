@@ -4592,7 +4592,6 @@ impl Document {
     }
 }
 
-#[allow(non_snake_case)]
 impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-document>
     fn Constructor(

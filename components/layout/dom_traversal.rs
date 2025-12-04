@@ -87,7 +87,6 @@ pub(super) enum Contents {
 }
 
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)]
 pub(super) enum NonReplacedContents {
     /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
     OfElement,

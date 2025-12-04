@@ -447,7 +447,6 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
-    #[allow(non_snake_case)]
     fn CreateBindGroupLayout(
         &self,
         descriptor: &GPUBindGroupLayoutDescriptor,

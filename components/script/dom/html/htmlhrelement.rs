@@ -94,7 +94,7 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
 /// The result of applying the presentational hint for the `size` attribute.
 ///
 /// (This attribute can mean different things depending on its value and other attributes)
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 pub(crate) enum SizePresentationalHint {
     SetHeightTo(Size),
     SetAllBorderWidthValuesTo(BorderSideWidth),

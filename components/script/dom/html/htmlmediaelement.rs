@@ -598,7 +598,7 @@ pub(crate) enum NetworkState {
 /// <https://html.spec.whatwg.org/multipage/#dom-media-readystate>
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 #[repr(u8)]
-#[allow(clippy::enum_variant_names)] // Clippy warning silenced here because these names are from the specification.
+#[expect(clippy::enum_variant_names)] // Clippy warning silenced here because these names are from the specification.
 pub(crate) enum ReadyState {
     HaveNothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
     HaveMetadata = HTMLMediaElementConstants::HAVE_METADATA as u8,

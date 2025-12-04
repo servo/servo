@@ -25,7 +25,7 @@ pub(crate) struct BluetoothCharacteristicProperties {
     writable_auxiliaries: bool,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl BluetoothCharacteristicProperties {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(

@@ -105,7 +105,6 @@ impl SecurityPolicyViolationEvent {
     }
 }
 
-#[allow(non_snake_case)]
 impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolicyViolationEvent {
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-securitypolicyviolationevent>
     fn Constructor(

@@ -18,7 +18,7 @@ pub(crate) struct HTMLHtmlElement {
     htmlelement: HTMLElement,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl HTMLHtmlElement {
     fn new_inherited(
         localName: LocalName,

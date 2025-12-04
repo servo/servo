@@ -359,7 +359,6 @@ impl TextEncoderStream {
     }
 }
 
-#[allow(non_snake_case)]
 impl TextEncoderStreamMethods<DomTypeHolder> for TextEncoderStream {
     /// <https://encoding.spec.whatwg.org/#dom-textencoderstream>
     fn Constructor(

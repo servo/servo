@@ -39,7 +39,7 @@ use crate::task::TaskBox;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub(crate) enum MixedMessage {
     FromConstellation(ScriptThreadMessage),

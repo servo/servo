@@ -27,7 +27,7 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 pub(crate) struct ExtendableMessageEvent {
     /// <https://w3c.github.io/ServiceWorker/#extendableevent>
     event: ExtendableEvent,
@@ -44,7 +44,7 @@ pub(crate) struct ExtendableMessageEvent {
     frozen_ports: CachedFrozenArray,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl ExtendableMessageEvent {
     pub(crate) fn new_inherited(
         origin: DOMString,
@@ -119,7 +119,7 @@ impl ExtendableMessageEvent {
     }
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl ExtendableMessageEvent {
     pub(crate) fn dispatch_jsval(
         target: &EventTarget,

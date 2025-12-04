@@ -248,7 +248,6 @@ pub struct SWManagerSenders {
 
 /// Messages sent to Service Worker Manager thread
 #[derive(Debug, Deserialize, Serialize)]
-#[allow(clippy::large_enum_variant)]
 pub enum ServiceWorkerMsg {
     /// Timeout message sent by active service workers
     Timeout(ServoUrl),
@@ -281,7 +280,7 @@ pub enum JobError {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 /// Messages sent from Job algorithms steps running in the SW manager,
 /// in order to resolve or reject the job promise.
 pub enum JobResult {

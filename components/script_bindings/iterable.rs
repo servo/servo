@@ -112,7 +112,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
     }
 
     /// Return the next value from the iterable object.
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     pub fn Next(&self, cx: JSContext) -> Fallible<NonNull<JSObject>> {
         let index = self.index.get();
         rooted!(in(*cx) let mut value = UndefinedValue());

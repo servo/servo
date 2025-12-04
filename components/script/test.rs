@@ -13,7 +13,7 @@ pub mod area {
     pub use crate::dom::html::htmlareaelement::{Area, Shape};
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 pub mod size_of {
     use std::mem::size_of;
 

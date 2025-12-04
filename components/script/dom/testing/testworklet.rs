@@ -57,7 +57,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         Ok(TestWorklet::new(window, proto, can_gc))
     }
 
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn AddModule(
         &self,
         moduleURL: USVString,

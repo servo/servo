@@ -52,7 +52,6 @@ pub(crate) struct Response {
     is_body_empty: Cell<bool>,
 }
 
-#[allow(non_snake_case)]
 impl Response {
     pub(crate) fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Response {
         let stream = ReadableStream::new_with_external_underlying_source(

@@ -186,7 +186,6 @@ struct Handler {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[allow(clippy::enum_variant_names)]
 enum ServoExtensionRoute {
     GetPrefs,
     SetPrefs,
@@ -235,7 +234,6 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
 }
 
 #[derive(Clone, Debug)]
-#[allow(clippy::enum_variant_names)]
 enum ServoExtensionCommand {
     GetPrefs(GetPrefsParameters),
     SetPrefs(SetPrefsParameters),

@@ -275,7 +275,7 @@ impl BoxTree {
     }
 }
 
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 enum DirtyRootBoxTreeNode {
     AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
     AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineItem>, usize),

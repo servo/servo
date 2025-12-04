@@ -43,7 +43,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 pub(crate) struct DOMMatrixReadOnly {
     reflector_: Reflector,
     #[no_trace]
@@ -51,7 +51,7 @@ pub(crate) struct DOMMatrixReadOnly {
     is2D: Cell<bool>,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl DOMMatrixReadOnly {
     pub(crate) fn new(
         global: &GlobalScope,
@@ -468,7 +468,7 @@ impl DOMMatrixReadOnly {
     }
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly>
     fn Constructor(

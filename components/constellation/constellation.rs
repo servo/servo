@@ -1218,7 +1218,7 @@ where
     /// Handles loading pages, navigation, and granting access to the compositor
     #[servo_tracing::instrument(skip_all)]
     fn handle_request(&mut self) {
-        #[allow(clippy::large_enum_variant)]
+        #[expect(clippy::large_enum_variant)]
         #[derive(Debug)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),

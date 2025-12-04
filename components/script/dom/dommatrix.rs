@@ -33,7 +33,7 @@ pub(crate) struct DOMMatrix {
     parent: DOMMatrixReadOnly,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl DOMMatrix {
     pub(crate) fn new(
         global: &GlobalScope,
@@ -71,7 +71,7 @@ impl DOMMatrix {
     }
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly>
     fn Constructor(

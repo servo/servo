@@ -228,7 +228,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
 }
 
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 enum RegistryMsg {
     RequestSession(
         SessionMode,

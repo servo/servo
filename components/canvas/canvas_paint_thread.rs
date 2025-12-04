@@ -290,7 +290,6 @@ impl CanvasPaintThread {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
 enum Canvas {
     #[cfg(feature = "vello")]
     Vello(CanvasData<crate::vello_backend::VelloDrawTarget>),

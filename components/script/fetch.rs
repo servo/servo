@@ -172,7 +172,7 @@ fn abort_fetch_call(
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn Fetch(
     global: &GlobalScope,
