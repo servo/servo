@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::IpcSend;
+use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
-use profile_traits::ipc;
+use profile_traits::generic_channel::channel;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::ErrorResult;
 use storage_traits::indexeddb::{
@@ -37,7 +37,7 @@ use crate::dom::indexeddb::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::{
-    self, ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
+    ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -121,7 +121,7 @@ impl IDBObjectStore {
     }
 
     fn has_key_generator(&self) -> bool {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
         let operation = SyncOperation::HasKeyGenerator(
             sender,
@@ -255,20 +255,18 @@ impl IDBObjectStore {
         let Ok(serialized_value) = bincode::serialize(&cloned_value) else {
             return Err(Error::InvalidState(None));
         };
-
-        let (sender, receiver) = indexeddb::create_channel(self.global());
-
         // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.
         // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request with handle and operation.
         IDBRequest::execute_async(
             self,
-            AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                sender,
-                key: serialized_key,
-                value: serialized_value,
-                should_overwrite: overwrite,
-            }),
-            receiver,
+            |callback| {
+                AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                    callback,
+                    key: serialized_key,
+                    value: serialized_value,
+                    should_overwrite: overwrite,
+                })
+            },
             None,
             None,
             can_gc,
@@ -341,14 +339,15 @@ impl IDBObjectStore {
             primary_key: None,
             count: None,
         };
-        let (sender, receiver) = indexeddb::create_channel(self.global());
+
         IDBRequest::execute_async(
             self,
-            AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
-                sender,
-                key_range: range,
-            }),
-            receiver,
+            |callback| {
+                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
+                    callback,
+                    key_range: range,
+                })
+            },
             None,
             Some(iteration_param),
             can_gc,
@@ -393,15 +392,15 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         let serialized_query = convert_value_to_key_range(cx, query, Some(true));
         // Step 7. Let operation be an algorithm to run delete records from an object store with store and range.
         // Step 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|key_range| {
             IDBRequest::execute_async(
                 self,
-                AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
-                    sender,
-                    key_range,
-                }),
-                receiver,
+                |callback| {
+                    AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                        callback,
+                        key_range,
+                    })
+                },
                 None,
                 None,
                 CanGc::note(),
@@ -422,12 +421,9 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6. Let operation be an algorithm to run clear an object store with store.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexeddb::create_channel(self.global());
-
         IDBRequest::execute_async(
             self,
-            AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)),
-            receiver,
+            |callback| AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(callback)),
             None,
             None,
             CanGc::note(),
@@ -449,15 +445,15 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6. Let operation be an algorithm to run retrieve a value from an object store with the current Realm record, store, and range.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
-                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                    sender,
-                    key_range: q,
-                }),
-                receiver,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                        callback,
+                        key_range: q,
+                    })
+                },
                 None,
                 None,
                 CanGc::note(),
@@ -481,15 +477,15 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
         // The steps are run with this object store handle as source and the steps to retrieve a key from an object
         // store as operation, using store and range.
-        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
-                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
-                    sender,
-                    key_range: q,
-                }),
-                receiver,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
+                        callback,
+                        key_range: q,
+                    })
+                },
                 None,
                 None,
                 CanGc::note(),
@@ -518,16 +514,16 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
         // The steps are run with this object store handle as source and the steps to retrieve a key from an object
         // store as operation, using store and range.
-        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
-                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
-                    sender,
-                    key_range: q,
-                    count,
-                }),
-                receiver,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                        callback,
+                        key_range: q,
+                        count,
+                    })
+                },
                 None,
                 None,
                 CanGc::note(),
@@ -556,16 +552,16 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
         // The steps are run with this object store handle as source and the steps to retrieve a key from an object
         // store as operation, using store and range.
-        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
-                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
-                    sender,
-                    key_range: q,
-                    count,
-                }),
-                receiver,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
+                        callback,
+                        key_range: q,
+                        count,
+                    })
+                },
                 None,
                 None,
                 CanGc::note(),
@@ -588,15 +584,15 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 6. Let operation be an algorithm to run count the records in a range with store and range.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
-        let (sender, receiver) = indexeddb::create_channel(self.global());
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
                 self,
-                AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
-                    sender,
-                    key_range: q,
-                }),
-                receiver,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
+                        callback,
+                        key_range: q,
+                    })
+                },
                 None,
                 None,
                 CanGc::note(),

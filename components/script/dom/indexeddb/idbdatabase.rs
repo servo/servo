@@ -4,10 +4,9 @@
 
 use std::cell::Cell;
 
-use base::IpcSend;
+use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use profile_traits::ipc;
+use profile_traits::generic_channel::channel;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 
@@ -76,7 +75,7 @@ impl IDBDatabase {
         )
     }
 
-    fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
+    fn get_idb_thread(&self) -> GenericSender<IndexedDBThreadMsg> {
         self.global().storage_threads().sender()
     }
 
@@ -100,7 +99,7 @@ impl IDBDatabase {
     }
 
     pub fn version(&self) -> u64 {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
         let operation = SyncOperation::Version(
             sender,
             self.global().origin().immutable().clone(),
@@ -249,7 +248,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             &upgrade_transaction,
         );
 
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
         let key_paths = key_path.map(|p| match p {
             StringOrStringSequence::String(s) => KeyPath::String(s.to_string()),
@@ -311,7 +310,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // FIXME:(arihant2math) Remove from index set ...
 
         // Step 7
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
         let operation = SyncOperation::DeleteObjectStore(
             sender,
@@ -365,7 +364,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // Step 3: Wait for all transactions by this db to finish
         // FIXME:(arihant2math)
         // Step 4: If force flag is set, fire a close event
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
         let operation = SyncOperation::CloseDatabase(
             sender,
             self.global().origin().immutable().clone(),
