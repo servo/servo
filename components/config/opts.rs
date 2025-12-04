@@ -7,6 +7,7 @@
 
 use std::default::Default;
 use std::path::PathBuf;
+use std::process;
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
@@ -129,10 +130,63 @@ pub struct DiagnosticsLogging {
 }
 
 impl DiagnosticsLogging {
-    pub fn extend(&mut self, debug_string: String) -> Result<(), String> {
-        for option in debug_string.split(',') {
+    /// Create a new DiagnosticsLogging configuration.
+    ///
+    /// In non-production builds, this will automatically read and parse the
+    /// SERVO_DIAGNOSTICS environment variable if it is set.
+    pub fn new() -> Self {
+        let mut config: DiagnosticsLogging = Default::default();
+
+        // Disabled for production builds
+        #[cfg(debug_assertions)]
+        {
+            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") {
+                if let Err(error) = config.extend_from_string(&diagnostics_var) {
+                    eprintln!("Could not parse debug logging option: {error}");
+                }
+            }
+        }
+
+        config
+    }
+
+    /// Print available diagnostic logging options and their descriptions.
+    fn print_debug_options_usage(app: &str) {
+        fn print_option(name: &str, description: &str) {
+            println!("\t{:<35} {}", name, description);
+        }
+
+        println!(
+            "Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:",
+            app
+        );
+        print_option("help", "Show this help message");
+        print_option("style-tree", "Log the style tree after each restyle");
+        print_option("rule-tree", "Log the rule tree");
+        print_option("flow-tree", "Log the fragment tree after each layout");
+        print_option(
+            "stacking-context-tree",
+            "Log the stacking context tree after each layout",
+        );
+        print_option("scroll-tree", "Log the scroll tree after each layout");
+        print_option("display-list", "Log the display list after each layout");
+        print_option("style-stats", "Log style sharing cache statistics");
+        print_option("relayout-event", "Log when relayout occurs");
+        print_option("profile-script-events", "Log script event processing time");
+        print_option("gc-profile", "Log garbage collection statistics");
+        println!();
+
+        process::exit(0);
+    }
+
+    /// Extend the current configuration with additional options.
+    ///
+    /// Parses the string and merges any enabled options into the current configuration.
+    pub fn extend_from_string(&mut self, option_string: &str) -> Result<(), String> {
+        for option in option_string.split(',') {
+            let option = option.trim();
             match option {
-                "help" => self.help = true,
+                "help" => Self::print_debug_options_usage("servo"),
                 "display-list" => self.display_list = true,
                 "stacking-context-tree" => self.stacking_context_tree = true,
                 "flow-tree" => self.flow_tree = true,
@@ -144,7 +198,7 @@ impl DiagnosticsLogging {
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
                 "" => {},
-                _ => return Err(String::from(option)),
+                _ => return Err(format!("Unknown diagnostic option: {option}")),
             };
         }
 
