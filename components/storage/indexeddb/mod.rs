@@ -405,7 +405,7 @@ impl IndexedDBManager {
         let idb_base_dir = self.idb_base_dir.as_path();
 
         // Step 4: Let db be the database named name in origin, or null otherwise.
-        let db_version = match self.databases.entry(idb_description.clone()) {
+        let (db_version, version) = match self.databases.entry(idb_description.clone()) {
             Entry::Vacant(e) => {
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
                 let db_version = version.unwrap_or(0);
@@ -415,20 +415,20 @@ impl IndexedDBManager {
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
                 // TODO: return error.
-                let db = IndexedDBEnvironment::new(
+                let mut db = IndexedDBEnvironment::new(
                     SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
                         .expect("Failed to create sqlite engine"),
                 );
+                db.set_version(0);
                 e.insert(db);
-                db_version
+                (0, version.unwrap_or(1))
             },
             Entry::Occupied(db) => {
+                let db_version = db.get().version().expect("Db should have a version.");
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
-                version.unwrap_or(db.get().version().expect("Db should have a version."))
+                (db_version, version.unwrap_or(db_version))
             },
         };
-
-        let version = version.unwrap_or(1);
 
         // Step 7: If db’s version is greater than version,
         // return a newly created "VersionError" DOMException
