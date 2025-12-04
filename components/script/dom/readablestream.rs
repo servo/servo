@@ -374,22 +374,16 @@ impl PipeTo {
         let triggered = Rc::new(Cell::new(false));
         rooted!(in(*cx) let mut fulfillment_handler = Some(StartCancelAfterAbortHandler {
             source: Dom::from_ref(source),
-            reason: RootedTraceableBox::new(Heap::default()),
+            reason: Heap::boxed(reason.get()),
             result: delayed_cancel.clone(),
             triggered: triggered.clone(),
         }));
-        fulfillment_handler
-            .as_ref()
-            .unwrap()
-            .reason
-            .set(reason.get());
         rooted!(in(*cx) let mut rejection_handler = Some(StartCancelAfterAbortHandler {
             source: Dom::from_ref(source),
-            reason: RootedTraceableBox::new(Heap::default()),
+            reason: Heap::boxed(reason.get()),
             result: delayed_cancel.clone(),
             triggered,
         }));
-        rejection_handler.as_ref().unwrap().reason.set(reason.get());
         let native_handler = PromiseNativeHandler::new(
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
@@ -901,24 +895,26 @@ impl Callback for SourceCancelPromiseRejectionHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct ForwardPromiseFulfillmentHandler {
     #[conditional_malloc_size_of]
-    target: Rc<Promise>,
+    /// Promise that should receive the forwarded fulfillment.
+    forwarded_promise: Rc<Promise>,
 }
 
 impl Callback for ForwardPromiseFulfillmentHandler {
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
-        self.target.resolve(cx, v, can_gc);
+        self.forwarded_promise.resolve(cx, v, can_gc);
     }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct ForwardPromiseRejectionHandler {
     #[conditional_malloc_size_of]
-    target: Rc<Promise>,
+    /// Promise that should receive the forwarded rejection.
+    forwarded_promise: Rc<Promise>,
 }
 
 impl Callback for ForwardPromiseRejectionHandler {
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
-        self.target.reject(cx, v, can_gc);
+        self.forwarded_promise.reject(cx, v, can_gc);
     }
 }
 
@@ -927,11 +923,15 @@ impl js::gc::Rootable for StartCancelAfterAbortHandler {}
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct StartCancelAfterAbortHandler {
+    /// ReadableStream side of the pipe that will be canceled after abort settles.
     source: Dom<ReadableStream>,
+    /// Abort reason captured before scheduling cancellation.
     #[ignore_malloc_size_of = "mozjs"]
-    reason: RootedTraceableBox<Heap<JSVal>>,
+    reason: Box<Heap<JSVal>>,
+    /// Promise returned by `delay_cancel_until_abort` that mirrors cancel().
     #[conditional_malloc_size_of]
     result: Rc<Promise>,
+    /// Ensures we only run cancel once even if both fulfill/reject fire.
     #[conditional_malloc_size_of]
     triggered: Rc<Cell<bool>>,
 }
@@ -944,21 +944,25 @@ impl Callback for StartCancelAfterAbortHandler {
 
         let global = GlobalScope::from_safe_context(cx, realm);
         let source = self.source.as_rooted();
-        rooted!(in(*cx) let mut reason = UndefinedValue());
-        reason.set(self.reason.get());
+        // The abort action can settle with any value; per spec we ignore `_v`
+        // and pass along the original abort reason when running cancel().
         let cancel_promise = if source.is_readable() {
+            rooted!(in(*cx) let mut reason = UndefinedValue());
+            reason.set(self.reason.get());
             source.cancel(cx, &global, reason.handle(), can_gc)
         } else {
+            // If the ReadableStream already left the readable state, the spec’s
+            // ReadableStreamCancel algorithm resolves with undefined, so forward as-is.
             Promise::new_resolved(&global, cx, (), can_gc)
         };
 
         let handler = PromiseNativeHandler::new(
             &global,
             Some(Box::new(ForwardPromiseFulfillmentHandler {
-                target: self.result.clone(),
+                forwarded_promise: self.result.clone(),
             })),
             Some(Box::new(ForwardPromiseRejectionHandler {
-                target: self.result.clone(),
+                forwarded_promise: self.result.clone(),
             })),
             can_gc,
         );
