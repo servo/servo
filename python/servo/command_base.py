@@ -484,10 +484,7 @@ class CommandBase(object):
         result = self.get_correct_clang_lib_path_using_llvm()
         if result is not None:
             return result
-        result = self.get_correct_clang_lib_using_which()
-        if result is not None:
-            return result
-        return None
+        # if llmv-config does not exist, implement some other way to set
 
     def get_correct_clang_lib_path_using_llvm(_) -> Optional[str]:
         try:
@@ -501,10 +498,6 @@ class CommandBase(object):
             return result.stdout.strip()
         except (subprocess.CalledProcessError, FileNotFoundError) as _:
             return None
-
-    def get_correct_clang_lib_using_which(_) -> Optional[str]:
-        # unimplemented
-        return None
 
     def build_env(self) -> dict[str, str]:
         """Return an extended environment dictionary."""
@@ -534,10 +527,9 @@ class CommandBase(object):
         # The default clang of Ubuntu24.04 from apt seem to be clang-18
         # But mach seem to use the llvm's lib .so instead, so to sync, we can force LIBCLANG_PATH
         libdir = self.get_correct_clang_lib_path()
-        print(libdir)
         if libdir is not None:
             env.setdefault("LIBCLANG_PATH", libdir)
-        # sys.exit(0)
+        
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
