@@ -24,6 +24,8 @@ pub enum BackendError {
     DbNotFound,
     /// The requested object store does not exist
     StoreNotFound,
+    /// The requestedd operation exceeded the available storage quota.
+    QuotaExceeded,
     DbErr(DbError),
 }
 
@@ -393,7 +395,7 @@ pub enum SyncOperation {
     ),
 
     OpenDatabase(
-        IpcSender<u64>, // Returns the version
+        IpcSender<BackendResult<u64>>, // Returns the version
         ImmutableOrigin,
         String,      // Database
         Option<u64>, // Eventual version

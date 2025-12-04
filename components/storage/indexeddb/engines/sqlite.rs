@@ -7,6 +7,7 @@ use std::sync::Arc;
 use base::threadpool::ThreadPool;
 use ipc_channel::ipc::IpcSender;
 use log::{error, info};
+use rusqlite::ffi::{Error as FfiError, SQLITE_CANTOPEN};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
@@ -83,8 +84,17 @@ impl SqliteEngine {
         db_path.push("db.sqlite");
 
         if !db_path.exists() {
-            std::fs::create_dir_all(db_parent).unwrap();
-            std::fs::File::create(&db_path).unwrap();
+            // https://www.w3.org/TR/IndexedDB-2/#open-a-database
+            // Step 5
+            // If db is null, let db be a new database with name name, version 0 (zero), and with no object stores.
+            // If this fails for any reason, return an appropriate error
+            // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
+            std::fs::create_dir_all(&db_parent).map_err(|err| {
+                Error::SqliteFailure(FfiError::new(SQLITE_CANTOPEN), Some(err.to_string()))
+            })?;
+            std::fs::File::create(&db_path).map_err(|err| {
+                Error::SqliteFailure(FfiError::new(SQLITE_CANTOPEN), Some(err.to_string()))
+            })?;
         }
         let connection = Self::init_db(&db_path, db_info)?;
 
