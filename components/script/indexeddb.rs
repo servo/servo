@@ -5,7 +5,6 @@
 use std::ffi::CString;
 use std::ptr;
 
-use ipc_channel::ipc::IpcSender;
 use itertools::Itertools;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
@@ -16,11 +15,8 @@ use js::jsapi::{
 use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
 use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
-use profile_traits::ipc;
-use profile_traits::ipc::IpcReceiver;
 use script_bindings::script_runtime::CanGc;
-use serde::{Deserialize, Serialize};
-use storage_traits::indexeddb::{BackendResult, IndexedDBKeyRange, IndexedDBKeyType};
+use storage_traits::indexeddb::{IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
@@ -30,7 +26,6 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::SafeJSContext;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::utils::set_dictionary_property;
@@ -39,15 +34,6 @@ use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
-
-pub fn create_channel<T>(
-    global: DomRoot<GlobalScope>,
-) -> (IpcSender<BackendResult<T>>, IpcReceiver<BackendResult<T>>)
-where
-    T: for<'a> Deserialize<'a> + Serialize,
-{
-    ipc::channel::<BackendResult<T>>(global.time_profiler_chan().clone()).unwrap()
-}
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
 #[expect(unsafe_code)]

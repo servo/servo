@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use base::threadpool::ThreadPool;
-use ipc_channel::ipc::IpcSender;
 use log::{error, info};
+use profile_traits::generic_callback::GenericCallback;
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
     CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
@@ -388,21 +388,18 @@ impl KvsEngine for SqliteEngine {
                         })
                         .optional()
                     });
-                fn process_object_store<T>(
+                fn process_object_store<T: Send + Serialize + for<'de> Deserialize<'de>>(
                     object_store: Result<Option<object_store_model::Model>, Error>,
-                    sender: &IpcSender<BackendResult<T>>,
-                ) -> Result<object_store_model::Model, ()>
-                where
-                    T: Serialize,
-                {
+                    callback: &GenericCallback<BackendResult<T>>,
+                ) -> Result<object_store_model::Model, ()> {
                     match object_store {
                         Ok(Some(store)) => Ok(store),
                         Ok(None) => {
-                            let _ = sender.send(Err(BackendError::StoreNotFound));
+                            let _ = callback.send(Err(BackendError::StoreNotFound));
                             Err(())
                         },
                         Err(e) => {
-                            let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
+                            let _ = callback.send(Err(BackendError::DbErr(format!("{:?}", e))));
                             Err(())
                         },
                     }
@@ -410,12 +407,12 @@ impl KvsEngine for SqliteEngine {
 
                 match request.operation {
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender,
+                        callback,
                         key,
                         value,
                         should_overwrite,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
                         let key = match key
@@ -424,12 +421,12 @@ impl KvsEngine for SqliteEngine {
                         {
                             Ok(key) => key,
                             Err(e) => {
-                                let _ = sender.send(Err(BackendError::DbErr(format!("{:?}", e))));
+                                let _ = callback.send(Err(BackendError::DbErr(format!("{:?}", e))));
                                 continue;
                             },
                         };
                         let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::put_item(
                                 &connection,
                                 object_store,
@@ -441,26 +438,26 @@ impl KvsEngine for SqliteEngine {
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        sender,
+                        callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::get_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
-                        sender,
+                        callback,
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::get_all_keys(&connection, object_store, key_range, count)
                                 .map(|keys| {
                                     keys.into_iter()
@@ -471,51 +468,51 @@ impl KvsEngine for SqliteEngine {
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
-                        sender,
+                        callback,
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::get_all_items(&connection, object_store, key_range, count)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
-                        sender,
+                        callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::delete_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
-                        sender,
+                        callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::count(&connection, object_store, key_range)
                                 .map(|r| r as u64)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
-                        sender,
+                        callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::get_all_records(&connection, object_store, key_range)
                                 .map(|records| {
                                     records
@@ -540,13 +537,13 @@ impl KvsEngine for SqliteEngine {
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
-                        sender,
+                        callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
+                        let Ok(object_store) = process_object_store(object_store, &callback) else {
                             continue;
                         };
-                        let _ = sender.send(
+                        let _ = callback.send(
                             Self::get_key(&connection, object_store, key_range)
                                 .map(|key| key.map(|k| bincode::deserialize(&k).unwrap()))
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -669,7 +666,10 @@ mod tests {
     use std::collections::VecDeque;
     use std::sync::Arc;
 
+    use base::generic_channel::{self, GenericReceiver, GenericSender};
     use base::threadpool::ThreadPool;
+    use profile_traits::generic_callback::GenericCallback;
+    use profile_traits::time::ProfilerChan;
     use serde::{Deserialize, Serialize};
     use servo_url::ImmutableOrigin;
     use storage_traits::indexeddb::{
@@ -850,14 +850,21 @@ mod tests {
 
     #[test]
     fn test_async_operations() {
-        fn get_channel<T>() -> (
-            ipc_channel::ipc::IpcSender<T>,
-            ipc_channel::ipc::IpcReceiver<T>,
-        )
+        fn get_channel<T>() -> (GenericSender<T>, GenericReceiver<T>)
         where
             T: for<'de> Deserialize<'de> + Serialize,
         {
-            ipc_channel::ipc::channel().unwrap()
+            generic_channel::channel().unwrap()
+        }
+
+        fn get_callback<T>(chan: GenericSender<T>) -> GenericCallback<T>
+        where
+            T: for<'de> Deserialize<'de> + Serialize + Send + Sync,
+        {
+            GenericCallback::new(ProfilerChan(None), move |r| {
+                assert!(chan.send(r.unwrap()).is_ok());
+            })
+            .expect("Could not construct callback")
         }
 
         let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
@@ -890,7 +897,7 @@ mod tests {
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put.0,
+                        callback: get_callback(put.0),
                         key: Some(IndexedDBKeyType::Number(1.0)),
                         value: vec![1, 2, 3],
                         should_overwrite: false,
@@ -899,7 +906,7 @@ mod tests {
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put2.0,
+                        callback: get_callback(put2.0),
                         key: Some(IndexedDBKeyType::String("2.0".to_string())),
                         value: vec![4, 5, 6],
                         should_overwrite: false,
@@ -908,7 +915,7 @@ mod tests {
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put3.0,
+                        callback: get_callback(put3.0),
                         key: Some(IndexedDBKeyType::Array(vec![
                             IndexedDBKeyType::String("3".to_string()),
                             IndexedDBKeyType::Number(0.0),
@@ -921,7 +928,7 @@ mod tests {
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        sender: put_dup.0,
+                        callback: get_callback(put_dup.0),
                         key: Some(IndexedDBKeyType::Number(1.0)),
                         value: vec![10, 11, 12],
                         should_overwrite: false,
@@ -930,21 +937,21 @@ mod tests {
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        sender: get_item_some.0,
+                        callback: get_callback(get_item_some.0),
                         key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                     }),
                 },
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        sender: get_item_none.0,
+                        callback: get_callback(get_item_none.0),
                         key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
                     }),
                 },
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
-                        sender: get_all_items.0,
+                        callback: get_callback(get_all_items.0),
                         key_range: IndexedDBKeyRange::lower_bound(
                             IndexedDBKeyType::Number(0.0),
                             false,
@@ -955,20 +962,22 @@ mod tests {
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
-                        sender: count.0,
+                        callback: get_callback(count.0),
                         key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                     }),
                 },
                 KvsOperation {
                     store_name: store_name.to_owned(),
                     operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
-                        sender: remove.0,
+                        callback: get_callback(remove.0),
                         key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
                     }),
                 },
                 KvsOperation {
                     store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(clear.0)),
+                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(
+                        get_callback(clear.0),
+                    )),
                 },
             ]),
         });

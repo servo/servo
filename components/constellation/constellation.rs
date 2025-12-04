@@ -99,7 +99,7 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use base::generic_channel::{GenericSender, RoutedReceiver};
+use base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
 use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
@@ -2597,7 +2597,7 @@ where
         let (client_storage_generic_sender, client_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
         let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
-            ipc::channel().expect("Failed to create IPC channel!");
+            generic_channel::channel().expect("Failed to create generic channel!");
         let (web_storage_generic_sender, web_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
 

@@ -5,10 +5,9 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 
-use base::IpcSend;
+use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use profile_traits::ipc;
+use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
@@ -116,7 +115,7 @@ impl IDBTransaction {
     // FIXME:(rasviitanen) We could probably replace this with a channel instead,
     // and queue requests directly to that channel.
     fn register_new(global: &GlobalScope, db_name: DOMString) -> u64 {
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(global.time_profiler_chan().clone()).unwrap();
 
         global
             .storage_threads()
@@ -133,7 +132,7 @@ impl IDBTransaction {
     // Runs the transaction and waits for it to finish
     pub fn wait(&self) {
         // Start the transaction
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
         let start_operation = SyncOperation::StartTransaction(
             sender,
@@ -217,7 +216,7 @@ impl IDBTransaction {
         // Runs the previous request and waits for them to finish
         self.wait();
         // Queue a request to upgrade the db version
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
         let upgrade_version_operation = SyncOperation::UpgradeVersion(
             sender,
             self.global().origin().immutable().clone(),
@@ -260,7 +259,7 @@ impl IDBTransaction {
         );
     }
 
-    fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
+    fn get_idb_thread(&self) -> GenericSender<IndexedDBThreadMsg> {
         self.global().storage_threads().sender()
     }
 
@@ -271,7 +270,7 @@ impl IDBTransaction {
         let global = self.global();
         let idb_sender = global.storage_threads().sender();
         let (sender, receiver) =
-            ipc::channel(global.time_profiler_chan().clone()).expect("failed to create channel");
+            channel(global.time_profiler_chan().clone()).expect("failed to create channel");
 
         let origin = global.origin().immutable().clone();
         let db_name = self.db.get_name().to_string();
@@ -290,7 +289,7 @@ impl IDBTransaction {
         // Second unwrap will never happen unless this db gets manually deleted somehow
         let auto_increment = receiver.recv().ok()?.ok()?;
 
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).ok()?;
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone())?;
         let operation = SyncOperation::KeyPath(sender, origin, db_name, object_store_name);
 
         let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
@@ -354,7 +353,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     /// <https://www.w3.org/TR/IndexedDB-2/#commit-transaction>
     fn Commit(&self) -> Fallible<()> {
         // Step 1
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
         let start_operation = SyncOperation::Commit(
             sender,
             self.global().origin().immutable().clone(),

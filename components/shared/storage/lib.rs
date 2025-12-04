@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::generic_channel::{GenericSend, GenericSender, SendResult};
-use base::{IpcSend, IpcSendResult};
-use ipc_channel::ipc::{IpcError, IpcSender};
 use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
 
@@ -19,14 +17,14 @@ pub mod webstorage_thread;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct StorageThreads {
     client_storage_thread: GenericSender<ClientStorageThreadMessage>,
-    idb_thread: IpcSender<IndexedDBThreadMsg>,
+    idb_thread: GenericSender<IndexedDBThreadMsg>,
     web_storage_thread: GenericSender<WebStorageThreadMsg>,
 }
 
 impl StorageThreads {
     pub fn new(
         client_storage_thread: GenericSender<ClientStorageThreadMessage>,
-        idb_thread: IpcSender<IndexedDBThreadMsg>,
+        idb_thread: GenericSender<IndexedDBThreadMsg>,
         web_storage_thread: GenericSender<WebStorageThreadMsg>,
     ) -> StorageThreads {
         StorageThreads {
@@ -47,12 +45,12 @@ impl GenericSend<ClientStorageThreadMessage> for StorageThreads {
     }
 }
 
-impl IpcSend<IndexedDBThreadMsg> for StorageThreads {
-    fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
-        self.idb_thread.send(msg).map_err(IpcError::Bincode)
+impl GenericSend<IndexedDBThreadMsg> for StorageThreads {
+    fn send(&self, msg: IndexedDBThreadMsg) -> SendResult {
+        self.idb_thread.send(msg)
     }
 
-    fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {
+    fn sender(&self) -> GenericSender<IndexedDBThreadMsg> {
         self.idb_thread.clone()
     }
 }

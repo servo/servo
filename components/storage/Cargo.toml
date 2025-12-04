@@ -15,7 +15,6 @@ path = "lib.rs"
 [dependencies]
 base = { workspace = true }
 bincode = { workspace = true }
-ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 log = { workspace = true }
