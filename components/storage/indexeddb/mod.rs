@@ -199,7 +199,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 /// Keeping track of pending upgrade transactions.
 /// TODO: move into general transaction lifecycle.
 struct PendingUpgrade {
-    sender: IpcSender<OpenDatabaseResult>,
+    sender: GenericCallback<OpenDatabaseResult>,
     db_version: u64,
 }
 
@@ -330,7 +330,7 @@ impl IndexedDBManager {
         idb_description: IndexedDBDescription,
         new_version: u64,
         db_name: String,
-        sender: IpcSender<OpenDatabaseResult>,
+        sender: GenericCallback<OpenDatabaseResult>,
     ) {
         // Step 1: Let db be connection’s database.
         // TODO: connection.
