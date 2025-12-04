@@ -686,21 +686,31 @@ impl HTMLMediaElement {
     }
 
     fn update_media_state(&self) {
-        if self.is_potentially_playing() {
+        let is_playing = self
+            .player
+            .borrow()
+            .as_ref()
+            .is_some_and(|player| !player.lock().unwrap().paused());
+
+        if self.is_potentially_playing() && !is_playing {
             if let Some(ref player) = *self.player.borrow() {
-                if let Err(err) = player.lock().unwrap().set_rate(self.playback_rate.get()) {
-                    warn!("Could not set the playback rate {:?}", err);
+                let player = player.lock().unwrap();
+
+                if let Err(error) = player.set_playback_rate(self.playback_rate.get()) {
+                    warn!("Could not set the playback rate: {error:?}");
                 }
-                if let Err(err) = player.lock().unwrap().set_volume(self.volume.get()) {
-                    warn!("Could not set the volume {:?}", err);
+                if let Err(error) = player.set_volume(self.volume.get()) {
+                    warn!("Could not set the volume: {error:?}");
                 }
-                if let Err(err) = player.lock().unwrap().play() {
-                    warn!("Could not play media {:?}", err);
+                if let Err(error) = player.play() {
+                    error!("Could not play media: {error:?}");
                 }
             }
-        } else if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().pause() {
-                error!("Could not pause player {:?}", err);
+        } else if is_playing {
+            if let Some(ref player) = *self.player.borrow() {
+                if let Err(error) = player.lock().unwrap().pause() {
+                    error!("Could not pause player: {error:?}");
+                }
             }
         }
     }
@@ -1608,8 +1618,8 @@ impl HTMLMediaElement {
                     this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
                     if let Some(ref player) = *this.player.borrow() {
-                        if let Err(err) = player.lock().unwrap().stop() {
-                            error!("Could not stop player {:?}", err);
+                        if let Err(error) = player.lock().unwrap().stop() {
+                            error!("Could not stop player: {error:?}");
                         }
                     }
 
@@ -2105,8 +2115,8 @@ impl HTMLMediaElement {
         let player_id = {
             let player_guard = player.lock().unwrap();
 
-            if let Err(e) = player_guard.set_mute(self.muted.get()) {
-                log::warn!("Could not set mute state: {:?}", e);
+            if let Err(error) = player_guard.set_mute(self.muted.get()) {
+                warn!("Could not set mute state: {error:?}");
             }
 
             player_guard.get_id()
@@ -2153,8 +2163,8 @@ impl HTMLMediaElement {
         }
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().stop() {
-                error!("Could not stop player {:?}", err);
+            if let Err(error) = player.lock().unwrap().stop() {
+                error!("Could not stop player: {error:?}");
             }
         }
 
@@ -2168,16 +2178,16 @@ impl HTMLMediaElement {
 
     pub(crate) fn set_audio_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_audio_track(idx as i32, enabled) {
-                warn!("Could not set audio track {:#?}", err);
+            if let Err(error) = player.lock().unwrap().set_audio_track(idx as i32, enabled) {
+                warn!("Could not set audio track {error:?}");
             }
         }
     }
 
     pub(crate) fn set_video_track(&self, idx: usize, enabled: bool) {
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_video_track(idx as i32, enabled) {
-                warn!("Could not set video track {:#?}", err);
+            if let Err(error) = player.lock().unwrap().set_video_track(idx as i32, enabled) {
+                warn!("Could not set video track: {error:?}");
             }
         }
     }
@@ -2771,10 +2781,9 @@ impl HTMLMediaElement {
     fn seekable(&self) -> TimeRangesContainer {
         let mut seekable = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
-            if let Ok(ranges) = player.lock().unwrap().seekable() {
-                for range in ranges {
-                    let _ = seekable.add(range.start, range.end);
-                }
+            let ranges = player.lock().unwrap().seekable();
+            for range in ranges {
+                let _ = seekable.add(range.start, range.end);
             }
         }
         seekable
@@ -2898,8 +2907,8 @@ impl HTMLMediaElement {
 
         let had_player = {
             if let Some(ref player) = *self.player.borrow() {
-                if let Err(err) = player.lock().unwrap().stop() {
-                    error!("Could not stop player {:?}", err);
+                if let Err(error) = player.lock().unwrap().stop() {
+                    error!("Could not stop player: {error:?}");
                 }
                 true
             } else {
@@ -3004,8 +3013,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.muted.set(value);
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_mute(value) {
-                warn!("Could not set mute state {:?}", err);
+            if let Err(error) = player.lock().unwrap().set_mute(value) {
+                warn!("Could not set mute state: {error:?}");
             }
         }
 
@@ -3177,8 +3186,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         if self.is_potentially_playing() {
             if let Some(ref player) = *self.player.borrow() {
-                if let Err(err) = player.lock().unwrap().set_rate(*value) {
-                    warn!("Could not set the playback rate {:?}", err);
+                if let Err(error) = player.lock().unwrap().set_playback_rate(*value) {
+                    warn!("Could not set the playback rate: {error:?}");
                 }
             }
         }
@@ -3254,10 +3263,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     fn Buffered(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
-            if let Ok(ranges) = player.lock().unwrap().buffered() {
-                for range in ranges {
-                    let _ = buffered.add(range.start, range.end);
-                }
+            let ranges = player.lock().unwrap().buffered();
+            for range in ranges {
+                let _ = buffered.add(range.start, range.end);
             }
         }
         TimeRanges::new(self.global().as_window(), buffered, can_gc)
@@ -3333,8 +3341,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.volume.set(*value);
 
         if let Some(ref player) = *self.player.borrow() {
-            if let Err(err) = player.lock().unwrap().set_volume(*value) {
-                warn!("Could not set the volume {:?}", err);
+            if let Err(error) = player.lock().unwrap().set_volume(*value) {
+                warn!("Could not set the volume: {error:?}");
             }
         }
 
@@ -3566,15 +3574,15 @@ impl BufferedDataSource {
         while let Some(buffer) = self.buffers.pop_front() {
             match buffer {
                 DataBuffer::Payload(payload) => {
-                    if let Err(e) = player.lock().unwrap().push_data(payload) {
-                        warn!("Could not push input data to player {:?}", e);
-                        return Err(e);
+                    if let Err(error) = player.lock().unwrap().push_data(payload) {
+                        warn!("Could not push input data to player: {error:?}");
+                        return Err(error);
                     }
                 },
                 DataBuffer::EndOfStream => {
-                    if let Err(e) = player.lock().unwrap().end_of_stream() {
-                        warn!("Could not signal EOS to player {:?}", e);
-                        return Err(e);
+                    if let Err(error) = player.lock().unwrap().end_of_stream() {
+                        warn!("Could not signal EOS to player: {error:?}");
+                        return Err(error);
                     }
                 },
             }
