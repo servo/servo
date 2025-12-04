@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@3fde8fcc735354a1b17223c80b7d4170af7a8551
+        uses: servo/ci-runners/actions/runner-select@4422139e238c3699ba62d452839cd9cf46c374b6
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
@@ -42,7 +42,7 @@ jobs:
     name: Lint [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@3fde8fcc735354a1b17223c80b7d4170af7a8551
+      - uses: servo/ci-runners/actions/checkout@4422139e238c3699ba62d452839cd9cf46c374b6
         with:
           fetch-depth: 2
 

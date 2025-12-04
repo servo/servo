@@ -35,50 +35,39 @@ jobs:
     outputs:
       unique-id: ${{ steps.select.outputs.unique-id }}
       selected-runner-label: ${{ steps.select.outputs.selected-runner-label }}
+      selected-runner-count: ${{ steps.select.outputs.selected-runner-count }}
+      selected-runner-indices: ${{ steps.select.outputs.selected-runner-indices }}
       runner-type-label: ${{ steps.select.outputs.runner-type-label }}
       is-self-hosted: ${{ steps.select.outputs.is-self-hosted }}
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@3fde8fcc735354a1b17223c80b7d4170af7a8551
+        uses: servo/ci-runners/actions/runner-select@4422139e238c3699ba62d452839cd9cf46c374b6
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
           # that the system has a glibc version that is compatible with the one
           # used by the wpt.fyi runners.
           github-hosted-runner-label: ubuntu-22.04
+          github-hosted-runner-count: ${{ inputs.number-of-wpt-chunks }}
           self-hosted-image-name: servo-ubuntu2204-wpt
           self-hosted-runner-count: 2
+          first-runner-index: 1
           # You can disable self-hosted runners globally by creating a repository variable named
           # NO_SELF_HOSTED_RUNNERS with any non-empty value.
           # <https://github.com/servo/servo/settings/variables/actions>
           NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
           # Any other boolean conditions that disable self-hosted runners go here.
           force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
-  chunks:
-    needs:
-      - runner-select
-    name: Generate chunks array
-    runs-on: ubuntu-22.04
-    outputs:
-      chunks-array: ${{ steps.generate-chunks-array.outputs.result }}
-      number-of-chunks: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && 2 || inputs.number-of-wpt-chunks }}
-    steps:
-      - uses: actions/github-script@v7
-        id: generate-chunks-array
-        with:
-          script: |
-            return Array.from({length: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && 2 || inputs.number-of-wpt-chunks }}}, (_, i) => i + 1)
   linux-wpt:
     needs:
       - runner-select
-      - chunks
     name: WPT [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     strategy:
       fail-fast: false
       matrix:
-        chunk_id: ${{ fromJson(needs.chunks.outputs.chunks-array) }}
+        chunk_id: ${{ fromJSON(needs.runner-select.outputs.selected-runner-indices) }}
     steps:
       - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
@@ -120,7 +109,7 @@ jobs:
           ./mach test-wpt \
             $WPT_ALWAYS_SUCCEED_ARG \
             --profile ${{ inputs.profile }} --processes $((nproc * 4)) --timeout-multiplier 2 \
-            --total-chunks ${{ needs.chunks.outputs.number-of-chunks }} --this-chunk ${{ matrix.chunk_id }} \
+            --total-chunks ${{ needs.runner-select.outputs.selected-runner-count }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
             --log-raw-stable-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
