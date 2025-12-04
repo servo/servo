@@ -383,12 +383,7 @@ impl TouchHandler {
         };
 
         if velocity.length().abs() < FLING_MIN_SCREEN_PX {
-            let _span = profile_traits::info_span!("TouchHandler::FlingEnd").entered();
-            touch_sequence.state = Finished;
-            // If we were flinging previously, there could still be a touch_up event result
-            // coming in after we stopped flinging
-            self.try_remove_touch_sequence(self.current_sequence_id);
-            self.observing_frames_for_fling.set(false);
+            self.stop_fling_if_needed();
             None
         } else {
             // TODO: Probably we should multiply with the current refresh rate (and divide on each frame)
@@ -405,6 +400,21 @@ impl TouchHandler {
                 cursor: *cursor,
             })
         }
+    }
+
+    pub(crate) fn stop_fling_if_needed(&mut self) {
+        let current_sequence_id = self.current_sequence_id;
+        let touch_sequence = self.get_current_touch_sequence_mut();
+        let Flinging { .. } = touch_sequence.state else {
+            return;
+        };
+        let _span = profile_traits::info_span!("TouchHandler::FlingEnd").entered();
+        debug!("Stopping fling in touch sequence {current_sequence_id:?}");
+        touch_sequence.state = Finished;
+        // If we were flinging previously, there could still be a touch_up event result
+        // coming in after we stopped flinging
+        self.try_remove_touch_sequence(current_sequence_id);
+        self.observing_frames_for_fling.set(false);
     }
 
     pub fn on_touch_move(
