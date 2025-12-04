@@ -66,7 +66,6 @@ pub(crate) fn encrypt_aes_ctr(
     if normalized_algorithm.length == 0 {
         return Err(Error::Operation(Some("The counter length is zero".into())));
     }
-
     if normalized_algorithm.length > 128 {
         return Err(Error::Operation(Some(
             "The counter length is greater than 128".into(),
