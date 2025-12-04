@@ -786,7 +786,6 @@ impl WebViewRenderer {
                 scroll_result.hit_test_result.clone(),
             );
         } else {
-            // No scroll happened, so if we were flinging, stop the fling.
             self.touch_handler.stop_fling_if_needed();
         }
 
