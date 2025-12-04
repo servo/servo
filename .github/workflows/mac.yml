@@ -94,7 +94,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@4422139e238c3699ba62d452839cd9cf46c374b6
+        uses: servo/ci-runners/actions/runner-select@8c9da53d1cdd63b32fcc58d03aa614313c4c3057
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: macos-15-intel
@@ -119,7 +119,7 @@ jobs:
       - name: Kill XProtectBehaviorService
         run: |
           echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
-      - uses: servo/ci-runners/actions/checkout@4422139e238c3699ba62d452839cd9cf46c374b6
+      - uses: servo/ci-runners/actions/checkout@8c9da53d1cdd63b32fcc58d03aa614313c4c3057
 
       - if: runner.environment != 'self-hosted'
         name: Setup Python
