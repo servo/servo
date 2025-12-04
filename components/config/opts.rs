@@ -116,9 +116,6 @@ pub struct DiagnosticsLogging {
     /// Log notifications when a relayout occurs.
     pub relayout_event: bool,
 
-    /// Periodically log on which events script threads spend their processing time.
-    pub profile_script_events: bool,
-
     /// Log style sharing cache statistics to after each restyle.
     ///
     /// Shows hit/miss statistics for the style sharing cache
@@ -141,7 +138,6 @@ impl DiagnosticsLogging {
                 "style-stats" => self.style_statistics = true,
                 "scroll-tree" => self.scroll_tree = true,
                 "gc-profile" => self.gc_profile = true,
-                "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
                 "" => {},
                 _ => return Err(String::from(option)),
