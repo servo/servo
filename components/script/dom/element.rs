@@ -159,7 +159,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, LayoutNodeHelpers, Node,
-    NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
+    NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext, UnrootedIterator,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -4764,7 +4764,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
     }
 
     fn is_empty(&self) -> bool {
-        self.node.children().all(|node| {
+        self.node.unrooted_children().all(|node| {
             !node.is::<Element>() &&
                 match node.downcast::<Text>() {
                     None => true,
@@ -5299,7 +5299,10 @@ impl Element {
             }
             if let Some(ref legend) = ancestor.children().find(|n| n.is::<HTMLLegendElement>()) {
                 // XXXabinader: should we save previous ancestor to avoid this iteration?
-                if node.ancestors().any(|ancestor| ancestor == *legend) {
+                if node
+                    .unrooted_ancestors()
+                    .any(|ancestor| *ancestor == **legend)
+                {
                     continue;
                 }
             }

@@ -78,6 +78,7 @@ use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
+    UnrootedIterator,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
@@ -3195,7 +3196,7 @@ impl VirtualMethods for HTMLInputElement {
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
         if node
-            .ancestors()
+            .unrooted_ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
             el.check_ancestors_disabled_state_for_form_control();

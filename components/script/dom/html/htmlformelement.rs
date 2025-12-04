@@ -75,7 +75,8 @@ use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{
-    BindContext, Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper,
+    BindContext, Node, NodeFlags, NodeTraits, UnbindContext, UnrootedIterator,
+    VecPreOrderInsertionHelper,
 };
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
@@ -1216,7 +1217,10 @@ impl HTMLFormElement {
             let child = child.upcast::<Node>();
 
             // Step 5.1: The field element has a datalist element ancestor.
-            if child.ancestors().any(|a| a.is::<HTMLDataListElement>()) {
+            if child
+                .unrooted_ancestors()
+                .any(|a| a.is::<HTMLDataListElement>())
+            {
                 continue;
             }
             if let NodeTypeId::Element(ElementTypeId::HTMLElement(element)) = child.type_id() {
