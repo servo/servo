@@ -138,6 +138,7 @@ pub struct Descriptor {
     pub density: Option<f64>,
 }
 
+/// <https://html.spec.whatwg.org/multipage/#img-req-state>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum State {
     Unavailable,
@@ -151,6 +152,8 @@ enum ImageRequestPhase {
     Pending,
     Current,
 }
+
+/// <https://html.spec.whatwg.org/multipage/#image-request>
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ImageRequest {
@@ -167,6 +170,7 @@ struct ImageRequest {
     final_url: Option<ServoUrl>,
     current_pixel_density: Option<f64>,
 }
+
 #[dom_struct]
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
@@ -179,6 +183,7 @@ pub(crate) struct HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-img-dimension-attribute-source>
     /// Always non-null after construction.
     dimension_attribute_source: MutNullableDom<Element>,
+    /// <https://html.spec.whatwg.org/multipage/#last-selected-source>
     last_selected_source: DomRefCell<Option<USVString>>,
     #[conditional_malloc_size_of]
     image_decode_promises: DomRefCell<Vec<Rc<Promise>>>,
@@ -447,7 +452,7 @@ impl HTMLImageElement {
         .pipeline_id(Some(document.global().pipeline_id()))
         .referrer_policy(referrer_policy_for_element(self.upcast()));
 
-        if Self::uses_srcset_or_picture(self.upcast()) {
+        if self.uses_srcset_or_picture() {
             request = request.initiator(Initiator::ImageSet);
         }
 
@@ -468,9 +473,13 @@ impl HTMLImageElement {
         self.resolve_image_decode_promises();
     }
 
-    /// Step 24 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>
+    /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     fn process_image_response(&self, image: ImageResponse, can_gc: CanGc) {
-        // TODO: Handle multipart/x-mixed-replace
+        // Step 27. As soon as possible, jump to the first applicable entry from the following list:
+
+        // TODO => "If the resource type is multipart/x-mixed-replace"
+
+        // => "If the resource type and data corresponds to a supported image format ...""
         let (trigger_image_load, trigger_image_error) = match (image, self.image_request.get()) {
             (ImageResponse::Loaded(image, url), ImageRequestPhase::Current) => {
                 self.handle_loaded_image(image, url, can_gc);
@@ -483,28 +492,58 @@ impl HTMLImageElement {
                 (true, false)
             },
             (ImageResponse::MetadataLoaded(meta), ImageRequestPhase::Current) => {
+                // Otherwise, if the user agent is able to determine image request's image's width
+                // and height, and image request is the current request, prepare image request for
+                // presentation given the img element and set image request's state to partially
+                // available.
                 self.current_request.borrow_mut().state = State::PartiallyAvailable;
                 self.current_request.borrow_mut().metadata = Some(meta);
                 (false, false)
             },
             (ImageResponse::MetadataLoaded(_), ImageRequestPhase::Pending) => {
+                // If the user agent is able to determine image request's image's width and height,
+                // and image request is the pending request, set image request's state to partially
+                // available.
                 self.pending_request.borrow_mut().state = State::PartiallyAvailable;
                 (false, false)
             },
             (ImageResponse::FailedToLoadOrDecode, ImageRequestPhase::Current) => {
+                // Otherwise, if the user agent is able to determine that image request's image is
+                // corrupted in some fatal way such that the image dimensions cannot be obtained,
+                // and image request is the current request:
+
+                // Step 1. Abort the image request for image request.
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
 
                 self.load_broken_image_icon();
 
+                // Step 2. If maybe omit events is not set or previousURL is not equal to urlString,
+                // then fire an event named error at the img element.
+                // TODO: Add missing `maybe omit events` flag and previousURL.
                 (false, true)
             },
             (ImageResponse::FailedToLoadOrDecode, ImageRequestPhase::Pending) => {
+                // Otherwise, if the user agent is able to determine that image request's image is
+                // corrupted in some fatal way such that the image dimensions cannot be obtained,
+                // and image request is the pending request:
+
+                // Step 1. Abort the image request for the current request and the pending request.
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
-                self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
+                self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+
+                // Step 2. Upgrade the pending request to the current request.
+                mem::swap(
+                    &mut *self.current_request.borrow_mut(),
+                    &mut *self.pending_request.borrow_mut(),
+                );
                 self.image_request.set(ImageRequestPhase::Current);
+
+                // Step 3. Set the current request's state to broken.
+                self.current_request.borrow_mut().state = State::Broken;
 
                 self.load_broken_image_icon();
 
+                // Step 4. Fire an event named error at the img element.
                 (false, true)
             },
         };
@@ -532,7 +571,7 @@ impl HTMLImageElement {
     fn process_image_response_for_environment_change(
         &self,
         image: ImageResponse,
-        src: USVString,
+        selected_source: USVString,
         generation: u32,
         selected_pixel_density: f64,
         can_gc: CanGc,
@@ -542,7 +581,11 @@ impl HTMLImageElement {
                 self.pending_request.borrow_mut().metadata = Some(image.metadata());
                 self.pending_request.borrow_mut().final_url = Some(url);
                 self.pending_request.borrow_mut().image = Some(image);
-                self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
+                self.finish_reacting_to_environment_change(
+                    selected_source,
+                    generation,
+                    selected_pixel_density,
+                );
             },
             ImageResponse::FailedToLoadOrDecode => {
                 // > Step 15.6: If response's unsafe response is a network error or if the
@@ -570,6 +613,7 @@ impl HTMLImageElement {
         request.state = state;
         request.image = None;
         request.metadata = None;
+        request.current_pixel_density = None;
 
         if matches!(state, State::Broken) {
             self.reject_image_decode_promises();
@@ -599,8 +643,7 @@ impl HTMLImageElement {
         // Step 4. If default source is not the empty string and source set does not contain an
         // image source with a pixel density descriptor value of 1, and no image source with a width
         // descriptor, append default source to source set.
-        let src_attribute = element.get_string_attribute(&local_name!("src"));
-        let is_src_empty = src_attribute.is_empty();
+        let src = element.get_string_attribute(&local_name!("src"));
         let no_density_source_of_1 = source_set
             .image_sources
             .iter()
@@ -609,9 +652,9 @@ impl HTMLImageElement {
             .image_sources
             .iter()
             .all(|source| source.descriptor.width.is_none());
-        if !is_src_empty && no_density_source_of_1 && no_width_descriptor {
+        if !src.is_empty() && no_density_source_of_1 && no_width_descriptor {
             source_set.image_sources.push(ImageSource {
-                url: src_attribute.to_string(),
+                url: src.to_string(),
                 descriptor: Descriptor {
                     width: None,
                     density: None,
@@ -663,7 +706,6 @@ impl HTMLImageElement {
                 // Step 5.1.11. Return.
                 return;
             }
-
             // Step 5.2. If child is not a source element, then continue.
             if !element.is::<HTMLSourceElement>() {
                 continue;
@@ -859,284 +901,399 @@ impl HTMLImageElement {
             Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
-    /// Step 13-17 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>.
+    /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     fn prepare_image_request(
         &self,
-        url: &ServoUrl,
-        src: &USVString,
+        selected_source: &USVString,
         selected_pixel_density: f64,
+        image_url: &ServoUrl,
         can_gc: CanGc,
     ) {
         match self.image_request.get() {
             ImageRequestPhase::Pending => {
-                if let Some(pending_url) = self.pending_request.borrow().parsed_url.clone() {
-                    // Step 13
-                    if pending_url == *url {
-                        return;
-                    }
+                // Step 14. If the pending request is not null and urlString is the same as the
+                // pending request's current URL, then return.
+                if self
+                    .pending_request
+                    .borrow()
+                    .parsed_url
+                    .as_ref()
+                    .is_some_and(|parsed_url| *parsed_url == *image_url)
+                {
+                    return;
                 }
             },
             ImageRequestPhase::Current => {
+                // Step 16. Abort the image request for the pending request.
+                self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+
+                // Step 17. Set image request to a new image request whose current URL is urlString.
+
                 let mut current_request = self.current_request.borrow_mut();
                 let mut pending_request = self.pending_request.borrow_mut();
-                // step 16, create a new "image_request"
-                match (current_request.parsed_url.clone(), current_request.state) {
+
+                match (current_request.parsed_url.as_ref(), current_request.state) {
                     (Some(parsed_url), State::PartiallyAvailable) => {
-                        // Step 14
-                        if parsed_url == *url {
-                            // Step 15 abort pending request
-                            pending_request.image = None;
-                            pending_request.parsed_url = None;
-                            LoadBlocker::terminate(&pending_request.blocker, can_gc);
+                        // Step 15. If urlString is the same as the current request's current URL
+                        // and the current request's state is partially available, then abort the
+                        // image request for the pending request, queue an element task on the DOM
+                        // manipulation task source given the img element to restart the animation
+                        // if restart animation is set, and return.
+                        if *parsed_url == *image_url {
                             // TODO: queue a task to restart animation, if restart-animation is set
                             return;
                         }
-                        pending_request.current_pixel_density = Some(selected_pixel_density);
+
+                        // Step 18. If the current request's state is unavailable or broken, then
+                        // set the current request to image request. Otherwise, set the pending
+                        // request to image request.
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(&mut pending_request, url, src, can_gc);
+                        self.init_image_request(
+                            &mut pending_request,
+                            image_url,
+                            selected_source,
+                            can_gc,
+                        );
+                        pending_request.current_pixel_density = Some(selected_pixel_density);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
-                        // Step 17
+                        // Step 18. If the current request's state is unavailable or broken, then
+                        // set the current request to image request. Otherwise, set the pending
+                        // request to image request.
+                        self.init_image_request(
+                            &mut current_request,
+                            image_url,
+                            selected_source,
+                            can_gc,
+                        );
                         current_request.current_pixel_density = Some(selected_pixel_density);
-                        self.init_image_request(&mut current_request, url, src, can_gc);
                         self.reject_image_decode_promises();
                     },
                     (_, _) => {
-                        // step 17
-                        pending_request.current_pixel_density = Some(selected_pixel_density);
+                        // Step 18. If the current request's state is unavailable or broken, then
+                        // set the current request to image request. Otherwise, set the pending
+                        // request to image request.
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(&mut pending_request, url, src, can_gc);
+                        self.init_image_request(
+                            &mut pending_request,
+                            image_url,
+                            selected_source,
+                            can_gc,
+                        );
+                        pending_request.current_pixel_density = Some(selected_pixel_density);
                     },
                 }
             },
         }
-        self.fetch_image(url, can_gc);
+
+        self.fetch_image(image_url, can_gc);
     }
 
-    /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
+    /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     fn update_the_image_data_sync_steps(&self, can_gc: CanGc) {
-        let document = self.owner_document();
-        let global = self.owner_global();
-        let task_manager = global.task_manager();
-        let task_source = task_manager.dom_manipulation_task_source();
-        let this = Trusted::new(self);
-        let (src, pixel_density) = match self.select_image_source() {
-            // Step 8
-            Some(data) => data,
-            None => {
-                self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
-                self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
-                // Step 9.
-                task_source.queue(task!(image_null_source_error: move || {
+        // Step 10. Let selected source and selected pixel density be the URL and pixel density that
+        // results from selecting an image source, respectively.
+        let Some((selected_source, selected_pixel_density)) = self.select_image_source() else {
+            // Step 11. If selected source is null, then:
+
+            // Step 11.1. Set the current request's state to broken, abort the image request for the
+            // current request and the pending request, and set the pending request to null.
+            self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
+            self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+            self.image_request.set(ImageRequestPhase::Current);
+
+            // Step 11.2. Queue an element task on the DOM manipulation task source given the img
+            // element and the following steps:
+            let this = Trusted::new(self);
+
+            self.owner_global().task_manager().dom_manipulation_task_source().queue(
+                task!(image_null_source_error: move || {
                     let this = this.root();
+
+                    // Step 11.2.1. Change the current request's current URL to the empty string.
                     {
                         let mut current_request =
                             this.current_request.borrow_mut();
                         current_request.source_url = None;
                         current_request.parsed_url = None;
                     }
-                    let elem = this.upcast::<Element>();
-                    let src_present = elem.has_attribute(&local_name!("src"));
 
-                    if src_present || Self::uses_srcset_or_picture(elem) {
+                    // Step 11.2.2. If all of the following are true:
+                    // the element has a src attribute or it uses srcset or picture; and
+                    // maybe omit events is not set or previousURL is not the empty string,
+                    // then fire an event named error at the img element.
+                    // TODO: Add missing `maybe omit events` flag and previousURL.
+                    let has_src_attribute = this.upcast::<Element>().has_attribute(&local_name!("src"));
+
+                    if has_src_attribute || this.uses_srcset_or_picture() {
                         this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
                     }
                 }));
-                return;
-            },
+
+            // Step 11.2.3. Return.
+            return;
         };
 
-        // Step 11
-        let base_url = document.base_url();
-        let parsed_url = base_url.join(&src.0);
-        match parsed_url {
-            Ok(url) => {
-                // Step 13-17
-                self.prepare_image_request(&url, &src, pixel_density, can_gc);
-            },
-            Err(_) => {
-                self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
-                self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
-                // Step 12.1-12.5.
-                let src = src.0;
-                task_source.queue(task!(image_selected_source_error: move || {
+        // Step 12. Let urlString be the result of encoding-parsing-and-serializing a URL given
+        // selected source, relative to the element's node document.
+        let Ok(image_url) = self.owner_document().base_url().join(&selected_source) else {
+            // Step 13. If urlString is failure, then:
+
+            // Step 13.1. Abort the image request for the current request and the pending request.
+            // Step 13.2. Set the current request's state to broken.
+            self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
+            self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+
+            // Step 13.3. Set the pending request to null.
+            self.image_request.set(ImageRequestPhase::Current);
+
+            // Step 13.4. Queue an element task on the DOM manipulation task source given the img
+            // element and the following steps:
+            let this = Trusted::new(self);
+
+            self.owner_global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task!(image_selected_source_error: move || {
                     let this = this.root();
+
+                    // Step 13.4.1. Change the current request's current URL to selected source.
                     {
                         let mut current_request =
                             this.current_request.borrow_mut();
-                        current_request.source_url = Some(USVString(src))
+                        current_request.source_url = Some(selected_source);
+                        current_request.parsed_url = None;
                     }
-                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
+                    // Step 13.4.2. If maybe omit events is not set or previousURL is not equal to
+                    // selected source, then fire an event named error at the img element.
+                    // TODO: Add missing `maybe omit events` flag and previousURL.
+                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
                 }));
-            },
-        }
+
+            // Step 13.5. Return.
+            return;
+        };
+
+        self.prepare_image_request(&selected_source, selected_pixel_density, &image_url, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     pub(crate) fn update_the_image_data(&self, can_gc: CanGc) {
-        let document = self.owner_document();
-        let window = document.window();
-        let elem = self.upcast::<Element>();
-        let src = elem.get_url_attribute(&local_name!("src"));
-        let base_url = document.base_url();
+        // Cancel any outstanding tasks that were queued before.
+        self.generation.set(self.generation.get() + 1);
 
-        // https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations
-        // Always first set the current request to unavailable,
-        // ensuring img.complete is false.
-        {
-            let mut current_request = self.current_request.borrow_mut();
-            current_request.state = State::Unavailable;
+        // Step 1. If the element's node document is not fully active, then:
+        if !self.owner_document().is_active() {
+            // TODO Step 1.1. Continue running this algorithm in parallel.
+            // TODO Step 1.2. Wait until the element's node document is fully active.
+            // TODO Step 1.3. If another instance of this algorithm for this img element was started after
+            // this instance (even if it aborted and is no longer running), then return.
+            // TODO Step 1.4. Queue a microtask to continue this algorithm.
         }
 
-        if !document.is_active() {
-            // Step 1 (if the document is inactive)
-            // TODO: use GlobalScope::enqueue_microtask,
-            // to queue micro task to come back to this algorithm
-        }
-        // Step 2 abort if user-agent does not supports images
-        // NOTE: Servo only supports images, skipping this step
+        // Step 2. If the user agent cannot support images, or its support for images has been
+        // disabled, then abort the image request for the current request and the pending request,
+        // set the current request's state to unavailable, set the pending request to null, and
+        // return.
+        // Nothing specific to be done here since the user agent supports image processing.
 
-        // Step 3, 4
+        // Always first set the current request to unavailable, ensuring img.complete is false.
+        // <https://html.spec.whatwg.org/multipage/#when-to-obtain-images>
+        self.current_request.borrow_mut().state = State::Unavailable;
+
+        // TODO Step 3. Let previousURL be the current request's current URL.
+
+        // Step 4. Let selected source be null and selected pixel density be undefined.
         let mut selected_source = None;
-        let mut pixel_density = None;
-        let src_set = elem.get_url_attribute(&local_name!("srcset"));
-        let is_parent_picture = elem
-            .upcast::<Node>()
-            .GetParentElement()
-            .is_some_and(|p| p.is::<HTMLPictureElement>());
-        if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
-            selected_source = Some(src.clone());
-            pixel_density = Some(1_f64);
+        let mut selected_pixel_density = None;
+
+        // Step 5. If the element does not use srcset or picture and it has a src attribute
+        // specified whose value is not the empty string, then set selected source to the value of
+        // the element's src attribute and set selected pixel density to 1.0.
+        let src = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("src"));
+
+        if !self.uses_srcset_or_picture() && !src.is_empty() {
+            selected_source = Some(USVString(src.to_string()));
+            selected_pixel_density = Some(1_f64);
         };
 
-        // Step 5
+        // Step 6. Set the element's last selected source to selected source.
         self.last_selected_source
             .borrow_mut()
             .clone_from(&selected_source);
 
-        // Step 6, check the list of available images
-        if let Some(src) = selected_source {
-            if let Ok(img_url) = base_url.join(&src) {
-                let image_cache = window.image_cache();
-                let response = image_cache.get_image(
-                    img_url.clone(),
+        // Step 7. If selected source is not null, then:
+        if let Some(selected_source) = selected_source {
+            // Step 7.1. Let urlString be the result of encoding-parsing-and-serializing a URL given
+            // selected source, relative to the element's node document.
+            // Step 7.2. If urlString is failure, then abort this inner set of steps.
+            if let Ok(image_url) = self.owner_document().base_url().join(&selected_source) {
+                // Step 7.3. Let key be a tuple consisting of urlString, the img element's
+                // crossorigin attribute's mode, and, if that mode is not No CORS, the node
+                // document's origin.
+                let window = self.owner_window();
+                let response = window.image_cache().get_image(
+                    image_url.clone(),
                     window.origin().immutable().clone(),
                     cors_setting_for_element(self.upcast()),
                 );
 
+                // Step 7.4. If the list of available images contains an entry for key, then:
                 if let Some(image) = response {
-                    // Cancel any outstanding tasks that were queued before the src was
-                    // set on this element.
-                    self.generation.set(self.generation.get() + 1);
-                    // Step 6.3
-                    let metadata = image.metadata();
-                    // Step 6.3.2 abort requests
+                    // TODO Step 7.4.1. Set the ignore higher-layer caching flag for that entry.
+
+                    // Step 7.4.2. Abort the image request for the current request and the pending
+                    // request.
                     self.abort_request(
                         State::CompletelyAvailable,
                         ImageRequestPhase::Current,
                         can_gc,
                     );
                     self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+
+                    // Step 7.4.3. Set the pending request to null.
+                    self.image_request.set(ImageRequestPhase::Current);
+
+                    // Step 7.4.4. Set the current request to a new image request whose image data
+                    // is that of the entry and whose state is completely available.
                     let mut current_request = self.current_request.borrow_mut();
-                    current_request.final_url = Some(img_url.clone());
+                    current_request.metadata = Some(image.metadata());
                     current_request.image = Some(image);
-                    current_request.metadata = Some(metadata);
-                    // Step 6.3.6
-                    current_request.current_pixel_density = pixel_density;
+                    current_request.final_url = Some(image_url.clone());
+
+                    // TODO Step 7.4.5. Prepare the current request for presentation given the img
+                    // element.
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
+
+                    // Step 7.4.6. Set the current request's current pixel density to selected pixel
+                    // density.
+                    current_request.current_pixel_density = selected_pixel_density;
+
+                    // Step 7.4.7. Queue an element task on the DOM manipulation task source given
+                    // the img element and the following steps:
                     let this = Trusted::new(self);
-                    let src = src.0;
 
                     self.owner_global()
                         .task_manager()
                         .dom_manipulation_task_source()
                         .queue(task!(image_load_event: move || {
                             let this = this.root();
+
+                            // TODO Step 7.4.7.1. If restart animation is set, then restart the
+                            // animation.
+
+                            // Step 7.4.7.2. Set the current request's current URL to urlString.
                             {
                                 let mut current_request =
                                     this.current_request.borrow_mut();
-                                current_request.parsed_url = Some(img_url);
-                                current_request.source_url = Some(USVString(src));
+                                current_request.source_url = Some(selected_source);
+                                current_request.parsed_url = Some(image_url);
                             }
-                            // TODO: restart animation, if set.
+
+                            // Step 7.4.7.3. If maybe omit events is not set or previousURL is not
+                            // equal to urlString, then fire an event named load at the img element.
+                            // TODO: Add missing `maybe omit events` flag and previousURL.
                             this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
                         }));
+
+                    // Step 7.4.8. Abort the update the image data algorithm.
                     return;
                 }
             }
         }
-        // step 7, await a stable state.
-        self.generation.set(self.generation.get() + 1);
-        let task = ImageElementMicrotask::StableStateUpdateImageData {
+
+        // Step 8. Queue a microtask to perform the rest of this algorithm, allowing the task that
+        // invoked this algorithm to continue.
+        let task = ImageElementMicrotask::UpdateImageData {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
+
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     pub(crate) fn react_to_environment_changes(&self) {
-        // Step 1
+        // Step 1. Await a stable state.
         let task = ImageElementMicrotask::EnvironmentChanges {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
+
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
     }
 
-    /// Step 2-12 of <https://html.spec.whatwg.org/multipage/#img-environment-changes>
+    /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     fn react_to_environment_changes_sync_steps(&self, generation: u32, can_gc: CanGc) {
-        let elem = self.upcast::<Element>();
-        let document = elem.owner_document();
+        let document = self.owner_document();
         let has_pending_request = matches!(self.image_request.get(), ImageRequestPhase::Pending);
 
-        // Step 2
-        if !document.is_active() || !Self::uses_srcset_or_picture(elem) || has_pending_request {
+        // Step 2. If the img element does not use srcset or picture, its node document is not fully
+        // active, it has image data whose resource type is multipart/x-mixed-replace, or its
+        // pending request is not null, then return.
+        if !document.is_active() || !self.uses_srcset_or_picture() || has_pending_request {
             return;
         }
 
-        // Steps 3-4
-        let (selected_source, selected_pixel_density) = match self.select_image_source() {
-            Some(selected) => selected,
-            None => return,
+        // Step 3. Let selected source and selected pixel density be the URL and pixel density that
+        // results from selecting an image source, respectively.
+        let Some((selected_source, selected_pixel_density)) = self.select_image_source() else {
+            // Step 4. If selected source is null, then return.
+            return;
         };
 
-        // Step 5
-        let same_source = match *self.last_selected_source.borrow() {
-            Some(ref last_src) => *last_src == selected_source,
-            _ => false,
-        };
+        // Step 5. If selected source and selected pixel density are the same as the element's last
+        // selected source and current pixel density, then return.
+        let mut same_selected_source = self
+            .last_selected_source
+            .borrow()
+            .as_ref()
+            .is_some_and(|source| *source == selected_source);
 
-        let same_selected_pixel_density = match self.current_request.borrow().current_pixel_density
-        {
-            Some(den) => selected_pixel_density == den,
-            _ => false,
-        };
+        // There are missing steps for the element's last selected source in specification so let's
+        // check the current request's current URL as well.
+        // <https://github.com/whatwg/html/issues/5060>
+        same_selected_source = same_selected_source ||
+            self.current_request
+                .borrow()
+                .source_url
+                .as_ref()
+                .is_some_and(|source| *source == selected_source);
 
-        if same_source && same_selected_pixel_density {
+        let same_selected_pixel_density = self
+            .current_request
+            .borrow()
+            .current_pixel_density
+            .is_some_and(|pixel_density| pixel_density == selected_pixel_density);
+
+        if same_selected_source && same_selected_pixel_density {
             return;
         }
 
-        let base_url = document.base_url();
-        // Step 6
-        let img_url = match base_url.join(&selected_source.0) {
-            Ok(url) => url,
-            Err(_) => return,
+        // Step 6. Let urlString be the result of encoding-parsing-and-serializing a URL given
+        // selected source, relative to the element's node document.
+        // Step 7. If urlString is failure, then return.
+        let Ok(image_url) = document.base_url().join(&selected_source) else {
+            return;
         };
 
-        // Step 12
+        // Step 13. Set the element's pending request to image request.
         self.image_request.set(ImageRequestPhase::Pending);
         self.init_image_request(
             &mut self.pending_request.borrow_mut(),
-            &img_url,
+            &image_url,
             &selected_source,
             can_gc,
         );
 
-        // Step 14
+        // Step 15. If the list of available images contains an entry for key, then set image
+        // request's image data to that of the entry. Continue to the next step.
         let window = self.owner_window();
         let cache_result = window.image_cache().get_cached_image_status(
-            img_url.clone(),
+            image_url.clone(),
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
         );
@@ -1148,12 +1305,11 @@ impl HTMLImageElement {
 
         match cache_result {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable { .. }) => {
-                // Step 15
                 self.finish_reacting_to_environment_change(
                     selected_source,
                     generation,
                     selected_pixel_density,
-                )
+                );
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m, id)) => {
                 self.process_image_response_for_environment_change(
@@ -1175,7 +1331,7 @@ impl HTMLImageElement {
                 );
             },
             ImageCacheResult::ReadyForRequest(id) => {
-                self.fetch_request(&img_url, id);
+                self.fetch_request(&image_url, id);
                 self.register_image_cache_callback(id, change_type);
             },
             ImageCacheResult::Pending(id) => {
@@ -1205,6 +1361,7 @@ impl HTMLImageElement {
             // Note: Despite being not explicitly stated in the specification but if current
             // request's state is unavailable and current URL is empty string (<img> without "src"
             // and "srcset" attributes) then reject promise with an "EncodingError" DOMException.
+            // <https://github.com/whatwg/html/issues/11769>
             promise.reject_error(Error::Encoding(None), can_gc);
         } else {
             self.image_decode_promises.borrow_mut().push(promise);
@@ -1217,9 +1374,8 @@ impl HTMLImageElement {
             return;
         }
 
-        // Step 3. If the decoding process completes successfully, then queue a
-        // global task on the DOM manipulation task source with global to
-        // resolve promise with undefined.
+        // Step 2.3. If the decoding process completes successfully, then queue a global task on the
+        // DOM manipulation task source with global to resolve promise with undefined.
         let trusted_image_decode_promises: Vec<TrustedPromise> = self
             .image_decode_promises
             .borrow()
@@ -1245,8 +1401,8 @@ impl HTMLImageElement {
             return;
         }
 
-        // Step 3. Queue a global task on the DOM manipulation task source with
-        // global to reject promise with an "EncodingError" DOMException.
+        // Step 2.3. Queue a global task on the DOM manipulation task source with global to reject
+        // promise with an "EncodingError" DOMException.
         let trusted_image_decode_promises: Vec<TrustedPromise> = self
             .image_decode_promises
             .borrow()
@@ -1266,59 +1422,71 @@ impl HTMLImageElement {
             }));
     }
 
-    /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
+    /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     fn finish_reacting_to_environment_change(
         &self,
-        src: USVString,
+        selected_source: USVString,
         generation: u32,
         selected_pixel_density: f64,
     ) {
+        // Step 16. Queue an element task on the DOM manipulation task source given the img element
+        // and the following steps:
         let this = Trusted::new(self);
-        let src = src.0;
+
         self.owner_global().task_manager().dom_manipulation_task_source().queue(
             task!(image_load_event: move || {
                 let this = this.root();
-                let relevant_mutation = this.generation.get() != generation;
-                // Step 15.1
-                if relevant_mutation {
+
+                // Step 16.1. If the img element has experienced relevant mutations since this
+                // algorithm started, then set the pending request to null and abort these steps.
+                if this.generation.get() != generation {
                     this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
+                    this.image_request.set(ImageRequestPhase::Current);
                     return;
                 }
-                // Step 15.2
-                *this.last_selected_source.borrow_mut() = Some(USVString(src));
+
+                // Step 16.2. Set the img element's last selected source to selected source and the
+                // img element's current pixel density to selected pixel density.
+                *this.last_selected_source.borrow_mut() = Some(selected_source);
 
                 {
                     let mut pending_request = this.pending_request.borrow_mut();
-                    pending_request.current_pixel_density = Some(selected_pixel_density);
 
-                    // Step 15.3
+                    // Step 16.3. Set the image request's state to completely available.
                     pending_request.state = State::CompletelyAvailable;
 
-                    // Step 15.4
-                    // Already a part of the list of available images due to Step 14
+                    pending_request.current_pixel_density = Some(selected_pixel_density);
 
-                    // Step 15.5
-                    #[allow(clippy::swap_with_temporary)]
-                    mem::swap(&mut this.current_request.borrow_mut(), &mut pending_request);
+                    // Step 16.4. Add the image to the list of available images using the key key,
+                    // with the ignore higher-layer caching flag set.
+                    // Already a part of the list of available images due to Step 15.
+
+                    // Step 16.5. Upgrade the pending request to the current request.
+                    mem::swap(&mut *this.current_request.borrow_mut(), &mut *pending_request);
                 }
-                this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
 
-                // Step 15.6
+                this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
+                this.image_request.set(ImageRequestPhase::Current);
+
+                // TODO Step 16.6. Prepare image request for presentation given the img element.
                 this.upcast::<Node>().dirty(NodeDamage::Other);
 
-                // Step 15.7
+                // Step 16.7. Fire an event named load at the img element.
                 this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
             })
         );
     }
 
-    fn uses_srcset_or_picture(elem: &Element) -> bool {
-        let has_src = elem.has_attribute(&local_name!("srcset"));
-        let is_parent_picture = elem
+    /// <https://html.spec.whatwg.org/multipage/#use-srcset-or-picture>
+    fn uses_srcset_or_picture(&self) -> bool {
+        let element = self.upcast::<Element>();
+
+        let has_srcset_attribute = element.has_attribute(&local_name!("srcset"));
+        let has_parent_picture = element
             .upcast::<Node>()
             .GetParentElement()
-            .is_some_and(|p| p.is::<HTMLPictureElement>());
-        has_src || is_parent_picture
+            .is_some_and(|parent| parent.is::<HTMLPictureElement>());
+        has_srcset_attribute || has_parent_picture
     }
 
     fn new_inherited(
@@ -1452,7 +1620,7 @@ impl HTMLImageElement {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum ImageElementMicrotask {
-    StableStateUpdateImageData {
+    UpdateImageData {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
     },
@@ -1470,12 +1638,13 @@ pub(crate) enum ImageElementMicrotask {
 impl MicrotaskRunnable for ImageElementMicrotask {
     fn handler(&self, can_gc: CanGc) {
         match *self {
-            ImageElementMicrotask::StableStateUpdateImageData {
+            ImageElementMicrotask::UpdateImageData {
                 ref elem,
                 ref generation,
             } => {
-                // Step 7 of https://html.spec.whatwg.org/multipage/#update-the-image-data,
-                // stop here if other instances of this algorithm have been scheduled
+                // <https://html.spec.whatwg.org/multipage/#update-the-image-data>
+                // Step 9. If another instance of this algorithm for this img element was started
+                // after this instance (even if it aborted and is no longer running), then return.
                 if elem.generation.get() == *generation {
                     elem.update_the_image_data_sync_steps(can_gc);
                 }
@@ -1497,7 +1666,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 
     fn enter_realm(&self) -> JSAutoRealm {
         match self {
-            &ImageElementMicrotask::StableStateUpdateImageData { ref elem, .. } |
+            &ImageElementMicrotask::UpdateImageData { ref elem, .. } |
             &ImageElementMicrotask::EnvironmentChanges { ref elem, .. } |
             &ImageElementMicrotask::Decode { ref elem, .. } => enter_realm(&**elem),
         }
@@ -1721,21 +1890,35 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-complete>
     fn Complete(&self) -> bool {
-        let elem = self.upcast::<Element>();
-        let srcset_absent = !elem.has_attribute(&local_name!("srcset"));
-        if !elem.has_attribute(&local_name!("src")) && srcset_absent {
+        let element = self.upcast::<Element>();
+
+        // Step 1. If any of the following are true:
+        // both the src attribute and the srcset attribute are omitted;
+        let has_srcset_attribute = element.has_attribute(&local_name!("srcset"));
+        if !element.has_attribute(&local_name!("src")) && !has_srcset_attribute {
             return true;
         }
-        let src = elem.get_string_attribute(&local_name!("src"));
-        if srcset_absent && src.is_empty() {
+
+        // the srcset attribute is omitted and the src attribute's value is the empty string;
+        let src = element.get_string_attribute(&local_name!("src"));
+        if !has_srcset_attribute && src.is_empty() {
             return true;
         }
-        let request = self.current_request.borrow();
-        let request_state = request.state;
-        match request_state {
-            State::CompletelyAvailable | State::Broken => true,
-            State::PartiallyAvailable | State::Unavailable => false,
+
+        // the img element's current request's state is completely available and its pending request
+        // is null; or the img element's current request's state is broken and its pending request
+        // is null, then return true.
+        if matches!(self.image_request.get(), ImageRequestPhase::Current) &&
+            matches!(
+                self.current_request.borrow().state,
+                State::CompletelyAvailable | State::Broken
+            )
+        {
+            return true;
         }
+
+        // Step 2. Return false.
+        false
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-currentsrc>
@@ -1772,6 +1955,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             elem: DomRoot::from_ref(self),
             promise: promise.clone(),
         };
+
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
 
         // Step 3. Return promise.
