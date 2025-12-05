@@ -414,10 +414,10 @@ impl WatcherActor {
             session_context,
         };
 
-        actors.register(Box::new(network_parent));
-        actors.register(Box::new(target_configuration));
-        actors.register(Box::new(thread_configuration));
-        actors.register(Box::new(breakpoint_list));
+        actors.register(network_parent);
+        actors.register(target_configuration);
+        actors.register(thread_configuration);
+        actors.register(breakpoint_list);
 
         watcher
     }

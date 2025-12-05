@@ -48,7 +48,7 @@ impl ActorError {
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub(crate) trait Actor: Any + ActorAsAny {
+pub(crate) trait Actor: Any + ActorAsAny + Send {
     fn handle_message(
         &self,
         request: ClientRequest,
@@ -77,8 +77,8 @@ impl<T: Actor> ActorAsAny for T {
 
 /// A list of known, owned actors.
 pub struct ActorRegistry {
-    actors: HashMap<String, Box<dyn Actor + Send>>,
-    new_actors: RefCell<Vec<Box<dyn Actor + Send>>>,
+    actors: HashMap<String, Box<dyn Actor>>,
+    new_actors: RefCell<Vec<Box<dyn Actor>>>,
     old_actors: RefCell<Vec<String>>,
     script_actors: RefCell<HashMap<String, String>>,
 
@@ -174,13 +174,15 @@ impl ActorRegistry {
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
-    pub(crate) fn register(&mut self, actor: Box<dyn Actor + Send>) {
-        self.actors.insert(actor.name(), actor);
+    pub(crate) fn register<T: Actor>(&mut self, actor: T) {
+        self.actors.insert(actor.name(), Box::new(actor));
     }
 
-    pub(crate) fn register_later(&self, actor: Box<dyn Actor + Send>) {
+    /// Add an actor to the registry that can receive messages.
+    /// It won't be available until after the next message is processed.
+    pub(crate) fn register_later<T: Actor>(&self, actor: T) {
         let mut actors = self.new_actors.borrow_mut();
-        actors.push(actor);
+        actors.push(Box::new(actor));
     }
 
     /// Find an actor by registered name

@@ -369,7 +369,7 @@ impl Actor for NetworkEventActor {
                         // Queue a LongStringActor for this body
                         let long_string_actor = LongStringActor::new(registry, full_str);
                         let long_string_obj = long_string_actor.long_string_obj();
-                        registry.register_later(Box::new(long_string_actor));
+                        registry.register_later(long_string_actor);
 
                         ResponseContentObj {
                             mime_type,

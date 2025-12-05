@@ -62,7 +62,7 @@ impl ObjectActor {
             };
 
             registry.register_script_actor(uuid, name.clone());
-            registry.register_later(Box::new(actor));
+            registry.register_later(actor);
 
             name
         } else {

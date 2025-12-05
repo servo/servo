@@ -158,7 +158,7 @@ impl SourceActor {
             introduction_type,
             script_sender,
         );
-        actors.register(Box::new(source_actor));
+        actors.register(source_actor);
         actors.register_source_actor(pipeline_id, &source_actor_name);
 
         actors.find(&source_actor_name)

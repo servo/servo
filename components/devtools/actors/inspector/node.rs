@@ -240,7 +240,7 @@ impl NodeInfoToProtocol for NodeInfo {
                     walker: walker.clone(),
                     style_rules: RefCell::new(HashMap::new()),
                 };
-                actors.register_later(Box::new(node_actor));
+                actors.register_later(node_actor);
                 name
             } else {
                 actors.script_to_actor(id.to_string())
