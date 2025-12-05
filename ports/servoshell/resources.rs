@@ -22,6 +22,11 @@ pub(crate) fn resources_dir_path() -> PathBuf {
     // as we only give permission to read inside the resources directory,
     // not the permissions the "search" for the resources directory.
     let mut dir = CMD_RESOURCE_DIR.lock().unwrap();
+    if let Some(custom_dir) = option_env!("SERVOSHELL_RESOURCES_DIR") {
+        let path = PathBuf::from(custom_dir);
+        *dir = Some(path.clone());
+        return path;
+    }
     if let Some(ref path) = *dir {
         return PathBuf::from(path);
     }
