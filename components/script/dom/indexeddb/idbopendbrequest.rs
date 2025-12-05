@@ -24,6 +24,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
+use crate::dom::indexeddb::idbfactory::DBName;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
@@ -42,6 +43,7 @@ impl OpenRequestListener {
         let request = self.open_request.root();
         let global = request.global();
         let idb_factory = global.get_indexeddb();
+        let name = DBName(name);
         let dom_exception = match response {
             OpenDatabaseResult::VersionError => Error::Version(None),
             OpenDatabaseResult::AbortError => Error::Abort(None),
@@ -56,7 +58,7 @@ impl OpenRequestListener {
                     }
                     let connection = IDBDatabase::new(
                         &global,
-                        DOMString::from_string(name.clone()),
+                        DOMString::from_string(name.0.clone()),
                         version,
                         can_gc,
                     );
@@ -74,7 +76,7 @@ impl OpenRequestListener {
                 let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
                     let connection = IDBDatabase::new(
                         &global,
-                        DOMString::from_string(name.clone()),
+                        DOMString::from_string(name.0.clone()),
                         version,
                         can_gc,
                     );

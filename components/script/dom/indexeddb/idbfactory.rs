@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use dom_struct::dom_struct;
 use js::rust::HandleValue;
-use rustc_hash::FxBuildHasher;
 use servo_url::origin::ImmutableOrigin;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -20,13 +19,15 @@ use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::indexeddb::convert_value_to_key;
 use crate::script_runtime::CanGc;
 
-use std::collections::HashMap;
+/// A non-jstraceable string wrapper for use in `HashMapTracedValues`.
+#[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+pub(crate) struct DBName(pub(crate) String);
 
 #[dom_struct]
 pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
-    connections: DomRefCell<HashMap<String, Dom<IDBDatabase>>>,
+    connections: DomRefCell<HashMapTracedValues<DBName, Dom<IDBDatabase>>>,
 }
 
 impl IDBFactory {
@@ -41,13 +42,13 @@ impl IDBFactory {
         reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
     }
 
-    pub(crate) fn note_connection(&self, name: String, connection: &IDBDatabase) {
+    pub(crate) fn note_connection(&self, name: DBName, connection: &IDBDatabase) {
         self.connections
             .borrow_mut()
             .insert(name, Dom::from_ref(connection));
     }
 
-    pub(crate) fn get_connection(&self, name: &String) -> Option<DomRoot<IDBDatabase>> {
+    pub(crate) fn get_connection(&self, name: &DBName) -> Option<DomRoot<IDBDatabase>> {
         self.connections.borrow().get(name).map(|db| db.as_rooted())
     }
 }
