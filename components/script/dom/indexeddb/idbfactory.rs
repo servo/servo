@@ -5,13 +5,16 @@ use dom_struct::dom_struct;
 use js::rust::HandleValue;
 use servo_url::origin::ImmutableOrigin;
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::IDBFactoryMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::indexeddb::convert_value_to_key;
 use crate::script_runtime::CanGc;
@@ -19,17 +22,30 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub struct IDBFactory {
     reflector_: Reflector,
+    /// <https://www.w3.org/TR/IndexedDB-2/#connection>
+    connections: DomRefCell<HashMapTracedValues<String, Dom<IDBDatabase>>>,
 }
 
 impl IDBFactory {
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
+            connections: Default::default(),
         }
     }
 
     pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBFactory> {
         reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
+    }
+
+    pub(crate) fn note_connection(&self, name: String, connection: &IDBDatabase) {
+        self.connections
+            .borrow_mut()
+            .insert(name, Dom::from_ref(connection));
+    }
+
+    pub(crate) fn get_connection(&self, name: &String) -> Option<DomRoot<IDBDatabase>> {
+        self.connections.borrow().get(name).map(|db| db.as_rooted())
     }
 }
 

@@ -41,23 +41,28 @@ impl OpenRequestListener {
     fn handle_open_db(&self, name: String, response: OpenDatabaseResult, can_gc: CanGc) {
         let request = self.open_request.root();
         let global = request.global();
+        let idb_factory = global.get_indexeddb();
         let dom_exception = match response {
             OpenDatabaseResult::VersionError => Error::Version(None),
             OpenDatabaseResult::AbortError => Error::Abort(None),
-            OpenDatabaseResult::Connection {
-                version,
-                upgraded: _,
-            } => {
+            OpenDatabaseResult::Connection { version, upgraded } => {
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                let connection = IDBDatabase::new(
-                    &global,
-                    DOMString::from_string(name.clone()),
-                    version,
-                    can_gc,
-                );
+                let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
+                    if upgraded {
+                        unreachable!("A connection should exist for the upgraded db.");
+                    }
+                    let connection = IDBDatabase::new(
+                        &global,
+                        DOMString::from_string(name.clone()),
+                        version,
+                        can_gc,
+                    );
+                    idb_factory.note_connection(name.clone(), &connection);
+                    connection
+                });
                 request.dispatch_success(&connection);
                 return;
             },
@@ -66,12 +71,16 @@ impl OpenRequestListener {
                 transaction,
             } => {
                 // TODO: link with backend connection concept.
-                let connection = IDBDatabase::new(
-                    &global,
-                    DOMString::from_string(name.clone()),
-                    version,
-                    can_gc,
-                );
+                let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
+                    let connection = IDBDatabase::new(
+                        &global,
+                        DOMString::from_string(name.clone()),
+                        version,
+                        can_gc,
+                    );
+                    idb_factory.note_connection(name.clone(), &connection);
+                    connection
+                });
                 request.upgrade_db_version(&connection, version, transaction, can_gc);
                 return;
             },
