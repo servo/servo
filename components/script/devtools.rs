@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::str;
 
 use base::id::PipelineId;
@@ -40,11 +39,9 @@ use crate::dom::css::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlscriptelement::SourceCode;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
-use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType};
 
 #[expect(unsafe_code)]
@@ -59,18 +56,14 @@ pub(crate) fn handle_evaluate_js(
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(global);
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        let source_code = SourceCode::Text(Rc::new(DOMString::from_string(eval)));
         // TODO: run code with SpiderMonkey Debugger API, like Firefox does
         // <https://searchfox.org/mozilla-central/rev/f6a806c38c459e0e0d797d264ca0e8ad46005105/devtools/server/actors/webconsole/eval-with-debugger.js#270>
-        _ = global.evaluate_script_on_global_with_result(
-            &source_code,
+        _ = global.evaluate_js_on_global(
+            eval.into(),
             "<eval>",
-            rval.handle_mut(),
-            1,
-            ScriptFetchOptions::default_classic_script(global),
-            global.api_base_url(),
-            can_gc,
             Some(IntroductionType::DEBUGGER_EVAL),
+            rval.handle_mut(),
+            can_gc,
         );
 
         if rval.is_undefined() {

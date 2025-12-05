@@ -686,7 +686,7 @@ pub(crate) fn load_whole_resource(
     global: &GlobalScope,
     csp_violations_processor: &dyn CspViolationsProcessor,
     can_gc: CanGc,
-) -> Result<(Metadata, Vec<u8>), NetworkError> {
+) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
     let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let url = request.url.clone();
@@ -699,11 +699,13 @@ pub(crate) fn load_whole_resource(
 
     let mut buf = vec![];
     let mut metadata = None;
+    let mut muted_errors = false;
     loop {
         match action_receiver.recv().unwrap() {
             FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
             },
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
+                muted_errors = m.is_cors_cross_origin();
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,
                     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -715,7 +717,7 @@ pub(crate) fn load_whole_resource(
                 if let Some(timing) = &metadata.timing {
                     submit_timing_data(global, url, InitiatorType::Other, timing, can_gc);
                 }
-                return Ok((metadata, buf));
+                return Ok((metadata, buf, muted_errors));
             },
             FetchResponseMsg::ProcessResponse(_, Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(_, Err(e)) => return Err(e),

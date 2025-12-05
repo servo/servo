@@ -6242,6 +6242,8 @@ impl PendingInOrderScriptVec {
 struct PendingScript {
     element: Dom<HTMLScriptElement>,
     // TODO(sagudev): could this be all no_trace?
+    #[no_trace]
+    #[ignore_malloc_size_of = "mozjs"]
     load: Option<ScriptResult>,
 }
 

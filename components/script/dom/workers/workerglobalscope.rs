@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
@@ -23,9 +22,7 @@ use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JS_AddInterruptCallback;
-use js::jsval::UndefinedValue;
-use js::panic::maybe_resume_unwind;
-use js::rust::{CompileOptionsWrapper, HandleValue, MutableHandleValue, ParentRuntime};
+use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -55,7 +52,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -65,8 +62,8 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, ScriptOrigin, ScriptType};
+use crate::dom::globalscope::{ClassicScript, GlobalScope};
+use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -91,7 +88,6 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
-use crate::unminify::unminify_js;
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -230,9 +226,18 @@ impl FetchResponseListener for ScriptFetchContext {
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
+        let script = scope.globalscope.create_a_classic_script(
+            source,
+            scope.worker_url.borrow().clone(),
+            ScriptFetchOptions::default_classic_script(&scope.globalscope),
+            false,
+            Some(IntroductionType::WORKER),
+            1,
+            true,
+        );
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(Some(source), self.worker.clone(), CanGc::note());
+        scope.on_complete(Some(script), self.worker.clone(), CanGc::note());
 
         if let Ok(response) = response {
             submit_timing(&self, &response, CanGc::note());
@@ -579,7 +584,7 @@ impl WorkerGlobalScope {
     #[expect(unsafe_code)]
     fn on_complete(
         &self,
-        script: Option<Cow<'_, str>>,
+        script: Option<ClassicScript>,
         worker: TrustedWorkerAddress,
         can_gc: CanGc,
     ) {
@@ -587,13 +592,17 @@ impl WorkerGlobalScope {
             .downcast::<DedicatedWorkerGlobalScope>()
             .expect("Only DedicatedWorkerGlobalScope is supported for now");
 
-        let Some(script) = script else {
-            // Step 1 Queue a global task on the DOM manipulation task source given
-            // worker's relevant global object to fire an event named error at worker.
-            dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
+        // If script is null or if script's error to rethrow is non-null, then:
+        let script = match script {
+            Some(script) if script.record.is_ok() => script,
+            _ => {
+                // Step 1 Queue a global task on the DOM manipulation task source given
+                // worker's relevant global object to fire an event named error at worker.
+                dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
 
-            // Step 2 TODO Run the environment discarding steps for inside settings.
-            return;
+                // Step 2 TODO Run the environment discarding steps for inside settings.
+                return;
+            },
         };
 
         unsafe {
@@ -614,7 +623,7 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            self.execute_script(DOMString::from(script), can_gc);
+            _ = self.globalscope.run_a_classic_script(script, false, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
@@ -675,7 +684,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             };
         }
 
-        rooted!(in(*self.get_cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit::new(
@@ -695,7 +703,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
-            let (url, source) = match load_whole_resource(
+            // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
+            let (url, bytes, muted_errors) = match load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
@@ -705,8 +714,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 can_gc,
             ) {
                 Err(_) => return Err(Error::Network(None)),
-                Ok((metadata, bytes)) => {
-                    // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
+                Ok((metadata, bytes, muted_errors)) => {
                     // Step 7: Check if response status is not an ok status
                     if !metadata.status.is_success() {
                         return Err(Error::Network(None));
@@ -722,36 +730,40 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                         return Err(Error::Network(None));
                     }
 
-                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    (metadata.final_url, bytes, muted_errors)
                 },
             };
 
-            #[expect(unsafe_code)]
-            let mut cx =
-                unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
-            let options = CompileOptionsWrapper::new(&cx, url.as_str(), 1);
-            let result = js::rust::evaluate_script(
-                &mut cx,
-                self.reflector().get_jsobject(),
-                &source,
-                rval.handle_mut(),
-                options,
+            // Step 8 Let sourceText be the result of UTF-8 decoding bodyBytes.
+            let (source, _, _) = UTF_8.decode(&bytes);
+
+            // Step 9 Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
+            // Note: done inside load_whole_resource
+
+            // Step 10 Let script be the result of creating a classic script
+            // given sourceText, settingsObject, response's URL, the default script fetch options, and mutedErrors.
+            let script = self.globalscope.create_a_classic_script(
+                source,
+                url,
+                ScriptFetchOptions::default_classic_script(&self.globalscope),
+                muted_errors,
+                Some(IntroductionType::WORKER),
+                1,
+                true,
             );
 
-            maybe_resume_unwind();
+            // Run the classic script script, with rethrow errors set to true.
+            let result = self.globalscope.run_a_classic_script(script, true, can_gc);
 
-            match result {
-                Ok(_) => (),
-                Err(_) => {
-                    if self.is_closing() {
-                        // Don't return JSFailed as we might not have
-                        // any pending exceptions.
-                        error!("evaluate_script failed (terminated)");
-                    } else {
-                        error!("evaluate_script failed");
-                        return Err(Error::JSFailed);
-                    }
-                },
+            if let Err(error) = result {
+                if self.is_closing() {
+                    // Don't return JSFailed as we might not have
+                    // any pending exceptions.
+                    println!("evaluate_script failed (terminated)");
+                } else {
+                    println!("evaluate_script failed");
+                    return Err(error);
+                }
             }
         }
 
@@ -975,20 +987,6 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    pub(crate) fn execute_script(&self, source: DOMString, can_gc: CanGc) {
-        let global = self.upcast::<GlobalScope>();
-        let mut script = ScriptOrigin::external(
-            Rc::new(source),
-            self.worker_url.borrow().clone(),
-            ScriptFetchOptions::default_classic_script(global),
-            ScriptType::Classic,
-            global.unminified_js_dir(),
-        );
-        unminify_js(&mut script);
-
-        global.run_a_classic_script(&script, 1, Some(IntroductionType::WORKER), can_gc);
-    }
-
     pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
