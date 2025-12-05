@@ -616,7 +616,29 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let cmd_args = match cmd_args {
         Ok(cmd_args) => cmd_args,
         Err(error) => {
-            error.print_message(80);
+            // Because this is very early in startup stdout/stderr forward
+            // facilities might not be available yet
+            if cfg!(target_os = "android") || cfg!(target_env = "ohos") {
+                #[cfg(target_env = "ohos")]
+                {
+                    let mut builder = hilog::Builder::new();
+                    builder.set_domain(hilog::LogDomain::new(0xE0C3));
+                    //let logger: &'static hilog::Logger = &LOGGER;
+                    log::error!("{}", error.clone().unwrap_stderr());
+                }
+                #[cfg(target_os = "android")]
+                {
+                    android_logger::init_once(
+                        Config::default()
+                            .with_max_level(log::LevelFilter::Debug)
+                            .with_filter(filter_builder.build())
+                            .with_tag("servoshell"),
+                    )
+                }
+            } else {
+                error.print_message(80);
+            }
+
             return if error.exit_code() == 0 {
                 ArgumentParsingResult::Exit
             } else {
