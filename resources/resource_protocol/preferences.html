@@ -15,6 +15,9 @@
       .hidden {
           display: none;
       }
+      .error {
+        color: red;
+      }
     </style>
   </head>
   <body>
@@ -32,6 +35,11 @@
         <li>
           <input type="checkbox" class="bool-preference" id="http-cache">
           <label for="http-cache">Disable HTTP cache</label>
+        </li>
+        <li>
+          <div class="error hidden" id="mailto-handler-error">Configure a mail handler to be able to handle `mailto:` links</div>
+          <input class="string-preference" id="mailto-handler" size=50>
+          <label for="mailto-handler">Mailto handler</label>
         </li>
         <li>
           <div>
@@ -54,6 +62,7 @@
           "http-cache": ["network_http_cache_disabled"],
           "more-experimental": ["dom_abort_controller_enabled", "dom_indexeddb_enabled"],
           "user-agent": ["user_agent"],
+          "mailto-handler": ["mailto_handler"],
       };
 
       const userAgents = {
@@ -87,6 +96,12 @@
               const prefValue = navigator.servo.getStringPreference(prefs[pref.id][0]);
               pref.value = prefValue;
               pref.oninput = (ev) => updateStringPreference(ev.target);
+          }
+
+          const searchParams = new URLSearchParams(window.location.search);
+
+          if (searchParams.get("mail_handler")) {
+              document.getElementById("mailto-handler-error").classList.remove("hidden");
           }
       }
 
