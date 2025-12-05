@@ -29,7 +29,7 @@ class Base:
     def executable_suffix(self) -> str:
         return ""
 
-    def _platform_bootstrap(self, force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
@@ -54,10 +54,10 @@ class Base:
         except FileNotFoundError:
             return False
 
-    def bootstrap(self, force: bool, skip_platform: bool, skip_lints: bool, skip_nextest: bool) -> None:
+    def bootstrap(self, force: bool, yes: bool, skip_platform: bool, skip_lints: bool, skip_nextest: bool) -> None:
         installed_something = False
         if not skip_platform:
-            installed_something |= self._platform_bootstrap(force)
+            installed_something |= self._platform_bootstrap(force, yes)
         self.install_rust_toolchain()
         if not skip_nextest:
             installed_something |= self.install_cargo_nextest(force)

@@ -10,7 +10,7 @@
 import os
 import subprocess
 import tempfile
-from typing import Optional, Any
+from typing import Any, Optional
 
 from .. import util
 from .base import Base
@@ -38,7 +38,7 @@ class MacOS(Base):
         # Servo only supports the official GStreamer distribution on MacOS.
         return not target.is_cross_build() and os.path.exists(GSTREAMER_ROOT)
 
-    def _platform_bootstrap(self, force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = False
         try:
             brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")
