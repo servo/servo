@@ -12,7 +12,7 @@ use crate::dom::bindings::str::USVString;
 #[derive(MallocSizeOf)]
 pub(crate) struct UrlHelper;
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl UrlHelper {
     pub(crate) fn Origin(url: &ServoUrl) -> USVString {
         USVString(quirks::origin(url.as_url()).to_owned())

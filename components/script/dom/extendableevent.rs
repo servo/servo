@@ -26,7 +26,6 @@ pub(crate) struct ExtendableEvent {
     extensions_allowed: bool,
 }
 
-#[allow(non_snake_case)]
 impl ExtendableEvent {
     pub(crate) fn new_inherited() -> ExtendableEvent {
         ExtendableEvent {

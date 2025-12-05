@@ -443,7 +443,7 @@ impl Window {
         handled
     }
 
-    #[allow(unused_variables)]
+    #[cfg_attr(not(target_os = "macos"), expect(unused_variables))]
     fn force_srgb_color_space(window_handle: RawWindowHandle) {
         #[cfg(target_os = "macos")]
         {

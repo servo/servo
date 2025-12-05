@@ -191,7 +191,7 @@ static CONTENT_EVENT_HANDLER_NAMES: [&str; 108] = [
 ];
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 pub(crate) enum CommonEventHandler {
     EventHandler(#[conditional_malloc_size_of] Rc<EventHandlerNonNull>),
 

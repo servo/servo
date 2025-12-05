@@ -40,7 +40,7 @@ impl TestRunner {
 
 impl TestRunnerMethods<crate::DomTypeHolder> for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()

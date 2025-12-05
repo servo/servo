@@ -212,7 +212,7 @@ pub fn read_prefs_map(txt: &str) -> HashMap<String, PrefValue> {
         .collect()
 }
 
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
 pub(crate) enum ArgumentParsingResult {
     ChromeProcess(Opts, Preferences, ServoShellPreferences),

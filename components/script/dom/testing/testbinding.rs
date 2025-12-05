@@ -59,7 +59,6 @@ pub(crate) struct TestBinding {
     url: MutableWeakRef<URL>,
 }
 
-#[allow(non_snake_case)]
 impl TestBinding {
     fn new_inherited() -> TestBinding {
         TestBinding {

@@ -55,7 +55,6 @@ impl DOMImplementation {
 }
 
 // https://dom.spec.whatwg.org/#domimplementation
-#[allow(non_snake_case)]
 impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype>
     fn CreateDocumentType(

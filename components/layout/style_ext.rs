@@ -121,7 +121,7 @@ pub(crate) enum DisplayInside {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(clippy::enum_variant_names)]
+#[expect(clippy::enum_variant_names)]
 /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
 pub(crate) enum DisplayLayoutInternal {
     TableCaption,

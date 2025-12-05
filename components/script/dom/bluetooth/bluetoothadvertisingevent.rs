@@ -32,7 +32,7 @@ pub(crate) struct BluetoothAdvertisingEvent {
     rssi: Option<i8>,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl BluetoothAdvertisingEvent {
     pub(crate) fn new_inherited(
         device: &BluetoothDevice,
@@ -83,7 +83,7 @@ impl BluetoothAdvertisingEvent {
 
 impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdvertisingEvent {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-bluetoothadvertisingevent
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

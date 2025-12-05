@@ -342,7 +342,7 @@ impl ResourceTimingListener for ImageContext {
     }
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, img_url: &ServoUrl, can_gc: CanGc) {
@@ -1754,7 +1754,6 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
     SourceSizeList::parse(&context, &mut parser)
 }
 
-#[allow(non_snake_case)]
 impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-image>
     fn Image(

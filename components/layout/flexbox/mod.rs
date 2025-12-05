@@ -152,7 +152,7 @@ impl FlexContainer {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum FlexLevelBox {
     FlexItem(FlexItemBox),

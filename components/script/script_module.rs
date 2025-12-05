@@ -1387,7 +1387,7 @@ impl ResourceTimingListener for ModuleContext {
 }
 
 #[expect(unsafe_code)]
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 /// A function to register module hooks (e.g. listening on resolving modules,
 /// getting module metadata, getting script private reference and resolving dynamic import)
 pub(crate) unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
@@ -1573,7 +1573,7 @@ fn fetch_an_import_module_script_graph(
 }
 
 #[expect(unsafe_code)]
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 /// <https://tc39.es/ecma262/#sec-HostLoadImportedModule>
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 unsafe extern "C" fn HostResolveImportedModule(
@@ -1619,7 +1619,7 @@ unsafe extern "C" fn HostResolveImportedModule(
 }
 
 #[expect(unsafe_code)]
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 /// <https://tc39.es/ecma262/#sec-hostgetimportmetaproperties>
 /// <https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties>
 unsafe extern "C" fn HostPopulateImportMeta(

@@ -141,7 +141,7 @@ impl<Eye> View<Eye> {
 /// Whether a device is mono or stereo, and the views it supports.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum Views {
     /// Mono view for inline VR, viewport and projection matrices are calculated by client
     Inline,

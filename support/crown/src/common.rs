@@ -48,7 +48,7 @@ pub fn in_derive_expn(span: Span) -> bool {
 macro_rules! symbols {
     ($($s: ident)+) => {
         #[derive(Clone)]
-        #[allow(non_snake_case)]
+        #[expect(non_snake_case)]
         pub(crate) struct Symbols {
             $( $s: Symbol, )+
         }

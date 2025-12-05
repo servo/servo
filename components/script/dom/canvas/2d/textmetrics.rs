@@ -12,7 +12,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 pub(crate) struct TextMetrics {
     reflector_: Reflector,
     width: Finite<f64>,
@@ -29,7 +29,7 @@ pub(crate) struct TextMetrics {
     ideographicBaseline: Finite<f64>,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl TextMetrics {
     #[allow(clippy::too_many_arguments)]
     fn new_inherited(

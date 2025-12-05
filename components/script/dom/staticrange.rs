@@ -71,7 +71,6 @@ impl StaticRange {
 
 impl StaticRangeMethods<crate::DomTypeHolder> for StaticRange {
     /// <https://dom.spec.whatwg.org/#dom-staticrange-staticrange>
-    #[allow(non_snake_case)]
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

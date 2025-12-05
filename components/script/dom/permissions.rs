@@ -83,7 +83,7 @@ impl Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
     // https://w3c.github.io/permissions/#dom-permissions-request
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn manipulate(
         &self,
         op: Operation,
@@ -198,7 +198,7 @@ impl Permissions {
     }
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl PermissionsMethods<crate::DomTypeHolder> for Permissions {
     /// <https://w3c.github.io/permissions/#dom-permissions-query>
     fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {

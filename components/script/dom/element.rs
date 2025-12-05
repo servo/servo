@@ -2867,7 +2867,6 @@ impl Element {
     }
 }
 
-#[allow(non_snake_case)]
 impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-namespaceuri>
     fn GetNamespaceURI(&self) -> Option<DOMString> {

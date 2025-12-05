@@ -47,7 +47,7 @@ impl BluetoothRemoteGATTService {
         }
     }
 
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     pub(crate) fn new(
         global: &GlobalScope,
         device: &BluetoothDevice,

@@ -185,7 +185,7 @@ pub struct PortTransferInfo {
 
 /// Messages for communication between the constellation and a global managing ports.
 #[derive(Debug, Deserialize, Serialize)]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum MessagePortMsg {
     /// Complete the transfer for a batch of ports.
     CompleteTransfer(FxHashMap<MessagePortId, PortTransferInfo>),

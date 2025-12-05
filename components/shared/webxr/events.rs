@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum Event {
     /// Input source connected
     AddInput(InputSource),

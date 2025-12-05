@@ -19,7 +19,6 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-#[allow(non_snake_case)]
 pub(crate) struct SubmitEvent {
     event: Event,
     submitter: Option<DomRoot<HTMLElement>>,

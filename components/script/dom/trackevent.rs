@@ -37,7 +37,7 @@ pub(crate) struct TrackEvent {
 }
 
 impl TrackEvent {
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(track: &Option<VideoTrackOrAudioTrackOrTextTrack>) -> TrackEvent {
         let media_track = match track {
@@ -114,7 +114,7 @@ impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-trackevent-track
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     fn GetTrack(&self) -> Option<VideoTrackOrAudioTrackOrTextTrack> {
         match &self.track {
             Some(MediaTrack::Video(VideoTrack)) => Some(

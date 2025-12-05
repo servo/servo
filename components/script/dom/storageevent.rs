@@ -30,7 +30,7 @@ pub(crate) struct StorageEvent {
     storage_area: MutNullableDom<Storage>,
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl StorageEvent {
     pub(crate) fn new_inherited(
         key: Option<DOMString>,
@@ -133,7 +133,7 @@ impl StorageEvent {
     }
 }
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
     /// <https://html.spec.whatwg.org/multipage/#storageevent>
     fn Constructor(

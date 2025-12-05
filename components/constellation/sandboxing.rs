@@ -27,7 +27,7 @@ use crate::process_manager::Process;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum UnprivilegedContent {
     ScriptEventLoop(NewScriptEventLoopProcessInfo),
     ServiceWorker(ServiceWorkerUnprivilegedContent),

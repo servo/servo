@@ -102,7 +102,7 @@ impl GPUSupportedFeatures {
         )
     }
 
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     pub(crate) fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

@@ -460,7 +460,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 static DEFAULT_MAX_LENGTH: i32 = -1;
 static DEFAULT_MIN_LENGTH: i32 = -1;
 
-#[allow(non_snake_case)]
+#[expect(non_snake_case)]
 impl HTMLInputElement {
     fn new_inherited(
         local_name: LocalName,
@@ -1624,7 +1624,6 @@ impl TextControlElement for HTMLInputElement {
     }
 }
 
-#[allow(non_snake_case)]
 impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_getter!(Accept, "accept");
@@ -1817,7 +1816,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
-    #[allow(non_snake_case)]
+    #[expect(non_snake_case)]
     #[expect(unsafe_code)]
     fn SetValueAsDate(
         &self,

@@ -692,7 +692,6 @@ impl TransformStreamDefaultController {
     }
 }
 
-#[allow(non_snake_case)]
 impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
     for TransformStreamDefaultController
 {
