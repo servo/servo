@@ -1857,8 +1857,6 @@ async fn wait_for_inflight_requests(done_chan: &mut DoneChannel, response: &mut 
                 Some(Data::Done) => break, // Return the full response as if it was initially cached as such.
                 Some(Data::Cancelled) => {
                     // The response was cancelled while the fetch was ongoing.
-                    // Set response to None, which will trigger a network fetch below.
-                    //*response = None;
                     break;
                 },
                 _ => panic!("HTTP cache should always send Done or Cancelled"),
