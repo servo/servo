@@ -408,7 +408,7 @@ impl IndexedDBManager {
         let (db_version, version) = match self.databases.entry(idb_description.clone()) {
             Entry::Vacant(e) => {
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
-                let db_version = version.unwrap_or(0);
+                // Note: done below with the zero as first tuple item.
 
                 // Step 6: If db is null, let db be a new database
                 // with name name, version 0 (zero), and with no object stores.
@@ -419,7 +419,8 @@ impl IndexedDBManager {
                     SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
                         .expect("Failed to create sqlite engine"),
                 );
-                db.set_version(0);
+                db.set_version(0)
+                    .expect("Setting the version of a newly created DB should not fail.");
                 e.insert(db);
                 (0, version.unwrap_or(1))
             },
