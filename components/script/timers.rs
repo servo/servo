@@ -38,7 +38,6 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
-use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
@@ -800,15 +799,12 @@ impl JsTimerTask {
                 // Step 9.6.9. Run the classic script script.
                 //
                 // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
-                _ = global.evaluate_js_on_global_with_result(
+                _ = global.evaluate_js_on_global(
                     (*code_str.str()).into(),
-                    rval.handle_mut(),
-                    ScriptFetchOptions::default_classic_script(&global),
-                    // Step 9.6. Let base URL be settings object's API base URL.
-                    // Step 9.7.2. Set base URL to initiating script's base URL.
-                    global.api_base_url(),
-                    can_gc,
+                    "",
                     Some(IntroductionType::DOM_TIMER),
+                    rval.handle_mut(),
+                    can_gc,
                 );
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and
