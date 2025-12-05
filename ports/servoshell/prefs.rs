@@ -634,9 +634,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
                     )
                 }
                 match &error {
-                    ParseFailure::Stdout(_, _) => unreachable!("Should never happen"),
-                    ParseFailure::Completion(_) => unreachable!("Should never happen"),
                     ParseFailure::Stderr(doc) => log::error!("{doc}"),
+                    _ => log::error!("This should never happen."),
                 }
             } else {
                 error.print_message(80);
