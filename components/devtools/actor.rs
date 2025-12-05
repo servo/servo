@@ -56,7 +56,10 @@ pub(crate) trait Actor: Any + ActorAsAny {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream_id: StreamId,
-    ) -> Result<(), ActorError>;
+    ) -> Result<(), ActorError> {
+        let _ = (request, registry, msg_type, msg, stream_id);
+        Err(ActorError::UnrecognizedPacketType)
+    }
     fn name(&self) -> String;
     fn cleanup(&self, _id: StreamId) {}
 }
