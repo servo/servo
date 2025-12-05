@@ -623,7 +623,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
                 {
                     let mut builder = hilog::Builder::new();
                     builder.set_domain(hilog::LogDomain::new(0xE0C3));
-                    log::error!("{}", error.clone().unwrap_stderr());
                 }
                 #[cfg(target_os = "android")]
                 {
@@ -633,6 +632,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
                             .with_filter(filter_builder.build())
                             .with_tag("servoshell"),
                     )
+                }
+                match &error {
+                    ParseFailure::Stdout(_, _) => unreachable!("Should never happen"),
+                    ParseFailure::Completion(_) => unreachable!("Should never happen"),
+                    ParseFailure::Stderr(doc) => log::error!("{doc}"),
                 }
             } else {
                 error.print_message(80);
