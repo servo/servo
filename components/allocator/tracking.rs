@@ -9,6 +9,7 @@
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
+use std::io::Write;
 use std::os::raw::c_void;
 use std::sync::{LazyLock, Mutex};
 
@@ -150,7 +151,7 @@ impl<A> AccountingAlloc<A> {
         IN_ALLOCATION.with(|status| status.set(false));
     }
 
-    pub(crate) fn dump_unmeasured_allocations(&self) {
+    pub(crate) fn dump_unmeasured_allocations(&self, mut writer: impl Write) {
         // Ensure that we ignore all allocations triggered while processing
         // the existing allocation data.
         IN_ALLOCATION.with(|status| status.set(true));
@@ -172,15 +173,22 @@ impl<A> AccountingAlloc<A> {
                     });
                 }
 
-                println!("---\n{}\n", site.size);
+                if let Err(error) = writeln!(&mut writer, "---\n{}\n", site.size) {
+                    log::error!("Error writing to log file: {error:?}");
+                    return;
+                }
                 for (filename, line, symbol) in &resolved {
                     let fname = filename.as_ref().map(|f| f.display().to_string());
-                    println!(
+                    if let Err(error) = writeln!(
+                        &mut writer,
                         "{}:{} ({})",
                         fname.as_deref().unwrap_or(default),
                         line.unwrap_or_default(),
                         symbol.as_deref().unwrap_or(default),
-                    );
+                    ) {
+                        log::error!("Error writing to log file: {error:?}");
+                        return;
+                    }
                 }
             }
         }

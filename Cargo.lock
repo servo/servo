@@ -8094,6 +8094,7 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "libc",
+ "log",
  "rustc-hash 2.1.1",
  "tikv-jemalloc-sys",
  "tikv-jemallocator",

@@ -6,6 +6,7 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::fs::File;
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcReceiver};
@@ -112,7 +113,17 @@ impl Profiler {
                     })
                     .collect();
                 let _ = sender.send(MemoryReportResult { results });
-                servo_allocator::dump_unmeasured();
+
+                if let Ok(value) = std::env::var("UNTRACKED_LOG_FILE") {
+                    match File::create(&value) {
+                        Ok(file) => {
+                            servo_allocator::dump_unmeasured(file);
+                        },
+                        Err(error) => {
+                            log::error!("Error creating log file: {error:?}");
+                        },
+                    }
+                }
                 true
             },
             ProfilerMsg::Exit => false,
