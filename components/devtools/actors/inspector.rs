@@ -7,9 +7,9 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use base::generic_channel::{self, GenericSender};
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::GetRootNode;
-use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -61,7 +61,7 @@ pub struct InspectorActor {
     pub walker: RefCell<Option<String>>,
     pub page_style: RefCell<Option<String>>,
     pub highlighter: RefCell<Option<String>>,
-    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub browsing_context: String,
 }
 
@@ -82,7 +82,7 @@ impl Actor for InspectorActor {
         let pipeline = browsing_context.active_pipeline_id.get();
         match msg_type {
             "getWalker" => {
-                let (tx, rx) = ipc::channel().unwrap();
+                let (tx, rx) = generic_channel::channel().unwrap();
                 self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
                 let root_info = rx.recv().unwrap().ok_or(ActorError::Internal)?;
 

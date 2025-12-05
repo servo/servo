@@ -57,7 +57,8 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
             task_queue.take_tasks(msg.unwrap(), &FxHashSet::default());
             T::from_worker_msg(task_queue.recv().unwrap())
         },
-        recv(devtools_receiver) -> msg => T::from_devtools_msg(msg.unwrap()),
+        // RoutedReceivers have two results
+        recv(devtools_receiver) -> msg => T::from_devtools_msg(msg.unwrap().unwrap()),
         recv(scope.timer_scheduler().wait_channel()) -> _ => T::from_timer_msg(),
     };
 
@@ -75,7 +76,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         // The task queue will throttle non-priority tasks if necessary.
         match task_queue.take_tasks_and_recv(&FxHashSet::default()) {
             Err(_) => match devtools_receiver.try_recv() {
-                Ok(message) => sequential.push(T::from_devtools_msg(message)),
+                Ok(message) => sequential.push(T::from_devtools_msg(message.unwrap())),
                 Err(_) => break,
             },
             Ok(ev) => sequential.push(T::from_worker_msg(ev)),

@@ -215,7 +215,7 @@ pub struct ScopeThings {
     /// base resources required to create worker global scopes
     pub init: WorkerGlobalScopeInit,
     /// the port to receive devtools message from
-    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// service worker id
     pub worker_id: WorkerId,
 }
@@ -456,9 +456,9 @@ pub struct WorkerGlobalScopeInit {
     /// Chan to the time profiler
     pub time_profiler_chan: profile_time::ProfilerChan,
     /// To devtools sender
-    pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub to_devtools_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// From devtools sender
-    pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    pub from_devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
     pub script_to_constellation_chan: ScriptToConstellationChan,
     /// Messages to send to the Embedder

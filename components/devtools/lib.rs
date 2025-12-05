@@ -18,7 +18,7 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use base::generic_channel;
+use base::generic_channel::{self, GenericSender};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
@@ -27,7 +27,6 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
-use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
 use rand::{RngCore, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
@@ -341,7 +340,7 @@ impl DevtoolsInstance {
     fn handle_new_global(
         &mut self,
         ids: (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
         page_info: DevtoolsPageInfo,
     ) {
         let mut actors = self.actors.lock().unwrap();
@@ -545,7 +544,7 @@ impl DevtoolsInstance {
 
     fn handle_create_source_actor(
         &mut self,
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
         pipeline_id: PipelineId,
         source_info: SourceInfo,
     ) {

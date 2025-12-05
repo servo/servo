@@ -4,9 +4,9 @@
 
 use std::mem;
 
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
-use ipc_channel::ipc::IpcSender;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
@@ -17,7 +17,7 @@ use crate::protocol::ClientRequest;
 pub struct FramerateActor {
     name: String,
     pipeline_id: PipelineId,
-    script_sender: IpcSender<DevtoolScriptControlMsg>,
+    script_sender: GenericSender<DevtoolScriptControlMsg>,
     is_recording: bool,
     ticks: Vec<HighResolutionStamp>,
 }
@@ -44,7 +44,7 @@ impl FramerateActor {
     pub fn create(
         registry: &ActorRegistry,
         pipeline_id: PipelineId,
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
         let actor_name = registry.new_name("framerate");
         let mut actor = FramerateActor {

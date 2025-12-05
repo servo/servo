@@ -8,10 +8,10 @@
 
 use std::collections::HashMap;
 
+use base::generic_channel;
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
 };
-use ipc_channel::ipc;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -151,7 +151,7 @@ impl StyleRuleActor {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
 
-        let (document_sender, document_receiver) = ipc::channel().ok()?;
+        let (document_sender, document_receiver) = generic_channel::channel()?;
         walker
             .script_chan
             .send(GetDocumentElement(walker.pipeline, document_sender))
@@ -160,7 +160,7 @@ impl StyleRuleActor {
 
         // Gets the style definitions. If there is a selector, query the relevant stylesheet, if
         // not, this represents the style attribute.
-        let (style_sender, style_receiver) = ipc::channel().ok()?;
+        let (style_sender, style_receiver) = generic_channel::channel()?;
         let req = match &self.selector {
             Some(selector) => {
                 let (selector, stylesheet) = selector.clone();
@@ -219,7 +219,7 @@ impl StyleRuleActor {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
 
-        let (style_sender, style_receiver) = ipc::channel().ok()?;
+        let (style_sender, style_receiver) = generic_channel::channel()?;
         walker
             .script_chan
             .send(GetComputedStyle(
