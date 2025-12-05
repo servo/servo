@@ -6,6 +6,7 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::fs::File;
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcReceiver};
@@ -18,6 +19,8 @@ use profile_traits::mem::{
 
 use crate::system_reporter;
 
+const LOG_FILE_VAR: &str = "UNTRACKED_LOG_FILE";
+
 pub struct Profiler {
     /// The port through which messages are received.
     pub port: IpcReceiver<ProfilerMsg>,
@@ -29,6 +32,10 @@ pub struct Profiler {
 impl Profiler {
     pub fn create() -> ProfilerChan {
         let (chan, port) = ipc::channel().unwrap();
+
+        if servo_allocator::is_tracking_unmeasured() && std::env::var(LOG_FILE_VAR).is_err() {
+            eprintln!("Allocation tracking is enabled but {LOG_FILE_VAR} is unset.");
+        }
 
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
         // `Print` events, but it will still receive the other events.
@@ -112,7 +119,17 @@ impl Profiler {
                     })
                     .collect();
                 let _ = sender.send(MemoryReportResult { results });
-                servo_allocator::dump_unmeasured();
+
+                if let Ok(value) = std::env::var(LOG_FILE_VAR) {
+                    match File::create(&value) {
+                        Ok(file) => {
+                            servo_allocator::dump_unmeasured(file);
+                        },
+                        Err(error) => {
+                            log::error!("Error creating log file: {error:?}");
+                        },
+                    }
+                }
                 true
             },
             ProfilerMsg::Exit => false,

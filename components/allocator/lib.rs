@@ -19,9 +19,13 @@ static ALLOC: crate::tracking::AccountingAlloc<Allocator> =
 #[cfg(feature = "allocation-tracking")]
 mod tracking;
 
-pub fn dump_unmeasured() {
+pub fn is_tracking_unmeasured() -> bool {
+    cfg!(feature = "allocation-tracking")
+}
+
+pub fn dump_unmeasured(_writer: impl std::io::Write) {
     #[cfg(feature = "allocation-tracking")]
-    ALLOC.dump_unmeasured_allocations();
+    ALLOC.dump_unmeasured_allocations(_writer);
 }
 
 pub use crate::platform::*;
