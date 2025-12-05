@@ -55,13 +55,21 @@ pub(crate) fn encrypt_aes_ctr(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the counter member of normalizedAlgorithm does not have a length of 16 bytes,
     // then throw an OperationError.
+    if normalized_algorithm.counter.len() != 16 {
+        return Err(Error::Operation(Some(
+            "The initial counter block length is not 16 bytes".into(),
+        )));
+    }
+
     // Step 2. If the length member of normalizedAlgorithm is zero or is greater than 128, then
     // throw an OperationError.
-    if normalized_algorithm.counter.len() != 16 ||
-        normalized_algorithm.length == 0 ||
-        normalized_algorithm.length > 128
-    {
-        return Err(Error::Operation(None));
+    if normalized_algorithm.length == 0 {
+        return Err(Error::Operation(Some("The counter length is zero".into())));
+    }
+    if normalized_algorithm.length > 128 {
+        return Err(Error::Operation(Some(
+            "The counter length is greater than 128".into(),
+        )));
     }
 
     // Step 3. Let ciphertext be the result of performing the CTR Encryption operation described in
