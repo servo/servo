@@ -356,7 +356,7 @@ impl Handler {
         // Step 7 - 15: Variable namings already done.
 
         // Step 16. Perform implementation-specific action dispatch steps
-        // TODO: We have not considered pen/touch pointer type
+        // TODO: We have not considered pen pointer type
         let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
         let input_event = match subtype {
             PointerType::Mouse => InputEvent::MouseButton(MouseButtonEvent::new(
@@ -364,9 +364,11 @@ impl Handler {
                 action.button.into(),
                 point,
             )),
-            PointerType::Pen | PointerType::Touch => {
-                InputEvent::Touch(TouchEvent::new(TouchEventType::Down, TouchId(0), point))
-            },
+            PointerType::Pen | PointerType::Touch => InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Down,
+                TouchId(pointer_input_state.pointer_id as i32),
+                point,
+            )),
         };
         self.send_blocking_input_event_to_embedder(input_event);
 
@@ -383,7 +385,13 @@ impl Handler {
 
         // Step 6. Remove button from the set corresponding to source's pressed property,
         pointer_input_state.pressed.remove(&action.button);
-        let PointerInputState { x, y, subtype, .. } = *pointer_input_state;
+        let PointerInputState {
+            x,
+            y,
+            subtype,
+            pointer_id,
+            ..
+        } = *pointer_input_state;
 
         // Remove matching pointerUp(must be unique) from `[input_cancel_list]` due to bugs in spec
         // See https://github.com/w3c/webdriver/issues/1905 &&
@@ -407,9 +415,11 @@ impl Handler {
                 action.button.into(),
                 point,
             )),
-            PointerType::Pen | PointerType::Touch => {
-                InputEvent::Touch(TouchEvent::new(TouchEventType::Up, TouchId(0), point))
-            },
+            PointerType::Pen | PointerType::Touch => InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Up,
+                TouchId(pointer_id as i32),
+                point,
+            )),
         };
         self.send_blocking_input_event_to_embedder(input_event);
 
@@ -466,7 +476,7 @@ impl Handler {
         // Step 9 - 18
         // Perform a pointer move with arguments source, global key state, duration, start x, start y,
         // x, y, width, height, pressure, tangentialPressure, tiltX, tiltY, twist, altitudeAngle, azimuthAngle.
-        // TODO: We have not considered pen/touch pointer type
+        // TODO: We have not considered pen pointer type
         self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
 
         // Step 19. Return success with data null.
@@ -521,6 +531,7 @@ impl Handler {
                 x: current_x,
                 y: current_y,
                 subtype,
+                pointer_id,
                 ..
             } = *self.get_pointer_input_state(source_id);
 
@@ -533,9 +544,11 @@ impl Handler {
 
                 let input_event = match subtype {
                     PointerType::Mouse => InputEvent::MouseMove(MouseMoveEvent::new(point)),
-                    PointerType::Pen | PointerType::Touch => {
-                        InputEvent::Touch(TouchEvent::new(TouchEventType::Move, TouchId(0), point))
-                    },
+                    PointerType::Pen | PointerType::Touch => InputEvent::Touch(TouchEvent::new(
+                        TouchEventType::Move,
+                        TouchId(pointer_id as i32),
+                        point,
+                    )),
                 };
                 if last {
                     self.send_blocking_input_event_to_embedder(input_event);
