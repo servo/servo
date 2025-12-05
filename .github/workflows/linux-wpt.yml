@@ -51,7 +51,7 @@ jobs:
           github-hosted-runner-label: ubuntu-22.04
           github-hosted-runner-count: ${{ inputs.number-of-wpt-chunks }}
           self-hosted-image-name: servo-ubuntu2204-wpt
-          self-hosted-runner-count: 2
+          self-hosted-runner-count: 3
           first-runner-index: 1
           # You can disable self-hosted runners globally by creating a repository variable named
           # NO_SELF_HOSTED_RUNNERS with any non-empty value.
