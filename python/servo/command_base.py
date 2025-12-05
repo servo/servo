@@ -32,6 +32,7 @@ from subprocess import PIPE, CompletedProcess
 from typing import Any, Optional, Union, LiteralString, cast, List
 from collections.abc import Generator, Callable
 from xml.etree.ElementTree import XML
+from pathlib import Path
 
 import toml
 from mach.decorators import CommandArgument, CommandArgumentGroup
@@ -480,11 +481,74 @@ class CommandBase(object):
     def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
-    def get_correct_clang_lib_path(self) -> Optional[str]:
-        result = self.get_correct_clang_lib_path_using_llvm()
-        if result is not None:
-            return result
-        # if llmv-config does not exist, implement some other way to set
+    def get_current_clang_version(self) -> Optional[str]:
+        try:
+            result = subprocess.run(
+                ["clang", "--version"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            clang_version_full_string_split = result.stdout.lower().split()
+            for i, word in enumerate(clang_version_full_string_split):
+                if word == "version":
+                    if i + 1 < len(clang_version_full_string_split):
+                        return clang_version_full_string_split[i + 1]
+                    else:
+                        return None
+        except (subprocess.CalledProcessError, FileNotFoundError) as _:
+            return None
+
+    def get_valid_clang_path_using_version_string(self, clang_version: str) -> Optional[str]:
+        CCname = "clang-" + clang_version.split(".")[0]
+        try:
+            result = subprocess.run(
+                ["which", CCname],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            return result.stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError) as _:
+            return None
+
+    def get_valid_clang_lib_path_using_path(self, clang_path_str: str) -> Optional[str]:
+        """
+        the Ubuntu the clanglib can be found in the /usr/lib/llvm-[XX]/lib/ (ex: /usr/lib/llvm-20/lib/)
+        the Fedora installs clanglib in the /usr/lib64/llvm[XX]/lib64/
+
+        in cases of macos and Ubuntu, the plan is to traverse up the clang path and go for the ../lib/
+
+        :rtype: str | None
+        """
+        clang_path = Path(clang_path_str)
+        lib_path = clang_path.parent / "lib"
+
+        if lib_path.exists() and lib_path.is_dir():
+            return str(lib_path)
+        return None
+
+    def set_correct_clang_lib_path(self, env: os._Environ) -> Optional[str]:
+        """This function repects the CC and CCX if set,
+        and tries to set the LIBCLANG_PATH
+        """
+        CC = env["CC"]
+        CXX = env["CXX"]
+
+        clang_version = self.get_current_clang_version()
+        CCpath = self.get_valid_clang_path_using_version_string(clang_version)
+        if CCpath is not None:
+            env.setdefault("CLANG_PATH", CCpath)
+
+        libdir = self.get_correct_clang_lib_path_using_llvm()
+        if libdir is not None:
+            env.setdefault("LIBCLANG_PATH", libdir)
+        else:
+            libdir = self.get_valid_clang_lib_path_using_path(CCpath)
+            if libdir is not None:
+                env.setdefault("LIBCLANG_PATH", libdir)
 
     def get_correct_clang_lib_path_using_llvm(_) -> Optional[str]:
         try:
@@ -526,9 +590,7 @@ class CommandBase(object):
 
         # The default clang of Ubuntu24.04 from apt seem to be clang-18
         # But mach seem to use the llvm's lib .so instead, so to sync, we can force LIBCLANG_PATH
-        libdir = self.get_correct_clang_lib_path()
-        if libdir is not None:
-            env.setdefault("LIBCLANG_PATH", libdir)
+        self.set_correct_clang_lib_path(env)
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
