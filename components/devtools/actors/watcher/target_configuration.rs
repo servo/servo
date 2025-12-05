@@ -12,7 +12,7 @@ use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::protocol::ClientRequest;
@@ -114,8 +114,10 @@ impl TargetConfigurationActor {
             ]),
         }
     }
+}
 
-    pub fn encodable(&self) -> TargetConfigurationActorMsg {
+impl ActorEncode<TargetConfigurationActorMsg> for TargetConfigurationActor {
+    fn encode(&self, _: &ActorRegistry) -> TargetConfigurationActorMsg {
         TargetConfigurationActorMsg {
             actor: self.name(),
             configuration: self.configuration.clone(),

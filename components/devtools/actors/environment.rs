@@ -5,7 +5,7 @@
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorRegistry};
 use crate::actors::object::ObjectActorMsg;
 
 #[derive(Serialize)]
@@ -68,17 +68,13 @@ impl Actor for EnvironmentActor {
     }
 }
 
-pub trait EnvironmentToProtocol {
-    fn encode(&self, actors: &ActorRegistry) -> EnvironmentActorMsg;
-}
-
-impl EnvironmentToProtocol for EnvironmentActor {
-    fn encode(&self, actors: &ActorRegistry) -> EnvironmentActorMsg {
+impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
+    fn encode(&self, registry: &ActorRegistry) -> EnvironmentActorMsg {
         let parent = self
             .parent
             .as_ref()
-            .map(|p| actors.find::<EnvironmentActor>(p))
-            .map(|p| Box::new(p.encode(actors)));
+            .map(|p| registry.find::<EnvironmentActor>(p))
+            .map(|p| Box::new(p.encode(registry)));
         // TODO: Change hardcoded values.
         EnvironmentActorMsg {
             actor: self.name(),

@@ -7,17 +7,11 @@
 
 use std::collections::HashMap;
 
-use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
-use crate::{EmptyReplyMsg, StreamId};
-
-#[derive(Serialize)]
-pub struct ThreadConfigurationActorMsg {
-    actor: String,
-}
+use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 pub struct ThreadConfigurationActor {
     name: String,
@@ -59,8 +53,10 @@ impl ThreadConfigurationActor {
             _configuration: HashMap::new(),
         }
     }
+}
 
-    pub fn encodable(&self) -> ThreadConfigurationActorMsg {
-        ThreadConfigurationActorMsg { actor: self.name() }
+impl ActorEncode<ActorMsg> for ThreadConfigurationActor {
+    fn encode(&self, _: &ActorRegistry) -> ActorMsg {
+        ActorMsg { actor: self.name() }
     }
 }

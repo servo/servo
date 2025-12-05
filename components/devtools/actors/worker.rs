@@ -15,7 +15,7 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 
@@ -36,24 +36,6 @@ pub(crate) struct WorkerActor {
     pub type_: WorkerType,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<HashMap<StreamId, TcpStream>>,
-}
-
-impl WorkerActor {
-    pub(crate) fn encodable(&self) -> WorkerMsg {
-        WorkerMsg {
-            actor: self.name.clone(),
-            console_actor: self.console.clone(),
-            thread_actor: self.thread.clone(),
-            id: self.worker_id.0.to_string(),
-            url: self.url.to_string(),
-            traits: WorkerTraits {
-                is_parent_intercept_enabled: false,
-                supports_top_level_target_flag: false,
-            },
-            type_: self.type_ as u32,
-            target_type: "worker".to_string(),
-        }
-    }
 }
 
 impl ResourceAvailable for WorkerActor {
@@ -162,7 +144,7 @@ struct WorkerTraits {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct WorkerMsg {
+pub(crate) struct WorkerActorMsg {
     actor: String,
     console_actor: String,
     thread_actor: String,
@@ -173,4 +155,22 @@ pub(crate) struct WorkerMsg {
     type_: u32,
     #[serde(rename = "targetType")]
     target_type: String,
+}
+
+impl ActorEncode<WorkerActorMsg> for WorkerActor {
+    fn encode(&self, _: &ActorRegistry) -> WorkerActorMsg {
+        WorkerActorMsg {
+            actor: self.name(),
+            console_actor: self.console.clone(),
+            thread_actor: self.thread.clone(),
+            id: self.worker_id.0.to_string(),
+            url: self.url.to_string(),
+            traits: WorkerTraits {
+                is_parent_intercept_enabled: false,
+                supports_top_level_target_flag: false,
+            },
+            type_: self.type_ as u32,
+            target_type: "worker".to_string(),
+        }
+    }
 }

@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use log::{debug, warn};
+use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 use crate::StreamId;
@@ -76,6 +77,10 @@ impl<T: Actor> ActorAsAny for T {
     fn actor_as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+}
+
+pub(crate) trait ActorEncode<T: Serialize>: Actor {
+    fn encode(&self, registry: &ActorRegistry) -> T;
 }
 
 /// A list of known, owned actors.
@@ -198,6 +203,11 @@ impl ActorRegistry {
     pub fn find_mut<'a, T: Any>(&'a mut self, name: &str) -> &'a mut T {
         let actor = self.actors.get_mut(name).unwrap();
         actor.actor_as_any_mut().downcast_mut::<T>().unwrap()
+    }
+
+    /// Find an actor by registered name and return its serialization
+    pub fn encode<T: ActorEncode<S>, S: Serialize>(&self, name: &str) -> S {
+        self.find::<T>(name).encode(self)
     }
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not found, does not support the

@@ -4,7 +4,7 @@
 
 use serde::Serialize;
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorRegistry};
 
 #[derive(Serialize)]
 pub struct ObjectPreview {
@@ -60,17 +60,11 @@ impl ObjectActor {
     }
 }
 
-// TODO: Remove once the message is used.
-#[allow(dead_code)]
-pub trait ObjectToProtocol {
-    fn encode(self) -> ObjectActorMsg;
-}
-
-impl ObjectToProtocol for ObjectActor {
-    fn encode(self) -> ObjectActorMsg {
+impl ActorEncode<ObjectActorMsg> for ObjectActor {
+    fn encode(&self, _: &ActorRegistry) -> ObjectActorMsg {
         // TODO: Review hardcoded values here
         ObjectActorMsg {
-            actor: self.name,
+            actor: self.name(),
             type_: "object".into(),
             class: "Window".into(),
             own_property_length: 0,

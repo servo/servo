@@ -2,16 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use serde::Serialize;
-
-use crate::EmptyReplyMsg;
-use crate::actor::{Actor, ActorError};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
-
-#[derive(Serialize)]
-pub struct BreakpointListActorMsg {
-    actor: String,
-}
+use crate::{ActorMsg, EmptyReplyMsg};
 
 pub struct BreakpointListActor {
     name: String,
@@ -56,8 +49,10 @@ impl BreakpointListActor {
     pub fn new(name: String) -> Self {
         Self { name }
     }
+}
 
-    pub fn encodable(&self) -> BreakpointListActorMsg {
-        BreakpointListActorMsg { actor: self.name() }
+impl ActorEncode<ActorMsg> for BreakpointListActor {
+    fn encode(&self, _: &ActorRegistry) -> ActorMsg {
+        ActorMsg { actor: self.name() }
     }
 }

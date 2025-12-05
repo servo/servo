@@ -9,8 +9,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg, EnvironmentToProtocol};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
 use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
@@ -90,12 +90,8 @@ impl Actor for FrameActor {
     }
 }
 
-pub trait FrameToProtocol {
-    fn encode(self) -> FrameActorMsg;
-}
-
-impl FrameToProtocol for FrameActor {
-    fn encode(self) -> FrameActorMsg {
+impl ActorEncode<FrameActorMsg> for FrameActor {
+    fn encode(&self, _: &ActorRegistry) -> FrameActorMsg {
         // TODO: Handle other states
         let state = FrameState::OnStack;
         let async_cause = if let FrameState::OnStack = state {
@@ -104,7 +100,7 @@ impl FrameToProtocol for FrameActor {
             Some("await".into())
         };
         FrameActorMsg {
-            actor: self.name,
+            actor: self.name(),
             type_: "call".into(),
             arguments: vec![],
             async_cause,
@@ -112,7 +108,7 @@ impl FrameToProtocol for FrameActor {
             oldest: true,
             state,
             where_: FrameWhere {
-                actor: self.source_actor,
+                actor: self.source_actor.clone(),
                 line: 1, // TODO: get from breakpoint?
                 column: 1,
             },

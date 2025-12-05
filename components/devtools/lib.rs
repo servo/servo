@@ -96,6 +96,11 @@ pub struct EmptyReplyMsg {
     pub from: String,
 }
 
+#[derive(Serialize)]
+pub struct ActorMsg {
+    pub actor: String,
+}
+
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16, embedder: EmbedderProxy) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = unbounded();
@@ -664,7 +669,10 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
 /// Process the input from a single devtools client until EOF.
 fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, stream_id: StreamId) {
     log::info!("Connection established to {}", stream.peer_addr().unwrap());
-    let msg = actors.lock().unwrap().find::<RootActor>("root").encodable();
+    let msg = {
+        let actors = actors.lock().unwrap();
+        actors.encode::<RootActor, _>("root")
+    };
     if let Err(error) = stream.write_json_packet(&msg) {
         warn!("Failed to send initial packet from root actor: {error:?}");
         return;
