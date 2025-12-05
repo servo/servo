@@ -3,11 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use serde::Serialize;
-use serde_json::{Map, Value};
 
-use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::protocol::ClientRequest;
+use crate::actor::{Actor, ActorRegistry};
 
 #[derive(Serialize)]
 pub struct ObjectPreview {
@@ -39,17 +36,9 @@ impl Actor for ObjectActor {
     fn name(&self) -> String {
         self.name.clone()
     }
-    fn handle_message(
-        &self,
-        _request: ClientRequest,
-        _: &ActorRegistry,
-        _: &str,
-        _: &Map<String, Value>,
-        _: StreamId,
-    ) -> Result<(), ActorError> {
-        // TODO: Handle enumSymbols for console object inspection
-        Err(ActorError::UnrecognizedPacketType)
-    }
+
+    // TODO: Handle messages
+    // https://searchfox.org/firefox-main/source/devtools/shared/specs/object.js
 }
 
 impl ObjectActor {

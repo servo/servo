@@ -7,12 +7,9 @@ use std::mem;
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
-use serde_json::{Map, Value};
 
-use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorRegistry};
 use crate::actors::timeline::HighResolutionStamp;
-use crate::protocol::ClientRequest;
 
 pub struct FramerateActor {
     name: String,
@@ -25,17 +22,6 @@ pub struct FramerateActor {
 impl Actor for FramerateActor {
     fn name(&self) -> String {
         self.name.clone()
-    }
-
-    fn handle_message(
-        &self,
-        _request: ClientRequest,
-        _registry: &ActorRegistry,
-        _msg_type: &str,
-        _msg: &Map<String, Value>,
-        _id: StreamId,
-    ) -> Result<(), ActorError> {
-        Err(ActorError::UnrecognizedPacketType)
     }
 }
 
