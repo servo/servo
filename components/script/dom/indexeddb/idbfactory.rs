@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use dom_struct::dom_struct;
 use js::rust::HandleValue;
+use rustc_hash::FxBuildHasher;
 use servo_url::origin::ImmutableOrigin;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -19,11 +20,13 @@ use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::indexeddb::convert_value_to_key;
 use crate::script_runtime::CanGc;
 
+use std::collections::HashMap;
+
 #[dom_struct]
 pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
-    connections: DomRefCell<HashMapTracedValues<String, Dom<IDBDatabase>>>,
+    connections: DomRefCell<HashMap<String, Dom<IDBDatabase>>>,
 }
 
 impl IDBFactory {
