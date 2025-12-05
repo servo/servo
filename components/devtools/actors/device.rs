@@ -58,7 +58,7 @@ impl Actor for DeviceActor {
                         apptype: "servo".to_string(),
                         version: env!("CARGO_PKG_VERSION").to_string(),
                         appbuildid: BUILD_ID.to_string(),
-                        platformversion: "133.0".to_string(),
+                        platformversion: "145.0".to_string(),
                         brand_name: "Servo".to_string(),
                     },
                 };

@@ -166,7 +166,6 @@ impl ActorRegistry {
 
     pub fn actor_to_script(&self, actor: String) -> String {
         for (key, value) in &*self.script_actors.borrow() {
-            debug!("checking {}", value);
             if *value == actor {
                 return key.to_owned();
             }
