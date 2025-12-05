@@ -91,7 +91,7 @@ pub struct FetchContext {
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
     pub websocket_chan: Option<Arc<Mutex<WebSocketChannel>>>,
-    pub ca_certificates: CACertificates,
+    pub ca_certificates: CACertificates<'static>,
     pub ignore_certificate_errors: bool,
 }
 

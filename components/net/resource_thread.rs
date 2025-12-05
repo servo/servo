@@ -40,9 +40,10 @@ use profile_traits::mem::{
 use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustc_hash::FxHashMap;
-use rustls::RootCertStore;
+use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::async_runtime::{init_async_runtime, spawn_task};
@@ -63,13 +64,16 @@ use crate::request_interceptor::RequestInterceptor;
 use crate::websocket_loader::create_handshake_request;
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
-fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {
-    let mut root_cert_store = RootCertStore::empty();
-
+fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<CertificateDer<'static>>> {
     let mut pem = BufReader::new(File::open(file_path)?);
-    let certs: Result<Vec<_>, _> = rustls_pemfile::certs(&mut pem).collect();
-    root_cert_store.add_parsable_certificates(certs?);
-    Ok(root_cert_store)
+
+    let certs = rustls_pemfile::certs(&mut pem)
+        .filter_map(|cert| {
+            cert.inspect_err(|e| log::error!("Could not load certificate ({e}). Ignoring it."))
+                .ok()
+        })
+        .collect();
+    Ok(certs)
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
@@ -87,15 +91,26 @@ pub fn new_resource_threads(
     // Initialize the async runtime, and get a handle to it for use in clean shutdown.
     let async_runtime = init_async_runtime();
 
+    #[cfg(target_os = "android")]
+    let default_verifier = CACertificates::WebPKI;
+    #[cfg(not(target_os = "android"))]
+    let default_verifier = CACertificates::PlatformVerifier;
+
     let ca_certificates = match certificate_path {
         Some(path) => match load_root_cert_store_from_file(path) {
             Ok(root_cert_store) => CACertificates::Override(root_cert_store),
             Err(error) => {
                 warn!("Could not load CA file. Falling back to defaults. {error:?}");
-                CACertificates::Default
+                default_verifier
             },
         },
-        None => CACertificates::Default,
+        None => {
+            if pref!(network_webpki_roots) {
+                CACertificates::WebPKI
+            } else {
+                default_verifier
+            }
+        },
     };
 
     let (public_core, private_core) = new_core_resource_thread(
@@ -123,7 +138,7 @@ pub fn new_core_resource_thread(
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
     config_dir: Option<PathBuf>,
-    ca_certificates: CACertificates,
+    ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
 ) -> (CoreResourceThread, CoreResourceThread) {
@@ -173,7 +188,7 @@ pub fn new_core_resource_thread(
 struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
     config_dir: Option<PathBuf>,
-    ca_certificates: CACertificates,
+    ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
     cookie_listeners: FxHashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
@@ -181,7 +196,7 @@ struct ResourceChannelManager {
 
 fn create_http_states(
     config_dir: Option<&Path>,
-    ca_certificates: CACertificates,
+    ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     embedder_proxy: EmbedderProxy,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
@@ -571,7 +586,7 @@ pub struct CoreResourceManager {
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
     thread_pool: Arc<ThreadPool>,
-    ca_certificates: CACertificates,
+    ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
 }
 
@@ -580,7 +595,7 @@ impl CoreResourceManager {
         devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
-        ca_certificates: CACertificates,
+        ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
     ) -> CoreResourceManager {
         let num_threads = thread::available_parallelism()
