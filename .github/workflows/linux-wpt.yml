@@ -92,15 +92,16 @@ jobs:
       - name: Bootstrap dependencies
         run: |
           sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
           ./mach bootstrap --skip-lints --skip-nextest
+          # FIXME #41043, #41044
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk fonts-dejavu-extra
+          # FIXME #35029
+          sudo apt purge -y fonts-droid-fallback
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
           ./mach update-wpt --sync --patch
       - run: |
-          apt purge -y fonts-droid-fallback
-          apt install -y fonts-dejavu-extra
       - name: Run tests
         run: |
           mkdir -p wpt-filtered-logs/linux
