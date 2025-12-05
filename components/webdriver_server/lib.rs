@@ -2342,7 +2342,7 @@ impl Handler {
         };
 
         // Step 8.16. Dispatch a list of actions with session's current browsing context
-        let actions_by_tick = self.actions_by_tick_from_sequence(vec![action_sequence]);
+        let actions_by_tick = self.extract_an_action_sequence(vec![action_sequence]);
         if let Err(e) = self.dispatch_actions(actions_by_tick, self.browsing_context_id()?) {
             log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
         }
