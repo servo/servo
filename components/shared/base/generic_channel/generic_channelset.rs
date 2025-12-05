@@ -4,7 +4,7 @@
 use ipc_channel::ipc::{IpcReceiverSet, IpcSelectionResult};
 use serde::{Deserialize, Serialize};
 
-use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, ReceiveError};
+use crate::generic_channel::{GenericReceiver, GenericReceiverVariants};
 
 /// A GenericReceiverSet. Allows you to wait on multiple GenericReceivers.
 /// Automatically selects either Ipc or crossbeam depending on multiprocess mode.
@@ -17,7 +17,7 @@ use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, ReceiveEr
 /// # let private_id = rx_set.add(private_receiver);
 /// # let public_id = rx_set.add(public_receiver);
 /// # let reporter_id = rx_set.add(memory_reporter);
-/// # for received in rx_set.select().unwrap().into_iter() {
+/// # for received in rx_set.select().into_iter() {
 /// #     match received {
 /// #         GenericSelectionResult::ChannelClosed(_) => continue,
 /// #         GenericSelectionResult::Error => println!("Found selection error"),
@@ -121,7 +121,7 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
     }
 
     /// Block until at least one of the Receivers receives a message and return a vector of the received messages.
-    pub fn select(&mut self) -> Result<Vec<GenericSelectionResult<T>>, ReceiveError> {
+    pub fn select(&mut self) -> Vec<GenericSelectionResult<T>> {
         match &mut self.0 {
             GenericReceiverSetVariants::Ipc(ipc_receiver_set) => ipc_receiver_set
                 .select()
@@ -131,7 +131,10 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
                         .map(|selection_result| selection_result.into())
                         .collect()
                 })
-                .map_err(|e| e.into()),
+                .unwrap_or_else(|e| {
+                    log::info!("GenericError {:?}", e);
+                    vec![GenericSelectionResult::Error]
+                }),
             GenericReceiverSetVariants::Crossbeam(receivers) => {
                 let mut sel = crossbeam_channel::Select::new();
                 // we need to add all the receivers to the set
@@ -142,13 +145,16 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
                 let selector = sel.select();
                 let index = selector.index();
                 let Some(receiver) = receivers.get(index) else {
-                    return Err(ReceiveError::Disconnected);
+                    return vec![GenericSelectionResult::ChannelClosed(index as u64)];
                 };
-                let result = selector.recv(receiver)?;
-                Ok(vec![GenericSelectionResult::MessageReceived(
+                let Ok(result) = selector.recv(receiver) else {
+                    return vec![GenericSelectionResult::ChannelClosed(index as u64)];
+                };
+
+                vec![GenericSelectionResult::MessageReceived(
                     index.try_into().unwrap(),
                     result.unwrap(),
-                )])
+                )]
             },
         }
     }
