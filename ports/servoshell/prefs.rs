@@ -623,7 +623,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
                 {
                     let mut builder = hilog::Builder::new();
                     builder.set_domain(hilog::LogDomain::new(0xE0C3));
-                    //let logger: &'static hilog::Logger = &LOGGER;
                     log::error!("{}", error.clone().unwrap_stderr());
                 }
                 #[cfg(target_os = "android")]
