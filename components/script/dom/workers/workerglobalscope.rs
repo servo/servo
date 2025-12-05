@@ -66,7 +66,7 @@ use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, ScriptOrigin, ScriptType};
+use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -91,7 +91,6 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
-use crate::unminify::unminify_js;
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -614,7 +613,7 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            self.execute_script(DOMString::from(script), can_gc);
+            self.execute_script(script, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
@@ -975,18 +974,17 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    pub(crate) fn execute_script(&self, source: DOMString, can_gc: CanGc) {
+    pub(crate) fn execute_script(&self, source: Cow<'_, str>, can_gc: CanGc) {
         let global = self.upcast::<GlobalScope>();
-        let mut script = ScriptOrigin::external(
-            Rc::new(source),
+        let script = global.create_a_classic_script(
+            source,
             self.worker_url.borrow().clone(),
             ScriptFetchOptions::default_classic_script(global),
-            ScriptType::Classic,
-            global.unminified_js_dir(),
+            Some(IntroductionType::WORKER),
+            1,
         );
-        unminify_js(&mut script);
 
-        global.run_a_classic_script(&script, 1, Some(IntroductionType::WORKER), can_gc);
+        _ = global.run_a_classic_script(script, can_gc);
     }
 
     pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {

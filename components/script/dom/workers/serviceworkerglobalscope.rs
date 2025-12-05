@@ -382,9 +382,7 @@ impl ServiceWorkerGlobalScope {
                         worker_scope.clear_js_runtime();
                         return;
                     },
-                    Ok((metadata, bytes)) => {
-                        (metadata.final_url, String::from_utf8(bytes).unwrap())
-                    },
+                    Ok((metadata, bytes)) => (metadata.final_url, bytes),
                 };
 
                 unsafe {
@@ -400,7 +398,7 @@ impl ServiceWorkerGlobalScope {
                         InRealm::entered(&realm),
                         CanGc::note(),
                     );
-                    worker_scope.execute_script(DOMString::from(source), CanGc::note());
+                    worker_scope.execute_script(String::from_utf8_lossy(&source), CanGc::note());
                     global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }
 

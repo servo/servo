@@ -1054,12 +1054,17 @@ impl HTMLScriptElement {
                 } else {
                     self.line_number as u32
                 };
-                self.owner_window().as_global_scope().run_a_classic_script(
-                    &script,
-                    line_number,
+                let window = self.owner_window();
+                let global = window.as_global_scope();
+
+                let script = global.create_a_classic_script(
+                    (*script.text().str()).into(),
+                    script.url,
+                    script.fetch_options,
                     Some(introduction_type),
-                    can_gc,
+                    line_number,
                 );
+                _ = global.run_a_classic_script(script, can_gc);
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
