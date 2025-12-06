@@ -165,7 +165,10 @@ impl ConsoleActor {
         registry: &ActorRegistry,
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
-        let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
+        let input = match msg.get("text").and_then(|v| v.as_str()) {
+            Some(text) => text.to_owned(),
+            None => return Err(()),
+        };
         let (chan, port) = ipc::channel().unwrap();
         // FIXME: Redesign messages so we don't have to fake pipeline ids when
         //        communicating with workers.
@@ -359,9 +362,13 @@ impl Actor for ConsoleActor {
                         _ => false,
                     };
                     if include {
-                        let json_string = event.encode().unwrap();
-                        let json = serde_json::from_str::<Value>(&json_string).unwrap();
-                        messages.push(json.as_object().unwrap().to_owned())
+                        if let Ok(json_string) = event.encode() {
+                            if let Ok(json) = serde_json::from_str::<Value>(&json_string) {
+                                if let Some(obj) = json.as_object() {
+                                    messages.push(obj.to_owned());
+                                }
+                            }
+                        }
                     }
                 }
 

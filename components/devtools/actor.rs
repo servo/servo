@@ -134,7 +134,7 @@ impl ActorRegistry {
 
     /// Get shareable registry through threads
     pub fn shareable(&self) -> Arc<Mutex<ActorRegistry>> {
-        self.shareable.as_ref().unwrap().clone()
+        self.shareable.as_ref().expect("ActorRegistry not initialized").clone()
     }
 
     /// Get start stamp when registry was started
@@ -152,7 +152,11 @@ impl ActorRegistry {
         if script_id.is_empty() {
             return "".to_owned();
         }
-        self.script_actors.borrow().get(&script_id).unwrap().clone()
+        self.script_actors
+            .borrow()
+            .get(&script_id)
+            .cloned()
+            .unwrap_or_default()
     }
 
     pub fn script_actor_registered(&self, script_id: String) -> bool {
@@ -223,7 +227,11 @@ impl ActorRegistry {
                 let _ = stream.write_json_packet(&msg);
             },
             Some(actor) => {
-                let msg_type = msg.get("type").unwrap().as_str().unwrap();
+                let Some(msg_type) = msg.get("type").and_then(|v| v.as_str()) else {
+                    warn!("Invalid message type in devtools actor");
+                    return Err(());
+                };
+
                 if let Err(error) = ClientRequest::handle(stream, to, |req| {
                     actor.handle_message(req, self, msg_type, msg, stream_id)
                 }) {
