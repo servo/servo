@@ -257,7 +257,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 if self.relations.get().contains(LinkRelations::ICON) {
-                    self.handle_favicon_url();
+                    self.handle_favicon_url(&attr.value());
                 }
 
                 // https://html.spec.whatwg.org/multipage/#link-type-prefetch
@@ -275,7 +275,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
-                self.handle_favicon_url();
+                self.handle_favicon_url(&attr.value());
             },
             local_name!("crossorigin") => {
                 // https://html.spec.whatwg.org/multipage/#link-type-prefetch
@@ -378,7 +378,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 if relations.contains(LinkRelations::ICON) {
-                    self.handle_favicon_url();
+                    self.handle_favicon_url(&href);
                 }
 
                 if relations.contains(LinkRelations::PREFETCH) {
@@ -616,7 +616,12 @@ impl HTMLLinkElement {
         }
     }
 
-    fn handle_favicon_url(&self) {
+    fn handle_favicon_url(&self, href: &str) {
+        // If el's href attribute's value is the empty string, then return.
+        if href.is_empty() {
+            return;
+        }
+
         // The spec does not specify this, but we don't fetch favicons for iframes, as
         // they won't be displayed anyways.
         let window = self.owner_window();
