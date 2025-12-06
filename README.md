@@ -16,12 +16,10 @@ Coordination of Servo development happens:
 
 ## Getting started
 
-For more detailed build instructions, see the Servo book under [Setting up your environment], [Building Servo], [Building for Android] and [Building for OpenHarmony].
+For more detailed build instructions, see the Servo Book under [Getting the Code] and [Building Servo].
 
-[Setting up your environment]: https://book.servo.org/hacking/setting-up-your-environment.html
-[Building Servo]: https://book.servo.org/hacking/building-servo.html
-[Building for Android]: https://book.servo.org/hacking/building-for-android.html
-[Building for OpenHarmony]: https://book.servo.org/hacking/building-for-openharmony.html
+[Getting the Code]: https://book.servo.org/building/getting-the-code.html
+[Building Servo]: https://book.servo.org/building/building.html
 
 ### macOS
 
