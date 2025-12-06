@@ -10,7 +10,7 @@ use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, UnrootedIterator};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::script_runtime::CanGc;
 
@@ -100,7 +100,7 @@ pub(crate) trait Validatable {
 /// <https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation>
 pub(crate) fn is_barred_by_datalist_ancestor(elem: &Node) -> bool {
     elem.upcast::<Node>()
-        .ancestors()
+        .unrooted_ancestors()
         .any(|node| node.is::<HTMLDataListElement>())
 }
 
