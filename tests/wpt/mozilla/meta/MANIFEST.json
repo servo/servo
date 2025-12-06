@@ -585,6 +585,32 @@
       {}
      ]
     ],
+    "background_attachment_fixed.html": [
+     "f049cbcdaf6910c0c8993924a15044c5edb8965f",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/background_attachment_fixed_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "background_attachment_scroll.html": [
+     "406f9a1343b7ad53d3d7e00573e6ef907a163f01",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/background_attachment_scroll_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "background_border_padding_crash.html": [
      "f3d50025ac06d4ccc30ebda74b41cad12cdfd1f2",
      [
@@ -8382,6 +8408,14 @@
     ],
     "attr_selector_case_sensitivity_ref.html": [
      "9e9be12d13e3c36d367a74c47aa963ad4a5d25f7",
+     []
+    ],
+    "background_attachment_fixed_ref.html": [
+     "f1150a960580799b638f9ffceca53f483aa7263c",
+     []
+    ],
+    "background_attachment_scroll_ref.html": [
+     "834dc8cfdeedfaab001962ecd3d42c36ae18cb43",
      []
     ],
     "background_border_padding_crash-ref.html": [
