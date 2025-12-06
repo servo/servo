@@ -58,15 +58,12 @@ def _winget_import(force: bool = False, yes: bool = False) -> None:
         raise e
 
 
-def _choco_install(force: bool = False, yes: bool = False) -> None:
+def _choco_install(force: bool = False) -> None:
     try:
         choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
 
         # This is the format that PowerShell wants arguments passed to it.
-        cmd_exe_args = "'/K','choco','install'"
-        if force or yes:
-            cmd_exe_args += ",'-y'"
-        cmd_exe_args += f", '\"{choco_config}\"'"
+        cmd_exe_args = f"'/K','choco','install','-y', '\"{choco_config}\"'"
         if force:
             cmd_exe_args += ",'-f'"
 
@@ -108,7 +105,7 @@ class Windows(Base):
         installed_something = self.passive_bootstrap()
         # If `winget` works well in practice, we could switch the default in the future.
         if shutil.which("choco") is not None:
-            _choco_install(force, yes)
+            _choco_install(force)
         else:
             _winget_import(force, yes)
 
