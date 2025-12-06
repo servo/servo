@@ -41,6 +41,7 @@ use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
+use rustls_pki_types::pem::PemObject;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
@@ -67,7 +68,7 @@ use crate::websocket_loader::create_handshake_request;
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<CertificateDer<'static>>> {
     let mut pem = BufReader::new(File::open(file_path)?);
 
-    let certs = rustls_pemfile::certs(&mut pem)
+    let certs = CertificateDer::pem_reader_iter(&mut pem)
         .filter_map(|cert| {
             cert.inspect_err(|e| log::error!("Could not load certificate ({e}). Ignoring it."))
                 .ok()
