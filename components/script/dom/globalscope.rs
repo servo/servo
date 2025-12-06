@@ -7,6 +7,7 @@ use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
+use std::mem;
 use std::ops::Index;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -14,7 +15,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use std::{mem, ptr};
 
 use base::IpcSend;
 use base::id::{
@@ -37,9 +37,8 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
-    Compile1, CurrentGlobalOrNull, DelazificationOption, ExceptionStackBehavior,
-    GetNonCCWObjectGlobal, HandleObject, Heap, InstantiateGlobalStencil, InstantiateOptions,
-    JS_ClearPendingException, JSContext, JSObject, JSScript, SetScriptPrivate,
+    Compile1, CurrentGlobalOrNull, ExceptionStackBehavior, GetNonCCWObjectGlobal, HandleObject,
+    Heap, JS_ClearPendingException, JSContext, JSObject, JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
@@ -119,8 +118,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::html::htmlscriptelement::{ScriptId, SourceCode};
-use crate::dom::htmlscriptelement::ScriptOrigin;
+use crate::dom::html::htmlscriptelement::ScriptId;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -2891,116 +2889,32 @@ impl GlobalScope {
         rval: MutableHandleValue,
         can_gc: CanGc,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let source_code = SourceCode::Text(Rc::new(DOMString::from_string(code.into_owned())));
-        let fetch_options = ScriptFetchOptions::default_classic_script(self);
-        self.evaluate_script_on_global_with_result(
-            &source_code,
-            filename,
-            rval,
-            1,
-            fetch_options,
-            self.api_base_url(),
-            can_gc,
-            introduction_type,
-        )
-    }
-
-    /// Evaluate a JS script on this global scope.
-    #[expect(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
-    fn evaluate_script_on_global_with_result(
-        &self,
-        code: &SourceCode,
-        filename: &str,
-        rval: MutableHandleValue,
-        line_number: u32,
-        fetch_options: ScriptFetchOptions,
-        script_base_url: ServoUrl,
-        can_gc: CanGc,
-        introduction_type: Option<&'static CStr>,
-    ) -> Result<(), JavaScriptEvaluationError> {
         let cx = GlobalScope::get_cx();
-
         let ar = enter_realm(self);
-
         let _aes = AutoEntryScript::new(self);
 
-        unsafe {
-            rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-            match code {
-                SourceCode::Text(text_code) => {
-                    let mut options = CompileOptionsWrapper::new_raw(*cx, filename, line_number);
-                    if let Some(introduction_type) = introduction_type {
-                        options.set_introduction_type(introduction_type);
-                    }
+        let url = self.api_base_url();
+        let fetch_options = ScriptFetchOptions::default_classic_script(self);
 
-                    debug!("compiling dom string");
-                    compiled_script.set(Compile1(
-                        *cx,
-                        options.ptr,
-                        &mut transform_str_to_source_text(&text_code.str()),
-                    ));
+        rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+        compiled_script.set(compile_script(cx, &code, filename, 1, introduction_type));
 
-                    if compiled_script.is_null() {
-                        debug!("error compiling Dom string");
-                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
-                        return Err(JavaScriptEvaluationError::CompilationFailure);
-                    }
-                },
-                SourceCode::Compiled(pre_compiled_script) => {
-                    let options = InstantiateOptions {
-                        skipFilenameValidation: false,
-                        hideScriptFromDebugger: false,
-                        deferDebugMetadata: false,
-                        eagerDelazificationStrategy_: DelazificationOption::OnDemandOnly,
-                    };
-                    let script = InstantiateGlobalStencil(
-                        *cx,
-                        &options,
-                        *pre_compiled_script.source_code,
-                        ptr::null_mut(),
-                    );
-                    compiled_script.set(script);
-                },
-            };
-
-            assert!(!compiled_script.is_null());
-
-            rooted!(in(*cx) let mut script_private = UndefinedValue());
-            JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
-
-            // When `ScriptPrivate` for the compiled script is undefined,
-            // we need to set it so that it can be used in dynamic import context.
-            if script_private.is_undefined() {
-                debug!("Set script private for {}", script_base_url);
-
-                let module_script_data = Rc::new(ModuleScript::new(
-                    script_base_url,
-                    fetch_options,
-                    // We can't initialize an module owner here because
-                    // the executing context of script might be different
-                    // from the dynamic import script's executing context.
-                    None,
-                ));
-
-                SetScriptPrivate(
-                    *compiled_script,
-                    &PrivateValue(Rc::into_raw(module_script_data) as *const _),
-                );
-            }
-
-            let result = JS_ExecuteScript(*cx, compiled_script.handle(), rval);
-
-            if !result {
-                debug!("error evaluating Dom string");
-                let error_info =
-                    take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
-                return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
-            }
-
-            maybe_resume_unwind();
-            Ok(())
+        if compiled_script.is_null() {
+            debug!("error compiling Dom string");
+            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+            return Err(JavaScriptEvaluationError::CompilationFailure);
         }
+
+        let script = NonNull::new(*compiled_script).expect("Can't be null");
+
+        if !evaluate_script(cx, script, url, fetch_options, rval) {
+            let error_info =
+                take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
+            return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
+        }
+
+        maybe_resume_unwind();
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
