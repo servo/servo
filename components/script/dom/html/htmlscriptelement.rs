@@ -68,7 +68,7 @@ use crate::script_module::{
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::unminify::{ScriptSource, unminify_js};
+use crate::unminify::ScriptSource;
 
 impl ScriptSource for ScriptOrigin {
     fn unminified_dir(&self) -> Option<String> {
@@ -1014,7 +1014,6 @@ impl HTMLScriptElement {
         };
 
         if script.type_ == ScriptType::Classic {
-            unminify_js(&mut script);
             self.substitute_with_local_script(&mut script);
         }
 
@@ -1063,6 +1062,7 @@ impl HTMLScriptElement {
                     script.fetch_options,
                     Some(introduction_type),
                     line_number,
+                    script.external,
                 );
                 _ = global.run_a_classic_script(script, can_gc);
                 document.set_current_script(old_script.as_deref());

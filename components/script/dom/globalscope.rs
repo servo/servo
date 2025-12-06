@@ -66,6 +66,7 @@ use net_traits::{
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use rustc_hash::{FxBuildHasher, FxHashMap};
+use script_bindings::domstring::BytesView;
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -155,7 +156,7 @@ use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
     TimerEventId, TimerSource,
 };
-use crate::unminify::unminified_path;
+use crate::unminify::{ScriptSource, unminified_path, unminify_js};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct AutoCloseWorker {
@@ -3486,7 +3487,9 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         introduction_type: Option<&'static CStr>,
         line_number: u32,
+        external: bool,
     ) -> ClassicScript {
+        let source_code = Rc::new(DOMString::from(source.clone()));
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
 
@@ -3497,7 +3500,7 @@ impl GlobalScope {
         // TODO Step 4. Set script's settings object to settings.
         // TODO Step 7. Set script's muted errors to mutedErrors.
 
-        // TODO Step 9.Record classic script creation time given script and sourceURLForWindowScripts.
+        // TODO Step 9. Record classic script creation time given script and sourceURLForWindowScripts.
 
         // Step 10. Let result be ParseScript(source, settings's realm, script).
         compiled_script.set(compile_script(
@@ -3525,12 +3528,18 @@ impl GlobalScope {
         // Step 5. Set script's base URL to baseURL.
         // Step 6. Set script's fetch options to options.
         // Step 12. Set script's record to result.
-        // Step 13. Return script.
-        ClassicScript {
+        let mut script = ClassicScript {
             record,
             url,
             fetch_options,
-        }
+            source: source_code,
+            external,
+            unminified_dir: self.unminified_js_dir(),
+        };
+        unminify_js(&mut script);
+
+        // Step 13. Return script.
+        script
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
@@ -3765,6 +3774,32 @@ pub struct ClassicScript {
     fetch_options: ScriptFetchOptions,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
     url: ServoUrl,
+    /// used for unminify_js
+    source: Rc<DOMString>,
+    unminified_dir: Option<String>,
+    external: bool,
+}
+
+impl ScriptSource for ClassicScript {
+    fn unminified_dir(&self) -> Option<String> {
+        self.unminified_dir.clone()
+    }
+
+    fn extract_bytes(&self) -> BytesView<'_> {
+        self.source.as_bytes()
+    }
+
+    fn rewrite_source(&mut self, source: Rc<DOMString>) {
+        self.source = source;
+    }
+
+    fn url(&self) -> ServoUrl {
+        self.url.clone()
+    }
+
+    fn is_external(&self) -> bool {
+        self.external
+    }
 }
 
 #[expect(unsafe_code)]

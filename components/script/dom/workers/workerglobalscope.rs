@@ -982,6 +982,7 @@ impl WorkerGlobalScope {
             ScriptFetchOptions::default_classic_script(global),
             Some(IntroductionType::WORKER),
             1,
+            true,
         );
 
         _ = global.run_a_classic_script(script, can_gc);
