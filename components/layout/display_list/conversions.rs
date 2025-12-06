@@ -34,7 +34,7 @@ impl FilterToWebRender for ComputedFilter {
             ComputedFilter::Brightness(amount) => FilterOp::Brightness(amount.0),
             ComputedFilter::Contrast(amount) => FilterOp::Contrast(amount.0),
             ComputedFilter::Grayscale(amount) => FilterOp::Grayscale(amount.0),
-            ComputedFilter::HueRotate(angle) => FilterOp::HueRotate(angle.radians()),
+            ComputedFilter::HueRotate(angle) => FilterOp::HueRotate(angle.degrees()),
             ComputedFilter::Invert(amount) => FilterOp::Invert(amount.0),
             ComputedFilter::Opacity(amount) => FilterOp::Opacity(amount.0.into(), amount.0),
             ComputedFilter::Saturate(amount) => FilterOp::Saturate(amount.0),
