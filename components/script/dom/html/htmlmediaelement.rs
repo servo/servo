@@ -2900,10 +2900,10 @@ impl HTMLMediaElement {
     /// renderer.
     pub(crate) fn set_audio_renderer(
         &self,
-        audio_renderer: Arc<Mutex<dyn AudioRenderer>>,
+        audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
         can_gc: CanGc,
     ) {
-        *self.audio_renderer.borrow_mut() = Some(audio_renderer);
+        *self.audio_renderer.borrow_mut() = audio_renderer;
 
         let had_player = {
             if let Some(ref player) = *self.player.borrow() {
