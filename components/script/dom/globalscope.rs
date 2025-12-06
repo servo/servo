@@ -2878,23 +2878,23 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    pub(crate) fn evaluate_js_on_global_with_result(
+    pub(crate) fn evaluate_js_on_global(
         &self,
         code: Cow<'_, str>,
-        rval: MutableHandleValue,
-        fetch_options: ScriptFetchOptions,
-        script_base_url: ServoUrl,
-        can_gc: CanGc,
+        filename: &str,
         introduction_type: Option<&'static CStr>,
+        rval: MutableHandleValue,
+        can_gc: CanGc,
     ) -> Result<(), JavaScriptEvaluationError> {
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string(code.into_owned())));
+        let fetch_options = ScriptFetchOptions::default_classic_script(self);
         self.evaluate_script_on_global_with_result(
             &source_code,
-            "",
+            filename,
             rval,
             1,
             fetch_options,
-            script_base_url,
+            self.api_base_url(),
             can_gc,
             introduction_type,
         )
@@ -2903,7 +2903,7 @@ impl GlobalScope {
     /// Evaluate a JS script on this global scope.
     #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn evaluate_script_on_global_with_result(
+    fn evaluate_script_on_global_with_result(
         &self,
         code: &SourceCode,
         filename: &str,

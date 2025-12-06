@@ -61,7 +61,6 @@ rayon = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
 rustls = { workspace = true }
-rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }
