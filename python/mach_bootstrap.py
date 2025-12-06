@@ -4,10 +4,10 @@
 
 import hashlib
 import os
-from os import PathLike
+import runpy
 import subprocess
 import sys
-import runpy
+from os import PathLike
 from typing import TYPE_CHECKING
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -187,10 +187,11 @@ def bootstrap_command_only(topdir: str) -> int:
 
     try:
         force = "-f" in sys.argv or "--force" in sys.argv
+        yes = "--yes" in sys.argv or "-y" in sys.argv
         skip_platform = "--skip-platform" in sys.argv
         skip_lints = "--skip-lints" in sys.argv
         skip_nextest = "--skip-nextest" in sys.argv
-        servo.platform.get().bootstrap(force, skip_platform, skip_lints, skip_nextest)
+        servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest)
     except NotImplementedError as exception:
         print(exception)
         return 1

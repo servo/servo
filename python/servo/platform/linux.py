@@ -7,11 +7,12 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import distro
 import os
-import subprocess
 import shutil
-from typing import Optional, Any
+import subprocess
+from typing import Any, Optional
+
+import distro
 
 from .base import Base
 from .build_target import BuildTarget
@@ -167,7 +168,7 @@ class Linux(Base):
         self.is_linux = True
         self.distro = distro.name()
 
-    def _platform_bootstrap(self, force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         if self.distro.lower() == "nixos":
             print("NixOS does not need bootstrap, it will automatically enter a nix-shell")
             print("Just run ./mach build")
@@ -207,25 +208,26 @@ class Linux(Base):
             input("Press Enter to continue...")
             return False
 
-        installed_something = self.install_non_gstreamer_dependencies(force)
+        installed_something = self.install_non_gstreamer_dependencies(force, yes)
         return installed_something
 
-    def install_non_gstreamer_dependencies(self, force: bool) -> bool:
+    def install_non_gstreamer_dependencies(self, force: bool, yes: bool = False) -> bool:
         def check_sudo() -> bool:
             if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
                 if shutil.which("sudo") is None:
                     return False
             return True
 
-        def run_as_root(command: list[str], force: bool = False) -> int:
+        def run_as_root(command: list[str], force: bool = False, yes: bool = False) -> int:
             if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
                 command.insert(0, "sudo")
-            if force:
+            if force or yes:
                 command.append("-y")
             return subprocess.call(command)
 
         install = False
         pkgs = []
+        command = []
         if self.distro in ["Ubuntu", "Debian GNU/Linux", "Raspbian GNU/Linux"]:
             command = ["apt-get", "install", "-m"]
             pkgs = APT_PKGS
@@ -263,10 +265,10 @@ class Linux(Base):
                     install = True
                     break
         elif self.distro == "void":
+            command = ["xbps-install", "-A"]
             installed_pkgs = subprocess.check_output(["xbps-query", "-l"], text=True).splitlines()
             pkgs = XBPS_PKGS
             for pkg in pkgs:
-                command = ["xbps-install", "-A"]
                 if "ii {}-".format(pkg) not in installed_pkgs:
                     install = force = True
                     break
@@ -284,7 +286,7 @@ class Linux(Base):
             input("Press Enter to continue...")
             return False
 
-        if run_as_root(command + pkgs, force) != 0:
+        if run_as_root(command + pkgs, force, yes) != 0:
             raise EnvironmentError("Installation of dependencies failed.")
         return True
 
