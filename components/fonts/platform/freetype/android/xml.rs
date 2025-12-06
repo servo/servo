@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(super) use xml::attribute::OwnedAttribute as Attribute;
-use xml::reader::XmlEvent::*;
+use xml::reader::{Error as XmlError, Result as XmlResult, XmlEvent};
 
 pub(super) enum Node {
     Element {
@@ -14,19 +14,22 @@ pub(super) enum Node {
     Text(String),
 }
 
-pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
+pub(super) fn parse(bytes: &[u8]) -> XmlResult<Vec<Node>> {
     let mut stack = Vec::new();
     let mut nodes = Vec::new();
-    for result in xml::EventReader::new(bytes) {
-        match result? {
-            StartElement {
+    let mut reader = xml::EventReader::new(bytes);
+    loop {
+        match reader.next()? {
+            XmlEvent::StartElement {
                 name, attributes, ..
             } => {
                 stack.push((name, attributes, nodes));
                 nodes = Vec::new();
             },
-            EndElement { .. } => {
-                let (name, attributes, mut parent_nodes) = stack.pop().unwrap();
+            XmlEvent::EndElement { .. } => {
+                let (name, attributes, mut parent_nodes) = stack
+                    .pop()
+                    .ok_or(XmlError::from((&reader, "Found unexpected closing tag")))?;
                 parent_nodes.push(Node::Element {
                     name,
                     attributes,
@@ -34,16 +37,27 @@ pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
                 });
                 nodes = parent_nodes;
             },
-            CData(s) | Characters(s) | Whitespace(s) => {
+            XmlEvent::CData(characters) |
+            XmlEvent::Characters(characters) |
+            XmlEvent::Whitespace(characters) => {
                 if let Some(Node::Text(text)) = nodes.last_mut() {
-                    text.push_str(&s)
+                    text.push_str(&characters)
                 } else {
-                    nodes.push(Node::Text(s))
+                    nodes.push(Node::Text(characters))
                 }
             },
-            StartDocument { .. } | EndDocument | ProcessingInstruction { .. } | Comment(..) => {},
+            XmlEvent::EndDocument => break,
+            XmlEvent::StartDocument { .. } |
+            XmlEvent::ProcessingInstruction { .. } |
+            XmlEvent::Comment(..) => {},
         }
     }
-    assert!(stack.is_empty());
+
+    if !stack.is_empty() {
+        return Err(XmlError::from((
+            &reader,
+            "Found unclosed tags at end of file",
+        )));
+    }
     Ok(nodes)
 }
