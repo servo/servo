@@ -4,7 +4,7 @@
 
 use std::default::Default;
 
-use base::IpcSend;
+use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use net_traits::CoreResourceMsg;

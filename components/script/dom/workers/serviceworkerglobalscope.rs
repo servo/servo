@@ -7,8 +7,7 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use base::IpcSend;
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericSend, GenericSender};
 use base::id::PipelineId;
 use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,

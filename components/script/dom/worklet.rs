@@ -18,7 +18,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::thread;
 
-use base::IpcSend;
+use base::generic_channel::GenericSend;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
