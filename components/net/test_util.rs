@@ -20,8 +20,8 @@ use hyper::service::service_fn;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::rt::tokio::TokioIo;
 use net_traits::AsyncRuntime;
-use rustls_pemfile::{certs, pkcs8_private_keys};
-use rustls_pki_types::{CertificateDer, PrivateKeyDer};
+use rustls_pki_types::pem::PemObject;
+use rustls_pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use servo_url::ServoUrl;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::{self, TlsAcceptor};
@@ -143,10 +143,12 @@ where
 
 /// Given a path to a file containing PEM certificates, load and parse them into
 /// a vector of RusTLS [Certificate]s.
-fn load_certificates_from_pem(path: &PathBuf) -> std::io::Result<Vec<CertificateDer<'static>>> {
+fn load_certificates_from_pem(
+    path: &PathBuf,
+) -> Result<Vec<CertificateDer<'static>>, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
-    certs(&mut reader).collect::<Result<Vec<_>, _>>()
+    Ok(CertificateDer::pem_reader_iter(&mut reader).collect::<Result<Vec<_>, _>>()?)
 }
 
 /// Given a path to a file containing PEM keys, load and parse them into
@@ -156,7 +158,8 @@ fn load_private_key_from_file(
 ) -> Result<PrivateKeyDer<'static>, Box<dyn std::error::Error>> {
     let file = File::open(&path)?;
     let mut reader = BufReader::new(file);
-    let mut keys = pkcs8_private_keys(&mut reader).collect::<Result<Vec<_>, _>>()?;
+    let mut keys =
+        PrivatePkcs8KeyDer::pem_reader_iter(&mut reader).collect::<Result<Vec<_>, _>>()?;
 
     match keys.len() {
         0 => Err(format!("No PKCS8-encoded private key found in {path:?}").into()),
