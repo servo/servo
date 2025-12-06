@@ -316,6 +316,27 @@ pub enum CreateObjectResult {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+/// Result of <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+/// `Upgrade` is an optional first message,
+/// followed by the ultimate result.
+/// TODO: refactor messaging into a coherent whole
+/// and with a persistent communication mechanism.
+pub enum OpenDatabaseResult {
+    VersionError,
+    AbortError,
+    /// A connection with a version, updgraded or not.
+    Connection {
+        version: u64,
+        upgraded: bool,
+    },
+    /// An upgrade transaction for a version started.
+    Upgrade {
+        version: u64,
+        transaction: u64,
+    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum SyncOperation {
     /// Upgrades the version of the database
     UpgradeVersion(
@@ -394,7 +415,7 @@ pub enum SyncOperation {
     ),
 
     OpenDatabase(
-        GenericCallback<u64>, // Returns the version
+        GenericCallback<OpenDatabaseResult>, // Returns the result
         ImmutableOrigin,
         String,      // Database
         Option<u64>, // Eventual version
@@ -447,6 +468,10 @@ pub enum IndexedDBThreadMsg {
         IndexedDBTxnMode,
         AsyncOperation,
     ),
+    OpenTransactionInactive {
+        name: String,
+        transaction: u64,
+    },
 }
 
 #[cfg(test)]
