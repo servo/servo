@@ -14,6 +14,7 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
+    use base::generic_channel::{self, GenericReceiver};
     use compositing_traits::CrossProcessCompositorApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
@@ -22,7 +23,7 @@ mod font_context {
         PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
         SystemFontServiceProxySender, fallback_font_families,
     };
-    use ipc_channel::ipc::{self, IpcReceiver};
+    use ipc_channel::ipc;
     use net_traits::{ResourceThreads, start_fetch_thread};
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
@@ -88,7 +89,7 @@ mod font_context {
 
     impl MockSystemFontService {
         fn spawn() -> (Arc<MockSystemFontService>, SystemFontServiceProxy) {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
             let system_font_service = Arc::new(Self::new());
 
             let system_font_service_clone = system_font_service.clone();
@@ -102,7 +103,7 @@ mod font_context {
             )
         }
 
-        fn run(&self, receiver: IpcReceiver<SystemFontServiceMessage>) {
+        fn run(&self, receiver: GenericReceiver<SystemFontServiceMessage>) {
             loop {
                 match receiver.recv().unwrap() {
                     SystemFontServiceMessage::GetFontTemplates(

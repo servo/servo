@@ -20,7 +20,6 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 http = "0.2"
 image = { workspace = true }
-ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 pixels = { path = "../pixels" }
