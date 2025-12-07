@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 
 use canvas_traits::webgl::{
@@ -11,6 +11,7 @@ use canvas_traits::webgl::{
     WebGLProgramId, WebGLResult, webgl_channel,
 };
 use dom_struct::dom_struct;
+use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
@@ -24,15 +25,155 @@ use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webgl::webglshader::WebGLShader;
 use crate::dom::webgl::webgluniformlocation::WebGLUniformLocation;
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 use crate::script_runtime::CanGc;
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLProgram {
+    #[no_trace]
+    id: WebGLProgramId,
+    context: WeakRef<WebGLRenderingContext>,
+    fragment_shader: Option<WeakRef<WebGLShader>>,
+    vertex_shader: Option<WeakRef<WebGLShader>>,
+    marked_for_deletion: bool,
+    is_in_use: bool,
+}
+
+impl DroppableWebGLProgram {
+    fn new(id: WebGLProgramId, context: &WebGLRenderingContext) -> Self {
+        Self {
+            id,
+            context: WeakRef::new(context),
+            fragment_shader: None,
+            vertex_shader: None,
+            marked_for_deletion: Default::default(),
+            is_in_use: Default::default(),
+        }
+    }
+}
+
+impl DroppableWebGLProgram {
+    fn attach_shader<'a>(&mut self, shader: &'a WebGLShader) -> WebGLResult<&'a WebGLShader> {
+        if self.is_deleted() || shader.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+        let shader_slot = match shader.gl_type() {
+            constants::FRAGMENT_SHADER => &mut self.fragment_shader,
+            constants::VERTEX_SHADER => &mut self.vertex_shader,
+            _ => {
+                error!("detachShader: Unexpected shader type");
+                return Err(WebGLError::InvalidValue);
+            },
+        };
+
+        if shader_slot.is_some() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        *shader_slot = Some(WeakRef::new(shader));
+        shader.increment_attached_counter();
+
+        self.send_command(WebGLCommand::AttachShader(self.id, shader.id()));
+
+        Ok(shader)
+    }
+
+    fn detach_shader<'a>(&mut self, shader: &'a WebGLShader) -> WebGLResult<&'a WebGLShader> {
+        if self.is_deleted() {
+            return Err(WebGLError::InvalidOperation);
+        }
+        let shader_slot = match shader.gl_type() {
+            constants::FRAGMENT_SHADER => &mut self.fragment_shader,
+            constants::VERTEX_SHADER => &mut self.vertex_shader,
+            _ => return Err(WebGLError::InvalidValue),
+        };
+
+        match shader_slot {
+            Some(attached_shader) => match attached_shader.root() {
+                Some(root) => {
+                    if root.id() != shader.id() {
+                        return Err(WebGLError::InvalidOperation);
+                    }
+                },
+                None => return Err(WebGLError::InvalidOperation),
+            },
+            None => return Err(WebGLError::InvalidOperation),
+        }
+
+        *shader_slot = None;
+        shader.decrement_attached_counter();
+
+        self.send_command(WebGLCommand::DetachShader(self.id, shader.id()));
+
+        Ok(shader)
+    }
+
+    fn detach_shaders(&mut self) {
+        if let Some(ref mut shader) = self.fragment_shader {
+            if let Some(root) = shader.root() {
+                root.decrement_attached_counter();
+                self.send_command(WebGLCommand::DetachShader(self.id, root.id()));
+            }
+            self.fragment_shader = None;
+        }
+        if let Some(ref mut shader) = self.vertex_shader {
+            if let Some(root) = shader.root() {
+                root.decrement_attached_counter();
+                self.send_command(WebGLCommand::DetachShader(self.id, root.id()));
+            }
+            self.vertex_shader = None;
+        }
+    }
+
+    fn is_deleted(&self) -> bool {
+        self.marked_for_deletion && !self.is_in_use
+    }
+
+    fn send_command(&self, command: WebGLCommand) {
+        self.send_with_fallibility(command, Operation::Infallible);
+    }
+
+    fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        if let Some(root) = self.context.root() {
+            let result = root.sender().send(command, capture_webgl_backtrace());
+            if matches!(fallibility, Operation::Infallible) {
+                result.expect("Operation failed");
+            }
+        }
+    }
+
+    fn mark_for_deletion(&mut self, operation_fallibility: Operation) {
+        if self.marked_for_deletion {
+            return;
+        }
+        self.marked_for_deletion = true;
+        self.send_with_fallibility(WebGLCommand::DeleteProgram(self.id), operation_fallibility);
+        if self.is_deleted() {
+            self.detach_shaders();
+        }
+    }
+
+    fn in_use(&mut self, value: bool) {
+        if self.is_in_use == value {
+            return;
+        }
+        self.is_in_use = value;
+        if self.is_deleted() {
+            self.detach_shaders();
+        }
+    }
+}
+
+impl Drop for DroppableWebGLProgram {
+    fn drop(&mut self) {
+        self.in_use(false);
+        self.mark_for_deletion(Operation::Fallible);
+    }
+}
 
 #[dom_struct]
 pub(crate) struct WebGLProgram {
     webgl_object: WebGLObject,
-    #[no_trace]
-    id: WebGLProgramId,
-    is_in_use: Cell<bool>,
-    marked_for_deletion: Cell<bool>,
     link_called: Cell<bool>,
     linked: Cell<bool>,
     link_generation: Cell<u64>,
@@ -46,15 +187,13 @@ pub(crate) struct WebGLProgram {
     active_uniform_blocks: DomRefCell<Box<[ActiveUniformBlockInfo]>>,
     transform_feedback_varyings_length: Cell<i32>,
     transform_feedback_mode: Cell<i32>,
+    droppable: RefCell<DroppableWebGLProgram>,
 }
 
 impl WebGLProgram {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLProgramId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id,
-            is_in_use: Default::default(),
-            marked_for_deletion: Default::default(),
             link_called: Default::default(),
             linked: Default::default(),
             link_generation: Default::default(),
@@ -65,6 +204,7 @@ impl WebGLProgram {
             active_uniform_blocks: DomRefCell::new(vec![].into()),
             transform_feedback_varyings_length: Default::default(),
             transform_feedback_mode: Default::default(),
+            droppable: RefCell::new(DroppableWebGLProgram::new(id, context)),
         }
     }
 
@@ -95,27 +235,29 @@ impl WebGLProgram {
 
 impl WebGLProgram {
     pub(crate) fn id(&self) -> WebGLProgramId {
-        self.id
+        self.droppable.borrow().id
     }
 
     /// glDeleteProgram
     pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
-        if self.marked_for_deletion.get() {
+        if self.is_marked_for_deletion() {
             return;
         }
-        self.marked_for_deletion.set(true);
-        self.upcast()
-            .send_with_fallibility(WebGLCommand::DeleteProgram(self.id), operation_fallibility);
+        self.set_marked_for_deletion(true);
+        self.upcast().send_with_fallibility(
+            WebGLCommand::DeleteProgram(self.id()),
+            operation_fallibility,
+        );
         if self.is_deleted() {
             self.detach_shaders();
         }
     }
 
     pub(crate) fn in_use(&self, value: bool) {
-        if self.is_in_use.get() == value {
+        if self.is_in_use() == value {
             return;
         }
-        self.is_in_use.set(value);
+        self.set_is_in_use(value);
         if self.is_deleted() {
             self.detach_shaders();
         }
@@ -123,26 +265,25 @@ impl WebGLProgram {
 
     fn detach_shaders(&self) {
         assert!(self.is_deleted());
-        if let Some(shader) = self.fragment_shader.get() {
-            shader.decrement_attached_counter();
+        self.droppable.borrow_mut().detach_shaders();
+        if self.fragment_shader.get().is_some() {
             self.fragment_shader.set(None);
         }
-        if let Some(shader) = self.vertex_shader.get() {
-            shader.decrement_attached_counter();
+        if self.vertex_shader.get().is_some() {
             self.vertex_shader.set(None);
         }
     }
 
     pub(crate) fn is_in_use(&self) -> bool {
-        self.is_in_use.get()
+        self.droppable.borrow().is_in_use
     }
 
     pub(crate) fn is_marked_for_deletion(&self) -> bool {
-        self.marked_for_deletion.get()
+        self.droppable.borrow().marked_for_deletion
     }
 
     pub(crate) fn is_deleted(&self) -> bool {
-        self.marked_for_deletion.get() && !self.is_in_use.get()
+        self.is_marked_for_deletion() && !self.is_in_use()
     }
 
     pub(crate) fn is_linked(&self) -> bool {
@@ -170,7 +311,7 @@ impl WebGLProgram {
 
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast()
-            .send_command(WebGLCommand::LinkProgram(self.id, sender));
+            .send_command(WebGLCommand::LinkProgram(self.id(), sender));
         let link_info = receiver.recv().unwrap();
 
         {
@@ -232,63 +373,50 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
         self.upcast()
-            .send_command(WebGLCommand::ValidateProgram(self.id));
+            .send_command(WebGLCommand::ValidateProgram(self.id()));
         Ok(())
     }
 
     /// glAttachShader
     pub(crate) fn attach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
-        if self.is_deleted() || shader.is_deleted() {
-            return Err(WebGLError::InvalidOperation);
-        }
-        let shader_slot = match shader.gl_type() {
-            constants::FRAGMENT_SHADER => &self.fragment_shader,
-            constants::VERTEX_SHADER => &self.vertex_shader,
-            _ => {
-                error!("detachShader: Unexpected shader type");
-                return Err(WebGLError::InvalidValue);
+        match self.droppable.borrow_mut().attach_shader(shader) {
+            Ok(shader) => {
+                let shader_slot = match shader.gl_type() {
+                    constants::FRAGMENT_SHADER => &self.fragment_shader,
+                    constants::VERTEX_SHADER => &self.vertex_shader,
+                    _ => {
+                        error!("attach_shader: Unexpected shader type");
+                        return Err(WebGLError::InvalidValue);
+                    },
+                };
+
+                shader_slot.set(Some(shader));
+
+                Ok(())
             },
-        };
-
-        if shader_slot.get().is_some() {
-            return Err(WebGLError::InvalidOperation);
+            Err(e) => Err(e),
         }
-
-        shader_slot.set(Some(shader));
-        shader.increment_attached_counter();
-
-        self.upcast()
-            .send_command(WebGLCommand::AttachShader(self.id, shader.id()));
-
-        Ok(())
     }
 
     /// glDetachShader
     pub(crate) fn detach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
-        if self.is_deleted() {
-            return Err(WebGLError::InvalidOperation);
-        }
-        let shader_slot = match shader.gl_type() {
-            constants::FRAGMENT_SHADER => &self.fragment_shader,
-            constants::VERTEX_SHADER => &self.vertex_shader,
-            _ => return Err(WebGLError::InvalidValue),
-        };
+        match self.droppable.borrow_mut().detach_shader(shader) {
+            Ok(shader) => {
+                let shader_slot = match shader.gl_type() {
+                    constants::FRAGMENT_SHADER => &self.fragment_shader,
+                    constants::VERTEX_SHADER => &self.vertex_shader,
+                    _ => {
+                        error!("detach_shader: Unexpected shader type");
+                        return Err(WebGLError::InvalidValue);
+                    },
+                };
 
-        match shader_slot.get() {
-            Some(ref attached_shader) if attached_shader.id() != shader.id() => {
-                return Err(WebGLError::InvalidOperation);
+                shader_slot.set(None);
+
+                Ok(())
             },
-            None => return Err(WebGLError::InvalidOperation),
-            _ => {},
+            Err(e) => Err(e),
         }
-
-        shader_slot.set(None);
-        shader.decrement_attached_counter();
-
-        self.upcast()
-            .send_command(WebGLCommand::DetachShader(self.id, shader.id()));
-
-        Ok(())
     }
 
     /// glBindAttribLocation
@@ -305,7 +433,7 @@ impl WebGLProgram {
         }
 
         self.upcast().send_command(WebGLCommand::BindAttribLocation(
-            self.id,
+            self.id(),
             index,
             name.into(),
         ));
@@ -394,7 +522,7 @@ impl WebGLProgram {
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast()
             .send_command(WebGLCommand::GetFragDataLocation(
-                self.id,
+                self.id(),
                 name.into(),
                 sender,
             ));
@@ -441,7 +569,7 @@ impl WebGLProgram {
 
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast().send_command(WebGLCommand::GetUniformLocation(
-            self.id,
+            self.id(),
             name.into(),
             sender,
         ));
@@ -452,7 +580,7 @@ impl WebGLProgram {
             self.global().as_window(),
             location,
             context_id,
-            self.id,
+            self.id(),
             self.link_generation.get(),
             size,
             type_,
@@ -472,7 +600,7 @@ impl WebGLProgram {
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast()
             .send_command(WebGLCommand::GetUniformBlockIndex(
-                self.id,
+                self.id(),
                 name.into(),
                 sender,
             ));
@@ -497,7 +625,7 @@ impl WebGLProgram {
 
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast()
-            .send_command(WebGLCommand::GetUniformIndices(self.id, names, sender));
+            .send_command(WebGLCommand::GetUniformIndices(self.id(), names, sender));
         Ok(receiver.recv().unwrap())
     }
 
@@ -527,7 +655,10 @@ impl WebGLProgram {
 
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast().send_command(WebGLCommand::GetActiveUniforms(
-            self.id, indices, pname, sender,
+            self.id(),
+            indices,
+            pname,
+            sender,
         ));
         Ok(receiver.recv().unwrap())
     }
@@ -558,7 +689,7 @@ impl WebGLProgram {
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast()
             .send_command(WebGLCommand::GetActiveUniformBlockParameter(
-                self.id,
+                self.id(),
                 block_index,
                 pname,
                 sender,
@@ -578,7 +709,7 @@ impl WebGLProgram {
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast()
             .send_command(WebGLCommand::GetActiveUniformBlockName(
-                self.id,
+                self.id(),
                 block_index,
                 sender,
             ));
@@ -601,7 +732,7 @@ impl WebGLProgram {
 
         self.upcast()
             .send_command(WebGLCommand::UniformBlockBinding(
-                self.id,
+                self.id(),
                 block_index,
                 block_binding,
             ));
@@ -624,12 +755,12 @@ impl WebGLProgram {
         }
         let (sender, receiver) = webgl_channel().unwrap();
         self.upcast()
-            .send_command(WebGLCommand::GetProgramInfoLog(self.id, sender));
+            .send_command(WebGLCommand::GetProgramInfoLog(self.id(), sender));
         Ok(receiver.recv().unwrap())
     }
 
     pub(crate) fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
-        if self.marked_for_deletion.get() {
+        if self.is_marked_for_deletion() {
             return Err(WebGLError::InvalidValue);
         }
         Ok(
@@ -654,12 +785,13 @@ impl WebGLProgram {
     pub(crate) fn transform_feedback_buffer_mode(&self) -> i32 {
         self.transform_feedback_mode.get()
     }
-}
 
-impl Drop for WebGLProgram {
-    fn drop(&mut self) {
-        self.in_use(false);
-        self.mark_for_deletion(Operation::Fallible);
+    fn set_marked_for_deletion(&self, value: bool) {
+        self.droppable.borrow_mut().marked_for_deletion = value
+    }
+
+    fn set_is_in_use(&self, value: bool) {
+        self.droppable.borrow_mut().is_in_use = value
     }
 }
 
