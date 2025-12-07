@@ -3513,7 +3513,8 @@ impl GlobalScope {
 
         // Step 11. If result is a list of errors, then:
         let record = if compiled_script.get().is_null() {
-            // Set script's parse error and its error to rethrow to result[0].
+            // Step 11.1. Set script's parse error and its error to rethrow to result[0].
+            // Step 11.2. Return script.
             rooted!(in(*cx) let mut exception = UndefinedValue());
 
             assert!(unsafe { JS_GetPendingException(*cx, exception.handle_mut()) });
@@ -3556,15 +3557,15 @@ impl GlobalScope {
         // TODO Step 3. Record classic script execution start time given script.
 
         // Step 4. Prepare to run script given settings.
-        // Once dropped this will run "Clean up after running script" steps
+        // Once dropped this will run "Step 9. Clean up after running script" steps
         let _aes = AutoEntryScript::new(self);
 
-        // Step 5 Let evaluationStatus be null.
+        // Step 5. Let evaluationStatus be null.
         rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
         let mut result = false;
 
         match script.record {
-            // Step 6 If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
+            // Step 6. If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
             Err(error_to_rethrow) => unsafe {
                 JS_SetPendingException(
                     *cx,
@@ -3572,7 +3573,7 @@ impl GlobalScope {
                     ExceptionStackBehavior::Capture,
                 )
             },
-            // Step 7 Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
+            // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
             Ok(compiled_script) => {
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 result = evaluate_script(
@@ -3587,18 +3588,18 @@ impl GlobalScope {
 
         unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
 
-        // Step 8 If evaluationStatus is an abrupt completion, then:
+        // Step 8. If evaluationStatus is an abrupt completion, then:
         if !evaluation_status.is_undefined() {
             unsafe { JS_ClearPendingException(*cx) };
             warn!("Error evaluating script");
 
-            // TODO Step 8.1 If rethrow errors is true and script's muted errors is false, then:
+            // TODO Step 8.1. If rethrow errors is true and script's muted errors is false, then:
             // Rethrow evaluationStatus.[[Value]].
 
-            // TODO Step 8.2 If rethrow errors is true and script's muted errors is true, then:
+            // TODO Step 8.2. If rethrow errors is true and script's muted errors is true, then:
             // Throw a "NetworkError" DOMException.
 
-            // Step 8.3 Otherwise, rethrow errors is false. Perform the following steps:
+            // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
             // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
             self.report_an_exception(cx, evaluation_status.handle(), can_gc);
 
@@ -3608,12 +3609,12 @@ impl GlobalScope {
 
         maybe_resume_unwind();
 
-        // Step 10 If evaluationStatus is a normal completion, then return evaluationStatus.
+        // Step 10. If evaluationStatus is a normal completion, then return evaluationStatus.
         if result {
             return Ok(());
         }
 
-        // Step 11 If we've reached this point, evaluationStatus was left as null because the script
+        // Step 11. If we've reached this point, evaluationStatus was left as null because the script
         // was aborted prematurely during evaluation. Return ThrowCompletion(a new QuotaExceededError).
         Err(Error::QuotaExceeded {
             quota: None,
@@ -3819,6 +3820,7 @@ fn compile_script(
     unsafe { Compile1(*cx, options.ptr, &mut transform_str_to_source_text(text)) }
 }
 
+/// <https://tc39.es/ecma262/#sec-runtime-semantics-scriptevaluation>
 #[expect(unsafe_code)]
 fn evaluate_script(
     cx: SafeJSContext,
