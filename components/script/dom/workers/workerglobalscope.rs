@@ -980,12 +980,13 @@ impl WorkerGlobalScope {
             source,
             self.worker_url.borrow().clone(),
             ScriptFetchOptions::default_classic_script(global),
+            false,
             Some(IntroductionType::WORKER),
             1,
             true,
         );
 
-        _ = global.run_a_classic_script(script, can_gc);
+        _ = global.run_a_classic_script(script, false, can_gc);
     }
 
     pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {

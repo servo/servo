@@ -1064,12 +1064,13 @@ impl HTMLScriptElement {
                     (*script.text().str()).into(),
                     script.url,
                     script.fetch_options,
+                    false,
                     Some(introduction_type),
                     line_number,
                     script.external,
                 );
                 // Step 6."classic".3. Run the classic script given by el's result.
-                _ = global.run_a_classic_script(script, can_gc);
+                _ = global.run_a_classic_script(script, false, can_gc);
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());

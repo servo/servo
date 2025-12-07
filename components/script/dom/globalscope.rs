@@ -3485,6 +3485,7 @@ impl GlobalScope {
         source: Cow<'_, str>,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
+        muted_errors: bool,
         introduction_type: Option<&'static CStr>,
         line_number: u32,
         external: bool,
@@ -3498,7 +3499,6 @@ impl GlobalScope {
         // TODO Step 2. If scripting is disabled for settings, then set source to the empty string.
 
         // TODO Step 4. Set script's settings object to settings.
-        // TODO Step 7. Set script's muted errors to mutedErrors.
 
         // TODO Step 9. Record classic script creation time given script and sourceURLForWindowScripts.
 
@@ -3528,11 +3528,13 @@ impl GlobalScope {
         // Step 3. Let script be a new classic script that this algorithm will subsequently initialize.
         // Step 5. Set script's base URL to baseURL.
         // Step 6. Set script's fetch options to options.
+        // Step 7. Set script's muted errors to mutedErrors.
         // Step 12. Set script's record to result.
         let mut script = ClassicScript {
             record,
             url,
             fetch_options,
+            muted_errors,
             source: source_code,
             external,
             unminified_dir: self.unminified_js_dir(),
@@ -3545,7 +3547,12 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
     #[expect(unsafe_code)]
-    pub(crate) fn run_a_classic_script(&self, script: ClassicScript, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn run_a_classic_script(
+        &self,
+        script: ClassicScript,
+        rethrow_errors: bool,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
         // TODO Step 1. Let settings be the settings object of script.
 
@@ -3590,16 +3597,24 @@ impl GlobalScope {
 
         // Step 8. If evaluationStatus is an abrupt completion, then:
         if !evaluation_status.is_undefined() {
-            unsafe { JS_ClearPendingException(*cx) };
             warn!("Error evaluating script");
 
-            // TODO Step 8.1. If rethrow errors is true and script's muted errors is false, then:
-            // Rethrow evaluationStatus.[[Value]].
+            // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
+            if rethrow_errors && !script.muted_errors {
+                // Rethrow evaluationStatus.[[Value]].
+                return Err(Error::JSFailed);
+            }
 
-            // TODO Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-            // Throw a "NetworkError" DOMException.
+            unsafe { JS_ClearPendingException(*cx) };
+
+            // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
+            if rethrow_errors && script.muted_errors {
+                // Throw a "NetworkError" DOMException.
+                return Err(Error::Network(None));
+            }
 
             // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
+
             // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
             self.report_an_exception(cx, evaluation_status.handle(), can_gc);
 
@@ -3775,6 +3790,8 @@ pub struct ClassicScript {
     fetch_options: ScriptFetchOptions,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
     url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#muted-errors>
+    muted_errors: bool,
     /// used for unminify_js
     source: Rc<DOMString>,
     unminified_dir: Option<String>,
