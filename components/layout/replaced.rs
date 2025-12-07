@@ -196,20 +196,12 @@ impl ReplacedContents {
                     Some(Ok(svg_source)) => svg_source,
                 };
 
-                let svg_fallback_font_size = Some(
-                    node.selected_style()
-                        .get_font()
-                        .font_size
-                        .computed_size
-                        .px(),
-                );
                 let result = context
                     .image_resolver
                     .get_cached_image_for_url(
                         node.opaque(),
                         svg_source,
                         LayoutImageDestination::BoxTreeConstruction,
-                        svg_fallback_font_size,
                     )
                     .ok();
 
@@ -310,18 +302,10 @@ impl ReplacedContents {
         image_url: &ComputedUrl,
     ) -> Option<Self> {
         if let ComputedUrl::Valid(image_url) = image_url {
-            let svg_fallback_font_size = Some(
-                node.selected_style()
-                    .get_font()
-                    .font_size
-                    .computed_size
-                    .px(),
-            );
             let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
                 node.opaque(),
                 image_url.clone().into(),
                 LayoutImageDestination::BoxTreeConstruction,
-                svg_fallback_font_size,
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
