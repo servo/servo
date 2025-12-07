@@ -643,7 +643,6 @@ impl HTMLLinkElement {
             href,
             window.origin().immutable().clone(),
             cors_setting_for_element(self.upcast()),
-            None,
         );
 
         match cache_result {

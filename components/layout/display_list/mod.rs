@@ -1223,14 +1223,10 @@ impl<'a> BuilderForBoxFragment<'a> {
     ) {
         let style = painter.style;
         let b = style.get_background();
-        let svg_fallback_font_size = Some(style.get_font().font_size.computed_size.px());
         let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
-            match builder
-                .image_resolver
-                .resolve_image(node, image, svg_fallback_font_size)
-            {
+            match builder.image_resolver.resolve_image(node, image) {
                 Err(_) => {},
                 Ok(ResolvedImage::Gradient(gradient)) => {
                     let intrinsic = NaturalSizes::empty();
@@ -1490,13 +1486,10 @@ impl<'a> BuilderForBoxFragment<'a> {
         let mut width = border_image_size.width;
         let mut height = border_image_size.height;
         let node = self.fragment.base.tag.map(|tag| tag.node);
-        let svg_fallback_font_size =
-            Some(self.fragment.style.get_font().font_size.computed_size.px());
-        let source = match builder.image_resolver.resolve_image(
-            node,
-            &border.border_image_source,
-            svg_fallback_font_size,
-        ) {
+        let source = match builder
+            .image_resolver
+            .resolve_image(node, &border.border_image_source)
+        {
             Err(_) => return false,
             Ok(ResolvedImage::Image { image, size }) => {
                 let Some(image) = image.as_raster_image() else {

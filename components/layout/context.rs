@@ -130,15 +130,11 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         destination: LayoutImageDestination,
-        svg_fallback_font_size: Option<f32>,
     ) -> LayoutImageCacheResult {
         // Check for available image or start tracking.
-        let cache_result = self.image_cache.get_cached_image_status(
-            url.clone(),
-            self.origin.clone(),
-            None,
-            svg_fallback_font_size,
-        );
+        let cache_result =
+            self.image_cache
+                .get_cached_image_status(url.clone(), self.origin.clone(), None);
 
         match cache_result {
             ImageCacheResult::Available(img_or_meta) => {
@@ -188,18 +184,12 @@ impl ImageResolver {
         node: OpaqueNode,
         url: ServoUrl,
         destination: LayoutImageDestination,
-        svg_fallback_font_size: Option<f32>,
     ) -> Result<CachedImage, ResolveImageError> {
         if let Some(cached_image) = self.resolved_images_cache.read().get(&url) {
             return cached_image.clone();
         }
 
-        let result = self.get_or_request_image_or_meta(
-            node,
-            url.clone(),
-            destination,
-            svg_fallback_font_size,
-        );
+        let result = self.get_or_request_image_or_meta(node, url.clone(), destination);
         match result {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
@@ -258,7 +248,6 @@ impl ImageResolver {
         &self,
         node: Option<OpaqueNode>,
         image: &'a Image,
-        svg_fallback_font_size: Option<f32>,
     ) -> Result<ResolvedImage<'a>, ResolveImageError> {
         match image {
             // TODO: Add support for PaintWorklet and CrossFade rendering.
@@ -279,7 +268,6 @@ impl ImageResolver {
                     node,
                     image_url.clone().into(),
                     LayoutImageDestination::DisplayListBuilding,
-                    svg_fallback_font_size,
                 )?;
                 let metadata = image.metadata();
                 let size = Size2D::new(metadata.width, metadata.height).to_f32();
@@ -291,7 +279,7 @@ impl ImageResolver {
                     .get(image_set.selected_index)
                     .ok_or(ResolveImageError::ImageMissingFromImageSet)
                     .and_then(|image| {
-                        self.resolve_image(node, &image.image, svg_fallback_font_size)
+                        self.resolve_image(node, &image.image)
                             .map(|info| match info {
                                 ResolvedImage::Image {
                                     image: cached_image,
