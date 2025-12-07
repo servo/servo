@@ -1383,6 +1383,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .or_init(|| Navigator::new(self, CanGc::note()))
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-clientinformation>
+    fn ClientInformation(&self) -> DomRoot<Navigator> {
+        self.Navigator()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-settimeout>
     fn SetTimeout(
         &self,

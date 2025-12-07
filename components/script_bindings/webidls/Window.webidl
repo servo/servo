@@ -48,6 +48,7 @@
 
   // the user agent
   readonly attribute Navigator navigator;
+  [Replaceable] readonly attribute Navigator clientInformation;
   //[Replaceable] readonly attribute External external;
   //readonly attribute ApplicationCache applicationCache;
 
