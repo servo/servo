@@ -65,6 +65,24 @@
   let dblclickPseudoTarget = null;
   let mouseoverTarget = null;
   let mouseoverPseudoTarget = null;
+  let mouseoutTarget = null;
+  let mouseoutPseudoTarget = null;
+  let mouseenterTarget = null;
+  let mouseenterPseudoTarget = null;
+  let mouseleaveTarget = null;
+  let mouseleavePseudoTarget = null;
+  let pointeroverTarget = null;
+  let pointeroverPseudoTarget = null;
+  let pointeroutTarget = null;
+  let pointeroutPseudoTarget = null;
+  let pointerenterTarget = null;
+  let pointerenterPseudoTarget = null;
+  let pointerleaveTarget = null;
+  let pointerleavePseudoTarget = null;
+  let wheelTarget = null;
+  let wheelPseudoTarget = null;
+  let scrollTarget = null;
+  let scrollPseudoTarget = null;
   let focusinTarget = null;
   let focusinPseudoTarget = null;
   let focusoutTarget = null;
@@ -108,6 +126,34 @@
     mouseoverTarget = e.target;
     mouseoverPseudoTarget = e.pseudoTarget;
   });
+  target.addEventListener("mouseout", (e) => {
+    mouseoutTarget = e.target;
+    mouseoutPseudoTarget = e.pseudoTarget;
+  });
+  target.addEventListener("mouseenter", (e) => {
+    mouseenterTarget = e.target;
+    mouseenterPseudoTarget = e.pseudoTarget;
+  });
+  target.addEventListener("mouseleave", (e) => {
+    mouseleaveTarget = e.target;
+    mouseleavePseudoTarget = e.pseudoTarget;
+  });
+  target.addEventListener("pointerover", (e) => {
+    pointeroverTarget = e.target;
+    pointeroverPseudoTarget = e.pseudoTarget;
+  });
+  target.addEventListener("pointerout", (e) => {
+    pointeroutTarget = e.target;
+    pointeroutPseudoTarget = e.pseudoTarget;
+  });
+  target.addEventListener("pointerenter", (e) => {
+    pointerenterTarget = e.target;
+    pointerenterPseudoTarget = e.pseudoTarget;
+  });
+  target.addEventListener("pointerleave", (e) => {
+    pointerleaveTarget = e.target;
+    pointerleavePseudoTarget = e.pseudoTarget;
+  });
 
   target.addEventListener("focusin", (e) => {
     focusinTarget = e.target;
@@ -137,6 +183,15 @@
   target.addEventListener("transitionend", (e) => {
     transitionendTarget = e.target;
     transitionendPseudoTarget = e.pseudoTarget;
+  });
+
+  target.addEventListener('wheel', (e) => {
+    wheelTarget = e.target;
+    wheelPseudoTarget = e.pseudoTarget;
+  });
+  target.addEventListener('scroll', (e) => {
+    scrollTarget = e.target;
+    scrollPseudoTarget = e.pseudoTarget;
   });
 
   const kTab = "\uE004";
@@ -173,7 +228,9 @@
     assert_equals(dblclickPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for double click");
 
     assert_equals(mouseoverTarget, target, "event.target is ultimate originating element for mouseover");
-    assert_equals(mouseoverPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for mouseover");
+    // `mouseover` is a boundary event; currently `pseudoTarget` is not
+    // defined for boundary events, so it should be null.
+    assert_equals(mouseoverPseudoTarget, null, "event.pseudoTarget is null for mouseover (boundary event)");
 
     await new test_driver.Actions()
       .keyDown(kTab)
@@ -200,5 +257,46 @@
     await waitForEvent(target, "transitionend");
     assert_equals(transitionendTarget, target, "event.target is ultimate originating element for transitionend");
     assert_equals(transitionendPseudoTarget, pseudoElement, "event.pseudoTarget is ::scroll-marker for transitionend");
+
+    // Move pointer away to trigger boundary events (mouseout / pointerout / leave)
+    const mouseOutPromise = waitForEvent(target, 'mouseout');
+    const pointerOutPromise = waitForEvent(target, 'pointerout');
+    const mouseLeavePromise = waitForEvent(target, 'mouseleave');
+    const pointerLeavePromise = waitForEvent(target, 'pointerleave');
+    await new test_driver.Actions()
+      .pointerMove(0, 0)
+      .send();
+    await Promise.all([mouseOutPromise, pointerOutPromise, mouseLeavePromise, pointerLeavePromise]);
+
+    // Boundary events should not have pseudoTarget set.
+    assert_equals(mouseoutTarget, target, "event.target is ultimate originating element for mouseout");
+    assert_equals(mouseoutPseudoTarget, null, "event.pseudoTarget is null for mouseout (boundary event)");
+    assert_equals(pointeroutTarget, target, "event.target is ultimate originating element for pointerout");
+    assert_equals(pointeroutPseudoTarget, null, "event.pseudoTarget is null for pointerout (boundary event)");
+    assert_equals(mouseleaveTarget, target, "event.target is ultimate originating element for mouseleave");
+    assert_equals(mouseleavePseudoTarget, null, "event.pseudoTarget is null for mouseleave (boundary event)");
+    assert_equals(pointerleaveTarget, target, "event.target is ultimate originating element for pointerleave");
+    assert_equals(pointerleavePseudoTarget, null, "event.pseudoTarget is null for pointerleave (boundary event)");
+
+    // Move pointer back in to trigger enter events; they should also be null
+    const mouseEnterPromise = waitForEvent(target, 'mouseenter');
+    const pointerEnterPromise = waitForEvent(target, 'pointerenter');
+    await new test_driver.Actions()
+      .pointerMove(scrollMarkerX, scrollMarkerY)
+      .send();
+    await Promise.all([mouseEnterPromise, pointerEnterPromise]);
+    assert_equals(mouseenterTarget, target, "event.target is ultimate originating element for mouseenter");
+    assert_equals(mouseenterPseudoTarget, null, "event.pseudoTarget is null for mouseenter (boundary event)");
+    assert_equals(pointerenterTarget, target, "event.target is ultimate originating element for pointerenter");
+    assert_equals(pointerenterPseudoTarget, null, "event.pseudoTarget is null for pointerenter (boundary event)");
+
+    // Dispatch some unrelated events and ensure pseudoTarget is null.
+    target.dispatchEvent(new WheelEvent('wheel'));
+    assert_equals(wheelTarget, target, 'wheel event target should be the element');
+    assert_equals(wheelPseudoTarget, null, 'wheel event pseudoTarget should be null');
+
+    target.dispatchEvent(new Event('scroll'));
+    assert_equals(scrollTarget, target, 'scroll event target should be the element');
+    assert_equals(scrollPseudoTarget, undefined, 'scroll event pseudoTarget should be null');
   });
 </script>

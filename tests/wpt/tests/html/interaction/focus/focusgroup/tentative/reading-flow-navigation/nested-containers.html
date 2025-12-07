@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Reading flow scope with nested containers</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<style>
+.outer-flex {
+  display: flex;
+  reading-flow: flex-visual;
+}
+.inner-flex {
+  display: flex;
+  reading-flow: flex-visual;
+}
+
+/* Reorder the outer container children */
+.outer-flex #item1 { order: 3; }
+.outer-flex .inner-container { order: 1; }
+.outer-flex #item4 { order: 2; }
+
+/* Reorder the inner container children */
+.inner-flex #item2 { order: 2; }
+.inner-flex #item3 { order: 1; }
+</style>
+
+<div class="outer-flex" focusgroup="toolbar">
+  <span id=item1 tabindex=0>item1 (DOM 1, outer order 3)</span>
+  <div class="inner-flex inner-container">
+    <span id=item2 tabindex=0>item2 (DOM 2, inner order 2)</span>
+    <span id=item3 tabindex=0>item3 (DOM 3, inner order 1)</span>
+  </div>
+  <span id=item4 tabindex=0>item4 (DOM 4, outer order 2)</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    // DOM order: item1, item2, item3, item4
+    // Visual order: item3, item2, item4, item1
+    const elementsInVisualOrder = [
+      document.getElementById("item3"),
+      document.getElementById("item2"),
+      document.getElementById("item4"),
+      document.getElementById("item1")
+    ];
+
+    await assert_focus_navigation_bidirectional(elementsInVisualOrder);
+  }, "Focusgroup navigation with nested reading flow containers should follow the visual order.");
+
+</script>

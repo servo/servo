@@ -1,3 +1,6 @@
 features:
 - name: xhr
   files: "**"
+- name: base
+  files:
+  - open-url-base.htm

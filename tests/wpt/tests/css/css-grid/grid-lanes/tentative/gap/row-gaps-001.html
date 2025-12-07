@@ -6,7 +6,7 @@
 <style>
 .grid-lanes {
     display: grid-lanes;
-    masonry-direction: row;
+    grid-lanes-direction: row;
     background: gray;
     item-tolerance: 0;
     grid-template-rows: repeat(3, 100px);
@@ -43,7 +43,7 @@
 }
 </style>
 <body>
-  <p>Test that gaps are correctly used within masonry containers.</p>
+  <p>Test that gaps are correctly used within grid-lanes containers.</p>
   <div class="grid-lanes">
     <div class="auto-item">This is some text</div>
     <div class="auto-item">Some larger words in this sentence</div>

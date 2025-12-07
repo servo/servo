@@ -20,18 +20,18 @@
           transform: translateX(-50px);
         }
       }
-      .target {
+      #subject {
         height: 100px;
-        width: 100%;
-        background-color: blue;
-        animation: slide-in 3s;
+        width: 100px;
+        background-color: purple;
         timeline-trigger: --trigger view() contain 0% contain 100%;
-        animation-trigger: --trigger;
       }
       .target {
         height: 100px;
         width: 100%;
         background-color: blue;
+        animation: slide-in 3s;
+        color: white;
       }
       .space {
         height: 250px;
@@ -45,20 +45,28 @@
         animation-fill-mode: none;
       }
 
+      .valid {
+        animation-trigger: --trigger play-once;
+      }
+      .invalid {
+        animation-trigger: --nonexistent-trigger play-once;
+      }
+
     </style>
     <div id="scroller" class="scroller">
       <div class="space"></div>
       <div id="subject"></div>
       <div class="space"></div>
-      <div id="active_target" class="active target"></div>
-      <div id="idle_target" class="idle target"></div>
+      <div id="active_target" class="active valid target">Active</div>
+      <div id="idle_target" class="idle valid target">Idle</div>
+      <div id="invalid_target" class="invalid target">Invalid</div>
     </div>
     <script>
       promise_test(async () => {
-        assert_equals(idle_target.getAnimations().length, 1,
-          "idle target has an animation");
-        assert_equals(active_target.getAnimations().length, 1,
-          "active target has an animation");
+        for (const target of document.querySelectorAll(".target")) {
+          assert_equals(target.getAnimations().length, 1,
+            `animation on ${target.id} is exposed`);
+        }
       }, "getAnimations includes an untriggered " +
          "'fill-mode: none' and 'fill-mode: both' animations.");
     </script>

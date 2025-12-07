@@ -1,6 +1,7 @@
 import pytest
 
 import webdriver.bidi.error as error
+from webdriver.bidi.undefined import UNDEFINED
 
 pytestmark = pytest.mark.asyncio
 
@@ -96,6 +97,14 @@ async def test_params_timezone_invalid_type(bidi_session, top_context, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.emulation.set_timezone_override(
             timezone=value,
+            contexts=[top_context["context"]],
+        )
+
+
+async def test_params_timezone_missing(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.emulation.set_timezone_override(
+            timezone=UNDEFINED,
             contexts=[top_context["context"]],
         )
 

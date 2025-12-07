@@ -1,0 +1,21 @@
+<!doctype html>
+<html style="overflow-y: auto; scrollbar-gutter: stable; scrollbar-width: none">
+<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+<meta name="assert" content="vw is not reduced in the presence of a scrollbar gutter when scrollbar-width is 'none'">
+
+<!-- This test uses checkLayout instead of a reference because it's unclear how elements that overlap with the gutter should be laid out and painted. See https://github.com/w3c/csswg-drafts/issues/5253 -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body style="margin: 0; padding: 0;">
+  <div style="width: 100vw; height: 100px; background: orange; box-sizing: border-box; border-left: 3px solid blue; border-right: 3px solid blue;"  id="test-div"></div>
+
+<script>
+  let testDiv = document.getElementById('test-div');
+  testDiv.setAttribute("data-expected-width", window.innerWidth);
+  checkLayout("#test-div");
+</script>
+
+</body>
+</html>

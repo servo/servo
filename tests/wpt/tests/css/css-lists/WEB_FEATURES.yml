@@ -2,3 +2,6 @@ features:
 - name: counter-set
   files:
   - counter-set-*
+- name: text-stroke-fill
+  files:
+  - marker-webkit-text-fill-color.html

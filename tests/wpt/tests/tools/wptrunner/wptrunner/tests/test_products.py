@@ -1,5 +1,6 @@
 # mypy: allow-untyped-defs, allow-untyped-calls
 
+import warnings
 from os.path import join, dirname
 from unittest import mock
 
@@ -19,24 +20,41 @@ environment.do_delayed_imports(None, test_paths)
 @active_products("product")
 def test_load_active_product(product):
     """test we can successfully load the product of the current testenv"""
-    products.Product({}, product)
+    products.Product.from_product_name(product)
     # test passes if it doesn't throw
 
 
 @all_products("product")
 def test_load_all_products(product):
     """test every product either loads or throws ImportError"""
-    try:
-        products.Product({}, product)
-    except ImportError:
-        pass
+    with warnings.catch_warnings():
+        # This acts to ensure that we don't get a DeprecationWarning here.
+        warnings.filterwarnings(
+            "error",
+            message=r"Use Product\.from_product_name",
+            category=DeprecationWarning,
+        )
+        try:
+            products.Product.from_product_name(product)
+        except ImportError:
+            pass
+
+
+@all_products("product")
+def test_load_all_products_deprecated(product):
+    """test every product causes a DeprecationWarning"""
+    with pytest.deprecated_call(match=r"Use Product\.from_product_name"):
+        try:
+            products.Product({}, product)
+        except ImportError:
+            pass
 
 
 @active_products("product", marks={
     "sauce": pytest.mark.skip("needs env extras kwargs"),
 })
 def test_server_start_config(product):
-    product_data = products.Product({}, product)
+    product_data = products.Product.from_product_name(product)
 
     env_extras = product_data.get_env_extras()
 

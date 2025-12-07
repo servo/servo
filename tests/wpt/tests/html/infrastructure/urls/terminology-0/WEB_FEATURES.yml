@@ -1,0 +1,5 @@
+features:
+- name: base
+  files:
+  - document-base-url.html
+  - multiple-base.sub.html

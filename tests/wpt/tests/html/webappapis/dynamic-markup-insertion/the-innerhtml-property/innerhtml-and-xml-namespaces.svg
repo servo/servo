@@ -80,6 +80,12 @@
       }, "unsetting default namespace works inside parse of fragment (on child of element)");
 
       test(() => {
+        prefixedContainer.innerHTML = "<e><f xmlns=''><g></g></f><h/></e>";
+        assert_equals(prefixedContainer.firstChild.firstChild.firstChild.namespaceURI, null);
+        assert_equals(prefixedContainer.firstChild.lastChild.namespaceURI, SVG_NS);
+      }, "default namespace applied to sibling of namespace-resetting element in parse of fragment.");
+
+      test(() => {
         prefixedContainer.innerHTML = "<e><h:f xmlns:h='https://example.com/new-h'><g><h:d></h:d></g></h:f></e>";
         assert_equals(prefixedContainer.firstChild.firstChild.namespaceURI, "https://example.com/new-h");
         assert_equals(prefixedContainer.firstChild.firstChild.firstChild.namespaceURI, SVG_NS);

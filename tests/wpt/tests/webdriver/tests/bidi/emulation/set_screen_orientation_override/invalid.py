@@ -1,6 +1,7 @@
 import pytest
 
 import webdriver.bidi.error as error
+from webdriver.bidi.undefined import UNDEFINED
 
 pytestmark = pytest.mark.asyncio
 
@@ -47,6 +48,24 @@ async def test_params_contexts_entry_invalid_value(bidi_session):
             })
 
 
+async def test_params_contexts_iframe(bidi_session, new_tab, get_test_page):
+    url = get_test_page(as_frame=True)
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url, wait="complete"
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+    frames = contexts[0]["children"]
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.emulation.set_screen_orientation_override(
+            contexts=[frames[0]["context"]],
+            screen_orientation={
+                "natural": "portrait",
+                "type": "portrait-primary"
+        })
+
+
 @pytest.mark.parametrize("value", [False, "foo", 42, []])
 async def test_params_screen_orientation_invalid_type(bidi_session, top_context,
         value):
@@ -54,6 +73,14 @@ async def test_params_screen_orientation_invalid_type(bidi_session, top_context,
         await bidi_session.emulation.set_screen_orientation_override(
             contexts=[top_context["context"]],
             screen_orientation=value
+        )
+
+
+async def test_params_screen_orientation_missing(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.emulation.set_screen_orientation_override(
+            contexts=[top_context["context"]],
+            screen_orientation=UNDEFINED
         )
 
 

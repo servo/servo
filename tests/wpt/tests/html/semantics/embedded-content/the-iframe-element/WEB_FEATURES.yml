@@ -2,3 +2,7 @@ features:
 - name: loading-lazy
   files:
   - iframe-loading-lazy*
+- name: base
+  files:
+  - iframe-loading-lazy-base-url*
+  - iframe-with-base.html

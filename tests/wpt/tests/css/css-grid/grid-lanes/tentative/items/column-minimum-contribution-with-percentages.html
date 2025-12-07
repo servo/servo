@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Masonry Layout Test: minimum contribution with percentages</title>
+<title>CSS Grid Lanes Layout Test: minimum contribution with percentages</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com" />
 <link rel="help" href="https://drafts.csswg.org/css-grid/#minimum-contribution">
 <meta name="assert" content="Checks that the minimum contribution is the minimum size when the preferred size is 'auto' or contains a percentage.">
 <style>
-#masonry {
+#grid-lanes {
   display: grid-lanes;
   height: 50px;
   width: 50px;
@@ -32,7 +32,7 @@
 }
 </style>
 <div id="log"></div>
-<div id="masonry">
+<div id="grid-lanes">
   <div id="item">
     <div id="content"></div>
   </div>
@@ -41,7 +41,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 "use strict";
-const cs = getComputedStyle(document.getElementById("masonry"));
+const cs = getComputedStyle(document.getElementById("grid-lanes"));
 const item = document.getElementById("item");
 function check(name, size) {
   item.className = name;

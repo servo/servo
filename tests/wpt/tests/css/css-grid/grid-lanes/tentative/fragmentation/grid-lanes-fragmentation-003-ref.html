@@ -5,7 +5,7 @@
 -->
 <html><head>
   <meta charset="utf-8">
-  <title>Reference: Grid axis fragmentation with column masonry layout</title>
+  <title>Reference: Grid axis fragmentation with column grid-lanes layout</title>
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
   <style>
 html,body {
@@ -47,7 +47,7 @@ z {
   background: gray;
   width: 40px;
 }
-masonry-track {
+grid-lanes-track {
   display: grid;
   justify-content: start;
   column-gap: 5px;
@@ -58,44 +58,44 @@ masonry-track {
 <wrapper style="display:none">
 <div class="columns" style="height:90px">
   <div class="grid">
-    <masonry-track><x></x><y></y><y></y><x></x></masonry-track>
-    <masonry-track><x></x><x></x><x></x><z></z></masonry-track>
-    <masonry-track><z></z><z></z><x></x><z></z></masonry-track>
+    <grid-lanes-track><x></x><y></y><y></y><x></x></grid-lanes-track>
+    <grid-lanes-track><x></x><x></x><x></x><z></z></grid-lanes-track>
+    <grid-lanes-track><z></z><z></z><x></x><z></z></grid-lanes-track>
   </div>
 </div>
 <div class="columns" style="height:68px">
   <div class="grid">
-    <masonry-track><x></x><y></y><y></y><x></x></masonry-track>
-    <masonry-track><x></x><x></x><x></x><z></z></masonry-track>
-    <masonry-track><z></z><z></z><x></x><z></z></masonry-track>
+    <grid-lanes-track><x></x><y></y><y></y><x></x></grid-lanes-track>
+    <grid-lanes-track><x></x><x></x><x></x><z></z></grid-lanes-track>
+    <grid-lanes-track><z></z><z></z><x></x><z></z></grid-lanes-track>
   </div>
 </div>
 <div class="columns" style="height:48px">
   <div class="grid">
-    <masonry-track><x></x><y></y><y></y><x></x></masonry-track>
-    <masonry-track><x></x><x></x><x></x><z></z></masonry-track>
-    <masonry-track><z></z><z></z><x></x><z></z></masonry-track>
+    <grid-lanes-track><x></x><y></y><y></y><x></x></grid-lanes-track>
+    <grid-lanes-track><x></x><x></x><x></x><z></z></grid-lanes-track>
+    <grid-lanes-track><z></z><z></z><x></x><z></z></grid-lanes-track>
   </div>
 </div>
 <div class="columns" style="height:38px">
   <div class="grid">
-    <masonry-track><x></x><y></y><y></y><x></x></masonry-track>
-    <masonry-track><x></x><x></x><x></x><z></z></masonry-track>
-    <masonry-track><z></z><z></z><x></x><z></z></masonry-track>
+    <grid-lanes-track><x></x><y></y><y></y><x></x></grid-lanes-track>
+    <grid-lanes-track><x></x><x></x><x></x><z></z></grid-lanes-track>
+    <grid-lanes-track><z></z><z></z><x></x><z></z></grid-lanes-track>
   </div>
 </div>
 <div class="columns" style="height:28px">
   <div class="grid">
-    <masonry-track><x></x><y></y><y></y><x></x></masonry-track>
-    <masonry-track><x></x><x></x><x></x><z></z></masonry-track>
-    <masonry-track><z></z><z></z><x></x><z></z></masonry-track>
+    <grid-lanes-track><x></x><y></y><y></y><x></x></grid-lanes-track>
+    <grid-lanes-track><x></x><x></x><x></x><z></z></grid-lanes-track>
+    <grid-lanes-track><z></z><z></z><x></x><z></z></grid-lanes-track>
   </div>
 </div>
 <div class="columns" style="height:18px">
   <div class="grid">
-    <masonry-track><x></x><y></y><y></y><x></x></masonry-track>
-    <masonry-track><x></x><x></x><x></x><z></z></masonry-track>
-    <masonry-track><z></z><z></z><x></x><z></z></masonry-track>
+    <grid-lanes-track><x></x><y></y><y></y><x></x></grid-lanes-track>
+    <grid-lanes-track><x></x><x></x><x></x><z></z></grid-lanes-track>
+    <grid-lanes-track><z></z><z></z><x></x><z></z></grid-lanes-track>
   </div>
 </div>
 </wrapper>

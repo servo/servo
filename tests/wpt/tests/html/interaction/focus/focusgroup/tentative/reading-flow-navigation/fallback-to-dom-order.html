@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Falls back to DOM order when no reading flow</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="toolbar">
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=-1>item2</span>
+  <span id=item3 tabindex=-1>item3</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    // Without reading-flow, should follow DOM order: item1, item2, item3
+    const elementsInDOMOrder = [
+      document.getElementById("item1"),
+      document.getElementById("item2"),
+      document.getElementById("item3")
+    ];
+
+    await assert_focus_navigation_bidirectional(elementsInDOMOrder);
+  }, "Focusgroup navigation should fall back to DOM order when no reading-flow is specified.");
+
+</script>

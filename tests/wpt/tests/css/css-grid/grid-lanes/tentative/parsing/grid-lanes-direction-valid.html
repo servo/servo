@@ -2,10 +2,10 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Masonry: parsing masonry-direction with valid values</title>
+  <title>CSS Grid Lanes: parsing grid-lanes-direction with valid values</title>
   <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3">
-  <meta name="assert" content="masonry-direction supports the full grammar 'row | row-reverse | column | column-reverse'.">
+  <meta name="assert" content="grid-lanes-direction supports the full grammar 'row | row-reverse | column | column-reverse'.">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/css/support/parsing-testcommon.js"></script>
@@ -13,10 +13,10 @@
 <body>
   <div id="target"></div>
   <script>
-    test_valid_value("masonry-direction", "row");
-    test_valid_value("masonry-direction", "row-reverse");
-    test_valid_value("masonry-direction", "column");
-    test_valid_value("masonry-direction", "column-reverse");
+    test_valid_value("grid-lanes-direction", "row");
+    test_valid_value("grid-lanes-direction", "row-reverse");
+    test_valid_value("grid-lanes-direction", "column");
+    test_valid_value("grid-lanes-direction", "column-reverse");
   </script>
 </body>
 </html>

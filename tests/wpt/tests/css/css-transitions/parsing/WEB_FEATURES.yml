@@ -1,4 +1,9 @@
 features:
+- name: transitions
+  files:
+  - "*"
+  - "!starting-style-*"
+  - "!transition-behavior.html"
 - name: starting-style
   files:
   - starting-style-*

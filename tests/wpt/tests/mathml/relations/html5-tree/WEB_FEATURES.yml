@@ -1,0 +1,4 @@
+features:
+- name: clipboard-events
+  files:
+  - clipboard-event-handlers.tentative.html

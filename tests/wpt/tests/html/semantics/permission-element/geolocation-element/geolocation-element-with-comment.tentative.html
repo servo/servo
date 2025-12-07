@@ -1,0 +1,21 @@
+<!doctype html>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md" />
+<link rel="match" href="geolocation-element-with-comment-ref.html" />
+
+<geolocation> <!-- Comment 1 --> </geolocation>
+<geolocation>
+  <!-- C1 -->
+  Text
+  <!-- C2 -->
+</geolocation>
+<div style="display: flex">
+  <geolocation> <!-- Comment 1 --> </geolocation>
+</div>
+<geolocation>
+  <!-- Comment Before -->
+  <span>
+    <button>Click Me</button>
+    <textarea>Some text</textarea>
+  </span>
+  <!-- Comment After -->
+</geolocation>

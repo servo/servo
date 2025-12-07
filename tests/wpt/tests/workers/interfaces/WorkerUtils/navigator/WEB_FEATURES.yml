@@ -1,0 +1,4 @@
+features:
+- name: user-agent-sniffing
+  files:
+  - 005.html

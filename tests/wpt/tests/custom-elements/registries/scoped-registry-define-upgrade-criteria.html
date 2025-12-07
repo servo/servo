@@ -129,10 +129,10 @@ test(t => {
   shadow.appendChild(node);
 
   class TestElement extends HTMLElement {};
-  customElements.define(name, TestElement);
+  registry.define(name, TestElement);
 
   assert_true(node instanceof TestElement);
-}, 'Adding definition to global registry should upgrade nodes even after the node is moved into a separate shadow tree.');
+}, 'Adding definition to scoped registry should upgrade nodes even after the node is moved into a separate shadow tree.');
 
 test(t => {
   const name = nextCustomElementName();

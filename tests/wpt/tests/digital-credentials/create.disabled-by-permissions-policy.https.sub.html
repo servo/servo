@@ -11,7 +11,7 @@
     import { makeCreateOptions } from "/digital-credentials/support/helper.js";
     const { HTTPS_REMOTE_ORIGIN } = get_host_info();
     const same_origin_src =
-        "/permissions-policy/resources/digital-credentials-create.html";
+        "/digital-credentials/permissions-policy/create.html";
     const cross_origin_src = new URL(same_origin_src, HTTPS_REMOTE_ORIGIN).href;
 
     promise_test(async (test) => {
@@ -19,7 +19,7 @@
         await promise_rejects_dom(
             test,
             "NotAllowedError",
-            navigator.credentials.create(makeCreateOptions([]))
+            navigator.credentials.create(makeCreateOptions({protocol: []}))
         );
     }, "Permissions-Policy header digital-credentials-create=() disallows the top-level document.");
 

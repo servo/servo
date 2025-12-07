@@ -48,31 +48,31 @@
     test_shorthand_value('grid-lanes', 'none', {
       'grid-template-columns': 'none',
       'grid-template-areas': 'none',
-      'masonry-direction': 'column',
+      'grid-lanes-direction': 'column',
       'grid-lanes-fill': 'normal'
     });
     test_shorthand_value('grid-lanes', '10px reverse', {
       'grid-template-columns': '10px',
       'grid-template-areas': 'none',
-      'masonry-direction': 'column',
+      'grid-lanes-direction': 'column',
       'grid-lanes-fill': 'reverse'
     });
     test_shorthand_value('grid-lanes', '"b a" 20% 40% column normal', {
       'grid-template-columns': '20% 40%',
       'grid-template-areas': '"b a"',
-      'masonry-direction': 'column',
+      'grid-lanes-direction': 'column',
       'grid-lanes-fill': 'normal'
     });
     test_shorthand_value('grid-lanes', '"b b a" 1fr 2fr 3fr row', {
       'grid-template-rows': '1fr 2fr 3fr',
       'grid-template-areas': '"b" "b" "a"',
-      'masonry-direction': 'row',
+      'grid-lanes-direction': 'row',
       'grid-lanes-fill': 'normal'
     });
     test_shorthand_value('grid-lanes', 'repeat(2, auto) row-reverse', {
       'grid-template-rows': 'repeat(2, auto)',
       'grid-template-areas': 'none',
-      'masonry-direction': 'row-reverse',
+      'grid-lanes-direction': 'row-reverse',
       'grid-lanes-fill': 'normal'
     });
   </script>

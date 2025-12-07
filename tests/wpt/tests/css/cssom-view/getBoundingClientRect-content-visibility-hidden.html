@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1918733">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+</style>
+<body>
+  <div style="content-visibility: hidden; contain-intrinsic-size: 100px 100px;">
+      <span id="span">Hello</span>
+  </div>
+<script>
+  const rangeLeaf = document.createRange();
+  const rangeRoot = document.createRange();
+  rangeLeaf.selectNode(span.firstChild);
+  rangeRoot.selectNode(document.documentElement);
+  const rectLeaf = rangeLeaf.getBoundingClientRect();
+  const rectRoot = rangeRoot.getBoundingClientRect();
+  test(() => assert_not_equals(rectLeaf.width, 0, "leaf rect width should not be zero"));
+  test(() => assert_not_equals(rectLeaf.height, 0, "leaf rect height should not be zero"));
+  test(() => assert_not_equals(rectRoot.width, 0, "root rect width should not be zero"));
+  test(() => assert_not_equals(rectRoot.height, 0, "root rect height should not be zero"));
+</script>
+</body>

@@ -1,0 +1,4 @@
+features:
+- name: charset
+  files:
+  - script-charset-03.html

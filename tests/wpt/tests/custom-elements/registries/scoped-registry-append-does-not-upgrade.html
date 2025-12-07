@@ -92,11 +92,22 @@ test((test) => {
     const [doc2, win2] = makeIframe(test);
     win2.customElements.define('a-b', class ABElement extends win2.HTMLElement { });
     const elementFromDoc1 = doc1.createElement('a-b');
-    assert_equals(elementFromDoc1.customElementRegistry, null);
+    assert_equals(elementFromDoc1.customElementRegistry, win1.customElements);
     doc2.body.appendChild(elementFromDoc1);
     assert_equals(elementFromDoc1.customElementRegistry, win2.customElements);
     assert_true(elementFromDoc1 instanceof ABElement);
-}, 'Inserting a node from another document results in the custom element registry to be set and upgraded.');
+}, 'Inserting a node from another document with global registry results in the custom element registry to be set and upgraded.');
+
+test((test) => {
+    const contentDocument = document.implementation.createHTMLDocument();
+    class ABElement extends HTMLElement { }
+    customElements.define('a-b', ABElement);
+    const elementFromContentDoc = contentDocument.createElement('a-b');
+    assert_equals(elementFromContentDoc.customElementRegistry, null);
+    document.body.appendChild(elementFromContentDoc);
+    assert_equals(elementFromContentDoc.customElementRegistry, customElements);
+    assert_true(elementFromContentDoc instanceof ABElement);
+}, 'Inserting a node from another document with null registry results in the custom element registry to be set and upgraded.');
 
 </script>
 </body>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html style="overflow: auto; scrollbar-gutter: stable;">
+<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+<meta name="assert" content="There is no horizontal overflow when 100vw is reduced by gutter width even when the scrollbars themselves are conditional.">
+
+<!-- This test uses checkLayout instead of a reference because it's unclear how elements that overlap with the gutter should be laid out and painted. See https://github.com/w3c/csswg-drafts/issues/5253 -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body style="margin: 0; padding: 0;">
+  <div style="width: 100vw; height: 100px; background: orange; box-sizing: border-box; border-left: 3px solid blue; border-right: 3px solid blue;" id="test-div"></div>
+
+  <!-- This div is only for measuring scrollbar size -->
+  <div id="measure" style="overflow: scroll;">
+     <div style="min-height: 300px;"></div>
+  </div>
+
+<script>
+  const scrollbarWidth = measure.offsetWidth - measure.clientWidth;
+  let testDiv = document.getElementById('test-div');
+  testDiv.setAttribute("data-expected-width", window.innerWidth - scrollbarWidth);
+  checkLayout("#test-div");
+</script>
+
+</body>
+</html>

@@ -1,4 +1,7 @@
 features:
+- name: figure
+  files:
+  - figure.html
 - name: search
   files:
   - search-*

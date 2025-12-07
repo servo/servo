@@ -16,9 +16,19 @@
     async function load_image_and_get_lcp_size(t, imageStyle = {}, containerStyle = {}) {
       let popup;
       await test_driver.bless('Open a popup', () => {
-        popup = window.open();
+        popup = window.open('about:blank');
         t.add_cleanup(() => popup.close());
       });
+
+      // Per spec, we should end up with a pagereveal event once the
+      // window is open. However, Gecko seems to load the initial
+      // about:blank synchronously and then asynchronously load the
+      // about:blank requested above, thus we also accept pageshow
+      // here as a sign the popup is ready.
+      await Promise.any([
+        new Promise(resolve => popup.addEventListener('pagereveal', () => resolve(), {'once': true})),
+        new Promise(resolve => popup.addEventListener('pageshow', () => resolve(), {'once': true})),
+      ]);
 
       const image = popup.document.createElement('img');
       image.src = imageURL;

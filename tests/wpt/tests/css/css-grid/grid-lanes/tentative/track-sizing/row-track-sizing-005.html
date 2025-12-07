@@ -6,7 +6,7 @@
 <style>
 .grid-lanes {
     display: grid-lanes;
-    masonry-direction: row;
+    grid-lanes-direction: row;
     item-tolerance: 0;
     grid-template-rows: auto auto auto;
     gap: 10px;
@@ -14,7 +14,7 @@
 }
 </style>
 <body>
-  <p>Test that masonry tracks are correctly sized with mix of explicit and auto item placement.</p>
+  <p>Test that grid-lanes tracks are correctly sized with mix of explicit and auto item placement.</p>
   <div class="grid-lanes">
     <div style="width: 50px; height: 50px; background: orange;"></div>
     <div style="width: 30px; height: 30px; background: yellow;"></div>

@@ -62,14 +62,14 @@ enum WebTransportReliabilityMode {
 };
 
 dictionary WebTransportHash {
-  DOMString algorithm;
-  BufferSource value;
+  required DOMString algorithm;
+  required BufferSource value;
 };
 
 dictionary WebTransportOptions {
   boolean allowPooling = false;
   boolean requireUnreliable = false;
-  sequence<WebTransportHash> serverCertificateHashes;
+  sequence<WebTransportHash> serverCertificateHashes = [];
   WebTransportCongestionControl congestionControl = "default";
   [EnforceRange] unsigned short? anticipatedConcurrentIncomingUnidirectionalStreams = null;
   [EnforceRange] unsigned short? anticipatedConcurrentIncomingBidirectionalStreams = null;
@@ -100,25 +100,25 @@ dictionary WebTransportSendStreamOptions : WebTransportSendOptions {
 };
 
 dictionary WebTransportConnectionStats {
-  unsigned long long bytesSent = 0;
-  unsigned long long packetsSent = 0;
-  unsigned long long bytesLost = 0;
-  unsigned long long packetsLost = 0;
-  unsigned long long bytesReceived = 0;
-  unsigned long long packetsReceived = 0;
-  required DOMHighResTimeStamp smoothedRtt;
-  required DOMHighResTimeStamp rttVariation;
-  required DOMHighResTimeStamp minRtt;
+  unsigned long long bytesSent;
+  unsigned long long packetsSent;
+  unsigned long long bytesLost;
+  unsigned long long packetsLost;
+  unsigned long long bytesReceived;
+  unsigned long long packetsReceived;
+  DOMHighResTimeStamp smoothedRtt;
+  DOMHighResTimeStamp rttVariation;
+  DOMHighResTimeStamp minRtt;
   required WebTransportDatagramStats datagrams;
   unsigned long long? estimatedSendRate = null;
   boolean atSendCapacity = false;
 };
 
 dictionary WebTransportDatagramStats {
-  unsigned long long droppedIncoming = 0;
-  unsigned long long expiredIncoming = 0;
-  unsigned long long expiredOutgoing = 0;
-  unsigned long long lostOutgoing = 0;
+  unsigned long long droppedIncoming;
+  unsigned long long expiredIncoming;
+  unsigned long long expiredOutgoing;
+  unsigned long long lostOutgoing;
 };
 
 [Exposed=(Window,Worker), SecureContext, Transferable]
@@ -130,9 +130,9 @@ interface WebTransportSendStream : WritableStream {
 };
 
 dictionary WebTransportSendStreamStats {
-  unsigned long long bytesWritten = 0;
-  unsigned long long bytesSent = 0;
-  unsigned long long bytesAcknowledged = 0;
+  unsigned long long bytesWritten;
+  unsigned long long bytesSent;
+  unsigned long long bytesAcknowledged;
 };
 
 [Exposed=(Window,Worker), SecureContext]
@@ -146,8 +146,8 @@ interface WebTransportReceiveStream : ReadableStream {
 };
 
 dictionary WebTransportReceiveStreamStats {
-  unsigned long long bytesReceived = 0;
-  unsigned long long bytesRead = 0;
+  unsigned long long bytesReceived;
+  unsigned long long bytesRead;
 };
 
 [Exposed=(Window,Worker), SecureContext]

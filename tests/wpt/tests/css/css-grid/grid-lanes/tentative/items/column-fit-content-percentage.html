@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Masonry Layout Test: indefinite percentage in fit-content()</title>
+<title>CSS Grid Lanes Layout Test: indefinite percentage in fit-content()</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid/#track-sizes" title="7.2.1. Track Sizes">
-<meta name="assert" content="Checks that an indefinite percentage in fit-content lets the masonry container grow enough to contain the max-content contribution of its masonry items.">
+<meta name="assert" content="Checks that an indefinite percentage in fit-content lets the grid-lanes container grow enough to contain the max-content contribution of its grid-lanes items.">
 <style>
 .container {
   width: 200px;
@@ -44,24 +44,24 @@ for (const use_min_width of [false, true]) {
       const container = document.createElement("div");
       container.className = "container";
       document.body.appendChild(container);
-      const masonry = document.createElement("div");
-      masonry.className = "grid-lanes";
-      masonry.style.gridTemplateColumns = value;
-      container.appendChild(masonry);
+      const gridLanes = document.createElement("div");
+      gridLanes.className = "grid-lanes";
+      gridLanes.style.gridTemplateColumns = value;
+      container.appendChild(gridLanes);
       const item = document.createElement("div");
       item.className = "item";
       item.style.minWidth = use_min_width ? "auto" : "0px";
-      masonry.appendChild(item);
+      gridLanes.appendChild(item);
       test(function() {
         const minWidth = use_min_width ? minContent : 0;
         const colSize = clamp(percentage * maxContent / 100, minWidth, maxContent);
         const height = colSize < maxContent ? maxContent : minContent;
-        assert_equals(item.offsetWidth, colSize, "Masonry item width");
-        assert_equals(item.offsetHeight, height, "Masonry item height");
-        assert_equals(masonry.offsetWidth, maxContent, "Masonry container width");
-        assert_equals(masonry.offsetHeight, height, "Masonry container height");
-        assert_equals(getComputedStyle(masonry).gridTemplateColumns, colSize + "px",
-                      "Masonry column size");
+        assert_equals(item.offsetWidth, colSize, "Grid Lanes item width");
+        assert_equals(item.offsetHeight, height, "Grid Lanes item height");
+        assert_equals(gridLanes.offsetWidth, maxContent, "Grid Lanes container width");
+        assert_equals(gridLanes.offsetHeight, height, "Grid Lanes container height");
+        assert_equals(getComputedStyle(gridLanes).gridTemplateColumns, colSize + "px",
+                      "Grid Lanes column size");
       }, value + "; min-width: " + item.style.minWidth);
     }
   }

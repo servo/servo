@@ -1,0 +1,4 @@
+features:
+- name: system-color
+  files:
+  - "system-colors-*"

@@ -1,0 +1,6 @@
+features:
+- name: supports
+  files:
+  - "CSS-supports-*.html"
+  - "supports-*.html"
+  - 001.html

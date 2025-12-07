@@ -7,6 +7,12 @@ features:
   - relevant-mutations-lazy.html
   - remove-element-and-scroll.html
   - scrolling-below-viewport-image-lazy-loading-in-iframe.html
+- name: base
+  files:
+  - document-adopt-base-url.html
+  - document-base-url.html
+  - image-base-url.html
+  - image-loading-lazy-base-url.html
 - name: srcset
   files:
   - responsive-image-select-print.html

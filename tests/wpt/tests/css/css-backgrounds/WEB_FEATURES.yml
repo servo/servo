@@ -66,3 +66,15 @@ features:
   - background-image-large-with-auto.html
   - background-size-*
   - css3-background-size*
+- name: border-radius
+  files:
+  - border-*-radius-*
+  - border-radius-*
+  - "!border-radius-clip*"
+  - css-border-radius-001.html
+- name: borders
+  files:
+  - border-*
+  - "!border-image*"
+  - "!border-*radius-*"
+  - ttwf-css3background-border-*

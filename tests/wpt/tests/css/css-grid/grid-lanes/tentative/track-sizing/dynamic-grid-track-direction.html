@@ -20,7 +20,7 @@
     assert_equals(computedStyle.getPropertyValue('grid-template-columns'),
       "100px 100px");
 
-    container.style.masonryDirection = 'row';
+    container.style.gridLanesDirection = 'row';
     const computedStyleAfter = window.getComputedStyle(container);
     assert_equals(computedStyleAfter.getPropertyValue('grid-template-rows'),
       "100px 100px 100px");

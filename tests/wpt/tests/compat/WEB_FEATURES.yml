@@ -1,0 +1,4 @@
+features:
+- name: text-stroke-fill
+  files:
+  - webkit-text-fill-color-*

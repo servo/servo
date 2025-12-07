@@ -6,7 +6,7 @@
 <style>
 .grid-lanes {
     display: grid-lanes;
-    masonry-direction: column;
+    grid-lanes-direction: column;
     background: gray;
     item-tolerance: 0;
     grid-template-columns: auto auto auto;
@@ -38,7 +38,7 @@
 }
 </style>
 <body>
-  <p>Test that orthoganal masonry with explicit placement are correctly positioned within the grid axis and that the margins on the orthogonal items correctly affect track sizing.</p>
+  <p>Test that orthoganal grid-lanes with explicit placement are correctly positioned within the grid axis and that the margins on the orthogonal items correctly affect track sizing.</p>
   <div class="grid-lanes">
     <div class="first-track">This is some text</div>
     <div class="first-track" style="margin-right: 10px;">This is some text</div>

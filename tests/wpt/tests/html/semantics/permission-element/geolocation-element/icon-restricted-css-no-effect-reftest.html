@@ -1,0 +1,16 @@
+<!doctype html>
+<title>The icon of the permission element should not change when any of the restricted CSS properties are changed.</title>
+<!-- TODO: Update the link to the permission icon spec -->
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="match" href="standard-location-element-ref.html">
+<style>
+  ::permission-icon {
+    margin-inline-start: 100px;
+    float: inline-end;
+    padding: 50px;
+    opacity: 0.5;
+    stroke-opacity: 0.5;
+    fill-rule: evenodd;
+  }
+</style>
+<geolocation id="geolocation"></geolocation>

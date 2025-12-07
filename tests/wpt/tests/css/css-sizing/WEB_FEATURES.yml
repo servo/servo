@@ -1,0 +1,7 @@
+features:
+  - name: fit-content
+    files:
+      - 'div-fit-content-*'
+      - 'fit-content-*'
+      - 'margin-collapse-with-indefinite-block-size-004.html'
+      - 'percentage-min-width.html'

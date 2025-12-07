@@ -630,13 +630,13 @@ class MarionetteGlobalPrivacyControlProtocolPart(GlobalPrivacyControlProtocolPar
             "gpc": gpc,
         }
         try:
-            return self.marionette._send_message("WebDriver:SetGlobalPrivacyControl", body)["value"]
+            return self.marionette._send_message("GPC:SetGlobalPrivacyControl", body)["value"]
         except errors.UnsupportedOperationException as e:
             raise NotImplementedError("set_global_privacy_control not yet implemented") from e
 
     def get_global_privacy_control(self):
         try:
-            return self.marionette._send_message("WebDriver:GetGlobalPrivacyControl")["value"]
+            return self.marionette._send_message("GPC:GetGlobalPrivacyControl")["value"]
         except errors.UnsupportedOperationException as e:
             raise NotImplementedError("get_global_privacy_control not yet implemented") from e
 

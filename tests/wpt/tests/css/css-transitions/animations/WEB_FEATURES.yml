@@ -1,0 +1,7 @@
+features:
+- name: transitions
+  files:
+  - change-duration-during-transition.html
+  - move-after-transition.html
+  - transition-end-event-shorthands.html
+  - transition-timing-function.html
