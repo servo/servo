@@ -220,14 +220,12 @@
         const subscription_id = action_result["subscription"];
 
         return async ()=>{
-            console.log("!!@@## unsubscribing")
             await create_action("bidi.session.unsubscribe", {
                 // Default to subscribing to the window's events.
                 subscriptions: [subscription_id]
             });
         }
     };
-
     window.test_driver_internal.in_automation = true;
 
     window.test_driver_internal.bidi.bluetooth.handle_request_device_prompt =
@@ -673,4 +671,22 @@
     window.test_driver_internal.set_global_privacy_control = function(gpc, context=null) {
         return create_action("set_global_privacy_control", {gpc});
     };
+  
+  
+    window.test_driver_internal.bidi.speculation.prefetch_status_updated.subscribe =
+        function(params) {
+        return subscribe(
+            {...params, events: ['speculation.prefetchStatusUpdated']})
+    };
+
+    window.test_driver_internal.bidi.speculation.prefetch_status_updated.on =
+        function(callback) {
+        const on_event = (event) => {
+            callback(event.payload);
+        };
+        event_target.addEventListener(
+            'speculation.prefetchStatusUpdated', on_event);
+        return () => event_target.removeEventListener(
+                    'speculation.prefetchStatusUpdated', on_event);
+    }; 
 })();

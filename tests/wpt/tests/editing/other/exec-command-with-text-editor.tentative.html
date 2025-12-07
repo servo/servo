@@ -6,6 +6,8 @@
 <meta name="variant" content="?type=password">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
 <div id="container"></div>
 <script>
 "use strict";
@@ -19,29 +21,29 @@ const testingType = new URLSearchParams(document.location.search).get("type");
  * this is not standardized even by any drafts.  So, this test uses expected
  * values which may be expected by web developers.
  */
-function runTests() {
+async function runTests() {
   let container = document.getElementById("container");
   switch (testingType) {
     case "text":
     case "password":
       container.innerHTML = `Here <b>is</b> Text: <input id="target" type="${testingType}">`;
-      runTest(document.getElementById("target"), `In <input type="${testingType}">`);
+      await runTest(document.getElementById("target"), `In <input type="${testingType}">`);
       container.setAttribute("contenteditable", "true");
       container.innerHTML = `Here <b>is</b> Text: <input id="target" type="${testingType}">`;
-      runTest(document.getElementById("target"), `In <input type="${testingType}"> in contenteditable`);
+      await runTest(document.getElementById("target"), `In <input type="${testingType}"> in contenteditable`);
       break;
     case "textarea":
       container.innerHTML = "Here <b>is</b> Text: <textarea id=\"target\"></textarea>";
-      runTest(document.getElementById("target"), "In <textarea>");
+      await runTest(document.getElementById("target"), "In <textarea>");
       container.setAttribute("contenteditable", "true");
       container.innerHTML = "Here <b>is</b> Text: <textarea id=\"target\"></textarea>";
-      runTest(document.getElementById("target"), "In <textarea> in contenteditable");
+      await runTest(document.getElementById("target"), "In <textarea> in contenteditable");
       break;
   }
   done();
 }
 
-function runTest(aTarget, aDescription) {
+async function runTest(aTarget, aDescription) {
   const kIsTextArea = testingType == "textarea";
   const kTests = [
     /**
@@ -580,6 +582,9 @@ function runTest(aTarget, aDescription) {
   for (const kTest of kTests) {
     const kDescription =
         `${aDescription}, execCommand("${kTest.command}", false, ${kTest.param}), ${kTest.value})`;
+    if (kTest.command === "paste" || kTest.command === "copy" || kTest.command === "cut") {
+      await test_driver.click(document.body);
+    }
     aTarget.value = "dummy value to ensure the following value setting clear the undo history";
     let value = kTest.value.replace(/[\[\]]/g, "");
     aTarget.value = value;

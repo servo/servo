@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Reading flow with explicit visual reordering</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<style>
+.flex-container {
+  display: flex;
+  flex-direction: row;
+  reading-flow: flex-visual;
+}
+
+/* Explicitly reorder visual positions */
+.flex-container #item1 {
+  order: 4; /* Last visually */
+}
+
+.flex-container #item2 {
+  order: 1; /* First visually */
+}
+
+.flex-container #item3 {
+  order: 3; /* Third visually */
+}
+
+.flex-container #item4 {
+  order: 2; /* Second visually */
+}
+</style>
+
+<div class="flex-container" focusgroup="toolbar">
+  <span id=item1 tabindex=0>item1 (DOM 1st, visual 4th)</span>
+  <span id=item2 tabindex=0>item2 (DOM 2nd, visual 1st)</span>
+  <span id=item3 tabindex=0>item3 (DOM 3rd, visual 3rd)</span>
+  <span id=item4 tabindex=0>item4 (DOM 4th, visual 2nd)</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    // Visual order due to flex order property and reading-flow: flex-visual
+    // DOM order: item1, item2, item3, item4
+    // Visual order: item2 (order:1), item4 (order:2), item3 (order:3), item1 (order:4)
+    const elementsInVisualOrder = [
+      document.getElementById("item2"),
+      document.getElementById("item4"),
+      document.getElementById("item3"),
+      document.getElementById("item1")
+    ];
+
+    await assert_focus_navigation_bidirectional(elementsInVisualOrder);
+  }, "Focusgroup navigation should follow explicit visual reordering via CSS order property.");
+
+</script>

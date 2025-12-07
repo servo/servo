@@ -1,0 +1,5 @@
+features:
+- name: base
+  files:
+  - form-no-action-with-base.html
+  - form-with-action-and-base.sub.html

@@ -11,3 +11,8 @@ features:
 - name: background-repeat
   files:
   - background-table-*
+- name: borders
+  files:
+  - border-conflict-*
+  - border-style-*
+  - column-border-*

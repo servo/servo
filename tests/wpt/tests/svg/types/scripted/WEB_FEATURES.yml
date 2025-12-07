@@ -1,0 +1,8 @@
+features:
+- name: svg-discouraged
+  files:
+  - SVGPoint.html
+- name: svg-filters
+  files:
+  - SVGAnimatedEnumeration-SVGFilterElement.html
+  - SVGAnimatedEnumeration-SVGFEColorMatrixElement.html

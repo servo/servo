@@ -1,0 +1,78 @@
+<!doctype html>
+<title>XRWebGLBinding::createEquirectLayer</title>
+<link rel="help" href="https://immersive-web.github.io/layers/#dom-xrwebglbinding-createquadlayer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="./xr_layer_promise_test.js"></script>
+
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+
+  function testCreateEquirectLayer(xrSession, deviceController, t, { gl, xrBinding, xrSpace }) {
+    return new Promise((resolve, reject) => {
+      const valid_init = {
+        space: xrSpace,
+        viewPixelWidth: 1024,
+        viewPixelHeight: 1024
+      };
+
+      t.step(() => {
+        // Check that create method clamps negative radius and angles according to spec.
+        let init_clamp_values = Object.assign({}, valid_init, {
+          radius: -2,
+          centralHorizontalAngle: -5,
+          upperVerticalAngle: -3,
+          lowerVerticalAngle: -3
+        });
+
+        let layer = xrBinding.createEquirectLayer(init_clamp_values);
+        assert_equals(layer.radius, 0, "radius should be zero.");
+        assert_equals(layer.centralHorizontalAngle, 0,
+          "centralHorizontalAngle should be zero.");
+        assert_true(
+          Math.abs(layer.upperVerticalAngle + Math.PI / 2) < FLOAT_EPSILON,
+          "upperVerticalAngle should be -pi/2.");
+        assert_true(
+          Math.abs(layer.lowerVerticalAngle + Math.PI / 2) < FLOAT_EPSILON,
+          "lowerVerticalAngle should be -pi/2.");
+      });
+
+      t.step(() => {
+        // Check that create method clamps negative radius and angles according to spec.
+        let init_clamp_values = Object.assign({}, valid_init, {
+          radius: 2,
+          centralHorizontalAngle: 7,
+          upperVerticalAngle: 3,
+          lowerVerticalAngle: 3
+        });
+
+        let layer = xrBinding.createEquirectLayer(init_clamp_values);
+        assert_equals(layer.radius, 2,
+          "The radius value should be the same as provided to the init.");
+        assert_true(
+          Math.abs(layer.centralHorizontalAngle - 2 * Math.PI) < FLOAT_EPSILON,
+          "centralHorizontalAngle should not be greater than a 2*pi.");
+        assert_true(
+          Math.abs(layer.upperVerticalAngle - Math.PI / 2) < FLOAT_EPSILON,
+          "upperVerticalAngle should be pi/2.");
+        assert_true(
+          Math.abs(layer.lowerVerticalAngle - Math.PI / 2) < FLOAT_EPSILON,
+          "lowerVerticalAngle should be pi/2.");
+      });
+
+      // Test that a valid init works.
+      t.step(() => {
+        const layer = xrBinding.createEquirectLayer(valid_init);
+        assert_true(layer instanceof XREquirectLayer, "Valid init parameters must create an XREquirectLayer.");
+        resolve();
+      });
+    });
+  }
+
+  xr_layer_promise_test("Ensure XrWebGLBinding::createEquirectLayer throws the appropriate errors",
+    testCreateEquirectLayer, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

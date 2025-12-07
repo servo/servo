@@ -1,0 +1,8 @@
+features:
+- name: execcommand
+  files:
+    - 'exec-command-*'
+    - 'inserthtml-do-not-preserve-inline-styles.html'
+    - 'legacy-edit-command.html'
+    - 'non-html-document.html'
+    - 'restoration.html'

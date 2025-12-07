@@ -5,13 +5,13 @@
     display: grid-lanes;
     item-tolerance: 0;
     grid-template-rows: repeat(3, 50px);
-    masonry-direction: row;
+    grid-lanes-direction: row;
     direction: rtl;
     gap: 10px;
 }
 </style>
 <body>
-  <p>The CSS property `direction` is correctly applied on top of `masonry-direction`</p>
+  <p>The CSS property `direction` is correctly applied on top of `grid-lanes-direction`</p>
   <div class="grid-lanes">
     <div style="background: lightskyblue;">The cat cannot be separated from milk</div>
     <div style="background: lightgreen; width: min-content;">milk</div>

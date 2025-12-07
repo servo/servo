@@ -6,36 +6,65 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/html/canvas/resources/canvas-tests.js"></script>
 <link rel="stylesheet" href="/html/canvas/resources/canvas-tests.css">
-<body class="show_output">
 
 <h1>2d.state.saverestore.textAlign</h1>
-<p class="desc">save()/restore() works for textAlign</p>
 
-
-<p class="output">Actual output:</p>
-<canvas id="c" class="output" width="100" height="50"><p class="fallback">FAIL (fallback content)</p></canvas>
-
-<ul id="d"></ul>
 <script>
-var t = async_test("save()/restore() works for textAlign");
-_addTest(function(canvas, ctx) {
 
-  // Test that restore() undoes any modifications
-  var old = ctx.textAlign;
+test(t => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 300;
+  canvas.height = 150;
+  const ctx = canvas.getContext('2d');
+
+  const old = ctx.textAlign;
   ctx.save();
   ctx.textAlign = "center";
   ctx.restore();
   _assertSame(ctx.textAlign, old, "ctx.textAlign", "old");
+}, "save()/restore() restores textAlign, for a canvas of size (300, 150).");
 
-  // Also test that save() doesn't modify the values
+test(t => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 300;
+  canvas.height = 150;
+  const ctx = canvas.getContext('2d');
+
   ctx.textAlign = "center";
-  old = ctx.textAlign;
-      // we're not interested in failures caused by get(set(x)) != x (e.g.
-      // from rounding), so compare against 'old' instead of against "center"
+  const old = ctx.textAlign;
+  // We're not interested in failures caused by get(set(x)) != x (e.g.
+  // from rounding), so compare against `old` instead of "center".
   ctx.save();
   _assertSame(ctx.textAlign, old, "ctx.textAlign", "old");
   ctx.restore();
+}, "save() does not modify textAlign, for a canvas of size (300, 150).");
 
-});
+test(t => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 0;
+  canvas.height = 0;
+  const ctx = canvas.getContext('2d');
+
+  const old = ctx.textAlign;
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.restore();
+  _assertSame(ctx.textAlign, old, "ctx.textAlign", "old");
+}, "save()/restore() restores textAlign, for a canvas of size (0, 0).");
+
+test(t => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 0;
+  canvas.height = 0;
+  const ctx = canvas.getContext('2d');
+
+  ctx.textAlign = "center";
+  const old = ctx.textAlign;
+  // We're not interested in failures caused by get(set(x)) != x (e.g.
+  // from rounding), so compare against `old` instead of "center".
+  ctx.save();
+  _assertSame(ctx.textAlign, old, "ctx.textAlign", "old");
+  ctx.restore();
+}, "save() does not modify textAlign, for a canvas of size (0, 0).");
+
 </script>
-

@@ -2,3 +2,6 @@ features:
 - name: clip
   files:
   - clip-rect-*
+- name: text-combine-upright
+  files:
+  - "text-combine-upright-*"

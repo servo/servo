@@ -21,6 +21,36 @@ test_no_interpolation({
 
 test_no_interpolation({
   property: 'counter-reset',
+  from: 'reversed(foo) 5',
+  to: 'reversed(foo) 123'
+});
+
+test_no_interpolation({
+  property: 'counter-reset',
+  from: 'reversed(foo)',
+  to: 'reversed(foo) 123'
+});
+
+test_no_interpolation({
+  property: 'counter-reset',
+  from: 'foo 123',
+  to: 'reversed(foo) 123'
+});
+
+test_no_interpolation({
+  property: 'counter-reset',
+  from: 'foo',
+  to: 'reversed(foo)'
+});
+
+test_no_interpolation({
+  property: 'counter-reset',
+  from: 'initial',
+  to: 'reversed(foo)'
+});
+
+test_no_interpolation({
+  property: 'counter-reset',
   from: 'initial',
   to: 'add 123'
 });

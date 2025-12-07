@@ -5,7 +5,7 @@
 -->
 <html><head>
   <meta charset="utf-8">
-  <title>Reference: Masonry layout with a subgrid (masonry-subgrid-002f)</title>
+  <title>Reference: Grid Lanes layout with a subgrid (grid-lanes-subgrid-002f)</title>
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
 <style>
 html,body {
@@ -15,7 +15,6 @@ html,body {
 grid {
   display: inline-grid;
   grid-template-rows: 40px 30px 20px;
-  grid-template-columns: masonry;
   gap: 4px 2px;
   padding: 1px 3px 5px 7px;
   border: solid;
@@ -25,7 +24,6 @@ grid {
 }
 .rows {
   grid-template-columns: 40px 30px 20px;
-  grid-template-rows: masonry;
   grid-auto-flow: row;
 }
 item {
@@ -65,7 +63,7 @@ subgrid.extent {
 </head>
 <body>
 
-<!-- auto-placed subgrid inhibits subgridding when parent is doing masonry layout ... -->
+<!-- auto-placed subgrid inhibits subgridding when parent is doing grid-lanes layout ... -->
 
 <grid class="rows">
   <item>1</item>

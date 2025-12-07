@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>trigger-scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#trigger-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target" style="font-size:10px"></div>
+<script>
+  test_valid_value("trigger-scope", "initial");
+  test_valid_value("trigger-scope", "inherit");
+  test_valid_value("trigger-scope", "unset");
+  test_valid_value("trigger-scope", "revert");
+  test_valid_value("trigger-scope", "none");
+  test_valid_value("trigger-scope", "all");
+  test_valid_value("trigger-scope", "--a");
+  test_valid_value("trigger-scope", "--a, --b");
+  test_valid_value("trigger-scope", "--a, --b, --c");
+  test_valid_value('trigger-scope', '--foo, --bar');
+  test_valid_value('trigger-scope', '--bar, --foo');
+
+  test_computed_value("trigger-scope", "initial", "none");
+  test_computed_value("trigger-scope", "none");
+  test_computed_value("trigger-scope", "all");
+  test_computed_value("trigger-scope", "--a");
+  test_computed_value("trigger-scope", "--a, --b");
+  test_computed_value("trigger-scope", "--a, --b, --c");
+  test_computed_value('trigger-scope', '--foo, --bar');
+  test_computed_value('trigger-scope', '--bar, --foo');
+
+  test_invalid_value("trigger-scope", "--a none");
+  test_invalid_value("trigger-scope", "none --a");
+  test_invalid_value("trigger-scope", "none all");
+  test_invalid_value("trigger-scope", "--a --b");
+  test_invalid_value("trigger-scope", "a, b, c");
+  test_invalid_value("trigger-scope", "");
+</script>

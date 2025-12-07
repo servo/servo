@@ -1,0 +1,4 @@
+features:
+- name: text-align
+  files:
+  - text-align-applies-to-004.xht

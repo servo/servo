@@ -28,6 +28,16 @@
       counter-set: cnt 5051;
       content: "" / counter(cnt);
     }
+    .multi-alt-counter {
+      counter-reset: multi_alt 10;
+    }
+    .multi-alt-counter span::before {
+      counter-increment: multi_alt 1;
+      content: "" / counter(multi_alt) " ";
+    }
+    .multi-alt-counter span:nth-child(2n)::before {
+      counter-increment: multi_alt 2;
+    }
     .simple-before::before {
       content: " before "; /* [sic] leading and trailing space */
       margin:0 0.1em;
@@ -111,6 +121,12 @@
 <button data-expectedlabel="5051 label" data-testname="button with alt counter on ::before" class="ex alt-counter">label</button><br>
 <h3 data-expectedlabel="5051 label" data-testname="heading with alt counter on ::before" class="ex alt-counter">label</h3>
 <a href="#" data-expectedlabel="5051 label" data-testname="link with alt counter on ::before" class="ex alt-counter">label</a><br>
+<br>
+
+<h1>multiple alt counters with varying increments</h1>
+<button data-expectedlabel="11 alpha 13 beta 14 gamma" data-testname="button with multiple alt counters and counter increments" class="ex multi-alt-counter"><span>alpha</span> <span>beta</span> <span>gamma</span></button><br>
+<h3 data-expectedlabel="11 alpha 13 beta 14 gamma" data-testname="heading with multiple alt counters and counter increments" class="ex multi-alt-counter"><span>alpha</span> <span>beta</span> <span>gamma</span></h3>
+<a href="#" data-expectedlabel="11 alpha 13 beta 14 gamma" data-testname="link with multiple alt counters and counter increments" class="ex multi-alt-counter"><span>alpha</span> <span>beta</span> <span>gamma</span></a><br>
 <br>
 
 <h1>simple with ::before</h1>

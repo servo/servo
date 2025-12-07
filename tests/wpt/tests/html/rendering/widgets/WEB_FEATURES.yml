@@ -2,3 +2,6 @@ features:
 - name: field-sizing
   files:
   - field-sizing-*
+- name: textarea
+  files:
+  - textarea-*

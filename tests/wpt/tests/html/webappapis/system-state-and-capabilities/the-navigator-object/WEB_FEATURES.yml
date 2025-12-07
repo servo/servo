@@ -12,3 +12,6 @@ features:
 - name: window-controls-overlay
   files:
   - navigator-window-controls-overlay.tentative.html
+- name: user-agent-sniffing
+  files:
+  - navigator.any.js

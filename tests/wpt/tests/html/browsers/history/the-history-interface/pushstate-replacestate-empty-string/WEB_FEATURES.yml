@@ -1,0 +1,5 @@
+features:
+- name: base
+  files:
+  - pushstate-base.html
+  - replacestate-base.html

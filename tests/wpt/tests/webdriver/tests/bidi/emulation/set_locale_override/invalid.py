@@ -1,6 +1,7 @@
 import pytest
 
 import webdriver.bidi.error as error
+from webdriver.bidi.undefined import UNDEFINED
 
 pytestmark = pytest.mark.asyncio
 
@@ -88,6 +89,14 @@ async def test_params_user_contexts_entry_invalid_value(bidi_session, value):
         await bidi_session.emulation.set_locale_override(
             locale=None,
             user_contexts=[value],
+        )
+
+
+async def test_params_locale_missing(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.emulation.set_locale_override(
+            locale=UNDEFINED,
+            contexts=[top_context["context"]],
         )
 
 

@@ -1,0 +1,11 @@
+features:
+- name: table-discouraged
+  files:
+  - table-attribute.html
+  - table-align-float.xhtml
+  - "table-width*"
+  - "table-border*"
+  - "table-bordercolor-*"
+  - "table-valign-baseline*"
+  - "table-cell-width*"
+  - "colgroup_valign*"

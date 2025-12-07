@@ -1,0 +1,4 @@
+features:
+- name: text-combine-upright
+  files:
+  - "text-combine-upright-*"

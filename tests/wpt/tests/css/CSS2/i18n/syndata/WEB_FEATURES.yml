@@ -1,0 +1,24 @@
+features:
+- name: charset
+  files:
+  # The tests in this directory employ various (and sometimes conflicting)
+  # techniques to specify the CSS document's character set. Those listed below
+  # specifically use the `@charset` rule.
+  - character-encoding-004.xht
+  - character-encoding-005.xht
+  - character-encoding-006.xht
+  - character-encoding-013.xht
+  - character-encoding-014.xht
+  - character-encoding-015.xht
+  - character-encoding-016.xht
+  - character-encoding-017.xht
+  - character-encoding-018.xht
+  - character-encoding-019.xht
+  - character-encoding-020.xht
+  - character-encoding-021.xht
+  - character-encoding-022.xht
+  - character-encoding-023.xht
+  - character-encoding-024.xht
+  - character-encoding-025.xht
+  - character-encoding-026.xht
+  - character-encoding-029.xht

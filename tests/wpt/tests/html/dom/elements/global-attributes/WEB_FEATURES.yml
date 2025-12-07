@@ -1,0 +1,7 @@
+features:
+- name: style-attr
+  files:
+  - style-01.html
+- name: title-attr
+  files:
+  - title-manual.html

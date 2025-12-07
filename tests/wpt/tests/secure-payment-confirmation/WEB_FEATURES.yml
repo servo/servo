@@ -1,0 +1,3 @@
+features:
+- name: secure-payment-confirmation
+  files: "**"

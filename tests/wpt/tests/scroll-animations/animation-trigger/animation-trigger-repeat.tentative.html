@@ -25,18 +25,18 @@
 
       #scroll_target {
         animation-trigger: --scrolltrigger play-forwards reset;
-        timeline-trigger: --scrolltrigger scroll() 250px 300px 200px 350px;
+        timeline-trigger: --scrolltrigger scroll() 250px 300px / 200px 350px;
       }
       #view_target {
         animation-trigger: --viewtrigger play-forwards reset;
-        timeline-trigger: --viewtrigger view() 250px 300px 200px 350px;
+        timeline-trigger: --viewtrigger view() 250px 300px / 200px 350px;
       }
       #deferred_target {
         animation-trigger: --deferredtrigger play-forwards reset;
       }
       #deferred_subject {
         view-timeline: --viewtimeline;
-        timeline-trigger: --deferredtrigger --viewtimeline 250px 300px 200px 350px;
+        timeline-trigger: --deferredtrigger --viewtimeline 250px 300px / 200px 350px;
       }
 
       .scroller {

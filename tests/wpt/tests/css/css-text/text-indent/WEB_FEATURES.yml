@@ -6,3 +6,6 @@ features:
 - name: text-indent-each-line
   files:
   - text-indent-each-line-hanging.html
+- name: text-indent-hanging
+  files:
+  - text-indent-each-line-hanging.html

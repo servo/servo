@@ -452,7 +452,7 @@ def set_from_config(kwargs):
 
     kwargs["config"] = config.read(kwargs["config_path"])
 
-    kwargs["product"] = products.Product(kwargs["config"], kwargs["product"])
+    kwargs["product"] = products.Product.from_product_name(kwargs["product"])
 
     keys = {"paths": [("prefs", "prefs_root", "path"),
                       ("run_info", "run_info", "path"),

@@ -7,14 +7,14 @@
 <style>
 #grid {
   display: grid-lanes;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   font: 50px/1 Ahem;
   grid-template-rows: auto auto;
   justify-content: start;
   align-content: start;
 }
 </style>
-<p>Ensure `order` property affects masonry layout correctly</p>
+<p>Ensure `order` property affects grid-lanes layout correctly</p>
 <div id="grid">
   <div id="blue" style="color: blue; order: 1;">B</div>
   <div id="lime" style="color: lime; order: 5;">L</div>

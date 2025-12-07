@@ -24,11 +24,11 @@ function get_config() {
 function get_qp_range() {
   switch (location.search) {
     case '?av1':
-      return {min: 1, max: 63};
+      return {min: 1, max: 255};
     case '?vp9_p0':
-      return {min: 1, max: 63};
+      return {min: 1, max: 255};
     case '?vp9_p2':
-      return {min: 1, max: 63};
+      return {min: 1, max: 255};
     case '?h264':
       return {min: 1, max: 51};
     case '?h265':

@@ -1179,3 +1179,21 @@ async def assert_header_present(get_fetch_headers):
             f"header '{header_name}' should have value '{header_value}'"
 
     return assert_header_present
+
+
+@pytest_asyncio.fixture
+async def match_media_query(bidi_session):
+    async def match_media_query(context, media_query_type, media_query_value):
+        result = await bidi_session.script.call_function(
+            arguments=[
+                {"type": "string", "value": media_query_type},
+                {"type": "number", "value": media_query_value},
+            ],
+            function_declaration="""(type, value) => matchMedia(`(${type}: ${value}px)`).matches""",
+            target=ContextTarget(context["context"]),
+            await_promise=False,
+        )
+
+        return result["value"]
+
+    return match_media_query

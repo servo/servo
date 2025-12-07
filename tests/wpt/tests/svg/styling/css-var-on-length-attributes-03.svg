@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Usage of css var() with default fallback on svg width and height attributes (units specified)</title>
+  <html:link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com"/>
+  <html:link rel="match" href="../embedded/reference/green-rect-100x100.svg"/>
+  <rect width="var(--length,100px)" height="var(--length,100px)" fill="green"/>
+</svg>

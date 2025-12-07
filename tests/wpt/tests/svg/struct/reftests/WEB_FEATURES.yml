@@ -1,0 +1,4 @@
+features:
+- name: target
+  files:
+  - "use-external-resource-target-pseudo-*"

@@ -26,3 +26,15 @@ features:
 - name: word-spacing
   files:
   - word-spacing-*
+- name: tab-size
+  files:
+  - tab-size-*
+- name: text-align
+  files:
+  - "text-align-all-*"
+  - text-align-computed.html
+  - text-align-invalid.html
+  - text-align-valid.html
+- name: text-align-last
+  files:
+  - "text-align-last-*"

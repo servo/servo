@@ -29,3 +29,15 @@ features:
 - name: background-size
   files:
   - background-size-*
+- name: border-radius
+  files:
+  - border-radius-*
+  - webkit-border-radius-valid.html
+- name: borders
+  files:
+  - border-*
+  - "!border-image-*"
+  - "!border-radius-*"
+  - border-color-invalid.html
+  - border-color-shorthand.html
+  - border-color-valid.html

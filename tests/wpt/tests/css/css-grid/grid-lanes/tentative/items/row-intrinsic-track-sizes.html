@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Masonry Layout Test: Intrinsic contribution of a small item to intrinsic tracks</title>
+<title>CSS Grid Lanes Layout Test: Intrinsic contribution of a small item to intrinsic tracks</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
 <link rel="help" href="https://www.w3.org/TR/css-grid-1/#algo-content">
-<meta name="assert" content="This test checks that the intrinsic contribution of a single masonry item smaller than its container is distributed correctly among the tracks it spans when intrinsic tracks are involved.">
+<meta name="assert" content="This test checks that the intrinsic contribution of a single grid-lanes item smaller than its container is distributed correctly among the tracks it spans when intrinsic tracks are involved.">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
-#masonry {
+#grid-lanes {
   display: grid-lanes;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   width: 120px;
   height: 120px;
   border: solid;
@@ -22,7 +22,7 @@
 }
 </style>
 
-<div id="masonry">
+<div id="grid-lanes">
   <div id="item">XXX XX<br>XX<br>XX</div>
 </div>
 
@@ -35,7 +35,7 @@
 const item = document.getElementById("item");
 function checkTrackSizes(span, trackList, expectedRows) {
   item.style.gridRow = `span ${span}`;
-  TestingUtils.testGridTemplateRows("masonry", trackList, expectedRows);
+  TestingUtils.testGridTemplateRows("grid-lanes", trackList, expectedRows);
 }
 
 setup({ explicit_done: true });

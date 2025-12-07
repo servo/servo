@@ -62,10 +62,10 @@ promise_test(() => {
 promise_test(() => {
   return navigator.userAgentData.getHighEntropyValues(["platformVersion", "wow64"]).then(
     hints => {
-      if (navigator.userAgentData.platform === "Linux") {
+      if (["Fuchsia", "Linux"].includes(navigator.userAgentData.platform)) {
         assert_true(hints.platformVersion === "");
         assert_equals(hints.wow64, false);
       }
     }
   );
-}, "Platform version and wow64-ness on Linux should be fixed values");
+}, "Platform version and wow64-ness on Fuchsia and Linux should be fixed values");

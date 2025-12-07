@@ -7,6 +7,13 @@
     <link rel="match" href="highlight-text-replace-ref.html">
     <meta name="assert" content="Multiple highlights should be able to be specified.">
     <style>
+        :root {
+            /* This reduces the likelihood that a highlight background-area
+               will overlap with the previous glyph.  That overlap is worth
+               avoiding, because the previous glyph's overlapping part will get
+               clipped in the reference case, but might not in the testcase. */
+            font-family: monospace;
+        }
         ::highlight(example-highlight) {
             background-color: yellow;
             color:green;

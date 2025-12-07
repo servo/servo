@@ -1,0 +1,4 @@
+features:
+- name: base
+  files:
+  - string-compilation-base-url-*

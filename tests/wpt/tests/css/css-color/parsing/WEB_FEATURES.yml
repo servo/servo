@@ -7,3 +7,6 @@ features:
   files:
   - "relative-*"
   - "*-relative-*"
+- name: system-color
+  files:
+  - color-valid-system-color.html

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8" />
+<link
+  rel="help"
+  href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+  <geolocation id="geolocation_element"></geolocation>
+
+  <script>
+    promise_test(
+      async () => {
+        // Set the initial geolocation state to denied.
+        await test_driver.set_permission({ name: "geolocation" }, "denied");
+        await navigator.permissions.query({ name: "geolocation" });
+
+        assert_false(geolocation_element.matches(":granted"));
+
+        // Set the camera state to allowed.
+        await test_driver.set_permission({ name: "geolocation" }, "granted");
+        await navigator.permissions.query({ name: "geolocation" });
+
+        // The granted selector should now be applied.
+        assert_true(geolocation_element.matches(":granted"));
+
+        // Set the camera state to denied.
+        await test_driver.set_permission({ name: "geolocation" }, "denied");
+        await navigator.permissions.query({ name: "geolocation" });
+
+        // The granted selector should now be removed.
+        assert_false(geolocation_element.matches(":granted"));
+      },
+      "Geolocation element should not have the granted selector when the \
+      permission is not granted.",
+    );
+  </script>
+</body>

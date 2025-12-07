@@ -1,0 +1,8 @@
+features:
+- name: user-action-pseudos
+  files:
+  - active-selector-*
+  - hover-selector-*
+  - dom-hover-*
+  - focus-pseudo-class-*
+  - focus-selector-*

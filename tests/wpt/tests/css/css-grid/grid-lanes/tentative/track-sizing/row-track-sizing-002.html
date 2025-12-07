@@ -7,7 +7,7 @@
 <style>
 .grid-lanes {
     display: grid-lanes;
-    masonry-direction: row;
+    grid-lanes-direction: row;
     grid-template-rows: minmax(15px, min-content) max-content auto;
     background-color: gray;
     height: 100px;
@@ -16,7 +16,7 @@
 }
 </style>
 <body>
-  <p>Test that masonry tracks are correctly sized, and auto tracks are stretched.</p>
+  <p>Test that grid-lanes tracks are correctly sized, and auto tracks are stretched.</p>
   <div class="grid-lanes">
     <div style="grid-row: 1; background: green; width: min-content;">XXX XXX</div>
     <div style="grid-row: 1 / 3; background: purple; width: 2em;">X XX X</div>
