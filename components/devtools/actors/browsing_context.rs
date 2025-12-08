@@ -20,7 +20,7 @@ use embedder_traits::Theme;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
@@ -285,34 +285,6 @@ impl BrowsingContextActor {
         target
     }
 
-    pub fn encodable(&self) -> BrowsingContextActorMsg {
-        BrowsingContextActorMsg {
-            actor: self.name(),
-            traits: BrowsingContextTraits {
-                is_browsing_context: true,
-                frames: true,
-                log_in_page: false,
-                navigation: true,
-                supports_top_level_target_flag: true,
-                watchpoints: true,
-            },
-            title: self.title.borrow().clone(),
-            url: self.url.borrow().clone(),
-            browser_id: self.browser_id.value(),
-            browsing_context_id: self.browsing_context_id.value(),
-            outer_window_id: self.active_outer_window_id.get().value(),
-            is_top_level_target: true,
-            accessibility_actor: self.accessibility.clone(),
-            console_actor: self.console.clone(),
-            css_properties_actor: self.css_properties.clone(),
-            inspector_actor: self.inspector.clone(),
-            reflow_actor: self.reflow.clone(),
-            style_sheets_actor: self.style_sheets.clone(),
-            thread_actor: self.thread.clone(),
-            target_type: TargetType::Frame,
-        }
-    }
-
     pub(crate) fn navigate(&self, state: NavigationState, id_map: &mut IdMap) {
         let (pipeline_id, title, url, state) = match state {
             NavigationState::Start(url) => (None, None, url, "start"),
@@ -369,5 +341,35 @@ impl BrowsingContextActor {
         self.script_chan
             .send(SimulateColorScheme(self.active_pipeline_id.get(), theme))
             .map_err(|_| ())
+    }
+}
+
+impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
+    fn encode(&self, _: &ActorRegistry) -> BrowsingContextActorMsg {
+        BrowsingContextActorMsg {
+            actor: self.name(),
+            traits: BrowsingContextTraits {
+                is_browsing_context: true,
+                frames: true,
+                log_in_page: false,
+                navigation: true,
+                supports_top_level_target_flag: true,
+                watchpoints: true,
+            },
+            title: self.title.borrow().clone(),
+            url: self.url.borrow().clone(),
+            browser_id: self.browser_id.value(),
+            browsing_context_id: self.browsing_context_id.value(),
+            outer_window_id: self.active_outer_window_id.get().value(),
+            is_top_level_target: true,
+            accessibility_actor: self.accessibility.clone(),
+            console_actor: self.console.clone(),
+            css_properties_actor: self.css_properties.clone(),
+            inspector_actor: self.inspector.clone(),
+            reflow_actor: self.reflow.clone(),
+            style_sheets_actor: self.style_sheets.clone(),
+            thread_actor: self.thread.clone(),
+            target_type: TargetType::Frame,
+        }
     }
 }

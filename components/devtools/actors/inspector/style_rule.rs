@@ -16,7 +16,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
@@ -130,7 +130,7 @@ impl Actor for StyleRuleActor {
                     ))
                     .map_err(|_| ActorError::Internal)?;
 
-                request.reply_final(&self.encodable(registry))?
+                request.reply_final(&self.encode(registry))?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
@@ -245,8 +245,10 @@ impl StyleRuleActor {
                 .collect(),
         )
     }
+}
 
-    pub fn encodable(&self, registry: &ActorRegistry) -> StyleRuleActorMsg {
+impl ActorEncode<StyleRuleActorMsg> for StyleRuleActor {
+    fn encode(&self, registry: &ActorRegistry) -> StyleRuleActorMsg {
         StyleRuleActorMsg {
             from: self.name(),
             rule: self.applied(registry),

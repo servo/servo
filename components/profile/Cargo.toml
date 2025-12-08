@@ -23,7 +23,7 @@ servo_config = { path = "../config" }
 time = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-task_info = { path = "../../support/rust-task_info" }
+mach2 = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 regex = { workspace = true }

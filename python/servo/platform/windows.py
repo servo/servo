@@ -8,12 +8,12 @@
 # except according to those terms.
 
 import os
+import shutil
 import subprocess
 import tempfile
-from typing import Optional
 import urllib.parse
 import zipfile
-import shutil
+from typing import Optional
 
 from servo import util
 
@@ -37,11 +37,13 @@ def get_dependency_dir(package: str) -> str:
     return os.path.join(DEPENDENCIES_DIR, package, DEPENDENCIES[package])
 
 
-def _winget_import(force: bool = False) -> None:
+def _winget_import(force: bool = False, yes: bool = False) -> None:
     try:
         # We install tools like LLVM / CMake, so we probably don't want to force-upgrade
         # a user installed version without good reason.
-        cmd = ["winget", "install", "--interactive"]
+        cmd = ["winget", "install"]
+        if not yes:
+            cmd.append("--interactive")
         if force:
             cmd.append("--force")
         else:
@@ -99,13 +101,13 @@ class Windows(Base):
         else:
             print("done")
 
-    def _platform_bootstrap(self, force: bool) -> bool:
+    def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = self.passive_bootstrap()
         # If `winget` works well in practice, we could switch the default in the future.
         if shutil.which("choco") is not None:
             _choco_install(force)
         else:
-            _winget_import()
+            _winget_import(force, yes)
 
         target = BuildTarget.from_triple(None)
         installed_something |= self._platform_bootstrap_gstreamer(target, force)

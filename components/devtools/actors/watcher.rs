@@ -20,23 +20,20 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
-use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
+use self::network_parent::NetworkParentActor;
 use super::breakpoint::BreakpointListActor;
 use super::thread::ThreadActor;
-use super::worker::WorkerMsg;
-use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::breakpoint::BreakpointListActorMsg;
+use super::worker::WorkerActorMsg;
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::RootActor;
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
-use crate::actors::watcher::thread_configuration::{
-    ThreadConfigurationActor, ThreadConfigurationActorMsg,
-};
+use crate::actors::watcher::thread_configuration::ThreadConfigurationActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{EmptyReplyMsg, IdMap, StreamId, WorkerActor};
+use crate::{ActorMsg, EmptyReplyMsg, IdMap, StreamId, WorkerActor};
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -112,7 +109,7 @@ pub enum SessionContextType {
 #[serde(untagged)]
 enum TargetActorMsg {
     BrowsingContext(BrowsingContextActorMsg),
-    Worker(WorkerMsg),
+    Worker(WorkerActorMsg),
 }
 
 #[derive(Serialize)]
@@ -133,7 +130,7 @@ struct GetParentBrowsingContextIDReply {
 #[derive(Serialize)]
 struct GetNetworkParentActorReply {
     from: String,
-    network: NetworkParentActorMsg,
+    network: ActorMsg,
 }
 
 #[derive(Serialize)]
@@ -145,14 +142,14 @@ struct GetTargetConfigurationActorReply {
 #[derive(Serialize)]
 struct GetThreadConfigurationActorReply {
     from: String,
-    configuration: ThreadConfigurationActorMsg,
+    configuration: ActorMsg,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct GetBreakpointListActorReply {
     from: String,
-    breakpoint_list: BreakpointListActorMsg,
+    breakpoint_list: ActorMsg,
 }
 
 #[derive(Serialize)]
@@ -247,18 +244,19 @@ impl Actor for WatcherActor {
                     let msg = WatchTargetsReply {
                         from: self.name(),
                         type_: "target-available-form".into(),
-                        target: TargetActorMsg::BrowsingContext(target.encodable()),
+                        target: TargetActorMsg::BrowsingContext(target.encode(registry)),
                     };
                     let _ = request.write_json_packet(&msg);
 
                     target.frame_update(&mut request);
                 } else if target_type == "worker" {
                     for worker_name in &root.workers {
-                        let worker = registry.find::<WorkerActor>(worker_name);
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),
-                            target: TargetActorMsg::Worker(worker.encodable()),
+                            target: TargetActorMsg::Worker(
+                                registry.encode::<WorkerActor, _>(worker_name),
+                            ),
                         };
                         let _ = request.write_json_packet(&worker_msg);
                     }
@@ -347,37 +345,35 @@ impl Actor for WatcherActor {
                 request.reply_final(&msg)?
             },
             "getNetworkParentActor" => {
-                let network_parent = registry.find::<NetworkParentActor>(&self.network_parent);
                 let msg = GetNetworkParentActorReply {
                     from: self.name(),
-                    network: network_parent.encodable(),
+                    network: registry.encode::<NetworkParentActor, _>(&self.network_parent),
                 };
                 request.reply_final(&msg)?
             },
             "getTargetConfigurationActor" => {
-                let target_configuration =
-                    registry.find::<TargetConfigurationActor>(&self.target_configuration);
                 let msg = GetTargetConfigurationActorReply {
                     from: self.name(),
-                    configuration: target_configuration.encodable(),
+                    configuration: registry
+                        .encode::<TargetConfigurationActor, _>(&self.target_configuration),
                 };
                 request.reply_final(&msg)?
             },
             "getThreadConfigurationActor" => {
-                let thread_configuration =
-                    registry.find::<ThreadConfigurationActor>(&self.thread_configuration);
                 let msg = GetThreadConfigurationActorReply {
                     from: self.name(),
-                    configuration: thread_configuration.encodable(),
+                    configuration: registry
+                        .encode::<ThreadConfigurationActor, _>(&self.thread_configuration),
                 };
                 request.reply_final(&msg)?
             },
             "getBreakpointListActor" => {
-                let breakpoint_list = registry.find::<BreakpointListActor>(&self.breakpoint_list);
-                request.reply_final(&GetBreakpointListActorReply {
+                let msg = GetBreakpointListActorReply {
                     from: self.name(),
-                    breakpoint_list: breakpoint_list.encodable(),
-                })?
+                    breakpoint_list: registry
+                        .encode::<BreakpointListActor, _>(&self.breakpoint_list),
+                };
+                request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
@@ -422,16 +418,6 @@ impl WatcherActor {
         watcher
     }
 
-    pub fn encodable(&self) -> WatcherActorMsg {
-        WatcherActorMsg {
-            actor: self.name(),
-            traits: WatcherTraits {
-                resources: self.session_context.supported_resources.clone(),
-                targets: self.session_context.supported_targets.clone(),
-            },
-        }
-    }
-
     pub fn emit_will_navigate(
         &self,
         browsing_context_id: BrowsingContextId,
@@ -458,6 +444,18 @@ impl WatcherActor {
                 ResourceArrayType::Available,
                 stream,
             );
+        }
+    }
+}
+
+impl ActorEncode<WatcherActorMsg> for WatcherActor {
+    fn encode(&self, _: &ActorRegistry) -> WatcherActorMsg {
+        WatcherActorMsg {
+            actor: self.name(),
+            traits: WatcherTraits {
+                resources: self.session_context.supported_resources.clone(),
+                targets: self.session_context.supported_targets.clone(),
+            },
         }
     }
 }

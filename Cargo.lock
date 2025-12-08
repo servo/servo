@@ -738,7 +738,7 @@ dependencies = [
  "crossbeam-channel",
  "libc",
  "log",
- "mach2",
+ "mach2 0.6.0",
  "nix",
  "rustc-demangle",
  "rustc-hash 2.1.1",
@@ -776,7 +776,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
- "mach2",
+ "mach2 0.6.0",
  "malloc_size_of_derive",
  "parking_lot",
  "rayon",
@@ -4731,7 +4731,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "617ee6cf8e3f66f3b4ea67a4058564628cde41901316e19f559e14c7c72c5e7b"
 dependencies = [
  "core-foundation-sys",
- "mach2",
+ "mach2 0.4.3",
 ]
 
 [[package]]
@@ -5282,6 +5282,12 @@ checksum = "d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "mach2"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dae608c151f68243f2b000364e1f7b186d9c29845f7d2d85bd31b9ad77ad552b"
 
 [[package]]
 name = "malloc_buf"
@@ -6915,13 +6921,13 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
+ "mach2 0.6.0",
  "profile_traits",
  "regex",
  "serde",
  "serde_json",
  "servo_allocator",
  "servo_config",
- "task_info",
  "tikv-jemalloc-sys",
  "time",
 ]
@@ -7471,7 +7477,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8997,13 +9003,6 @@ name = "target-lexicon"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
-
-[[package]]
-name = "task_info"
-version = "0.0.1"
-dependencies = [
- "cc",
-]
 
 [[package]]
 name = "tempfile"
