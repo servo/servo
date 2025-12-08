@@ -616,8 +616,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let cmd_args = match cmd_args {
         Ok(cmd_args) => cmd_args,
         Err(error) => {
-            // Because this is very early in startup stdout/stderr forward
-            // facilities might not be available yet
+            // Servo will exit after printing the parsing error, which makes the stdout / stderr
+            // redirection via a seperate thread racy, so we log directly to the system logger.
             if cfg!(target_os = "android") || cfg!(target_env = "ohos") {
                 match &error {
                     ParseFailure::Stderr(doc) => log::error!("{doc}"),
