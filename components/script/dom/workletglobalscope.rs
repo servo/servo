@@ -5,14 +5,13 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericCallback, GenericSender};
 use base::id::{PipelineId, WebViewId};
 use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
-use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
@@ -207,7 +206,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to the time profiler
     pub(crate) time_profiler_chan: time::ProfilerChan,
     /// Channel to devtools
-    pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub(crate) devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
     pub(crate) to_constellation_sender:
         GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,

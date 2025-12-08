@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
-use base::generic_channel::{GenericSender, RoutedReceiver};
+use base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
 use base::id::{PipelineId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -16,7 +16,6 @@ use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, ScriptToEmbedderChan};
-use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
 use net_traits::image_cache::ImageCacheResponseMessage;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
@@ -373,10 +372,10 @@ pub(crate) struct ScriptThreadSenders {
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
-    pub(crate) devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub(crate) devtools_server_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
 
     #[no_trace]
-    pub(crate) devtools_client_to_script_thread_sender: IpcSender<DevtoolScriptControlMsg>,
+    pub(crate) devtools_client_to_script_thread_sender: GenericSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(JSTraceable)]
@@ -392,7 +391,7 @@ pub(crate) struct ScriptThreadReceivers {
     /// For receiving commands from an optional devtools server. Will be ignored if no such server
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].
     #[no_trace]
-    pub(crate) devtools_server_receiver: Receiver<DevtoolScriptControlMsg>,
+    pub(crate) devtools_server_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
 
     /// Receiver to receive commands from optional WebGPU server. When there is no active
     /// WebGPU context, this will be [`crossbeam_channel::never()`].
@@ -419,7 +418,7 @@ impl ScriptThreadReceivers {
                 MixedMessage::FromScript(event)
             },
             recv(self.constellation_receiver) -> msg => MixedMessage::FromConstellation(msg.unwrap().unwrap()),
-            recv(self.devtools_server_receiver) -> msg => MixedMessage::FromDevtools(msg.unwrap()),
+            recv(self.devtools_server_receiver) -> msg => MixedMessage::FromDevtools(msg.unwrap().unwrap()),
             recv(self.image_cache_receiver) -> msg => MixedMessage::FromImageCache(msg.unwrap()),
             recv(timer_scheduler.wait_channel()) -> _ => MixedMessage::TimerFired,
             recv({
@@ -466,7 +465,7 @@ impl ScriptThreadReceivers {
             return MixedMessage::FromScript(message).into();
         }
         if let Ok(message) = self.devtools_server_receiver.try_recv() {
-            return MixedMessage::FromDevtools(message).into();
+            return MixedMessage::FromDevtools(message.unwrap()).into();
         }
         if let Ok(message) = self.image_cache_receiver.try_recv() {
             return MixedMessage::FromImageCache(message).into();
