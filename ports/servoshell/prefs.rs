@@ -619,23 +619,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             // Because this is very early in startup stdout/stderr forward
             // facilities might not be available yet
             if cfg!(target_os = "android") || cfg!(target_env = "ohos") {
-                #[cfg(target_env = "ohos")]
-                {
-                    let mut builder = hilog::Builder::new();
-                    builder.set_domain(hilog::LogDomain::new(0xE0C3));
-                }
-                #[cfg(target_os = "android")]
-                {
-                    android_logger::init_once(
-                        Config::default()
-                            .with_max_level(log::LevelFilter::Debug)
-                            .with_filter(filter_builder.build())
-                            .with_tag("servoshell"),
-                    )
-                }
                 match &error {
                     ParseFailure::Stderr(doc) => log::error!("{doc}"),
-                    _ => log::error!("This should never happen."),
+                    // '--help' will be parsed by the next one.
+                    ParseFailure::Stdout(doc, _) => log::error!("{doc}"),
+                    ParseFailure::Completion(_) => log::error!("Not supported on these platforms"),
                 }
             } else {
                 error.print_message(80);
