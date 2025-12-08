@@ -76,12 +76,12 @@ impl EventLoop {
         // Route messages coming from content to devtools as appropriate.
         let devtools_sender = constellation.devtools_sender.as_ref();
         let script_to_devtools_callback = devtools_sender.map(|devtools_sender| {
-            let devtools_sender_clone = devtools_sender.clone();
+            let devtools_sender = devtools_sender.clone();
             GenericCallback::new(move |message| match message {
                 Err(error) => error!("Cast to ScriptToDevtoolsControlMsg failed ({error})."),
                 Ok(message) => {
                     if let Err(error) =
-                        devtools_sender_clone.send(DevtoolsControlMsg::FromScript(message))
+                        devtools_sender.send(DevtoolsControlMsg::FromScript(message))
                     {
                         warn!("Sending to devtools failed ({error:?})")
                     }
