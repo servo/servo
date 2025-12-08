@@ -6,10 +6,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use base::generic_channel::GenericSender;
 use base::id::TEST_PIPELINE_ID;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
-use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -34,7 +34,7 @@ pub(crate) struct WorkerActor {
     pub worker_id: WorkerId,
     pub url: ServoUrl,
     pub type_: WorkerType,
-    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<HashMap<StreamId, TcpStream>>,
 }
 

@@ -6,11 +6,11 @@ use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use base::generic_channel;
 use constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
@@ -208,7 +208,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     .and_then(|w| w.browsing_context())
             });
 
-        let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
+        let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
         let worker_id = WorkerId(Uuid::new_v4());
         if let Some(chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();

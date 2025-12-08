@@ -5,9 +5,9 @@
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
+use base::generic_channel::{GenericSender, channel};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
-use ipc_channel::ipc::{IpcSender, channel};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -63,7 +63,7 @@ pub struct SourceActor {
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
     pub introduction_type: String,
 
-    script_sender: IpcSender<DevtoolScriptControlMsg>,
+    script_sender: GenericSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(Serialize)]
@@ -122,7 +122,7 @@ impl SourceActor {
         content_type: Option<String>,
         spidermonkey_id: u32,
         introduction_type: String,
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> SourceActor {
         SourceActor {
             name,
@@ -145,7 +145,7 @@ impl SourceActor {
         content_type: Option<String>,
         spidermonkey_id: u32,
         introduction_type: String,
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> &SourceActor {
         let source_actor_name = actors.new_name("source");
 
@@ -210,7 +210,9 @@ impl Actor for SourceActor {
             // Client wants to know which lines can have breakpoints.
             // Sent when opening a source in the Sources panel, and controls whether the line numbers can be clicked.
             "getBreakableLines" => {
-                let (tx, rx) = channel().map_err(|_| ActorError::Internal)?;
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
+                };
                 self.script_sender
                     .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
                         self.spidermonkey_id,
@@ -231,7 +233,9 @@ impl Actor for SourceActor {
             // Client wants to know which columns in the line can have breakpoints.
             // Sent when the user tries to set a breakpoint by clicking a line number in a source.
             "getBreakpointPositionsCompressed" => {
-                let (tx, rx) = channel().map_err(|_| ActorError::Internal)?;
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
+                };
                 self.script_sender
                     .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
                         self.spidermonkey_id,

@@ -33,6 +33,7 @@ use background_hang_monitor_api::{
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
     TEST_WEBVIEW_ID, WebViewId,
@@ -860,11 +861,8 @@ impl ScriptThread {
 
         // Ask the router to proxy IPC messages from the devtools to us.
         let devtools_server_sender = state.devtools_server_sender;
-        let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
-        let devtools_server_receiver = devtools_server_sender
-            .as_ref()
-            .map(|_| ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_devtools_receiver))
-            .unwrap_or_else(crossbeam_channel::never);
+        let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
+        let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
 
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 

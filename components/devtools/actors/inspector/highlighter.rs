@@ -5,9 +5,9 @@
 //! Handles highlighting selected DOM nodes in the inspector. At the moment it only replies and
 //! changes nothing on Servo's side.
 
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
-use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -22,7 +22,7 @@ pub struct HighlighterMsg {
 
 pub struct HighlighterActor {
     pub name: String,
-    pub script_sender: IpcSender<DevtoolScriptControlMsg>,
+    pub script_sender: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
 }
 
