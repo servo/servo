@@ -145,8 +145,10 @@ impl<A> AccountingAlloc<A> {
             return;
         }
         IN_ALLOCATION.with(|status| status.set(true));
-        if let Some(site) = ALLOCATION_SITES.lock().unwrap().get_mut(&(ptr as usize)) {
-            site.noted = true;
+        if let Ok(mut sites) = ALLOCATION_SITES.lock() {
+            if let Some(site) = sites.get_mut(&(ptr as usize)) {
+                site.noted = true;
+            }
         }
         IN_ALLOCATION.with(|status| status.set(false));
     }
