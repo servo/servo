@@ -3480,6 +3480,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
     #[expect(unsafe_code)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn create_a_classic_script(
         &self,
         source: Cow<'_, str>,

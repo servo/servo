@@ -21,7 +21,6 @@ use net_traits::request::{
     RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
-use script_bindings::domstring::BytesView;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
@@ -68,34 +67,6 @@ use crate::script_module::{
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::unminify::ScriptSource;
-
-impl ScriptSource for ScriptOrigin {
-    fn unminified_dir(&self) -> Option<String> {
-        self.unminified_dir.clone()
-    }
-
-    fn extract_bytes(&self) -> BytesView<'_> {
-        match &self.code {
-            SourceCode::Text(text) => text.as_bytes(),
-            SourceCode::Compiled(compiled_source_code) => {
-                compiled_source_code.original_text.as_bytes()
-            },
-        }
-    }
-
-    fn rewrite_source(&mut self, source: Rc<DOMString>) {
-        self.code = SourceCode::Text(source);
-    }
-
-    fn url(&self) -> ServoUrl {
-        self.url.clone()
-    }
-
-    fn is_external(&self) -> bool {
-        self.external
-    }
-}
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -327,6 +298,7 @@ pub(crate) type ScriptResult = Result<Script, NoTrace<NetworkError>>;
 
 // TODO merge classic and module scripts
 #[derive(JSTraceable, MallocSizeOf)]
+#[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
     Classic(ClassicScript),
     Other(ScriptOrigin),
