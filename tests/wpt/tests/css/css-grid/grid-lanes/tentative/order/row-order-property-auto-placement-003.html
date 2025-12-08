@@ -8,13 +8,13 @@
 #grid {
   display: grid-lanes;
   font: 50px/1 Ahem;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   grid-template-rows: auto auto;
   justify-content: start;
   align-content: start;
 }
 </style>
-<p>Ensure `order` property affects masonry layout correctly</p>
+<p>Ensure `order` property affects grid-lanes layout correctly</p>
 <div id="grid">
   <div id="lime" style="color: lime;">L</div>
   <div id="magenta" style="color: magenta; order: 1;">M</div>

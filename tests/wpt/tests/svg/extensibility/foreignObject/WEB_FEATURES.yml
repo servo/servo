@@ -1,0 +1,5 @@
+features:
+- name: svg-filters
+  files:
+  - filter-repaint.html
+  - foreign-object-circular-filter-reference-crash.html

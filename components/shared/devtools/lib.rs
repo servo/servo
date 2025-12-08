@@ -18,11 +18,11 @@ use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
-use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::DebugVec;
 use net_traits::http_status::HttpStatus;
@@ -88,7 +88,7 @@ pub enum ScriptToDevtoolsControlMsg {
     /// The means of communicating directly with it are provided.
     NewGlobal(
         (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
-        IpcSender<DevtoolScriptControlMsg>,
+        GenericSender<DevtoolScriptControlMsg>,
         DevtoolsPageInfo,
     ),
     /// The given browsing context is performing a navigation.
@@ -109,7 +109,11 @@ pub enum ScriptToDevtoolsControlMsg {
     TitleChanged(PipelineId, String),
 
     /// Get source information from script
-    CreateSourceActor(IpcSender<DevtoolScriptControlMsg>, PipelineId, SourceInfo),
+    CreateSourceActor(
+        GenericSender<DevtoolScriptControlMsg>,
+        PipelineId,
+        SourceInfo,
+    ),
 
     UpdateSourceContent(PipelineId, String),
 }
@@ -236,32 +240,40 @@ pub struct AutoMargins {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
     /// Evaluate a JS snippet in the context of the global for the given pipeline.
-    EvaluateJS(PipelineId, String, IpcSender<EvaluateJSReply>),
+    EvaluateJS(PipelineId, String, GenericSender<EvaluateJSReply>),
     /// Retrieve the details of the root node (ie. the document) for the given pipeline.
-    GetRootNode(PipelineId, IpcSender<Option<NodeInfo>>),
+    GetRootNode(PipelineId, GenericSender<Option<NodeInfo>>),
     /// Retrieve the details of the document element for the given pipeline.
-    GetDocumentElement(PipelineId, IpcSender<Option<NodeInfo>>),
+    GetDocumentElement(PipelineId, GenericSender<Option<NodeInfo>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
-    GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
+    GetChildren(PipelineId, String, GenericSender<Option<Vec<NodeInfo>>>),
     /// Retrieve the CSS style properties defined in the attribute tag for the given node.
-    GetAttributeStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
+    GetAttributeStyle(PipelineId, String, GenericSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the CSS style properties defined in an stylesheet for the given selector.
     GetStylesheetStyle(
         PipelineId,
         String,
         String,
         usize,
-        IpcSender<Option<Vec<NodeStyle>>>,
+        GenericSender<Option<Vec<NodeStyle>>>,
     ),
     /// Retrieves the CSS selectors for the given node. A selector is comprised of the text
     /// of the selector and the id of the stylesheet that contains it.
-    GetSelectors(PipelineId, String, IpcSender<Option<Vec<(String, usize)>>>),
+    GetSelectors(
+        PipelineId,
+        String,
+        GenericSender<Option<Vec<(String, usize)>>>,
+    ),
     /// Retrieve the computed CSS style properties for the given node.
-    GetComputedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
+    GetComputedStyle(PipelineId, String, GenericSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
-    GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
+    GetLayout(
+        PipelineId,
+        String,
+        GenericSender<Option<ComputedNodeLayout>>,
+    ),
     /// Get a unique XPath selector for the node.
-    GetXPath(PipelineId, String, IpcSender<String>),
+    GetXPath(PipelineId, String, GenericSender<String>),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<AttrModification>),
     /// Update a given node's style rules with a list of modifications.
@@ -272,7 +284,7 @@ pub enum DevtoolScriptControlMsg {
     SetTimelineMarkers(
         PipelineId,
         Vec<TimelineMarkerType>,
-        IpcSender<Option<TimelineMarker>>,
+        GenericSender<Option<TimelineMarker>>,
     ),
     /// Withdraw request for live timeline notifications for a given pipeline.
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
@@ -282,13 +294,13 @@ pub enum DevtoolScriptControlMsg {
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.
-    GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
+    GetCssDatabase(GenericSender<HashMap<String, CssDatabaseProperty>>),
     /// Simulates a light or dark color scheme for the given pipeline
     SimulateColorScheme(PipelineId, Theme),
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 
-    GetPossibleBreakpoints(u32, IpcSender<Vec<RecommendedBreakpointLocation>>),
+    GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -2,6 +2,7 @@ import pytest
 
 import webdriver.bidi.error as error
 from webdriver.bidi.modules.emulation import CoordinatesOptions
+from webdriver.bidi.undefined import UNDEFINED
 
 
 pytestmark = pytest.mark.asyncio
@@ -88,6 +89,14 @@ async def test_params_coordinates_empty_object(bidi_session, top_context):
         await bidi_session.emulation.set_geolocation_override(
             contexts=[top_context["context"]],
             coordinates={},
+        )
+
+
+async def test_params_coordinates_missing(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.emulation.set_geolocation_override(
+            contexts=[top_context["context"]],
+            coordinates=UNDEFINED,
         )
 
 

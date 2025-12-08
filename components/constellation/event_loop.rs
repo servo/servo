@@ -11,13 +11,12 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use base::generic_channel::{self, GenericReceiver, GenericSender};
+use base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
 use base::id::ScriptEventLoopId;
 use constellation_traits::ServiceWorkerManagerFactory;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::ipc::IpcSender;
-use ipc_channel::router::ROUTER;
 use ipc_channel::{Error, ipc};
 use layout_api::ScriptThreadFactory;
 use log::{error, warn};
@@ -76,24 +75,19 @@ impl EventLoop {
 
         // Route messages coming from content to devtools as appropriate.
         let devtools_sender = constellation.devtools_sender.as_ref();
-        let script_to_devtools_ipc_sender = devtools_sender.map(|devtools_sender| {
-            let (script_to_devtools_ipc_sender, script_to_devtools_ipc_receiver) =
-                ipc::channel().expect("Pipeline script to devtools chan");
-            let devtools_sender = (*devtools_sender).clone();
-            ROUTER.add_typed_route(
-                script_to_devtools_ipc_receiver,
-                Box::new(move |message| match message {
-                    Err(error) => error!("Cast to ScriptToDevtoolsControlMsg failed ({error})."),
-                    Ok(message) => {
-                        if let Err(error) =
-                            devtools_sender.send(DevtoolsControlMsg::FromScript(message))
-                        {
-                            warn!("Sending to devtools failed ({error:?})")
-                        }
-                    },
-                }),
-            );
-            script_to_devtools_ipc_sender
+        let script_to_devtools_callback = devtools_sender.map(|devtools_sender| {
+            let devtools_sender = devtools_sender.clone();
+            GenericCallback::new(move |message| match message {
+                Err(error) => error!("Cast to ScriptToDevtoolsControlMsg failed ({error})."),
+                Ok(message) => {
+                    if let Err(error) =
+                        devtools_sender.send(DevtoolsControlMsg::FromScript(message))
+                    {
+                        warn!("Sending to devtools failed ({error:?})")
+                    }
+                },
+            })
+            .expect("Could not create callback")
         });
 
         let embedder_chan = constellation.embedder_proxy.sender.clone();
@@ -117,7 +111,7 @@ impl EventLoop {
             script_to_constellation_sender: constellation.script_sender.clone(),
             script_to_embedder_sender,
             namespace_request_sender: constellation.namespace_ipc_sender.clone(),
-            devtools_server_sender: script_to_devtools_ipc_sender,
+            devtools_server_sender: script_to_devtools_callback,
             #[cfg(feature = "bluetooth")]
             bluetooth_sender: constellation.bluetooth_ipc_sender.clone(),
             system_font_service: constellation.system_font_service.to_sender(),

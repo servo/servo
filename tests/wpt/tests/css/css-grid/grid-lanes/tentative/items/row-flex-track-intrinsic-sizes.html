@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Masonry Layout Test: Intrinsic contribution of an item with flex tracks</title>
+<title>CSS Grid Lanes Layout Test: Intrinsic contribution of an item with flex tracks</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-spanning-items">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-spanning-flex-items">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#min-size-auto">
-<meta name="assert" content="This test checks that the intrinsic contribution of a single masonry item is distributed correctly among the tracks it spans when flexible tracks are involved, and the item's size is determined by its children rather than explicitly.">
+<meta name="assert" content="This test checks that the intrinsic contribution of a single grid-lanes item is distributed correctly among the tracks it spans when flexible tracks are involved, and the item's size is determined by its children rather than explicitly.">
 <style>
-#masonry {
+#grid-lanes {
   display: grid-lanes;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   width: 60px;
   height: 60px;
   border: solid;
@@ -27,7 +27,7 @@
 
 <div id="log"></div>
 
-<div id="masonry">
+<div id="grid-lanes">
   <div id="item"></div>
 </div>
 
@@ -39,7 +39,7 @@ const item = document.getElementById("item");
 let testset = "unlabeled";
 function checkTrackSizes(span, trackList, expected) {
   item.style.gridRow = `span ${span}`;
-  TestingUtils.testGridTemplateRows("masonry", trackList, expected, testset);
+  TestingUtils.testGridTemplateRows("grid-lanes", trackList, expected, testset);
 }
 
 // First check for distributing auto minimum ///////////////////////////////////

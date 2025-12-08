@@ -9,7 +9,7 @@
     background: gray;
     position: relative;
     item-tolerance: 0;
-    masonry-direction: row;
+    grid-lanes-direction: row;
     grid-template-rows: auto auto auto;
     width: 300px;
     padding: 10px;
@@ -36,7 +36,7 @@
 }
 </style>
 <body>
-  <p>Test that masonry items with auto placement are correctly positioned when the grid-axis is the block axis. Ensure that margin affects placement.</p>
+  <p>Test that grid-lanes items with auto placement are correctly positioned when the grid-axis is the block axis. Ensure that margin affects placement.</p>
   <div class="grid-lanes">
     <div class="first-track square-100x100" style="margin-right: 40px;">
       Number 1

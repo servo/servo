@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Multiple reading flow containers with complex visual reordering</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<style>
+.reading-flow-container-reversed {
+  display: flex;
+  flex-direction: row-reverse;
+  reading-flow: flex-visual;
+}
+
+.reading-flow-container {
+  display: flex;
+  reading-flow: flex-visual;
+}
+
+.reading-flow-container-nested {
+  display: flex;
+  flex-direction: row-reverse;
+  reading-flow: flex-visual;
+}
+
+/* Explicit order values for specific containers */
+.reading-flow-container #btn6 { order: 1; }
+.reading-flow-container #btn7 { order: 2; }
+.reading-flow-container #btn8 { order: 3; }
+.reading-flow-container .reading-flow-container-nested { order: 4; }
+.reading-flow-container #btn12 { order: 5; }
+</style>
+
+<div focusgroup="toolbar wrap">
+  <div class="reading-flow-container-reversed">
+    <button id=btn3 tabindex=0>Button 3</button>
+    <button id=btn2 tabindex=0>Button 2</button>
+    <button id=btn1 tabindex=0>Button 1</button>
+  </div>
+  <button id=btn4 tabindex=0>Button 4</button>
+  <button id=btn5 tabindex=0>Button 5</button>
+  <div class="reading-flow-container">
+    <button id=btn7 tabindex=0>Button 7</button>
+    <button id=btn6 tabindex=0>Button 6</button>
+    <button id=btn8 tabindex=0>Button 8</button>
+    <div class="reading-flow-container-nested">
+      <button id=btn11 tabindex=0>Button 11</button>
+      <button id=btn10 tabindex=0>Button 10</button>
+      <button id=btn9 tabindex=0>Button 9</button>
+    </div>
+    <button id=btn12 tabindex=0>Button 12</button>
+  </div>
+  <button id=btn13 tabindex=0>Button 13</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    // Get all button elements in their expected visual order based on CSS layout
+    // First container (row-reverse): btn1, btn2, btn3
+    // Regular DOM: btn4, btn5
+    // Second container (with explicit order): btn6, btn7, btn8, nested container (btn9, btn10, btn11), btn12
+    // Regular DOM: btn13
+    const buttonsInVisualOrder = [
+      document.getElementById("btn1"),
+      document.getElementById("btn2"),
+      document.getElementById("btn3"),
+      document.getElementById("btn4"),
+      document.getElementById("btn5"),
+      document.getElementById("btn6"),
+      document.getElementById("btn7"),
+      document.getElementById("btn8"),
+      document.getElementById("btn9"),
+      document.getElementById("btn10"),
+      document.getElementById("btn11"),
+      document.getElementById("btn12"),
+      document.getElementById("btn13")
+    ];
+
+    await assert_focus_navigation_bidirectional(buttonsInVisualOrder, true);
+  }, "Focusgroup navigation with multiple reading-flow containers should follow visual order from CSS reading-flow properties.");
+
+</script>

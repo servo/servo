@@ -326,7 +326,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -337,7 +337,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -378,7 +378,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
  "x11rb",
 ]
 
@@ -477,9 +477,9 @@ dependencies = [
 
 [[package]]
 name = "async-compression"
-version = "0.4.34"
+version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e86f6d3dc9dc4352edeea6b8e499e13e3f5dc3b964d7ca5fd411415a3498473"
+checksum = "07a926debf178f2d355197f9caddb08e54a9329d44748034bba349c5848cb519"
 dependencies = [
  "compression-codecs",
  "compression-core",
@@ -738,7 +738,7 @@ dependencies = [
  "crossbeam-channel",
  "libc",
  "log",
- "mach2",
+ "mach2 0.6.0",
  "nix",
  "rustc-demangle",
  "rustc-hash 2.1.1",
@@ -776,7 +776,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
- "mach2",
+ "mach2 0.6.0",
  "malloc_size_of_derive",
  "parking_lot",
  "rayon",
@@ -810,9 +810,9 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64ct"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55248b47b0caf0546f7988906588779981c43bb1bc9d0c44087278f80cdb44ba"
+checksum = "0e050f626429857a27ddccb31e0aca21356bfa709c04041aefddac081a8f068a"
 
 [[package]]
 name = "bincode"
@@ -1212,9 +1212,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.48"
+version = "1.2.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c481bdbf0ed3b892f6f806287d72acd515b352a4ec27a208489b8c1bc839633a"
+checksum = "90583009037521a116abf44494efecd645ba48b6622457080f080b85544e2215"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1529,9 +1529,9 @@ dependencies = [
 
 [[package]]
 name = "compression-codecs"
-version = "0.4.33"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "302266479cb963552d11bd042013a58ef1adc56768016c8b82b4199488f2d4ad"
+checksum = "34a3cbbb8b6eca96f3a5c4bf6938d5b27ced3675d69f95bb51948722870bc323"
 dependencies = [
  "brotli",
  "compression-core",
@@ -2094,7 +2094,6 @@ dependencies = [
  "embedder_traits",
  "headers 0.4.1",
  "http 1.4.0",
- "ipc-channel",
  "log",
  "net",
  "net_traits",
@@ -2115,7 +2114,6 @@ dependencies = [
  "bitflags 2.10.0",
  "embedder_traits",
  "http 1.4.0",
- "ipc-channel",
  "log",
  "malloc_size_of_derive",
  "net_traits",
@@ -2197,7 +2195,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2630,7 +2628,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3247,7 +3245,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps 7.0.5",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4130,7 +4128,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "tokio",
  "tower-service",
  "tracing",
@@ -4733,7 +4731,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "617ee6cf8e3f66f3b4ea67a4058564628cde41901316e19f559e14c7c72c5e7b"
 dependencies = [
  "core-foundation-sys",
- "mach2",
+ "mach2 0.4.3",
 ]
 
 [[package]]
@@ -4768,7 +4766,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5284,6 +5282,12 @@ checksum = "d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "mach2"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dae608c151f68243f2b000364e1f7b186d9c29845f7d2d85bd31b9ad77ad552b"
 
 [[package]]
 name = "malloc_buf"
@@ -5810,7 +5814,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6917,13 +6921,13 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
+ "mach2 0.6.0",
  "profile_traits",
  "regex",
  "serde",
  "serde_json",
  "servo_allocator",
  "servo_config",
- "task_info",
  "tikv-jemalloc-sys",
  "time",
 ]
@@ -7416,7 +7420,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7816,9 +7820,9 @@ dependencies = [
 
 [[package]]
 name = "sea-query-rusqlite"
-version = "0.8.0-rc.8"
+version = "0.8.0-rc.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "480e20a53f87a48779a24bb041666d676e576ee003b8689ce28e4c48dccd1284"
+checksum = "9b4af1244465be5419823f40c78b1bcdf380a4bb55e98dfb6f4ff78676430aeb"
 dependencies = [
  "rusqlite",
  "sea-query",
@@ -7984,7 +7988,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "once_cell",
  "servo-media-audio",
@@ -7997,7 +8001,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "byte-slice-cast",
  "euclid",
@@ -8018,7 +8022,7 @@ dependencies = [
 [[package]]
 name = "servo-media-derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8028,7 +8032,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "ipc-channel",
  "servo-media",
@@ -8042,7 +8046,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -8075,7 +8079,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -8085,7 +8089,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8099,7 +8103,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8114,7 +8118,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -8126,7 +8130,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "uuid",
 ]
@@ -8134,12 +8138,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b0d3b744b0114fb66a05dcb80c209c0f7b94ac8e"
+source = "git+https://github.com/servo/media#06be48523c18de62bbea7ffbc373f5aba1372953"
 dependencies = [
  "log",
  "servo-media-streams",
@@ -9001,13 +9005,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
 
 [[package]]
-name = "task_info"
-version = "0.0.1"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "tempfile"
 version = "3.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9017,7 +9014,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -10557,7 +10554,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

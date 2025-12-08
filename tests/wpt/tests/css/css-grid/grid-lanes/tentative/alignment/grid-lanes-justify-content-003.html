@@ -5,10 +5,10 @@
 -->
 <html><head>
   <meta charset="utf-8">
-  <title>CSS Grid Test: Masonry layout with `justify-content` in masonry axis (horizontal writing mode)</title>
+  <title>CSS Grid Test: Grid Lanes layout with `justify-content` in grid-lanes axis (horizontal writing mode)</title>
   <meta name="assert"
         content="Test passes if justify-content shifts content
-                 in the masonry axis of a masonry grid container.">
+                 in the grid-lanes axis of a grid-lanes grid container.">
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
   <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
@@ -20,7 +20,7 @@ html,body {
 
 grid {
   display: inline-grid-lanes;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   gap: 1px 2px;
   grid-template-rows: repeat(4,20px);
   background: content-box silver;

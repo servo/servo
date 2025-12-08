@@ -30,7 +30,7 @@ def test_webkitgtk_certificate_domain_list(product):
     if product not in ["epiphany", "webkit", "webkitgtk_minibrowser"]:
         pytest.skip("%s doesn't support certificate_domain_list" % product)
 
-    product_data = products.Product({}, product)
+    product_data = products.Product.from_product_name(product)
 
     cert_file = "/home/user/wpt/tools/certs/cacert.pem"
     valid_domains_test = ["a.example.org", "b.example.org", "example.org",

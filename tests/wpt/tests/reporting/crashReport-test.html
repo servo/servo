@@ -138,5 +138,52 @@ promise_test(async t => {
   child_window.crashReport.set('key', 'value');
   child_window.crashReport.remove('key');
 }, 'crashReport.set() and .remove() succeed after initialize() resolves');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+
+  // 8 bytes is too small for the key/value pair "a"/"a" to be written; the
+  // memory required is 9 bytes, to support the JSONified format:
+  //
+  // {"a":"a"}
+  //
+  // Similarly, 17 bytes is required for "a"/"a" *and* "b"/"b" to be written, to
+  // support the format:
+  //
+  // {"a":"a","b":"b"}
+  await child_window.crashReport.initialize(8);
+  assert_throws_dom('NotAllowedError', child_window.DOMException, () => {
+    child_window.crashReport.set('a', 'a');
+  });
+
+  // This just fits in our 8-byte buffer though!
+  child_window.crashReport.set('b', '');
+}, 'crashReport.set() throws when there is not enough memory');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const child_window = iframe.contentWindow;
+
+  await child_window.crashReport.initialize(9);
+  child_window.crashReport.set('a', 'a');
+  assert_throws_dom('NotAllowedError', child_window.DOMException, () => {
+    child_window.crashReport.set('b', 'b');
+  });
+  child_window.crashReport.remove('a');
+  // Now `set()` will work again.
+  child_window.crashReport.set('b', 'b');
+}, 'crashReport.remove() properly frees memory, and allows you to invoke ' +
+   'set() again, assigning bytes to memory that was previously full');
 </script>
 </body>

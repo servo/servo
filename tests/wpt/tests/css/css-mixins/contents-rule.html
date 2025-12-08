@@ -9,7 +9,7 @@
   <body>
 
     <style>
-      @mixin --m1(@contents) {
+      @mixin --m1() {
         @contents;
       }
       #e1 {
@@ -27,7 +27,7 @@
 
 
     <style>
-      @mixin --m2(@contents) {
+      @mixin --m2() {
         @contents
       }
       #e2 {
@@ -45,7 +45,7 @@
 
 
     <style>
-      @mixin --m3(@contents) {
+      @mixin --m3() {
         &.a {
           @contents { color: blue; }
         }
@@ -65,7 +65,7 @@
 
 
     <style>
-      @mixin --m4(@contents) {
+      @mixin --m4() {
         &.c {
           @contents { color: green; }
         }
@@ -85,25 +85,7 @@
 
 
     <style>
-      @mixin --m5() {
-        @contents { color: red !important; }
-        color: green;
-      }
-      #e5 {
-        @apply --m5 { color: red !important; }
-      }
-    </style>
-    <div id="e5">This text should be green.</div>
-    <script>
-      test(() => {
-        let target = document.getElementById('e5');
-        assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
-      }, '@contents is ignored if there is no @contents parameter');
-    </script>
-
-
-    <style>
-      @mixin --m6(@contents) {
+      @mixin --m6() {
         @contents { }
         color: green;
       }
@@ -121,7 +103,7 @@
 
 
     <style>
-        @mixin --m7(@contents) {
+        @mixin --m7() {
           @contents;
           color: green;
         }

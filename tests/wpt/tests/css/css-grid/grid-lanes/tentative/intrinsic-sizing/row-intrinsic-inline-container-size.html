@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html>
 <link rel="help" href="https://drafts.csswg.org/css-grid-3">
-<link href="resources/masonry.css" rel="stylesheet">
 <link rel="match" href="row-intrinsic-inline-container-size-ref.html">
 <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
 <style>
 .grid-lanes {
-    masonry-direction: row;
+    grid-lanes-direction: row;
     grid-template-rows: repeat(3, 20px);
     display: grid-lanes;
     background: gray;
@@ -20,7 +19,7 @@
 }
 </style>
 <body>
-  <p>Test that masonry containers are correctly sized when an intrinsic inline size is specified.</p>
+  <p>Test that grid-lanes containers are correctly sized when an intrinsic inline size is specified.</p>
   <div class="grid-lanes" style="width: max-content;">
     <div class="first-track max-content-item">This is some text</div>
     <div class="second-track max-content-item">Some larger words in this sentence</div>

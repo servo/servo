@@ -5,13 +5,13 @@
 -->
 <html>
   <meta charset="utf-8">
-  <title>CSS Grid Test: Masonry layout column width sizing</title>
+  <title>CSS Grid Test: Grid Lanes layout column width sizing</title>
   <link rel="author" title="Brandon Stewart" href="mailto:brandonstewart@apple.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3/#track-sizing">
   <link rel="match" href="grid-lanes-intrinsic-sizing-rows-007.html">
   <style>
 
-@import "support/masonry-intrinsic-sizing-visual.css";
+@import "support/grid-lanes-intrinsic-sizing-visual.css";
 
 grid {
   display: grid;
@@ -32,7 +32,7 @@ item {
 
 <body>
 
-<grid title="Ensure a width is applied in a column masonry layout when the item's width is auto">
+<grid title="Ensure a width is applied in a column grid-lanes layout when the item's width is auto">
   <item style="grid-column: 1;">1</item>
   <item style="grid-column: 2;">5</item>
   <item style="grid-column: 1;">2</item>

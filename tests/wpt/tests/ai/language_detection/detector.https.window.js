@@ -15,12 +15,15 @@ promise_test(async t => {
   assert_false(navigator.userActivation.isActive);
   await promise_rejects_dom(t, 'NotAllowedError', LanguageDetector.create());
   await test_driver.bless('LanguageDetector.create', LanguageDetector.create);
+  // User activation is not consumed by the create call.
+  assert_true(navigator.userActivation.isActive);
+  consumeTransientUserActivation();
 
-  // Create does not require user activation when availability is 'available'.
+  // Create does not require transient user activation.
   assert_equals(await LanguageDetector.availability(), 'available');
   assert_false(navigator.userActivation.isActive);
   await LanguageDetector.create();
-}, 'Create requires user activation when availability is "downloadable"');
+}, 'Create requires sticky user activation when availability is "downloadable"');
 
 promise_test(async t => {
   const detector = await createLanguageDetector();

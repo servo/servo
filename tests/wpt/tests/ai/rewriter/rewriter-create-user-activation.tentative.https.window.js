@@ -1,5 +1,6 @@
 // META: title=Rewriter Create User Activation
 // META: script=/resources/testdriver.js
+// META: script=../resources/util.js
 // META: timeout=long
 
 'use strict';
@@ -13,9 +14,12 @@ promise_test(async t => {
   assert_false(navigator.userActivation.isActive);
   await promise_rejects_dom(t, 'NotAllowedError', Rewriter.create());
   await test_driver.bless('Rewriter.create', Rewriter.create);
+  // User activation is not consumed by the first create call.
+  assert_true(navigator.userActivation.isActive);
+  consumeTransientUserActivation();
 
-  // Create does not require user activation when availability is 'available'.
+  // Create does not require transient user activation.
   assert_equals(await Rewriter.availability(), 'available');
   assert_false(navigator.userActivation.isActive);
   await Rewriter.create();
-}, 'Create requires user activation when availability is "downloadable"');
+}, 'Create requires sticky user activation when availability is "downloadable"');

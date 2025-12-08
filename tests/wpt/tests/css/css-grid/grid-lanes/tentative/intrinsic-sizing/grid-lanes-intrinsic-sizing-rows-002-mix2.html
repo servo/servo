@@ -5,17 +5,17 @@
 -->
 <html>
   <meta charset="utf-8">
-  <title>CSS Grid Test: Masonry layout column sizing - min-content constraint</title>
+  <title>CSS Grid Test: Grid Lanes layout column sizing - min-content constraint</title>
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3/#track-sizing">
   <link rel="match" href="grid-lanes-intrinsic-sizing-rows-002-mix2-ref.html">
   <style>
 
-@import "support/masonry-intrinsic-sizing-visual.css";
+@import "support/grid-lanes-intrinsic-sizing-visual.css";
 
 grid {
   display: inline-grid-lanes;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   gap: 1px 2px;
   /* keep fixed values small enough for spanners to have an effect */
   grid-template-rows: 1.1ch auto 1.4ch 1fr;

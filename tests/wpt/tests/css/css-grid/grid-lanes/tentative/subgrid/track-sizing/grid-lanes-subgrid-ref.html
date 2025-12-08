@@ -6,7 +6,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Verify basic CSS Masonry Subgrid support to ensure items are properly placed in the grid</title>
+  <title>Verify basic CSS Grid Lanes Subgrid support to ensure items are properly placed in the grid</title>
   <link rel="author" title="Brandon Stewart" href="mailto:brandonstewart@apple.com">
   <link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
   <style>
@@ -72,10 +72,10 @@
   <item>5</item>
 </grid>
 
-<!-- Verify behavior when subgrid is set to masonry too -->
+<!-- Verify behavior when subgrid is set to grid-lanes too -->
 <grid>
   <item>1</item>
-  <subgrid style="grid-template-rows: masonry">
+  <subgrid>
     <item>2</item>
     <item style="width: 3ch">3</item>
     <item>4</item>

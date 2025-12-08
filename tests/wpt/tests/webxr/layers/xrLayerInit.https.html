@@ -1,0 +1,92 @@
+<!doctype html>
+<title>Tests for errors with invalid XRLayerInit parameters.</title>
+<link rel="help" href="https://immersive-web.github.io/layers/#dom-xrwebglbinding-createquadlayer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="./xr_layer_promise_test.js"></script>
+
+<canvas id="webgl-canvas"></canvas>
+
+<script>
+
+  function testCommonXRLayerInitErrors(createLayerFn, valid_init, t, gl) {
+    const is_webgl2 = gl instanceof WebGL2RenderingContext;
+    return new Promise((resolve, reject) => {
+      const max_texture_size = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      if (!is_webgl2) {
+        // Check an exception on texture-array.
+        t.step(() => {
+          // texture-array supported for webgl2 only.
+          let invalid_texture_type = Object.assign({}, valid_init, { textureType: 'texture-array' });
+          assert_throws_js(TypeError, () => createLayerFn(invalid_texture_type), "texture-array for webgl2 only");
+        });
+
+        // Check an exception on webgl2 color formats.
+        t.step(() => {
+          [
+            0x8058, // GL_RGBA8
+            0x8051, // GL_RGB8
+            0x8C41, // GL_SRGB8
+            0x8C43  // GL_SRGB8_ALPHA8
+          ].forEach((colorFormat) => {
+            let invalid_color_format = Object.assign({}, valid_init, { colorFormat });
+            assert_throws_js(TypeError, () => createLayerFn(invalid_color_format), "colorFormat for webgl2 only");
+          });
+        });
+      }
+
+      t.step(() => {
+        // Check an exception for invalid transform object.
+        let invalid_transform = Object.assign({}, valid_init, { transform: { x: 0, y: 0, z: 0 } });
+        assert_throws_js(TypeError, () => createLayerFn(invalid_transform), "Invalid transform object");
+      });
+
+      t.step(() => {
+        // viewPixelWidth and viewPixelHeight must be greater than 0.
+        let invalid_pixel_width = Object.assign({}, valid_init, { viewPixelWidth: 0 });
+        assert_throws_js(TypeError, () => createLayerFn(invalid_pixel_width), "viewPixelWidth is 0");
+      });
+
+      t.step(() => {
+        let invalid_pixel_height = Object.assign({}, valid_init, { viewPixelHeight: 0 });
+        assert_throws_js(TypeError, () => createLayerFn(invalid_pixel_height), "viewPixelHeight is 0");
+      });
+
+      // viewPixelWidth and viewPixelHeight must not be too large.
+      t.step(() => {
+        let large_pixel_width = Object.assign({}, valid_init, { viewPixelWidth: max_texture_size + 1 });
+        assert_throws_js(TypeError, () => createLayerFn(large_pixel_width), "viewPixelWidth is too large");
+      });
+
+      t.step(() => {
+        let large_pixel_height = Object.assign({}, valid_init, { viewPixelHeight: max_texture_size + 1 });
+        assert_throws_js(TypeError, () => createLayerFn(large_pixel_height), "viewPixelHeight is too large");
+      });
+
+      // Layout cannot be 'default'.
+      t.step(() => {
+        let invalid_layout = Object.assign({}, valid_init, { layout: 'default' });
+        assert_throws_js(TypeError, () => createLayerFn(invalid_layout), "layout is 'default'");
+        resolve();
+      });
+    });
+  };
+
+  function testCompositionLayer(xrSession, deviceController, t, { gl, xrBinding, xrSpace }) {
+    const valid_init = {
+      space: xrSpace,
+      viewPixelWidth: 1024,
+      viewPixelHeight: 1024
+    };
+    return Promise.resolve()
+      .then(testCommonXRLayerInitErrors(xrBinding.createQuadLayer.bind(xrBinding), valid_init, t, gl))
+      .then(testCommonXRLayerInitErrors(xrBinding.createCylinderLayer.bind(xrBinding), valid_init, t, gl))
+      .then(testCommonXRLayerInitErrors(xrBinding.createEquirectLayer.bind(xrBinding), valid_init, t, gl));
+  }
+
+  // This method tests XRLayerInit parameters, which are common to the Quad,Cylinder and Equirect layers.
+  xr_layer_promise_test("Ensure XrWebGLBinding's create layer methods throw the appropriate errors.",
+    testCompositionLayer, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+</script>

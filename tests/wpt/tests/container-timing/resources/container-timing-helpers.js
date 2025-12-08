@@ -15,6 +15,14 @@ function checkContainerEntry(entry, identifier, last_element_id, beforeRender) {
       'startTime greater than beforeRender');
   assert_greater_than_equal(
       performance.now(), entry.startTime, 'startTime bound by now()')
+
+  // PaintTimingMixin
+  if ("presentationTime" in entry && entry.presentationTime !== null) {
+    assert_greater_than(entry.presentationTime, entry.paintTime);
+    assert_equals(entry.presentationTime, entry.startTime);
+  } else {
+    assert_equals(entry.startTime, entry.paintTime);
+  }
 }
 
 function checkContainerSize(entry, size) {

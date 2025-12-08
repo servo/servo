@@ -287,3 +287,9 @@ async function testCreateAbort(t, createMethod, options, instanceMethods) {
     await promise_rejects_exactly(t, error, promise);
   }
 }
+
+function consumeTransientUserActivation() {
+  const win = window.open('about:blank', '_blank');
+  if (win)
+    win.close();
+}

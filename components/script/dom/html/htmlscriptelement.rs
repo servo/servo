@@ -68,7 +68,7 @@ use crate::script_module::{
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::unminify::{ScriptSource, unminify_js};
+use crate::unminify::ScriptSource;
 
 impl ScriptSource for ScriptOrigin {
     fn unminified_dir(&self) -> Option<String> {
@@ -1014,7 +1014,6 @@ impl HTMLScriptElement {
         };
 
         if script.type_ == ScriptType::Classic {
-            unminify_js(&mut script);
             self.substitute_with_local_script(&mut script);
         }
 
@@ -1030,9 +1029,7 @@ impl HTMLScriptElement {
             None
         };
 
-        // Step 6.
         let document = self.owner_document();
-        let old_script = document.GetCurrentScript();
         let introduction_type =
             self.introduction_type_override
                 .get()
@@ -1044,22 +1041,37 @@ impl HTMLScriptElement {
 
         match script.type_ {
             ScriptType::Classic => {
+                // Step 6."classic".1. Let oldCurrentScript be the value to which document's currentScript object was most recently set.
+                let old_script = document.GetCurrentScript();
+
+                // Step 6."classic".2. If el's root is not a shadow root,
+                // then set document's currentScript attribute to el. Otherwise, set it to null.
                 if self.upcast::<Node>().is_in_a_shadow_tree() {
                     document.set_current_script(None)
                 } else {
                     document.set_current_script(Some(self))
                 }
+
                 let line_number = if script.external {
                     1
                 } else {
                     self.line_number as u32
                 };
-                self.owner_window().as_global_scope().run_a_classic_script(
-                    &script,
-                    line_number,
+                let window = self.owner_window();
+                let global = window.as_global_scope();
+
+                let script = global.create_a_classic_script(
+                    (*script.text().str()).into(),
+                    script.url,
+                    script.fetch_options,
                     Some(introduction_type),
-                    can_gc,
+                    line_number,
+                    script.external,
                 );
+                // Step 6."classic".3. Run the classic script given by el's result.
+                _ = global.run_a_classic_script(script, can_gc);
+
+                // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {

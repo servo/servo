@@ -7,6 +7,11 @@ features:
   - elementFromPoint*
   - elementsFromPoint*
   - negativeMargins.html
+- name: screen
+  files:
+  - Screen-pixelDepth-Screen-colorDepth001.html
+  - cssom-view-window-screen-interface.html
+  - window-screen*
 - name: scroll-into-view
   files:
   - scrollIntoView-*

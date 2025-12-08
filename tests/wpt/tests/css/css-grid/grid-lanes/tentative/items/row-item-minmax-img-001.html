@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Image within a masonry with a size that depends on the containing block should stretch, but not size the grid tracks</title>
+<title>Image within a grid-lanes with a size that depends on the containing block should stretch, but not size the grid tracks</title>
 <link rel="author" href="mailto:almaher@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-stretch">
 <link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-single-span-items">
 <link rel="match" href="../../../../reference/ref-filled-green-100px-square.xht">
 <style>
-#masonry {
+#grid-lanes {
     display: inline-grid-lanes;
-    masonry-direction: row;
+    grid-lanes-direction: row;
     grid-template-rows: minmax(auto, 0);
     height: 200px;
 }
 </style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
-<div id="masonry">
+<div id="grid-lanes">
   <img id="img" src="support/100x100-green.png">
   <div style="background-color: red; aspect-ratio: 1;">
 </div>

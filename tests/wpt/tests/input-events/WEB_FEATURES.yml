@@ -1,0 +1,4 @@
+features:
+- name: clipboard-events
+  files:
+  - input-events-cut-paste.html

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <meta charset="utf-8">
-<title>CSS Masonry Test: Infinite value of item-tolerance</title>
+<title>CSS Grid Lanes Test: Infinite value of item-tolerance</title>
 <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#item-slack">
 <link rel="match" href="row-item-tolerance-infinite-ref.html">
@@ -9,7 +9,7 @@
 <style>
 .grid-lanes {
     display: grid-lanes;
-    masonry-direction: row;
+    grid-lanes-direction: row;
     background: gray;
     grid-template-rows: repeat(4, 1fr);
     item-tolerance: infinite;
@@ -26,7 +26,7 @@
 }
 </style>
 <body>
-  <p>Test that the infinite tie threshold for masonry is correctly resolved.</p>
+  <p>Test that the infinite tie threshold for grid-lanes is correctly resolved.</p>
   <div class="grid-lanes">
     <div class="auto-item" style="width: 40px">1</div>
     <div class="auto-item" style="width: 30px">2</div>

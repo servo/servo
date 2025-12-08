@@ -1,0 +1,17 @@
+<html>
+<!-- Quirks mode used deliberately -->
+<meta charset=utf-8>
+<style>
+  geolocation {
+    font-size: 14px;
+    height: fit-content;
+  }
+</style>
+<body>
+  <geolocation id="geolocation"></geolocation>
+  <script>
+    let el = document.getElementById("geolocation");
+    el.style.height = (el.clientHeight + 20) + "px";
+  </script>
+</body>
+</html>

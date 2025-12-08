@@ -80,3 +80,6 @@ features:
   - viewport-units-*
   # Tests for: vi, svi, lvi, dvi, vb, svb, lvb, dvb
   - "!viewport-units-writing-mode-*"
+- name: border-radius
+  files:
+  - getComputedStyle-border-radius-*

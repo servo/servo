@@ -5,10 +5,10 @@
 -->
 <html><head>
   <meta charset="utf-8">
-  <title>CSS Grid Test: Masonry layout with `align-content` in grid axis (horizontal writing mode)</title>
+  <title>CSS Grid Test: Grid Lanes layout with `align-content` in grid axis (horizontal writing mode)</title>
   <meta name="assert"
         content="Test passes if align-content distributes tracks
-                 in the grid axis of a masonry grid container
+                 in the grid axis of a grid-lanes grid container
                  and the grid container's baseline is also shifted accordingly.">
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
   <link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
@@ -21,7 +21,7 @@ html,body {
 
 grid {
   display: inline-grid-lanes;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   gap: 1px 2px;
   grid-template-rows: repeat(4,auto);
   background: content-box silver;

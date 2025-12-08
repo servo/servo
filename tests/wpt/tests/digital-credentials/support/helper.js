@@ -10,19 +10,42 @@
  * @typedef {import('../dc-types').CredentialCreationOptions} CredentialCreationOptions
  * @typedef {import('../dc-types').DigitalCredentialCreationOptions} DigitalCredentialCreationOptions
  * @typedef {import('../dc-types').SendMessageData} SendMessageData
+ * @typedef {import('../dc-types').MakeGetOptionsConfig} MakeGetOptionsConfig
+ * @typedef {import('../dc-types').MakeCreateOptionsConfig} MakeCreateOptionsConfig
+ * @typedef {import('../dc-types').CredentialMediationRequirement} CredentialMediationRequirement
+ * @typedef {import('../dc-types').MobileDocumentRequest} MobileDocumentRequest
  */
+
+/** @type {GetProtocol[]} */
+const GET_PROTOCOLS = /** @type {const} */ ([
+  "openid4vp-v1-unsigned",
+  "openid4vp-v1-signed",
+  "openid4vp-v1-multisigned",
+  "org-iso-mdoc",
+]);
+
+/** @type {CreateProtocol[]} */
+const CREATE_PROTOCOLS = /** @type {const} */ (["openid4vci"]);
+
+const SUPPORTED_GET_PROTOCOL = GET_PROTOCOLS.find(
+  (protocol) => DigitalCredential.userAgentAllowsProtocol(protocol)
+);
+const SUPPORTED_CREATE_PROTOCOL = CREATE_PROTOCOLS.find(
+  (protocol) => DigitalCredential.userAgentAllowsProtocol(protocol)
+);
 
 /**
  * Internal helper to build the request array from validated input.
  * Assumes requestsInputArray is a non-empty array of strings.
  * @private
  * @param {string[]} requestsInputArray - An array of request type strings.
- * @param {string} mediation - The mediation requirement.
- * @param {object} requestMapping - The specific mapping object for the operation type.
- * @returns {{ digital: { requests: any[] }, mediation: string }} - The final options structure.
+ * @param {CredentialMediationRequirement} mediation - The mediation requirement.
+ * @param {Record<string, () => any>} requestMapping - The specific mapping object for the operation type.
+ * @param {AbortSignal} [signal] - Optional abort signal.
+ * @returns {{ digital: { requests: any[] }, mediation: CredentialMediationRequirement, signal?: AbortSignal }} - The final options structure.
  * @throws {Error} If an unknown request type string is encountered within the array.
  */
-function _makeOptionsInternal(requestsInputArray, mediation, requestMapping) {
+function _makeOptionsInternal(requestsInputArray, mediation, requestMapping, signal) {
   const requests = [];
   for (const request of requestsInputArray) {
     const factoryFunction = requestMapping[request];
@@ -33,19 +56,23 @@ function _makeOptionsInternal(requestsInputArray, mediation, requestMapping) {
       throw new Error(`Unknown request type within array: ${request}`);
     }
   }
-  return { digital: { requests }, mediation };
+  /** @type {{ digital: { requests: any[] }, mediation: CredentialMediationRequirement, signal?: AbortSignal }} */
+  const result = { digital: { requests }, mediation };
+  if (signal !== undefined) {
+    result.signal = signal;
+  }
+  return result;
 }
 
 const allMappings = {
   get: {
+    "org-iso-mdoc": () => makeMDocRequest(),
     "openid4vp-v1-unsigned": () => makeOID4VPDict("openid4vp-v1-unsigned"),
     "openid4vp-v1-signed": () => makeOID4VPDict("openid4vp-v1-signed"),
     "openid4vp-v1-multisigned": () => makeOID4VPDict("openid4vp-v1-multisigned"),
-    "default": () => makeDigitalCredentialGetRequest(undefined, undefined),
   },
   create: {
     "openid4vci": () => makeOID4VCIDict(),
-    "default": () => makeDigitalCredentialCreateRequest(),
   },
 };
 
@@ -54,12 +81,13 @@ const allMappings = {
  * Routes calls from specific public functions.
  * @private
  * @param {'get' | 'create'} type - The type of operation.
- * @param {string | string[]} [requestsToUse] - Raw input for request types from public function.
- * @param {string} mediation - Mediation requirement (default handled by public function).
- * @returns {{ digital: { requests: any[] }, mediation: string }}
+ * @param {string | string[]} protocol - Protocol(s) to use.
+ * @param {CredentialMediationRequirement} mediation - Mediation requirement.
+ * @param {AbortSignal} [signal] - Optional abort signal.
+ * @returns {{ digital: { requests: any[] }, mediation: CredentialMediationRequirement, signal?: AbortSignal }}
  * @throws {Error} If type is invalid internally, or input strings are invalid.
  */
-function _makeOptionsUnified(type, requestsToUse, mediation) {
+function _makeOptionsUnified(type, protocol, mediation, signal) {
   // 1. Get mapping (Type validation primarily happens via caller)
   const mapping = allMappings[type];
    // Added safety check, though public functions should prevent this.
@@ -67,56 +95,67 @@ function _makeOptionsUnified(type, requestsToUse, mediation) {
     throw new Error(`Internal error: Invalid options type specified: ${type}`);
   }
 
-  // 2. Handle default for requestsToUse
-  const actualRequestsToUse = requestsToUse === undefined ? ["default"] : requestsToUse;
-
-  // 3. Handle single string input
-  if (typeof actualRequestsToUse === 'string') {
-    if (mapping[actualRequestsToUse]) {
+  // 2. Handle single string input
+  if (typeof protocol === 'string') {
+    if (protocol in mapping) {
       // Valid single string: Pass as array to the core array helper
-      return _makeOptionsInternal([actualRequestsToUse], mediation, mapping);
+      return _makeOptionsInternal([protocol], mediation, mapping, signal);
     } else {
       // Invalid single string for this type
-      throw new Error(`Unknown request type string '${actualRequestsToUse}' provided for operation type '${type}'`);
+      throw new Error(`Unknown request type string '${protocol}' provided for operation type '${type}'`);
     }
   }
 
-  // 4. Handle array input
-  if (Array.isArray(actualRequestsToUse)) {
-    if (actualRequestsToUse.length === 0) {
+  // 3. Handle array input
+  if (Array.isArray(protocol)) {
+    if (protocol.length === 0) {
       // Handle empty array explicitly
-      return { digital: { requests: [] }, mediation };
+      /** @type {{ digital: { requests: any[] }, mediation: CredentialMediationRequirement, signal?: AbortSignal }} */
+      const result = { digital: { requests: [] }, mediation };
+      if (signal !== undefined) {
+        result.signal = signal;
+      }
+      return result;
     }
     // Pass valid non-empty array to the core array helper
-    return _makeOptionsInternal(actualRequestsToUse, mediation, mapping);
+    return _makeOptionsInternal(protocol, mediation, mapping, signal);
   }
 
-  // 5. Handle invalid input types (neither string nor array)
-  return { digital: { requests: [] }, mediation };
+  // 4. Handle invalid input types (neither string nor array)
+  /** @type {{ digital: { requests: any[] }, mediation: CredentialMediationRequirement, signal?: AbortSignal }} */
+  const result = { digital: { requests: [] }, mediation };
+  if (signal !== undefined) {
+    result.signal = signal;
+  }
+  return result;
 }
 
 /**
  * Creates options for getting credentials.
  * @export
- * @param {string | string[]} [requestsToUse] - Request types ('default', 'openid4vp-v1-unsigned', 'openid4vp-v1-signed', 'openid4vp-v1-multisigned', or an array). Defaults to ['default'].
- * @param {string} [mediation="required"] - Credential mediation requirement ("required", "optional", "silent").
- * @returns {{ digital: { requests: any[] }, mediation: string }}
+ * @param {MakeGetOptionsConfig} [config={}] - Configuration options
+ * @returns {CredentialRequestOptions}
  */
-export function makeGetOptions(requestsToUse, mediation = "required") {
-  // Pass type 'get', the user's input, and the final mediation value
-  return _makeOptionsUnified('get', requestsToUse, mediation);
+export function makeGetOptions(config = {}) {
+  const { protocol = SUPPORTED_GET_PROTOCOL, mediation = "required", signal } = config;
+  if (!protocol) {
+    throw new Error("No Protocol. Can't make get options.");
+  }
+  return _makeOptionsUnified('get', protocol, mediation, signal);
 }
 
 /**
  * Creates options for creating credentials.
  * @export
- * @param {string | string[]} [requestsToUse] - Request types ('default', 'openid4vci', or an array). Defaults to ['default'].
- * @param {string} [mediation="required"] - Credential mediation requirement ("required", "optional", "silent").
- * @returns {{ digital: { requests: any[] }, mediation: string }} // Adjust inner array type if known
+ * @param {MakeCreateOptionsConfig} [config={}] - Configuration options
+ * @returns {CredentialCreationOptions}
  */
-export function makeCreateOptions(requestsToUse, mediation = "required") {
-  // Pass type 'create', the user's input, and the final mediation value
-  return _makeOptionsUnified('create', requestsToUse, mediation);
+export function makeCreateOptions(config = {}) {
+  const { protocol = SUPPORTED_CREATE_PROTOCOL, mediation = "required", signal } = config;
+  if (!protocol) {
+    throw new Error("No protocol. Can't make create options.");
+  }
+  return _makeOptionsUnified('create', protocol, mediation, signal);
 }
 
 /**
@@ -165,6 +204,17 @@ function makeDigitalCredentialCreateRequest(protocol = "protocol", data = {}) {
 function makeOID4VCIDict() {
   return makeDigitalCredentialCreateRequest("openid4vci", {
     // Canonical example of an OpenID4VCI request coming soon.
+  });
+}
+
+/**
+ * Representation of an mDoc request.
+ *
+ * @returns {DigitalCredentialGetRequest}
+ **/
+function makeMDocRequest() {
+  return makeDigitalCredentialGetRequest("org-iso-mdoc", {
+    // Canonical example of an mDoc request coming soon.
   });
 }
 

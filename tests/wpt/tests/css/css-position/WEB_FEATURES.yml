@@ -8,6 +8,9 @@ features:
   - backdrop-inherit-rendered.html
   - backdrop-tree-abiding-slotted.html
   - replaced-object-backdrop.html
+- name: fixed-positioning
+  files:
+  - 'position-fixed-*'
 - name: z-index
   files:
   - '*z-index*'

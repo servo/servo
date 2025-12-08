@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>shadowrootadoptedstylesheets does not crash in Document.parseHTMLUnsafe</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+</head>
+<body>
+<script>
+    const new_document = Document.parseHTMLUnsafe(
+      "<div id='host'>" +
+        "<template shadowrootmode='open' shadowrootadoptedstylesheets='foo'>" +
+          "<span id='test_element'>Test content</span>" +
+        "</template>" +
+      "</div>"
+    );
+</script>
+<p>Test passes if there is no crash.</p>
+</body>
+</html>

@@ -9,12 +9,12 @@
     item-tolerance: 0;
     grid-template-rows: repeat(3, 50px);
     gap: 10px;
-    masonry-direction: row-reverse;
+    grid-lanes-direction: row-reverse;
     direction: rtl;
 }
 </style>
 <body>
-  <p>The CSS property `direction` is correctly applied on top of `masonry-direction`</p>
+  <p>The CSS property `direction` is correctly applied on top of `grid-lanes-direction`</p>
   <div class="grid-lanes">
     <div style="background: lavender;">Some larger words in this sentence</div>
     <div style="background: lightgreen; width: min-content;">milk</div>

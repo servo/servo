@@ -20,8 +20,8 @@ label {
 
 iframe {
     overflow: clip;
-    width: 250px;
-    height: 150px;
+    width: 500px;
+    height: 300px;
     border: none;
 }
 
@@ -41,7 +41,7 @@ main {
 </template>
 <script>
     addEventListener("DOMContentLoaded", async () => {
-        const test_files = ["corner-shape-render-precise.html", "corner-shape-render-fuzzy.html"]
+        const test_files = ["render-corner-shape.html"]
         const dom_parser = new DOMParser();
         for (const test_file of test_files) {
             const test_html = await (await fetch(test_file)).text();
@@ -51,7 +51,7 @@ main {
                 const scenario = document.getElementById("scenario").content.cloneNode(true);
                 scenario.querySelector(".variant").innerText = variant;
                 scenario.querySelector(".test").src = `${test_file}${variant}`;
-                scenario.querySelector(".ref").src = `corner-shape-any-ref.html${variant}`;
+                scenario.querySelector(".ref").src = `render-corner-shape-ref.html${variant}`;
                 document.querySelector("main").append(scenario);
             }
         }

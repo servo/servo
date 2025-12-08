@@ -2,3 +2,6 @@ features:
 - name: word-spacing
   files:
   - word-spacing-*
+- name: text-align
+  files:
+  - text-align-*

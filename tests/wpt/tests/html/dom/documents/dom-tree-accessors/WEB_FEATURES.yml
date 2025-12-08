@@ -1,0 +1,4 @@
+features:
+- name: title
+  files:
+  - "document.title-*"

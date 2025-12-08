@@ -59,7 +59,7 @@ dictionary EncapsulatedBits {
 };
 
 partial dictionary JsonWebKey {
-  // The following fields are defined in draft-ietf-cose-dilithium-07
+  // The following fields are defined in draft-ietf-cose-dilithium-08
   DOMString pub;
   DOMString priv;
 };

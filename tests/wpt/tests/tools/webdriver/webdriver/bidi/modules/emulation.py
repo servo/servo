@@ -80,6 +80,19 @@ class Emulation(BidiModule):
         }
 
     @command
+    def set_screen_settings_override(
+            self,
+            screen_area: Nullable[Dict[str, Any]],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
+    ) -> Mapping[str, Any]:
+        return {
+            "screenArea": screen_area,
+            "contexts": contexts,
+            "userContexts": user_contexts
+        }
+
+    @command
     def set_timezone_override(
             self,
             timezone: Nullable[str],

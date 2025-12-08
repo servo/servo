@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
-<title>CSS Masonry Test: Alignment for items and self in grid axis</title>
+<title>CSS Grid Lanes Test: Alignment for items and self in grid axis</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
 <link rel="match" href="row-align-items-end-align-self-start-001-ref.html">
 <style>
 .grid-lanes {
     display: grid-lanes;
-    masonry-direction: row;
+    grid-lanes-direction: row;
     background: gray;
     item-tolerance: 0;
     grid-template-rows: repeat(3, 100px);
@@ -21,7 +21,7 @@
 }
 </style>
 <body>
-  <p>Test that using align-items moves each masonry item to the end of the grid-axis track it is on</p>
+  <p>Test that using align-items moves each grid-lanes item to the end of the grid-axis track it is on</p>
   <p>and that align-self overrides align-items.</p>
   <div class="grid-lanes">
     <div style="width: 50px; height: 50px; background-color: lightblue;"></div>

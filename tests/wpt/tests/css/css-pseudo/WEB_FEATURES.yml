@@ -32,3 +32,6 @@ features:
   files:
   - before-*
   - pseudo-replaced-elements.html
+- name: text-stroke-fill
+  files:
+  - highlight-styling-003.html

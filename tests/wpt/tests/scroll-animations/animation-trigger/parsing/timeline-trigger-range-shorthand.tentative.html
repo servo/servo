@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<title>timeline-trigger-range shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#propdef-timeline-trigger-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target" style="font-size:10px"></div>
+<script>
+test_valid_value("timeline-trigger-range", "normal");
+test_valid_value("timeline-trigger-range", "normal normal", "normal");
+test_valid_value("timeline-trigger-range", "cover");
+test_valid_value("timeline-trigger-range", "contain");
+test_valid_value("timeline-trigger-range", "entry");
+test_valid_value("timeline-trigger-range", "entry-crossing");
+test_valid_value("timeline-trigger-range", "exit");
+test_valid_value("timeline-trigger-range", "exit-crossing");
+test_valid_value("timeline-trigger-range", "entry, exit");
+
+test_valid_value("timeline-trigger-range", "entry 0% entry 100%", "entry");
+test_valid_value("timeline-trigger-range", "entry-crossing 0% entry-crossing 100%",
+                 "entry-crossing");
+test_valid_value("timeline-trigger-range", "exit 0% exit 100%", "exit");
+test_valid_value("timeline-trigger-range", "exit-crossing 0% exit-crossing 100%",
+                 "exit-crossing");
+test_valid_value("timeline-trigger-range", "cover 0% cover 100%", "cover");
+test_valid_value("timeline-trigger-range", "contain 0% contain 100%", "contain");
+test_valid_value("timeline-trigger-range",
+                 "entry calc(10% - 10%) entry calc(50% + 50%)", "entry");
+test_valid_value("timeline-trigger-range", "cover 50%");
+test_valid_value("timeline-trigger-range", "contain 50%");
+test_valid_value("timeline-trigger-range", "entry 50%");
+test_valid_value("timeline-trigger-range", "entry-crossing 50%");
+test_valid_value("timeline-trigger-range", "exit 50%");
+test_valid_value("timeline-trigger-range", "exit-crossing 50%");
+test_valid_value("timeline-trigger-range", "entry 50px exit 100px");
+test_valid_value("timeline-trigger-range", "exit calc(10% + 50px)");
+
+test_valid_value("timeline-trigger-range", "entry 50% exit 50%");
+test_valid_value("timeline-trigger-range",
+                 "cover 50% entry 50%, contain 50% exit 50%");
+test_valid_value("timeline-trigger-range", "50% exit 50%");
+test_valid_value("timeline-trigger-range", "normal 100px");
+test_valid_value("timeline-trigger-range", "100px");
+test_valid_value("timeline-trigger-range", "100px normal", "100px");
+test_valid_value("timeline-trigger-range", "10% normal", "10%");
+
+test_computed_value("timeline-trigger-range", "normal");
+test_computed_value("timeline-trigger-range", "normal normal", "normal");
+test_computed_value("timeline-trigger-range", "cover");
+test_computed_value("timeline-trigger-range", "contain");
+test_computed_value("timeline-trigger-range", "entry");
+test_computed_value("timeline-trigger-range", "entry-crossing");
+test_computed_value("timeline-trigger-range", "exit");
+test_computed_value("timeline-trigger-range", "exit-crossing");
+test_computed_value("timeline-trigger-range", "entry, exit");
+
+test_computed_value("timeline-trigger-range", "entry 0% entry 100%", "entry");
+test_computed_value("timeline-trigger-range", "entry-crossing 0% entry-crossing 100%",
+                 "entry-crossing");
+test_computed_value("timeline-trigger-range", "exit 0% exit 100%", "exit");
+test_computed_value("timeline-trigger-range", "exit-crossing 0% exit-crossing 100%",
+                 "exit-crossing");
+test_computed_value("timeline-trigger-range", "cover 0% cover 100%", "cover");
+test_computed_value("timeline-trigger-range", "contain 0% contain 100%", "contain");
+test_computed_value("timeline-trigger-range",
+                 "entry calc(10% - 10%) entry calc(50% + 50%)", "entry");
+test_computed_value("timeline-trigger-range", "cover 50%");
+test_computed_value("timeline-trigger-range", "contain 50%");
+test_computed_value("timeline-trigger-range", "entry 50%");
+test_computed_value("timeline-trigger-range", "entry-crossing 50%");
+test_computed_value("timeline-trigger-range", "exit 50%");
+test_computed_value("timeline-trigger-range", "exit-crossing 50%");
+test_computed_value("timeline-trigger-range", "entry 50px exit 100px");
+test_computed_value("timeline-trigger-range", "exit calc(10% + 50px)");
+
+test_computed_value("timeline-trigger-range", "entry 50% exit 50%");
+test_computed_value("timeline-trigger-range",
+                 "cover 50% entry 50%, contain 50% exit 50%");
+
+test_computed_value("timeline-trigger-range", "entry 10em exit 20em", "entry 100px exit 200px");
+test_computed_value("timeline-trigger-range", "10em exit 20em", "100px exit 200px");
+test_computed_value("timeline-trigger-range", "normal 100px");
+test_computed_value("timeline-trigger-range", "100px");
+test_computed_value("timeline-trigger-range", "100px normal", "100px");
+test_computed_value("timeline-trigger-range", "10% normal", "10%");
+test_computed_value("timeline-trigger-range", "10% calc(70% + 10% * sign(100em - 1px))", "10% 80%");
+
+test_invalid_value("timeline-trigger-range", "entry 50% 0s", "entry 50%");
+test_invalid_value("timeline-trigger-range", "0s entry 50%");
+test_invalid_value("timeline-trigger-range", "1s");
+test_invalid_value("timeline-trigger-range", "-1s");
+test_invalid_value("timeline-trigger-range", "1s 2s");
+test_invalid_value("timeline-trigger-range", "1s, 2s");
+test_invalid_value("timeline-trigger-range", "1s 2s, 3s");
+test_invalid_value("timeline-trigger-range", "1s, 2s 3s");
+test_invalid_value("timeline-trigger-range", "1s, 2s, 3s");
+test_invalid_value("timeline-trigger-range", "1s 2s 3s");
+test_invalid_value("timeline-trigger-range", "0s, 1s 2s 3s");
+test_invalid_value("timeline-trigger-range", "1s / 2s");
+test_invalid_value("timeline-trigger-range", "1s, 2px");
+test_invalid_value("timeline-trigger-range", "#ff0000");
+test_invalid_value("timeline-trigger-range", "red");
+test_invalid_value("timeline-trigger-range", "thing");
+test_invalid_value("timeline-trigger-range", "thing 0%");
+test_invalid_value("timeline-trigger-range", "thing 42%");
+test_invalid_value("timeline-trigger-range", "thing 100%");
+test_invalid_value("timeline-trigger-range", "thing 100px");
+test_invalid_value("timeline-trigger-range", "100% thing");
+test_invalid_value("timeline-trigger-range", "normal foo normal 100%");
+test_invalid_value("timeline-trigger-range", "normal normal 100%");
+
+test_shorthand_value('timeline-trigger-range', 'normal', {
+  'timeline-trigger-range-start': 'normal',
+  'timeline-trigger-range-end': 'normal',
+});
+
+test_shorthand_value('timeline-trigger-range', 'normal normal', {
+  'timeline-trigger-range-start': 'normal',
+  'timeline-trigger-range-end': 'normal',
+});
+
+test_shorthand_value('timeline-trigger-range', 'normal entry 100%', {
+  'timeline-trigger-range-start': 'normal',
+  'timeline-trigger-range-end': 'entry',
+});
+
+test_shorthand_value('timeline-trigger-range', 'normal entry 10%', {
+  'timeline-trigger-range-start': 'normal',
+  'timeline-trigger-range-end': 'entry 10%',
+});
+
+test_shorthand_value('timeline-trigger-range', 'cover', {
+  'timeline-trigger-range-start': 'cover',
+  'timeline-trigger-range-end': 'cover',
+});
+
+test_shorthand_value('timeline-trigger-range', 'contain', {
+  'timeline-trigger-range-start': 'contain',
+  'timeline-trigger-range-end': 'contain',
+});
+
+test_shorthand_value('timeline-trigger-range', 'contain 100% contain 0%', {
+  'timeline-trigger-range-start': 'contain 100%',
+  'timeline-trigger-range-end': 'contain 0%',
+});
+
+test_shorthand_value('timeline-trigger-range', 'entry 10% exit 20%', {
+  'timeline-trigger-range-start': 'entry 10%',
+  'timeline-trigger-range-end': 'exit 20%',
+});
+
+test_shorthand_value('timeline-trigger-range', 'entry calc(10% + 10px) exit 20px', {
+  'timeline-trigger-range-start': 'entry calc(10% + 10px)',
+  'timeline-trigger-range-end': 'exit 20px',
+});
+
+test_shorthand_value('timeline-trigger-range', 'entry, exit', {
+  'timeline-trigger-range-start': 'entry, exit',
+  'timeline-trigger-range-end': 'entry, exit',
+});
+
+test_shorthand_value('timeline-trigger-range', 'entry 0%, exit', {
+  'timeline-trigger-range-start': 'entry, exit',
+  'timeline-trigger-range-end': 'entry, exit',
+});
+
+test_shorthand_value('timeline-trigger-range', 'exit calc(10% + 50px)', {
+  'timeline-trigger-range-start': 'exit calc(10% + 50px)',
+  'timeline-trigger-range-end': 'exit',
+});
+test_shorthand_value('timeline-trigger-range', '100px', {
+  'timeline-trigger-range-start': '100px',
+  'timeline-trigger-range-end': 'normal',
+});
+test_shorthand_value('timeline-trigger-range', '10%', {
+  'timeline-trigger-range-start': '10%',
+  'timeline-trigger-range-end': 'normal',
+});
+</script>

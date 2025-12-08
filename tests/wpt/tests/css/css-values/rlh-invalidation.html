@@ -30,13 +30,15 @@
 
 <script>
   setup({ single_test: true });
-  let old_width = div.getBoundingClientRect().width;
-  document.documentElement.style.lineHeight = "4";
-  let new_width = div.getBoundingClientRect().width;
-  assert_not_equals(old_width, new_width, "expect rlh units to update on line-height update");
-  old_width = new_width;
-  document.documentElement.style.fontSize = "41px";
-  new_width = div.getBoundingClientRect().width;
-  assert_not_equals(old_width, new_width, "expect rlh units to update on font-size update");
-  done();
+  document.fonts.ready.then(() => {
+    let old_width = div.getBoundingClientRect().width;
+    document.documentElement.style.lineHeight = "4";
+    let new_width = div.getBoundingClientRect().width;
+    assert_not_equals(old_width, new_width, "expect rlh units to update on line-height update");
+    old_width = new_width;
+    document.documentElement.style.fontSize = "41px";
+    new_width = div.getBoundingClientRect().width;
+    assert_not_equals(old_width, new_width, "expect rlh units to update on font-size update");
+    done();
+  });
 </script>

@@ -1,4 +1,7 @@
 features:
+- name: scrollbar-buttons
+  files:
+  - scroll-button*
 - name: scrollbar-gutter
   files:
   - scrollbar-gutter-*

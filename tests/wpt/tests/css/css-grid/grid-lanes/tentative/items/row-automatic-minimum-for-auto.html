@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<title>CSS Masonry: automatic minimum in 'auto' rows</title>
+<title>CSS Grid Lanes: automatic minimum in 'auto' rows</title>
 <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid/#layout-algorithm">
 <link rel="help" href="https://drafts.csswg.org/css-sizing-3/#automatic-minimum-size">
-<meta name="assert" content="Check that masonry item's 'min-height' is honored when sizing 'auto' rows.">
+<meta name="assert" content="Check that grid-lanes item's 'min-height' is honored when sizing 'auto' rows.">
 <link rel="stylesheet" href="/css/support/grid.css">
 <link rel="stylesheet" href="/fonts/ahem.css">
 
 <style>
-.grid-lanes { display: grid-lanes; masonry-direction: row; font: 10px/1 Ahem; }
+.grid-lanes { display: grid-lanes; grid-lanes-direction: row; font: 10px/1 Ahem; }
 
 .minHeight10 { min-height: 10px; }
 .minHeight20 { min-height: 20px; }

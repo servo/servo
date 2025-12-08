@@ -5,17 +5,17 @@
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <link rel="match" href="row-order-property-auto-placement-001-ref.html">
 <style>
-#masonry {
+#grid-lanes {
   display: grid-lanes;
   font: 50px/1 Ahem;
-  masonry-direction: row;
+  grid-lanes-direction: row;
   grid-template-rows: auto auto;
   justify-content: start;
   align-content: start;
 }
 </style>
-<p>Ensure `order` property affects masonry layout correctly</p>
-<div id="masonry">
+<p>Ensure `order` property affects grid-lanes layout correctly</p>
+<div id="grid-lanes">
   <div id="magenta" style="color: magenta; order: 10;">M</div>
   <div id="lime" style="color: lime; order: 5;">L</div>
   <div id="yellow" style="color: yellow; order: 1;">Y</div>

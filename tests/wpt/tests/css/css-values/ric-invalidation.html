@@ -28,9 +28,11 @@
 
 <script>
   setup({ single_test: true });
-  let old_width = div.getBoundingClientRect().width;
-  document.documentElement.style.fontSize = "41px";
-  let new_width = div.getBoundingClientRect().width;
-  assert_not_equals(old_width, new_width, "expect update of ric units with font size change");
-  done();
+  document.fonts.ready.then(() => {
+    let old_width = div.getBoundingClientRect().width;
+    document.documentElement.style.fontSize = "41px";
+    let new_width = div.getBoundingClientRect().width;
+    assert_not_equals(old_width, new_width, "expect update of ric units with font size change");
+    done();
+  });
 </script>
