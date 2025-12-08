@@ -169,7 +169,7 @@ class WPTSync:
             return True
 
         pull_data = payload["pull_request"]
-        if NO_SYNC_SIGNAL in pull_data.get("body", ""):
+        if NO_SYNC_SIGNAL in (pull_data.get("body") or ""):
             return True
 
         # Only look for an existing remote PR if the action is appropriate.
@@ -218,7 +218,7 @@ class WPTSync:
         logging.info("  → PR is upstreamable: '%s'", is_upstreamable)
 
         title = pull_data["title"]
-        body = pull_data["body"]
+        body = pull_data["body"] or ""
         if run.upstream_pr.has_value():
             if is_upstreamable:
                 # In case this is adding new upstreamable changes to a PR that was closed
