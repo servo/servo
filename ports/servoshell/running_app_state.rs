@@ -32,6 +32,11 @@ use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
+#[cfg(feature = "llvm-coverage")]
+unsafe extern "C" {
+    fn __llvm_profile_write_file();
+}
+
 #[derive(Default)]
 pub struct WebViewCollection {
     /// List of top-level browsing contexts.
@@ -303,6 +308,11 @@ impl RunningAppState {
         // to run wpt test using servodriver.
         self.servoshell_preferences.webdriver_port.set(None);
         self.exit_scheduled.set(true);
+
+        #[cfg(feature = "llvm-coverage")]
+        unsafe {
+            __llvm_profile_write_file()
+        }
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
