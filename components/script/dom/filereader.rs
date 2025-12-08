@@ -42,7 +42,7 @@ use crate::task::TaskOnce;
 
 pub(crate) enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),
-    ProcessReadData(TrustedFileReader, GenerationId),
+    ProcessReadData(TrustedFileReader, GenerationId, u64, u64),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Vec<u8>),
 }
@@ -59,8 +59,8 @@ impl FileReadingTask {
 
         match self {
             ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id, can_gc),
-            ProcessReadData(reader, gen_id) => {
-                FileReader::process_read_data(reader, gen_id, can_gc)
+            ProcessReadData(reader, gen_id, loaded, total) => {
+                FileReader::process_read_data(reader, gen_id, loaded, total, can_gc)
             },
             ProcessReadError(reader, gen_id, error) => {
                 FileReader::process_read_error(reader, gen_id, error, can_gc)
@@ -231,6 +231,8 @@ impl FileReader {
     pub(crate) fn process_read_data(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
+        loaded: u64,
+        total: u64,
         can_gc: CanGc,
     ) {
         let fr = filereader.root();
@@ -243,8 +245,8 @@ impl FileReader {
             );
         );
         return_on_abort!();
-        // FIXME Step 7 send current progress
-        fr.dispatch_progress_event(atom!("progress"), 0, None, can_gc);
+        // Step 7 send current progress
+        fr.dispatch_progress_event(atom!("progress"), loaded, Some(total), can_gc);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -545,6 +547,8 @@ impl FileReader {
                     task_source.queue(FileReadingTask::ProcessReadData(
                         Trusted::new(&filereader_success.clone()),
                         gen_id,
+                        blob_contents.len() as u64,
+                        load_data.blobtype.len() as u64, // This seems wrong, load_data.blobtype is the MIME type string. I need the blob size.
                     ));
                 }
                 // Otherwise,
