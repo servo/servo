@@ -10,8 +10,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{GenericSender, RoutedReceiver};
-use base::generic_channel::GenericSend;
+use base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
 use base::id::{PipelineId, PipelineNamespace};
 use constellation_traits::WorkerGlobalScopeInit;
 use content_security_policy::CspList;
