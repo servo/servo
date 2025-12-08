@@ -530,31 +530,6 @@ class CommandBase(object):
             return str(lib_path)
         return None
 
-        # def set_correct_clang_lib_path(self, env: os._Environ) -> None:
-        """
-        First this function just tries the llmv-config,
-
-        If llvm-config fails, it tries CC if set
-        """
-        # CC = env["CC"]
-        # clang_version = self.get_current_clang_version(CC)
-        # CCpath = None
-        # if clang_version is not None:
-        #     CCpath = self.get_valid_clang_path_using_version_string(clang_version)
-
-        # libdir = self.get_correct_clang_lib_path_using_llvm()
-        # if libdir is not None:
-        #     env.setdefault("LIBCLANG_PATH", libdir)
-
-        # # The CC is set in the build_env and is currently guaranteed to no fail.
-        # # CC = os.getenv("CC")
-
-        # if CCpath is not None:
-        #     env.setdefault("CLANG_PATH", CCpath)
-        #     libdir = self.get_valid_clang_lib_path_using_path(CCpath)
-        #     if libdir is not None:
-        #         env.setdefault("LIBCLANG_PATH", libdir)
-
     def get_correct_clang_lib_path_using_llvm(_) -> Optional[str]:
         try:
             result = subprocess.run(
@@ -595,7 +570,6 @@ class CommandBase(object):
 
         # The default clang of Ubuntu24.04 from apt seem to be clang-18
         # But mach seem to use the llvm's lib .so instead, so to sync, we can force LIBCLANG_PATH
-        # self.set_correct_clang_lib_path(env)
         clang_version = None
         CCstr = os.getenv("CC")
         if CCstr is not None:
@@ -607,9 +581,6 @@ class CommandBase(object):
         libdir = self.get_correct_clang_lib_path_using_llvm()
         if libdir is not None:
             env.setdefault("LIBCLANG_PATH", libdir)
-
-        # The CC is set in the build_env and is currently guaranteed to no fail.
-        # CC = os.getenv("CC")
 
         if CCpath is not None:
             env.setdefault("CLANG_PATH", CCpath)
