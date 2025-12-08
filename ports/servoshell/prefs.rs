@@ -616,7 +616,19 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let cmd_args = match cmd_args {
         Ok(cmd_args) => cmd_args,
         Err(error) => {
-            error.print_message(80);
+            // Servo will exit after printing the parsing error, which makes the stdout / stderr
+            // redirection via a seperate thread racy, so we log directly to the system logger.
+            if cfg!(target_os = "android") || cfg!(target_env = "ohos") {
+                match &error {
+                    ParseFailure::Stderr(doc) => log::error!("{doc}"),
+                    // '--help' will be parsed by the next one.
+                    ParseFailure::Stdout(doc, _) => log::error!("{doc}"),
+                    ParseFailure::Completion(_) => log::error!("Not supported on these platforms"),
+                }
+            } else {
+                error.print_message(80);
+            }
+
             return if error.exit_code() == 0 {
                 ArgumentParsingResult::Exit
             } else {
