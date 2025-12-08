@@ -6,7 +6,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
-use base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
+
+use base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
 use base::id::PipelineId;
 use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
