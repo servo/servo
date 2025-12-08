@@ -465,7 +465,7 @@ fn update_serviceworker(
     Arc<AtomicBool>,
 ) {
     let (sender, receiver) = unbounded();
-    let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
+    let (_devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
     let worker_id = ServiceWorkerId::new();
 
     let (control_sender, control_receiver) = unbounded();

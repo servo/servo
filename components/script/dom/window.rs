@@ -17,8 +17,7 @@ use std::time::{Duration, Instant};
 use app_units::Au;
 use backtrace::Backtrace;
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel;
-use base::generic_channel::GenericSender;
+use base::generic_channel::{self, GenericCallback, GenericSender};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
 #[cfg(feature = "bluetooth")]
@@ -304,7 +303,7 @@ pub(crate) struct Window {
     #[no_trace]
     devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
     #[no_trace]
-    devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
+    devtools_marker_sender: DomRefCell<Option<GenericSender<Option<TimelineMarker>>>>,
 
     /// Most recent unhandled resize event, if any.
     #[no_trace]
@@ -3175,7 +3174,7 @@ impl Window {
     pub(crate) fn set_devtools_timeline_markers(
         &self,
         markers: Vec<TimelineMarkerType>,
-        reply: IpcSender<Option<TimelineMarker>>,
+        reply: GenericSender<Option<TimelineMarker>>,
     ) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
         self.devtools_markers.borrow_mut().extend(markers);
@@ -3428,7 +3427,7 @@ impl Window {
         #[cfg(feature = "bluetooth")] bluetooth_thread: GenericSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
-        devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+        devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         constellation_chan: ScriptToConstellationChan,
         embedder_chan: ScriptToEmbedderChan,
         control_chan: GenericSender<ScriptThreadMessage>,
