@@ -2,17 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
-use crate::{EmptyReplyMsg, StreamId};
-
-#[derive(Serialize)]
-pub struct NetworkParentActorMsg {
-    actor: String,
-}
+use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 pub struct NetworkParentActor {
     name: String,
@@ -49,8 +43,10 @@ impl NetworkParentActor {
     pub fn new(name: String) -> Self {
         Self { name }
     }
+}
 
-    pub fn encodable(&self) -> NetworkParentActorMsg {
-        NetworkParentActorMsg { actor: self.name() }
+impl ActorEncode<ActorMsg> for NetworkParentActor {
+    fn encode(&self, _: &ActorRegistry) -> ActorMsg {
+        ActorMsg { actor: self.name() }
     }
 }

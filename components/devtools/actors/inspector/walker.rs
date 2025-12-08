@@ -13,11 +13,11 @@ use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::inspector::layout::{LayoutInspectorActor, LayoutInspectorActorMsg};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
 use crate::protocol::{ClientRequest, JsonPacketStream};
-use crate::{EmptyReplyMsg, StreamId};
+use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 pub struct WalkerMsg {
@@ -58,8 +58,8 @@ struct ChildrenReply {
 
 #[derive(Serialize)]
 struct GetLayoutInspectorReply {
-    actor: LayoutInspectorActorMsg,
     from: String,
+    actor: ActorMsg,
 }
 
 #[derive(Serialize)]
@@ -199,7 +199,7 @@ impl Actor for WalkerActor {
             "getLayoutInspector" => {
                 // TODO: Create actual layout inspector actor
                 let layout = LayoutInspectorActor::new(registry.new_name("layout"));
-                let actor = layout.encodable();
+                let actor = layout.encode(registry);
                 registry.register_later(layout);
 
                 let msg = GetLayoutInspectorReply {

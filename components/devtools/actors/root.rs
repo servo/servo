@@ -15,12 +15,12 @@ use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
 use crate::actors::process::{ProcessActor, ProcessActorMsg};
 use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
-use crate::actors::worker::{WorkerActor, WorkerMsg};
+use crate::actors::worker::{WorkerActor, WorkerActorMsg};
 use crate::protocol::{ActorDescription, ClientRequest};
 
 #[derive(Serialize)]
@@ -80,7 +80,7 @@ pub struct ProtocolDescriptionReply {
 #[derive(Serialize)]
 struct ListWorkersReply {
     from: String,
-    workers: Vec<WorkerMsg>,
+    workers: Vec<WorkerActorMsg>,
 }
 
 #[derive(Serialize)]
@@ -154,7 +154,7 @@ impl Actor for RootActor {
             },
 
             "listProcesses" => {
-                let process = registry.find::<ProcessActor>(&self.process).encodable();
+                let process = registry.encode::<ProcessActor, _>(&self.process);
                 let reply = ListProcessesResponse {
                     from: self.name(),
                     processes: vec![process],
@@ -164,7 +164,7 @@ impl Actor for RootActor {
 
             // TODO: Unexpected message getTarget for process (when inspecting)
             "getProcess" => {
-                let process = registry.find::<ProcessActor>(&self.process).encodable();
+                let process = registry.encode::<ProcessActor, _>(&self.process);
                 let reply = GetProcessResponse {
                     from: self.name(),
                     process_descriptor: process,
@@ -193,7 +193,7 @@ impl Actor for RootActor {
                             let tab_actor = registry.find::<TabDescriptorActor>(target);
                             // Filter out iframes and workers
                             if tab_actor.is_top_level_global() {
-                                Some(tab_actor.encodable(registry, false))
+                                Some(tab_actor.encode(registry))
                             } else {
                                 None
                             }
@@ -217,7 +217,7 @@ impl Actor for RootActor {
                     workers: self
                         .workers
                         .iter()
-                        .map(|name| registry.find::<WorkerActor>(name).encodable())
+                        .map(|name| registry.encode::<WorkerActor, _>(name))
                         .collect(),
                 };
                 request.reply_final(&reply)?
@@ -258,7 +258,31 @@ impl Actor for RootActor {
 }
 
 impl RootActor {
-    pub fn encodable(&self) -> RootActorMsg {
+    fn get_tab_msg_by_browser_id(
+        &self,
+        registry: &ActorRegistry,
+        browser_id: u32,
+    ) -> Option<TabDescriptorActorMsg> {
+        let mut tab_msg = self
+            .tabs
+            .iter()
+            .map(|target| registry.encode::<TabDescriptorActor, _>(target))
+            .find(|tab| tab.browser_id() == browser_id);
+
+        if let Some(ref mut msg) = tab_msg {
+            msg.selected = true;
+            *self.active_tab.borrow_mut() = Some(msg.actor());
+        }
+        tab_msg
+    }
+
+    pub fn active_tab(&self) -> Option<String> {
+        self.active_tab.borrow().clone()
+    }
+}
+
+impl ActorEncode<RootActorMsg> for RootActor {
+    fn encode(&self, _: &ActorRegistry) -> RootActorMsg {
         RootActorMsg {
             from: "root".to_owned(),
             application_type: "browser".to_owned(),
@@ -269,30 +293,5 @@ impl RootActor {
                 network_monitor: true,
             },
         }
-    }
-
-    fn get_tab_msg_by_browser_id(
-        &self,
-        registry: &ActorRegistry,
-        browser_id: u32,
-    ) -> Option<TabDescriptorActorMsg> {
-        let tab_msg = self
-            .tabs
-            .iter()
-            .map(|target| {
-                registry
-                    .find::<TabDescriptorActor>(target)
-                    .encodable(registry, true)
-            })
-            .find(|tab| tab.browser_id() == browser_id);
-
-        if let Some(ref msg) = tab_msg {
-            *self.active_tab.borrow_mut() = Some(msg.actor());
-        }
-        tab_msg
-    }
-
-    pub fn active_tab(&self) -> Option<String> {
-        self.active_tab.borrow().clone()
     }
 }

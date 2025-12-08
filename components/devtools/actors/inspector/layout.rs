@@ -8,14 +8,9 @@
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
-
-#[derive(Serialize)]
-pub struct LayoutInspectorActorMsg {
-    actor: String,
-}
+use crate::{ActorMsg, StreamId};
 
 pub struct LayoutInspectorActor {
     name: String,
@@ -80,8 +75,10 @@ impl LayoutInspectorActor {
     pub fn new(name: String) -> Self {
         Self { name }
     }
+}
 
-    pub fn encodable(&self) -> LayoutInspectorActorMsg {
-        LayoutInspectorActorMsg { actor: self.name() }
+impl ActorEncode<ActorMsg> for LayoutInspectorActor {
+    fn encode(&self, _: &ActorRegistry) -> ActorMsg {
+        ActorMsg { actor: self.name() }
     }
 }
