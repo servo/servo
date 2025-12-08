@@ -88,8 +88,6 @@ pub enum CompositorMsg {
     ChangeRunningAnimationsState(WebViewId, PipelineId, AnimationState),
     /// Updates the frame tree for the given webview.
     SetFrameTreeForWebView(WebViewId, SendableFrameTree),
-    /// Remove a webview.
-    RemoveWebView(WebViewId),
     /// Set whether to use less resources by stopping animations.
     SetThrottled(WebViewId, PipelineId, bool),
     /// WebRender has produced a new frame. This message informs the compositor that
@@ -531,10 +529,16 @@ impl PainterSurfmanDetailsMap {
         map.get(&painter_id).cloned()
     }
 
-    pub fn insert(&mut self, painter_id: PainterId, details: PainterSurfmanDetails) {
+    pub fn insert(&self, painter_id: PainterId, details: PainterSurfmanDetails) {
         let mut map = self.0.lock().expect("poisoned");
         let existing = map.insert(painter_id, details);
         assert!(existing.is_none())
+    }
+
+    pub fn remove(&self, painter_id: PainterId) {
+        let mut map = self.0.lock().expect("poisoned");
+        let details = map.remove(&painter_id);
+        assert!(details.is_some());
     }
 }
 

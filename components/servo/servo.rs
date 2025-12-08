@@ -636,7 +636,6 @@ impl Drop for ServoInner {
         while self.spin_event_loop() {
             std::thread::sleep(Duration::from_micros(500));
         }
-        self.compositor.borrow_mut().deinit();
     }
 }
 
