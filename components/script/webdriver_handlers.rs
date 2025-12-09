@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
-use base::generic_channel::{GenericOneshotSender, GenericSend, GenericSender, GenericSender};
+use base::generic_channel::{GenericOneshotSender, GenericSend, GenericSender};
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
