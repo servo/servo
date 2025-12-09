@@ -525,7 +525,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             UnicodeBlock::Bengali => {
                 families.push("Noto Sans Bengali");
             },
-            
+
             UnicodeBlock::Gujarati => {
                 families.push("Noto Sans Gujarati");
             },
@@ -533,6 +533,35 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             UnicodeBlock::Gurmukhi => {
                 families.push("Noto Sans Gurmukhi");
             },
+
+            UnicodeBlock::Oriya => {
+                families.push("Noto Sans Oriya");
+            },
+
+            UnicodeBlock::Kannada => {
+                families.push("Noto Sans Kannada");
+            },
+
+            UnicodeBlock::Telugu => {
+                families.push("Noto Sans Telugu");
+            },
+
+            UnicodeBlock::Malayalam => {
+                families.push("Noto Sans Malayalam");
+            },
+
+            UnicodeBlock::Sinhala => {
+                families.push("Noto Sans Sinhala");
+            },
+
+            UnicodeBlock::Lao => {
+                families.push("Noto Sans Lao");
+            },
+
+            UnicodeBlock::Tibetan => {
+                families.push("Noto Sans Tibetan");
+            },  
+
             _ => {
                 if is_cjk(options.character) {
                     families.push("MotoyaLMaru");
