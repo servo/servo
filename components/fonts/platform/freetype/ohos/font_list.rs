@@ -81,11 +81,14 @@ struct FontList {
 fn enumerate_font_files() -> io::Result<Vec<PathBuf>> {
     let mut font_list = vec![];
     for elem in fs::read_dir(OHOS_FONTS_DIR)?.flatten() {
-        if elem.file_type().unwrap().is_file() {
+        if elem.file_type().is_ok_and(|file_type| file_type.is_file()) {
             let name = elem.file_name();
             let raw_name = name.as_bytes();
             if raw_name.ends_with(b".ttf".as_ref()) || raw_name.ends_with(b".ttc".as_ref()) {
-                debug!("Found font {}", elem.file_name().to_str().unwrap());
+                debug!(
+                    "Found font: {}",
+                    String::from_utf8_lossy(elem.file_name().as_bytes())
+                );
                 font_list.push(elem.path())
             }
         }
