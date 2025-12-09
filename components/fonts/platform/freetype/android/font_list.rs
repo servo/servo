@@ -522,6 +522,17 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
                 families.push("Droid Sans Ethiopic");
             },
 
+            UnicodeBlock::Bengali => {
+                families.push("Noto Sans Bengali");
+            },
+            
+            UnicodeBlock::Gujarati => {
+                families.push("Noto Sans Gujarati");
+            },
+
+            UnicodeBlock::Gurmukhi => {
+                families.push("Noto Sans Gurmukhi");
+            },
             _ => {
                 if is_cjk(options.character) {
                     families.push("MotoyaLMaru");
