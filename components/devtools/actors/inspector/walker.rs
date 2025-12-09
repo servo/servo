@@ -6,18 +6,18 @@
 
 use std::cell::RefCell;
 
+use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement};
 use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
-use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::inspector::layout::{LayoutInspectorActor, LayoutInspectorActorMsg};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
 use crate::protocol::{ClientRequest, JsonPacketStream};
-use crate::{EmptyReplyMsg, StreamId};
+use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 pub struct WalkerMsg {
@@ -27,7 +27,7 @@ pub struct WalkerMsg {
 
 pub struct WalkerActor {
     pub name: String,
-    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub root_node: NodeActorMsg,
     pub mutations: RefCell<Vec<(AttrModification, String)>>,
@@ -58,8 +58,8 @@ struct ChildrenReply {
 
 #[derive(Serialize)]
 struct GetLayoutInspectorReply {
-    actor: LayoutInspectorActorMsg,
     from: String,
+    actor: ActorMsg,
 }
 
 #[derive(Serialize)]
@@ -135,7 +135,9 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::MissingParameter)?
                     .as_str()
                     .ok_or(ActorError::BadParameterType)?;
-                let (tx, rx) = ipc::channel().map_err(|_| ActorError::Internal)?;
+                let Some((tx, rx)) = generic_channel::channel() else {
+                    return Err(ActorError::Internal);
+                };
                 self.script_chan
                     .send(GetChildren(
                         self.pipeline,
@@ -171,7 +173,9 @@ impl Actor for WalkerActor {
                 request.reply_final(&msg)?
             },
             "documentElement" => {
-                let (tx, rx) = ipc::channel().map_err(|_| ActorError::Internal)?;
+                let Some((tx, rx)) = generic_channel::channel() else {
+                    return Err(ActorError::Internal);
+                };
                 self.script_chan
                     .send(GetDocumentElement(self.pipeline, tx))
                     .map_err(|_| ActorError::Internal)?;
@@ -195,7 +199,7 @@ impl Actor for WalkerActor {
             "getLayoutInspector" => {
                 // TODO: Create actual layout inspector actor
                 let layout = LayoutInspectorActor::new(registry.new_name("layout"));
-                let actor = layout.encodable();
+                let actor = layout.encode(registry);
                 registry.register_later(layout);
 
                 let msg = GetLayoutInspectorReply {
@@ -298,7 +302,7 @@ impl WalkerActor {
 /// If it is found, returns a list with the child and all of its ancestors.
 /// TODO: Investigate how to cache this to some extent.
 pub fn find_child(
-    script_chan: &IpcSender<DevtoolScriptControlMsg>,
+    script_chan: &GenericSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
     name: &str,
     registry: &ActorRegistry,
@@ -306,7 +310,7 @@ pub fn find_child(
     mut hierarchy: Vec<NodeActorMsg>,
     compare_fn: impl Fn(&NodeActorMsg) -> bool + Clone,
 ) -> Result<Vec<NodeActorMsg>, Vec<NodeActorMsg>> {
-    let (tx, rx) = ipc::channel().unwrap();
+    let (tx, rx) = generic_channel::channel().unwrap();
     script_chan
         .send(GetChildren(
             pipeline,

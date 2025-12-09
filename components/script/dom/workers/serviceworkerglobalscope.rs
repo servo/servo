@@ -8,17 +8,15 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use base::IpcSend;
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 use base::id::PipelineId;
 use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
-use crossbeam_channel::{Receiver, Sender, after, unbounded};
+use crossbeam_channel::{Receiver, Sender, after};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
-use ipc_channel::ipc::IpcReceiver;
-use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
 use net_traits::CustomResponseMediator;
@@ -221,7 +219,7 @@ impl ServiceWorkerGlobalScope {
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -260,7 +258,7 @@ impl ServiceWorkerGlobalScope {
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -295,7 +293,7 @@ impl ServiceWorkerGlobalScope {
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
-        devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
+        devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
         swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
@@ -331,9 +329,7 @@ impl ServiceWorkerGlobalScope {
                 let sw_lifetime_timeout = pref!(dom_serviceworker_timeout_seconds) as u64;
                 let time_out_port = after(Duration::new(sw_lifetime_timeout, 0));
 
-                let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
-                ROUTER
-                    .route_ipc_receiver_to_crossbeam_sender(devtools_receiver, devtools_mpsc_chan);
+                let devtools_mpsc_port = devtools_receiver.route_preserving_errors();
 
                 let resource_threads_sender = init.resource_threads.sender();
                 let global = ServiceWorkerGlobalScope::new(

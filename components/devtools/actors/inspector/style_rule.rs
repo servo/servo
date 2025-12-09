@@ -8,15 +8,15 @@
 
 use std::collections::HashMap;
 
+use base::generic_channel;
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
 };
-use ipc_channel::ipc;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
@@ -130,7 +130,7 @@ impl Actor for StyleRuleActor {
                     ))
                     .map_err(|_| ActorError::Internal)?;
 
-                request.reply_final(&self.encodable(registry))?
+                request.reply_final(&self.encode(registry))?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
@@ -151,7 +151,7 @@ impl StyleRuleActor {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
 
-        let (document_sender, document_receiver) = ipc::channel().ok()?;
+        let (document_sender, document_receiver) = generic_channel::channel()?;
         walker
             .script_chan
             .send(GetDocumentElement(walker.pipeline, document_sender))
@@ -160,7 +160,7 @@ impl StyleRuleActor {
 
         // Gets the style definitions. If there is a selector, query the relevant stylesheet, if
         // not, this represents the style attribute.
-        let (style_sender, style_receiver) = ipc::channel().ok()?;
+        let (style_sender, style_receiver) = generic_channel::channel()?;
         let req = match &self.selector {
             Some(selector) => {
                 let (selector, stylesheet) = selector.clone();
@@ -219,7 +219,7 @@ impl StyleRuleActor {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
 
-        let (style_sender, style_receiver) = ipc::channel().ok()?;
+        let (style_sender, style_receiver) = generic_channel::channel()?;
         walker
             .script_chan
             .send(GetComputedStyle(
@@ -245,8 +245,10 @@ impl StyleRuleActor {
                 .collect(),
         )
     }
+}
 
-    pub fn encodable(&self, registry: &ActorRegistry) -> StyleRuleActorMsg {
+impl ActorEncode<StyleRuleActorMsg> for StyleRuleActor {
+    fn encode(&self, registry: &ActorRegistry) -> StyleRuleActorMsg {
         StyleRuleActorMsg {
             from: self.name(),
             rule: self.applied(registry),

@@ -12,7 +12,7 @@
 use std::fmt;
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{GenericReceiver, GenericSender};
+use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
     ScriptEventLoopId, WebViewId,
@@ -36,7 +36,7 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use fonts_traits::SystemFontServiceProxySender;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcReceiver;
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
@@ -361,7 +361,7 @@ pub struct InitialScriptState {
     /// A channel to the memory profiler thread.
     pub memory_profiler_sender: mem::ProfilerChan,
     /// A channel to the developer tools, if applicable.
-    pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub devtools_server_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A channel to the WebGL thread used in this pipeline.

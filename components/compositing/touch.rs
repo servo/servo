@@ -521,7 +521,10 @@ impl TouchHandler {
     }
 
     pub fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
-        let touch_sequence = self.get_current_touch_sequence_mut();
+        let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
+            warn!("Current touch sequence not found");
+            return;
+        };
         let old = match touch_sequence
             .active_touch_points
             .iter()

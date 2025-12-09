@@ -18,7 +18,7 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use base::generic_channel;
+use base::generic_channel::{self, GenericSender};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
@@ -27,7 +27,6 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
-use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
 use rand::{RngCore, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
@@ -95,6 +94,11 @@ enum UniqueId {
 #[derive(Serialize)]
 pub struct EmptyReplyMsg {
     pub from: String,
+}
+
+#[derive(Serialize)]
+pub struct ActorMsg {
+    pub actor: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -341,7 +345,7 @@ impl DevtoolsInstance {
     fn handle_new_global(
         &mut self,
         ids: (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
         page_info: DevtoolsPageInfo,
     ) {
         let mut actors = self.actors.lock().unwrap();
@@ -545,7 +549,7 @@ impl DevtoolsInstance {
 
     fn handle_create_source_actor(
         &mut self,
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
         pipeline_id: PipelineId,
         source_info: SourceInfo,
     ) {
@@ -665,7 +669,10 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
 /// Process the input from a single devtools client until EOF.
 fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, stream_id: StreamId) {
     log::info!("Connection established to {}", stream.peer_addr().unwrap());
-    let msg = actors.lock().unwrap().find::<RootActor>("root").encodable();
+    let msg = {
+        let actors = actors.lock().unwrap();
+        actors.encode::<RootActor, _>("root")
+    };
     if let Err(error) = stream.write_json_packet(&msg) {
         warn!("Failed to send initial packet from root actor: {error:?}");
         return;

@@ -15,7 +15,7 @@ use egui::{
 };
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
-use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
+use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use log::warn;
 use servo::{
     DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
@@ -491,9 +491,8 @@ impl Gui {
             // the size of its RenderingContext.
             let rect = ctx.available_rect();
             let size = Size2D::new(rect.width(), rect.height()) * scale;
-            let rect = Box2D::from_origin_and_size(Point2D::origin(), size);
             if let Some(webview) = window.active_webview() &&
-                rect != webview.rect()
+                size != webview.size()
             {
                 // `rect` is sized to just the WebView viewport, which is required by
                 // `OffscreenRenderingContext` See:

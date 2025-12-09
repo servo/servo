@@ -5,14 +5,14 @@
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 
+use base::generic_channel;
 use base::id::WebViewId;
 use embedder_traits::{WebDriverCommandMsg, WebDriverUserPrompt, WebDriverUserPromptAction};
-use ipc_channel::ipc;
 use serde_json::{Map, Value};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::response::{ValueResponse, WebDriverResponse};
 
-use crate::{Handler, wait_for_ipc_response};
+use crate::{Handler, wait_for_oneshot_response};
 
 const KNOWN_PROMPT_HANDLERS: [&str; 5] = [
     "dismiss",
@@ -181,14 +181,14 @@ impl Handler {
         self.verify_top_level_browsing_context_is_open(self.webview_id()?)?;
 
         // Step 3. Dismiss the current user prompt.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
             self.verified_webview_id(),
             WebDriverUserPromptAction::Dismiss,
             sender,
         ))?;
 
-        match wait_for_ipc_response(receiver)? {
+        match wait_for_oneshot_response(receiver)? {
             // Step 2. If the current user prompt is null, return error with error code no such alert.
             Err(()) => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -206,14 +206,14 @@ impl Handler {
         self.verify_top_level_browsing_context_is_open(self.webview_id()?)?;
 
         // Step 3. Accept the current user prompt.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
             self.verified_webview_id(),
             WebDriverUserPromptAction::Accept,
             sender,
         ))?;
 
-        match wait_for_ipc_response(receiver)? {
+        match wait_for_oneshot_response(receiver)? {
             // Step 2. If the current user prompt is null, return error with error code no such alert.
             Err(()) => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -230,13 +230,13 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetAlertText(
             self.verified_webview_id(),
             sender,
         ))?;
 
-        match wait_for_ipc_response(receiver)? {
+        match wait_for_oneshot_response(receiver)? {
             // Step 2. If the current user prompt is null, return error with error code no such alert.
             Err(()) => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -267,11 +267,11 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
 
         self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
 
-        match wait_for_ipc_response(receiver)? {
+        match wait_for_oneshot_response(receiver)? {
             // Step 4. If the current user prompt is null, return error with error code no such alert.
             None => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -311,11 +311,11 @@ impl Handler {
         &self,
         webview_id: WebViewId,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
 
         self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
 
-        match wait_for_ipc_response(receiver)? {
+        match wait_for_oneshot_response(receiver)? {
             // Step 1. If the current user prompt is null, return success with data null.
             None => Ok(WebDriverResponse::Void),
             Some(prompt_type) => {
@@ -324,7 +324,7 @@ impl Handler {
                     get_user_prompt_handler(self.session()?.user_prompt_handler(), prompt_type);
 
                 // Step 5. Perform the substeps based on handler's handler
-                let (sender, receiver) = ipc::channel().unwrap();
+                let (sender, receiver) = generic_channel::oneshot().unwrap();
                 self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
                     webview_id,
                     handler.handler.clone(),
@@ -333,7 +333,7 @@ impl Handler {
 
                 if handler.notify || handler.handler == WebDriverUserPromptAction::Ignore {
                     // Step 6. If handler's notify is true, return annotated unexpected alert open error.
-                    let alert_text = wait_for_ipc_response(receiver)?.unwrap_or_default();
+                    let alert_text = wait_for_oneshot_response(receiver)?.unwrap_or_default();
 
                     Err(WebDriverError::new_with_data(
                         ErrorStatus::UnexpectedAlertOpen,

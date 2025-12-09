@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::root::DescriptorTraits;
 use crate::protocol::ClientRequest;
 
@@ -69,8 +69,10 @@ impl ProcessActor {
     pub fn new(name: String) -> Self {
         Self { name }
     }
+}
 
-    pub fn encodable(&self) -> ProcessActorMsg {
+impl ActorEncode<ProcessActorMsg> for ProcessActor {
+    fn encode(&self, _: &ActorRegistry) -> ProcessActorMsg {
         ProcessActorMsg {
             actor: self.name(),
             id: 0,

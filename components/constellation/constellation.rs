@@ -3065,8 +3065,6 @@ where
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         self.webviews.remove(&webview_id);
-        self.compositor_proxy
-            .send(CompositorMsg::RemoveWebView(webview_id));
         self.embedder_proxy
             .send(EmbedderMsg::WebViewClosed(webview_id));
 

@@ -9,8 +9,8 @@ use std::fs::create_dir_all;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use base::generic_channel::RoutedReceiver;
-use base::id::{PainterId, WebViewId};
+use base::generic_channel::{GenericSender, RoutedReceiver};
+use base::id::{PainterId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use compositing_traits::rendering_context::RenderingContext;
@@ -34,6 +34,7 @@ use profile_traits::mem::{
 };
 use profile_traits::path;
 use profile_traits::time::{self as profile_time};
+use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use surfman::Device;
@@ -44,6 +45,7 @@ use webgl::webgl_thread::WebGLContextBusyMap;
 use webgpu::canvas_context::WebGpuExternalImageMap;
 use webrender::{CaptureBits, MemoryReport};
 use webrender_api::units::{DevicePixel, DevicePoint};
+use webrender_api::{FontInstanceKey, FontKey, ImageKey};
 
 use crate::InitialCompositorState;
 use crate::painter::Painter;
@@ -228,30 +230,41 @@ impl IOCompositor {
         painter_id
     }
 
-    pub(crate) fn painter<'a>(&'a self, painter_id: PainterId) -> Ref<'a, Painter> {
+    fn remove_painter(&mut self, painter_id: PainterId) {
+        self.painters
+            .retain(|painter| painter.borrow().painter_id != painter_id);
+        self.painter_surfman_details_map.remove(painter_id);
+    }
+
+    pub(crate) fn maybe_painter<'a>(&'a self, painter_id: PainterId) -> Option<Ref<'a, Painter>> {
         self.painters
             .iter()
             .map(|painter| painter.borrow())
             .find(|painter| painter.painter_id == painter_id)
+    }
+
+    pub(crate) fn painter<'a>(&'a self, painter_id: PainterId) -> Ref<'a, Painter> {
+        self.maybe_painter(painter_id)
             .expect("painter_id not found")
     }
 
-    pub(crate) fn painter_mut<'a>(&'a self, painter_id: PainterId) -> RefMut<'a, Painter> {
+    pub(crate) fn maybe_painter_mut<'a>(
+        &'a self,
+        painter_id: PainterId,
+    ) -> Option<RefMut<'a, Painter>> {
         self.painters
             .iter()
             .map(|painter| painter.borrow_mut())
             .find(|painter| painter.painter_id == painter_id)
+    }
+
+    pub(crate) fn painter_mut<'a>(&'a self, painter_id: PainterId) -> RefMut<'a, Painter> {
+        self.maybe_painter_mut(painter_id)
             .expect("painter_id not found")
     }
 
     pub fn painter_id(&self) -> PainterId {
         self.painters[0].borrow().painter_id
-    }
-
-    pub fn deinit(&mut self) {
-        for painter in &self.painters {
-            painter.borrow_mut().deinit();
-        }
     }
 
     pub fn rendering_context_size(&self, painter_id: PainterId) -> Size2D<u32, DevicePixel> {
@@ -341,37 +354,36 @@ impl IOCompositor {
                 pipeline_id,
                 animation_state,
             ) => {
-                self.painter_mut(webview_id.into())
-                    .change_running_animations_state(webview_id, pipeline_id, animation_state);
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.change_running_animations_state(
+                        webview_id,
+                        pipeline_id,
+                        animation_state,
+                    );
+                }
             },
             CompositorMsg::SetFrameTreeForWebView(webview_id, frame_tree) => {
-                self.painter_mut(webview_id.into())
-                    .set_frame_tree_for_webview(&frame_tree);
-            },
-            CompositorMsg::RemoveWebView(webview_id) => {
-                self.painter_mut(webview_id.into())
-                    .remove_webview(webview_id);
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.set_frame_tree_for_webview(&frame_tree);
+                }
             },
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
-                self.painter_mut(webview_id.into()).set_throttled(
-                    webview_id,
-                    pipeline_id,
-                    throttled,
-                );
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.set_throttled(webview_id, pipeline_id, throttled);
+                }
             },
             CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
-                self.painter_mut(webview_id.into()).notify_pipeline_exited(
-                    webview_id,
-                    pipeline_id,
-                    pipeline_exit_source,
-                );
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.notify_pipeline_exited(webview_id, pipeline_id, pipeline_exit_source);
+                }
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
                 unreachable!("New WebRender frames should be handled in the caller.");
             },
             CompositorMsg::SendInitialTransaction(webview_id, pipeline_id) => {
-                self.painter_mut(webview_id.into())
-                    .send_initial_pipeline_transaction(webview_id, pipeline_id);
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.send_initial_pipeline_transaction(webview_id, pipeline_id);
+                }
             },
             CompositorMsg::ScrollNodeByDelta(
                 webview_id,
@@ -379,54 +391,59 @@ impl IOCompositor {
                 offset,
                 external_scroll_id,
             ) => {
-                self.painter_mut(webview_id.into()).scroll_node_by_delta(
-                    webview_id,
-                    pipeline_id,
-                    offset,
-                    external_scroll_id,
-                );
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.scroll_node_by_delta(
+                        webview_id,
+                        pipeline_id,
+                        offset,
+                        external_scroll_id,
+                    );
+                }
             },
             CompositorMsg::ScrollViewportByDelta(webview_id, delta) => {
-                self.painter_mut(webview_id.into())
-                    .scroll_viewport_by_delta(webview_id, delta);
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.scroll_viewport_by_delta(webview_id, delta);
+                }
             },
             CompositorMsg::UpdateEpoch {
                 webview_id,
                 pipeline_id,
                 epoch,
             } => {
-                self.painter_mut(webview_id.into())
-                    .update_epoch(webview_id, pipeline_id, epoch);
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.update_epoch(webview_id, pipeline_id, epoch);
+                }
             },
             CompositorMsg::SendDisplayList {
                 webview_id,
                 display_list_descriptor,
                 display_list_receiver,
             } => {
-                self.painter_mut(webview_id.into()).handle_new_display_list(
-                    webview_id,
-                    display_list_descriptor,
-                    display_list_receiver,
-                );
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.handle_new_display_list(
+                        webview_id,
+                        display_list_descriptor,
+                        display_list_receiver,
+                    );
+                }
             },
             CompositorMsg::GenerateFrame(painter_ids) => {
                 for painter_id in painter_ids {
-                    self.painter_mut(painter_id).generate_frame_for_script();
+                    if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
+                        painter.generate_frame_for_script();
+                    }
                 }
             },
-            CompositorMsg::GenerateImageKey(webview_id, sender) => {
-                let _ = sender.send(self.painter(webview_id.into()).generate_image_key());
+            CompositorMsg::GenerateImageKey(webview_id, result_sender) => {
+                self.handle_generate_image_key(webview_id, result_sender);
             },
             CompositorMsg::GenerateImageKeysForPipeline(webview_id, pipeline_id) => {
-                let _ = self.embedder_to_constellation_sender.send(
-                    EmbedderToConstellationMessage::SendImageKeysForPipeline(
-                        pipeline_id,
-                        self.painter(webview_id.into()).generate_image_keys(),
-                    ),
-                );
+                self.handle_generate_image_keys_for_pipeline(webview_id, pipeline_id);
             },
             CompositorMsg::UpdateImages(painter_id, updates) => {
-                self.painter_mut(painter_id).update_images(updates);
+                if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
+                    painter.update_images(updates);
+                }
             },
             CompositorMsg::DelayNewFrameForCanvas(
                 webview_id,
@@ -434,18 +451,23 @@ impl IOCompositor {
                 canvas_epoch,
                 image_keys,
             ) => {
-                self.painter_mut(webview_id.into())
-                    .delay_new_frames_for_canvas(pipeline_id, canvas_epoch, image_keys);
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.delay_new_frames_for_canvas(pipeline_id, canvas_epoch, image_keys);
+                }
             },
             CompositorMsg::AddFont(painter_id, font_key, data, index) => {
                 debug_assert!(painter_id == font_key.into());
-                self.painter_mut(font_key.into())
-                    .add_font(font_key, data, index);
+
+                if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
+                    painter.add_font(font_key, data, index);
+                }
             },
             CompositorMsg::AddSystemFont(painter_id, font_key, native_handle) => {
                 debug_assert!(painter_id == font_key.into());
-                self.painter_mut(font_key.into())
-                    .add_system_font(font_key, native_handle);
+
+                if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
+                    painter.add_system_font(font_key, native_handle);
+                }
             },
             CompositorMsg::AddFontInstance(
                 painter_id,
@@ -457,17 +479,15 @@ impl IOCompositor {
             ) => {
                 debug_assert!(painter_id == font_key.into());
                 debug_assert!(painter_id == font_instance_key.into());
-                self.painter_mut(font_key.into()).add_font_instance(
-                    font_instance_key,
-                    font_key,
-                    size,
-                    flags,
-                    variations,
-                );
+
+                if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
+                    painter.add_font_instance(font_instance_key, font_key, size, flags, variations);
+                }
             },
             CompositorMsg::RemoveFonts(painter_id, keys, instance_keys) => {
-                self.painter_mut(painter_id)
-                    .remove_fonts(keys, instance_keys);
+                if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
+                    painter.remove_fonts(keys, instance_keys);
+                }
             },
             CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
@@ -475,28 +495,43 @@ impl IOCompositor {
                 result_sender,
                 painter_id,
             ) => {
-                let _ = result_sender.send(
-                    self.painter_mut(painter_id)
-                        .generate_font_keys(number_of_font_keys, number_of_font_instance_keys),
+                self.handle_generate_font_keys(
+                    number_of_font_keys,
+                    number_of_font_instance_keys,
+                    result_sender,
+                    painter_id,
                 );
             },
             CompositorMsg::Viewport(webview_id, viewport_description) => {
-                self.painter_mut(webview_id.into())
-                    .set_viewport_description(webview_id, viewport_description);
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.set_viewport_description(webview_id, viewport_description);
+                }
             },
             CompositorMsg::ScreenshotReadinessReponse(webview_id, pipelines_and_epochs) => {
-                self.painter(webview_id.into())
-                    .handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
+                if let Some(painter) = self.maybe_painter(webview_id.into()) {
+                    painter.handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
+                }
             },
             CompositorMsg::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
-                self.painter_mut(webview_id.into()).append_lcp_candidate(
-                    lcp_candidate,
-                    webview_id,
-                    pipeline_id,
-                    epoch,
-                );
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.append_lcp_candidate(lcp_candidate, webview_id, pipeline_id, epoch);
+                }
             },
         }
+    }
+
+    pub fn remove_webview(&mut self, webview_id: WebViewId) {
+        let painter_id = webview_id.into();
+
+        {
+            let mut painter = self.painter_mut(painter_id);
+            painter.remove_webview(webview_id);
+            if !painter.is_empty() {
+                return;
+            }
+        }
+
+        self.remove_painter(painter_id);
     }
 
     fn collect_memory_report(&self, sender: profile_traits::mem::ReportsChan) {
@@ -551,18 +586,15 @@ impl IOCompositor {
     fn handle_browser_message_while_shutting_down(&self, msg: CompositorMsg) {
         match msg {
             CompositorMsg::PipelineExited(webview_id, pipeline_id, pipeline_exit_source) => {
-                self.painter_mut(webview_id.into()).notify_pipeline_exited(
-                    webview_id,
-                    pipeline_id,
-                    pipeline_exit_source,
-                );
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.notify_pipeline_exited(webview_id, pipeline_id, pipeline_exit_source);
+                }
             },
-            CompositorMsg::GenerateImageKey(webview_id, sender) => {
-                let _ = sender.send(
-                    self.painter(webview_id.into())
-                        .webrender_api
-                        .generate_image_key(),
-                );
+            CompositorMsg::GenerateImageKey(webview_id, result_sender) => {
+                self.handle_generate_image_key(webview_id, result_sender);
+            },
+            CompositorMsg::GenerateImageKeysForPipeline(webview_id, pipeline_id) => {
+                self.handle_generate_image_keys_for_pipeline(webview_id, pipeline_id);
             },
             CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
@@ -570,9 +602,11 @@ impl IOCompositor {
                 result_sender,
                 painter_id,
             ) => {
-                let _ = result_sender.send(
-                    self.painter_mut(painter_id)
-                        .generate_font_keys(number_of_font_keys, number_of_font_instance_keys),
+                self.handle_generate_font_keys(
+                    number_of_font_keys,
+                    number_of_font_instance_keys,
+                    result_sender,
+                    painter_id,
                 );
             },
             _ => {
@@ -648,10 +682,12 @@ impl IOCompositor {
         let mut saw_webrender_frame_ready_for_painter = HashMap::new();
         messages.retain(|message| match message {
             CompositorMsg::NewWebRenderFrameReady(painter_id, _document_id, need_repaint) => {
-                self.painter(*painter_id).decrement_pending_frames();
-                *saw_webrender_frame_ready_for_painter
-                    .entry(*painter_id)
-                    .or_insert(*need_repaint) |= *need_repaint;
+                if let Some(painter) = self.maybe_painter(*painter_id) {
+                    painter.decrement_pending_frames();
+                    *saw_webrender_frame_ready_for_painter
+                        .entry(*painter_id)
+                        .or_insert(*need_repaint) |= *need_repaint;
+                }
 
                 false
             },
@@ -666,8 +702,9 @@ impl IOCompositor {
         }
 
         for (painter_id, repaint_needed) in saw_webrender_frame_ready_for_painter.iter() {
-            self.painter(*painter_id)
-                .handle_new_webrender_frame_ready(*repaint_needed);
+            if let Some(painter) = self.maybe_painter(*painter_id) {
+                painter.handle_new_webrender_frame_ready(*repaint_needed);
+            }
         }
     }
 
@@ -772,7 +809,82 @@ impl IOCompositor {
         input_event_id: InputEventId,
         result: InputEventResult,
     ) {
-        self.painter_mut(webview_id.into())
-            .notify_input_event_handled(webview_id, input_event_id, result);
+        if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+            painter.notify_input_event_handled(webview_id, input_event_id, result);
+        }
+    }
+
+    /// Generate an image key from the appropriate [`Painter`] or, if it is unknown, generate
+    /// a dummy image key. The unknown case needs to be handled because requests for keys
+    /// could theoretically come after a [`Painter`] has been released. A dummy key is okay
+    /// in this case because we will never render again in that case.
+    fn handle_generate_image_key(
+        &self,
+        webview_id: WebViewId,
+        result_sender: GenericSender<ImageKey>,
+    ) {
+        let painter_id = webview_id.into();
+        let image_key = self.maybe_painter(painter_id).map_or_else(
+            || ImageKey::new(painter_id.into(), 0),
+            |painter| painter.webrender_api.generate_image_key(),
+        );
+        let _ = result_sender.send(image_key);
+    }
+
+    /// Generate image keys from the appropriate [`Painter`] or, if it is unknown, generate
+    /// dummy image keys. The unknown case needs to be handled because requests for keys
+    /// could theoretically come after a [`Painter`] has been released. A dummy key is okay
+    /// in this case because we will never render again in that case.
+    fn handle_generate_image_keys_for_pipeline(
+        &self,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+    ) {
+        let painter_id = webview_id.into();
+        let painter = self.maybe_painter(painter_id);
+        let image_keys = (0..pref!(image_key_batch_size))
+            .map(|_| {
+                painter.as_ref().map_or_else(
+                    || ImageKey::new(painter_id.into(), 0),
+                    |painter| painter.webrender_api.generate_image_key(),
+                )
+            })
+            .collect();
+
+        let _ = self.embedder_to_constellation_sender.send(
+            EmbedderToConstellationMessage::SendImageKeysForPipeline(pipeline_id, image_keys),
+        );
+    }
+
+    /// Generate font keys from the appropriate [`Painter`] or, if it is unknown, generate
+    /// dummy font keys. The unknown case needs to be handled because requests for keys
+    /// could theoretically come after a [`Painter`] has been released. A dummy key is okay
+    /// in this case because we will never render again in that case.
+    fn handle_generate_font_keys(
+        &self,
+        number_of_font_keys: usize,
+        number_of_font_instance_keys: usize,
+        result_sender: GenericSender<(Vec<FontKey>, Vec<FontInstanceKey>)>,
+        painter_id: PainterId,
+    ) {
+        let painter = self.maybe_painter(painter_id);
+        let font_keys = (0..number_of_font_keys)
+            .map(|_| {
+                painter.as_ref().map_or_else(
+                    || FontKey::new(painter_id.into(), 0),
+                    |painter| painter.webrender_api.generate_font_key(),
+                )
+            })
+            .collect();
+        let font_instance_keys = (0..number_of_font_instance_keys)
+            .map(|_| {
+                painter.as_ref().map_or_else(
+                    || FontInstanceKey::new(painter_id.into(), 0),
+                    |painter| painter.webrender_api.generate_font_instance_key(),
+                )
+            })
+            .collect();
+
+        let _ = result_sender.send((font_keys, font_instance_keys));
     }
 }

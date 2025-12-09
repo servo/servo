@@ -21,15 +21,13 @@ import traceback
 import urllib.error
 
 import toml
-
 from mach.decorators import (
+    Command,
     CommandArgument,
     CommandProvider,
-    Command,
 )
 
 import servo.platform
-
 from servo.command_base import CommandBase, cd, check_call
 from servo.util import delete, download_bytes
 
@@ -38,17 +36,23 @@ from servo.util import delete, download_bytes
 class MachCommands(CommandBase):
     @Command("bootstrap", description="Install required packages for building.", category="bootstrap")
     @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
+    @CommandArgument("--yes", "-y", action="store_true", help="Answer yes to all installation prompts")
     @CommandArgument("--skip-platform", action="store_true", help="Skip platform bootstrapping.")
     @CommandArgument("--skip-lints", action="store_true", help="Skip tool necessary for linting.")
     @CommandArgument("--skip-nextest", action="store_true", help="Skip tool for running Rust tests.")
     def bootstrap(
-        self, force: bool = False, skip_platform: bool = False, skip_lints: bool = False, skip_nextest: bool = False
+        self,
+        force: bool = False,
+        yes: bool = False,
+        skip_platform: bool = False,
+        skip_lints: bool = False,
+        skip_nextest: bool = False,
     ) -> int:
         # Note: This entry point isn't actually invoked by ./mach bootstrap.
         # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
         try:
-            servo.platform.get().bootstrap(force, skip_platform, skip_lints, skip_nextest)
+            servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest)
         except NotImplementedError as exception:
             print(exception)
             return 1

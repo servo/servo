@@ -738,7 +738,7 @@ dependencies = [
  "crossbeam-channel",
  "libc",
  "log",
- "mach2",
+ "mach2 0.6.0",
  "nix",
  "rustc-demangle",
  "rustc-hash 2.1.1",
@@ -776,7 +776,7 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
- "mach2",
+ "mach2 0.6.0",
  "malloc_size_of_derive",
  "parking_lot",
  "rayon",
@@ -2094,7 +2094,6 @@ dependencies = [
  "embedder_traits",
  "headers 0.4.1",
  "http 1.4.0",
- "ipc-channel",
  "log",
  "net",
  "net_traits",
@@ -2115,7 +2114,6 @@ dependencies = [
  "bitflags 2.10.0",
  "embedder_traits",
  "http 1.4.0",
- "ipc-channel",
  "log",
  "malloc_size_of_derive",
  "net_traits",
@@ -2877,7 +2875,7 @@ dependencies = [
  "url",
  "webrender_api",
  "winapi",
- "xml-rs",
+ "xml",
  "yeslogic-fontconfig-sys",
 ]
 
@@ -4733,7 +4731,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "617ee6cf8e3f66f3b4ea67a4058564628cde41901316e19f559e14c7c72c5e7b"
 dependencies = [
  "core-foundation-sys",
- "mach2",
+ "mach2 0.4.3",
 ]
 
 [[package]]
@@ -5284,6 +5282,12 @@ checksum = "d640282b302c0bb0a2a8e0233ead9035e3bed871f0b7e81fe4a1ec829765db44"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "mach2"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dae608c151f68243f2b000364e1f7b186d9c29845f7d2d85bd31b9ad77ad552b"
 
 [[package]]
 name = "malloc_buf"
@@ -6917,13 +6921,13 @@ dependencies = [
  "ipc-channel",
  "libc",
  "log",
+ "mach2 0.6.0",
  "profile_traits",
  "regex",
  "serde",
  "serde_json",
  "servo_allocator",
  "servo_config",
- "task_info",
  "tikv-jemalloc-sys",
  "time",
 ]
@@ -7473,7 +7477,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8452,9 +8456,9 @@ checksum = "7a2ae44ef20feb57a68b23d846850f861394c2e02dc425a50098ae8c90267589"
 
 [[package]]
 name = "slotmap"
-version = "1.0.7"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
+checksum = "bdd58c3c93c3d278ca835519292445cb4b0d4dc59ccfdf7ceadaab3f8aeb4038"
 dependencies = [
  "version_check",
 ]
@@ -8999,13 +9003,6 @@ name = "target-lexicon"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
-
-[[package]]
-name = "task_info"
-version = "0.0.1"
-dependencies = [
- "cc",
-]
 
 [[package]]
 name = "tempfile"
@@ -11199,6 +11196,12 @@ name = "xkeysym"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9cc00251562a284751c9973bace760d86c0276c471b4be569fe6b068ee97a56"
+
+[[package]]
+name = "xml"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2df5825faced2427b2da74d9100f1e2e93c533fff063506a81ede1cf517b2e7e"
 
 [[package]]
 name = "xml-rs"

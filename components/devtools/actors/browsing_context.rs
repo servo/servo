@@ -10,17 +10,17 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{
     self, GetCssDatabase, SimulateColorScheme, WantsLiveNotifications,
 };
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use embedder_traits::Theme;
-use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
@@ -148,7 +148,7 @@ pub(crate) struct BrowsingContextActor {
     pub style_sheets: String,
     pub thread: String,
     pub _tab: String,
-    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<HashMap<StreamId, TcpStream>>,
     pub watcher: String,
 }
@@ -209,7 +209,7 @@ impl BrowsingContextActor {
         page_info: DevtoolsPageInfo,
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
-        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
         actors: &mut ActorRegistry,
     ) -> BrowsingContextActor {
         let name = actors.new_name("target");
@@ -222,7 +222,7 @@ impl BrowsingContextActor {
         let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
 
         let properties = (|| {
-            let (properties_sender, properties_receiver) = ipc::channel().ok()?;
+            let (properties_sender, properties_receiver) = generic_channel::channel()?;
             script_sender.send(GetCssDatabase(properties_sender)).ok()?;
             properties_receiver.recv().ok()
         })()
@@ -285,34 +285,6 @@ impl BrowsingContextActor {
         target
     }
 
-    pub fn encodable(&self) -> BrowsingContextActorMsg {
-        BrowsingContextActorMsg {
-            actor: self.name(),
-            traits: BrowsingContextTraits {
-                is_browsing_context: true,
-                frames: true,
-                log_in_page: false,
-                navigation: true,
-                supports_top_level_target_flag: true,
-                watchpoints: true,
-            },
-            title: self.title.borrow().clone(),
-            url: self.url.borrow().clone(),
-            browser_id: self.browser_id.value(),
-            browsing_context_id: self.browsing_context_id.value(),
-            outer_window_id: self.active_outer_window_id.get().value(),
-            is_top_level_target: true,
-            accessibility_actor: self.accessibility.clone(),
-            console_actor: self.console.clone(),
-            css_properties_actor: self.css_properties.clone(),
-            inspector_actor: self.inspector.clone(),
-            reflow_actor: self.reflow.clone(),
-            style_sheets_actor: self.style_sheets.clone(),
-            thread_actor: self.thread.clone(),
-            target_type: TargetType::Frame,
-        }
-    }
-
     pub(crate) fn navigate(&self, state: NavigationState, id_map: &mut IdMap) {
         let (pipeline_id, title, url, state) = match state {
             NavigationState::Start(url) => (None, None, url, "start"),
@@ -369,5 +341,35 @@ impl BrowsingContextActor {
         self.script_chan
             .send(SimulateColorScheme(self.active_pipeline_id.get(), theme))
             .map_err(|_| ())
+    }
+}
+
+impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
+    fn encode(&self, _: &ActorRegistry) -> BrowsingContextActorMsg {
+        BrowsingContextActorMsg {
+            actor: self.name(),
+            traits: BrowsingContextTraits {
+                is_browsing_context: true,
+                frames: true,
+                log_in_page: false,
+                navigation: true,
+                supports_top_level_target_flag: true,
+                watchpoints: true,
+            },
+            title: self.title.borrow().clone(),
+            url: self.url.borrow().clone(),
+            browser_id: self.browser_id.value(),
+            browsing_context_id: self.browsing_context_id.value(),
+            outer_window_id: self.active_outer_window_id.get().value(),
+            is_top_level_target: true,
+            accessibility_actor: self.accessibility.clone(),
+            console_actor: self.console.clone(),
+            css_properties_actor: self.css_properties.clone(),
+            inspector_actor: self.inspector.clone(),
+            reflow_actor: self.reflow.clone(),
+            style_sheets_actor: self.style_sheets.clone(),
+            thread_actor: self.thread.clone(),
+            target_type: TargetType::Frame,
+        }
     }
 }

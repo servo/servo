@@ -127,8 +127,16 @@ pub(crate) struct Painter {
 
 impl Drop for Painter {
     fn drop(&mut self) {
+        if let Err(error) = self.rendering_context.make_current() {
+            warn!("Failed to make the rendering context current: {error:?}");
+        }
+
         self.webrender_api.stop_render_backend();
         self.webrender_api.shut_down(true);
+
+        if let Some(webrender) = self.webrender.take() {
+            webrender.deinit();
+        }
     }
 }
 
@@ -292,16 +300,6 @@ impl Painter {
             .collect();
 
         self.send_zoom_and_scroll_offset_updates(need_zoom, scroll_offset_updates);
-    }
-
-    pub(crate) fn deinit(&mut self) {
-        if let Err(error) = self.rendering_context.make_current() {
-            warn!("Failed to make the rendering context current: {error:?}");
-        }
-        if let Some(webrender) = self.webrender.take() {
-            webrender.deinit();
-        }
-        self.lcp_calculator.clear();
     }
 
     #[track_caller]
@@ -793,15 +791,6 @@ impl Painter {
         self.send_root_pipeline_display_list();
     }
 
-    pub(crate) fn remove_webview(&mut self, webview_id: WebViewId) {
-        if self.webview_renderers.remove(&webview_id).is_none() {
-            warn!("Tried removing unknown WebView: {webview_id:?}");
-            return;
-        };
-
-        self.send_root_pipeline_display_list();
-    }
-
     pub(crate) fn set_throttled(
         &mut self,
         webview_id: WebViewId,
@@ -1041,16 +1030,6 @@ impl Painter {
             .prepare_screenshot_requests_for_render(self)
     }
 
-    pub(crate) fn generate_image_key(&self) -> ImageKey {
-        self.webrender_api.generate_image_key()
-    }
-
-    pub(crate) fn generate_image_keys(&self) -> Vec<ImageKey> {
-        (0..pref!(image_key_batch_size))
-            .map(|_| self.webrender_api.generate_image_key())
-            .collect()
-    }
-
     pub(crate) fn update_images(&mut self, updates: SmallVec<[ImageUpdate; 1]>) {
         let mut txn = Transaction::new();
         for update in updates {
@@ -1156,22 +1135,6 @@ impl Painter {
         self.send_transaction(transaction);
     }
 
-    /// Generate the font keys and send them to the `result_sender`.
-    /// Currently `RenderingGroupId` is not used.
-    pub(crate) fn generate_font_keys(
-        &self,
-        number_of_font_keys: usize,
-        number_of_font_instance_keys: usize,
-    ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
-        let font_keys = (0..number_of_font_keys)
-            .map(|_| self.webrender_api.generate_font_key())
-            .collect();
-        let font_instance_keys = (0..number_of_font_instance_keys)
-            .map(|_| self.webrender_api.generate_font_instance_key())
-            .collect();
-        (font_keys, font_instance_keys)
-    }
-
     pub(crate) fn set_viewport_description(
         &mut self,
         webview_id: WebViewId,
@@ -1205,6 +1168,20 @@ impl Painter {
                 self.refresh_driver.clone(),
                 self.webrender_document,
             ));
+    }
+
+    pub(crate) fn remove_webview(&mut self, webview_id: WebViewId) {
+        if self.webview_renderers.remove(&webview_id).is_none() {
+            warn!("Tried removing unknown WebView: {webview_id:?}");
+            return;
+        };
+
+        self.send_root_pipeline_display_list();
+        self.lcp_calculator.note_webview_removed(webview_id);
+    }
+
+    pub(crate) fn is_empty(&mut self) -> bool {
+        self.webview_renderers.is_empty()
     }
 
     pub(crate) fn set_webview_hidden(
@@ -1448,7 +1425,7 @@ impl Painter {
 
     /// Disable LCP feature when the user interacts with the page.
     fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
-        self.lcp_calculator.add_to_disabled_lcp_webviews(webview_id);
+        self.lcp_calculator.disable_for_webview(webview_id);
     }
 }
 
