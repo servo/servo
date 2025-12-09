@@ -42,8 +42,6 @@ gamepad = ["libservo/gamepad"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 js_jit = ["libservo/js_jit"]
-# Allow llvm-coverage functions for writing files
-llvm-coverage = []
 max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["libservo/media-gstreamer"]
 native-bluetooth = ["libservo/native-bluetooth"]
