@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use base::generic_channel;
 use base::id::BrowsingContextId;
 use crossbeam_channel::Select;
 use embedder_traits::{
@@ -14,7 +15,6 @@ use embedder_traits::{
     WheelEvent, WheelMode,
 };
 use euclid::Point2D;
-use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use log::info;
 use rustc_hash::FxHashSet;
@@ -751,7 +751,7 @@ impl Handler {
         if x < 0.0 || y < 0.0 {
             return Err(ErrorStatus::MoveTargetOutOfBounds);
         }
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd_msg = WebDriverCommandMsg::GetViewportSize(self.verified_webview_id(), sender);
         self.send_message_to_embedder(cmd_msg)
             .map_err(|_| ErrorStatus::UnknownError)?;
@@ -801,7 +801,7 @@ impl Handler {
         &self,
         web_element: &WebElement,
     ) -> Result<(i64, i64), ErrorStatus> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         // Step 1. Let element be the result of trying to run actions options'
         // get element origin steps with origin and browsing context.
         self.browsing_context_script_command(

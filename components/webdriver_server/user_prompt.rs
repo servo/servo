@@ -5,9 +5,9 @@
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 
+use base::generic_channel;
 use base::id::WebViewId;
 use embedder_traits::{WebDriverCommandMsg, WebDriverUserPrompt, WebDriverUserPromptAction};
-use ipc_channel::ipc;
 use serde_json::{Map, Value};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::response::{ValueResponse, WebDriverResponse};
@@ -181,7 +181,7 @@ impl Handler {
         self.verify_top_level_browsing_context_is_open(self.webview_id()?)?;
 
         // Step 3. Dismiss the current user prompt.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
             self.verified_webview_id(),
             WebDriverUserPromptAction::Dismiss,
@@ -206,7 +206,7 @@ impl Handler {
         self.verify_top_level_browsing_context_is_open(self.webview_id()?)?;
 
         // Step 3. Accept the current user prompt.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
             self.verified_webview_id(),
             WebDriverUserPromptAction::Accept,
@@ -230,7 +230,7 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(self.webview_id()?)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetAlertText(
             self.verified_webview_id(),
             sender,
@@ -267,7 +267,7 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
 
@@ -311,7 +311,7 @@ impl Handler {
         &self,
         webview_id: WebViewId,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
 
         self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
 
@@ -324,7 +324,7 @@ impl Handler {
                     get_user_prompt_handler(self.session()?.user_prompt_handler(), prompt_type);
 
                 // Step 5. Perform the substeps based on handler's handler
-                let (sender, receiver) = ipc::channel().unwrap();
+                let (sender, receiver) = generic_channel::channel().unwrap();
                 self.send_message_to_embedder(WebDriverCommandMsg::HandleUserPrompt(
                     webview_id,
                     handler.handler.clone(),

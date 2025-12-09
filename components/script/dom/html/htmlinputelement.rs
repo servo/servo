@@ -11,6 +11,7 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
+use base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
@@ -18,7 +19,6 @@ use embedder_traits::{
 };
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
-use ipc_channel::ipc::IpcSender;
 use itertools::Itertools;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
@@ -2398,7 +2398,7 @@ impl HTMLInputElement {
     pub(crate) fn select_files_for_webdriver(
         &self,
         test_paths: Vec<DOMString>,
-        response_sender: IpcSender<Result<bool, ErrorStatus>>,
+        response_sender: GenericSender<Result<bool, ErrorStatus>>,
     ) {
         let mut stored_sender = self.pending_webdriver_response.borrow_mut();
         assert!(stored_sender.is_none());
@@ -3799,7 +3799,7 @@ fn matches_js_regex(
 #[derive(MallocSizeOf)]
 struct PendingWebDriverResponse {
     /// An [`IpcSender`] to use to send the reply when the response is ready.
-    response_sender: IpcSender<Result<bool, ErrorStatus>>,
+    response_sender: GenericSender<Result<bool, ErrorStatus>>,
     /// The number of files expected to be selected when the selection process is done.
     expected_file_count: usize,
 }
