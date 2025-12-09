@@ -126,13 +126,13 @@ impl StackingContext {
         let mut contents = self.contents.iter().rev().peekable();
 
         // Step 10: Outlines
-        while contents
-            .peek()
-            .is_some_and(|child| child.section() == StackingContextSection::Outline)
-        {
-            // The hit test will not hit the outline.
-            let _ = contents.next().unwrap();
-        }
+        // We only use `StackingContextSection::Outline` as an override when building the
+        // display list. So we shouldn't encounter it here.
+        assert!(
+            contents
+                .peek()
+                .is_none_or(|child| child.section() != StackingContextSection::Outline)
+        );
 
         // Steps 8 and 9: Stacking contexts with non-negative ‘z-index’, and
         // positioned stacking containers (where ‘z-index’ is auto)
