@@ -294,7 +294,7 @@ impl RunningAppState {
         self.servoshell_preferences.webdriver_port.set(None);
         self.exit_scheduled.set(true);
 
-        #[cfg(feature = "llvm-coverage")]
+        #[cfg(all(any(coverage, llvm_pgo), any(android, ohos)))]
         unsafe {
             __llvm_profile_write_file()
         }

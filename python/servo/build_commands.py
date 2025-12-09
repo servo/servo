@@ -129,7 +129,6 @@ class MachCommands(CommandBase):
 
         if self.enable_code_coverage:
             print("Building with code coverage instrumentation...")
-            opts += ["-F", "llvm-coverage"]
             # We don't want coverage for build-scripts and proc macros.
             kwargs["target_override"] = target_triple
             this_dir = pathlib.Path(os.path.dirname(__file__))
