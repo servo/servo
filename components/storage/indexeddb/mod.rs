@@ -84,7 +84,6 @@ impl IndexedDBDescription {
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
     transactions: FxHashMap<u64, KvsTransaction>,
-    serial_number_counter: u64,
 }
 
 impl<E: KvsEngine> IndexedDBEnvironment<E> {
@@ -92,7 +91,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         IndexedDBEnvironment {
             engine,
             transactions: FxHashMap::default(),
-            serial_number_counter: 0,
         }
     }
 
@@ -211,6 +209,11 @@ struct IndexedDBManager {
     /// Tracking pending upgrade transactions.
     /// TODO: move into general transaction lifecyle.
     pending_upgrades: HashMap<(String, u64), PendingUpgrade>,
+    /// A global counter to produce unique transaction ids.
+    /// TODO: remove once db connections lifecyle is managed.
+    /// A global counter is only necessary because of how deleting a db currently
+    /// does not wait for connection to close and transactions to finish.
+    serial_number_counter: u64,
 }
 
 impl IndexedDBManager {
@@ -231,6 +234,7 @@ impl IndexedDBManager {
             databases: HashMap::new(),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
             pending_upgrades: Default::default(),
+            serial_number_counter: 0,
         }
     }
 }
@@ -340,8 +344,8 @@ impl IndexedDBManager {
             .expect("Db should have been opened.");
 
         // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
-        let transaction_id = db.serial_number_counter;
-        db.serial_number_counter += 1;
+        let transaction_id = self.serial_number_counter;
+        self.serial_number_counter += 1;
 
         // Step 3: Set transaction’s scope to connection’s object store set.
         // Step 4: Set db’s upgrade transaction to transaction.
@@ -482,14 +486,6 @@ impl IndexedDBManager {
         };
     }
 
-    /// Returns the id of the transaction if the db exists.
-    fn register_transaction(&mut self, origin: ImmutableOrigin, db_name: String) -> Option<u64> {
-        self.get_database_mut(origin, db_name).map(|db| {
-            db.serial_number_counter += 1;
-            db.serial_number_counter
-        })
-    }
-
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
             SyncOperation::CloseDatabase(sender, origin, db_name) => {
@@ -612,9 +608,9 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
-                if let Some(transaction_id) = self.register_transaction(origin, db_name) {
-                    let _ = sender.send(transaction_id);
-                }
+                let transaction_id = self.serial_number_counter;
+                self.serial_number_counter += 1;
+                let _ = sender.send(transaction_id);
             },
             SyncOperation::Exit(_) => {
                 unreachable!("We must've already broken out of event loop.");
