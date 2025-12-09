@@ -610,8 +610,8 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::RegisterNewTxn(sender, _origin, _db_name) => {
-                // Note: ignoring origin and name for now, 
-                // but those could be used again when implementing 
+                // Note: ignoring origin and name for now,
+                // but those could be used again when implementing
                 // lifecycle.
                 let transaction_id = self.serial_number_counter;
                 self.serial_number_counter += 1;
