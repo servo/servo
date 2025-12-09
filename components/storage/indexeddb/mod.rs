@@ -354,7 +354,7 @@ impl IndexedDBManager {
         // TODO: implement transactions and their lifecyle.
 
         // Step 7: Let old version be db’s version.
-        // Note: done in script.
+        let old_version = db.version().expect("DB should have a version.");
 
         // Step 8: Set db’s version to version.
         // This change is considered part of the transaction,
@@ -370,6 +370,7 @@ impl IndexedDBManager {
         if sender
             .send(OpenDatabaseResult::Upgrade {
                 version: new_version,
+                old_version,
                 transaction: transaction_id,
             })
             .is_err()

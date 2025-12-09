@@ -70,6 +70,7 @@ impl OpenRequestListener {
             },
             OpenDatabaseResult::Upgrade {
                 version,
+                old_version,
                 transaction,
             } => {
                 // TODO: link with backend connection concept.
@@ -83,7 +84,7 @@ impl OpenRequestListener {
                     idb_factory.note_connection(name.clone(), &connection);
                     connection
                 });
-                request.upgrade_db_version(&connection, version, transaction, can_gc);
+                request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
                 return;
             },
         };
@@ -168,6 +169,7 @@ impl IDBOpenDBRequest {
     fn upgrade_db_version(
         &self,
         connection: &IDBDatabase,
+        old_version: u64,
         version: u64,
         transaction: u64,
         can_gc: CanGc,
@@ -206,7 +208,6 @@ impl IDBOpenDBRequest {
         // Step 10.5: Let didThrow be the result of
         // firing a version change event named upgradeneeded
         // at request with old version and version.
-        let old_version = connection.version();
         let event = IDBVersionChangeEvent::new(
             &global,
             Atom::from("upgradeneeded"),

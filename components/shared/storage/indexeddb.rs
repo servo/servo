@@ -332,6 +332,7 @@ pub enum OpenDatabaseResult {
     /// An upgrade transaction for a version started.
     Upgrade {
         version: u64,
+        old_version: u64,
         transaction: u64,
     },
 }
