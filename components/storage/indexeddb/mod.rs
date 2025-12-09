@@ -609,7 +609,10 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
+            SyncOperation::RegisterNewTxn(sender, _origin, _db_name) => {
+                // Note: ignoring origin and name for now, 
+                // but those could be used again when implementing 
+                // lifecycle.
                 let transaction_id = self.serial_number_counter;
                 self.serial_number_counter += 1;
                 let _ = sender.send(transaction_id);
