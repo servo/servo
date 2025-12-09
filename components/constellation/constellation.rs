@@ -1362,6 +1362,7 @@ where
                 match pending {
                     Some((load_data, history_handling)) => {
                         if allowed {
+                            dbg!("{}: AllowNavigationResponse allowed", pipeline_id);
                             self.load_url(webview_id, pipeline_id, load_data, history_handling);
                         } else {
                             if let Some((sender, id)) = &self.webdriver_load_status_sender {
@@ -1402,6 +1403,7 @@ where
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
             EmbedderToConstellationMessage::LoadUrl(webview_id, url) => {
+                dbg!("{}: LoadUrl for {}", webview_id, &url);
                 let load_data = LoadData::new_for_new_unrelated_webview(url);
                 let ctx_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
@@ -3534,7 +3536,7 @@ where
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
     ) -> Option<PipelineId> {
-        debug!(
+        error!(
             "{}: Loading ({}replacing): {}",
             source_id,
             match history_handling {

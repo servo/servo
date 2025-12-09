@@ -793,6 +793,22 @@ impl Paint {
             .notify_scroll_event(webview_id, scroll, point);
     }
 
+    pub fn notify_reload(&self, webview_id: WebViewId) {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
+            return;
+        }
+        self.painter_mut(webview_id.into())
+            .notify_navigation(webview_id);
+    }
+
+    pub fn notify_load(&self, webview_id: WebViewId) {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
+            return;
+        }
+        self.painter_mut(webview_id.into())
+            .notify_navigation(webview_id);
+    }
+
     pub fn pinch_zoom(&self, webview_id: WebViewId, pinch_zoom_delta: f32, center: DevicePoint) {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;

@@ -32,6 +32,7 @@ impl LargestContentfulPaintCalculator {
         candidate: LCPCandidate,
     ) -> bool {
         if self.disabled_lcp_for_webviews.contains(&webview_id) {
+            dbg!("LCP calculation is disabled for webview {:?}", webview_id);
             return false;
         }
         self.lcp_containers
@@ -60,7 +61,7 @@ impl LargestContentfulPaintCalculator {
         self.disabled_lcp_for_webviews.insert(webview_id);
     }
 
-    pub(crate) fn note_webview_removed(&mut self, webview_id: WebViewId) {
+    pub(crate) fn flush_webview_from_disable_list_of_webviews(&mut self, webview_id: WebViewId) {
         self.disabled_lcp_for_webviews.remove(&webview_id);
     }
 }

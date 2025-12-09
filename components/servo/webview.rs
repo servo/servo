@@ -389,6 +389,7 @@ impl WebView {
     }
 
     pub fn load(&self, url: Url) {
+        self.inner().servo.paint().notify_load(self.id());
         self.inner()
             .servo
             .constellation_proxy()
@@ -399,6 +400,7 @@ impl WebView {
     }
 
     pub fn reload(&self) {
+        self.inner().servo.paint().notify_reload(self.id());
         self.inner()
             .servo
             .constellation_proxy()
@@ -418,6 +420,7 @@ impl WebView {
                 traversal_id.clone(),
             ),
         );
+        dbg!("Going back with traversal id: {:?}");
         traversal_id
     }
 
@@ -435,6 +438,7 @@ impl WebView {
                 traversal_id.clone(),
             ),
         );
+        dbg!("Going forward with traversal id: {:?}");
         traversal_id
     }
 

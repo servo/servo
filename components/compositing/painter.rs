@@ -29,7 +29,7 @@ use euclid::{Point2D, Rect, Scale, Size2D};
 use gleam::gl::RENDERER;
 use image::RgbaImage;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcSharedMemory};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use media::WindowGLContext;
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -811,7 +811,7 @@ impl Painter {
         pipeline_id: PipelineId,
         pipeline_exit_source: PipelineExitSource,
     ) {
-        debug!("Paint got pipeline exited: {webview_id:?} {pipeline_id:?}",);
+        error!("Paint got pipeline exited: {webview_id:?} {pipeline_id:?}",);
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
@@ -1168,7 +1168,8 @@ impl Painter {
         };
 
         self.send_root_pipeline_display_list();
-        self.lcp_calculator.note_webview_removed(webview_id);
+        self.lcp_calculator
+            .flush_webview_from_disable_list_of_webviews(webview_id);
     }
 
     pub(crate) fn is_empty(&mut self) -> bool {
@@ -1274,6 +1275,10 @@ impl Painter {
             webview_renderer.notify_scroll_event(scroll, point);
         }
         self.disable_lcp_calculation_for_webview(webview_id);
+    }
+
+    pub(crate) fn notify_navigation(&mut self, webview_id: WebViewId) {
+        self.flush_webview_from_disable_list_of_webviews(webview_id);
     }
 
     pub(crate) fn pinch_zoom(
@@ -1401,6 +1406,13 @@ impl Painter {
         pipeline_id: PipelineId,
         epoch: Epoch,
     ) {
+        dbg!(
+            "Appending LCP candidate for webview {:?}, pipeline {:?}, epoch {:?}, candidate: {:?}",
+            webview_id,
+            pipeline_id,
+            epoch,
+            lcp_candidate
+        );
         if self
             .lcp_calculator
             .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
@@ -1416,7 +1428,13 @@ impl Painter {
 
     /// Disable LCP feature when the user interacts with the page.
     fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
+        dbg!("Disabling LCP calculation for webview {:?}", webview_id);
         self.lcp_calculator.disable_for_webview(webview_id);
+    }
+
+    fn flush_webview_from_disable_list_of_webviews(&mut self, webview_id: WebViewId) {
+        self.lcp_calculator
+            .flush_webview_from_disable_list_of_webviews(webview_id);
     }
 }
 
