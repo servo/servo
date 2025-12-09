@@ -41,7 +41,8 @@ pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
                     nodes.push(Node::Text(s))
                 }
             },
-            StartDocument { .. } | EndDocument | ProcessingInstruction { .. } | Comment(..) => {}, Doctype => {},
+            StartDocument { .. } | EndDocument | ProcessingInstruction { .. } | Comment(..) => {},
+            Doctype => {},
         }
     }
     assert!(stack.is_empty());
