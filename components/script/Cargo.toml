@@ -102,6 +102,7 @@ mime_guess = { workspace = true }
 net_traits = { workspace = true }
 nom = { workspace = true }
 nom-rfc8288 = { workspace = true }
+num-bigint-dig = { workspace = true }
 num-traits = { workspace = true }
 num_cpus = { workspace = true }
 p256 = { workspace = true }
@@ -116,6 +117,7 @@ profile_traits = { workspace = true }
 rand = { workspace = true }
 range = { path = "../range" }
 regex = { workspace = true }
+rsa = { workspace = true }
 rustc-hash = { workspace = true }
 script_bindings = { path = "../script_bindings" }
 script_traits = { workspace = true }

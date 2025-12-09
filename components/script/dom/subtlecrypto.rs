@@ -12,6 +12,7 @@ mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
+mod rsa_pss_operation;
 mod sha3_operation;
 mod sha_operation;
 mod x25519_operation;
@@ -37,7 +38,8 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, EcKeyAlgorithm,
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
     HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
-    Pbkdf2Params, RsaOtherPrimesInfo, SubtleCryptoMethods,
+    Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaKeyAlgorithm,
+    RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1680,6 +1682,73 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm>
+#[derive(Clone, MallocSizeOf)]
+pub(crate) struct SubtleRsaHashedKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm-modulusLength>
+    modulus_length: u32,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm-publicExponent>
+    public_exponent: Vec<u8>,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm-hash>
+    hash: Box<NormalizedAlgorithm>,
+}
+
+impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+        let public_exponent =
+            create_buffer_source(cx, &self.public_exponent, js_object.handle_mut(), can_gc)
+                .expect("Fail to convert publicExponent to Uint8Array");
+        let key_algorithm = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        let rsa_key_algorithm = RootedTraceableBox::new(RsaKeyAlgorithm {
+            parent: key_algorithm,
+            modulusLength: self.modulus_length,
+            publicExponent: public_exponent,
+        });
+        let rsa_hashed_key_algorithm = RootedTraceableBox::new(RsaHashedKeyAlgorithm {
+            parent: rsa_key_algorithm,
+            hash: KeyAlgorithm {
+                name: self.hash.name().into(),
+            },
+        });
+        rsa_hashed_key_algorithm.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleRsaHashedImportParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams-hash>
+    hash: Box<NormalizedAlgorithm>,
+}
+
+impl TryFrom<RootedTraceableBox<RsaHashedImportParams>> for SubtleRsaHashedImportParams {
+    type Error = Error;
+
+    fn try_from(value: RootedTraceableBox<RsaHashedImportParams>) -> Result<Self, Self::Error> {
+        let cx = GlobalScope::get_cx();
+        Ok(SubtleRsaHashedImportParams {
+            name: value.parent.name.to_string(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                &Operation::Digest,
+                &value.hash,
+                CanGc::note(),
+            )?),
+        })
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams>
 #[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleEcdsaParams {
@@ -2250,10 +2319,11 @@ enum ExportedKey {
 /// Union type of KeyAlgorithm and IDL dictionary types derived from it. Note that we actually use
 /// our "subtle" structs of the corresponding IDL dictionary types so that they can be easily
 /// passed to another threads.
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(SubtleKeyAlgorithm),
+    RsaHashedKeyAlgorithm(SubtleRsaHashedKeyAlgorithm),
     EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
@@ -2263,6 +2333,7 @@ impl KeyAlgorithmAndDerivatives {
     fn name(&self) -> &str {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
@@ -2282,6 +2353,9 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval, can_gc),
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => {
+                algo.safe_to_jsval(cx, rval, can_gc)
+            },
             KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => {
                 algo.safe_to_jsval(cx, rval, can_gc)
             },
@@ -2452,6 +2526,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    RsaHashedImportParams(SubtleRsaHashedImportParams),
     EcdsaParams(SubtleEcdsaParams),
     EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
@@ -2554,6 +2629,15 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
+                (ALG_RSA_PSS, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+
                 // <https://w3c.github.io/webcrypto/#ecdsa-registration>
                 (ALG_ECDSA, Operation::Sign) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
@@ -3086,6 +3170,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::RsaHashedImportParams(algo) => &algo.name,
             NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
@@ -3291,6 +3376,17 @@ impl NormalizedAlgorithm {
         can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match (self.name(), self) {
+            (ALG_RSA_PSS, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
+                rsa_pss_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
             (ALG_ECDSA, NormalizedAlgorithm::EcKeyImportParams(algo)) => {
                 ecdsa_operation::import_key(
                     global,

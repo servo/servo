@@ -116,6 +116,7 @@ net_traits = { path = "components/shared/net" }
 nix = "0.30"
 nom = "8.0.0"
 nom-rfc8288 = "0.4.0"
+num-bigint-dig = "0.8"
 num-traits = "0.2"
 num_cpus = "1.17.0"
 openxr = "0.19"
@@ -135,6 +136,7 @@ rayon = "1"
 read-fonts = "0.35.0"
 regex = "1.12"
 resvg = "0.45.0"
+rsa = { version = "0.9.9", features = ["sha1", "sha2"] }
 rustc-hash = "2.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.13"
