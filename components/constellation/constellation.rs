@@ -99,7 +99,7 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
+use base::generic_channel::{GenericCallback, GenericSend, GenericSender, RoutedReceiver};
 use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
@@ -358,6 +358,10 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to send messages to the
     /// devtools thread.
     pub(crate) devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+
+    /// A (potentially) IPC-based channel to the developer tools, if enabled. This allows
+    /// `EventLoop`s to send messages to then. Shared with all `EventLoop`s.
+    pub script_to_devtools_callback: OnceCell<Option<GenericCallback<ScriptToDevtoolsControlMsg>>>,
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
@@ -684,6 +688,7 @@ where
                     compositor_proxy: state.compositor_proxy,
                     webviews: Default::default(),
                     devtools_sender: state.devtools_sender,
+                    script_to_devtools_callback: Default::default(),
                     #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
@@ -5584,6 +5589,37 @@ where
                 "Could not send embedder control response to pipeline {pipeline_id:?}: {error:?}"
             );
         }
+    }
+
+    pub(crate) fn script_to_devtools_callback(
+        &self,
+    ) -> Option<GenericCallback<ScriptToDevtoolsControlMsg>> {
+        self.script_to_devtools_callback
+            .get_or_init(|| {
+                self.devtools_sender.as_ref().and_then(|devtools_sender| {
+                    let devtools_sender = devtools_sender.clone();
+                    let callback = GenericCallback::new(move |message| match message {
+                        Err(error) => {
+                            error!("Cast to ScriptToDevtoolsControlMsg failed ({error}).")
+                        },
+                        Ok(message) => {
+                            if let Err(error) =
+                                devtools_sender.send(DevtoolsControlMsg::FromScript(message))
+                            {
+                                warn!("Sending to devtools failed ({error:?})")
+                            }
+                        },
+                    });
+                    match callback {
+                        Ok(callback) => Some(callback),
+                        Err(error) => {
+                            error!("Could not create Devtools communication channel: {error}");
+                            None
+                        },
+                    }
+                })
+            })
+            .clone()
     }
 }
 
