@@ -13,7 +13,7 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
-use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
+use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
@@ -254,7 +254,8 @@ impl Window {
     ) {
         // `point` can be outside viewport, such as at toolbar with negative y-coordinate.
         let point = self.webview_relative_mouse_point.get();
-        if !webview.rect().contains(point) {
+        let webview_rect: Rect<_, _> = webview.size().into();
+        if !webview_rect.contains(point) {
             return;
         }
 
@@ -298,8 +299,9 @@ impl Window {
         let previous_point = self.webview_relative_mouse_point.get();
         self.webview_relative_mouse_point.set(point);
 
-        if !webview.rect().contains(point) {
-            if webview.rect().contains(previous_point) {
+        let webview_rect: Rect<_, _> = webview.size().into();
+        if !webview_rect.contains(point) {
+            if webview_rect.contains(previous_point) {
                 webview.notify_input_event(InputEvent::MouseLeftViewport(
                     MouseLeftViewportEvent::default(),
                 ));
@@ -685,10 +687,8 @@ impl PlatformWindow for Window {
                         self.handle_mouse_move_event(&webview, position);
                     },
                     WindowEvent::CursorLeft { .. } => {
-                        if webview
-                            .rect()
-                            .contains(self.webview_relative_mouse_point.get())
-                        {
+                        let webview_rect: Rect<_, _> = webview.size().into();
+                        if webview_rect.contains(self.webview_relative_mouse_point.get()) {
                             webview.notify_input_event(InputEvent::MouseLeftViewport(
                                 MouseLeftViewportEvent::default(),
                             ));
