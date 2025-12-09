@@ -328,6 +328,11 @@ impl WebView {
         self.inner().rect
     }
 
+    pub fn set_rect(&self, new_size: Size2D<f32, DevicePixel>) {
+        self.inner_mut()
+            .rect = DeviceRect::from_origin_and_size(Point2D::origin(), new_size);
+    }
+
     /// Request that the given [`WebView`]'s rendering area be resized. Note that the
     /// minimum size for a WebView is 1 pixel by 1 pixel so any requested size will be
     /// clamped by that value.
@@ -341,6 +346,9 @@ impl WebView {
             .servo
             .compositor()
             .resize_rendering_context(self.id(), new_size);
+        self.set_rect(
+            Size2D::new(new_size.width as f32, new_size.height as f32)
+        );
     }
 
     pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
