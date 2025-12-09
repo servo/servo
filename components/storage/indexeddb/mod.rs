@@ -424,15 +424,16 @@ impl IndexedDBManager {
                     SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
                         .expect("Failed to create sqlite engine");
                 let db = IndexedDBEnvironment::new(engine);
+                let db_version = db.version().expect("DB should have a version.");
 
                 let version = if created_db_path {
                     version.unwrap_or(1)
                 } else {
-                    version.unwrap_or_else(|| db.version().expect("DB should have a version."))
+                    version.unwrap_or(db_version)
                 };
 
                 e.insert(db);
-                (0, version)
+                (db_version, version)
             },
             Entry::Occupied(db) => {
                 let db_version = db.get().version().expect("Db should have a version.");
