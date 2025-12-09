@@ -67,6 +67,7 @@ pub struct SqliteEngine {
     connection: Connection,
     read_pool: Arc<ThreadPool>,
     write_pool: Arc<ThreadPool>,
+    created_db_path: bool,
 }
 
 impl SqliteEngine {
@@ -75,7 +76,7 @@ impl SqliteEngine {
         base_dir: &Path,
         db_info: &IndexedDBDescription,
         pool: Arc<ThreadPool>,
-    ) -> Result<(Self, bool), Error> {
+    ) -> Result<Self, Error> {
         let mut db_path = PathBuf::new();
         db_path.push(base_dir);
         db_path.push(db_info.as_path());
@@ -97,15 +98,18 @@ impl SqliteEngine {
             let _ = connection.execute(stmt, ());
         }
 
-        Ok((
-            Self {
-                connection,
-                db_path,
-                read_pool: pool.clone(),
-                write_pool: pool,
-            },
+        Ok(Self {
+            connection,
+            db_path,
+            read_pool: pool.clone(),
+            write_pool: pool,
             created_db_path,
-        ))
+        })
+    }
+
+    /// Returns whether the physical db was created as part of `new`.
+    pub(crate) fn created_db_path(&self) -> bool {
+        self.created_db_path
     }
 
     fn init_db(path: &Path, db_info: &IndexedDBDescription) -> Result<Connection, Error> {

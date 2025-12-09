@@ -420,9 +420,10 @@ impl IndexedDBManager {
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
                 // TODO: return error.
-                let (engine, created_db_path) =
+                let engine =
                     SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
                         .expect("Failed to create sqlite engine");
+                let created_db_path = engine.created_db_path();
                 let db = IndexedDBEnvironment::new(engine);
                 let db_version = db.version().expect("DB should have a version.");
 
