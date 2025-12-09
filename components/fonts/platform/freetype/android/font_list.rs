@@ -560,7 +560,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
 
             UnicodeBlock::Tibetan => {
                 families.push("Noto Sans Tibetan");
-            },  
+            },
 
             _ => {
                 if is_cjk(options.character) {
