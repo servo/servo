@@ -182,6 +182,8 @@ pub enum PaintMessage {
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
     /// The candidate of largest-contentful-paint
     SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
+    /// Re-enable LCP calculation for the given WebView.
+    ReEnableLCPCalculation(WebViewId),
 }
 
 impl Debug for PaintMessage {

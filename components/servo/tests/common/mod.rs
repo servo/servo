@@ -12,7 +12,8 @@ use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingC
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use servo::{
-    EmbedderControl, JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder,
+    DevicePoint, EmbedderControl, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
+    MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Servo, ServoBuilder,
     SimpleDialog, WebView, WebViewDelegate,
 };
 
@@ -159,4 +160,45 @@ pub(crate) fn evaluate_javascript(
     (*saved_result.borrow())
         .clone()
         .expect("Should have waited until value available")
+}
+
+pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
+    servo_test: &ServoTest,
+    webview: &WebView,
+    delegate: &Rc<WebViewDelegateImpl>,
+) {
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    delegate.reset();
+
+    // Trigger a change to the display of the document, so that we get at last one
+    // new frame after load is complete.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "requestAnimationFrame(() => { \
+           document.body.style.background = 'red'; \
+           document.body.style.background = 'green'; \
+        });",
+    );
+
+    // Wait for at least one frame after the load completes.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
+}
+
+pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint) {
+    let point = point.into();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Down,
+        MouseButton::Left,
+        point,
+    )));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Up,
+        MouseButton::Left,
+        point,
+    )));
 }
