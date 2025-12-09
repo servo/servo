@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use base::generic_channel;
 use base::id::BrowsingContextId;
 use crossbeam_channel::Select;
 use embedder_traits::{
@@ -14,7 +15,6 @@ use embedder_traits::{
     WheelEvent, WheelMode,
 };
 use euclid::Point2D;
-use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use log::info;
 use rustc_hash::FxHashSet;
@@ -26,7 +26,7 @@ use webdriver::actions::{
 };
 use webdriver::error::{ErrorStatus, WebDriverError};
 
-use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_ipc_response};
+use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_oneshot_response};
 
 // Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
@@ -751,12 +751,12 @@ impl Handler {
         if x < 0.0 || y < 0.0 {
             return Err(ErrorStatus::MoveTargetOutOfBounds);
         }
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         let cmd_msg = WebDriverCommandMsg::GetViewportSize(self.verified_webview_id(), sender);
         self.send_message_to_embedder(cmd_msg)
             .map_err(|_| ErrorStatus::UnknownError)?;
 
-        let viewport_size = match wait_for_ipc_response(receiver) {
+        let viewport_size = match wait_for_oneshot_response(receiver) {
             Ok(response) => response,
             Err(WebDriverError { error, .. }) => return Err(error),
         };
@@ -801,7 +801,7 @@ impl Handler {
         &self,
         web_element: &WebElement,
     ) -> Result<(i64, i64), ErrorStatus> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         // Step 1. Let element be the result of trying to run actions options'
         // get element origin steps with origin and browsing context.
         self.browsing_context_script_command(
@@ -811,7 +811,7 @@ impl Handler {
         .unwrap();
 
         // Step 2. If element is null, return error with error code no such element.
-        let response = match wait_for_ipc_response(receiver) {
+        let response = match wait_for_oneshot_response(receiver) {
             Ok(response) => response,
             Err(WebDriverError { error, .. }) => return Err(error),
         };

@@ -538,10 +538,10 @@ impl Handler {
     }
 
     fn focused_webview_id(&self) -> WebDriverResult<Option<WebViewId>> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender.clone()))?;
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::GetFocusedWebView(sender))?;
         // Wait until the document is ready before returning the top-level browsing context id.
-        wait_for_ipc_response(receiver)
+        wait_for_oneshot_response(receiver)
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
@@ -621,7 +621,7 @@ impl Handler {
             None => {
                 // This happens when there is no open webview.
                 // We need to create a new one. See https://github.com/servo/servo/issues/37408
-                let (sender, receiver) = ipc::channel().unwrap();
+                let (sender, receiver) = generic_channel::oneshot().unwrap();
 
                 self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(
                     sender,
@@ -866,7 +866,7 @@ impl Handler {
         &self,
         verify: VerifyBrowsingContextIsOpen,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         let webview_id = self.webview_id()?;
         // Step 1. If session's current top-level browsing context is no longer open,
         // return error with error code no such window.
@@ -879,7 +879,7 @@ impl Handler {
 
         self.send_message_to_embedder(WebDriverCommandMsg::GetWindowRect(webview_id, sender))?;
 
-        let window_rect = wait_for_ipc_response(receiver)?;
+        let window_rect = wait_for_oneshot_response(receiver)?;
         let window_size_response = WindowRectResponse {
             x: window_rect.min.x,
             y: window_rect.min.y,
@@ -928,7 +928,7 @@ impl Handler {
             params.width.unwrap_or_else(|| current.width),
             params.height.unwrap_or_else(|| current.height),
         );
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         // Step 16 - 17. Set the width/height in CSS pixels.
         // This should be done as long as one of width/height is not null.
 
@@ -943,7 +943,7 @@ impl Handler {
             sender,
         ))?;
 
-        let window_rect = wait_for_ipc_response(receiver)?;
+        let window_rect = wait_for_oneshot_response(receiver)?;
         debug!("Result window_rect: {window_rect:?}");
         let window_size_response = WindowRectResponse {
             x: window_rect.min.x,
@@ -972,10 +972,10 @@ impl Handler {
         // Step 5. (TODO) Restore the window.
 
         // Step 6. Maximize the window of session's current top-level browsing context.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::MaximizeWebView(webview_id, sender))?;
 
-        let window_rect = wait_for_ipc_response(receiver)?;
+        let window_rect = wait_for_oneshot_response(receiver)?;
         debug!("Result window_rect: {window_rect:?}");
         let window_size_response = WindowRectResponse {
             x: window_rect.min.x,
@@ -1153,10 +1153,10 @@ impl Handler {
     }
 
     fn get_all_webview_ids(&self) -> Vec<WebViewId> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::GetAllWebViews(sender))
             .unwrap();
-        wait_for_ipc_response(receiver).unwrap_or_default()
+        wait_for_oneshot_response(receiver).unwrap_or_default()
     }
 
     /// <https://w3c.github.io/webdriver/#close-window>
@@ -1170,12 +1170,12 @@ impl Handler {
         self.handle_any_user_prompts(webview_id)?;
 
         // Step 3. Close session's current top-level browsing context.
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
 
         let cmd_msg = WebDriverCommandMsg::CloseWebView(webview_id, sender);
         self.send_message_to_embedder(cmd_msg)?;
 
-        wait_for_ipc_response(receiver)?;
+        wait_for_oneshot_response(receiver)?;
 
         // Step 4. If there are no more open top-level browsing contexts, try to close the session.
         let window_handles = self.get_window_handles();
@@ -1195,7 +1195,7 @@ impl Handler {
         &mut self,
         _parameters: &NewWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
 
         let webview_id = self.webview_id()?;
 
@@ -2622,9 +2622,9 @@ impl Handler {
         &self,
         webview_id: WebViewId,
     ) -> Result<(), WebDriverError> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::IsWebViewOpen(webview_id, sender))?;
-        if wait_for_ipc_response(receiver)? {
+        if wait_for_oneshot_response(receiver)? {
             Ok(())
         } else {
             Err(WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
@@ -2635,7 +2635,7 @@ impl Handler {
         &self,
         browsing_context_id: BrowsingContextId,
     ) -> Result<(), WebDriverError> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::IsBrowsingContextOpen(
             browsing_context_id,
             sender,
@@ -2791,6 +2791,17 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     fn teardown_session(&mut self, _session: SessionTeardownKind) {
         self.session = None;
     }
+}
+
+fn wait_for_oneshot_response<T>(
+    receiver: generic_channel::GenericOneshotReceiver<T>,
+) -> Result<T, WebDriverError>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    receiver
+        .recv()
+        .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
 }
 
 fn wait_for_ipc_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError>
