@@ -32,7 +32,6 @@ mod from_constellation {
             match self {
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::SetFrameTreeForWebView(..) => target!("SetFrameTreeForWebView"),
-                Self::RemoveWebView(..) => target!("RemoveWebView"),
                 Self::SetThrottled(..) => target!("SetThrottled"),
                 Self::NewWebRenderFrameReady(..) => target!("NewWebRenderFrameReady"),
                 Self::PipelineExited(..) => target!("PipelineExited"),

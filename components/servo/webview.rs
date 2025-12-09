@@ -106,6 +106,7 @@ impl Drop for WebViewInner {
         self.servo
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::CloseWebView(self.id));
+        self.servo.compositor_mut().remove_webview(self.id);
     }
 }
 
