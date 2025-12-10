@@ -164,24 +164,23 @@ pub(crate) fn import_key(
 
     // Step 5. Let key be a new CryptoKey representing keyData.
     // Step 6. Set the [[type]] internal slot of key to "secret".
-    // Step 7. Set the [[extractable]] internal slot of key to false.
-    // Step 8. Let algorithm be a new KeyAlgorithm object.
-    // Step 9. Set the name attribute of algorithm to the name member of normalizedAlgorithm.
-    // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
+    // Step 7. Let algorithm be a new KeyAlgorithm object.
+    // Step 8. Set the name attribute of algorithm to the name member of normalizedAlgorithm.
+    // Step 9. Set the [[algorithm]] internal slot of key to algorithm.
     let algorithm = SubtleKeyAlgorithm {
         name: normalized_algorithm.name.clone(),
     };
     let key = CryptoKey::new(
         global,
         KeyType::Secret,
-        false,
+        extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Argon2Password(key_data.to_vec()),
         can_gc,
     );
 
-    // Step 11. Return key.
+    // Step 10. Return key.
     Ok(key)
 }
 
