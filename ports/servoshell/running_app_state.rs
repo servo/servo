@@ -12,7 +12,7 @@ use std::rc::Rc;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
-use log::{error, info, warn};
+use log::{error, info, trace, warn};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, DeviceIntPoint, DeviceIntSize,
     EmbedderControl, EmbedderControlId, EventLoopWaker, GamepadHapticEffectType, GenericSender,
@@ -23,7 +23,7 @@ use servo::{
     pref,
 };
 use url::Url;
-
+use accessibility_traits::AccessibilityTree;
 use crate::GamepadSupport;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
@@ -784,6 +784,11 @@ impl WebViewDelegate for RunningAppState {
     fn notify_crashed(&self, webview: WebView, reason: String, backtrace: Option<String>) {
         self.platform_window_for_webview_id(webview.id())
             .notify_crashed(webview, reason, backtrace);
+    }
+
+    fn hacky_accessibility_tree_update(&self, webview: WebView, accessibility_tree: AccessibilityTree) {
+        self.platform_window_for_webview_id(webview.id())
+            .hacky_accessibility_tree_update(webview, accessibility_tree);
     }
 }
 

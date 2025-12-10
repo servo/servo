@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
+members = ["components/shared/accessibility",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",
@@ -23,6 +23,7 @@ publish = false
 rust-version = "1.86.0"
 
 [workspace.dependencies]
+accessibility_traits = { path = "components/shared/accessibility" }
 accesskit = "0.21.1"
 accountable-refcell = "0.2.2"
 aes = "0.8.4"
@@ -256,7 +257,9 @@ accesskit = { path = "../accesskit/common" }
 accesskit_atspi_common = { path = "../accesskit/platforms/atspi-common" }
 accesskit_consumer = { path = "../accesskit/consumer" }
 accesskit_unix = { path = "../accesskit/platforms/unix" }
+accesskit_macos = { path = "../accesskit/platforms/macos" }
 egui = { path = "../egui/crates/egui" }
+egui-winit = { path = "../egui/crates/egui-winit" }
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #

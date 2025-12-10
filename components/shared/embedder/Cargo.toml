@@ -17,6 +17,7 @@ path = "lib.rs"
 baked-default-resources = []
 
 [dependencies]
+accessibility_traits = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
 cookie = { workspace = true }

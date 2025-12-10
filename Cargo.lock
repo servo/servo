@@ -19,9 +19,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "366ffbaa4442f4684d91e2cd7c5ea7c4ed8add41959a31447066e279e432b618"
 
 [[package]]
+name = "accessibility_traits"
+version = "0.0.1"
+dependencies = [
+ "accesskit",
+ "base",
+ "crossbeam-channel",
+ "ipc-channel",
+ "malloc_size_of_derive",
+ "rustc-hash 2.1.1",
+ "serde",
+ "servo_malloc_size_of",
+ "strum",
+]
+
+[[package]]
 name = "accesskit"
 version = "0.21.1"
 dependencies = [
+ "enumn",
+ "serde",
  "uuid",
 ]
 
@@ -47,12 +64,10 @@ dependencies = [
 [[package]]
 name = "accesskit_macos"
 version = "0.22.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0089e5c0ac0ca281e13ea374773898d9354cc28d15af9f0f7394d44a495b575"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
  "objc2 0.5.2",
  "objc2-app-kit 0.2.2",
  "objc2-foundation 0.2.2",
@@ -2357,8 +2372,6 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.33.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4772ed5f16fa8ec2ba295e58f62b58ee83fcf49e67ec13d2b7ddf4e9a2dea34e"
 dependencies = [
  "accesskit_winit",
  "arboard",
@@ -2431,6 +2444,7 @@ dependencies = [
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
+ "accessibility_traits",
  "base",
  "bitflags 2.10.0",
  "cookie 0.18.1",
@@ -2507,6 +2521,17 @@ name = "enumflags2_derive"
 version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67c78a4d8fdf9953a5c9d458f9efe940fd97a0cab0941c075a813ac594733827"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "enumn"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f9ed6b3789237c8a0c1c505af1c7eb2c560df6186f01b098c3a1064ea532f38"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4948,6 +4973,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
+ "accessibility_traits",
  "accesskit",
  "app_units",
  "atomic_refcell",
@@ -5098,6 +5124,7 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
+ "accessibility_traits",
  "arboard",
  "background_hang_monitor",
  "base",
@@ -7728,6 +7755,7 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
+ "accessibility_traits",
  "background_hang_monitor_api",
  "base",
  "bluetooth_traits",
@@ -8252,6 +8280,7 @@ dependencies = [
 name = "servoshell"
 version = "0.0.3"
 dependencies = [
+ "accessibility_traits",
  "android_logger",
  "backtrace",
  "bpaf",

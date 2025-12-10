@@ -1877,6 +1877,15 @@ impl ScriptThread {
             ScriptThreadMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response, can_gc);
             },
+            ScriptThreadMessage::HackySendAccessibilityTree(webview_id, accessibility_tree) => {
+                self
+                    .senders
+                    .pipeline_to_embedder_sender
+                    .send(EmbedderMsg::HackyAccessibilityTreeUpdate(
+                        webview_id,
+                        accessibility_tree,
+                    )).expect("TODO: panic message");
+            }
         }
     }
 

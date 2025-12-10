@@ -26,6 +26,7 @@ use constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
     StructuredSerializedData, WindowSizeType,
 };
+use accessibility_traits::AccessibilityTree;
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
@@ -295,6 +296,8 @@ pub enum ScriptThreadMessage {
     RequestScreenshotReadiness(WebViewId, PipelineId),
     /// A response to a request to show an embedder user interface control.
     EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
+    /// Placeholder
+    HackySendAccessibilityTree(WebViewId, AccessibilityTree)
 }
 
 impl fmt::Debug for ScriptThreadMessage {

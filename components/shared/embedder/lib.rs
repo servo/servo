@@ -45,7 +45,7 @@ use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
     DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
-
+use accessibility_traits::AccessibilityTree;
 pub use crate::embedder_controls::*;
 pub use crate::input_events::*;
 pub use crate::webdriver::*;
@@ -500,6 +500,8 @@ pub enum EmbedderMsg {
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventHandled(WebViewId, InputEventId, InputEventResult),
+    /// Placeholder
+    HackyAccessibilityTreeUpdate(WebViewId, AccessibilityTree)
 }
 
 impl Debug for EmbedderMsg {

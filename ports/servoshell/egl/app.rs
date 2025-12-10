@@ -7,7 +7,7 @@ use std::rc::Rc;
 use dpi::PhysicalSize;
 use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
-use log::{info, warn};
+use log::{info, trace, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::{
     DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel, DevicePoint,
@@ -18,7 +18,7 @@ use servo::{
     TouchEventType, TouchId, WebView, WebViewId, WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
-
+use accessibility_traits::AccessibilityTree;
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::RunningAppState;

@@ -12,10 +12,10 @@ use std::collections::HashMap;
 use std::env;
 use std::rc::Rc;
 use std::time::Duration;
-
+use egui::accesskit::{Node, NodeId, TreeId, TreeUpdate, Uuid};
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
-use log::{debug, info};
+use log::{debug, info, trace};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
     AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
@@ -43,7 +43,7 @@ use {
     objc2_app_kit::{NSColorSpace, NSView},
     objc2_foundation::MainThreadMarker,
 };
-
+use accessibility_traits::AccessibilityTree;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
@@ -1085,6 +1085,16 @@ impl PlatformWindow for Window {
 
     fn take_user_interface_commands(&self) -> Vec<UserInterfaceCommand> {
         self.gui.borrow_mut().take_user_interface_commands()
+    }
+
+    fn hacky_accessibility_tree_update(&self, _webview: WebView, accessibility_tree: AccessibilityTree) {
+        let nodes: Vec<(NodeId, Node)> = accessibility_tree.ax_nodes.iter().map(|(k, v)| (*k, v.clone())).collect();
+        self.gui.borrow_mut().hacky_accessibility_tree_update(|| TreeUpdate {
+            nodes,
+            tree: Some(accessibility_tree.ax_tree),
+            tree_id: TreeId(Uuid::from_bytes([1; 16])),
+            focus: NodeId(1),
+        });
     }
 }
 

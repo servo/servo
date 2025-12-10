@@ -13,7 +13,7 @@ use servo::{
     ScreenGeometry, WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
-
+use accessibility_traits::AccessibilityTree;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand, WebViewCollection};
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
@@ -364,4 +364,6 @@ pub(crate) trait PlatformWindow {
 
     fn notify_media_session_event(&self, _: MediaSessionEvent) {}
     fn notify_crashed(&self, _: WebView, _reason: String, _backtrace: Option<String>) {}
+
+    fn hacky_accessibility_tree_update(&self, _: WebView, _: AccessibilityTree) {}
 }

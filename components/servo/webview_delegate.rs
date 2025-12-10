@@ -20,7 +20,7 @@ use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
-
+use accessibility_traits::AccessibilityTree;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorSender;
 use crate::{RegisterOrUnregister, WebView};
@@ -979,6 +979,7 @@ pub trait WebViewDelegate {
 
     /// Request to display a notification.
     fn show_notification(&self, _webview: WebView, _notification: Notification) {}
+    fn hacky_accessibility_tree_update(&self, _webview: WebView, _accessibility_tree: AccessibilityTree) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;
