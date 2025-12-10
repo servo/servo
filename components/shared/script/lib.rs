@@ -11,6 +11,7 @@
 
 use std::fmt;
 
+use accessibility_traits::AccessibilityTree;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
 use base::id::{
@@ -295,6 +296,8 @@ pub enum ScriptThreadMessage {
     RequestScreenshotReadiness(WebViewId, PipelineId),
     /// A response to a request to show an embedder user interface control.
     EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
+    /// Placeholder
+    HackySendAccessibilityTree(WebViewId, AccessibilityTree),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

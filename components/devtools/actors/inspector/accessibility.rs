@@ -83,7 +83,7 @@ impl Actor for AccessibilityActor {
             "bootstrap" => {
                 let msg = BootstrapReply {
                     from: self.name(),
-                    state: BootstrapState { enabled: false },
+                    state: BootstrapState { enabled: true },
                 };
                 request.reply_final(&msg)?
             },

@@ -4,6 +4,7 @@
 
 use std::path::PathBuf;
 
+use accessibility_traits::AccessibilityTree;
 use base::generic_channel::{GenericSender, SendResult};
 use base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
@@ -979,6 +980,12 @@ pub trait WebViewDelegate {
 
     /// Request to display a notification.
     fn show_notification(&self, _webview: WebView, _notification: Notification) {}
+    fn hacky_accessibility_tree_update(
+        &self,
+        _webview: WebView,
+        _accessibility_tree: AccessibilityTree,
+    ) {
+    }
 }
 
 pub(crate) struct DefaultWebViewDelegate;

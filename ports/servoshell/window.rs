@@ -5,6 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
+use accessibility_traits::AccessibilityTree;
 use euclid::Scale;
 use servo::{
     AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
@@ -364,4 +365,6 @@ pub(crate) trait PlatformWindow {
 
     fn notify_media_session_event(&self, _: MediaSessionEvent) {}
     fn notify_crashed(&self, _: WebView, _reason: String, _backtrace: Option<String>) {}
+
+    fn hacky_accessibility_tree_update(&self, _: WebView, _: AccessibilityTree) {}
 }
