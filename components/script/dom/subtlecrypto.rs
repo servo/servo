@@ -13,6 +13,7 @@ mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
 mod rsa_pss_operation;
+mod rsassa_pkcs1_v1_5_operation;
 mod sha3_operation;
 mod sha_operation;
 mod x25519_operation;
@@ -58,7 +59,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 
 // Regconized algorithm name from <https://w3c.github.io/webcrypto/>
-const ALG_RSASSA_PKCS1: &str = "RSASSA-PKCS1-v1_5";
+const ALG_RSASSA_PKCS1_V1_5: &str = "RSASSA-PKCS1-v1_5";
 const ALG_RSA_PSS: &str = "RSA-PSS";
 const ALG_RSA_OAEP: &str = "RSA-OAEP";
 const ALG_ECDSA: &str = "ECDSA";
@@ -89,7 +90,7 @@ const ALG_ARGON2I: &str = "Argon2i";
 const ALG_ARGON2ID: &str = "Argon2id";
 
 static SUPPORTED_ALGORITHMS: &[&str] = &[
-    ALG_RSASSA_PKCS1,
+    ALG_RSASSA_PKCS1_V1_5,
     ALG_RSA_PSS,
     ALG_RSA_OAEP,
     ALG_ECDSA,
@@ -2629,6 +2630,15 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <>https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
+                (ALG_RSASSA_PKCS1_V1_5, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+
                 // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
                 (ALG_RSA_PSS, Operation::ImportKey) => {
                     let mut params = dictionary_from_jsval::<
@@ -3376,6 +3386,17 @@ impl NormalizedAlgorithm {
         can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match (self.name(), self) {
+            (ALG_RSASSA_PKCS1_V1_5, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
+                rsassa_pkcs1_v1_5_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
             (ALG_RSA_PSS, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
                 rsa_pss_operation::import_key(
                     global,
