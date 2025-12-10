@@ -381,7 +381,7 @@ impl ReplacedContents {
                 })
                 .map(|image_key| {
                     Fragment::Image(ArcRefCell::new(ImageFragment {
-                        base: self.base_fragment_info.into(),
+                        base: self.base_fragment_info,
                         style: style.clone(),
                         rect,
                         clip,
@@ -393,7 +393,7 @@ impl ReplacedContents {
                 .collect(),
             ReplacedContentKind::Video(video) => {
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {
-                    base: self.base_fragment_info.into(),
+                    base: self.base_fragment_info,
                     style: style.clone(),
                     rect,
                     clip,
@@ -417,7 +417,7 @@ impl ReplacedContents {
                     },
                 );
                 vec![Fragment::IFrame(ArcRefCell::new(IFrameFragment {
-                    base: self.base_fragment_info.into(),
+                    base: self.base_fragment_info,
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
                     rect,
@@ -435,7 +435,7 @@ impl ReplacedContents {
                 };
 
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {
-                    base: self.base_fragment_info.into(),
+                    base: self.base_fragment_info,
                     style: style.clone(),
                     rect,
                     clip,
@@ -473,7 +473,7 @@ impl ReplacedContents {
                     .and_then(|image| image.id)
                     .map(|image_key| {
                         Fragment::Image(ArcRefCell::new(ImageFragment {
-                            base: self.base_fragment_info.into(),
+                            base: self.base_fragment_info,
                             style: style.clone(),
                             rect,
                             clip,
