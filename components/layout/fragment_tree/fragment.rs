@@ -18,8 +18,8 @@ use style::properties::ComputedValues;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
-    BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, PositioningFragment,
-    Tag,
+    BaseFragmentInfo, BoxFragment, ContainingBlockManager, HoistedSharedFragment,
+    PositioningFragment, Tag,
 };
 use crate::cell::ArcRefCell;
 use crate::flow::inline::SharedInlineStyles;
@@ -64,7 +64,7 @@ pub(crate) struct CollapsedMargin {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct TextFragment {
-    pub base: BaseFragment,
+    pub base: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
     pub rect: PhysicalRect<Au>,
     pub font_metrics: FontMetrics,
@@ -79,7 +79,7 @@ pub(crate) struct TextFragment {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct ImageFragment {
-    pub base: BaseFragment,
+    pub base: BaseFragmentInfo,
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
@@ -89,22 +89,22 @@ pub(crate) struct ImageFragment {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct IFrameFragment {
-    pub base: BaseFragment,
+    pub base: BaseFragmentInfo,
     pub pipeline_id: PipelineId,
     pub rect: PhysicalRect<Au>,
     pub style: ServoArc<ComputedValues>,
 }
 
 impl Fragment {
-    pub fn base(&self) -> Option<BaseFragment> {
+    pub fn base(&self) -> Option<BaseFragmentInfo> {
         Some(match self {
-            Fragment::Box(fragment) => fragment.borrow().base.clone(),
-            Fragment::Text(fragment) => fragment.borrow().base.clone(),
+            Fragment::Box(fragment) => fragment.borrow().base,
+            Fragment::Text(fragment) => fragment.borrow().base,
             Fragment::AbsoluteOrFixedPositioned(_) => return None,
-            Fragment::Positioning(fragment) => fragment.borrow().base.clone(),
-            Fragment::Image(fragment) => fragment.borrow().base.clone(),
-            Fragment::IFrame(fragment) => fragment.borrow().base.clone(),
-            Fragment::Float(fragment) => fragment.borrow().base.clone(),
+            Fragment::Positioning(fragment) => fragment.borrow().base,
+            Fragment::Image(fragment) => fragment.borrow().base,
+            Fragment::IFrame(fragment) => fragment.borrow().base,
+            Fragment::Float(fragment) => fragment.borrow().base,
         })
     }
 
