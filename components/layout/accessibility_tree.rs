@@ -5,6 +5,7 @@
 use std::rc::Rc;
 use std::sync::LazyLock;
 
+pub(crate) use accessibility_traits::AccessibilityTree;
 use accesskit::{Node as AxNode, NodeId as AxNodeId, Role, Tree as AxTree};
 use html5ever::{LocalName, local_name};
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
@@ -16,17 +17,13 @@ use style::dom::{NodeInfo, TDocument, TElement, TNode};
 use crate::FragmentTree;
 
 // #[derive(MallocSizeOf)]
-#[derive(Debug)]
-pub(crate) struct AccessibilityTree {
-    ax_nodes: FxHashMap<AxNodeId, AxNode>,
-    ax_tree: AxTree,
-}
+pub(crate) struct AccessibilityTreeCalculator {}
 
-impl AccessibilityTree {
+impl AccessibilityTreeCalculator {
     pub(crate) fn construct(
         document: ServoLayoutDocument<'_>,
         fragment_tree: Rc<FragmentTree>,
-    ) -> Self {
+    ) -> AccessibilityTree {
         let mut ax_nodes: FxHashMap<AxNodeId, AxNode> = FxHashMap::default();
         let ax_document_id = AxNodeId(document.as_node().opaque().0 as u64);
         let ax_document = AxNode::new(Role::Document);
@@ -75,7 +72,7 @@ impl AccessibilityTree {
             }
             ax_nodes.insert(ax_next_id, ax_next);
         }
-        Self {
+        AccessibilityTree {
             ax_nodes,
             ax_tree: AxTree {
                 root: ax_document_id,
@@ -83,9 +80,6 @@ impl AccessibilityTree {
                 toolkit_version: None,
             },
         }
-    }
-    pub(crate) fn descendants(&self) -> AxDescendants<'_> {
-        AxDescendants(self, vec![self.ax_tree.root])
     }
 }
 
@@ -104,21 +98,6 @@ impl<N: TNode> Iterator for RevDomChildren<N> {
         let n = self.0.take()?;
         self.0 = n.prev_sibling();
         Some(n)
-    }
-}
-
-pub(crate) struct AxDescendants<'tree>(&'tree AccessibilityTree, Vec<AxNodeId>);
-impl<'tree> Iterator for AxDescendants<'tree> {
-    type Item = (AxNodeId, &'tree AxNode);
-    fn next(&mut self) -> Option<Self::Item> {
-        let Some(result_id) = self.1.pop() else {
-            return None;
-        };
-        let result_node = self.0.ax_nodes.get(&result_id).unwrap();
-        for child_id in result_node.children().iter().rev() {
-            self.1.push(*child_id);
-        }
-        Some((result_id, result_node))
     }
 }
 

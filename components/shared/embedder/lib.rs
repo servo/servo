@@ -22,6 +22,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use accessibility_traits::AccessibilityTree;
 use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
@@ -530,6 +531,8 @@ pub enum EmbedderMsg {
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventHandled(WebViewId, InputEventId, InputEventResult),
+    /// Placeholder
+    HackyAccessibilityTreeUpdate(WebViewId, AccessibilityTree),
 }
 
 impl Debug for EmbedderMsg {

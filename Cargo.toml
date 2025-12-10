@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "components/shared/accessibility",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",
@@ -23,6 +24,7 @@ publish = false
 rust-version = "1.86.0"
 
 [workspace.dependencies]
+accessibility_traits = { path = "components/shared/accessibility" }
 accesskit = "0.21.1"
 accountable-refcell = "0.2.2"
 aes = "0.8.4"
