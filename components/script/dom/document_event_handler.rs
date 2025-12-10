@@ -70,9 +70,9 @@ pub(crate) struct DocumentEventHandler {
     window: Dom<Window>,
     /// Pending input events, to be handled at the next rendering opportunity.
     #[no_trace]
-    #[ignore_malloc_size_of = "CompositorEvent contains data from outside crates"]
+    #[ignore_malloc_size_of = "InputEvent contains data from outside crates"]
     pending_input_events: DomRefCell<Vec<ConstellationInputEvent>>,
-    /// The index of the last mouse move event in the pending compositor events queue.
+    /// The index of the last mouse move event in the pending input events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     #[ignore_malloc_size_of = "Defined in std"]
@@ -115,24 +115,24 @@ impl DocumentEventHandler {
         }
     }
 
-    /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
+    /// Note a pending input event, to be processed at the next `update_the_rendering` task.
     pub(crate) fn note_pending_input_event(&self, event: ConstellationInputEvent) {
-        let mut pending_compositor_events = self.pending_input_events.borrow_mut();
+        let mut pending_input_events = self.pending_input_events.borrow_mut();
         if matches!(event.event.event, InputEvent::MouseMove(..)) {
             // First try to replace any existing mouse move event.
             if let Some(mouse_move_event) = self
                 .mouse_move_event_index
                 .borrow()
-                .and_then(|index| pending_compositor_events.get_mut(index))
+                .and_then(|index| pending_input_events.get_mut(index))
             {
                 *mouse_move_event = event;
                 return;
             }
 
-            *self.mouse_move_event_index.borrow_mut() = Some(pending_compositor_events.len());
+            *self.mouse_move_event_index.borrow_mut() = Some(pending_input_events.len());
         }
 
-        pending_compositor_events.push(event);
+        pending_input_events.push(event);
     }
 
     /// Whether or not this [`Document`] has any pending input events to be processed during
@@ -466,8 +466,8 @@ impl DocumentEventHandler {
             );
         }
 
-        // Send mousemove event to topmost target, unless it's an iframe, in which case the
-        // compositor should have also sent an event to the inner document.
+        // Send mousemove event to topmost target, unless it's an iframe, in which case
+        // `Paint` should have also sent an event to the inner document.
         MouseEvent::new_simple(
             &self.window,
             FireMouseEventType::Move,
@@ -1605,7 +1605,7 @@ impl DocumentEventHandler {
         if scrolling_box.is_viewport() && parent_pipeline.is_none() {
             let (_, delta) = calculate_current_scroll_offset_and_delta();
             self.window
-                .compositor_api()
+                .paint_api()
                 .scroll_viewport_by_delta(self.window.webview_id(), delta);
         }
 

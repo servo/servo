@@ -11,7 +11,7 @@ use std::{mem, thread};
 
 use base::id::{PipelineId, WebViewId};
 use base::threadpool::ThreadPool;
-use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use compositing_traits::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
@@ -121,7 +121,7 @@ fn decode_bytes_sync(
 }
 
 fn set_webrender_image_key(
-    compositor_api: &CrossProcessCompositorApi,
+    paint_api: &CrossProcessPaintApi,
     image: &mut RasterImage,
     image_key: WebRenderImageKey,
 ) {
@@ -132,7 +132,7 @@ fn set_webrender_image_key(
     let (descriptor, ipc_shared_memory) = image.webrender_image_descriptor_and_data_for_frame(0);
     let data = SerializableImageData::Raw(ipc_shared_memory);
 
-    compositor_api.add_image(image_key, descriptor, data);
+    paint_api.add_image(image_key, descriptor, data);
     image.id = Some(image_key);
 }
 
@@ -461,9 +461,9 @@ struct ImageCacheStore {
     #[conditional_malloc_size_of]
     broken_image_icon_image: OnceCell<Option<Arc<RasterImage>>>,
 
-    /// Cross-process compositor API instance.
+    /// Cross-process `Paint` API instance.
     #[ignore_malloc_size_of = "Channel from another crate"]
-    compositor_api: CrossProcessCompositorApi,
+    paint_api: CrossProcessPaintApi,
 
     /// The [`WebView`] of the `Webview` associated with this [`ImageCache`].
     webview_id: WebViewId,
@@ -481,11 +481,11 @@ impl ImageCacheStore {
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
             PendingKey::RasterImage((pending_id, mut raster_image)) => {
-                set_webrender_image_key(&self.compositor_api, &mut raster_image, image_key);
+                set_webrender_image_key(&self.paint_api, &mut raster_image, image_key);
                 self.complete_load(pending_id, LoadResult::LoadedRasterImage(raster_image));
             },
             PendingKey::Svg((pending_id, mut raster_image, requested_size)) => {
-                set_webrender_image_key(&self.compositor_api, &mut raster_image, image_key);
+                set_webrender_image_key(&self.paint_api, &mut raster_image, image_key);
                 self.complete_load_svg(raster_image, pending_id, requested_size);
             },
         }
@@ -512,7 +512,7 @@ impl ImageCacheStore {
 
     fn fetch_more_image_keys(&mut self) {
         self.key_cache.cache = KeyCacheState::PendingBatch;
-        self.compositor_api
+        self.paint_api
             .generate_image_key_async(self.webview_id, self.pipeline_id);
     }
 
@@ -533,7 +533,7 @@ impl ImageCacheStore {
                 self.load_image_with_keycache(key);
             }
             if !self.key_cache.images_pending_keys.is_empty() {
-                self.compositor_api
+                self.paint_api
                     .generate_image_key_async(self.webview_id, self.pipeline_id);
                 self.key_cache.cache = KeyCacheState::PendingBatch
             }
@@ -689,7 +689,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
-        compositor_api: &CrossProcessCompositorApi,
+        paint_api: &CrossProcessPaintApi,
     ) -> Arc<dyn ImageCache> {
         Arc::new(ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
@@ -698,7 +698,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
                 vector_images: FxHashMap::default(),
                 rasterized_vector_images: FxHashMap::default(),
                 broken_image_icon_image: OnceCell::new(),
-                compositor_api: compositor_api.clone(),
+                paint_api: paint_api.clone(),
                 pipeline_id,
                 webview_id,
                 key_cache: KeyCache::new(),
@@ -744,7 +744,7 @@ impl ImageCache for ImageCacheImpl {
         }
 
         store
-            .compositor_api
+            .paint_api
             .generate_image_key_blocking(store.webview_id)
     }
 
@@ -1073,10 +1073,10 @@ impl ImageCache for ImageCacheImpl {
                 let mut image = load_from_memory(&self.broken_image_icon_data, CorsStatus::Unsafe)
                     .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))?;
                 let image_key = store
-                    .compositor_api
+                    .paint_api
                     .generate_image_key_blocking(store.webview_id)
                     .expect("Could not generate image key for broken image icon");
-                set_webrender_image_key(&store.compositor_api, &mut image, image_key);
+                set_webrender_image_key(&store.paint_api, &mut image, image_key);
                 Some(Arc::new(image))
             })
             .clone()
@@ -1100,7 +1100,7 @@ impl Drop for ImageCacheStore {
                     .filter_map(|task| task.result.as_ref()?.id.map(ImageUpdate::DeleteImage)),
             )
             .collect();
-        self.compositor_api
+        self.paint_api
             .update_images(self.webview_id.into(), image_updates);
     }
 }

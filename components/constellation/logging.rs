@@ -73,7 +73,7 @@ impl Log for FromScriptLogger {
     fn flush(&self) {}
 }
 
-/// A logger directed at the constellation from the compositor
+/// A logger directed at the constellation from `Paint`.
 #[derive(Clone)]
 pub struct FromEmbedderLogger {
     /// A channel to the constellation

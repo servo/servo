@@ -17,7 +17,7 @@ pub(crate) struct LargestContentfulPaintCandidateCollector {
     /// The rect of viewport.
     pub viewport_rect: LayoutRect,
     /// Flag to indicate if there is an update to LCP candidate.
-    /// This is used to avoid sending duplicate LCP candidates to the compositor.
+    /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     pub did_lcp_candidate_update: bool,
 }
 

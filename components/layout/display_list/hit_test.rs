@@ -101,7 +101,7 @@ impl<'a> HitTest<'a> {
 
         let transform = self
             .stacking_context_tree
-            .compositor_info
+            .paint_info
             .scroll_tree
             .cumulative_root_to_node_transform(scroll_tree_node_id)?;
 
@@ -268,7 +268,7 @@ impl Fragment {
                 if is_root_element {
                     let viewport_size = hit_test
                         .stacking_context_tree
-                        .compositor_info
+                        .paint_info
                         .viewport_details
                         .size;
                     let viewport_rect = LayoutRect::from_origin_and_size(

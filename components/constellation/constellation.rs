@@ -42,10 +42,10 @@
 //! +------------+                      +------------+
 //! ```
 //
-//! The constellation also maintains channels to threads, including:
+//! The constellation also maintains channels to other parts of Servo, including:
 //!
 //! * The script thread.
-//! * The graphics compositor.
+//! * The `Paint` subsystem, which runs in the embedder main thread.
 //! * The font cache, image cache, and resource manager, which load
 //!   and cache shared fonts, images, or other resources.
 //! * The service worker manager.
@@ -66,7 +66,7 @@
 //! sender to send some data. Servo tries to achieve deadlock-freedom by using the following
 //! can-block-on relation:
 //!
-//! * Constellation can block on compositor
+//! * Constellation can block on `Paint`
 //! * Constellation can block on embedder
 //! * Script can block on anything (other than script)
 //! * Blocking is transitive (if T1 can block on T2 and T2 can block on T3 then T1 can block on T3)
@@ -113,7 +113,7 @@ use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{
-    CompositorMsg, CompositorProxy, PipelineExitSource, SendableFrameTree,
+    PaintMessage, PaintProxy, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageIdManager,
 };
 use constellation_traits::{
@@ -133,11 +133,12 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse,
-    EmbedderMsg, EmbedderProxy, FocusSequenceNumber, InputEvent, InputEventAndId, JSValue,
-    JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
+    AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy,
+    FocusSequenceNumber, InputEvent, InputEventAndId, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
+    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
+    WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -323,8 +324,8 @@ pub struct Constellation<STF, SWF> {
     pub(crate) embedder_proxy: EmbedderProxy,
 
     /// A channel (the implementation of which is port-specific) for the
-    /// constellation to send messages to the compositor thread.
-    pub(crate) compositor_proxy: CompositorProxy,
+    /// constellation to send messages to `Paint`.
+    pub(crate) paint_proxy: PaintProxy,
 
     /// Bookkeeping data for all webviews in the constellation.
     webviews: FxHashMap<WebViewId, ConstellationWebView>,
@@ -514,8 +515,8 @@ pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the embedder.
     pub embedder_proxy: EmbedderProxy,
 
-    /// A channel through which messages can be sent to the compositor in-process.
-    pub compositor_proxy: CompositorProxy,
+    /// A channel through which messages can be sent to `Paint` in-process.
+    pub paint_proxy: PaintProxy,
 
     /// A channel to the developer tools, if applicable.
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
@@ -567,10 +568,10 @@ pub struct InitialConstellationState {
     pub async_runtime: Box<dyn AsyncRuntime>,
 }
 
-/// When we are exiting a pipeline, we can either force exiting or not.
-/// A normal exit waits for the compositor to update its state before
-/// exiting, and delegates layout exit to script. A forced exit does
-/// not notify the compositor, and exits layout without involving script.
+/// When we are exiting a pipeline, we can either force exiting or not. A normal exit
+/// waits for `Paint` to update its state before exiting, and delegates layout exit to
+/// script. A forced exit does not notify `Paint`, and exits layout without involving
+/// script.
 #[derive(Clone, Copy, Debug)]
 enum ExitPipelineMode {
     Normal,
@@ -685,7 +686,7 @@ where
                     embedder_to_constellation_receiver,
                     layout_factory,
                     embedder_proxy: state.embedder_proxy,
-                    compositor_proxy: state.compositor_proxy,
+                    paint_proxy: state.paint_proxy,
                     webviews: Default::default(),
                     devtools_sender: state.devtools_sender,
                     script_to_devtools_callback: Default::default(),
@@ -1220,7 +1221,7 @@ where
         self.pending_changes.push(change);
     }
 
-    /// Handles loading pages, navigation, and granting access to the compositor
+    /// Handles loading pages, navigation, and granting access to `Paint`.
     #[servo_tracing::instrument(skip_all)]
     fn handle_request(&mut self) {
         #[expect(clippy::large_enum_variant)]
@@ -1229,12 +1230,12 @@ where
             PipelineNamespace(PipelineNamespaceRequest),
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangMonitorAlert),
-            Compositor(EmbedderToConstellationMessage),
+            Embedder(EmbedderToConstellationMessage),
             FromSWManager(SWManagerMsg),
             RemoveProcess(usize),
         }
         // Get one incoming request.
-        // This is one of the few places where the compositor is
+        // This is one of the few places where `Paint` is
         // allowed to panic. If one of the receiver.recv() calls
         // fails, it is because the matching sender has been
         // reclaimed, but this can't happen in normal execution
@@ -1271,9 +1272,9 @@ where
                     .recv(&self.background_hang_monitor_receiver)
                     .expect("Unexpected BHM channel panic in constellation")
                     .map(Request::BackgroundHangMonitor),
-                3 => Ok(Request::Compositor(
+                3 => Ok(Request::Embedder(
                     oper.recv(&self.embedder_to_constellation_receiver)
-                        .expect("Unexpected compositor channel panic in constellation"),
+                        .expect("Unexpected embedder channel panic in constellation"),
                 )),
                 4 => oper
                     .recv(&self.swmanager_receiver)
@@ -1297,7 +1298,7 @@ where
             Request::PipelineNamespace(message) => {
                 self.handle_request_for_pipeline_namespace(message)
             },
-            Request::Compositor(message) => self.handle_request_from_compositor(message),
+            Request::Embedder(message) => self.handle_request_from_embedder(message),
             Request::Script(message) => {
                 self.handle_request_from_script(message);
             },
@@ -1341,8 +1342,8 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_request_from_compositor(&mut self, message: EmbedderToConstellationMessage) {
-        trace_msg_from_compositor!(message, "{message:?}");
+    fn handle_request_from_embedder(&mut self, message: EmbedderToConstellationMessage) {
+        trace_msg_from_embedder!(message, "{message:?}");
         match message {
             EmbedderToConstellationMessage::Exit => {
                 self.handle_exit();
@@ -2024,7 +2025,7 @@ where
         };
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
             Entry::Vacant(v) => start_webgpu_thread(
-                self.compositor_proxy.cross_process_compositor_api.clone(),
+                self.paint_proxy.cross_process_paint_api.clone(),
                 self.webrender_wgpu
                     .webrender_external_image_id_manager
                     .clone(),
@@ -2446,7 +2447,7 @@ where
                     resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,
-                    compositor_api: self.compositor_proxy.cross_process_compositor_api.clone(),
+                    paint_aip: self.paint_proxy.cross_process_paint_api.clone(),
                     system_font_service_sender: self.system_font_service.to_sender(),
                 };
 
@@ -2737,9 +2738,9 @@ where
         };
 
         // Now that the Script and Constellation parts of Servo no longer have a reference to
-        // this pipeline, tell the compositor that it has shut down. This is delayed until the
+        // this pipeline, tell `Paint` that it has shut down. This is delayed until the
         // last moment.
-        self.compositor_proxy.send(CompositorMsg::PipelineExited(
+        self.paint_proxy.send(PaintMessage::PipelineExited(
             pipeline.webview_id,
             pipeline.id,
             PipelineExitSource::Constellation,
@@ -2962,7 +2963,7 @@ where
         &mut self,
         webview_id: WebViewId,
         event: InputEventAndId,
-        hit_test_result: Option<CompositorHitTestResult>,
+        hit_test_result: Option<PaintHitTestResult>,
     ) {
         if let InputEvent::MouseButton(event) = &event.event {
             self.update_pressed_mouse_buttons(event);
@@ -3303,7 +3304,7 @@ where
             webview_id,
             None,
             script_sender,
-            self.compositor_proxy.clone(),
+            self.paint_proxy.clone(),
             is_parent_throttled,
             load_info.load_data,
         );
@@ -3380,7 +3381,7 @@ where
             new_webview_id,
             Some(opener_browsing_context_id),
             script_sender,
-            self.compositor_proxy.clone(),
+            self.paint_proxy.clone(),
             is_opener_throttled,
             load_data,
         );
@@ -3446,8 +3447,8 @@ where
         if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
             if pipeline.animation_state != animation_state {
                 pipeline.animation_state = animation_state;
-                self.compositor_proxy
-                    .send(CompositorMsg::ChangeRunningAnimationsState(
+                self.paint_proxy
+                    .send(PaintMessage::ChangeRunningAnimationsState(
                         pipeline.webview_id,
                         pipeline_id,
                         animation_state,
@@ -5042,8 +5043,8 @@ where
                         )
                     })
                     .collect();
-                self.compositor_proxy
-                    .send(CompositorMsg::ScreenshotReadinessReponse(
+                self.paint_proxy
+                    .send(PaintMessage::ScreenshotReadinessReponse(
                         screenshot_request.webview_id,
                         pipelines_and_epochs,
                     ));
@@ -5393,7 +5394,7 @@ where
             self.pending_changes.remove(pending_index);
         }
 
-        // Inform script, compositor that this pipeline has exited.
+        // Inform script and paint that this pipeline has exited.
         pipeline.send_exit_message_to_script(dbc);
 
         self.send_screenshot_readiness_requests_to_pipelines();
@@ -5451,7 +5452,7 @@ where
             .expect("Unknown top-level browsing context")
     }
 
-    // Convert a browsing context to a sendable form to pass to the compositor
+    // Convert a browsing context to a sendable form to pass to `Paint`
     #[servo_tracing::instrument(skip_all)]
     fn browsing_context_to_sendable(
         &self,
@@ -5481,7 +5482,7 @@ where
             })
     }
 
-    /// Send the frame tree for the given webview to the compositor.
+    /// Send the frame tree for the given webview to `Paint`.
     #[servo_tracing::instrument(skip_all)]
     fn set_frame_tree_for_webview(&mut self, webview_id: WebViewId) {
         // Note that this function can panic, due to ipc-channel creation failure.
@@ -5490,10 +5491,8 @@ where
         let browsing_context_id = BrowsingContextId::from(webview_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
-            self.compositor_proxy
-                .send(CompositorMsg::SetFrameTreeForWebView(
-                    webview_id, frame_tree,
-                ));
+            self.paint_proxy
+                .send(PaintMessage::SetFrameTreeForWebView(webview_id, frame_tree));
         }
     }
 
@@ -5567,7 +5566,7 @@ where
     fn create_canvas_paint_thread(
         &self,
     ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
-        CanvasPaintThread::start(self.compositor_proxy.cross_process_compositor_api.clone())
+        CanvasPaintThread::start(self.paint_proxy.cross_process_paint_api.clone())
     }
 
     fn handle_embedder_control_response(

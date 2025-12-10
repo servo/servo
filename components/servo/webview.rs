@@ -105,7 +105,7 @@ impl Drop for WebViewInner {
         self.servo
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::CloseWebView(self.id));
-        self.servo.compositor_mut().remove_webview(self.id);
+        self.servo.paint_mut().remove_webview(self.id);
     }
 }
 
@@ -113,7 +113,7 @@ impl WebView {
     pub(crate) fn new(builder: WebViewBuilder) -> Self {
         let servo = builder.servo;
         let painter_id = servo
-            .compositor_mut()
+            .paint_mut()
             .register_rendering_context(builder.rendering_context.clone());
 
         let id = WebViewId::new(painter_id);
@@ -136,7 +136,7 @@ impl WebView {
         })));
 
         let viewport_details = webview.viewport_details();
-        servo.compositor().add_webview(
+        servo.paint().add_webview(
             Box::new(ServoRendererWebView {
                 weak_handle: webview.weak_handle(),
                 id,
@@ -339,7 +339,7 @@ impl WebView {
 
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .resize_rendering_context(self.id(), new_size);
     }
 
@@ -358,14 +358,14 @@ impl WebView {
         self.inner_mut().hidpi_scale_factor = new_scale_factor;
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
     }
 
     pub fn show(&self) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .show_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
@@ -373,7 +373,7 @@ impl WebView {
     pub fn hide(&self) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .hide_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
@@ -443,7 +443,7 @@ impl WebView {
     pub fn notify_scroll_event(&self, scroll: Scroll, point: WebViewPoint) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .notify_scroll_event(self.id(), scroll, point);
     }
 
@@ -451,11 +451,11 @@ impl WebView {
         let event: InputEventAndId = event.into();
         let event_id = event.id;
 
-        // Events with a `point` first go to the compositor for hit testing.
+        // Events with a `point` first go to `Paint` for hit testing.
         if event.event.point().is_some() {
             self.inner()
                 .servo
-                .compositor()
+                .paint()
                 .notify_input_event(self.id(), event);
         } else {
             self.inner().servo.constellation_proxy().send(
@@ -491,13 +491,13 @@ impl WebView {
     pub fn set_page_zoom(&self, new_zoom: f32) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .set_page_zoom(self.id(), new_zoom);
     }
 
     /// Get the page zoom of the [`WebView`].
     pub fn page_zoom(&self) -> f32 {
-        self.inner().servo.compositor().page_zoom(self.id())
+        self.inner().servo.paint().page_zoom(self.id())
     }
 
     /// Adjust the pinch zoom on this [`WebView`] multiplying the current pinch zoom
@@ -512,14 +512,14 @@ impl WebView {
     pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .pinch_zoom(self.id(), pinch_zoom_delta, center);
     }
 
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .device_pixels_per_page_pixel(self.id())
     }
 
@@ -537,14 +537,11 @@ impl WebView {
     }
 
     pub fn toggle_webrender_debugging(&self, debugging: WebRenderDebugOption) {
-        self.inner()
-            .servo
-            .compositor()
-            .toggle_webrender_debug(debugging);
+        self.inner().servo.paint().toggle_webrender_debug(debugging);
     }
 
     pub fn capture_webrender(&self) {
-        self.inner().servo.compositor().capture_webrender(self.id());
+        self.inner().servo.paint().capture_webrender(self.id());
     }
 
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
@@ -565,7 +562,7 @@ impl WebView {
 
     /// Paint the contents of this [`WebView`] into its `RenderingContext`.
     pub fn paint(&self) {
-        self.inner().servo.compositor().render(self.id());
+        self.inner().servo.paint().render(self.id());
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
@@ -606,7 +603,7 @@ impl WebView {
     ) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .request_screenshot(self.id(), rect, Box::new(callback));
     }
 

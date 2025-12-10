@@ -400,12 +400,12 @@ impl ServoAction {
                         .expect("Should always start with at least one WebView");
                     if webview.id() != native_webview_components.id {
                         servo.activate_webview(native_webview_components.id);
-                        servo.pause_compositor();
+                        servo.pause_painting();
                         let (window_handle, viewport_rect) = get_raw_window_handle(
                             native_webview_components.xcomponent.0,
                             native_webview_components.window.0,
                         );
-                        servo.resume_compositor(window_handle, viewport_rect);
+                        servo.resume_painting(window_handle, viewport_rect);
                         let url = webview
                             .url()
                             .map(|u| u.to_string())
@@ -419,12 +419,12 @@ impl ServoAction {
                 }
             },
             NewWebview(xcomponent, window) => {
-                servo.pause_compositor();
+                servo.pause_painting();
                 let webview =
                     servo.create_and_activate_toplevel_webview("about:blank".parse().unwrap());
                 let (window_handle, viewport_rect) = get_raw_window_handle(xcomponent.0, window.0);
 
-                servo.resume_compositor(window_handle, viewport_rect);
+                servo.resume_painting(window_handle, viewport_rect);
                 let id = webview.id();
                 NATIVE_WEBVIEWS
                     .lock()
@@ -700,7 +700,7 @@ static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
         "script::dom::console",
         // Show GL errors by default.
         "canvas::webgl_thread",
-        "compositing::compositor",
+        "compositing::paint",
         "compositing::touch",
         "constellation::constellation",
         "ohos_ime",

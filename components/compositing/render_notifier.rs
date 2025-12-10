@@ -3,20 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::PainterId;
-use compositing_traits::{CompositorMsg, CompositorProxy};
+use compositing_traits::{PaintMessage, PaintProxy};
 use webrender_api::{DocumentId, FramePublishId, FrameReadyParams};
 
 #[derive(Clone)]
 pub(crate) struct RenderNotifier {
     painter_id: PainterId,
-    compositor_proxy: CompositorProxy,
+    paint_proxy: PaintProxy,
 }
 
 impl RenderNotifier {
-    pub(crate) fn new(painter_id: PainterId, compositor_proxy: CompositorProxy) -> RenderNotifier {
+    pub(crate) fn new(painter_id: PainterId, paint_proxy: PaintProxy) -> RenderNotifier {
         RenderNotifier {
             painter_id,
-            compositor_proxy,
+            paint_proxy,
         }
     }
 }
@@ -25,7 +25,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     fn clone(&self) -> Box<dyn webrender_api::RenderNotifier> {
         Box::new(RenderNotifier::new(
             self.painter_id,
-            self.compositor_proxy.clone(),
+            self.paint_proxy.clone(),
         ))
     }
 
@@ -37,11 +37,10 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         _: FramePublishId,
         frame_ready_params: &FrameReadyParams,
     ) {
-        self.compositor_proxy
-            .send(CompositorMsg::NewWebRenderFrameReady(
-                self.painter_id,
-                document_id,
-                frame_ready_params.render,
-            ));
+        self.paint_proxy.send(PaintMessage::NewWebRenderFrameReady(
+            self.painter_id,
+            document_id,
+            frame_ready_params.render,
+        ));
     }
 }

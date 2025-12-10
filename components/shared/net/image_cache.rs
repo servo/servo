@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use log::debug;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -164,7 +164,7 @@ pub trait ImageCacheFactory: Sync + Send {
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
-        compositor_api: &CrossProcessCompositorApi,
+        paint_api: &CrossProcessPaintApi,
     ) -> Arc<dyn ImageCache>;
 }
 

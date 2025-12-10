@@ -116,7 +116,7 @@ pub(crate) fn process_box_area_request(
     }
 
     let Some(transform) =
-        root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
+        root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
     else {
         return Some(Rect::new(rect_union.origin, Size2D::zero()));
     };
@@ -136,7 +136,7 @@ pub(crate) fn process_box_areas_request(
         .map(|rect| rect.to_untyped());
 
     let Some(transform) =
-        root_transform_for_layout_node(&stacking_context_tree.compositor_info.scroll_tree, node)
+        root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
     else {
         return box_areas
             .map(|rect| Rect::new(rect.origin, Size2D::zero()))

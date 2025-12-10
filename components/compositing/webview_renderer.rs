@@ -15,8 +15,8 @@ use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use crossbeam_channel::Sender;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId,
-    InputEventResult, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Scroll,
+    AnimationState, InputEvent, InputEventAndId, InputEventId, InputEventResult, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PaintHitTestResult, Scroll,
     ScrollEvent as EmbedderScrollEvent, TouchEvent, TouchEventType, ViewportDetails, WebViewPoint,
     WheelEvent,
 };
@@ -30,7 +30,7 @@ use webrender::RenderApi;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutVector2D};
 use webrender_api::{DocumentId, ExternalScrollId, ScrollLocation};
 
-use crate::compositor::RepaintReason;
+use crate::paint::RepaintReason;
 use crate::painter::Painter;
 use crate::pinch_zoom::PinchZoom;
 use crate::pipeline_details::PipelineDetails;
@@ -59,7 +59,7 @@ pub(crate) enum ScrollZoomEvent {
 
 #[derive(Clone, Debug)]
 pub(crate) struct ScrollResult {
-    pub hit_test_result: CompositorHitTestResult,
+    pub hit_test_result: PaintHitTestResult,
     /// The [`ExternalScrollId`] of the node that was actually scrolled.
     ///
     /// Note that this is an inclusive ancestor of `external_scroll_id` in
@@ -88,7 +88,7 @@ pub(crate) struct WebViewRenderer {
     pub root_pipeline_id: Option<PipelineId>,
     /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
     pub rect: DeviceRect,
-    /// Tracks details about each active pipeline that the compositor knows about.
+    /// Tracks details about each active pipeline that `Paint` knows about.
     pub pipelines: FxHashMap<PipelineId, PipelineDetails>,
     /// Pending scroll/zoom events.
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
@@ -154,11 +154,7 @@ impl WebViewRenderer {
         }
     }
 
-    fn hit_test(
-        &self,
-        webrender_api: &RenderApi,
-        point: DevicePoint,
-    ) -> Vec<CompositorHitTestResult> {
+    fn hit_test(&self, webrender_api: &RenderApi, point: DevicePoint) -> Vec<PaintHitTestResult> {
         Painter::hit_test_at_point_with_api_and_document(
             webrender_api,
             self.webrender_document,
@@ -893,7 +889,7 @@ impl WebViewRenderer {
             return (pinch_zoom_result, vec![]);
         };
 
-        let hit_test_result = CompositorHitTestResult {
+        let hit_test_result = PaintHitTestResult {
             pipeline_id: root_pipeline_id,
             // It's difficult to get a good value for this as it needs to be piped
             // all the way through script and back here.
@@ -915,7 +911,7 @@ impl WebViewRenderer {
     fn dispatch_scroll_event(
         &self,
         external_id: ExternalScrollId,
-        hit_test_result: CompositorHitTestResult,
+        hit_test_result: PaintHitTestResult,
     ) {
         let event = InputEvent::Scroll(EmbedderScrollEvent { external_id }).into();
         let msg = EmbedderToConstellationMessage::ForwardInputEvent(

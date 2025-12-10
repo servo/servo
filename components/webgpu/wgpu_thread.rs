@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
 use compositing_traits::{
-    CrossProcessCompositorApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
+    CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
 };
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
@@ -104,7 +104,7 @@ pub(crate) struct WGPU {
     /// because wgpu does not invalidate command encoder object
     /// (this is also reused for invalidation of command buffers)
     error_command_encoders: FxHashMap<id::CommandEncoderId, String>,
-    pub(crate) compositor_api: CrossProcessCompositorApi,
+    pub(crate) paint_api: CrossProcessPaintApi,
     pub(crate) webrender_external_image_id_manager: WebRenderExternalImageIdManager,
     pub(crate) wgpu_image_map: WebGpuExternalImageMap,
     /// Provides access to poller thread
@@ -120,7 +120,7 @@ impl WGPU {
         receiver: IpcReceiver<WebGPURequest>,
         sender: IpcSender<WebGPURequest>,
         script_sender: IpcSender<WebGPUMsg>,
-        compositor_api: CrossProcessCompositorApi,
+        paint_api: CrossProcessPaintApi,
         webrender_external_image_id_manager: WebRenderExternalImageIdManager,
         wgpu_image_map: WebGpuExternalImageMap,
     ) -> Self {
@@ -149,7 +149,7 @@ impl WGPU {
             global,
             devices: Arc::new(Mutex::new(FxHashMap::default())),
             error_command_encoders: FxHashMap::default(),
-            compositor_api,
+            paint_api,
             webrender_external_image_id_manager,
             wgpu_image_map,
             compute_passes: FxHashMap::default(),

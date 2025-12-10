@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
 use base::id::{PainterId, WebViewId};
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
@@ -81,8 +81,8 @@ pub struct FontContext {
 
     resource_threads: Mutex<CoreResourceThread>,
 
-    /// A sender that can send messages and receive replies from the compositor.
-    compositor_api: Mutex<CrossProcessCompositorApi>,
+    /// A sender that can send messages and receive replies from `Paint`.
+    paint_api: Mutex<CrossProcessPaintApi>,
 
     /// The actual instances of fonts ie a [`FontTemplate`] combined with a size and
     /// other font properties, along with the font data and a platform font instance.
@@ -143,14 +143,14 @@ impl Clone for WebFontDocumentContext {
 impl FontContext {
     pub fn new(
         system_font_service_proxy: Arc<SystemFontServiceProxy>,
-        compositor_api: CrossProcessCompositorApi,
+        paint_api: CrossProcessPaintApi,
         resource_threads: ResourceThreads,
     ) -> Self {
         #[allow(clippy::default_constructed_unit_structs)]
         Self {
             system_font_service_proxy,
             resource_threads: Mutex::new(resource_threads.core_thread),
-            compositor_api: Mutex::new(compositor_api),
+            paint_api: Mutex::new(paint_api),
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
             web_fonts: Default::default(),
@@ -361,7 +361,7 @@ impl FontContext {
             .entry(identifier.clone())
             .or_insert_with(|| {
                 let font_key = self.system_font_service_proxy.generate_font_key(painter_id);
-                self.compositor_api.lock().add_font(
+                self.paint_api.lock().add_font(
                     font_key,
                     font_data.as_ipc_shared_memory(),
                     identifier.index(),
@@ -383,7 +383,7 @@ impl FontContext {
                 let font_instance_key = self
                     .system_font_service_proxy
                     .generate_font_instance_key(painter_id);
-                self.compositor_api.lock().add_font_instance(
+                self.paint_api.lock().add_font_instance(
                     font_instance_key,
                     font_key,
                     pt_size.to_f32_px(),

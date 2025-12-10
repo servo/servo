@@ -14,7 +14,7 @@ use base::id::{
     ServiceWorkerRegistrationId, WebViewId,
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
@@ -236,8 +236,8 @@ pub struct SWManagerSenders {
     pub swmanager_sender: GenericSender<SWManagerMsg>,
     /// [`ResourceThreads`] for initating fetches or using i/o.
     pub resource_threads: ResourceThreads,
-    /// [`CrossProcessCompositorApi`] for communicating with the compositor.
-    pub compositor_api: CrossProcessCompositorApi,
+    /// [`CrossProcessPaintApi`] for communicating with `Paint`.
+    pub paint_aip: CrossProcessPaintApi,
     /// The [`SystemFontServiceProxy`] used to communicate with the `SystemFontService`.
     pub system_font_service_sender: SystemFontServiceProxySender,
     /// Sender of messages to the manager.

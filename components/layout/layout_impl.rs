@@ -15,7 +15,7 @@ use app_units::Au;
 use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use compositing_traits::display_list::ScrollType;
 use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
@@ -192,8 +192,8 @@ pub struct LayoutThread {
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
 
-    /// Cross-process access to the Compositor API.
-    compositor_api: CrossProcessCompositorApi,
+    /// Cross-process access to the `Paint` API.
+    paint_api: CrossProcessPaintApi,
 
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
@@ -221,11 +221,8 @@ impl Drop for LayoutThread {
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(true /* all */);
-        self.compositor_api.remove_unused_font_resources(
-            self.webview_id.into(),
-            keys,
-            instance_keys,
-        )
+        self.paint_api
+            .remove_unused_font_resources(self.webview_id.into(), keys, instance_keys)
     }
 }
 
@@ -392,7 +389,7 @@ impl Layout for LayoutThread {
         let stacking_context_tree = stacking_context_tree
             .as_ref()
             .expect("Should always have a StackingContextTree for offset parent queries");
-        process_offset_parent_query(&stacking_context_tree.compositor_info.scroll_tree, node)
+        process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
             .unwrap_or_default()
     }
 
@@ -600,7 +597,7 @@ impl Layout for LayoutThread {
         };
 
         stacking_context_tree
-            .compositor_info
+            .paint_info
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
     }
@@ -609,7 +606,7 @@ impl Layout for LayoutThread {
         self.stacking_context_tree
             .borrow_mut()
             .as_mut()
-            .and_then(|tree| tree.compositor_info.scroll_tree.scroll_offset(id))
+            .and_then(|tree| tree.paint_info.scroll_tree.scroll_offset(id))
     }
 
     fn needs_new_display_list(&self) -> bool {
@@ -711,7 +708,7 @@ impl LayoutThread {
     fn new(config: LayoutConfig) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         config
-            .compositor_api
+            .paint_api
             .send_initial_transaction(config.webview_id, config.id.into());
 
         let mut font = Font::initial_values();
@@ -753,7 +750,7 @@ impl LayoutThread {
             box_tree: Default::default(),
             fragment_tree: Default::default(),
             stacking_context_tree: Default::default(),
-            compositor_api: config.compositor_api,
+            paint_api: config.paint_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
@@ -1222,7 +1219,7 @@ impl LayoutThread {
         let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let old_scroll_offsets = stacking_context_tree
             .as_ref()
-            .map(|tree| tree.compositor_info.scroll_tree.scroll_offsets());
+            .map(|tree| tree.paint_info.scroll_tree.scroll_offsets());
 
         // Build the StackingContextTree. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
@@ -1240,14 +1237,14 @@ impl LayoutThread {
         // adjusted by any new scroll constraints.
         if let Some(old_scroll_offsets) = old_scroll_offsets {
             new_stacking_context_tree
-                .compositor_info
+                .paint_info
                 .scroll_tree
                 .set_all_scroll_offsets(&old_scroll_offsets);
         }
 
         if self.debug.scroll_tree {
             new_stacking_context_tree
-                .compositor_info
+                .paint_info
                 .scroll_tree
                 .debug_print();
         }
@@ -1289,9 +1286,9 @@ impl LayoutThread {
             return false;
         }
 
-        // TODO: Eventually this should be set when `compositor_info` is created, but that requires
+        // TODO: Eventually this should be set when `paint_info` is created, but that requires
         // ensuring that the Epoch is passed to any method that can creates `StackingContextTree`.
-        stacking_context_tree.compositor_info.epoch = reflow_request.epoch;
+        stacking_context_tree.paint_info.epoch = reflow_request.epoch;
 
         let mut lcp_candidate_collector = self.lcp_candidate_collector.borrow_mut();
         if pref!(largest_contentful_paint_enabled) {
@@ -1299,7 +1296,7 @@ impl LayoutThread {
             if lcp_candidate_collector.is_none() {
                 *lcp_candidate_collector = Some(LargestContentfulPaintCandidateCollector::new(
                     stacking_context_tree
-                        .compositor_info
+                        .paint_info
                         .viewport_details
                         .layout_size(),
                 ));
@@ -1317,19 +1314,19 @@ impl LayoutThread {
             &self.debug,
             lcp_candidate_collector.as_mut(),
         );
-        self.compositor_api.send_display_list(
+        self.paint_api.send_display_list(
             self.webview_id,
-            &stacking_context_tree.compositor_info,
+            &stacking_context_tree.paint_info,
             built_display_list,
         );
         if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut() {
             if lcp_candidate_collector.did_lcp_candidate_update {
                 if let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
-                    self.compositor_api.send_lcp_candidate(
+                    self.paint_api.send_lcp_candidate(
                         lcp_candidate,
                         self.webview_id,
                         self.id,
-                        stacking_context_tree.compositor_info.epoch,
+                        stacking_context_tree.paint_info.epoch,
                     );
                     lcp_candidate_collector.did_lcp_candidate_update = false;
                 }
@@ -1339,11 +1336,8 @@ impl LayoutThread {
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(false /* all */);
-        self.compositor_api.remove_unused_font_resources(
-            self.webview_id.into(),
-            keys,
-            instance_keys,
-        );
+        self.paint_api
+            .remove_unused_font_resources(self.webview_id.into(), keys, instance_keys);
 
         self.have_ever_generated_display_list.set(true);
         self.need_new_display_list.set(false);
@@ -1363,7 +1357,7 @@ impl LayoutThread {
         };
 
         if let Some(offset) = stacking_context_tree
-            .compositor_info
+            .paint_info
             .scroll_tree
             .set_scroll_offset_for_node_with_external_scroll_id(
                 external_scroll_id,
@@ -1371,7 +1365,7 @@ impl LayoutThread {
                 ScrollType::Script,
             )
         {
-            self.compositor_api.scroll_node_by_delta(
+            self.paint_api.scroll_node_by_delta(
                 self.webview_id,
                 self.id.into(),
                 offset,

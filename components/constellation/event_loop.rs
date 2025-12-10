@@ -104,10 +104,7 @@ impl EventLoop {
             constellation_to_script_sender: script_chan,
             constellation_to_script_receiver: script_port,
             pipeline_namespace_id: constellation.next_pipeline_namespace_id(),
-            cross_process_compositor_api: constellation
-                .compositor_proxy
-                .cross_process_compositor_api
-                .clone(),
+            cross_process_paint_api: constellation.paint_proxy.cross_process_paint_api.clone(),
             webgl_chan: constellation
                 .webgl_threads
                 .as_ref()

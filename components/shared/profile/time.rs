@@ -61,7 +61,7 @@ pub enum ProfilerMsg {
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ProfilerCategory {
-    /// The compositor is rasterising or presenting.
+    /// `Paint` is rasterising or presenting.
     ///
     /// Not associated with a specific URL.
     Compositing = 0x00,

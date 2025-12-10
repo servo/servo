@@ -4,7 +4,7 @@
 
 use base::Epoch;
 use canvas_traits::canvas::*;
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use pixels::Snapshot;
 use webrender_api::ImageKey;
@@ -23,28 +23,28 @@ pub(crate) enum Filter {
 
 pub(crate) struct CanvasData<DrawTarget: GenericDrawTarget> {
     draw_target: DrawTarget,
-    compositor_api: CrossProcessCompositorApi,
+    paint_api: CrossProcessPaintApi,
     image_key: Option<ImageKey>,
 }
 
 impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     pub(crate) fn new(
         size: Size2D<u64>,
-        compositor_api: CrossProcessCompositorApi,
+        paint_api: CrossProcessPaintApi,
     ) -> CanvasData<DrawTarget> {
         CanvasData {
             draw_target: DrawTarget::new(size.max(MIN_WR_IMAGE_SIZE).cast()),
-            compositor_api,
+            paint_api,
             image_key: None,
         }
     }
 
     pub(crate) fn set_image_key(&mut self, image_key: ImageKey) {
         let (descriptor, data) = self.draw_target.image_descriptor_and_serializable_data();
-        self.compositor_api.add_image(image_key, descriptor, data);
+        self.paint_api.add_image(image_key, descriptor, data);
 
         if let Some(old_image_key) = self.image_key.replace(image_key) {
-            self.compositor_api.delete_image(old_image_key);
+            self.paint_api.delete_image(old_image_key);
         }
     }
 
@@ -322,7 +322,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             self.draw_target.image_descriptor_and_serializable_data()
         };
 
-        self.compositor_api
+        self.paint_api
             .update_image(image_key, descriptor, data, canvas_epoch);
     }
 
@@ -440,7 +440,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 impl<D: GenericDrawTarget> Drop for CanvasData<D> {
     fn drop(&mut self) {
         if let Some(image_key) = self.image_key {
-            self.compositor_api.delete_image(image_key);
+            self.paint_api.delete_image(image_key);
         }
     }
 }
