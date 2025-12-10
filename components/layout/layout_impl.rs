@@ -18,7 +18,7 @@ use bitflags::bitflags;
 use compositing_traits::CrossProcessPaintApi;
 use compositing_traits::display_list::ScrollType;
 use cssparser::ParserInput;
-use embedder_traits::{Theme, ViewportDetails};
+use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
@@ -94,7 +94,7 @@ use crate::query::{
     get_the_text_steps, process_box_area_request, process_box_areas_request,
     process_client_rect_request, process_current_css_zoom_query, process_node_scroll_area_request,
     process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
-    process_resolved_style_request, process_scroll_container_query, process_text_index_request,
+    process_resolved_style_request, process_scroll_container_query, process_text_index_request, process_containing_block_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
@@ -299,6 +299,13 @@ impl Layout for LayoutThread {
         self.stylist.remove_stylesheet(stylesheet.clone(), &guard);
         self.font_context
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
+    }
+
+    /// Return the node corresponding to the containing block of the provided node.
+    #[servo_tracing::instrument(skip_all)]
+    fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress> {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_containing_block_query(node)
     }
 
     /// Return the resolved values of this node's padding rect.
