@@ -9,14 +9,15 @@ use std::sync::Arc;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericReceiver;
 use base::id::{PainterId, PipelineId, WebViewId};
-use compositing_traits::display_list::{PaintDisplayListInfo, ScrollType};
+use compositing_traits::display_list::{ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{
-    ImageUpdate, PipelineExitSource, SendableFrameTree, WebRenderExternalImageHandlers,
-    WebRenderImageHandlerType, WebViewTrait,
+    DisplayListForPainter, ImageUpdate, PipelineExitSource, SendableFrameTree,
+    WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
@@ -28,7 +29,7 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Scale, Size2D};
 use gleam::gl::RENDERER;
 use image::RgbaImage;
-use ipc_channel::ipc::{IpcBytesReceiver, IpcSharedMemory};
+use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
@@ -911,44 +912,22 @@ impl Painter {
             .display_list_epoch = Some(Epoch(epoch.0));
     }
 
+    #[servo_tracing::instrument(skip_all)]
     pub(crate) fn handle_new_display_list(
         &mut self,
         webview_id: WebViewId,
         display_list_descriptor: BuiltDisplayListDescriptor,
-        display_list_receiver: IpcBytesReceiver,
+        display_list_receiver: GenericReceiver<DisplayListForPainter>,
     ) {
-        // This must match the order from the sender, currently in `shared/script/lib.rs`.
-        let display_list_info = match display_list_receiver.recv() {
-            Ok(display_list_info) => display_list_info,
-            Err(error) => {
-                return warn!("Could not receive display list info: {error}");
-            },
+        let Ok(display_list_for_webrender) = display_list_receiver.recv() else {
+            return log::error!("Could not receive display list info");
         };
-        let display_list_info: PaintDisplayListInfo = match bincode::deserialize(&display_list_info)
-        {
-            Ok(display_list_info) => display_list_info,
-            Err(error) => {
-                return warn!("Could not deserialize display list info: {error}");
-            },
-        };
-        let items_data = match display_list_receiver.recv() {
-            Ok(display_list_data) => display_list_data,
-            Err(error) => {
-                return warn!("Could not receive WebRender display list items data: {error}");
-            },
-        };
-        let cache_data = match display_list_receiver.recv() {
-            Ok(display_list_data) => display_list_data,
-            Err(error) => {
-                return warn!("Could not receive WebRender display list cache data: {error}");
-            },
-        };
-        let spatial_tree = match display_list_receiver.recv() {
-            Ok(display_list_data) => display_list_data,
-            Err(error) => {
-                return warn!("Could not receive WebRender display list spatial tree: {error}.");
-            },
-        };
+
+        let display_list_info = display_list_for_webrender.display_list_info;
+        let items_data = display_list_for_webrender.display_list_data.items_data;
+        let cache_data = display_list_for_webrender.display_list_data.cache_data;
+        let spatial_tree = display_list_for_webrender.display_list_data.spatial_tree;
+
         let built_display_list = BuiltDisplayList::from_data(
             DisplayListPayload {
                 items_data,
