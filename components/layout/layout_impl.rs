@@ -30,7 +30,7 @@ use layout_api::{
     ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
     ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
 };
-use log::{debug, error, warn};
+use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::ImageCache;
 use parking_lot::{Mutex, RwLock};
@@ -86,6 +86,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
+use crate::accessibility_tree::AccessibilityTree;
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{
     DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
@@ -180,6 +181,7 @@ pub struct LayoutThread {
 
     /// The fragment tree.
     fragment_tree: RefCell<Option<Rc<FragmentTree>>>,
+    accessibility_tree: RefCell<Option<AccessibilityTree>>,
 
     /// The [`StackingContextTree`] cached from previous layouts.
     stacking_context_tree: RefCell<Option<StackingContextTree>>,
@@ -752,6 +754,7 @@ impl LayoutThread {
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
+            accessibility_tree: Default::default(),
             stacking_context_tree: Default::default(),
             compositor_api: config.compositor_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
@@ -1153,6 +1156,11 @@ impl LayoutThread {
             run_layout()
         });
 
+        let accessibility_tree = AccessibilityTree::construct(document, fragment_tree.clone());
+        for (id, node) in accessibility_tree.descendants() {
+            trace!(target: "layout::accessibility_tree", "AX node: {id:?} => {node:?}");
+        }
+        *self.accessibility_tree.borrow_mut() = Some(accessibility_tree);
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
         if self.debug.style_tree {
