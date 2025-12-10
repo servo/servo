@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::ffi::CStr;
 use std::fs::read_to_string;
@@ -20,7 +22,6 @@ use net_traits::request::{
     RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
-use script_bindings::domstring::BytesView;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
@@ -52,7 +53,7 @@ use crate::dom::element::{
     set_cross_origin_attribute,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::{ClassicScript, ErrorReporting, GlobalScope, RethrowErrors};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -62,40 +63,11 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::realms::enter_realm;
 use crate::script_module::{
     ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::unminify::ScriptSource;
-
-impl ScriptSource for ScriptOrigin {
-    fn unminified_dir(&self) -> Option<String> {
-        self.unminified_dir.clone()
-    }
-
-    fn extract_bytes(&self) -> BytesView<'_> {
-        match &self.code {
-            SourceCode::Text(text) => text.as_bytes(),
-            SourceCode::Compiled(compiled_source_code) => {
-                compiled_source_code.original_text.as_bytes()
-            },
-        }
-    }
-
-    fn rewrite_source(&mut self, source: Rc<DOMString>) {
-        self.code = SourceCode::Text(source);
-    }
-
-    fn url(&self) -> ServoUrl {
-        self.url.clone()
-    }
-
-    fn is_external(&self) -> bool {
-        self.external
-    }
-}
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -134,6 +106,9 @@ pub(crate) struct HTMLScriptElement {
     /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
     script_text: DomRefCell<DOMString>,
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-external>
+    from_an_external_file: Cell<bool>,
+
     /// `introductionType` value to set in the `CompileOptionsWrapper`, overriding the usual
     /// `srcScript` or `inlineScript` that this script would normally use.
     #[no_trace]
@@ -157,6 +132,7 @@ impl HTMLScriptElement {
             preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
             script_text: DomRefCell::new(DOMString::new()),
+            from_an_external_file: Cell::new(false),
             introduction_type_override: Cell::new(None),
         }
     }
@@ -319,7 +295,15 @@ fn finish_fetching_a_classic_script(
     document.finish_load(LoadType::Script(url), can_gc);
 }
 
-pub(crate) type ScriptResult = Result<ScriptOrigin, NoTrace<NetworkError>>;
+pub(crate) type ScriptResult = Result<Script, NoTrace<NetworkError>>;
+
+// TODO merge classic and module scripts
+#[derive(JSTraceable, MallocSizeOf)]
+#[expect(clippy::large_enum_variant)]
+pub(crate) enum Script {
+    Classic(ClassicScript),
+    Other(ScriptOrigin),
+}
 
 /// The context required for asynchronously loading an external script source.
 struct ClassicContext {
@@ -340,6 +324,8 @@ struct ClassicContext {
     status: Result<(), NetworkError>,
     /// The fetch options of the script
     fetch_options: ScriptFetchOptions,
+    /// Used to set muted errors flag of classic scripts
+    response_was_cors_cross_origin: bool,
 }
 
 impl FetchResponseListener for ClassicContext {
@@ -350,9 +336,12 @@ impl FetchResponseListener for ClassicContext {
     fn process_request_eof(&mut self, _: RequestId) {}
 
     fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
-        self.metadata = metadata.ok().map(|meta| match meta {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+        self.metadata = metadata.ok().map(|meta| {
+            self.response_was_cors_cross_origin = meta.is_cors_cross_origin();
+            match meta {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+            }
         });
 
         let status = self
@@ -413,19 +402,35 @@ impl FetchResponseListener for ClassicContext {
         let metadata = self.metadata.take().unwrap();
         let final_url = metadata.final_url;
 
-        // Step 7.
+        // Step 5.3. Let potentialMIMETypeForEncoding be the result of extracting a MIME type given response's header list.
+        // Step 5.4. Set encoding to the result of legacy extracting an encoding given potentialMIMETypeForEncoding and encoding.
         let encoding = metadata
             .charset
             .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
             .unwrap_or(self.character_encoding);
 
-        // Step 8.
-        let (source_text, _, _) = encoding.decode(&self.data);
+        // Step 5.5. Let sourceText be the result of decoding bodyBytes to Unicode, using encoding as the fallback encoding.
+        let (mut source_text, _, _) = encoding.decode(&self.data);
 
         let elem = self.elem.root();
         let global = elem.global();
-        // let cx = GlobalScope::get_cx();
-        let _ar = enter_realm(&*global);
+
+        elem.substitute_with_local_script(&mut source_text, final_url.clone());
+
+        // Step 5.6. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
+        let muted_errors = self.response_was_cors_cross_origin;
+
+        // Step 5.7. Let script be the result of creating a classic script given
+        // sourceText, settingsObject, response's URL, options, mutedErrors, and url.
+        let script = global.create_a_classic_script(
+            source_text,
+            final_url.clone(),
+            self.fetch_options.clone(),
+            ErrorReporting::from(muted_errors),
+            Some(IntroductionType::SRC_SCRIPT),
+            1,
+            true,
+        );
 
         /*
         let options = unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str(), 1) };
@@ -457,13 +462,7 @@ impl FetchResponseListener for ClassicContext {
                 .is_null());
             }
         } else {*/
-        let load = ScriptOrigin::external(
-            Rc::new(DOMString::from(source_text)),
-            final_url.clone(),
-            self.fetch_options.clone(),
-            ScriptType::Classic,
-            elem.parser_document.global().unminified_js_dir(),
-        );
+        let load = Script::Classic(script);
         finish_fetching_a_classic_script(
             &elem,
             self.kind,
@@ -576,6 +575,7 @@ fn fetch_a_classic_script(
         url: url.clone(),
         status: Ok(()),
         fetch_options: options,
+        response_was_cors_cross_origin: false,
     };
     doc.fetch(LoadType::Script(url), request, context);
 }
@@ -812,7 +812,7 @@ impl HTMLScriptElement {
             }
 
             // Step 31.4. Set el's from an external file to true.
-            // The "from an external file"" flag is stored in ScriptOrigin.
+            self.from_an_external_file.set(true);
 
             // Step 31.5-31.6. Parse URL.
             let url = match base_url.join(&src) {
@@ -890,19 +890,23 @@ impl HTMLScriptElement {
 
             assert!(!text.is_empty());
 
-            let text_rc = Rc::new(text);
+            let text_rc = Rc::new(text.clone());
 
             // Step 32.2: Switch on el's type:
             match script_type {
                 ScriptType::Classic => {
-                    let result = Ok(ScriptOrigin::internal(
-                        text_rc,
+                    // Step 32.2.1 Let script be the result of creating a classic script
+                    // using source text, settings object, base URL, and options.
+                    let script = self.global().create_a_classic_script(
+                        std::borrow::Cow::Borrowed(&text.str()),
                         base_url,
                         options,
-                        script_type,
-                        self.global().unminified_js_dir(),
-                        Err(Error::NotFound(None)),
-                    ));
+                        ErrorReporting::Unmuted,
+                        introduction_type_override.or(Some(IntroductionType::INLINE_SCRIPT)),
+                        self.line_number as u32,
+                        false,
+                    );
+                    let result = Ok(Script::Classic(script));
 
                     if was_parser_inserted &&
                         doc.get_current_parser()
@@ -947,7 +951,7 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         can_gc,
                     );
-                    let result = Ok(ScriptOrigin::internal(
+                    let script = Script::Other(ScriptOrigin::internal(
                         text_rc,
                         base_url,
                         options,
@@ -957,19 +961,18 @@ impl HTMLScriptElement {
                     ));
 
                     // Step 34.3
-                    self.execute(result, can_gc);
+                    self.execute(Ok(script), can_gc);
                 },
             }
         }
     }
 
-    fn substitute_with_local_script(&self, script: &mut ScriptOrigin) {
+    fn substitute_with_local_script(&self, script: &mut Cow<'_, str>, url: ServoUrl) {
         if self
             .parser_document
             .window()
             .local_script_source()
-            .is_none() ||
-            !script.external
+            .is_none()
         {
             return;
         }
@@ -980,12 +983,12 @@ impl HTMLScriptElement {
                 .clone()
                 .unwrap(),
         );
-        path = path.join(&script.url[url::Position::BeforeHost..]);
+        path = path.join(&url[url::Position::BeforeHost..]);
         debug!("Attempting to read script stored at: {:?}", path);
         match read_to_string(path.clone()) {
             Ok(local_script) => {
                 debug!("Found script stored at: {:?}", path);
-                script.code = SourceCode::Text(Rc::new(DOMString::from(local_script)));
+                *script = Cow::Owned(local_script);
             },
             Err(why) => warn!("Could not restore script from file {:?}", why),
         }
@@ -1002,7 +1005,7 @@ impl HTMLScriptElement {
         }
 
         // TODO: Step 3. Unblock rendering on el.
-        let mut script = match result {
+        let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(e) => {
                 warn!("error loading script {:?}", e);
@@ -1013,34 +1016,27 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        if script.type_ == ScriptType::Classic {
-            self.substitute_with_local_script(&mut script);
-        }
+        let script_type = match script {
+            Script::Classic(_) => ScriptType::Classic,
+            Script::Other(ref script) => script.type_,
+        };
 
         // Step 5.
         // If el's from an external file is true, or el's type is "module", then increment document's
         // ignore-destructive-writes counter.
-        let neutralized_doc = if script.external || script.type_ == ScriptType::Module {
-            debug!("loading external script, url = {}", script.url);
-            let doc = self.owner_document();
-            doc.incr_ignore_destructive_writes_counter();
-            Some(doc)
-        } else {
-            None
-        };
+        let neutralized_doc =
+            if self.from_an_external_file.get() || script_type == ScriptType::Module {
+                let doc = self.owner_document();
+                doc.incr_ignore_destructive_writes_counter();
+                Some(doc)
+            } else {
+                None
+            };
 
         let document = self.owner_document();
-        let introduction_type =
-            self.introduction_type_override
-                .get()
-                .unwrap_or(if script.external {
-                    IntroductionType::SRC_SCRIPT
-                } else {
-                    IntroductionType::INLINE_SCRIPT
-                });
 
-        match script.type_ {
-            ScriptType::Classic => {
+        match script {
+            Script::Classic(script) => {
                 // Step 6."classic".1. Let oldCurrentScript be the value to which document's currentScript object was most recently set.
                 let old_script = document.GetCurrentScript();
 
@@ -1052,35 +1048,27 @@ impl HTMLScriptElement {
                     document.set_current_script(Some(self))
                 }
 
-                let line_number = if script.external {
-                    1
-                } else {
-                    self.line_number as u32
-                };
-                let window = self.owner_window();
-                let global = window.as_global_scope();
-
-                let script = global.create_a_classic_script(
-                    (*script.text().str()).into(),
-                    script.url,
-                    script.fetch_options,
-                    Some(introduction_type),
-                    line_number,
-                    script.external,
-                );
                 // Step 6."classic".3. Run the classic script given by el's result.
-                _ = global.run_a_classic_script(script, can_gc);
+                _ = self.owner_window().as_global_scope().run_a_classic_script(
+                    script,
+                    RethrowErrors::No,
+                    can_gc,
+                );
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());
             },
-            ScriptType::Module => {
-                document.set_current_script(None);
-                self.run_a_module_script(&script, false, can_gc);
-            },
-            ScriptType::ImportMap => {
-                // Step 6.1 Register an import map given el's relevant global object and el's result.
-                register_import_map(&self.owner_global(), script.import_map, can_gc);
+            Script::Other(script) => {
+                if let ScriptType::Module = script_type {
+                    // TODO Step 6."module".1. Assert: document's currentScript attribute is null.
+                    document.set_current_script(None);
+
+                    // Step 6."module".2. Run the module script given by el's result.
+                    self.run_a_module_script(&script, false, can_gc);
+                } else if let ScriptType::ImportMap = script_type {
+                    // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
+                    register_import_map(&self.owner_global(), script.import_map, can_gc);
+                }
             },
         }
 
@@ -1091,7 +1079,7 @@ impl HTMLScriptElement {
         }
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
-        if script.external {
+        if self.from_an_external_file.get() {
             self.dispatch_load_event(can_gc);
         }
     }

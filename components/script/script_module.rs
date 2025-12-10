@@ -64,7 +64,7 @@ use crate::dom::dynamicmoduleowner::{DynamicModuleId, DynamicModuleOwner};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{
-    HTMLScriptElement, SCRIPT_JS_MIMES, ScriptId, ScriptOrigin, ScriptType,
+    HTMLScriptElement, SCRIPT_JS_MIMES, Script, ScriptId, ScriptOrigin, ScriptType,
 };
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -1073,21 +1073,25 @@ impl ModuleOwner {
                     match network_error.as_ref() {
                         Some(network_error) => Err(network_error.clone().into()),
                         None => match module_identity {
-                            ModuleIdentity::ModuleUrl(script_src) => Ok(ScriptOrigin::external(
-                                Rc::clone(&module_tree.get_text().borrow()),
-                                script_src.clone(),
-                                fetch_options,
-                                ScriptType::Module,
-                                global.unminified_js_dir(),
-                            )),
-                            ModuleIdentity::ScriptId(_) => Ok(ScriptOrigin::internal(
-                                Rc::clone(&module_tree.get_text().borrow()),
-                                document.base_url().clone(),
-                                fetch_options,
-                                ScriptType::Module,
-                                global.unminified_js_dir(),
-                                Err(Error::NotFound(None)),
-                            )),
+                            ModuleIdentity::ModuleUrl(script_src) => {
+                                Ok(Script::Other(ScriptOrigin::external(
+                                    Rc::clone(&module_tree.get_text().borrow()),
+                                    script_src.clone(),
+                                    fetch_options,
+                                    ScriptType::Module,
+                                    global.unminified_js_dir(),
+                                )))
+                            },
+                            ModuleIdentity::ScriptId(_) => {
+                                Ok(Script::Other(ScriptOrigin::internal(
+                                    Rc::clone(&module_tree.get_text().borrow()),
+                                    document.base_url().clone(),
+                                    fetch_options,
+                                    ScriptType::Module,
+                                    global.unminified_js_dir(),
+                                    Err(Error::NotFound(None)),
+                                )))
+                            },
                         },
                     }
                 };
