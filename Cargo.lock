@@ -5842,9 +5842,24 @@ dependencies = [
  "num-iter",
  "num-traits",
  "rand 0.8.5",
- "serde",
  "smallvec",
  "zeroize",
+]
+
+[[package]]
+name = "num-bigint-dig"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7f9a86e097b0d187ad0e65667c2f58b9254671e86e7dbb78036b16692eae099"
+dependencies = [
+ "libm",
+ "num-integer",
+ "num-iter",
+ "num-traits",
+ "once_cell",
+ "rand 0.9.2",
+ "serde",
+ "smallvec",
 ]
 
 [[package]]
@@ -7406,7 +7421,7 @@ checksum = "40a0376c50d0358279d9d643e4bf7b7be212f1f4ff1da9070a7b54d22ef75c88"
 dependencies = [
  "const-oid",
  "digest",
- "num-bigint-dig",
+ "num-bigint-dig 0.8.6",
  "num-integer",
  "num-traits",
  "pkcs1",
@@ -7697,7 +7712,7 @@ dependencies = [
  "net_traits",
  "nom 8.0.0",
  "nom-rfc8288",
- "num-bigint-dig",
+ "num-bigint-dig 0.9.1",
  "num-traits",
  "num_cpus",
  "p256",
