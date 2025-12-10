@@ -414,7 +414,7 @@ impl BoxFragment {
         //
         // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d
         // contexts, but it is yet to happen.
-        self.calculate_transform_matrix(&self.border_rect().to_untyped())
+        self.calculate_transform_matrix(&self.border_rect())
             .and_then(|transform| {
                 transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
             })

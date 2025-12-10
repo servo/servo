@@ -15,8 +15,7 @@ use compositing_traits::display_list::{
     SpatialTreeNodeInfo, StickyNodeInfo,
 };
 use embedder_traits::ViewportDetails;
-use euclid::SideOffsets2D;
-use euclid::default::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_config::opts::DiagnosticsLogging;
@@ -33,6 +32,7 @@ use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform::{self, GenericRotate, GenericScale, GenericTranslate};
 use style::values::specified::box_::DisplayOutside;
+use style_traits::CSSPixel;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
 use wr::StickyOffsetBounds;
@@ -1686,10 +1686,8 @@ impl BoxFragment {
 
         let relative_border_rect = self.border_rect();
         let border_rect = relative_border_rect.translate(containing_block_rect.origin.to_vector());
-        let untyped_border_rect = border_rect.to_untyped();
-
-        let transform = self.calculate_transform_matrix(&untyped_border_rect);
-        let perspective = self.calculate_perspective_matrix(&untyped_border_rect);
+        let transform = self.calculate_transform_matrix(&border_rect);
+        let perspective = self.calculate_perspective_matrix(&border_rect);
         let (reference_frame_transform, reference_frame_kind) = match (transform, perspective) {
             (None, Some(perspective)) => (
                 perspective,
@@ -1722,7 +1720,10 @@ impl BoxFragment {
     }
 
     /// Returns the 4D matrix representing this fragment's transform.
-    pub fn calculate_transform_matrix(&self, border_rect: &Rect<Au>) -> Option<LayoutTransform> {
+    pub fn calculate_transform_matrix(
+        &self,
+        border_rect: &Rect<Au, CSSPixel>,
+    ) -> Option<LayoutTransform> {
         let list = &self.style.get_box().transform;
         let length_rect = au_rect_to_length_rect(border_rect);
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
@@ -1745,7 +1746,9 @@ impl BoxFragment {
         };
 
         let angle = euclid::Angle::radians(rotate.3.radians());
-        let transform_base = list.to_transform_3d_matrix(Some(&length_rect)).ok()?;
+        let transform_base = list
+            .to_transform_3d_matrix(Some(&length_rect.to_untyped()))
+            .ok()?;
         let transform = LayoutTransform::from_untyped(&transform_base.0)
             .then_rotate(rotate.0, rotate.1, rotate.2, angle)
             .then_scale(scale.0, scale.1, scale.2)
@@ -1766,7 +1769,10 @@ impl BoxFragment {
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
-    pub fn calculate_perspective_matrix(&self, border_rect: &Rect<Au>) -> Option<LayoutTransform> {
+    pub fn calculate_perspective_matrix(
+        &self,
+        border_rect: &Rect<Au, CSSPixel>,
+    ) -> Option<LayoutTransform> {
         match self.style.get_box().perspective {
             Perspective::Length(length) => {
                 let perspective_origin = &self.style.get_box().perspective_origin;
@@ -1847,7 +1853,7 @@ impl PositioningFragment {
     }
 }
 
-pub fn au_rect_to_length_rect(rect: &Rect<Au>) -> Rect<Length> {
+pub(crate) fn au_rect_to_length_rect(rect: &Rect<Au, CSSPixel>) -> Rect<Length, CSSPixel> {
     Rect::new(
         Point2D::new(rect.origin.x.into(), rect.origin.y.into()),
         Size2D::new(rect.size.width.into(), rect.size.height.into()),
