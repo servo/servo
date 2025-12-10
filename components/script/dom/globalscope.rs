@@ -3010,7 +3010,7 @@ impl GlobalScope {
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.IndexedDB();
         }
-        unreachable!("IndexedDB not available in this scope");
+        unreachable!("IndexedDB is only exposed on Window and WorkerGlobalScope.");
     }
 
     /// Perform a microtask checkpoint.
