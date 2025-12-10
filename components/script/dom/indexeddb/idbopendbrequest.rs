@@ -217,7 +217,9 @@ impl IDBOpenDBRequest {
             Some(version),
             CanGc::note(),
         );
-        let _did_throw = event.upcast::<Event>().fire(self.upcast(), CanGc::note());
+
+        // TODO: use as part of step 10.6.2
+        let _did_throw = event.upcast::<Event>().fire(self.upcast(), can_gc);
 
         // Step 10.6: If transaction’s state is active, then:
         if transaction.is_active() {
