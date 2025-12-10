@@ -1026,7 +1026,7 @@ impl ScriptThread {
         };
         // Do not handle events if the BC has been, or is being, discarded
         if document.window().Closed() {
-            warn!("Paint event sent to a pipeline with a closed window {pipeline_id}.");
+            warn!("Input event sent to a pipeline with a closed window {pipeline_id}.");
             return;
         }
 
@@ -3408,7 +3408,7 @@ impl ScriptThread {
         event: ConstellationInputEvent,
     ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
-            warn!("Paint event sent to closed pipeline {pipeline_id}.");
+            warn!("Input event sent to closed pipeline {pipeline_id}.");
             let _ = self
                 .senders
                 .pipeline_to_embedder_sender

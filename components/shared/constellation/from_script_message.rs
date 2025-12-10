@@ -237,7 +237,7 @@ pub struct SWManagerSenders {
     /// [`ResourceThreads`] for initating fetches or using i/o.
     pub resource_threads: ResourceThreads,
     /// [`CrossProcessPaintApi`] for communicating with `Paint`.
-    pub paint_aip: CrossProcessPaintApi,
+    pub paint_api: CrossProcessPaintApi,
     /// The [`SystemFontServiceProxy`] used to communicate with the `SystemFontService`.
     pub system_font_service_sender: SystemFontServiceProxySender,
     /// Sender of messages to the manager.

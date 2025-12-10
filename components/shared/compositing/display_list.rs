@@ -419,7 +419,7 @@ impl ScrollTreeNode {
 }
 
 /// A tree of spatial nodes, which mirrors the spatial nodes in the WebRender
-/// display list, except these are used to scrolling in `Paint` so that
+/// display list, except these are used for scrolling in `Paint` so that
 /// new offsets can be sent to WebRender.
 #[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTree {

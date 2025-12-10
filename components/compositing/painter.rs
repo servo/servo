@@ -383,7 +383,7 @@ impl Painter {
         self.rendering_context.prepare_for_rendering();
 
         time_profile!(
-            ProfilerCategory::Compositing,
+            ProfilerCategory::Painting,
             None,
             time_profiler_channel.clone(),
             || {
@@ -957,7 +957,7 @@ impl Painter {
             },
             display_list_descriptor,
         );
-        let _span = profile_traits::trace_span!("PaintMessage::BuiltDisplayList",).entered();
+        let _span = profile_traits::trace_span!("PaintMessage::SendDisplayList",).entered();
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };

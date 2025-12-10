@@ -70,7 +70,7 @@ pub enum WebRenderDebugOption {
 ///    Once the frame is ready the [`Painter`] for the WebRender instance will ask libservo
 ///    to inform the embedder that a new frame is ready so that it can trigger a paint.
 /// 3. Drive animation and animation callback updates. Animation updates should ideally be
-///    coordinated with the system vscync signal, so the `RefreshDriver` is exposed in the
+///    coordinated with the system vsync signal, so the `RefreshDriver` is exposed in the
 ///    API to allow the embedder to do this. The [`Painter`] then asks its `WebView`s to
 ///    update their rendering, which triggers layouts.
 /// 4. Eagerly handle scrolling and touch events. In order to avoid latency when handling

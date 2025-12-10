@@ -45,7 +45,7 @@
 //! The constellation also maintains channels to other parts of Servo, including:
 //!
 //! * The script thread.
-//! * The `Paint` subsystem, which runs in the embedder main thread.
+//! * The `Paint` subsystem, which runs in the same thread as the `Servo` instance.
 //! * The font cache, image cache, and resource manager, which load
 //!   and cache shared fonts, images, or other resources.
 //! * The service worker manager.
@@ -2447,7 +2447,7 @@ where
                     resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,
-                    paint_aip: self.paint_proxy.cross_process_paint_api.clone(),
+                    paint_api: self.paint_proxy.cross_process_paint_api.clone(),
                     system_font_service_sender: self.system_font_service.to_sender(),
                 };
 

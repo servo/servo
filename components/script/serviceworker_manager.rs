@@ -508,7 +508,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
             receiver,
             swmanager_sender: constellation_sender,
             system_font_service_sender,
-            paint_aip: paint_api,
+            paint_api,
         } = sw_senders;
 
         let from_constellation = receiver.route_preserving_errors();
