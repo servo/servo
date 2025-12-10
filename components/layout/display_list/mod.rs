@@ -192,7 +192,7 @@ impl DisplayListBuilder<'_> {
 
         let _span = profile_traits::trace_span!("DisplayListBuilder::build").entered();
         let mut builder = DisplayListBuilder {
-            current_scroll_node_id: compositor_info.root_reference_frame_id,
+            current_scroll_node_id: compositor_info.root_scroll_node_id,
             current_reference_frame_scroll_node_id: compositor_info.root_reference_frame_id,
             current_clip_id: ClipId::INVALID,
             webrender_display_list_builder: &mut webrender_display_list_builder,
