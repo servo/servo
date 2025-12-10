@@ -1071,36 +1071,6 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 2.
         let key_data = match format {
-            // If format is equal to the string "raw", "pkcs8", or "spki":
-            // NOTE: Including other raw formats.
-            KeyFormat::Raw |
-            KeyFormat::Pkcs8 |
-            KeyFormat::Spki |
-            KeyFormat::Raw_public |
-            KeyFormat::Raw_private |
-            KeyFormat::Raw_seed |
-            KeyFormat::Raw_secret => {
-                match key_data {
-                    // Step 2.1. If the keyData parameter passed to the importKey() method is a
-                    // JsonWebKey dictionary, throw a TypeError.
-                    ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
-                        promise.reject_error(
-                            Error::Type("The keyData type does not match the format".to_string()),
-                            can_gc,
-                        );
-                        return promise;
-                    },
-
-                    // Step 2.2. Let keyData be the result of getting a copy of the bytes held by
-                    // the keyData parameter passed to the importKey() method.
-                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => {
-                        view.to_vec()
-                    },
-                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(buffer) => {
-                        buffer.to_vec()
-                    },
-                }
-            },
             // If format is equal to the string "jwk":
             KeyFormat::Jwk => {
                 match key_data {
@@ -1129,6 +1099,29 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                                 return promise;
                             },
                         }
+                    },
+                }
+            },
+            // Otherwise:
+            _ => {
+                match key_data {
+                    // Step 2.1. If the keyData parameter passed to the importKey() method is a
+                    // JsonWebKey dictionary, throw a TypeError.
+                    ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
+                        promise.reject_error(
+                            Error::Type("The keyData type does not match the format".to_string()),
+                            can_gc,
+                        );
+                        return promise;
+                    },
+
+                    // Step 2.2. Let keyData be the result of getting a copy of the bytes held by
+                    // the keyData parameter passed to the importKey() method.
+                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => {
+                        view.to_vec()
+                    },
+                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(buffer) => {
+                        buffer.to_vec()
                     },
                 }
             },
@@ -1265,12 +1258,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.
                 // Step 10.
-                // If format is equal to the strings "raw", "pkcs8", or "spki":
-                //     Let result be the result of creating an ArrayBuffer in realm, containing
-                //     result.
                 // If format is equal to the string "jwk":
                 //     Let result be the result of converting result to an ECMAScript Object in
                 //     realm, as defined by [WebIDL].
+                // Otherwise:
+                //     Let result be the result of creating an ArrayBuffer in realm, containing
+                //     result.
                 // Step 11. Resolve promise with result.
                 // NOTE: We determine the format by pattern matching on result, which is an
                 // ExportedKey enum.
@@ -1390,14 +1383,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 // Step 14.
-                // If format is equal to the strings "raw", "pkcs8", or "spki":
-                //     Let bytes be exportedKey.
                 // If format is equal to the string "jwk":
                 //     Step 14.1. Let json be the result of representing exportedKey as a UTF-16
                 //     string conforming to the JSON grammar; for example, by executing the
                 //     JSON.stringify algorithm specified in [ECMA-262] in the context of a new
                 //     global object.
                 //     Step 14.2. Let bytes be the result of UTF-8 encoding json.
+                // Otherwise:
+                //     Let bytes be exportedKey.
                 // NOTE: We determine the format by pattern matching on result, which is an
                 // ExportedKey enum.
                 let cx = GlobalScope::get_cx();
@@ -1565,14 +1558,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 // Step 15.
-                // If format is equal to the strings "raw", "pkcs8", or "spki":
-                //     Let key be bytes.
                 // If format is equal to the string "jwk":
                 //     Let key be the result of executing the parse a JWK algorithm, with bytes as
                 //     the data to be parsed.
                 //     NOTE: We only parse bytes by executing the parse a JWK algorithm, but keep
                 //     it as raw bytes for later steps, instead of converting it to a JsonWebKey
                 //     dictionary.
+                //
+                // Otherwise:
+                //     Let key be bytes.
                 let cx = GlobalScope::get_cx();
                 if format == KeyFormat::Jwk {
                     if let Err(error) = JsonWebKey::parse(cx, &bytes) {
