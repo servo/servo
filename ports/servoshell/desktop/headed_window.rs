@@ -699,7 +699,7 @@ impl PlatformWindow for Window {
                             MouseScrollDelta::LineDelta(delta_x, delta_y) => (
                                 (delta_x * LINE_WIDTH) as f64,
                                 (delta_y * LINE_HEIGHT) as f64,
-                                WheelMode::DeltaLine,
+                                WheelMode::DeltaPixel,
                             ),
                             MouseScrollDelta::PixelDelta(delta) => {
                                 (delta.x, delta.y, WheelMode::DeltaPixel)
