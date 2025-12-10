@@ -21,31 +21,27 @@ checksum = "366ffbaa4442f4684d91e2cd7c5ea7c4ed8add41959a31447066e279e432b618"
 [[package]]
 name = "accesskit"
 version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf203f9d3bd8f29f98833d1fbef628df18f759248a547e7e01cfbf63cda36a99"
+dependencies = [
+ "uuid",
+]
 
 [[package]]
 name = "accesskit_atspi_common"
 version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "890d241cf51fc784f0ac5ac34dfc847421f8d39da6c7c91a0fcc987db62a8267"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
  "atspi-common",
  "serde",
- "thiserror 1.0.69",
  "zvariant",
 ]
 
 [[package]]
 name = "accesskit_consumer"
 version = "0.31.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db81010a6895d8707f9072e6ce98070579b43b717193d2614014abd5cb17dd43"
 dependencies = [
  "accesskit",
- "hashbrown",
+ "hashbrown 0.16.1",
 ]
 
 [[package]]
@@ -56,7 +52,7 @@ checksum = "a0089e5c0ac0ca281e13ea374773898d9354cc28d15af9f0f7394d44a495b575"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
- "hashbrown",
+ "hashbrown 0.15.5",
  "objc2 0.5.2",
  "objc2-app-kit 0.2.2",
  "objc2-foundation 0.2.2",
@@ -65,8 +61,6 @@ dependencies = [
 [[package]]
 name = "accesskit_unix"
 version = "0.17.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "301e55b39cfc15d9c48943ce5f572204a551646700d0e8efa424585f94fec528"
 dependencies = [
  "accesskit",
  "accesskit_atspi_common",
@@ -88,7 +82,7 @@ checksum = "d2d63dd5041e49c363d83f5419a896ecb074d309c414036f616dc0b04faca971"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
- "hashbrown",
+ "hashbrown 0.15.5",
  "static_assertions",
  "windows 0.61.3",
  "windows-core 0.61.2",
@@ -629,20 +623,19 @@ checksum = "41e67cd8309bbd06cd603a9e693a784ac2e5d1e955f11286e355089fcab3047c"
 
 [[package]]
 name = "atspi"
-version = "0.25.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c83247582e7508838caf5f316c00791eee0e15c0bf743e6880585b867e16815c"
+checksum = "c77886257be21c9cd89a4ae7e64860c6f0eefca799bb79127913052bd0eefb3d"
 dependencies = [
  "atspi-common",
- "atspi-connection",
  "atspi-proxies",
 ]
 
 [[package]]
 name = "atspi-common"
-version = "0.9.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33dfc05e7cdf90988a197803bf24f5788f94f7c94a69efa95683e8ffe76cfdfb"
+checksum = "20c5617155740c98003016429ad13fe43ce7a77b007479350a9f8bf95a29f63d"
 dependencies = [
  "enumflags2",
  "serde",
@@ -655,22 +648,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "atspi-connection"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4193d51303d8332304056ae0004714256b46b6635a5c556109b319c0d3784938"
-dependencies = [
- "atspi-common",
- "atspi-proxies",
- "futures-lite",
- "zbus",
-]
-
-[[package]]
 name = "atspi-proxies"
-version = "0.9.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2eebcb9e7e76f26d0bcfd6f0295e1cd1e6f33bedbc5698a971db8dc43d7751c"
+checksum = "2230e48787ed3eb4088996eab66a32ca20c0b67bbd4fd6cdfe79f04f1f04c9fc"
 dependencies = [
  "atspi-common",
  "serde",
@@ -2339,8 +2320,6 @@ dependencies = [
 [[package]]
 name = "ecolor"
 version = "0.33.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "084980ebede2fb1ad6c4f54285b3e489052ef2b6aa4016e4c19349417adc75c5"
 dependencies = [
  "bytemuck",
  "emath",
@@ -2349,8 +2328,6 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.33.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b75645894de4ca1695ab3ab7201c7953bb95c1725aafeefa6822dc901ad2a81b"
 dependencies = [
  "accesskit",
  "ahash",
@@ -2446,8 +2423,6 @@ dependencies = [
 [[package]]
 name = "emath"
 version = "0.33.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e561352ae95c22ad179fb56c38d6e6eecd86cf4925cf5c70e738dd01df9b620"
 dependencies = [
  "bytemuck",
 ]
@@ -2574,8 +2549,6 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.33.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a909ce8cee63e8350fb0c251ad39277a5b24f19add60787e84a3b3ab3f2bd83a"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -2592,8 +2565,6 @@ dependencies = [
 [[package]]
 name = "epaint_default_fonts"
 version = "0.33.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad9649446c23368ae138716910e3e28143995691b598fbb9de16b42b0722cbcc"
 
 [[package]]
 name = "equator"
@@ -2793,6 +2764,12 @@ name = "foldhash"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "font-types"
@@ -3398,7 +3375,7 @@ checksum = "b89c83349105e3732062a895becfc71a8f921bb71ecbbdd8ff99263e3b53a0ca"
 dependencies = [
  "bitflags 2.10.0",
  "gpu-descriptor-types",
- "hashbrown",
+ "hashbrown 0.15.5",
 ]
 
 [[package]]
@@ -3817,8 +3794,17 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "allocator-api2",
  "equivalent",
- "foldhash",
+ "foldhash 0.1.5",
  "serde",
+]
+
+[[package]]
+name = "hashbrown"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "foldhash 0.2.0",
 ]
 
 [[package]]
@@ -3827,7 +3813,7 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.15.5",
 ]
 
 [[package]]
@@ -4669,7 +4655,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
- "hashbrown",
+ "hashbrown 0.15.5",
 ]
 
 [[package]]
@@ -5525,7 +5511,7 @@ dependencies = [
  "cfg_aliases",
  "codespan-reporting",
  "half",
- "hashbrown",
+ "hashbrown 0.15.5",
  "hexf-parse",
  "indexmap",
  "libm",
@@ -9832,7 +9818,7 @@ checksum = "a235ba928b3109ad9e7696270edb09445a52ae1c7c08e6d31a19b1cdd6cbc24a"
 dependencies = [
  "bytemuck",
  "fearless_simd",
- "hashbrown",
+ "hashbrown 0.15.5",
  "log",
  "peniko",
  "png",
@@ -10394,7 +10380,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "document-features",
- "hashbrown",
+ "hashbrown 0.15.5",
  "js-sys",
  "log",
  "naga",
@@ -10424,7 +10410,7 @@ dependencies = [
  "bitflags 2.10.0",
  "cfg_aliases",
  "document-features",
- "hashbrown",
+ "hashbrown 0.15.5",
  "indexmap",
  "log",
  "naga",
@@ -10492,7 +10478,7 @@ dependencies = [
  "gpu-alloc",
  "gpu-allocator",
  "gpu-descriptor",
- "hashbrown",
+ "hashbrown 0.15.5",
  "js-sys",
  "khronos-egl",
  "libc",
