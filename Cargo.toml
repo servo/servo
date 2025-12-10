@@ -278,6 +278,14 @@ lto = "thin"
 codegen-units = 1
 
 [patch.crates-io]
+accesskit = { git = "https://github.com/AccessKit/accesskit.git", rev = "783c1e8fea164f337a0cd62739fb6e59f159d77c" }
+accesskit_atspi_common = { git = "https://github.com/AccessKit/accesskit.git", rev = "783c1e8fea164f337a0cd62739fb6e59f159d77c" }
+accesskit_consumer = { git = "https://github.com/AccessKit/accesskit.git", rev = "783c1e8fea164f337a0cd62739fb6e59f159d77c" }
+accesskit_unix = { git = "https://github.com/AccessKit/accesskit.git", rev = "783c1e8fea164f337a0cd62739fb6e59f159d77c" }
+accesskit_macos = { git = "https://github.com/AccessKit/accesskit.git", rev = "783c1e8fea164f337a0cd62739fb6e59f159d77c" }
+accesskit_windows = { git = "https://github.com/AccessKit/accesskit.git", rev = "783c1e8fea164f337a0cd62739fb6e59f159d77c" }
+egui = { git = "https://github.com/emilk/egui.git", rev = "82199c1c449ec58aca3e8f0252e2d68f2ea5f5da" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "82199c1c449ec58aca3e8f0252e2d68f2ea5f5da" }
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #
