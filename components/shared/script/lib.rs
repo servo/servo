@@ -11,6 +11,7 @@
 
 use std::fmt;
 
+use accessibility_traits::AccessibilityTree;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
 use base::id::{
@@ -305,6 +306,8 @@ pub enum ScriptThreadMessage {
     /// Release all data for the given `UserContentManagerId` from the `ScriptThread`'s
     /// `user_contents_for_manager_id` map.
     DestroyUserContentManager(UserContentManagerId),
+    /// Placeholder
+    HackySendAccessibilityTree(WebViewId, AccessibilityTree),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

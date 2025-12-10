@@ -1,0 +1,23 @@
+[package]
+name = "accessibility_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "accessibility_traits"
+path = "lib.rs"
+
+[dependencies]
+accesskit = { workspace = true, features = ["serde"] }
+rustc-hash = { workspace = true }
+base = { workspace = true }
+crossbeam-channel = { workspace = true }
+ipc-channel = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+serde = { workspace = true }
+strum = { workspace = true }

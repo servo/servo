@@ -30,7 +30,7 @@ use layout_api::{
     ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
     ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
 };
-use log::{debug, error, trace, warn};
+use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::ImageCache;
 use parking_lot::{Mutex, RwLock};
@@ -86,7 +86,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
-use crate::accessibility_tree::AccessibilityTree;
+use crate::accessibility_tree::{AccessibilityTree, AccessibilityTreeCalculator};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{
     DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
@@ -1151,11 +1151,15 @@ impl LayoutThread {
             run_layout()
         });
 
-        let accessibility_tree = AccessibilityTree::construct(document, fragment_tree.clone());
-        for (id, node) in accessibility_tree.descendants() {
-            trace!(target: "layout::accessibility_tree", "AX node: {id:?} => {node:?}");
-        }
-        *self.accessibility_tree.borrow_mut() = Some(accessibility_tree);
+        let accessibility_tree =
+            AccessibilityTreeCalculator::construct(document, fragment_tree.clone());
+        self.script_chan
+            .send(ScriptThreadMessage::HackySendAccessibilityTree(
+                self.webview_id,
+                accessibility_tree,
+            ))
+            .expect("TODO: panic message");
+
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
         if self.debug.style_tree {

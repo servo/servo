@@ -5,6 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
+use accessibility_traits::AccessibilityTree;
 use euclid::Scale;
 use log::warn;
 use servo::{
@@ -433,4 +434,6 @@ pub(crate) trait PlatformWindow {
     fn as_headed_window(&self) -> Option<&crate::egl::app::EmbeddedPlatformWindow> {
         None
     }
+
+    fn hacky_accessibility_tree_update(&self, _: WebView, _: AccessibilityTree) {}
 }
