@@ -123,7 +123,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
             "script::dom::bindings::error",
             // Show GL errors by default.
             "canvas::webgl_thread",
-            "compositing::compositor",
+            "compositing::paint",
             "constellation::constellation",
         ];
         let mut filter_builder = FilterBuilder::new();
@@ -518,22 +518,19 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pauseCompositor(
-    mut env: JNIEnv,
-    _: JClass<'_>,
-) {
-    debug!("pauseCompositor");
-    call(&mut env, |s| s.pause_compositor());
+pub extern "C" fn Java_org_servo_servoview_JNIServo_pausePainting(mut env: JNIEnv, _: JClass<'_>) {
+    debug!("pausePainting");
+    call(&mut env, |s| s.pause_painting());
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_resumePainting<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     surface: JObject<'local>,
     coordinates: JObject<'local>,
 ) {
-    debug!("resumeCompositor");
+    debug!("resumePainting");
     let viewport_rect = match jni_coordinate_to_rust_viewport_rect(&mut env, &coordinates) {
         Ok(viewport_rect) => viewport_rect,
         Err(error) => return throw(&mut env, &error),
@@ -541,7 +538,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
 
     let (_, window_handle) = display_and_window_handle(&mut env, &surface);
     call(&mut env, |app| {
-        app.resume_compositor(window_handle, viewport_rect);
+        app.resume_painting(window_handle, viewport_rect);
     });
 }
 

@@ -14,7 +14,7 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
-    use compositing_traits::CrossProcessCompositorApi;
+    use compositing_traits::CrossProcessPaintApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
@@ -50,14 +50,14 @@ mod font_context {
             let (system_font_service, system_font_service_proxy) = MockSystemFontService::spawn();
             let (core_sender, _) = ipc::channel().unwrap();
             let mock_resource_threads = ResourceThreads::new(core_sender);
-            let mock_compositor_api = CrossProcessCompositorApi::dummy();
+            let mock_paint_api = CrossProcessPaintApi::dummy();
 
             let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
             INIT.call_once(|| {
                 start_fetch_thread();
             });
             Self {
-                context: FontContext::new(proxy_clone, mock_compositor_api, mock_resource_threads),
+                context: FontContext::new(proxy_clone, mock_paint_api, mock_resource_threads),
                 system_font_service,
                 system_font_service_proxy,
             }

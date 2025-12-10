@@ -4,7 +4,7 @@
 
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
 use compositing_traits::{
-    CrossProcessCompositorApi, PainterSurfmanDetailsMap, WebRenderExternalImageIdManager,
+    CrossProcessPaintApi, PainterSurfmanDetailsMap, WebRenderExternalImageIdManager,
 };
 use log::debug;
 use surfman::Device;
@@ -27,7 +27,7 @@ pub struct WebGLComm {
 impl WebGLComm {
     /// Creates a new `WebGLComm` object.
     pub fn new(
-        compositor_api: CrossProcessCompositorApi,
+        paint_api: CrossProcessPaintApi,
         external_image_id_manager: WebRenderExternalImageIdManager,
         painter_surfman_details_map: PainterSurfmanDetailsMap,
     ) -> WebGLComm {
@@ -43,7 +43,7 @@ impl WebGLComm {
 
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let init = WebGLThreadInit {
-            compositor_api,
+            paint_api,
             external_image_id_manager,
             sender: sender.clone(),
             receiver,

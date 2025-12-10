@@ -144,7 +144,7 @@ impl HTMLMetaElement {
 
         if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
             self.owner_window()
-                .compositor_api()
+                .paint_api()
                 .viewport(self.owner_window().webview_id(), viewport);
         }
     }

@@ -186,7 +186,7 @@ impl ServoShellWindow {
             self.platform_window
                 .update_user_interface_state(state, self);
 
-        // Delegate handlers may have asked us to present or update compositor contents.
+        // Delegate handlers may have asked us to present or update painted WebView contents.
         // Currently, egui-file-dialog dialogs need to be constantly redrawn or animations aren't fluid.
         let needs_repaint = self.needs_repaint.take();
         if updated_user_interface || needs_repaint {

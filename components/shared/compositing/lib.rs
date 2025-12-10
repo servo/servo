@@ -29,7 +29,7 @@ use std::sync::{Arc, Mutex};
 
 use base::generic_channel::{self, GenericCallback, GenericSender};
 use bitflags::bitflags;
-use display_list::CompositorDisplayListInfo;
+use display_list::PaintDisplayListInfo;
 use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
@@ -47,25 +47,25 @@ use webrender_api::{
 use crate::largest_contentful_paint_candidate::LCPCandidate;
 use crate::viewport_description::ViewportDescription;
 
-/// Sends messages to the compositor.
+/// Sends messages to `Paint`.
 #[derive(Clone)]
-pub struct CompositorProxy {
-    pub sender: Sender<Result<CompositorMsg, ipc_channel::Error>>,
+pub struct PaintProxy {
+    pub sender: Sender<Result<PaintMessage, ipc_channel::Error>>,
     /// Access to [`Self::sender`] that is possible to send across an IPC
     /// channel. These messages are routed via the router thread to
     /// [`Self::sender`].
-    pub cross_process_compositor_api: CrossProcessCompositorApi,
+    pub cross_process_paint_api: CrossProcessPaintApi,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
-impl OpaqueSender<CompositorMsg> for CompositorProxy {
-    fn send(&self, message: CompositorMsg) {
-        CompositorProxy::send(self, message)
+impl OpaqueSender<PaintMessage> for PaintProxy {
+    fn send(&self, message: PaintMessage) {
+        PaintProxy::send(self, message)
     }
 }
 
-impl CompositorProxy {
-    pub fn send(&self, msg: CompositorMsg) {
+impl PaintProxy {
+    pub fn send(&self, msg: PaintMessage) {
         self.route_msg(Ok(msg))
     }
 
@@ -73,7 +73,7 @@ impl CompositorProxy {
     ///
     /// This method is a temporary solution, and will be removed when migrating
     /// to `GenericChannel`.
-    pub fn route_msg(&self, msg: Result<CompositorMsg, ipc_channel::Error>) {
+    pub fn route_msg(&self, msg: Result<PaintMessage, ipc_channel::Error>) {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
@@ -81,16 +81,16 @@ impl CompositorProxy {
     }
 }
 
-/// Messages from (or via) the constellation thread to the compositor.
+/// Messages from (or via) the constellation thread to `Paint`.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
-pub enum CompositorMsg {
-    /// Alerts the compositor that the given pipeline has changed whether it is running animations.
+pub enum PaintMessage {
+    /// Alerts `Paint` that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(WebViewId, PipelineId, AnimationState),
     /// Updates the frame tree for the given webview.
     SetFrameTreeForWebView(WebViewId, SendableFrameTree),
     /// Set whether to use less resources by stopping animations.
     SetThrottled(WebViewId, PipelineId, bool),
-    /// WebRender has produced a new frame. This message informs the compositor that
+    /// WebRender has produced a new frame. This message informs `Paint` that
     /// the frame is ready. It contains a bool to indicate if it needs to composite, the
     /// `DocumentId` of the new frame and the `PainterId` of the associated painter.
     NewWebRenderFrameReady(PainterId, DocumentId, bool),
@@ -172,19 +172,19 @@ pub enum CompositorMsg {
     ),
     /// Remove the given font resources from our WebRender instance.
     RemoveFonts(PainterId, Vec<FontKey>, Vec<FontInstanceKey>),
-    /// Measure the current memory usage associated with the compositor.
+    /// Measure the current memory usage associated with `Paint`.
     /// The report must be sent on the provided channel once it's complete.
     CollectMemoryReport(ReportsChan),
     /// A top-level frame has parsed a viewport metatag and is sending the new constraints.
     Viewport(WebViewId, ViewportDescription),
-    /// Let the compositor know that the given WebView is ready to have a screenshot taken
+    /// Let `Paint` know that the given WebView is ready to have a screenshot taken
     /// after the given pipeline's epochs have been rendered.
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
     /// The candidate of largest-contentful-paint
     SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
 }
 
-impl Debug for CompositorMsg {
+impl Debug for PaintMessage {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         let string: &'static str = self.into();
         write!(formatter, "{string}")
@@ -206,29 +206,29 @@ pub struct CompositionPipeline {
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct CrossProcessCompositorApi(GenericCallback<CompositorMsg>);
+pub struct CrossProcessPaintApi(GenericCallback<PaintMessage>);
 
-impl CrossProcessCompositorApi {
-    /// Create a new [`CrossProcessCompositorApi`] struct.
-    pub fn new(callback: GenericCallback<CompositorMsg>) -> Self {
-        CrossProcessCompositorApi(callback)
+impl CrossProcessPaintApi {
+    /// Create a new [`CrossProcessPaintApi`] struct.
+    pub fn new(callback: GenericCallback<PaintMessage>) -> Self {
+        CrossProcessPaintApi(callback)
     }
 
-    /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
+    /// Create a new [`CrossProcessPaintApi`] struct that does not have a listener on the other
     /// end to use for unit testing.
     pub fn dummy() -> Self {
         Self::dummy_with_callback(None)
     }
 
-    /// Create a new [`CrossProcessCompositorApi`] struct for unit testing with an optional callback
-    /// that can respond to compositor messages.
+    /// Create a new [`CrossProcessPaintApi`] struct for unit testing with an optional callback
+    /// that can respond to `PaintMessage`s.
     pub fn dummy_with_callback(
-        callback: Option<Box<dyn Fn(CompositorMsg) + Send + 'static>>,
+        callback: Option<Box<dyn Fn(PaintMessage) + Send + 'static>>,
     ) -> Self {
         let callback = GenericCallback::new(move |msg| {
             if let Some(ref handler) = callback {
-                if let Ok(compositor_msg) = msg {
-                    handler(compositor_msg);
+                if let Ok(paint_message) = msg {
+                    handler(paint_message);
                 }
             }
         })
@@ -240,7 +240,7 @@ impl CrossProcessCompositorApi {
     pub fn send_initial_transaction(&self, webview_id: WebViewId, pipeline: WebRenderPipelineId) {
         if let Err(e) = self
             .0
-            .send(CompositorMsg::SendInitialTransaction(webview_id, pipeline))
+            .send(PaintMessage::SendInitialTransaction(webview_id, pipeline))
         {
             warn!("Error sending initial transaction: {}", e);
         }
@@ -256,7 +256,7 @@ impl CrossProcessCompositorApi {
         delta: LayoutVector2D,
         scroll_id: ExternalScrollId,
     ) {
-        if let Err(error) = self.0.send(CompositorMsg::ScrollNodeByDelta(
+        if let Err(error) = self.0.send(PaintMessage::ScrollNodeByDelta(
             webview_id,
             pipeline_id,
             delta,
@@ -275,7 +275,7 @@ impl CrossProcessCompositorApi {
     pub fn scroll_viewport_by_delta(&self, webview_id: WebViewId, delta: LayoutVector2D) {
         if let Err(error) = self
             .0
-            .send(CompositorMsg::ScrollViewportByDelta(webview_id, delta))
+            .send(PaintMessage::ScrollViewportByDelta(webview_id, delta))
         {
             warn!("Error scroll viewport: {error}");
         }
@@ -288,7 +288,7 @@ impl CrossProcessCompositorApi {
         canvas_epoch: Epoch,
         image_keys: Vec<ImageKey>,
     ) {
-        if let Err(error) = self.0.send(CompositorMsg::DelayNewFrameForCanvas(
+        if let Err(error) = self.0.send(PaintMessage::DelayNewFrameForCanvas(
             webview_id,
             pipeline_id,
             canvas_epoch,
@@ -301,7 +301,7 @@ impl CrossProcessCompositorApi {
     /// Inform the renderer that the rendering epoch has advanced. This typically happens after
     /// a new display list is sent and/or canvas and animated images are updated.
     pub fn update_epoch(&self, webview_id: WebViewId, pipeline_id: PipelineId, epoch: Epoch) {
-        if let Err(error) = self.0.send(CompositorMsg::UpdateEpoch {
+        if let Err(error) = self.0.send(PaintMessage::UpdateEpoch {
             webview_id,
             pipeline_id,
             epoch,
@@ -314,12 +314,12 @@ impl CrossProcessCompositorApi {
     pub fn send_display_list(
         &self,
         webview_id: WebViewId,
-        display_list_info: &CompositorDisplayListInfo,
+        display_list_info: &PaintDisplayListInfo,
         list: BuiltDisplayList,
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
-        if let Err(e) = self.0.send(CompositorMsg::SendDisplayList {
+        if let Err(e) = self.0.send(PaintMessage::SendDisplayList {
             webview_id,
             display_list_descriptor,
             display_list_receiver,
@@ -344,7 +344,7 @@ impl CrossProcessCompositorApi {
         }
     }
 
-    /// Send the largest contentful paint candidate to the compositor.
+    /// Send the largest contentful paint candidate to `Paint`.
     pub fn send_lcp_candidate(
         &self,
         lcp_candidate: LCPCandidate,
@@ -352,7 +352,7 @@ impl CrossProcessCompositorApi {
         pipeline_id: PipelineId,
         epoch: Epoch,
     ) {
-        if let Err(error) = self.0.send(CompositorMsg::SendLCPCandidate(
+        if let Err(error) = self.0.send(PaintMessage::SendLCPCandidate(
             lcp_candidate,
             webview_id,
             pipeline_id,
@@ -364,7 +364,7 @@ impl CrossProcessCompositorApi {
 
     /// Ask the Servo renderer to generate a new frame after having new display lists.
     pub fn generate_frame(&self, painter_ids: Vec<PainterId>) {
-        if let Err(error) = self.0.send(CompositorMsg::GenerateFrame(painter_ids)) {
+        if let Err(error) = self.0.send(PaintMessage::GenerateFrame(painter_ids)) {
             warn!("Error generating frame: {error}");
         }
     }
@@ -373,20 +373,20 @@ impl CrossProcessCompositorApi {
     pub fn generate_image_key_blocking(&self, webview_id: WebViewId) -> Option<ImageKey> {
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.0
-            .send(CompositorMsg::GenerateImageKey(webview_id, sender))
+            .send(PaintMessage::GenerateImageKey(webview_id, sender))
             .ok()?;
         receiver.recv().ok()
     }
 
-    /// Sends a message to the compositor for creating new image keys.
-    /// The compositor will then send a batch of keys over the constellation to the script_thread
+    /// Sends a message to `Paint` for creating new image keys.
+    /// `Paint` will then send a batch of keys over the constellation to the script_thread
     /// and the appropriate pipeline.
     pub fn generate_image_key_async(&self, webview_id: WebViewId, pipeline_id: PipelineId) {
-        if let Err(e) = self.0.send(CompositorMsg::GenerateImageKeysForPipeline(
+        if let Err(e) = self.0.send(PaintMessage::GenerateImageKeysForPipeline(
             webview_id,
             pipeline_id,
         )) {
-            warn!("Could not send image keys to Compositor {}", e);
+            warn!("Could not send image keys to Paint {}", e);
         }
     }
 
@@ -421,10 +421,7 @@ impl CrossProcessCompositorApi {
 
     /// Perform an image resource update operation.
     pub fn update_images(&self, painter_id: PainterId, updates: SmallVec<[ImageUpdate; 1]>) {
-        if let Err(e) = self
-            .0
-            .send(CompositorMsg::UpdateImages(painter_id, updates))
-        {
+        if let Err(e) = self.0.send(PaintMessage::UpdateImages(painter_id, updates)) {
             warn!("error sending image updates: {}", e);
         }
     }
@@ -440,7 +437,7 @@ impl CrossProcessCompositorApi {
         }
         let _ = self
             .0
-            .send(CompositorMsg::RemoveFonts(painter_id, keys, instance_keys));
+            .send(PaintMessage::RemoveFonts(painter_id, keys, instance_keys));
     }
 
     pub fn add_font_instance(
@@ -451,7 +448,7 @@ impl CrossProcessCompositorApi {
         flags: FontInstanceFlags,
         variations: Vec<FontVariation>,
     ) {
-        let _x = self.0.send(CompositorMsg::AddFontInstance(
+        let _x = self.0.send(PaintMessage::AddFontInstance(
             font_key.into(),
             font_instance_key,
             font_key,
@@ -462,7 +459,7 @@ impl CrossProcessCompositorApi {
     }
 
     pub fn add_font(&self, font_key: FontKey, data: Arc<IpcSharedMemory>, index: u32) {
-        let _ = self.0.send(CompositorMsg::AddFont(
+        let _ = self.0.send(PaintMessage::AddFont(
             font_key.into(),
             font_key,
             data,
@@ -471,7 +468,7 @@ impl CrossProcessCompositorApi {
     }
 
     pub fn add_system_font(&self, font_key: FontKey, handle: NativeFontHandle) {
-        let _ = self.0.send(CompositorMsg::AddSystemFont(
+        let _ = self.0.send(PaintMessage::AddSystemFont(
             font_key.into(),
             font_key,
             handle,
@@ -485,7 +482,7 @@ impl CrossProcessCompositorApi {
         painter_id: PainterId,
     ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
         let (sender, receiver) = generic_channel::channel().expect("Could not create IPC channel");
-        let _ = self.0.send(CompositorMsg::GenerateFontKeys(
+        let _ = self.0.send(PaintMessage::GenerateFontKeys(
             number_of_font_keys,
             number_of_font_instance_keys,
             sender,
@@ -495,9 +492,7 @@ impl CrossProcessCompositorApi {
     }
 
     pub fn viewport(&self, webview_id: WebViewId, description: ViewportDescription) {
-        let _ = self
-            .0
-            .send(CompositorMsg::Viewport(webview_id, description));
+        let _ = self.0.send(PaintMessage::Viewport(webview_id, description));
     }
 
     pub fn pipeline_exited(
@@ -506,7 +501,7 @@ impl CrossProcessCompositorApi {
         pipeline_id: PipelineId,
         source: PipelineExitSource,
     ) {
-        let _ = self.0.send(CompositorMsg::PipelineExited(
+        let _ = self.0.send(PaintMessage::PipelineExited(
             webview_id,
             pipeline_id,
             source,

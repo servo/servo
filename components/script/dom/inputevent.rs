@@ -120,7 +120,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 }
 
 /// A [`HitTestResult`] that is the result of doing a hit test based on a less-fine-grained
-/// `CompositorHitTestResult` against our current layout.
+/// `PaintHitTestResult` against our current layout.
 pub(crate) struct HitTestResult {
     pub node: DomRoot<Node>,
     pub cursor: Cursor,

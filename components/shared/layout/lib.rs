@@ -24,7 +24,7 @@ use base::Epoch;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
 use euclid::default::{Point2D as UntypedPoint2D, Rect};
@@ -209,7 +209,7 @@ pub struct LayoutConfig {
     pub image_cache: Arc<dyn ImageCache>,
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,
-    pub compositor_api: CrossProcessCompositorApi,
+    pub paint_api: CrossProcessPaintApi,
     pub viewport_details: ViewportDetails,
     pub theme: Theme,
 }
@@ -297,7 +297,7 @@ pub trait Layout {
         painter: Box<dyn Painter>,
     );
 
-    /// Set the scroll states of this layout after a compositor scroll.
+    /// Set the scroll states of this layout after a `Paint` scroll.
     fn set_scroll_offsets_from_renderer(
         &mut self,
         scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/// Log an event from compositor at trace level.
-/// - To disable tracing: RUST_LOG='constellation<compositor@=off'
-/// - To enable tracing: RUST_LOG='constellation<compositor@'
+/// Log an event from embedder at trace level.
+/// - To disable tracing: RUST_LOG='constellation<embedder@=off'
+/// - To enable tracing: RUST_LOG='constellation<embedder@'
 /// - Recommended filters when tracing is enabled:
-///   - constellation<compositor@ForwardEvent(MouseMoveEvent)=off
-///   - constellation<compositor@LogEntry=off
-///   - constellation<compositor@ReadyToPresent=off
-macro_rules! trace_msg_from_compositor {
+///   - constellation<embedder@ForwardEvent(MouseMoveEvent)=off
+///   - constellation<embedder@LogEntry=off
+///   - constellation<embedder@ReadyToPresent=off
+macro_rules! trace_msg_from_embedder {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
@@ -35,14 +35,14 @@ pub(crate) trait LogTarget {
     fn log_target(&self) -> &'static str;
 }
 
-mod from_compositor {
+mod from_embedder {
     use embedder_traits::{InputEvent, InputEventAndId};
 
     use super::LogTarget;
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("constellation<compositor@", $($name),+)
+            concat!("constellation<embedder@", $($name),+)
         };
     }
 

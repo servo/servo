@@ -309,7 +309,8 @@ impl RunningAppState {
     /// Spins the internal application event loop.
     ///
     /// - Notifies Servo about incoming gamepad events
-    /// - Spin the Servo event loop, which will run the compositor and trigger delegate methods.
+    /// - Spin the Servo event loop, which will update Servo's embedding layer and trigger
+    ///   delegate methods.
     ///
     /// Returns true if the event loop should continue spinning and false if it should exit.
     pub(crate) fn spin_event_loop(self: &Rc<Self>) -> bool {

@@ -202,7 +202,7 @@ impl Default for TimerRefreshDriver {
     fn default() -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded::<TimerThreadMessage>();
         let join_handle = thread::Builder::new()
-            .name(String::from("CompositorTimerThread"))
+            .name(String::from("PaintTimerThread"))
             .spawn(move || {
                 let mut scheduler = TimerScheduler::default();
 

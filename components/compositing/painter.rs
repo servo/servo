@@ -10,7 +10,7 @@ use std::sync::Arc;
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PainterId, PipelineId, WebViewId};
-use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollType};
+use compositing_traits::display_list::{PaintDisplayListInfo, ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
@@ -22,7 +22,7 @@ use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId, InputEventResult,
+    InputEvent, InputEventAndId, InputEventId, InputEventResult, PaintHitTestResult,
     ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -54,9 +54,9 @@ use webrender_api::{
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
-use crate::IOCompositor;
-use crate::compositor::{RepaintReason, WebRenderDebugOption};
+use crate::Paint;
 use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
+use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
@@ -141,10 +141,7 @@ impl Drop for Painter {
 }
 
 impl Painter {
-    pub(crate) fn new(
-        rendering_context: Rc<dyn RenderingContext>,
-        compositor: &IOCompositor,
-    ) -> Self {
+    pub(crate) fn new(rendering_context: Rc<dyn RenderingContext>, paint: &Paint) -> Self {
         let webrender_gl = rendering_context.gleam_gl_api();
 
         // Make sure the gl context is made current.
@@ -153,31 +150,29 @@ impl Painter {
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
-        let id_manager = compositor.webrender_external_image_id_manager();
+        let id_manager = paint.webrender_external_image_id_manager();
         let mut external_image_handlers = Box::new(WebRenderExternalImageHandlers::new(id_manager));
 
         // Set WebRender external image handler for WebGL textures.
         let image_handler = Box::new(WebGLExternalImages::new(
-            compositor.webgl_threads(),
+            paint.webgl_threads(),
             rendering_context.clone(),
-            compositor.swap_chains.clone(),
-            compositor.busy_webgl_contexts_map.clone(),
+            paint.swap_chains.clone(),
+            paint.busy_webgl_contexts_map.clone(),
         ));
         external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::WebGl);
 
         #[cfg(feature = "webgpu")]
         external_image_handlers.set_handler(
-            Box::new(webgpu::WebGpuExternalImages::new(
-                compositor.webgpu_image_map(),
-            )),
+            Box::new(webgpu::WebGpuExternalImages::new(paint.webgpu_image_map())),
             WebRenderImageHandlerType::WebGpu,
         );
 
         WindowGLContext::initialize_image_handler(&mut external_image_handlers);
 
-        let embedder_to_constellation_sender = compositor.embedder_to_constellation_sender.clone();
+        let embedder_to_constellation_sender = paint.embedder_to_constellation_sender.clone();
         let refresh_driver = Rc::new(BaseRefreshDriver::new(
-            compositor.event_loop_waker.clone_box(),
+            paint.event_loop_waker.clone_box(),
             rendering_context.refresh_driver(),
         ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
@@ -215,10 +210,7 @@ impl Painter {
         let painter_id = PainterId::next();
         let (mut webrender, webrender_api_sender) = webrender::create_webrender_instance(
             webrender_gl.clone(),
-            Box::new(RenderNotifier::new(
-                painter_id,
-                compositor.compositor_proxy.clone(),
-            )),
+            Box::new(RenderNotifier::new(painter_id, paint.paint_proxy.clone())),
             webrender::WebRenderOptions {
                 // We force the use of optimized shaders here because rendering is broken
                 // on Android emulators with unoptimized shaders. This is due to a known
@@ -391,7 +383,7 @@ impl Painter {
         self.rendering_context.prepare_for_rendering();
 
         time_profile!(
-            ProfilerCategory::Compositing,
+            ProfilerCategory::Painting,
             None,
             time_profiler_channel.clone(),
             || {
@@ -454,7 +446,7 @@ impl Painter {
 
                 match pipeline.first_paint_metric.get() {
                     // We need to check whether the current epoch is later, because
-                    // CrossProcessCompositorMessage::SendInitialTransaction sends an
+                    // CrossProcessPaintMessage::SendInitialTransaction sends an
                     // empty display list to WebRender which can happen before we receive
                     // the first "real" display list.
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
@@ -545,7 +537,7 @@ impl Painter {
         webrender_api: &RenderApi,
         webrender_document: DocumentId,
         point: DevicePoint,
-    ) -> Vec<CompositorHitTestResult> {
+    ) -> Vec<PaintHitTestResult> {
         // DevicePoint and WorldPoint are the same for us.
         let world_point = WorldPoint::from_untyped(point.to_untyped());
         let results = webrender_api.hit_test(webrender_document, world_point);
@@ -556,7 +548,7 @@ impl Painter {
             .map(|item| {
                 let pipeline_id = item.pipeline.into();
                 let external_scroll_id = ExternalScrollId(item.tag.0, item.pipeline);
-                CompositorHitTestResult {
+                PaintHitTestResult {
                     pipeline_id,
                     point_in_viewport: Point2D::from_untyped(item.point_in_viewport.to_untyped()),
                     external_scroll_id,
@@ -819,7 +811,7 @@ impl Painter {
         pipeline_id: PipelineId,
         pipeline_exit_source: PipelineExitSource,
     ) {
-        debug!("Compositor got pipeline exited: {webview_id:?} {pipeline_id:?}",);
+        debug!("Paint got pipeline exited: {webview_id:?} {pipeline_id:?}",);
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
@@ -932,13 +924,13 @@ impl Painter {
                 return warn!("Could not receive display list info: {error}");
             },
         };
-        let display_list_info: CompositorDisplayListInfo =
-            match bincode::deserialize(&display_list_info) {
-                Ok(display_list_info) => display_list_info,
-                Err(error) => {
-                    return warn!("Could not deserialize display list info: {error}");
-                },
-            };
+        let display_list_info: PaintDisplayListInfo = match bincode::deserialize(&display_list_info)
+        {
+            Ok(display_list_info) => display_list_info,
+            Err(error) => {
+                return warn!("Could not deserialize display list info: {error}");
+            },
+        };
         let items_data = match display_list_receiver.recv() {
             Ok(display_list_data) => display_list_data,
             Err(error) => {
@@ -965,8 +957,7 @@ impl Painter {
             },
             display_list_descriptor,
         );
-        let _span =
-            profile_traits::trace_span!("ScriptToCompositorMsg::BuiltDisplayList",).entered();
+        let _span = profile_traits::trace_span!("PaintMessage::SendDisplayList",).entered();
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };

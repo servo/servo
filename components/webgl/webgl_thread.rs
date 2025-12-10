@@ -28,7 +28,7 @@ use canvas_traits::webgl::{
     WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
 };
 use compositing_traits::{
-    CrossProcessCompositorApi, PainterSurfmanDetailsMap, SerializableImageData,
+    CrossProcessPaintApi, PainterSurfmanDetailsMap, SerializableImageData,
     WebRenderExternalImageIdManager, WebRenderImageHandlerType,
 };
 use euclid::default::Size2D;
@@ -220,7 +220,7 @@ pub(crate) struct WebGLThread {
     /// The GPU device.
     device_map: HashMap<PainterId, Rc<Device>>,
     /// Channel used to generate/update or delete `ImageKey`s.
-    compositor_api: CrossProcessCompositorApi,
+    paint_api: CrossProcessPaintApi,
     /// Map of live WebGLContexts.
     contexts: FxHashMap<WebGLContextId, GLContextData>,
     /// Cached information for WebGLContexts.
@@ -249,7 +249,7 @@ pub(crate) struct WebGLThread {
 
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
-    pub compositor_api: CrossProcessCompositorApi,
+    pub paint_api: CrossProcessPaintApi,
     pub external_image_id_manager: WebRenderExternalImageIdManager,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
@@ -267,7 +267,7 @@ impl WebGLThread {
     /// Create a new instance of WebGLThread.
     pub(crate) fn new(
         WebGLThreadInit {
-            compositor_api,
+            paint_api,
             external_image_id_manager: external_images,
             sender,
             receiver,
@@ -280,7 +280,7 @@ impl WebGLThread {
     ) -> Self {
         WebGLThread {
             device_map: Default::default(),
-            compositor_api,
+            paint_api,
             contexts: Default::default(),
             cached_context_info: Default::default(),
             bound_context_id: None,
@@ -770,7 +770,7 @@ impl WebGLThread {
             .remove(&context_id)
             .and_then(|info| info.image_key)
         {
-            self.compositor_api.delete_image(image_key);
+            self.paint_api.delete_image(image_key);
         }
 
         if !self.contexts.contains_key(&context_id) {
@@ -951,7 +951,7 @@ impl WebGLThread {
         info.alpha = has_alpha;
 
         if let Some(image_key) = info.image_key {
-            self.compositor_api.update_image(
+            self.paint_api.update_image(
                 image_key,
                 info.image_descriptor(),
                 image_data,
@@ -998,16 +998,16 @@ impl WebGLThread {
     fn handle_set_image_key(&mut self, context_id: WebGLContextId, image_key: ImageKey) {
         let external_image_data = self.external_image_data(context_id);
         let Some(info) = self.cached_context_info.get_mut(&context_id) else {
-            self.compositor_api.delete_image(image_key);
+            self.paint_api.delete_image(image_key);
             return;
         };
 
         if let Some(old_image_key) = info.image_key.replace(image_key) {
-            self.compositor_api.delete_image(old_image_key);
+            self.paint_api.delete_image(old_image_key);
             return;
         }
 
-        self.compositor_api
+        self.paint_api
             .add_image(image_key, info.image_descriptor(), external_image_data);
     }
 }

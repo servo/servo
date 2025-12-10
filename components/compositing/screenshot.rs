@@ -13,7 +13,7 @@ use image::RgbaImage;
 use rustc_hash::FxHashMap;
 use webrender_api::units::{DeviceIntRect, DeviceRect};
 
-use crate::compositor::RepaintReason;
+use crate::paint::RepaintReason;
 use crate::painter::Painter;
 
 pub(crate) struct ScreenshotRequest {

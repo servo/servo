@@ -508,7 +508,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
             receiver,
             swmanager_sender: constellation_sender,
             system_font_service_sender,
-            compositor_api,
+            paint_api,
         } = sw_senders;
 
         let from_constellation = receiver.route_preserving_errors();
@@ -519,7 +519,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
 
         let font_context = Arc::new(FontContext::new(
             Arc::new(system_font_service_sender.to_proxy()),
-            compositor_api,
+            paint_api,
             resource_threads,
         ));
 
