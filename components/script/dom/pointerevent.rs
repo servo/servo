@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
+use script_bindings::inheritance::Castable;
 use style_traits::CSSPixel;
 
 use super::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
@@ -19,7 +20,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
@@ -189,6 +190,8 @@ impl PointerEvent {
         can_gc: CanGc,
     ) -> DomRoot<PointerEvent> {
         let ev = PointerEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        // See <https://w3c.github.io/pointerevents/#attributes-and-default-actions>
+        let composed = type_ != "pointerenter" && type_ != "pointerleave";
         ev.mouseevent.initialize_mouse_event(
             type_,
             can_bubble,
@@ -204,6 +207,7 @@ impl PointerEvent {
             related_target,
             point_in_target,
         );
+        ev.mouseevent.upcast::<Event>().set_composed(composed);
         ev.pointer_id.set(pointer_id);
         ev.width.set(width);
         ev.height.set(height);
