@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::sync::LazyLock;
 
 use accesskit::{Node as AxNode, NodeId as AxNodeId, Role, Tree as AxTree};
+use html5ever::{LocalName, local_name};
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use log::trace;
 use rustc_hash::FxHashMap;
@@ -63,7 +65,13 @@ impl AccessibilityTree {
                 let text_content = dom_next.to_threadsafe().text_content();
                 trace!("node text content = {:?}", text_content);
                 ax_next.set_value(text_content);
-                ax_next.set_role(Role::Unknown);
+                ax_next.set_role(Role::TextRun);
+            } else if let Some(element) = dom_next.as_element() {
+                if element.is_html_element() {
+                    if let Some(role) = HTML_ELEMENT_ROLE_MAPPINGS.get(element.local_name()) {
+                        ax_next.set_role(*role);
+                    }
+                }
             }
             ax_nodes.insert(ax_next_id, ax_next);
         }
@@ -113,3 +121,91 @@ impl<'tree> Iterator for AxDescendants<'tree> {
         Some((result_id, result_node))
     }
 }
+
+/// <https://www.w3.org/TR/html-aam-1.0/#html-element-role-mappings>
+///
+/// FIXME: converted mechanically for now, so this will have many errors
+static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLock::new(|| {
+    [
+        (local_name!("a"), Role::Link),
+        (local_name!("a"), Role::GenericContainer),
+        (local_name!("address"), Role::Group),
+        (local_name!("area"), Role::Link),
+        (local_name!("area"), Role::GenericContainer),
+        (local_name!("article"), Role::Article),
+        (local_name!("aside"), Role::Complementary),
+        (local_name!("aside"), Role::Complementary),
+        (local_name!("b"), Role::GenericContainer),
+        (local_name!("bdi"), Role::GenericContainer),
+        (local_name!("bdo"), Role::GenericContainer),
+        (local_name!("blockquote"), Role::Blockquote),
+        (local_name!("body"), Role::GenericContainer),
+        (local_name!("button"), Role::Button),
+        (local_name!("caption"), Role::Caption),
+        (local_name!("code"), Role::Code),
+        (local_name!("data"), Role::GenericContainer),
+        (local_name!("datalist"), Role::ListBox),
+        (local_name!("dd"), Role::Definition),
+        (local_name!("del"), Role::ContentDeletion),
+        (local_name!("details"), Role::Group),
+        (local_name!("dfn"), Role::Term),
+        (local_name!("dialog"), Role::Dialog),
+        (local_name!("dir"), Role::List),
+        (local_name!("div"), Role::GenericContainer),
+        (local_name!("dl"), Role::List),
+        (local_name!("dt"), Role::Term),
+        (local_name!("em"), Role::Emphasis),
+        (local_name!("fieldset"), Role::Group),
+        (local_name!("figcaption"), Role::Caption),
+        (local_name!("figure"), Role::Figure),
+        (local_name!("footer"), Role::ContentInfo),
+        (local_name!("footer"), Role::GenericContainer),
+        (local_name!("form"), Role::Form),
+        (local_name!("header"), Role::Banner),
+        (local_name!("header"), Role::GenericContainer),
+        (local_name!("hgroup"), Role::Group),
+        (local_name!("hr"), Role::Splitter),
+        (local_name!("html"), Role::GenericContainer),
+        (local_name!("i"), Role::GenericContainer),
+        (local_name!("img"), Role::Image),
+        (local_name!("ins"), Role::ContentInsertion),
+        (local_name!("li"), Role::ListItem),
+        (local_name!("main"), Role::Main),
+        (local_name!("mark"), Role::Mark),
+        (local_name!("menu"), Role::List),
+        (local_name!("meter"), Role::Meter),
+        (local_name!("nav"), Role::Navigation),
+        (local_name!("ol"), Role::List),
+        (local_name!("optgroup"), Role::Group),
+        (local_name!("option"), Role::ListBoxOption),
+        (local_name!("output"), Role::Status),
+        (local_name!("p"), Role::Paragraph),
+        (local_name!("pre"), Role::GenericContainer),
+        (local_name!("progress"), Role::ProgressIndicator),
+        (local_name!("q"), Role::GenericContainer),
+        (local_name!("s"), Role::ContentDeletion),
+        (local_name!("samp"), Role::GenericContainer),
+        (local_name!("search"), Role::Search),
+        (local_name!("section"), Role::Region),
+        (local_name!("select"), Role::ListBox),
+        (local_name!("select"), Role::ComboBox),
+        (local_name!("small"), Role::GenericContainer),
+        (local_name!("span"), Role::GenericContainer),
+        (local_name!("strong"), Role::Strong),
+        (local_name!("table"), Role::Table),
+        (local_name!("tbody"), Role::RowGroup),
+        (local_name!("td"), Role::Cell),
+        (local_name!("textarea"), Role::TextInput),
+        (local_name!("tfoot"), Role::RowGroup),
+        (local_name!("th"), Role::Cell),
+        (local_name!("th"), Role::ColumnHeader),
+        (local_name!("th"), Role::RowHeader),
+        (local_name!("thead"), Role::RowGroup),
+        (local_name!("time"), Role::Time),
+        (local_name!("tr"), Role::Row),
+        (local_name!("u"), Role::GenericContainer),
+        (local_name!("ul"), Role::List),
+    ]
+    .into_iter()
+    .collect()
+});
