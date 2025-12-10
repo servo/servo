@@ -23,13 +23,11 @@ use nom_rfc8288::complete::link_lenient as parse_link_header;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum::IntoStaticStr;
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::medialist::MediaList;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -522,12 +520,7 @@ impl FetchResponseListener for LinkFetchContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        let source_position = self.link.as_ref().map(|link| {
-            let link = link.root();
-            link.upcast::<Element>()
-                .compute_source_position(link.line_number())
-        });
-        global.report_csp_violations(violations, None, source_position);
+        global.report_csp_violations(violations, None, None);
     }
 }
 
