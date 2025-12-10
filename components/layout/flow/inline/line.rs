@@ -161,6 +161,8 @@ pub(super) struct LineItemLayout<'layout_data, 'layout> {
     /// Whether this is a phantom line box.
     /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
     is_phantom_line: bool,
+
+    overflow_added: bool,
 }
 
 impl LineItemLayout<'_, '_> {
@@ -187,6 +189,7 @@ impl LineItemLayout<'_, '_> {
             },
             justification_adjustment,
             is_phantom_line,
+            overflow_added: false,
         }
         .layout(line_items)
     }
@@ -544,7 +547,7 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn layout_text_run(&mut self, text_item: TextRunLineItem, is_last_text_run: bool) {
-        if text_item.text.is_empty() {
+        if text_item.text.is_empty() || self.overflow_added {
             return;
         }
 
@@ -649,8 +652,11 @@ impl LineItemLayout<'_, '_> {
         // Create & insert text fragment to vector
         if can_be_elided &&
             ((self.current_state.inline_advance > self.layout.containing_block.size.inline &&
-                original_inline_advance < self.layout.containing_block.size.inline)
-            || (self.current_state.inline_advance >= self.layout.containing_block.size.inline - overflow_marker_total_advance) && !is_last_text_run)
+                original_inline_advance < self.layout.containing_block.size.inline) ||
+                (self.current_state.inline_advance >=
+                    self.layout.containing_block.size.inline -
+                        overflow_marker_total_advance) &&
+                    !is_last_text_run)
         {
             // With the current implementation, `ellipsis_textrun_segment.runs` is never empty since it is the glyph store of the ellipsis glyph.
             let overflow_marker_width = (Au(0), overflow_marker_total_advance);
@@ -717,6 +723,9 @@ impl LineItemLayout<'_, '_> {
 
             // After inserting the overflow marker, don't create anymore TextFragments.
             self.current_state.inline_advance = self.layout.containing_block.size.inline;
+
+            // Overflow marker has been added. This will be used to optimize the function `layout_text_run`
+            self.overflow_added = true;
         } else {
             // Insert text fragment
             let text_metadata = OverflowMarkerData::new(

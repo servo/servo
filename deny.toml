@@ -199,5 +199,6 @@ skip = [
 ]
 
 # github.com organizations to allow git sources for
+# second source is temporary. Will be removed before actual merging.
 [sources.allow-org]
-github = ["servo"]
+github = ["servo", "RichardTjokroutomo"]
