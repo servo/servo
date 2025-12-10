@@ -29,5 +29,5 @@ fn test_text_overflow_parser_exhaustion() {
     assert_parser_exhausted!(text_overflow::parse, r#"clip"#, true);
     assert_parser_exhausted!(text_overflow::parse, r#"ellipsis"#, true);
     // TODO: Uncomment this assertion once two-valued text-overflow is supported.
-    //assert_parser_exhausted!(text_overflow::parse, r#"clip ellipsis"#, true);
+    // assert_parser_exhausted!(text_overflow::parse, r#"clip ellipsis"#, true);
 }
