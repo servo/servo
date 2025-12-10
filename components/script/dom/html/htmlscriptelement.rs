@@ -417,11 +417,6 @@ impl FetchResponseListener for ClassicContext {
 
         elem.substitute_with_local_script(&mut source_text, final_url.clone());
 
-        let introduction_type = elem
-            .introduction_type_override
-            .get()
-            .or(Some(IntroductionType::SRC_SCRIPT));
-
         // Step 5.6. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
         let muted_errors = self.response_was_cors_cross_origin;
 
@@ -432,7 +427,7 @@ impl FetchResponseListener for ClassicContext {
             final_url.clone(),
             self.fetch_options.clone(),
             ErrorReporting::from(muted_errors),
-            introduction_type,
+            Some(IntroductionType::SRC_SCRIPT),
             1,
             true,
         );
@@ -1064,16 +1059,15 @@ impl HTMLScriptElement {
                 document.set_current_script(old_script.as_deref());
             },
             Script::Other(script) => {
-                match script.type_ {
-                    ScriptType::Classic => (),
-                    ScriptType::Module => {
-                        document.set_current_script(None);
-                        self.run_a_module_script(&script, false, can_gc);
-                    },
-                    ScriptType::ImportMap => {
-                        // Step 6.1 Register an import map given el's relevant global object and el's result.
-                        register_import_map(&self.owner_global(), script.import_map, can_gc);
-                    },
+                if let ScriptType::Module = script_type {
+                    // TODO Step 6."module".1. Assert: document's currentScript attribute is null.
+                    document.set_current_script(None);
+
+                    // Step 6."module".2. Run the module script given by el's result.
+                    self.run_a_module_script(&script, false, can_gc);
+                } else if let ScriptType::ImportMap = script_type {
+                    // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
+                    register_import_map(&self.owner_global(), script.import_map, can_gc);
                 }
             },
         }
