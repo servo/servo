@@ -250,8 +250,10 @@ pub struct Preferences {
     pub network_http_proxy_uri: String,
     pub network_local_directory_listing_enabled: bool,
     pub network_mime_sniff: bool,
-    /// Use the webpki roots if no root store path is given.
-    pub network_webpki_roots: bool,
+    /// Force the use of `rust-webpki` verification for CA roots. If this is false (the
+    /// default), then `rustls-platform-verifier` will be used, except on Android where
+    /// `rust-webpki` is always used.
+    pub network_use_webpki_roots: bool,
     pub session_history_max_length: i64,
     /// The background color of shell's viewport. This will be used by OpenGL's `glClearColor`.
     pub shell_background_color_rgba: [f64; 4],
@@ -436,7 +438,7 @@ impl Preferences {
             network_http_proxy_uri: String::new(),
             network_local_directory_listing_enabled: true,
             network_mime_sniff: false,
-            network_webpki_roots: false,
+            network_use_webpki_roots: false,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
             threadpools_async_runtime_workers_max: 6,
