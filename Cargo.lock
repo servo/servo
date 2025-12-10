@@ -4960,6 +4960,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "app_units",
  "atomic_refcell",
  "base",
