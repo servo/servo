@@ -32,7 +32,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::{ErrorReporting, GlobalScope, RethrowErrors};
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedscript::TrustedScript;
@@ -808,16 +808,14 @@ impl JsTimerTask {
                     (*code_str.str()).into(),
                     base_url,
                     fetch_options,
-                    false,
+                    ErrorReporting::Unmuted,
                     Some(IntroductionType::DOM_TIMER),
                     1,
                     false,
                 );
 
                 // Step 9.6.9. Run the classic script script.
-                //
-                // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
-                _ = global.run_a_classic_script(script, false, can_gc);
+                _ = global.run_a_classic_script(script, RethrowErrors::No, can_gc);
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and
             // "report", and with callback this value set to thisArg.

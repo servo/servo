@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::ffi::CStr;
@@ -52,7 +53,7 @@ use crate::dom::element::{
     set_cross_origin_attribute,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::{ClassicScript, GlobalScope};
+use crate::dom::globalscope::{ClassicScript, ErrorReporting, GlobalScope, RethrowErrors};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -430,7 +431,7 @@ impl FetchResponseListener for ClassicContext {
             source_text,
             final_url.clone(),
             self.fetch_options.clone(),
-            muted_errors,
+            ErrorReporting::from(muted_errors),
             introduction_type,
             1,
             true,
@@ -905,7 +906,7 @@ impl HTMLScriptElement {
                         std::borrow::Cow::Borrowed(&text.str()),
                         base_url,
                         options,
-                        false,
+                        ErrorReporting::Unmuted,
                         introduction_type_override.or(Some(IntroductionType::INLINE_SCRIPT)),
                         self.line_number as u32,
                         false,
@@ -1053,10 +1054,11 @@ impl HTMLScriptElement {
                 }
 
                 // Step 6."classic".3. Run the classic script given by el's result.
-                _ = self
-                    .owner_window()
-                    .as_global_scope()
-                    .run_a_classic_script(script, false, can_gc);
+                _ = self.owner_window().as_global_scope().run_a_classic_script(
+                    script,
+                    RethrowErrors::No,
+                    can_gc,
+                );
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());

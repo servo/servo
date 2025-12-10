@@ -3486,7 +3486,7 @@ impl GlobalScope {
         source: Cow<'_, str>,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
-        muted_errors: bool,
+        muted_errors: ErrorReporting,
         introduction_type: Option<&'static CStr>,
         line_number: u32,
         external: bool,
@@ -3551,7 +3551,7 @@ impl GlobalScope {
     pub(crate) fn run_a_classic_script(
         &self,
         script: ClassicScript,
-        rethrow_errors: bool,
+        rethrow_errors: RethrowErrors,
         can_gc: CanGc,
     ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
@@ -3600,27 +3600,28 @@ impl GlobalScope {
         if !evaluation_status.is_undefined() {
             warn!("Error evaluating script");
 
-            // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
-            if rethrow_errors && !script.muted_errors {
-                // Rethrow evaluationStatus.[[Value]].
-                return Err(Error::JSFailed);
+            match (rethrow_errors, script.muted_errors) {
+                // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
+                (RethrowErrors::Yes, ErrorReporting::Unmuted) => {
+                    // Rethrow evaluationStatus.[[Value]].
+                    return Err(Error::JSFailed);
+                },
+                // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
+                (RethrowErrors::Yes, ErrorReporting::Muted) => {
+                    unsafe { JS_ClearPendingException(*cx) };
+                    // Throw a "NetworkError" DOMException.
+                    return Err(Error::Network(None));
+                },
+                // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
+                _ => {
+                    unsafe { JS_ClearPendingException(*cx) };
+                    // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
+                    self.report_an_exception(cx, evaluation_status.handle(), can_gc);
+
+                    // Return evaluationStatus.
+                    return Err(Error::JSFailed);
+                },
             }
-
-            unsafe { JS_ClearPendingException(*cx) };
-
-            // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-            if rethrow_errors && script.muted_errors {
-                // Throw a "NetworkError" DOMException.
-                return Err(Error::Network(None));
-            }
-
-            // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
-
-            // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-            self.report_an_exception(cx, evaluation_status.handle(), can_gc);
-
-            // Return evaluationStatus.
-            return Err(Error::JSFailed);
         }
 
         maybe_resume_unwind();
@@ -3782,6 +3783,27 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     }
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum ErrorReporting {
+    Muted,
+    Unmuted,
+}
+
+impl From<bool> for ErrorReporting {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            ErrorReporting::Muted
+        } else {
+            ErrorReporting::Unmuted
+        }
+    }
+}
+
+pub(crate) enum RethrowErrors {
+    Yes,
+    No,
+}
+
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct ClassicScript {
@@ -3796,7 +3818,7 @@ pub struct ClassicScript {
     #[no_trace]
     url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#muted-errors>
-    muted_errors: bool,
+    muted_errors: ErrorReporting,
     /// used for unminify_js
     #[conditional_malloc_size_of]
     source: Rc<DOMString>,

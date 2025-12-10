@@ -62,7 +62,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
-use crate::dom::globalscope::{ClassicScript, GlobalScope};
+use crate::dom::globalscope::{ClassicScript, ErrorReporting, GlobalScope, RethrowErrors};
 use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -230,7 +230,7 @@ impl FetchResponseListener for ScriptFetchContext {
             source,
             scope.worker_url.borrow().clone(),
             ScriptFetchOptions::default_classic_script(&scope.globalscope),
-            false,
+            ErrorReporting::Unmuted,
             Some(IntroductionType::WORKER),
             1,
             true,
@@ -624,7 +624,9 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            _ = self.globalscope.run_a_classic_script(script, false, can_gc);
+            _ = self
+                .globalscope
+                .run_a_classic_script(script, RethrowErrors::No, can_gc);
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
@@ -747,14 +749,16 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 source,
                 url,
                 ScriptFetchOptions::default_classic_script(&self.globalscope),
-                muted_errors,
+                ErrorReporting::from(muted_errors),
                 Some(IntroductionType::WORKER),
                 1,
                 true,
             );
 
             // Run the classic script script, with rethrow errors set to true.
-            let result = self.globalscope.run_a_classic_script(script, true, can_gc);
+            let result = self
+                .globalscope
+                .run_a_classic_script(script, RethrowErrors::Yes, can_gc);
 
             if let Err(error) = result {
                 if self.is_closing() {

@@ -48,7 +48,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::{ErrorReporting, GlobalScope, RethrowErrors};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
@@ -406,12 +406,12 @@ impl ServiceWorkerGlobalScope {
                         String::from_utf8_lossy(&source),
                         url,
                         ScriptFetchOptions::default_classic_script(global_scope),
-                        false,
+                        ErrorReporting::Unmuted,
                         Some(IntroductionType::WORKER),
                         1,
                         true,
                     );
-                    _ = global_scope.run_a_classic_script(script, false, CanGc::note());
+                    _ = global_scope.run_a_classic_script(script, RethrowErrors::No, CanGc::note());
                     global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }
 
