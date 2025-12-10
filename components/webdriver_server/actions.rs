@@ -530,8 +530,6 @@ impl Handler {
             let PointerInputState {
                 x: current_x,
                 y: current_y,
-                subtype,
-                pointer_id,
                 ..
             } = *self.get_pointer_input_state(source_id);
 
@@ -542,14 +540,7 @@ impl Handler {
                 // Step 7.2. Perform implementation-specific action dispatch steps
                 let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
 
-                let input_event = match subtype {
-                    PointerType::Mouse => InputEvent::MouseMove(MouseMoveEvent::new(point)),
-                    PointerType::Pen | PointerType::Touch => InputEvent::Touch(TouchEvent::new(
-                        TouchEventType::Move,
-                        TouchId(pointer_id as i32),
-                        point,
-                    )),
-                };
+                let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
                 if last {
                     self.send_blocking_input_event_to_embedder(input_event);
                 } else {
