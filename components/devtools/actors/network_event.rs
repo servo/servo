@@ -14,8 +14,8 @@ use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as Devtoo
 use headers::{ContentLength, ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method};
 use net::cookie::ServoCookie;
-use net_traits::CookieSource;
 use net_traits::request::Destination as RequestDestination;
+use net_traits::{CookieSource, TlsSecurityInfo, TlsSecurityState};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -48,6 +48,7 @@ pub struct NetworkEventActor {
     pub cache_details: Option<CacheDetails>,
     pub total_time: Duration,
     pub security_state: String,
+    pub security_info: Option<TlsSecurityInfo>,
     pub event_timing: Option<Timings>,
     pub watcher_name: String,
 }
@@ -231,9 +232,131 @@ struct GetEventTimingsReply {
     total_time: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct CertificateIdentity {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    common_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    organization: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    organizational_unit: Option<String>,
+}
+
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct CertificateValidity {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    start: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    end: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lifetime: Option<String>,
+    expired: bool,
+}
+
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct CertificateFingerprint {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sha256: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sha1: Option<String>,
+}
+
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct SecurityCertificate {
+    subject: CertificateIdentity,
+    issuer: CertificateIdentity,
+    validity: CertificateValidity,
+    fingerprint: CertificateFingerprint,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    serial_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    is_built_in_root: Option<bool>,
+}
+
+#[derive(Serialize, Default)]
+#[serde(rename_all = "camelCase")]
 struct SecurityInfo {
     state: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    weakness_reasons: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    protocol_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cipher_suite: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kea_group_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature_scheme_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alpn_protocol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    certificate_transparency: Option<String>,
+    hsts: bool,
+    hpkp: bool,
+    used_ech: bool,
+    used_delegated_credentials: bool,
+    used_ocsp: bool,
+    used_private_dns: bool,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    certificate_chain: Vec<String>,
+    cert: SecurityCertificate,
+}
+
+impl SecurityInfo {
+    fn from_tls(info: &TlsSecurityInfo) -> Self {
+        Self {
+            state: info.state.to_string(),
+            weakness_reasons: info.weakness_reasons.clone(),
+            protocol_version: info.protocol_version.clone(),
+            cipher_suite: info.cipher_suite.clone(),
+            kea_group_name: info.kea_group_name.clone(),
+            signature_scheme_name: info.signature_scheme_name.clone(),
+            alpn_protocol: info.alpn_protocol.clone(),
+            certificate_transparency: info
+                .certificate_transparency
+                .clone()
+                .or_else(|| Some("unknown".to_string())),
+            hsts: info.hsts,
+            hpkp: info.hpkp,
+            used_ech: info.used_ech,
+            used_delegated_credentials: info.used_delegated_credentials,
+            used_ocsp: info.used_ocsp,
+            used_private_dns: info.used_private_dns,
+            certificate_chain: Vec::new(),
+            cert: SecurityCertificate {
+                subject: CertificateIdentity {
+                    name: None,
+                    common_name: None,
+                    organization: None,
+                    organizational_unit: None,
+                },
+                issuer: CertificateIdentity {
+                    name: None,
+                    common_name: None,
+                    organization: None,
+                    organizational_unit: None,
+                },
+                validity: CertificateValidity {
+                    start: None,
+                    end: None,
+                    lifetime: None,
+                    expired: false,
+                },
+                fingerprint: CertificateFingerprint {
+                    sha256: None,
+                    sha1: None,
+                },
+                serial_number: None,
+                is_built_in_root: None,
+            },
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -416,12 +539,16 @@ impl Actor for NetworkEventActor {
                 request.reply_final(&msg)?
             },
             "getSecurityInfo" => {
-                // TODO: Send the correct values for securityInfo.
                 let msg = GetSecurityInfoReply {
                     from: self.name(),
-                    security_info: SecurityInfo {
-                        state: "insecure".to_owned(),
-                    },
+                    security_info: self
+                        .security_info
+                        .as_ref()
+                        .map(SecurityInfo::from_tls)
+                        .unwrap_or_else(|| SecurityInfo {
+                            state: self.security_state.clone(),
+                            ..Default::default()
+                        }),
                 };
                 request.reply_final(&msg)?
             },
@@ -458,6 +585,7 @@ impl NetworkEventActor {
             cache_details: None,
             total_time: Duration::ZERO,
             security_state: "insecure".to_owned(),
+            security_info: None,
             event_timing: None,
             watcher_name,
         }
@@ -490,6 +618,15 @@ impl NetworkEventActor {
         }
         self.response_headers_raw = response.headers.clone();
         self.cache_details = Some(Self::cache_details(&response));
+    }
+
+    pub fn update_security_info(&mut self, security_info: Option<TlsSecurityInfo>) {
+        self.security_state = security_info
+            .as_ref()
+            .map(|info| info.state)
+            .unwrap_or(TlsSecurityState::Insecure)
+            .to_string();
+        self.security_info = security_info;
     }
 
     pub fn event_actor(&self) -> EventActor {
@@ -715,6 +852,10 @@ impl NetworkEventActor {
         resource_updates.insert(
             "securityState".to_string(),
             Value::String(self.security_state.clone()),
+        );
+        resource_updates.insert(
+            "securityInfoAvailable".to_string(),
+            Value::Bool(self.security_info.is_some()),
         );
         resource_updates.insert(
             "eventTimingsAvailable".to_owned(),

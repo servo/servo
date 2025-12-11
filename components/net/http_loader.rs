@@ -14,7 +14,7 @@ use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
-    HttpResponse as DevtoolsHttpResponse, NetworkEvent,
+    HttpResponse as DevtoolsHttpResponse, NetworkEvent, SecurityInfoUpdate,
 };
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
@@ -23,7 +23,7 @@ use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
     AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestMethod, Authorization,
     CacheControl, ContentLength, HeaderMapExt, IfModifiedSince, LastModified, Pragma, Referer,
-    UserAgent,
+    StrictTransportSecurity, UserAgent,
 };
 use http::header::{
     self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
@@ -56,7 +56,7 @@ use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, Respo
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
     RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue,
+    ResourceTimeValue, TlsSecurityInfo, TlsSecurityState,
 };
 use parking_lot::{Condvar, Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
@@ -71,7 +71,9 @@ use tokio::sync::mpsc::{
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::spawn_task;
-use crate::connector::{CertificateErrorOverrideManager, ServoClient, create_tls_config};
+use crate::connector::{
+    CertificateErrorOverrideManager, ServoClient, TlsHandshakeInfo, create_tls_config,
+};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -402,6 +404,41 @@ fn set_cookies_from_headers(
     }
 }
 
+fn build_tls_security_info(handshake: &TlsHandshakeInfo, hsts_enabled: bool) -> TlsSecurityInfo {
+    // Simplified security state determination:
+    // Servo uses rustls, which only supports TLS 1.2+ and secure cipher suites (GCM, ChaCha20-Poly1305).
+    // rustls does NOT support TLS 1.0, TLS 1.1, SSL, or weak ciphers (RC4, 3DES, CBC, etc).
+    // Therefore, any successful TLS connection is secure by design.
+    //
+    // We only check for missing handshake information as a defensive measure.
+
+    let state = if handshake.protocol_version.is_none() || handshake.cipher_suite.is_none() {
+        // Missing handshake information indicates an incomplete or failed connection
+        TlsSecurityState::Insecure
+    } else {
+        // rustls guarantees TLS 1.2+ with secure ciphers
+        TlsSecurityState::Secure
+    };
+
+    TlsSecurityInfo {
+        state,
+        weakness_reasons: Vec::new(), // rustls never negotiates weak crypto
+        protocol_version: handshake.protocol_version.clone(),
+        cipher_suite: handshake.cipher_suite.clone(),
+        kea_group_name: handshake.kea_group_name.clone(),
+        signature_scheme_name: handshake.signature_scheme_name.clone(),
+        alpn_protocol: handshake.alpn_protocol.clone(),
+        certificate_chain_der: handshake.certificate_chain_der.clone(),
+        certificate_transparency: None,
+        hsts: hsts_enabled,
+        hpkp: false,
+        used_ech: handshake.used_ech,
+        used_delegated_credentials: false,
+        used_ocsp: false,
+        used_private_dns: false,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn prepare_devtools_request(
     request_id: String,
@@ -505,6 +542,38 @@ pub fn send_response_values_to_devtools(
 
         let msg =
             ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), net_event_response);
+
+        let _ = devtools_chan
+            .lock()
+            .send(DevtoolsControlMsg::FromChrome(msg));
+    }
+}
+
+pub fn send_security_info_to_devtools(
+    request: &Request,
+    context: &FetchContext,
+    response: &Response,
+) {
+    let meta = match response.metadata() {
+        Ok(FetchMetadata::Unfiltered(m)) => m,
+        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
+        Err(_) => {
+            log::warn!("No metadata available, skipping devtools security info.");
+            return;
+        },
+    };
+
+    if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
+        context.devtools_chan.clone(),
+        meta.tls_security_info.clone(),
+        request.target_webview_id,
+    ) {
+        let update = NetworkEvent::SecurityInfo(SecurityInfoUpdate {
+            browsing_context_id: webview_id.into(),
+            security_info: Some(security_info),
+        });
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), update);
 
         let _ = devtools_chan
             .lock()
@@ -2115,6 +2184,20 @@ async fn http_network_fetch(
 
     let timing = context.timing.lock().clone();
     let mut response = Response::new(url.clone(), timing);
+
+    if let Some(handshake_info) = res.extensions().get::<TlsHandshakeInfo>() {
+        let mut hsts_enabled = url
+            .host_str()
+            .is_some_and(|host| context.state.hsts_list.read().is_host_secure(host));
+
+        if url.scheme() == "https" {
+            if let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>() {
+                // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
+                hsts_enabled = sts.max_age().as_secs() > 0;
+            }
+        }
+        response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
+    }
 
     let status_text = res
         .extensions()
