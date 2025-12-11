@@ -6,8 +6,8 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::string::String;
 
+use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::HeapArrayBuffer;
 use script_bindings::trace::RootedTraceableBox;
 use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
@@ -34,7 +34,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ActiveBufferMapping {
-    // TODO(sagudev): Use IpcSharedMemory when https://github.com/servo/ipc-channel/pull/356 lands
+    // TODO(sagudev): Use GenericSharedMemory when https://github.com/servo/ipc-channel/pull/356 lands
     /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-data>
     /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-views>
     pub(crate) data: DataBlock,
@@ -211,7 +211,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             buffer_id: self.id().0,
             mapping: if mapping.mode >= GPUMapModeConstants::WRITE {
                 Some(Mapping {
-                    data: IpcSharedMemory::from_bytes(mapping.data.data()),
+                    data: GenericSharedMemory::from_bytes(mapping.data.data()),
                     range: mapping.range.clone(),
                     mode: HostMap::Write,
                 })

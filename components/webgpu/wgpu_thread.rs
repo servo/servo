@@ -8,11 +8,12 @@ use std::borrow::Cow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
+use base::generic_channel::GenericSharedMemory;
 use base::id::PipelineId;
 use compositing_traits::{
     CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
 };
-use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{info, warn};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
@@ -192,7 +193,7 @@ impl WGPU {
                                 };
 
                                 Ok(Mapping {
-                                    data: IpcSharedMemory::from_bytes(data),
+                                    data: GenericSharedMemory::from_bytes(data),
                                     range: offset..offset + range_size,
                                     mode: host_map,
                                 })

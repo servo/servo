@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use base::generic_channel::GenericSharedMemory;
 use canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
@@ -13,7 +14,6 @@ use canvas_traits::canvas::{
 use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts::FontIdentifier;
-use ipc_channel::ipc::IpcSharedMemory;
 use kurbo::Shape;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use vello_cpu::{kurbo, peniko};
@@ -464,7 +464,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
             offset: 0,
             flags: ImageDescriptorFlags::empty(),
         };
-        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(self.pixmap()));
+        let data = SerializableImageData::Raw(GenericSharedMemory::from_bytes(self.pixmap()));
         (image_desc, data)
     }
 
