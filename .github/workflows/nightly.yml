@@ -5,6 +5,18 @@ on:
     # Run at 5:30 am, daily.
     - cron: '15 5 * * *'
   workflow_dispatch:
+    inputs:
+      release_kind:
+        description: 'Release kind'
+        required: true
+        default: 'nightly'
+        options:
+          - nightly
+          - release
+      release_tag:
+        description: 'Release tag for regular releases'
+        required: false
+        type: string
 
 env:
   RUST_BACKTRACE: 1
@@ -17,13 +29,30 @@ jobs:
     name: Create Draft GH Release
     runs-on: ubuntu-latest
     steps:
+      - name: Determine tag
+        id: determine_tag
+        run: |
+          RELEASE_KIND=${{ github.event.inputs.release_kind }}
+          # Scheduled runs are for the nightly releases and `release_kind` will be not set
+          if [[ -z "${RELEASE_KIND}" || "${RELEASE_KIND}" == "nightly" ]]; then
+            TAG=$(date "+%F")
+            RELEASE_NOTES="Nightly builds based on servo/servo@${{ github.sha }}"
+          elif [[ "${RELEASE_KIND}" == "release" ]]; then
+            TAG=${{ github.event.inputs.release_tag}}
+            RELEASE_NOTES="Release ${TAG} based on servo/servo@${{ github.sha }}"
+            if [[ -z "TAG" ]]; then
+              echo "Missing required input release_tag for"
+              exit 1
+            fi
+          fi
+          echo "TAG=${TAG}" >> ${GITHUB_OUTPUT}
+          echo "RELEASE_NOTES=${RELEASE_NOTES}" >> ${GITHUB_OUTPUT}
       - id: create-release
         run: |
-          NIGHTLY_TAG=$(date "+%F")
-          RELEASE_URL=$(gh release create "${NIGHTLY_TAG}" \
+          RELEASE_URL=$(gh release create "${RELEASE_TAG}" \
             --draft \
-            --title "${NIGHTLY_TAG}" \
-            --notes 'Nightly builds based on servo/servo@${{ github.sha }}' \
+            --title "${RELEASE_TAG}" \
+            --notes "${RELEASE_NOTES}" \
             --repo ${NIGHTLY_REPO})
           TEMP_TAG=$(basename "$RELEASE_URL")
           RELEASE_ID=$( \
@@ -35,6 +64,8 @@ jobs:
           echo "RELEASE_ID=${RELEASE_ID}" >> ${GITHUB_OUTPUT}
         env:
           GITHUB_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          RELEASE_TAG: ${{ steps.determine_tag.outputs.TAG }}
+          RELEASE_NOTES: ${{ steps.determine_tag.outputs.RELEASE_NOTES }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
     outputs:
       release-id: ${{ steps.create-release.outputs.RELEASE_ID }}
