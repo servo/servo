@@ -121,6 +121,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::ScriptId;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -2999,6 +3000,17 @@ impl GlobalScope {
 
         // TODO: plug worklets into this.
         true
+    }
+
+    /// Returns the idb factory for this global.
+    /// TODO: move the idb to the global itself.
+    pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.IndexedDB();
+        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.IndexedDB();
+        }
+        unreachable!("IndexedDB is only exposed on Window and WorkerGlobalScope.");
     }
 
     /// Perform a microtask checkpoint.
