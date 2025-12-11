@@ -11,7 +11,7 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::GenericReceiver;
 use base::id::{PainterId, PipelineId, WebViewId};
-use compositing_traits::display_list::{ScrollType};
+use compositing_traits::display_list::ScrollType;
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
