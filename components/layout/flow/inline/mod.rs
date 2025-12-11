@@ -81,7 +81,7 @@ use std::rc::Rc;
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{ByteIndex, FontMetrics, GlyphStore};
+use fonts::{ByteIndex, FontMetrics, FontRef, GlyphStore};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
@@ -106,10 +106,9 @@ use style::values::specified::text::TextAlignKeyword;
 use style::values::specified::{TextAlignLast, TextJustify};
 use text_run::{
     TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
-    add_or_get_font, get_font_for_first_font_for_style,
+    get_font_for_first_font_for_style,
 };
 use unicode_bidi::{BidiInfo, Level};
-use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
@@ -150,10 +149,6 @@ pub(crate) struct InlineFormattingContext {
     /// The text content of this inline formatting context.
     pub(super) text_content: String,
 
-    /// A store of font information for all the shaped segments in this formatting
-    /// context in order to avoid duplicating this information.
-    pub font_metrics: Vec<FontKeyAndMetrics>,
-
     /// The [`SharedInlineStyles`] for the root of this [`InlineFormattingContext`] that are used to
     /// share styles with all [`TextRun`] children.
     pub(super) shared_inline_styles: SharedInlineStyles,
@@ -191,14 +186,6 @@ impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
             selected: SharedStyle::new(info.node.selected_style()),
         }
     }
-}
-
-/// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct FontKeyAndMetrics {
-    pub key: FontInstanceKey,
-    pub pt_size: Au,
-    pub metrics: FontMetrics,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -790,9 +777,7 @@ impl InlineFormattingContextLayout<'_> {
             self.layout_context,
             self.current_inline_container_state(),
             inline_box.is_last_split,
-            inline_box
-                .default_font_index
-                .map(|index| &self.ifc.font_metrics[index].metrics),
+            inline_box.default_font.as_ref().map(|font| &font.metrics),
         );
 
         self.depends_on_block_constraints |= inline_box
@@ -1370,7 +1355,7 @@ impl InlineFormattingContextLayout<'_> {
         &mut self,
         glyph_store: std::sync::Arc<GlyphStore>,
         text_run: &TextRun,
-        font_index: usize,
+        font: &FontRef,
         bidi_level: Level,
         range: range::Range<ByteIndex>,
     ) {
@@ -1384,10 +1369,13 @@ impl InlineFormattingContextLayout<'_> {
         // If the metrics of this font don't match the default font, we are likely using a fallback
         // font and need to adjust the line size to account for a potentially different font.
         // If somehow the metrics match, the line size won't change.
-        let ifc_font_info = &self.ifc.font_metrics[font_index];
-        let font_metrics = ifc_font_info.metrics.clone();
+        let font_metrics = &font.metrics;
+        let font_key = font.key(
+            self.layout_context.painter_id,
+            &self.layout_context.font_context,
+        );
         let using_fallback_font =
-            self.current_inline_container_state().font_metrics != font_metrics;
+            self.current_inline_container_state().font_metrics != *font_metrics;
 
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
         let strut_size = if using_fallback_font {
@@ -1421,7 +1409,7 @@ impl InlineFormattingContextLayout<'_> {
         match self.current_line_segment.line_items.last_mut() {
             Some(LineItem::TextRun(inline_box_identifier, line_item))
                 if *inline_box_identifier == current_inline_box_identifier &&
-                    line_item.can_merge(ifc_font_info.key, bidi_level) =>
+                    line_item.can_merge(font_key, bidi_level) =>
             {
                 line_item.text.push(glyph_store);
                 return;
@@ -1462,8 +1450,8 @@ impl InlineFormattingContextLayout<'_> {
                 text: vec![glyph_store],
                 base_fragment_info: text_run.base_fragment_info,
                 inline_styles: text_run.inline_styles.clone(),
-                font_metrics,
-                font_key: ifc_font_info.key,
+                font_metrics: font_metrics.clone(),
+                font_key,
                 bidi_level,
                 selection_range,
             },
@@ -1655,7 +1643,6 @@ impl InlineFormattingContext {
     ) -> Self {
         // This is to prevent a double borrow.
         let text_content: String = builder.text_segments.into_iter().collect();
-        let mut font_metrics = Vec::new();
 
         let bidi_info = BidiInfo::new(&text_content, Some(starting_bidi_level));
         let has_right_to_left_content = bidi_info.has_rtl();
@@ -1668,7 +1655,6 @@ impl InlineFormattingContext {
                         &text_content,
                         layout_context,
                         &mut new_linebreaker,
-                        &mut font_metrics,
                         &bidi_info,
                     );
                 },
@@ -1678,8 +1664,7 @@ impl InlineFormattingContext {
                         &inline_box.base.style,
                         &layout_context.font_context,
                     ) {
-                        inline_box.default_font_index =
-                            Some(add_or_get_font(layout_context, &font, &mut font_metrics));
+                        inline_box.default_font = Some(font);
                     }
                 },
                 InlineItem::Atomic(_, index_in_text, bidi_level) => {
@@ -1695,7 +1680,6 @@ impl InlineFormattingContext {
             text_content,
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
-            font_metrics,
             shared_inline_styles: builder
                 .shared_inline_styles_stack
                 .last()
