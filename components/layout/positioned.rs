@@ -510,8 +510,9 @@ impl HoistedAbsolutelyPositionedBox {
         // we may have to resolve it properly later on.
         let block_automatic_size = block_axis_solver.automatic_size();
         let block_stretch_size = Some(block_axis_solver.stretch_size());
+        let inline_stretch_size = inline_axis_solver.stretch_size();
         let tentative_block_content_size =
-            context.tentative_block_content_size(preferred_aspect_ratio);
+            context.tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size);
         let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
             SizeConstraint::Definite(block_axis_solver.computed_sizes.resolve(
                 Direction::Block,
@@ -542,7 +543,7 @@ impl HoistedAbsolutelyPositionedBox {
             Direction::Inline,
             inline_axis_solver.automatic_size(),
             Au::zero,
-            Some(inline_axis_solver.stretch_size()),
+            Some(inline_stretch_size),
             get_inline_content_size,
             is_table,
         );
