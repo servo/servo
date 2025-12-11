@@ -36,7 +36,7 @@ export default class EntryAbility extends UIAbility {
             }
         } else if (WRONG_COMMAND_ARRAY.some(value => key.startsWith(value))) {
           hilog.error(0xE0C3, "Servo EntryAbility", "-------------------------------------------------------------------------------------------------");
-          hilog.error(0xE0C3, "Servo EntryAbility", "\n\nYou probably meant to add -- infront of your argument, i.e., --psn=--tracing vs --psn=tracing");
+          hilog.error(0xE0C3, "Servo EntryAbility", "\n\nYou probably meant to add -- infront of your argument, i.e., --psn=--tracing vs --psn=tracing. You used " + entry);
           hilog.error(0xE0C3, "Servo EntryAbility", "-------------------------------------------------------------------------------------------------");
           return;
         }
