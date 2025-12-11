@@ -1387,7 +1387,7 @@ impl InlineFormattingContextLayout<'_> {
             );
             let mut block_size = container_state.get_block_size_contribution(
                 vertical_align,
-                &font_metrics,
+                font_metrics,
                 &container_state.font_metrics,
             );
             block_size.adjust_for_baseline_offset(container_state.baseline_offset);
