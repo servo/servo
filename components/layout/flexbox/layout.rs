@@ -1773,19 +1773,24 @@ impl FlexItem<'_> {
             let cross_size = match used_cross_size_override {
                 Some(s) => SizeConstraint::Definite(s),
                 None => {
-                    let stretch_size = containing_block
+                    let inline_stretch_size =
+                        Au::zero().max(containing_block.size.inline - self.pbm_auto_is_zero.main);
+                    let block_stretch_size = containing_block
                         .size
                         .block
                         .to_definite()
                         .map(|size| Au::zero().max(size - self.pbm_auto_is_zero.cross));
                     let tentative_block_content_size = independent_formatting_context
-                        .tentative_block_content_size(self.preferred_aspect_ratio);
+                        .tentative_block_content_size(
+                            self.preferred_aspect_ratio,
+                            inline_stretch_size,
+                        );
                     if let Some(block_content_size) = tentative_block_content_size {
                         SizeConstraint::Definite(self.content_cross_sizes.resolve(
                             Direction::Block,
                             Size::FitContent,
                             Au::zero,
-                            stretch_size,
+                            block_stretch_size,
                             || block_content_size,
                             is_table,
                         ))
@@ -1793,7 +1798,7 @@ impl FlexItem<'_> {
                         self.content_cross_sizes.resolve_extrinsic(
                             Size::FitContent,
                             Au::zero(),
-                            stretch_size,
+                            block_stretch_size,
                         )
                     }
                 },
@@ -2140,7 +2145,10 @@ impl FlexItemBox {
         let is_table = self.independent_formatting_context.is_table();
         let tentative_cross_content_size = if cross_axis_is_item_block_axis {
             self.independent_formatting_context
-                .tentative_block_content_size(preferred_aspect_ratio)
+                .tentative_block_content_size(
+                    preferred_aspect_ratio,
+                    stretch_size.main.unwrap_or_default(),
+                )
         } else {
             None
         };
