@@ -424,10 +424,8 @@ impl CertificateVerificationOverrideVerifier {
         //
         // Since we cannot count on embedders to do this setup, just stick with webpki roots
         // on Android.
-        let use_platform_verifier =
-            !cfg!(target_os = "android") || !pref!(network_use_webpki_roots);
-
-        let main_verifier = if use_platform_verifier {
+        let use_webpki_roots = cfg!(target_os = "android") || pref!(network_use_webpki_roots);
+        let main_verifier = if !use_webpki_roots {
             let crypto_provider = CryptoProvider::get_default()
                 .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
                 .clone();
@@ -435,14 +433,12 @@ impl CertificateVerificationOverrideVerifier {
                 CACertificates::Default => rustls_platform_verifier::Verifier::new(crypto_provider),
                 // Android doesn't support `Verifier::new_with_extra_roots`, but currently Android
                 // never uses the platform verifier at all.
-                #[cfg(target_os = "android")]
-                CACertificates::Override(..) => {
-                    rustls_platform_verifier::Verifier::new(crypto_provider)
-                },
-                #[cfg(not(target_os = "android"))]
-                CACertificates::Override(certificates) => {
+                CACertificates::Override(_certificates) => {
+                    #[cfg(target_os = "android")]
+                    unreachable!("Android should always use the WebPKI verifier.");
+                    #[cfg(not(target_os = "android"))]
                     rustls_platform_verifier::Verifier::new_with_extra_roots(
-                        certificates,
+                        _certificates,
                         crypto_provider,
                     )
                 },
