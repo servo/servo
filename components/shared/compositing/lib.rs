@@ -215,8 +215,8 @@ pub struct DisplayListForPainter {
     pub display_list_data: DisplayListPayloadSerializeable,
 }
 
-#[derive(Serialize, Deserialize)]
 /// A serializable version of `DisplayListPayload`
+#[derive(Serialize, Deserialize)]
 pub struct DisplayListPayloadSerializeable {
     /// Serde encoded bytes. Mostly DisplayItems, but some mixed in slices.
     #[serde(with = "serde_bytes")]
