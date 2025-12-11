@@ -76,20 +76,20 @@ pub(crate) struct TextFragment {
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
 
-    /// Struct for overflow marker-related metadata.
-    /// One example of overflow marker is ellipsis glyph.
-    pub overflow_metadata: OverflowMarkerData,
+    /// Struct for overflow indicator-related metadata.
+    /// One example of overflow indicator is ellipsis glyph.
+    pub overflow_metadata: OverflowIndicatorData,
 }
 
 #[derive(MallocSizeOf)]
-pub(crate) struct OverflowMarkerData {
+pub(crate) struct OverflowIndicatorData {
     /// The width of the containing block. We need this later to check where to clip the text during
     /// display list construction.
-    pub parent_width: Au,
+    pub containing_block_width: Au,
 
-    // The width of left & right text overflow marker. CSS specs refers to them as `first` & `second`.
+    // The width of left & right text overflow indicator. CSS specs refers to them as `first` & `second`.
     // When `text-overflow: ellipsis`, right clip is the width of the ellipsis glyph.
-    pub overflow_marker_width: (Au, Au),
+    pub overflow_indicator_width: (Au, Au),
 
     /// Per the CSS specification <https://drafts.csswg.org/css-overflow/#text-overflow>,
     /// "The first character or atomic inline-level element on a line must be clipped rather than ellipsed."
@@ -130,17 +130,17 @@ pub(crate) struct IFrameFragment {
     pub style: ServoArc<ComputedValues>,
 }
 
-impl OverflowMarkerData {
+impl OverflowIndicatorData {
     pub fn new(
-        parent_width: Au,
-        overflow_marker_width: (Au, Au),
+        containing_block_width: Au,
+        overflow_indicator_width: (Au, Au),
         contains_first_character_of_the_line: bool,
         inline_offset: Au,
         can_be_elided: bool,
     ) -> Self {
         Self {
-            parent_width,
-            overflow_marker_width,
+            containing_block_width,
+            overflow_indicator_width,
             contains_first_character_of_the_line,
             inline_offset,
             can_be_elided,
