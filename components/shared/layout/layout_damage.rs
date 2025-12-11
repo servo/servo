@@ -13,8 +13,10 @@ bitflags! {
         /// Recollect the box children for this element, because some of the them will be
         /// rebuilt.
         const RECOLLECT_BOX_TREE_CHILDREN = 0b0111_1111_1111 << 4;
+        /// Clear the cached inline content sizes and recompute them during the next layout.
+        const RECOMPUTE_INLINE_CONTENT_SIZES = 0b1000_0000_0000 << 4;
         /// Rebuild the entire box for this element, which means that every part of layout
-        /// needs to happena again.
+        /// needs to happen again.
         const REBUILD_BOX = 0b1111_1111_1111 << 4;
     }
 }
@@ -22,6 +24,10 @@ bitflags! {
 impl LayoutDamage {
     pub fn recollect_box_tree_children() -> RestyleDamage {
         RestyleDamage::from_bits_retain(LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN.bits())
+    }
+
+    pub fn recompute_inline_content_sizes() -> RestyleDamage {
+        RestyleDamage::from_bits_retain(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES.bits())
     }
 
     pub fn rebuild_box_tree() -> RestyleDamage {

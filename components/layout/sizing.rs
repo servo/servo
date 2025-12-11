@@ -4,8 +4,9 @@
 
 //! <https://drafts.csswg.org/css-sizing/>
 
-use std::cell::{LazyCell, OnceCell};
+use std::cell::{Cell, LazyCell, OnceCell};
 use std::ops::{Add, AddAssign};
+use std::sync::atomic::Ordering;
 
 use app_units::{Au, MAX_AU};
 use malloc_size_of_derive::MallocSizeOf;
@@ -16,6 +17,7 @@ use style::values::computed::{
 };
 
 use crate::context::LayoutContext;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2};
 
@@ -120,6 +122,7 @@ impl From<Au> for ContentSizes {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn outer_inline(
+    base: &LayoutBoxBase,
     layout_style: &LayoutStyle,
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
@@ -143,7 +146,11 @@ pub(crate) fn outer_inline(
     };
     let style = layout_style.style();
     let is_table = layout_style.is_table();
+    // TODO: Replace `depends_on_contents` with `content_size.get().is_some()` once `LazyCell::get()`
+    // becomes stable.
+    let depends_on_contents = Cell::new(false);
     let content_size = LazyCell::new(|| {
+        depends_on_contents.set(true);
         let constraint_space = if establishes_containing_block {
             let available_block_size = containing_block
                 .size
@@ -267,6 +274,8 @@ pub(crate) fn outer_inline(
         min_depends_on_block_constraints |= content_size.depends_on_block_constraints;
     }
 
+    base.outer_inline_content_sizes_depend_on_content
+        .store(depends_on_contents.get(), Ordering::Relaxed);
     InlineContentSizesResult {
         sizes: ContentSizes {
             min_content: preferred_min_content
