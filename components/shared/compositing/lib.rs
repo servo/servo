@@ -365,8 +365,8 @@ impl CrossProcessPaintApi {
             display_list_data,
         };
 
-        if let Err(e) = display_list_sender.send(sending) {
-            warn!("Error sending display list: {e}");
+        if let Err(error) = display_list_sender.send(sending) {
+            warn!("Error sending display list: {error}");
         }
     }
 
