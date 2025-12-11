@@ -1645,12 +1645,10 @@ fn glyphs(
     use range::Range;
 
     let glyph_runs = &fragment.glyphs;
-    let containing_block_width = fragment.overflow_metadata.parent_width;
 
     let mut glyphs = vec![];
     let mut total_advance = fragment.overflow_metadata.inline_offset;
-    let max_total_advance =
-        containing_block_width - fragment.overflow_metadata.overflow_marker_width.1;
+    let max_total_advance = fragment.overflow_metadata.containing_block_bounds.1;
 
     for run in glyph_runs {
         for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
@@ -1668,7 +1666,7 @@ fn glyphs(
                 };
 
                 // First glyph must never be elided. Otherwise, check if it's time to crop.
-                // The first character or atomic inline-level element on a line must be clipped rather than ellipsed.
+                // > The first character or atomic inline-level element on a line must be clipped rather than ellipsed.
                 // <https://www.w3.org/TR/css-ui-3/#text-overflow>
                 if !fragment.overflow_metadata.can_be_elided ||
                     total_advance <= max_total_advance ||

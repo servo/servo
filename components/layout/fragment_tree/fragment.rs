@@ -74,20 +74,17 @@ pub(crate) struct TextFragment {
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
 
-    /// Struct for overflow marker-related metadata.
-    /// One example of overflow marker is ellipsis glyph.
-    pub overflow_metadata: OverflowMarkerData,
+    /// Struct for overflow indicator-related metadata.
+    /// One example of overflow indicator is ellipsis glyph.
+    pub overflow_metadata: OverflowIndicatorData,
 }
 
 #[derive(MallocSizeOf)]
-pub(crate) struct OverflowMarkerData {
-    /// The width of the containing block. We need this later to check where to clip the text during
-    /// display list construction.
-    pub parent_width: Au,
-
-    // The width of left & right text overflow marker. CSS specs refers to them as `first` & `second`.
-    // When `text-overflow: ellipsis`, right clip is the width of the ellipsis glyph.
-    pub overflow_marker_width: (Au, Au),
+pub(crate) struct OverflowIndicatorData {
+    /// The left & right bounds of the containing block, after overflow indicator is taken into account.
+    /// The right bound is simply the width of the containing block minus the `second` value of overflow indicator width.
+    /// TODO: Add left bound computation logic after double-valued `text-overflow` is supported.
+    pub containing_block_bounds: (Au, Au),
 
     /// Per the CSS specification <https://drafts.csswg.org/css-overflow/#text-overflow>,
     /// "The first character or atomic inline-level element on a line must be clipped rather than ellipsed."
@@ -124,17 +121,15 @@ pub(crate) struct IFrameFragment {
     pub pipeline_id: PipelineId,
 }
 
-impl OverflowMarkerData {
+impl OverflowIndicatorData {
     pub fn new(
-        parent_width: Au,
-        overflow_marker_width: (Au, Au),
+        containing_block_bounds: (Au, Au),
         contains_first_character_of_the_line: bool,
         inline_offset: Au,
         can_be_elided: bool,
     ) -> Self {
         Self {
-            parent_width,
-            overflow_marker_width,
+            containing_block_bounds,
             contains_first_character_of_the_line,
             inline_offset,
             can_be_elided,

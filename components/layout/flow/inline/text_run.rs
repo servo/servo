@@ -77,7 +77,7 @@ pub(crate) struct TextRunSegment {
 
 impl TextRunSegment {
     pub(super) fn new(
-        font_index: usize,
+        font: FontRef,
         script: Script,
         bidi_level: Level,
         start_offset: usize,
