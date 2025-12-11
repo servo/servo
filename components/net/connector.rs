@@ -24,9 +24,10 @@ use log::warn;
 use parking_lot::Mutex;
 use rustls::client::danger::ServerCertVerifier;
 use rustls::client::{ClientConnection, EchStatus};
-use rustls::crypto::aws_lc_rs;
+use rustls::crypto::{CryptoProvider, aws_lc_rs};
 use rustls::{ClientConfig, ProtocolVersion};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
+use servo_config::pref;
 use tokio::net::TcpStream;
 use tower::Service;
 
@@ -361,11 +362,10 @@ impl CertificateErrorOverrideManager {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum CACertificates<'de> {
-    #[cfg(not(target_os = "android"))]
-    PlatformVerifier,
-    WebPKI,
+    #[default]
+    Default,
     Override(Vec<CertificateDer<'de>>),
 }
 
@@ -416,49 +416,52 @@ impl CertificateVerificationOverrideVerifier {
         ignore_certificate_errors: bool,
         override_manager: CertificateErrorOverrideManager,
     ) -> Self {
-        let crypto_provider = rustls::crypto::CryptoProvider::get_default()
-            .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
-            .clone();
-        let main_verifier = match ca_certficates {
-            #[cfg(not(target_os = "android"))]
-            CACertificates::PlatformVerifier => Arc::new(
-                rustls_platform_verifier::Verifier::new(crypto_provider)
-                    .expect("Could not initialize platform certificate verifier."),
-            ),
-            CACertificates::WebPKI => {
-                let root_store = Arc::new(rustls::RootCertStore::from_iter(
-                    webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
-                ));
-
-                rustls::client::WebPkiServerVerifier::builder(root_store)
-                    .build()
-                    .expect("Could not initialize platform certificate verifier.")
-                    as Arc<dyn ServerCertVerifier>
-            },
-            #[cfg(not(target_os = "android"))]
-            CACertificates::Override(root_cert_store) => Arc::new(
-                rustls_platform_verifier::Verifier::new_with_extra_roots(
-                    root_cert_store,
-                    crypto_provider,
-                )
-                .expect("Could not build platform verifier with additional certs."),
-            ),
-            #[cfg(target_os = "android")]
-            CACertificates::Override(root_cert_store) => {
-                // Android does not support rustls_platform_verifier::Verifier::new_with_extra_roots.
-                let mut main_store = rustls::RootCertStore::from_iter(
-                    webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
-                );
-                for i in root_cert_store {
-                    if main_store.add(i).is_err() {
-                        log::error!("Could not add an override certificate.");
+        // From <https://github.com/rustls/rustls-platform-verifier/blob/main/README.md>:
+        // > Some manual setup is required, outside of cargo, to use this crate on
+        // > Android. In order to use Android's certificate verifier, the crate needs to
+        // > call into the JVM. A small Kotlin component must be included in your app's
+        // > build to support rustls-platform-verifier.
+        //
+        // Since we cannot count on embedders to do this setup, just stick with webpki roots
+        // on Android.
+        let use_webpki_roots = cfg!(target_os = "android") || pref!(network_use_webpki_roots);
+        let main_verifier = if !use_webpki_roots {
+            let crypto_provider = CryptoProvider::get_default()
+                .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
+                .clone();
+            let verifier = match ca_certficates {
+                CACertificates::Default => rustls_platform_verifier::Verifier::new(crypto_provider),
+                // Android doesn't support `Verifier::new_with_extra_roots`, but currently Android
+                // never uses the platform verifier at all.
+                CACertificates::Override(_certificates) => {
+                    #[cfg(target_os = "android")]
+                    unreachable!("Android should always use the WebPKI verifier.");
+                    #[cfg(not(target_os = "android"))]
+                    rustls_platform_verifier::Verifier::new_with_extra_roots(
+                        _certificates,
+                        crypto_provider,
+                    )
+                },
+            }
+            .expect("Could not initialize platform certificate verifier");
+            Arc::new(verifier) as Arc<dyn ServerCertVerifier>
+        } else {
+            let mut root_store =
+                rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+            match ca_certficates {
+                CACertificates::Default => {},
+                CACertificates::Override(certificates) => {
+                    for certificate in certificates {
+                        if root_store.add(certificate).is_err() {
+                            log::error!("Could not add an override certificate.");
+                        }
                     }
-                }
-                rustls::client::WebPkiServerVerifier::builder(main_store.into())
-                    .build()
-                    .expect("Could not initialize platform certificate verifier.")
-                    as Arc<dyn ServerCertVerifier>
-            },
+                },
+            }
+            rustls::client::WebPkiServerVerifier::builder(root_store.into())
+                .build()
+                .expect("Could not initialize platform certificate verifier.")
+                as Arc<dyn ServerCertVerifier>
         };
 
         Self {

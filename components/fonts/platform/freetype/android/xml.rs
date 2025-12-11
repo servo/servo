@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(super) use xml::attribute::OwnedAttribute as Attribute;
-use xml::reader::XmlEvent::*;
+use xml::reader::XmlEvent;
 
 pub(super) enum Node {
     Element {
@@ -19,13 +19,13 @@ pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
     let mut nodes = Vec::new();
     for result in xml::EventReader::new(bytes) {
         match result? {
-            StartElement {
+            XmlEvent::StartElement {
                 name, attributes, ..
             } => {
                 stack.push((name, attributes, nodes));
                 nodes = Vec::new();
             },
-            EndElement { .. } => {
+            XmlEvent::EndElement { .. } => {
                 let (name, attributes, mut parent_nodes) = stack.pop().unwrap();
                 parent_nodes.push(Node::Element {
                     name,
@@ -34,15 +34,18 @@ pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
                 });
                 nodes = parent_nodes;
             },
-            CData(s) | Characters(s) | Whitespace(s) => {
+            XmlEvent::CData(s) | XmlEvent::Characters(s) | XmlEvent::Whitespace(s) => {
                 if let Some(Node::Text(text)) = nodes.last_mut() {
                     text.push_str(&s)
                 } else {
                     nodes.push(Node::Text(s))
                 }
             },
-            StartDocument { .. } | EndDocument | ProcessingInstruction { .. } | Comment(..) => {},
-            Doctype => {},
+            XmlEvent::Comment(..) |
+            XmlEvent::Doctype { .. } |
+            XmlEvent::EndDocument |
+            XmlEvent::ProcessingInstruction { .. } |
+            XmlEvent::StartDocument { .. } => {},
         }
     }
     assert!(stack.is_empty());
