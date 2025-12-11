@@ -21,13 +21,14 @@ use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
-    AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestMethod, Authorization,
-    CacheControl, ContentLength, HeaderMapExt, IfModifiedSince, LastModified, Pragma, Referer,
-    StrictTransportSecurity, UserAgent,
+    AccessControlMaxAge, AccessControlRequestMethod, Authorization, CacheControl, ContentLength,
+    HeaderMapExt, IfModifiedSince, LastModified, Pragma, Referer, StrictTransportSecurity,
+    UserAgent,
 };
 use http::header::{
-    self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
-    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE, WWW_AUTHENTICATE,
+    self, ACCEPT, ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION,
+    CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE,
+    WWW_AUTHENTICATE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -41,6 +42,7 @@ use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::pub_domains::reg_suffix;
@@ -2562,47 +2564,42 @@ async fn cors_preflight_fetch(
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
 fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
-    // Step 1
-    let origin = response.headers.typed_get::<AccessControlAllowOrigin>();
+    // Step 1. Let origin be the result of getting `Access-Control-Allow-Origin` from response’s header list.
+    let Some(origins) =
+        get_value_from_header_list(ACCESS_CONTROL_ALLOW_ORIGIN.as_str(), &response.headers)
+    else {
+        // Step 2. If origin is null, then return failure.
+        return Err(());
+    };
+    let origin = origins.into_iter().map(char::from).collect::<String>();
 
-    // Step 2
-    let origin = origin.ok_or(())?;
-
-    // Step 3
-    if request.credentials_mode != CredentialsMode::Include &&
-        origin == AccessControlAllowOrigin::ANY
-    {
+    // Step 3. If request’s credentials mode is not "include" and origin is `*`, then return success.
+    if request.credentials_mode != CredentialsMode::Include && origin == "*" {
         return Ok(());
     }
 
-    // Step 4
-    let origin = match origin.origin() {
-        Some(origin) => origin,
-        // if it's Any or Null at this point, there's nothing to do but return Err(())
-        None => return Err(()),
-    };
-
+    // Step 4. If the result of byte-serializing a request origin with request is not origin, then return failure.
     match request.origin {
-        Origin::Origin(ref o) if o.ascii_serialization() == origin.to_string().trim() => {},
+        Origin::Origin(ref o) if *o.ascii_serialization() == *origin => {},
         _ => return Err(()),
     }
 
-    // Step 5
+    // Step 5. If request’s credentials mode is not "include", then return success.
     if request.credentials_mode != CredentialsMode::Include {
         return Ok(());
     }
 
-    // Step 6
+    // Step 6. Let credentials be the result of getting `Access-Control-Allow-Credentials` from response’s header list.
     let credentials = response
         .headers
         .typed_get::<AccessControlAllowCredentials>();
 
-    // Step 7
+    // Step 7. If credentials is `true`, then return success.
     if credentials.is_some() {
         return Ok(());
     }
 
-    // Step 8
+    // Step 8. Return failure.
     Err(())
 }
 
