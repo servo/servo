@@ -2,4 +2,4 @@
 
 Moved to the Servo book:
 
-- [Contributing to Servo](https://book.servo.org/contributing.html)
+- [Contributing to Servo](https://book.servo.org/contributing/getting-started)
