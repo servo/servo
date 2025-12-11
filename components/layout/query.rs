@@ -7,8 +7,8 @@ use std::rc::Rc;
 
 use app_units::Au;
 use compositing_traits::display_list::ScrollTree;
-use euclid::default::{Point2D, Rect};
-use euclid::{SideOffsets2D, Size2D};
+use euclid::default::{Point2D, Rect as UntypedRect};
+use euclid::{Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
@@ -35,6 +35,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
+use style::values::computed::transform::Matrix3D;
 use style::values::computed::{Float, Size};
 use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
@@ -44,7 +45,7 @@ use style::values::specified::text::TextTransformCase;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::ArcRefCell;
-use crate::display_list::StackingContextTree;
+use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
@@ -92,7 +93,7 @@ pub(crate) fn process_box_area_request(
     node: ServoThreadSafeLayoutNode<'_>,
     area: BoxAreaType,
     exclude_transform_and_inline: bool,
-) -> Option<Rect<Au>> {
+) -> Option<UntypedRect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
@@ -128,7 +129,7 @@ pub(crate) fn process_box_areas_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoThreadSafeLayoutNode<'_>,
     area: BoxAreaType,
-) -> Vec<Rect<Au>> {
+) -> Vec<UntypedRect<Au>> {
     let fragments = node.fragments_for_pseudo(None);
     let box_areas = fragments
         .iter()
@@ -148,7 +149,7 @@ pub(crate) fn process_box_areas_request(
         .collect()
 }
 
-pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> Rect<i32> {
+pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> UntypedRect<i32> {
     node.fragments_for_pseudo(None)
         .first()
         .map(Fragment::client_rect)
@@ -178,7 +179,7 @@ pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
 pub fn process_node_scroll_area_request(
     requested_node: Option<ServoThreadSafeLayoutNode<'_>>,
     fragment_tree: Option<Rc<FragmentTree>>,
-) -> Rect<i32> {
+) -> UntypedRect<i32> {
     let Some(tree) = fragment_tree else {
         return Rect::zero();
     };
@@ -243,6 +244,37 @@ pub fn process_resolved_style_request(
     }
     .to_physical(style.writing_mode);
 
+    // From <https://drafts.csswg.org/css-transforms-2/#serialization-of-the-computed-value>
+    let serialize_transform_value = |box_fragment: Option<&BoxFragment>| -> Result<String, ()> {
+        let transform_list = &style.get_box().transform;
+
+        // > When the computed value is a <transform-list>, the resolved value is one
+        // > <matrix()> function or one <matrix3d()> function computed by the following
+        // > algorithm:
+        if transform_list.0.is_empty() {
+            return Ok("none".into());
+        }
+
+        // > 1. Let transform be a 4x4 matrix initialized to the identity matrix. The
+        // >    elements m11, m22, m33 and m44 of transform must be set to 1; all other
+        // >    elements of transform must be set to 0.
+        // > 2. Post-multiply all <transform-function>s in <transform-list> to transform.
+        let length_rect = box_fragment
+            .map(|box_fragment| au_rect_to_length_rect(&box_fragment.border_rect()).to_untyped());
+        let (transform, is_3d) = transform_list.to_transform_3d_matrix(length_rect.as_ref())?;
+
+        // > 3. Chose between <matrix()> or <matrix3d()> serialization:
+        // >   ↪ If transform is a 2D matrix: Serialize transform to a <matrix()> function.
+        // >   ↪ Otherwise: Serialize transform to a <matrix3d()> function. Chose between
+        // >     <matrix()> or <matrix3d()> serialization:
+        let matrix = Matrix3D::from(transform);
+        if !is_3d {
+            Ok(matrix.into_2d()?.to_css_string())
+        } else {
+            Ok(matrix.to_css_string())
+        }
+    };
+
     let computed_style = |fragment: Option<&Fragment>| match longhand_id {
         LonghandId::MinWidth
             if style.clone_min_width() == Size::Auto &&
@@ -255,6 +287,10 @@ pub fn process_resolved_style_request(
                 !should_honor_min_size_auto(fragment, style) =>
         {
             String::from("0px")
+        },
+        LonghandId::Transform => match serialize_transform_value(None) {
+            Ok(value) => value,
+            Err(..) => style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id)),
         },
         _ => style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id)),
     };
@@ -303,6 +339,13 @@ pub fn process_resolved_style_request(
                         },
                         LonghandId::Left => {
                             return resolved_insets().left.to_css_string();
+                        },
+                        LonghandId::Transform => {
+                            // If we can compute the string do it, but otherwise fallback to a cruder serialization
+                            // of the value.
+                            if let Ok(string) = serialize_transform_value(Some(&*box_fragment)) {
+                                return string;
+                            }
                         },
                         _ => {},
                     }
@@ -1365,9 +1408,9 @@ where
 }
 
 pub(crate) fn transform_au_rectangle(
-    rect_to_transform: Rect<Au>,
+    rect_to_transform: UntypedRect<Au>,
     transform: FastLayoutTransform,
-) -> Option<Rect<Au>> {
+) -> Option<UntypedRect<Au>> {
     let rect_to_transform = &au_rect_to_f32_rect(rect_to_transform).cast_unit();
     let outer_transformed_rect = match transform {
         FastLayoutTransform::Offset(offset) => Some(rect_to_transform.translate(offset)),
