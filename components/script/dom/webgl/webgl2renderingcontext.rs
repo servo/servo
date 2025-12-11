@@ -8,6 +8,7 @@ use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
 use std::rc::Rc;
 
+use base::generic_channel::GenericSharedMemory;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -16,7 +17,7 @@ use canvas_traits::webgl::{
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
@@ -3144,7 +3145,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         let unpacking_alignment = self.base.texture_unpacking_alignment();
         let buff = match *src_data {
-            Some(ref data) => IpcSharedMemory::from_bytes(unsafe { data.as_slice() }),
+            Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
             None => {
                 let element_size = data_type.element_size();
                 let components = format.components();
@@ -3163,7 +3164,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                         (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
                     stride * (height - 1) + width * cpp
                 };
-                IpcSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize])
+                GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize])
             },
         };
         let (alpha_treatment, y_axis_treatment) =
@@ -3451,7 +3452,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return Ok(());
         }
 
-        let buff = IpcSharedMemory::from_bytes(unsafe { &src_data.as_slice()[src_byte_offset..] });
+        let buff =
+            GenericSharedMemory::from_bytes(unsafe { &src_data.as_slice()[src_byte_offset..] });
 
         let expected_byte_length = match self.base.validate_tex_image_2d_data(
             width,

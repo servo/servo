@@ -4,12 +4,13 @@
 
 use std::sync::Arc;
 
+use base::generic_channel::GenericSharedMemory;
 use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
 use indexmap::IndexMap;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -316,7 +317,7 @@ pub enum BodySource {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkResponse {
     /// A chunk of bytes.
-    Chunk(IpcSharedMemory),
+    Chunk(GenericSharedMemory),
     /// The body is done.
     Done,
     /// There was an error streaming the body,
@@ -1147,7 +1148,7 @@ pub fn convert_header_names_to_sorted_lowercase_set(
 }
 
 pub fn create_request_body_with_content(content: &str) -> RequestBody {
-    let content_bytes = IpcSharedMemory::from_bytes(content.as_bytes());
+    let content_bytes = GenericSharedMemory::from_bytes(content.as_bytes());
     let content_len = content_bytes.len();
 
     let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();

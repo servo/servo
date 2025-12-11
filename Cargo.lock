@@ -1152,7 +1152,6 @@ dependencies = [
  "euclid",
  "fonts",
  "futures-intrusive",
- "ipc-channel",
  "kurbo 0.12.0",
  "log",
  "net_traits",
@@ -6742,10 +6741,10 @@ dependencies = [
 name = "pixels"
 version = "0.0.1"
 dependencies = [
+ "base",
  "criterion",
  "euclid",
  "image",
- "ipc-channel",
  "log",
  "malloc_size_of_derive",
  "serde",
@@ -10289,7 +10288,6 @@ dependencies = [
  "euclid",
  "glow",
  "half",
- "ipc-channel",
  "itertools 0.14.0",
  "log",
  "parking_lot",

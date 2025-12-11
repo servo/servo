@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
+use base::generic_channel::GenericSharedMemory;
 use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
@@ -19,7 +20,6 @@ use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
     ImageResult, Limits, Rgba,
 };
-use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -289,7 +289,7 @@ pub struct SharedRasterImage {
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
     #[conditional_malloc_size_of]
-    pub bytes: Arc<IpcSharedMemory>,
+    pub bytes: Arc<GenericSharedMemory>,
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
@@ -400,7 +400,7 @@ impl RasterImage {
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
         frame_index: usize,
-    ) -> (ImageDescriptor, IpcSharedMemory) {
+    ) -> (ImageDescriptor, GenericSharedMemory) {
         let frame = self
             .frames
             .get(frame_index)
@@ -432,7 +432,7 @@ impl RasterImage {
             offset: frame.byte_range.start as i32,
             flags,
         };
-        (descriptor, IpcSharedMemory::from_bytes(&data))
+        (descriptor, GenericSharedMemory::from_bytes(&data))
     }
 
     pub fn to_shared(&self) -> Arc<SharedRasterImage> {
@@ -441,7 +441,7 @@ impl RasterImage {
             format: self.format,
             id: self.id,
             cors_status: self.cors_status,
-            bytes: Arc::new(IpcSharedMemory::from_bytes(&self.bytes)),
+            bytes: Arc::new(GenericSharedMemory::from_bytes(&self.bytes)),
             frames: self.frames.clone(),
             is_opaque: self.is_opaque,
         })

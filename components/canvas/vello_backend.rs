@@ -23,7 +23,7 @@ use canvas_traits::canvas::{
 use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts::FontIdentifier;
-use ipc_channel::ipc::IpcSharedMemory;
+use ipc_channel::ipc::GenericSharedMemory;
 use kurbo::Shape as _;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use vello::wgpu::{
@@ -589,14 +589,14 @@ impl GenericDrawTarget for VelloDrawTarget {
                 flags: ImageDescriptorFlags::empty(),
             };
             let data = SerializableImageData::Raw(if let Some(data) = data {
-                let mut data = IpcSharedMemory::from_bytes(data);
+                let mut data = GenericSharedMemory::from_bytes(data);
                 #[expect(unsafe_code)]
                 unsafe {
                     pixels::generic_transform_inplace::<1, false, false>(data.deref_mut());
                 };
                 data
             } else {
-                IpcSharedMemory::from_byte(0, size.area() as usize * 4)
+                GenericSharedMemory::from_byte(0, size.area() as usize * 4)
             });
             (image_desc, data)
         })
