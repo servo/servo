@@ -1546,7 +1546,7 @@ async fn http_network_or_cache_fetch(
     }
 
     // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
-    {
+    let should_wait = {
         // Enter critical section on cache entry.
         let mut cache_guard = block_for_cache_ready(
             context,
@@ -1614,11 +1614,19 @@ async fn http_network_or_cache_fetch(
                     cache_guard.insert(http_request, forward_response).await;
                 }
             }
-        };
+            false
+        } else {
+            true
+        }
     }; // Exit Critical Section on cache entry
-    // `block_for_cache_ready` or `refresh` could start new requests that set the `done_chan`, so
-    // so we need to wait till these requests are finished.
-    wait_for_inflight_requests(done_chan, &mut response).await;
+
+    if should_wait {
+        // If the cache constructed a response, and that is still receiving from the network,
+        // we must wait for it to finish in case it is still receiving from the network.
+        // Note: this means only the fetch from which the original network response originated
+        // will be able to stream it; all others receive a cached response in one chunk.
+        wait_for_inflight_requests(done_chan, &mut response).await;
+    }
 
     let http_request = &mut http_fetch_params.request;
     let mut response = response.unwrap();
