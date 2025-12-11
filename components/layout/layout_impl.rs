@@ -8,7 +8,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::process;
-use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
@@ -86,6 +85,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
+use crate::accessibility_tree::{AccessibilityThread, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{
     DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
@@ -179,7 +179,9 @@ pub struct LayoutThread {
     box_tree: RefCell<Option<Arc<BoxTree>>>,
 
     /// The fragment tree.
-    fragment_tree: RefCell<Option<Rc<FragmentTree>>>,
+    fragment_tree: RefCell<Option<Arc<FragmentTree>>>,
+    accessibility_tree: RefCell<Option<Arc<AccessibilityTree>>>,
+    accessibility_thread: AccessibilityThread,
 
     /// The [`StackingContextTree`] cached from previous layouts.
     stacking_context_tree: RefCell<Option<StackingContextTree>>,
@@ -749,6 +751,8 @@ impl LayoutThread {
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
+            accessibility_tree: Default::default(),
+            accessibility_thread: AccessibilityThread::new(),
             stacking_context_tree: Default::default(),
             paint_api: config.paint_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
@@ -1144,12 +1148,13 @@ impl LayoutThread {
                 .unwrap()
                 .layout(recalc_style_traversal.context(), viewport_size)
         };
-        let fragment_tree = Rc::new(if let Some(pool) = rayon_pool {
+        let fragment_tree = Arc::new(if let Some(pool) = rayon_pool {
             pool.install(run_layout)
         } else {
             run_layout()
         });
 
+        self.accessibility_thread.send(fragment_tree.clone());
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
         if self.debug.style_tree {

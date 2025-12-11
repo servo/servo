@@ -4967,6 +4967,7 @@ dependencies = [
  "base",
  "bitflags 2.10.0",
  "compositing_traits",
+ "crossbeam-channel",
  "cssparser",
  "data-url",
  "embedder_traits",

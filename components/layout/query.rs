@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
-use std::rc::Rc;
+use std::sync::Arc;
 
 use app_units::Au;
 use compositing_traits::display_list::ScrollTree;
@@ -177,7 +177,7 @@ pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
     requested_node: Option<ServoThreadSafeLayoutNode<'_>>,
-    fragment_tree: Option<Rc<FragmentTree>>,
+    fragment_tree: Option<Arc<FragmentTree>>,
 ) -> Rect<i32> {
     let Some(tree) = fragment_tree else {
         return Rect::zero();

@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-
 use app_units::Au;
 use base::print_tree::PrintTree;
 use compositing_traits::display_list::AxesScrollSensitivity;
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::RwLock;
 use rustc_hash::FxHashSet;
 use style::animation::AnimationSetKey;
 use style::computed_values::position::T as Position;
@@ -31,7 +30,7 @@ pub struct FragmentTree {
 
     /// The scrollable overflow rectangle for the entire tree
     /// <https://drafts.csswg.org/css-overflow/#scrollable>
-    scrollable_overflow: Cell<Option<PhysicalRect<Au>>>,
+    scrollable_overflow: RwLock<Option<PhysicalRect<Au>>>,
 
     /// The containing block used in the layout of this fragment tree.
     pub(crate) initial_containing_block: PhysicalRect<Au>,
@@ -49,7 +48,7 @@ impl FragmentTree {
     ) -> Self {
         let fragment_tree = Self {
             root_fragments,
-            scrollable_overflow: Cell::default(),
+            scrollable_overflow: RwLock::default(),
             initial_containing_block,
             viewport_scroll_sensitivity,
         };
@@ -108,7 +107,7 @@ impl FragmentTree {
 
     pub(crate) fn scrollable_overflow(&self) -> PhysicalRect<Au> {
         self.scrollable_overflow
-            .get()
+            .read()
             .expect("Should only call `scrollable_overflow()` after calculating overflow")
     }
 
@@ -163,7 +162,7 @@ impl FragmentTree {
             )
         };
 
-        self.scrollable_overflow.set(Some(scrollable_overflow()))
+        *self.scrollable_overflow.write() = Some(scrollable_overflow());
     }
 
     pub(crate) fn find<T>(
