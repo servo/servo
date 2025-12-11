@@ -37,6 +37,13 @@ pub struct TargetConfigurationActor {
     supported_options: HashMap<&'static str, bool>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct JavascriptEnabledReply {
+    from: String,
+    javascript_enabled: bool,
+}
+
 impl Actor for TargetConfigurationActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -80,6 +87,13 @@ impl Actor for TargetConfigurationActor {
                     }
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
+                request.reply_final(&msg)?
+            },
+            "isJavascriptEnabled" => {
+                let msg = JavascriptEnabledReply {
+                    from: self.name(),
+                    javascript_enabled: true,
+                };
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
