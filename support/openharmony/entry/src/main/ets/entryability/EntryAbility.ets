@@ -4,6 +4,8 @@ import UIAbility from '@ohos.app.ability.UIAbility';
 import Want from '@ohos.app.ability.Want';
 import window from '@ohos.window';
 
+const WRONG_COMMAND_ARRAY = ["tracing", "devtools", "force_ipc", "multiprocess", "webdriver"];
+
 export default class EntryAbility extends UIAbility {
   init_params: LocalStorage = new LocalStorage();
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam) {
@@ -32,7 +34,7 @@ export default class EntryAbility extends UIAbility {
             if (value) {
                 params.push(value)
             }
-        } else if (["tracing", "devtools", "force_ipc", "multiprocess", "webdriver"].some(value => key.startsWith(value))) {
+        } else if (WRONG_COMMAND_ARRAY.some(value => key.startsWith(value))) {
           hilog.error(0xE0C3, "Servo EntryAbility", "-------------------------------------------------------------------------------------------------");
           hilog.error(0xE0C3, "Servo EntryAbility", "\n\nYou probably meant to add -- infront of your argument, i.e., --psn=--tracing vs --psn=tracing");
           hilog.error(0xE0C3, "Servo EntryAbility", "-------------------------------------------------------------------------------------------------");
