@@ -92,6 +92,10 @@ pub(crate) struct WebViewRenderer {
     pub pipelines: FxHashMap<PipelineId, PipelineDetails>,
     /// Pending scroll/zoom events.
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
+    /// A map of pending wheel events. These are events that have been sent to script,
+    /// but are waiting for processing. When they are handled by script, they may trigger
+    /// scroll events depending on whether `preventDefault()` was called on the event.
+    pending_wheel_events: FxHashMap<InputEventId, WheelEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
@@ -142,6 +146,7 @@ impl WebViewRenderer {
             pipelines: Default::default(),
             touch_handler: TouchHandler::new(webview_id),
             pending_scroll_zoom_events: Default::default(),
+            pending_wheel_events: Default::default(),
             page_zoom: DEFAULT_PAGE_ZOOM,
             pinch_zoom: PinchZoom::new(rect),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
@@ -379,25 +384,11 @@ impl WebViewRenderer {
         }
 
         if let InputEvent::Wheel(wheel_event) = event_and_id.event {
-            self.on_wheel_event(render_api, wheel_event, event_and_id);
-            return;
+            self.pending_wheel_events
+                .insert(event_and_id.id, wheel_event);
         }
 
         self.dispatch_input_event_with_hit_testing(render_api, event_and_id);
-    }
-
-    fn on_wheel_event(
-        &mut self,
-        render_api: &RenderApi,
-        wheel_event: WheelEvent,
-        event_and_id: InputEventAndId,
-    ) {
-        self.dispatch_input_event_with_hit_testing(render_api, event_and_id);
-
-        // A scroll delta for a wheel event is the inverse of the wheel delta.
-        let scroll_delta =
-            DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
-        self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
     }
 
     fn send_touch_event(
@@ -1056,6 +1047,15 @@ impl WebViewRenderer {
                     self.refresh_driver.clone(),
                     repaint_reason,
                 );
+        }
+
+        if let Some(wheel_event) = self.pending_wheel_events.remove(&id) {
+            if !result.contains(InputEventResult::DefaultPrevented) {
+                // A scroll delta for a wheel event is the inverse of the wheel delta.
+                let scroll_delta =
+                    DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
+                self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
+            }
         }
     }
 }
