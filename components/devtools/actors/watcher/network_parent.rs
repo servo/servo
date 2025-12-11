@@ -33,6 +33,10 @@ impl Actor for NetworkParentActor {
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
             },
+            "setPersist" => {
+                let msg = EmptyReplyMsg { from: self.name() };
+                request.reply_final(&msg)?
+            },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
