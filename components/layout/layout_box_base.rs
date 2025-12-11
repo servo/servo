@@ -91,7 +91,9 @@ impl LayoutBoxBase {
     pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = new_style.clone();
         for fragment in self.fragments.borrow_mut().iter_mut() {
-            fragment.repair_style(new_style);
+            if let Some(mut base) = fragment.base_mut() {
+                base.repair_style(new_style);
+            }
         }
     }
 }

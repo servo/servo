@@ -350,21 +350,18 @@ pub fn process_resolved_style_request(
                         _ => {},
                     }
                 }
-                let content_rect = box_fragment.content_rect;
+                let content_rect = box_fragment.base.rect;
                 let margins = box_fragment.margin;
                 let padding = box_fragment.padding;
                 let specific_layout_info = box_fragment.specific_layout_info().cloned();
                 (content_rect, margins, padding, specific_layout_info)
             },
-            Fragment::Positioning(positioning_fragment) => {
-                let content_rect = positioning_fragment.borrow().rect;
-                (
-                    content_rect,
-                    SideOffsets2D::zero(),
-                    SideOffsets2D::zero(),
-                    None,
-                )
-            },
+            Fragment::Positioning(positioning_fragment) => (
+                positioning_fragment.borrow().base.rect,
+                SideOffsets2D::zero(),
+                SideOffsets2D::zero(),
+                None,
+            ),
             _ => return computed_style(Some(fragment)),
         };
 
@@ -600,7 +597,7 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
         return None;
     }
     if matches!(
-        fragment, Fragment::Box(fragment) if fragment.borrow().style.get_box().position == Position::Fixed
+        fragment, Fragment::Box(fragment) if fragment.borrow().style().get_box().position == Position::Fixed
     ) {
         return None;
     }
@@ -632,7 +629,7 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
                     .cloned()
             });
 
-            if parent_fragment.borrow().style.get_box().position != Position::Static {
+            if parent_fragment.borrow().style().get_box().position != Position::Static {
                 return Some(OffsetParentFragments {
                     parent: parent_fragment.clone(),
                     grandparent: grandparent_fragment,
@@ -709,7 +706,7 @@ pub fn process_offset_parent_query(
         .base
         .flags
         .contains(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT) &&
-        parent_fragment.style.get_box().position == Position::Static;
+        parent_fragment.style().get_box().position == Position::Static;
 
     // For `offsetLeft`:
     // 3. Return the result of subtracting the y-coordinate of the top padding edge of the

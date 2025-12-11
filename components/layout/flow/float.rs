@@ -1099,9 +1099,10 @@ impl SequentialLayoutState {
             block_start_of_containing_block_in_bfc + block_offset_from_containing_block_top,
         );
 
+        let style = box_fragment.style().clone();
         let container_writing_mode = containing_block.style.writing_mode;
         let logical_float_size = box_fragment
-            .content_rect
+            .content_rect()
             .size
             .to_logical(container_writing_mode);
         let pbm_sums = box_fragment
@@ -1109,21 +1110,15 @@ impl SequentialLayoutState {
             .to_logical(container_writing_mode);
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
             size: logical_float_size + pbm_sums.sum(),
-            side: FloatSide::from_style_and_container_writing_mode(
-                &box_fragment.style,
-                container_writing_mode,
-            )
-            .expect("Float box wasn't floated!"),
-            clear: Clear::from_style_and_container_writing_mode(
-                &box_fragment.style,
-                container_writing_mode,
-            ),
+            side: FloatSide::from_style_and_container_writing_mode(&style, container_writing_mode)
+                .expect("Float box wasn't floated!"),
+            clear: Clear::from_style_and_container_writing_mode(&style, container_writing_mode),
         });
 
         // Re-calculate relative adjustment so that it is not lost when the BoxFragment's
         // `content_rect` is overwritten below.
-        let relative_offset = match box_fragment.style.clone_position() {
-            Position::Relative => relative_adjustement(&box_fragment.style, containing_block),
+        let relative_offset = match style.clone_position() {
+            Position::Relative => relative_adjustement(&style, containing_block),
             _ => LogicalVec2::zero(),
         };
 
@@ -1138,10 +1133,10 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.content_rect = LogicalRect {
+        box_fragment.base.rect = LogicalRect {
             start_corner: new_position_in_containing_block,
             size: box_fragment
-                .content_rect
+                .content_rect()
                 .size
                 .to_logical(container_writing_mode),
         }

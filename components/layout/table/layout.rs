@@ -1622,7 +1622,7 @@ impl<'a> TableLayout<'a> {
                 // Take the baseline of the grid fragment, after adjusting it to be in the coordinate system
                 // of the table wrapper.
                 let logical_grid_content_rect = grid_fragment
-                    .content_rect
+                    .content_rect()
                     .to_logical(&containing_block_for_logical_conversion);
                 let grid_pbm = grid_fragment
                     .padding_border_margin()
@@ -1633,15 +1633,12 @@ impl<'a> TableLayout<'a> {
                         grid_pbm.block_start,
                 );
 
-                grid_fragment.content_rect = LogicalRect {
+                grid_fragment.base.rect = LogicalRect {
                     start_corner: LogicalVec2 {
                         inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
                         block: current_block_offset + grid_pbm.block_start,
                     },
-                    size: grid_fragment
-                        .content_rect
-                        .size
-                        .to_logical(table_writing_mode),
+                    size: grid_fragment.base.rect.size.to_logical(table_writing_mode),
                 }
                 .as_physical(Some(&containing_block_for_logical_conversion));
 
@@ -1679,21 +1676,21 @@ impl<'a> TableLayout<'a> {
                         .padding_border_margin()
                         .to_logical(table_writing_mode);
 
-                    let caption_relative_offset = match caption_fragment.style.clone_position() {
-                        Position::Relative => relative_adjustement(
-                            &caption_fragment.style,
-                            containing_block_for_children,
-                        ),
+                    let caption_style = caption_fragment.style().clone();
+                    let caption_relative_offset = match caption_style.clone_position() {
+                        Position::Relative => {
+                            relative_adjustement(&caption_style, containing_block_for_children)
+                        },
                         _ => LogicalVec2::zero(),
                     };
 
-                    caption_fragment.content_rect = LogicalRect {
+                    caption_fragment.base.rect = LogicalRect {
                         start_corner: LogicalVec2 {
                             inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
                             block: current_block_offset + caption_pbm.block_start,
                         } + caption_relative_offset,
                         size: caption_fragment
-                            .content_rect
+                            .content_rect()
                             .size
                             .to_logical(table_writing_mode),
                     }

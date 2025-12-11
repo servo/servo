@@ -304,7 +304,7 @@ impl Fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                 let box_fragment = box_fragment.borrow();
                 hit_test_fragment_inner(
-                    &box_fragment.style,
+                    &box_fragment.style(),
                     box_fragment.border_rect(),
                     box_fragment.border_radius(),
                     box_fragment.base.flags,
@@ -314,8 +314,8 @@ impl Fragment {
             Fragment::Text(text) => {
                 let text = &*text.borrow();
                 hit_test_fragment_inner(
-                    &text.inline_styles.style.borrow(),
-                    text.rect,
+                    &text.base.style(),
+                    text.base.rect,
                     BorderRadius::zero(),
                     FragmentFlags::empty(),
                     Cursor::Text,
