@@ -41,8 +41,8 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, EcKeyAlgorithm,
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
     HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
-    Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaKeyAlgorithm,
-    RsaOtherPrimesInfo, SubtleCryptoMethods,
+    Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaHashedKeyGenParams,
+    RsaKeyAlgorithm, RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1679,6 +1679,41 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyGenParams>
+#[derive(Clone, MallocSizeOf)]
+pub(crate) struct SubtleRsaHashedKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyGenParams-modulusLength>
+    modulus_length: u32,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyGenParams-publicExponent>
+    public_exponent: Vec<u8>,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyGenParams-hash>
+    hash: Box<NormalizedAlgorithm>,
+}
+
+impl TryFrom<RootedTraceableBox<RsaHashedKeyGenParams>> for SubtleRsaHashedKeyGenParams {
+    type Error = Error;
+
+    fn try_from(value: RootedTraceableBox<RsaHashedKeyGenParams>) -> Result<Self, Self::Error> {
+        let cx = GlobalScope::get_cx();
+        Ok(SubtleRsaHashedKeyGenParams {
+            name: value.parent.parent.name.to_string(),
+            modulus_length: value.parent.modulusLength,
+            public_exponent: value.parent.publicExponent.to_vec(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                &Operation::Digest,
+                &value.hash,
+                CanGc::note(),
+            )?),
+        })
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleRsaHashedKeyAlgorithm {
@@ -2523,6 +2558,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    RsaHashedKeyGenParams(SubtleRsaHashedKeyGenParams),
     RsaHashedImportParams(SubtleRsaHashedImportParams),
     EcdsaParams(SubtleEcdsaParams),
     EcKeyGenParams(SubtleEcKeyGenParams),
@@ -2627,6 +2663,13 @@ fn normalize_algorithm(
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
                 // <>https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
+                (ALG_RSASSA_PKCS1_V1_5, Operation::GenerateKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedKeyGenParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedKeyGenParams(params.try_into()?)
+                },
                 (ALG_RSASSA_PKCS1_V1_5, Operation::ImportKey) => {
                     let mut params = dictionary_from_jsval::<
                         RootedTraceableBox<RsaHashedImportParams>,
@@ -2642,6 +2685,13 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
+                (ALG_RSA_PSS, Operation::GenerateKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedKeyGenParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedKeyGenParams(params.try_into()?)
+                },
                 (ALG_RSA_PSS, Operation::ImportKey) => {
                     let mut params = dictionary_from_jsval::<
                         RootedTraceableBox<RsaHashedImportParams>,
@@ -2657,6 +2707,13 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
+                (ALG_RSA_OAEP, Operation::GenerateKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedKeyGenParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedKeyGenParams(params.try_into()?)
+                },
                 (ALG_RSA_OAEP, Operation::ImportKey) => {
                     let mut params = dictionary_from_jsval::<
                         RootedTraceableBox<RsaHashedImportParams>,
@@ -3203,6 +3260,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::RsaHashedKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::RsaHashedImportParams(algo) => &algo.name,
             NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
@@ -3328,6 +3386,18 @@ impl NormalizedAlgorithm {
         can_gc: CanGc,
     ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
         match (self.name(), self) {
+            (ALG_RSASSA_PKCS1_V1_5, NormalizedAlgorithm::RsaHashedKeyGenParams(algo)) => {
+                rsassa_pkcs1_v1_5_operation::generate_key(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+            },
+            (ALG_RSA_PSS, NormalizedAlgorithm::RsaHashedKeyGenParams(algo)) => {
+                rsa_pss_operation::generate_key(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+            },
+            (ALG_RSA_OAEP, NormalizedAlgorithm::RsaHashedKeyGenParams(algo)) => {
+                rsa_oaep_operation::generate_key(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+            },
             (ALG_ECDSA, NormalizedAlgorithm::EcKeyGenParams(algo)) => {
                 ecdsa_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)

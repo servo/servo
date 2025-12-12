@@ -8,26 +8,260 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use num_bigint_dig::{BigInt, ModInverse, Sign};
 use num_traits::One;
 use pkcs8::EncodePrivateKey;
+use pkcs8::rand_core::OsRng;
 use pkcs8::spki::EncodePublicKey;
-use rsa::BigUint;
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
+use rsa::{BigUint, RsaPrivateKey};
 use sec1::der::Encode;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyMethods, KeyType};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
+};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     JsonWebKey, KeyFormat, RsaOtherPrimesInfo,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
+    ALG_RSA_OAEP, ALG_RSA_PSS, ALG_RSASSA_PKCS1_V1_5, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512,
+    ExportedKey, KeyAlgorithmAndDerivatives, SubtleRsaHashedKeyAlgorithm,
+    SubtleRsaHashedKeyGenParams,
 };
+use crate::script_runtime::CanGc;
 
 pub(crate) enum RsaAlgorithm {
     RsaSsaPkcs1v15,
     RsaPss,
     RsaOaep,
+}
+
+/// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-generate-key>
+/// <https://w3c.github.io/webcrypto/#rsa-pss-operations-generate-key>
+/// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
+pub(crate) fn generate_key(
+    rsa_algorithm: RsaAlgorithm,
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleRsaHashedKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<CryptoKeyPair, Error> {
+    match rsa_algorithm {
+        RsaAlgorithm::RsaSsaPkcs1v15 => {
+            // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
+            // SyntaxError.
+            if usages
+                .iter()
+                .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+            {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"sign\" or \"verify\"".to_string(),
+                )));
+            }
+        },
+        RsaAlgorithm::RsaPss => {
+            // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
+            // SyntaxError.
+            if usages
+                .iter()
+                .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+            {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"sign\" or \"verify\"".to_string(),
+                )));
+            }
+        },
+        RsaAlgorithm::RsaOaep => {
+            // Step 1. If usages contains an entry which is not "encrypt", "decrypt", "wrapKey" or
+            // "unwrapKey", then throw a SyntaxError.
+            if usages.iter().any(|usage| {
+                !matches!(
+                    usage,
+                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
+                )
+            }) {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"encrypt\", \"decrypt\", \
+                    \"wrapKey\" or \"unwrapKey\""
+                        .to_string(),
+                )));
+            }
+        },
+    }
+
+    // Step 2. Generate an RSA key pair, as defined in [RFC3447], with RSA modulus length equal to
+    // the modulusLength attribute of normalizedAlgorithm and RSA public exponent equal to the
+    // publicExponent attribute of normalizedAlgorithm.
+    // Step 3. If generation of the key pair fails, then throw an OperationError.
+    // NOTE: If the public exponent is even, it is invalid for RSA, and RsaPrivateKey::new_with_exp
+    // should throw an error. However, RsaPrivateKey::new_with_exp would take a long period of time
+    // to validate this case. So, we manually check it before running RsaPrivateKey::new_with_exp,
+    // in order to throw error eariler.
+    if normalized_algorithm
+        .public_exponent
+        .last()
+        .is_none_or(|last_byte| last_byte % 2 == 0)
+    {
+        return Err(Error::Operation(Some(
+            "The public expoenent is an even number".to_string(),
+        )));
+    }
+    let mut rng = OsRng;
+    let modulus_length = normalized_algorithm.modulus_length as usize;
+    let public_exponent = BigUint::from_bytes_be(&normalized_algorithm.public_exponent);
+    let private_key = RsaPrivateKey::new_with_exp(&mut rng, modulus_length, &public_exponent)
+        .map_err(|_| Error::Operation(Some("RSA fails to generate private key".to_string())))?;
+    let public_key = private_key.to_public_key();
+
+    // Step 4. Let algorithm be a new RsaHashedKeyAlgorithm dictionary.
+    let algorithm = match rsa_algorithm {
+        RsaAlgorithm::RsaSsaPkcs1v15 => {
+            // Step 5. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
+            // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
+            // attribute of normalizedAlgorithm.
+            // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
+            // attribute of normalizedAlgorithm.
+            // Step 8. Set the hash attribute of algorithm to equal the hash member of
+            // normalizedAlgorithm.
+            SubtleRsaHashedKeyAlgorithm {
+                name: ALG_RSASSA_PKCS1_V1_5.to_string(),
+                modulus_length: normalized_algorithm.modulus_length,
+                public_exponent: normalized_algorithm.public_exponent.clone(),
+                hash: normalized_algorithm.hash.clone(),
+            }
+        },
+        RsaAlgorithm::RsaPss => {
+            // Step 5. Set the name attribute of algorithm to "RSA-PSS".
+            // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
+            // attribute of normalizedAlgorithm.
+            // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
+            // attribute of normalizedAlgorithm.
+            // Step 8. Set the hash attribute of algorithm to equal the hash member of
+            // normalizedAlgorithm.
+            SubtleRsaHashedKeyAlgorithm {
+                name: ALG_RSA_PSS.to_string(),
+                modulus_length: normalized_algorithm.modulus_length,
+                public_exponent: normalized_algorithm.public_exponent.clone(),
+                hash: normalized_algorithm.hash.clone(),
+            }
+        },
+        RsaAlgorithm::RsaOaep => {
+            // Step 5. Set the name attribute of algorithm to "RSA-OAEP".
+            // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
+            // attribute of normalizedAlgorithm.
+            // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
+            // attribute of normalizedAlgorithm.
+            // Step 8. Set the hash attribute of algorithm to equal the hash member of
+            // normalizedAlgorithm.
+            SubtleRsaHashedKeyAlgorithm {
+                name: ALG_RSA_OAEP.to_string(),
+                modulus_length: normalized_algorithm.modulus_length,
+                public_exponent: normalized_algorithm.public_exponent.clone(),
+                hash: normalized_algorithm.hash.clone(),
+            }
+        },
+    };
+
+    // Step 9. Let publicKey be a new CryptoKey representing the public key of the generated key
+    // pair.
+    // Step 10. Set the [[type]] internal slot of publicKey to "public"
+    // Step 11. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 12. Set the [[extractable]] internal slot of publicKey to true.
+    let intersected_usages = match rsa_algorithm {
+        RsaAlgorithm::RsaSsaPkcs1v15 => {
+            // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
+            // of usages and [ "verify" ].
+            usages
+                .iter()
+                .filter(|usage| **usage == KeyUsage::Verify)
+                .cloned()
+                .collect()
+        },
+        RsaAlgorithm::RsaPss => {
+            // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
+            // of usages and [ "verify" ].
+            usages
+                .iter()
+                .filter(|usage| **usage == KeyUsage::Verify)
+                .cloned()
+                .collect()
+        },
+        RsaAlgorithm::RsaOaep => {
+            // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
+            // of usages and [ "encrypt", "wrapKey" ].
+            usages
+                .iter()
+                .filter(|usage| matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
+                .cloned()
+                .collect()
+        },
+    };
+    let public_key = CryptoKey::new(
+        global,
+        KeyType::Public,
+        true,
+        KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.clone()),
+        intersected_usages,
+        Handle::RsaPublicKey(public_key),
+        can_gc,
+    );
+
+    // Step 14. Let privateKey be a new CryptoKey representing the private key of the generated key
+    // pair.
+    // Step 15. Set the [[type]] internal slot of privateKey to "private"
+    // Step 16. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 17. Set the [[extractable]] internal slot of privateKey to extractable.
+    let intersected_usages = match rsa_algorithm {
+        RsaAlgorithm::RsaSsaPkcs1v15 => {
+            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
+            // of usages and [ "sign" ].
+            usages
+                .iter()
+                .filter(|usage| **usage == KeyUsage::Sign)
+                .cloned()
+                .collect()
+        },
+        RsaAlgorithm::RsaPss => {
+            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
+            // of usages and [ "sign" ].
+            usages
+                .iter()
+                .filter(|usage| **usage == KeyUsage::Sign)
+                .cloned()
+                .collect()
+        },
+        RsaAlgorithm::RsaOaep => {
+            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
+            // of usages and [ "decrypt", "unwrapKey" ].
+            usages
+                .iter()
+                .filter(|usage| matches!(usage, KeyUsage::Decrypt | KeyUsage::UnwrapKey))
+                .cloned()
+                .collect()
+        },
+    };
+    let private_key = CryptoKey::new(
+        global,
+        KeyType::Private,
+        extractable,
+        KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
+        intersected_usages,
+        Handle::RsaPrivateKey(private_key),
+        can_gc,
+    );
+
+    // Step 19. Let result be a new CryptoKeyPair dictionary.
+    // Step 20. Set the publicKey attribute of result to be publicKey.
+    // Step 21. Set the privateKey attribute of result to be privateKey.
+    let result = CryptoKeyPair {
+        publicKey: Some(public_key),
+        privateKey: Some(private_key),
+    };
+
+    // Step 22. Return result.
+    Ok(result)
 }
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-export-key>
