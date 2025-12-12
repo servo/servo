@@ -187,6 +187,9 @@ pub(crate) struct RunningAppState {
     // other references to the relevant rendering contexts have been destroyed.
     // See https://github.com/servo/servo/issues/36711.
     windows: RefCell<HashMap<ServoShellWindowId, Rc<ServoShellWindow>>>,
+
+    /// The currently focused [`ServoShellWindow`], if one is focused.
+    focused_window: RefCell<Option<Rc<ServoShellWindow>>>,
 }
 
 impl RunningAppState {
@@ -214,6 +217,7 @@ impl RunningAppState {
 
         Self {
             windows: Default::default(),
+            focused_window: Default::default(),
             gamepad_support: RefCell::new(gamepad_support),
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
@@ -231,10 +235,13 @@ impl RunningAppState {
         self: &Rc<Self>,
         platform_window: Rc<dyn PlatformWindow>,
         initial_url: Url,
-    ) {
+    ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window));
         window.create_and_activate_toplevel_webview(self.clone(), initial_url);
-        self.windows.borrow_mut().insert(window.id(), window);
+        self.windows
+            .borrow_mut()
+            .insert(window.id(), window.clone());
+        window
     }
 
     pub(crate) fn windows<'a>(
@@ -243,23 +250,13 @@ impl RunningAppState {
         self.windows.borrow()
     }
 
-    /// Get any [`ServoShellWindow`] from this state's collection of windows. This is used for
-    /// WebDriver, which currently doesn't have great support for per-window operation.
-    pub(crate) fn any_window(&self) -> Rc<ServoShellWindow> {
-        self.windows
-            .borrow()
-            .values()
-            .next()
-            .expect("Should always have at least one window open when running WebDriver")
-            .clone()
+    pub(crate) fn focused_window(&self) -> Option<Rc<ServoShellWindow>> {
+        self.focused_window.borrow().clone()
     }
 
-    pub(crate) fn focused_window(&self) -> Option<Rc<ServoShellWindow>> {
-        self.windows
-            .borrow()
-            .values()
-            .find(|window| window.focused())
-            .cloned()
+    pub(crate) fn focus_window(&self, window: Rc<ServoShellWindow>) {
+        window.focus();
+        *self.focused_window.borrow_mut() = Some(window);
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
@@ -306,6 +303,22 @@ impl RunningAppState {
         }
     }
 
+    /// Close any [`ServoShellWindow`] that doesn't have an open [`WebView`].
+    fn close_empty_windows(&self) {
+        self.windows.borrow_mut().retain(|_, window| {
+            if !self.exit_scheduled.get() && !window.should_close() {
+                return true;
+            }
+
+            if let Some(focused_window) = self.focused_window() {
+                if Rc::ptr_eq(window, &focused_window) {
+                    *self.focused_window.borrow_mut() = None;
+                }
+            }
+            false
+        });
+    }
+
     /// Spins the internal application event loop.
     ///
     /// - Notifies Servo about incoming gamepad events
@@ -313,8 +326,17 @@ impl RunningAppState {
     ///   delegate methods.
     ///
     /// Returns true if the event loop should continue spinning and false if it should exit.
-    pub(crate) fn spin_event_loop(self: &Rc<Self>) -> bool {
-        self.handle_webdriver_messages();
+    pub(crate) fn spin_event_loop(
+        self: &Rc<Self>,
+        create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
+    ) -> bool {
+        // We clone here to avoid a double borrow. User interface commands can update the list of windows.
+        let windows: Vec<_> = self.windows.borrow().values().cloned().collect();
+        for window in windows {
+            window.handle_interface_commands(self, create_platform_window);
+        }
+
+        self.handle_webdriver_messages(create_platform_window);
 
         if pref!(dom_gamepad_enabled) {
             self.handle_gamepad_events();
@@ -330,34 +352,17 @@ impl RunningAppState {
             self.schedule_exit();
         }
 
-        // When a ServoShellWindow has no more WebViews, close it. When no more windows are open, exit
-        // the application. Do not do this when running WebDriver, which expects to keep running with
-        // no WebView open.
-        if self.servoshell_preferences.webdriver_port.get().is_none() {
-            self.windows
-                .borrow_mut()
-                .retain(|_, window| !self.exit_scheduled.get() && !window.should_close());
-            if self.windows.borrow().is_empty() {
-                self.schedule_exit()
-            }
+        self.close_empty_windows();
+
+        // When no more windows are open, exit the application. Do not do this when
+        // running WebDriver, which expects to keep running with no WebView open.
+        if self.servoshell_preferences.webdriver_port.get().is_none() &&
+            self.windows.borrow().is_empty()
+        {
+            self.schedule_exit()
         }
 
         !self.exit_scheduled.get()
-    }
-
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
-    pub(crate) fn foreach_window_and_interface_commands(
-        self: &Rc<Self>,
-        callback: impl Fn(&ServoShellWindow, Vec<UserInterfaceCommand>),
-    ) {
-        // We clone here to avoid a double borrow. User interface commands can update the list of windows.
-        let windows: Vec<_> = self.windows.borrow().values().cloned().collect();
-        for window in windows {
-            callback(
-                &window,
-                window.platform_window().take_user_interface_commands(),
-            )
-        }
     }
 
     pub(crate) fn maybe_window_for_webview_id(

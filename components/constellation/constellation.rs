@@ -4484,7 +4484,7 @@ where
                 );
             },
             WebDriverCommandMsg::CloseWebView(..) |
-            WebDriverCommandMsg::NewWebView(..) |
+            WebDriverCommandMsg::NewWindow(..) |
             WebDriverCommandMsg::FocusWebView(..) |
             WebDriverCommandMsg::IsWebViewOpen(..) |
             WebDriverCommandMsg::GetWindowRect(..) |

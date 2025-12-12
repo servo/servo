@@ -6,6 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use euclid::Scale;
+use log::warn;
 use servo::{
     AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
     DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, GenericSender,
@@ -14,6 +15,7 @@ use servo::{
 };
 use url::Url;
 
+use crate::parser::location_bar_input_to_url;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand, WebViewCollection};
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
@@ -135,8 +137,8 @@ impl ServoShellWindow {
         self.platform_window.clone()
     }
 
-    pub(crate) fn focused(&self) -> bool {
-        self.platform_window.focused()
+    pub(crate) fn focus(&self) {
+        self.platform_window.focus()
     }
 
     pub(crate) fn add_webview(&self, webview: WebView) {
@@ -266,6 +268,71 @@ impl ServoShellWindow {
         self.set_needs_update();
         self.set_needs_repaint();
     }
+
+    /// Takes any events generated during UI updates and performs their actions.
+    pub(crate) fn handle_interface_commands(
+        &self,
+        state: &Rc<RunningAppState>,
+        create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
+    ) {
+        for event in self.platform_window().take_user_interface_commands() {
+            match event {
+                UserInterfaceCommand::Go(location) => {
+                    self.set_needs_update();
+                    let Some(url) = location_bar_input_to_url(
+                        &location.clone(),
+                        &state.servoshell_preferences.searchpage,
+                    ) else {
+                        warn!("failed to parse location");
+                        break;
+                    };
+                    if let Some(active_webview) = self.active_webview() {
+                        active_webview.load(url.into_url());
+                    }
+                },
+                UserInterfaceCommand::Back => {
+                    if let Some(active_webview) = self.active_webview() {
+                        active_webview.go_back(1);
+                    }
+                },
+                UserInterfaceCommand::Forward => {
+                    if let Some(active_webview) = self.active_webview() {
+                        active_webview.go_forward(1);
+                    }
+                },
+                UserInterfaceCommand::Reload => {
+                    self.set_needs_update();
+                    if let Some(active_webview) = self.active_webview() {
+                        active_webview.reload();
+                    }
+                },
+                UserInterfaceCommand::ReloadAll => {
+                    for window in state.windows().values() {
+                        window.set_needs_update();
+                        for (_, webview) in window.webviews() {
+                            webview.reload();
+                        }
+                    }
+                },
+                UserInterfaceCommand::NewWebView => {
+                    self.set_needs_update();
+                    let url = Url::parse("servo:newtab").expect("Should always be able to parse");
+                    self.create_and_activate_toplevel_webview(state.clone(), url);
+                },
+                UserInterfaceCommand::CloseWebView(id) => {
+                    self.set_needs_update();
+                    self.close_webview(id);
+                },
+                UserInterfaceCommand::NewWindow => {
+                    if let Some(create_platform_window) = create_platform_window {
+                        let url = Url::parse("servo:newtab").unwrap();
+                        let platform_window = create_platform_window(url.clone());
+                        state.open_window(platform_window, url);
+                    }
+                },
+            }
+        }
+    }
 }
 
 /// A `PlatformWindow` abstracts away the differents kinds of platform windows that might
@@ -339,7 +406,7 @@ pub(crate) trait PlatformWindow {
     }
     fn window_rect(&self) -> DeviceIndependentIntRect;
     fn maximize(&self, _: &WebView) {}
-    fn focused(&self) -> bool;
+    fn focus(&self) {}
 
     fn show_embedder_control(&self, _: WebViewId, _: EmbedderControl) {}
     fn hide_embedder_control(&self, _: WebViewId, _: EmbedderControlId) {}

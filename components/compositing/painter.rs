@@ -29,7 +29,7 @@ use euclid::{Point2D, Rect, Scale, Size2D};
 use gleam::gl::RENDERER;
 use image::RgbaImage;
 use ipc_channel::ipc::{IpcBytesReceiver, IpcSharedMemory};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use media::WindowGLContext;
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -128,7 +128,7 @@ pub(crate) struct Painter {
 impl Drop for Painter {
     fn drop(&mut self) {
         if let Err(error) = self.rendering_context.make_current() {
-            warn!("Failed to make the rendering context current: {error:?}");
+            error!("Failed to make the rendering context current: {error:?}");
         }
 
         self.webrender_api.stop_render_backend();
@@ -375,8 +375,8 @@ impl Painter {
         let refresh_driver = self.refresh_driver.clone();
         refresh_driver.notify_will_paint(self);
 
-        if let Err(err) = self.rendering_context.make_current() {
-            warn!("Failed to make the rendering context current: {:?}", err);
+        if let Err(error) = self.rendering_context.make_current() {
+            error!("Failed to make the rendering context current: {error:?}");
         }
         self.assert_no_gl_error();
 
@@ -1212,6 +1212,9 @@ impl Painter {
             return;
         }
 
+        if let Err(error) = self.rendering_context.make_current() {
+            error!("Failed to make the rendering context current: {error:?}");
+        }
         self.rendering_context.resize(new_size);
 
         let new_size = Size2D::new(new_size.width as f32, new_size.height as f32);

@@ -160,10 +160,6 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         )
     }
 
-    fn focused(&self) -> bool {
-        true
-    }
-
     fn show_embedder_control(&self, _: WebViewId, embedder_control: EmbedderControl) {
         let control_id = embedder_control.id();
         match embedder_control {
@@ -314,12 +310,20 @@ impl App {
     }
 
     pub(crate) fn active_or_newest_webview(&self) -> Option<WebView> {
-        self.state.any_window().active_or_newest_webview()
+        self.state
+            .windows()
+            .values()
+            .nth(0)
+            .expect("Should always have one open window")
+            .active_or_newest_webview()
     }
 
     pub(crate) fn create_and_activate_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         self.state
-            .any_window()
+            .windows()
+            .values()
+            .nth(0)
+            .expect("Should always have one open window")
             .create_and_activate_toplevel_webview(self.state.clone(), url)
     }
 
@@ -332,7 +336,10 @@ impl App {
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
     pub fn spin_event_loop(&self) {
-        if !self.state.spin_event_loop() {
+        if !self
+            .state
+            .spin_event_loop(None /* create_platform_window */)
+        {
             self.platform_window.host.on_shutdown_complete();
         }
     }

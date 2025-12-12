@@ -79,6 +79,14 @@ pub enum CustomHandlersAutomationMode {
     None,
 }
 
+/// <https://w3c.github.io/webdriver/#new-window>
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum NewWindowTypeHint {
+    Auto,
+    Tab,
+    Window,
+}
+
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug)]
 pub enum WebDriverCommandMsg {
@@ -118,7 +126,8 @@ pub enum WebDriverCommandMsg {
     /// Create a new webview that loads about:blank. The embedder will use
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and sets a "load status sender" if provided.
-    NewWebView(
+    NewWindow(
+        NewWindowTypeHint,
         GenericOneshotSender<WebViewId>,
         Option<GenericSender<WebDriverLoadStatus>>,
     ),
