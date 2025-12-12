@@ -77,6 +77,11 @@ class CreateOrUpdateBranchForPRStep(Step):
     def run(self, run: SyncRun) -> None:
         try:
             commits = self._get_upstreamable_commits_from_local_servo_repo(run.sync)
+            if not commits:
+                logging.info("  -> No upstreamable commits found. Skipping PR creation.")
+                run.steps = []
+                return
+
             branch_name = self._create_or_update_branch_for_pr(run, commits)
             branch = run.sync.downstream_wpt.get_branch(branch_name)
 
