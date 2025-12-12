@@ -12,6 +12,7 @@ mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
+mod rsa_common;
 mod rsa_oaep_operation;
 mod rsa_pss_operation;
 mod rsassa_pkcs1_v1_5_operation;
@@ -2633,6 +2634,12 @@ fn normalize_algorithm(
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
                 },
+                (ALG_RSASSA_PKCS1_V1_5, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
                 (ALG_RSA_PSS, Operation::ImportKey) => {
@@ -2642,6 +2649,12 @@ fn normalize_algorithm(
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
                 },
+                (ALG_RSA_PSS, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
 
                 // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
                 (ALG_RSA_OAEP, Operation::ImportKey) => {
@@ -2650,6 +2663,12 @@ fn normalize_algorithm(
                     >(cx, value.handle(), can_gc)?;
                     params.parent.name = DOMString::from(alg_name);
                     NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+                (ALG_RSA_OAEP, Operation::ExportKey) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
                 },
 
                 // <https://w3c.github.io/webcrypto/#ecdsa-registration>
@@ -3609,6 +3628,9 @@ impl NormalizedAlgorithm {
 /// for export key operation.
 fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match key.algorithm().name() {
+        ALG_RSASSA_PKCS1_V1_5 => rsassa_pkcs1_v1_5_operation::export_key(format, key),
+        ALG_RSA_PSS => rsa_pss_operation::export_key(format, key),
+        ALG_RSA_OAEP => rsa_oaep_operation::export_key(format, key),
         ALG_ECDSA => ecdsa_operation::export_key(format, key),
         ALG_ECDH => ecdh_operation::export_key(format, key),
         ALG_ED25519 => ed25519_operation::export_key(format, key),
