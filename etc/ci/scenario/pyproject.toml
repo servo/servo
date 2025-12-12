@@ -5,6 +5,7 @@ requires-python = ">3.11"
 dependencies = [
     "selenium",
     "hdc-py>=0.1.2",
+    "pillow",
 ]
 license = "Apache-2.0 OR MIT"
 
