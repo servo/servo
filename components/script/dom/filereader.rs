@@ -521,6 +521,8 @@ impl FileReader {
         // Let reader be the result of getting a reader from stream.
         let reader = stream.and_then(|s| s.acquire_default_reader(can_gc))?;
 
+        let total_bytes = blob.Size();
+
         let type_ = blob.Type();
 
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
@@ -567,7 +569,7 @@ impl FileReader {
                         file_reader: Trusted::new(&filereader_success.clone()),
                         generation_id: gen_id,
                         total_bytes_read: blob_contents.len() as u64,
-                        total_bytes: blob_contents.len() as u64,
+                        total_bytes,
                     });
                 }
                 // Otherwise,
