@@ -75,7 +75,7 @@ pub(crate) struct FetchCanceller {
 
 impl FetchCanceller {
     /// Create a FetchCanceller associated with a request,
-    // and a particular(public vs private) resource thread.
+    /// and a particular(public vs private) resource thread.
     pub(crate) fn new(request_id: RequestId, core_resource_thread: CoreResourceThread) -> Self {
         Self {
             request_id: Some(request_id),
@@ -83,8 +83,11 @@ impl FetchCanceller {
         }
     }
 
-    /// Cancel a fetch if it is ongoing
+    /// Step 1 of <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
     pub(crate) fn cancel(&mut self) {
+        // Step 1. For each fetch record record of fetchGroup’s fetch records,
+        // if record’s controller is non-null and record’s request’s done flag
+        // is unset and keepalive is false, terminate record’s controller.
         if let Some(request_id) = self.request_id.take() {
             // stop trying to make fetch happen
             // it's not going to happen
@@ -264,12 +267,14 @@ pub(crate) fn Fetch(
     promise
 }
 
+pub(crate) type QueuedDeferredFetchRecord = Arc<Mutex<DeferredFetchRecord>>;
+
 /// <https://fetch.spec.whatwg.org/#queue-a-deferred-fetch>
 fn queue_deferred_fetch(
     request: NetTraitsRequest,
     activate_after: Finite<f64>,
     global: &GlobalScope,
-) -> Arc<Mutex<DeferredFetchRecord>> {
+) -> QueuedDeferredFetchRecord {
     let trusted_global = Trusted::new(global);
     // Step 1. Populate request from client given request.
     // TODO
@@ -285,7 +290,7 @@ fn queue_deferred_fetch(
         activated: Cell::new(false),
     }));
     // Step 5. Append deferredRecord to request’s client’s fetch group’s deferred fetch records.
-    // TODO
+    global.append_deferred_fetch(deferred_record.clone());
     // Step 6. If activateAfter is non-null, then run the following steps in parallel:
     let deferred_record_clone = deferred_record.clone();
     global.schedule_timer(TimerEventRequest {
@@ -419,7 +424,7 @@ impl DeferredFetchRecord {
         self.activated.get()
     }
     /// <https://fetch.spec.whatwg.org/#process-a-deferred-fetch>
-    fn process(&self) {
+    pub(crate) fn process(&self) {
         // Step 1. If deferredRecord’s invoke state is not "pending", then return.
         if self.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
             return;

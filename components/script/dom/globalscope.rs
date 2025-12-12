@@ -142,6 +142,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::writablestream::CrossRealmTransformWritable;
+use crate::fetch::QueuedDeferredFetchRecord;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
@@ -3451,6 +3452,14 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.buffered_reports();
+        }
+        unreachable!();
+    }
+
+    pub(crate) fn append_deferred_fetch(&self, deferred_fetch: QueuedDeferredFetchRecord) {
+        if let Some(window) = self.downcast::<Window>() {
+            let doc = window.Document();
+            return doc.append_deferred_fetch(deferred_fetch);
         }
         unreachable!();
     }
