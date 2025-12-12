@@ -483,7 +483,7 @@ fn handle_range_request(
                             _ => continue,
                         };
                         if let Some(bytes) = requested {
-                            if bytes.len() as u64 + beginning < total-1 {
+                            if bytes.len() as u64 + beginning < total - 1 {
                                 // Requested range goes beyond the available range.
                                 continue;
                             }
