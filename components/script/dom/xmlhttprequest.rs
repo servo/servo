@@ -63,7 +63,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::is_forbidden_request_header;
-use crate::dom::node::Node;
+use crate::dom::node::{Node, UnrootedIterator};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::readablestream::ReadableStream;
@@ -1423,7 +1423,7 @@ impl XMLHttpRequest {
             // Not sure it the parser should throw an error for this case
             // The specification does not indicates this test,
             // but for now we check the document has no child nodes
-            let has_no_child_nodes = temp_doc.upcast::<Node>().children().next().is_none();
+            let has_no_child_nodes = temp_doc.upcast::<Node>().unrooted_children().is_empty();
             if has_no_child_nodes {
                 return None;
             }

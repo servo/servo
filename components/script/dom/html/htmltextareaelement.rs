@@ -37,6 +37,7 @@ use crate::dom::html::htmlinputelement::HTMLInputElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
+    UnrootedIterator,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
@@ -657,7 +658,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
         if node
-            .ancestors()
+            .unrooted_ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
             el.check_ancestors_disabled_state_for_form_control();
