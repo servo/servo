@@ -6,6 +6,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::error::{Error, ErrorResult};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -14,12 +15,14 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::Element;
+use crate::dom::element::{CommandState, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::toggleevent::ToggleEvent;
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -142,6 +145,36 @@ impl HTMLDialogElement {
         // TODO(Issue #32702): Step 22. Run the dialog focusing steps given subject.
         Ok(())
     }
+
+    /// <https://html.spec.whatwg.org/multipage/interactive-elements.html#close-the-dialog>
+    pub fn close(&self, result: Option<DOMString>, _source: Option<DomRoot<Element>>, can_gc: CanGc) {
+        let element = self.upcast::<Element>();
+        let target = self.upcast::<EventTarget>();
+
+        // Step 1 & 2
+        if element
+            .remove_attribute(&ns!(), &local_name!("open"), can_gc)
+            .is_none()
+        {
+            return;
+        }
+
+        // Step 8. Set is modal of subject to false.
+        self.is_modal.set(false);
+
+        // Step 9. If result is not null, then set subject's returnValue attribute to result.
+        if let Some(new_value) = result {
+            *self.return_value.borrow_mut() = new_value;
+        }
+
+        // TODO: Step 4 implement pending dialog stack removal
+
+        // Step 13. Queue an element task on the user interaction task source given the subject element to fire an event named close at subject.
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue_simple_event(target, atom!("close"));
+    }
 }
 
 impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
@@ -226,31 +259,37 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-close>
     fn Close(&self, return_value: Option<DOMString>, can_gc: CanGc) {
+        // Step 1. If returnValue is not given, then set it to null.
+        // Step 2. Close the dialog this with returnValue and null.
+        self.close(return_value, None, can_gc)
+    }
+}
+
+impl VirtualMethods for HTMLDialogElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element:command-steps>
+    fn command_steps(&self, button: DomRoot<HTMLButtonElement>, command: CommandState, can_gc: CanGc) -> bool {
+        if self.super_type().unwrap().command_steps(button.clone(), command, can_gc) {
+            return true
+        }
         let element = self.upcast::<Element>();
-        let target = self.upcast::<EventTarget>();
-
-        // Step 1 & 2
-        if element
-            .remove_attribute(&ns!(), &local_name!("open"), can_gc)
-            .is_none()
-        {
-            return;
+        if element.has_attribute(&local_name!("open")) {
+            if command == CommandState::Close {
+                let button_element = DomRoot::from_ref(button.upcast::<Element>());
+                let _ = self.close(Some(button.Value()), Some(button_element), can_gc);
+                return true
+            }
+        } else {
+            if command == CommandState::ShowModal {
+                let button_element = DomRoot::from_ref(button.upcast::<Element>());
+                let _ = self.show_a_modal(Some(button_element), can_gc);
+                return true
+            }
         }
 
-        // Step 8. Set is modal of subject to false.
-        self.is_modal.set(false);
-
-        // Step 9. If result is not null, then set subject's returnValue attribute to result.
-        if let Some(new_value) = return_value {
-            *self.return_value.borrow_mut() = new_value;
-        }
-
-        // TODO: Step 4 implement pending dialog stack removal
-
-        // Step 13. Queue an element task on the user interaction task source given the subject element to fire an event named close at subject.
-        self.owner_global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue_simple_event(target, atom!("close"));
+        false
     }
 }

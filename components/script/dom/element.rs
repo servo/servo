@@ -5558,3 +5558,13 @@ pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings
         .get_attribute(&ns!(), &local_name!("crossorigin"))
         .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
 }
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub(crate) enum CommandState {
+    Unknown,
+
+    Custom,
+
+    ShowModal,
+    Close,
+}
