@@ -10,6 +10,7 @@ use base::id::{PipelineId, WebViewId};
 use embedder_traits::ScreenshotCaptureError;
 use euclid::{Point2D, Size2D};
 use image::RgbaImage;
+use log::error;
 use rustc_hash::FxHashMap;
 use webrender_api::units::{DeviceIntRect, DeviceRect};
 
@@ -196,6 +197,9 @@ impl ScreenshotTaker {
 
                     DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
                 });
+                if let Err(error) = renderer.rendering_context.make_current() {
+                    error!("Failed to make the rendering context current: {error:?}");
+                }
                 let result = renderer
                     .rendering_context
                     .read_to_image(rect)

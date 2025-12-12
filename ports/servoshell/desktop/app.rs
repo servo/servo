@@ -9,7 +9,6 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use log::warn;
 use servo::protocol_handler::ProtocolRegistry;
 use servo::{
     EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
@@ -25,10 +24,10 @@ use super::{headed_window, headless_window};
 use crate::desktop::event_loop::ServoShellEventLoop;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
-use crate::parser::{get_default_url, location_bar_input_to_url};
+use crate::parser::get_default_url;
 use crate::prefs::ServoShellPreferences;
-use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
-use crate::window::{PlatformWindow, ServoShellWindow};
+use crate::running_app_state::RunningAppState;
+use crate::window::PlatformWindow;
 
 pub(crate) enum AppState {
     Initializing,
@@ -157,81 +156,12 @@ impl App {
             return false;
         };
 
-        state.foreach_window_and_interface_commands(|window, commands| {
-            self.handle_interface_commands_for_window(active_event_loop, state, window, commands);
-        });
-
-        if !state.spin_event_loop() {
+        let create_platform_window = |url: Url| self.create_platform_window(url, active_event_loop);
+        if !state.spin_event_loop(Some(&create_platform_window)) {
             self.state = AppState::ShuttingDown;
             return false;
         }
         true
-    }
-
-    /// Takes any events generated during `egui` updates and performs their actions.
-    fn handle_interface_commands_for_window(
-        &self,
-        active_event_loop: Option<&ActiveEventLoop>,
-        state: &Rc<RunningAppState>,
-        window: &ServoShellWindow,
-        commands: Vec<UserInterfaceCommand>,
-    ) {
-        for event in commands {
-            match event {
-                UserInterfaceCommand::Go(location) => {
-                    window.set_needs_update();
-                    let Some(url) = location_bar_input_to_url(
-                        &location.clone(),
-                        &state.servoshell_preferences.searchpage,
-                    ) else {
-                        warn!("failed to parse location");
-                        break;
-                    };
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.load(url.into_url());
-                    }
-                },
-                UserInterfaceCommand::Back => {
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.go_back(1);
-                    }
-                },
-                UserInterfaceCommand::Forward => {
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.go_forward(1);
-                    }
-                },
-                UserInterfaceCommand::Reload => {
-                    window.set_needs_update();
-                    if let Some(active_webview) = window.active_webview() {
-                        active_webview.reload();
-                    }
-                },
-                UserInterfaceCommand::ReloadAll => {
-                    for window in state.windows().values() {
-                        window.set_needs_update();
-                        for (_, webview) in window.webviews() {
-                            webview.reload();
-                        }
-                    }
-                },
-                UserInterfaceCommand::NewWebView => {
-                    window.set_needs_update();
-                    let url = Url::parse("servo:newtab").expect("Should always be able to parse");
-                    window.create_and_activate_toplevel_webview(state.clone(), url);
-                },
-                UserInterfaceCommand::CloseWebView(id) => {
-                    window.set_needs_update();
-                    window.close_webview(id);
-                },
-                UserInterfaceCommand::NewWindow => {
-                    let url = Url::parse("servo:newtab").unwrap();
-                    let platform_window =
-                        self.create_platform_window(url.clone(), active_event_loop);
-                    state.open_window(platform_window, url);
-                },
-            }
-        }
     }
 }
 
