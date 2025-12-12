@@ -35,6 +35,7 @@ use layout_api::{
     PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
     ScrollContainerQueryFlags, TrustedNodeAddress,
 };
+use malloc_size_of::MallocSizeOfOps;
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
@@ -47,8 +48,9 @@ use net_traits::request::{
 use net_traits::{ReferrerPolicy, ResourceFetchTiming};
 use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use percent_encoding::percent_decode;
-use profile_traits::generic_channel as profile_generic_channel;
+use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::TimerMetadataFrameType;
+use profile_traits::{generic_channel as profile_generic_channel, path};
 use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
@@ -3595,6 +3597,20 @@ impl Document {
         no_gc: &'a NoGC,
     ) -> Option<UnrootedDom<'a, Element>> {
         self.upcast::<Node>().child_elements_unrooted(no_gc).next()
+    }
+
+    pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, _ops: &mut MallocSizeOfOps) {
+        for node in self.upcast::<Node>().children() {
+            let type_id = node.type_id();
+            // TODO(pylbrecht): get the size of `node`, but how?
+        }
+
+        let formatted_url = &format!("url({})", self.url.borrow().as_url());
+        reports.push(Report {
+            path: path![formatted_url, "js", "malloc-heap", "pylbrecht"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: 1337,
+        });
     }
 }
 
