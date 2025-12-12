@@ -19,8 +19,9 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
-    ALG_RSA_PSS, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, JsonWebKeyExt,
+    ALG_RSA_PSS, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
     KeyAlgorithmAndDerivatives, Operation, SubtleRsaHashedImportParams,
     SubtleRsaHashedKeyAlgorithm, normalize_algorithm,
 };
@@ -463,4 +464,9 @@ pub(crate) fn import_key(
 
     // Step 9. Return key.
     Ok(key)
+}
+
+/// <https://w3c.github.io/webcrypto/#rsa-pss-operations-export-key>
+pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    rsa_common::export_key(RsaAlgorithm::RsaPss, format, key)
 }
