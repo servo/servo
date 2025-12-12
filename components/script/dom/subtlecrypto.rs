@@ -23,12 +23,12 @@ use std::rc::Rc;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
-use js::conversions::ConversionResult;
-use js::jsapi::{Heap, JSObject};
+use js::conversions::{ConversionResult, ToJSValConvertible};
+use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleValue};
-use js::typedarray::ArrayBufferU8;
+use js::typedarray::{ArrayBufferU8, CreateWith, HeapUint8Array};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -56,7 +56,7 @@ use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // Regconized algorithm name from <https://w3c.github.io/webcrypto/>
 const ALG_RSASSA_PKCS1_V1_5: &str = "RSASSA-PKCS1-v1_5";
@@ -283,7 +283,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-encrypt>
     fn Encrypt(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         key: &CryptoKey,
         data: ArrayBufferViewOrArrayBuffer,
@@ -373,7 +373,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-decrypt>
     fn Decrypt(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         key: &CryptoKey,
         data: ArrayBufferViewOrArrayBuffer,
@@ -463,7 +463,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-sign>
     fn Sign(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         key: &CryptoKey,
         data: ArrayBufferViewOrArrayBuffer,
@@ -552,7 +552,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-verify>
     fn Verify(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         key: &CryptoKey,
         signature: ArrayBufferViewOrArrayBuffer,
@@ -648,7 +648,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-digest>
     fn Digest(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         data: ArrayBufferViewOrArrayBuffer,
         comp: InRealm,
@@ -718,7 +718,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-generateKey>
     fn GenerateKey(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         extractable: bool,
         key_usages: Vec<KeyUsage>,
@@ -820,7 +820,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-deriveKey>
     fn DeriveKey(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         base_key: &CryptoKey,
         derived_key_type: AlgorithmIdentifier,
@@ -972,7 +972,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#dfn-SubtleCrypto-method-deriveBits>
     fn DeriveBits(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         algorithm: AlgorithmIdentifier,
         base_key: &CryptoKey,
         length: Option<u32>,
@@ -1054,7 +1054,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-importKey>
     fn ImportKey(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         format: KeyFormat,
         key_data: ArrayBufferViewOrArrayBufferOrJsonWebKey,
         algorithm: AlgorithmIdentifier,
@@ -1283,7 +1283,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-wrapKey>
     fn WrapKey(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         format: KeyFormat,
         key: &CryptoKey,
         wrapping_key: &CryptoKey,
@@ -1442,7 +1442,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-unwrapKey>
     fn UnwrapKey(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         format: KeyFormat,
         wrapped_key: ArrayBufferViewOrArrayBuffer,
         unwrapping_key: &CryptoKey,
@@ -1669,7 +1669,7 @@ impl From<NormalizedAlgorithm> for SubtleKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let dictionary = KeyAlgorithm {
             name: self.name.clone().into(),
         };
@@ -1693,19 +1693,29 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
     hash: Box<NormalizedAlgorithm>,
 }
 
-impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
-        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        let public_exponent =
-            create_buffer_source(cx, &self.public_exponent, js_object.handle_mut(), can_gc)
-                .expect("Fail to convert publicExponent to Uint8Array");
+impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
+    #[expect(unsafe_code)]
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        rooted!(in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+        unsafe {
+            HeapUint8Array::create(
+                cx,
+                CreateWith::Slice(&self.public_exponent),
+                js_object.handle_mut(),
+            )
+            .expect("Fail to create HeapUint8Array for publicExponent");
+        }
+
         let key_algorithm = KeyAlgorithm {
             name: self.name.clone().into(),
         };
         let rsa_key_algorithm = RootedTraceableBox::new(RsaKeyAlgorithm {
             parent: key_algorithm,
             modulusLength: self.modulus_length,
-            publicExponent: public_exponent,
+            publicExponent: RootedTraceableBox::new(
+                HeapUint8Array::from(*js_object)
+                    .expect("Fail to get the created HeapUint8Array for publicExponent"),
+            ),
         });
         let rsa_hashed_key_algorithm = RootedTraceableBox::new(RsaHashedKeyAlgorithm {
             parent: rsa_key_algorithm,
@@ -1713,7 +1723,10 @@ impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
                 name: self.hash.name().into(),
             },
         });
-        rsa_hashed_key_algorithm.safe_to_jsval(cx, rval, can_gc);
+
+        unsafe {
+            rsa_hashed_key_algorithm.to_jsval(cx, rval);
+        }
     }
 }
 
@@ -1797,7 +1810,7 @@ pub(crate) struct SubtleEcKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
             name: self.name.clone().into(),
         };
@@ -1885,7 +1898,7 @@ pub(crate) struct SubtleAesKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
             name: self.name.clone().into(),
         };
@@ -2035,7 +2048,7 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
             name: self.name.clone().into(),
         };
@@ -2292,7 +2305,7 @@ impl From<RootedTraceableBox<Argon2Params>> for SubtleArgon2Params {
 }
 
 /// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
-fn dictionary_from_jsval<T>(cx: JSContext, value: HandleValue, can_gc: CanGc) -> Fallible<T>
+fn dictionary_from_jsval<T>(cx: SafeJSContext, value: HandleValue, can_gc: CanGc) -> Fallible<T>
 where
     T: SafeFromJSValConvertible<Config = ()>,
 {
@@ -2345,7 +2358,7 @@ impl From<NormalizedAlgorithm> for KeyAlgorithmAndDerivatives {
 }
 
 impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval, can_gc),
             KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => {
@@ -2402,8 +2415,8 @@ impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
 }
 
 trait JsonWebKeyExt {
-    fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
-    fn stringify(&self, cx: JSContext) -> Result<DOMString, Error>;
+    fn parse(cx: SafeJSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
+    fn stringify(&self, cx: SafeJSContext) -> Result<DOMString, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
     #[expect(unused)]
     fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error>;
@@ -2413,7 +2426,7 @@ trait JsonWebKeyExt {
 impl JsonWebKeyExt for JsonWebKey {
     /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
     #[expect(unsafe_code)]
-    fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error> {
+    fn parse(cx: SafeJSContext, data: &[u8]) -> Result<JsonWebKey, Error> {
         // Step 1. Let data be the sequence of bytes to be parsed.
         // (It is given as a method paramter.)
 
@@ -2458,7 +2471,7 @@ impl JsonWebKeyExt for JsonWebKey {
     /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>. This acts
     /// like the opposite of JsonWebKey::parse if you further convert the stringified result to
     /// bytes.
-    fn stringify(&self, cx: JSContext) -> Result<DOMString, Error> {
+    fn stringify(&self, cx: SafeJSContext) -> Result<DOMString, Error> {
         rooted!(in(*cx) let mut data = UndefinedValue());
         self.safe_to_jsval(cx, data.handle_mut(), CanGc::note());
         serialize_jsval_to_json_utf8(cx, data.handle())
@@ -2542,7 +2555,7 @@ enum NormalizedAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
 fn normalize_algorithm(
-    cx: JSContext,
+    cx: SafeJSContext,
     op: &Operation,
     alg: &AlgorithmIdentifier,
     can_gc: CanGc,

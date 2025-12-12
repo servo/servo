@@ -1014,8 +1014,9 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         typeName = type.unroll().name  # unroll because it may be nullable
 
         is_union_member = (isMember == "Union")
+        is_dictionary_member = (isMember == "Dictionary")
 
-        if is_union_member:
+        if is_union_member or is_dictionary_member:
             typeName = f"Heap{typeName}"
             map_call = ".map(RootedTraceableBox::new)"
         else:
@@ -1035,7 +1036,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         )
 
         declType = CGGeneric(f"typedarray::{typeName}")
-        if is_union_member:
+        if is_union_member or is_dictionary_member:
             declType = CGWrapper(declType, pre="RootedTraceableBox<", post=">")
 
         if type.nullable():
