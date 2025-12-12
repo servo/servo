@@ -102,6 +102,13 @@
       {}
      ]
     ],
+    "typed-array-crash.html": [
+     "811e41863e3df24b1c8268f4b050530644b24210",
+     [
+      null,
+      {}
+     ]
+    ],
     "window_resizeTo_not_permitted-crash.html": [
      "7b6a67ff81436a91048bdb627f303f7fab2762f7",
      [

@@ -49,6 +49,10 @@ dictionary TestDictionary {
   callbackWithOnlyOneOptionalArg noCallbackImport2;
 };
 
+dictionary TestDictionaryWithTypedArray {
+  Uint8Array typedArray;
+};
+
 dictionary TestDictionaryParent {
   DOMString parentStringMember;
 };
@@ -594,6 +598,7 @@ interface TestBinding {
   readonly attribute boolean semiExposedBoolFromInterface;
 
   TestDictionaryWithParent getDictionaryWithParent(DOMString parent, DOMString child);
+  undefined getDictionaryWithTypedArray(optional TestDictionaryWithTypedArray dict = {});
 };
 
 [Exposed=(Window)]
