@@ -312,6 +312,7 @@ impl Serialize for WebDriverPrefValue {
                 .map(|value| WebDriverPrefValue(value.clone()))
                 .collect::<Vec<WebDriverPrefValue>>()
                 .serialize(serializer),
+            PrefValue::UInt(u) => serializer.serialize_u64(u),
         }
     }
 }
