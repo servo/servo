@@ -145,7 +145,7 @@ def stop_servo():
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     print("Stop Test Application successful!")
 
-def ele_scroll_and_rect(driver: webdriver.Remote, element: WebElement):
+def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement):
     """
     This scrolls element into view, and return the DOMRect tuple:
     [left, top, right, bottom]
@@ -184,7 +184,7 @@ def element_screenshot(element: WebElement, filename: str):
 
     try:
         print(f"Scrolling {element}")
-        region = ele_scroll_and_rect(element)
+        region = element_scroll_into_view_and_rect(element)
         time.sleep(2)
         hdc = HarmonyDeviceConnector()
         hdc.screenshot(filename)
