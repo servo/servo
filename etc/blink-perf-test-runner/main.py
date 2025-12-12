@@ -47,9 +47,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote | None:
     start_time = time.time()
     while driver is None and time.time() - start_time < timeout:
         try:
-            driver = webdriver.Remote(
-                command_executor="http://127.0.0.1:7000", options=options
-            )
+            driver = webdriver.Remote(command_executor="http://127.0.0.1:7000", options=options)
         except (ConnectionError, ProtocolError):
             time.sleep(0.2)
         except Exception as e:
@@ -124,9 +122,7 @@ def write_file(results):
 def main():
     parser = argparse.ArgumentParser(description="Run Chrome Tests on Servo Instance.")
     parser.add_argument("servo_path", type=str, help="the servo binary")
-    parser.add_argument(
-        "test_dir", type=str, help="The directory for the chromium tests."
-    )
+    parser.add_argument("test_dir", type=str, help="The directory for the chromium tests.")
     args = parser.parse_args()
 
     webdriver = start_servo(args.servo_path)
@@ -150,9 +146,7 @@ def main():
                         combined_result["lower_value"] = result[1]
                         combined_result["upper_value"] = result[2]
 
-                        final_result[canonical_test_path(filePath)] = {
-                            "throughput": combined_result
-                        }
+                        final_result[canonical_test_path(filePath)] = {"throughput": combined_result}
 
     print(final_result)
     write_file(final_result)
