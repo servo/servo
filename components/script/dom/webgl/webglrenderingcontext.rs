@@ -11,6 +11,7 @@ use std::rc::Rc;
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use base::Epoch;
+use base::generic_channel::GenericSharedMemory;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -22,7 +23,7 @@ use canvas_traits::webgl::{
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, MutableHandleValue};
@@ -625,7 +626,7 @@ impl WebGLRenderingContext {
             1,
             size,
             TexSource::Pixels(TexPixels::new(
-                IpcSharedMemory::from_bytes(&pixels),
+                GenericSharedMemory::from_bytes(&pixels),
                 size,
                 PixelFormat::RGBA8,
                 None,
@@ -1644,7 +1645,7 @@ impl WebGLRenderingContext {
         }
 
         let size = Size2D::new(width, height);
-        let data = IpcSharedMemory::from_bytes(data);
+        let data = GenericSharedMemory::from_bytes(data);
 
         handle_potential_webgl_error!(
             self,
@@ -1707,7 +1708,7 @@ impl WebGLRenderingContext {
             Err(_) => return,
         };
 
-        let data = IpcSharedMemory::from_bytes(data);
+        let data = GenericSharedMemory::from_bytes(data);
 
         self.send_command(WebGLCommand::CompressedTexSubImage2D {
             target: target.as_gl_constant(),
@@ -4599,8 +4600,8 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
         let buff = match *pixels {
-            None => IpcSharedMemory::from_bytes(&vec![0u8; expected_byte_length as usize]),
-            Some(ref data) => IpcSharedMemory::from_bytes(unsafe { data.as_slice() }),
+            None => GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_length as usize]),
+            Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
         };
 
         // From the WebGL spec:
@@ -4793,7 +4794,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             self,
             pixels
                 .as_ref()
-                .map(|p| IpcSharedMemory::from_bytes(unsafe { p.as_slice() }))
+                .map(|p| GenericSharedMemory::from_bytes(unsafe { p.as_slice() }))
                 .ok_or(InvalidValue),
             return Ok(())
         );
@@ -5163,7 +5164,7 @@ impl TextureUnit {
 }
 
 pub(crate) struct TexPixels {
-    data: IpcSharedMemory,
+    data: GenericSharedMemory,
     size: Size2D<u32>,
     pixel_format: Option<PixelFormat>,
     alpha_treatment: Option<AlphaTreatment>,
@@ -5172,7 +5173,7 @@ pub(crate) struct TexPixels {
 
 impl TexPixels {
     fn new(
-        data: IpcSharedMemory,
+        data: GenericSharedMemory,
         size: Size2D<u32>,
         pixel_format: PixelFormat,
         alpha_treatment: Option<AlphaTreatment>,
@@ -5188,7 +5189,7 @@ impl TexPixels {
     }
 
     pub(crate) fn from_array(
-        data: IpcSharedMemory,
+        data: GenericSharedMemory,
         size: Size2D<u32>,
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
@@ -5218,7 +5219,7 @@ impl TexPixels {
         self.y_axis_treatment
     }
 
-    pub(crate) fn into_shared_memory(self) -> IpcSharedMemory {
+    pub(crate) fn into_shared_memory(self) -> GenericSharedMemory {
         self.data
     }
 }

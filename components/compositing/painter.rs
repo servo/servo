@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericSharedMemory;
 use base::id::{PainterId, PipelineId, WebViewId};
 use compositing_traits::display_list::{PaintDisplayListInfo, ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
@@ -28,7 +29,7 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Scale, Size2D};
 use gleam::gl::RENDERER;
 use image::RgbaImage;
-use ipc_channel::ipc::{IpcBytesReceiver, IpcSharedMemory};
+use ipc_channel::ipc::IpcBytesReceiver;
 use log::{debug, info, warn};
 use media::WindowGLContext;
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
@@ -1069,7 +1070,12 @@ impl Painter {
             .add_delay(pipeline_id, canvas_epoch, image_keys);
     }
 
-    pub(crate) fn add_font(&mut self, font_key: FontKey, data: Arc<IpcSharedMemory>, index: u32) {
+    pub(crate) fn add_font(
+        &mut self,
+        font_key: FontKey,
+        data: Arc<GenericSharedMemory>,
+        index: u32,
+    ) {
         let mut transaction = Transaction::new();
         transaction.add_raw_font(font_key, (**data).into(), index);
         self.send_transaction(transaction);

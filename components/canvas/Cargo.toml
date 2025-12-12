@@ -27,7 +27,6 @@ cssparser = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
 futures-intrusive = { version = "0.5", optional = true }
-ipc-channel = { workspace = true }
 kurbo = { workspace = true }
 log = { workspace = true }
 net_traits = { workspace = true }

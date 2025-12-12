@@ -7,8 +7,9 @@
 
 use arrayvec::ArrayVec;
 use base::Epoch;
+use base::generic_channel::GenericSharedMemory;
 use base::id::PipelineId;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
 use webrender_api::ImageKey;
@@ -308,7 +309,7 @@ pub enum WebGPURequest {
         queue_id: QueueId,
         buffer_id: BufferId,
         buffer_offset: u64,
-        data: IpcSharedMemory,
+        data: GenericSharedMemory,
     },
     WriteTexture {
         device_id: DeviceId,
@@ -316,7 +317,7 @@ pub enum WebGPURequest {
         texture_cv: TexelCopyTextureInfo,
         data_layout: TexelCopyBufferLayout,
         size: Extent3d,
-        data: IpcSharedMemory,
+        data: GenericSharedMemory,
     },
     QueueOnSubmittedWorkDone {
         sender: IpcSender<()>,

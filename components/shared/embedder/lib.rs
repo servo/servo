@@ -22,12 +22,12 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::generic_channel::{GenericCallback, GenericSender, SendResult};
+use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -358,7 +358,7 @@ pub struct Image {
     pub height: u32,
     pub format: PixelFormat,
     /// A shared memory block containing the data of one or more image frames.
-    data: Arc<IpcSharedMemory>,
+    data: Arc<GenericSharedMemory>,
     range: Range<usize>,
 }
 
@@ -366,7 +366,7 @@ impl Image {
     pub fn new(
         width: u32,
         height: u32,
-        data: Arc<IpcSharedMemory>,
+        data: Arc<GenericSharedMemory>,
         range: Range<usize>,
         format: PixelFormat,
     ) -> Self {

@@ -12,6 +12,7 @@ use base::Epoch;
 pub use base::generic_channel::GenericReceiver as WebGLReceiver;
 /// Sender type used in WebGLCommands.
 pub use base::generic_channel::GenericSender as WebGLSender;
+use base::generic_channel::GenericSharedMemory;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use base::generic_channel::SendResult as WebGLSendResult;
 use base::id::PainterId;
@@ -20,7 +21,7 @@ use glow::{
     self as gl, NativeBuffer, NativeFence, NativeFramebuffer, NativeProgram, NativeQuery,
     NativeRenderbuffer, NativeSampler, NativeShader, NativeTexture, NativeVertexArray,
 };
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::{PixelFormat, SnapshotAlphaMode};
 use serde::{Deserialize, Serialize};
@@ -323,7 +324,7 @@ pub enum WebGLCommand {
         Rect<u32>,
         u32,
         u32,
-        IpcSender<(IpcSharedMemory, SnapshotAlphaMode)>,
+        IpcSender<(GenericSharedMemory, SnapshotAlphaMode)>,
     ),
     ReadPixelsPP(Rect<i32>, u32, u32, usize),
     SampleCoverage(f32, bool),
@@ -399,7 +400,7 @@ pub enum WebGLCommand {
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
         pixel_format: Option<PixelFormat>,
-        data: TruncatedDebug<IpcSharedMemory>,
+        data: TruncatedDebug<GenericSharedMemory>,
     },
     TexImage2D {
         target: u32,
@@ -414,7 +415,7 @@ pub enum WebGLCommand {
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
         pixel_format: Option<PixelFormat>,
-        data: TruncatedDebug<IpcSharedMemory>,
+        data: TruncatedDebug<GenericSharedMemory>,
     },
     TexImage2DPBO {
         target: u32,
@@ -440,14 +441,14 @@ pub enum WebGLCommand {
         alpha_treatment: Option<AlphaTreatment>,
         y_axis_treatment: YAxisTreatment,
         pixel_format: Option<PixelFormat>,
-        data: TruncatedDebug<IpcSharedMemory>,
+        data: TruncatedDebug<GenericSharedMemory>,
     },
     CompressedTexImage2D {
         target: u32,
         level: u32,
         internal_format: u32,
         size: Size2D<u32>,
-        data: TruncatedDebug<IpcSharedMemory>,
+        data: TruncatedDebug<GenericSharedMemory>,
     },
     CompressedTexSubImage2D {
         target: u32,
@@ -456,7 +457,7 @@ pub enum WebGLCommand {
         yoffset: i32,
         size: Size2D<u32>,
         format: u32,
-        data: TruncatedDebug<IpcSharedMemory>,
+        data: TruncatedDebug<GenericSharedMemory>,
     },
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),

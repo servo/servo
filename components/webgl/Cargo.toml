@@ -25,7 +25,6 @@ crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glow = { workspace = true }
 half = "2"
-ipc-channel = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
 parking_lot = { workspace = true }

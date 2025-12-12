@@ -10,6 +10,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel;
+use base::generic_channel::GenericSharedMemory;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
@@ -38,7 +39,7 @@ use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -635,7 +636,7 @@ fn auth_from_cache(
 /// used to fill the body with bytes coming-in over IPC.
 enum BodyChunk {
     /// A chunk of bytes.
-    Chunk(IpcSharedMemory),
+    Chunk(GenericSharedMemory),
     /// Body is done.
     Done,
 }
@@ -662,7 +663,7 @@ enum BodySink {
 }
 
 impl BodySink {
-    fn transmit_bytes(&self, bytes: IpcSharedMemory) {
+    fn transmit_bytes(&self, bytes: GenericSharedMemory) {
         match self {
             BodySink::Chunked(sender) => {
                 let sender = sender.clone();

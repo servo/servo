@@ -5,9 +5,10 @@
 use std::rc::Rc;
 use std::{ptr, slice, str};
 
+use base::generic_channel::GenericSharedMemory;
 use constellation_traits::BlobImpl;
 use encoding_rs::{Encoding, UTF_8};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JS_ClearPendingException, JSObject, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
@@ -73,7 +74,7 @@ struct TransmitBodyConnectHandler {
     task_source: SendableTaskSource,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
     control_sender: IpcSender<BodyChunkRequest>,
-    in_memory: Option<IpcSharedMemory>,
+    in_memory: Option<GenericSharedMemory>,
     in_memory_done: bool,
     source: BodySource,
 }
@@ -83,7 +84,7 @@ impl TransmitBodyConnectHandler {
         stream: Trusted<ReadableStream>,
         task_source: SendableTaskSource,
         control_sender: IpcSender<BodyChunkRequest>,
-        in_memory: Option<IpcSharedMemory>,
+        in_memory: Option<GenericSharedMemory>,
         source: BodySource,
     ) -> TransmitBodyConnectHandler {
         TransmitBodyConnectHandler {
@@ -315,7 +316,7 @@ impl Callback for TransmitBodyPromiseHandler {
         // TODO: queue a fetch task on request to process request body for request.
         let _ = self
             .bytes_sender
-            .send(BodyChunkResponse::Chunk(IpcSharedMemory::from_bytes(
+            .send(BodyChunkResponse::Chunk(GenericSharedMemory::from_bytes(
                 &chunk,
             )));
     }

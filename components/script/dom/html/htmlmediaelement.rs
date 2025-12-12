@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
+use base::generic_channel::GenericSharedMemory;
 use base::id::WebViewId;
 use compositing_traits::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -19,7 +20,7 @@ use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use layout_api::MediaFrame;
@@ -345,7 +346,9 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     updates.push(ImageUpdate::UpdateImage(
                         current_frame.image_key,
                         descriptor,
-                        SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data())),
+                        SerializableImageData::Raw(GenericSharedMemory::from_bytes(
+                            &frame.get_data(),
+                        )),
                         None,
                     ));
                 }
@@ -386,7 +389,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         normalized_uvs: false,
                     })
                 } else {
-                    SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))
+                    SerializableImageData::Raw(GenericSharedMemory::from_bytes(&frame.get_data()))
                 };
 
                 self.current_frame_holder
@@ -421,7 +424,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         normalized_uvs: false,
                     })
                 } else {
-                    SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))
+                    SerializableImageData::Raw(GenericSharedMemory::from_bytes(&frame.get_data()))
                 };
 
                 self.current_frame_holder = Some(FrameHolder::new(frame));
