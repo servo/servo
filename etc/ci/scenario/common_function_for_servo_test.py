@@ -145,6 +145,7 @@ def stop_servo():
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     print("Stop Test Application successful!")
 
+
 def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement):
     """
     This scrolls element into view, and return the DOMRect tuple:
