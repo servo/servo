@@ -483,6 +483,10 @@ fn handle_range_request(
                             _ => continue,
                         };
                         if let Some(bytes) = requested {
+                            if bytes.len() as u64 + beginning < total - 1 {
+                                // Requested range goes beyond the available range.
+                                continue;
+                            }
                             let new_resource =
                                 create_resource_with_bytes_from_resource(bytes, partial_resource);
                             let cached_response =
