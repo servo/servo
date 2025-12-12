@@ -21,6 +21,8 @@ from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
 from urllib3.exceptions import ProtocolError
+from PIL import Image
+from selenium.webdriver.remote.webelement import WebElement
 
 WEBDRIVER_PORT = 7000
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
@@ -142,6 +144,56 @@ def stop_servo():
     cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     print("Stop Test Application successful!")
+
+def ele_scroll_and_rect(driver: webdriver.Remote, element: WebElement):
+    """
+    This scrolls element into view, and return the DOMRect tuple:
+    [left, top, right, bottom]
+    """
+    # false corresponds to `scrollIntoViewOptions: {block: "end", inline: "nearest"}`
+    # which is consistent with standard webdriver screenshot.
+    # <https://w3c.github.io/webdriver/#dfn-scrolls-into-view>
+    driver.execute_script(
+        "arguments[0].scrollIntoView(false)",
+        element,
+    )
+
+    # sleep as animation may be delayed.
+    time.sleep(1)
+
+    physical_rect = driver.execute_script(
+        """
+        const rect = arguments[0].getBoundingClientRect();
+        const dpr = window.devicePixelRatio;
+        return [
+            rect.left * dpr,
+            rect.top * dpr,
+            rect.right * dpr,
+            rect.bottom * dpr
+        ];
+        """,
+        element,
+    )
+
+    return physical_rect
+
+
+def element_screenshot(element: WebElement, filename: str):
+    if not (filename.lower().endswith(".jpg") or filename.lower().endswith(".jpeg")):
+        raise ValueError(f"Invalid file type: {filename}. Expected a .jpg/.jpeg file.")
+
+    try:
+        print(f"Scrolling {element}")
+        region = ele_scroll_and_rect(element)
+        time.sleep(2)
+        hdc = HarmonyDeviceConnector()
+        hdc.screenshot(filename)
+
+        region = Image.open(filename).crop(region)
+        save_path = filename + ".png"
+        region.save(save_path)
+    except Exception as e:
+        print(f"Element Screenshot failed with error: {e}")
 
 
 def run_test(test_fn, test_name: str, initial_url: str):
