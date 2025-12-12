@@ -18,7 +18,7 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::specified::box_::DisplayOutside;
 
-use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
+use super::{BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::SharedStyle;
 use crate::display_list::ToWebRender;
 use crate::formatting_contexts::Baselines;
@@ -89,7 +89,7 @@ impl BoxFragmentRareData {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct BoxFragment {
-    pub base: BaseFragment,
+    pub base: BaseFragmentInfo,
 
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
@@ -140,7 +140,7 @@ pub(crate) struct BoxFragment {
 impl BoxFragment {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        base_fragment_info: BaseFragmentInfo,
+        base: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
         content_rect: PhysicalRect<Au>,
@@ -152,7 +152,7 @@ impl BoxFragment {
         let rare_data = BoxFragmentRareData::try_boxed_from(specific_layout_info);
 
         BoxFragment {
-            base: base_fragment_info.into(),
+            base,
             style,
             children,
             content_rect,
@@ -414,7 +414,7 @@ impl BoxFragment {
         //
         // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d
         // contexts, but it is yet to happen.
-        self.calculate_transform_matrix(&self.border_rect().to_untyped())
+        self.calculate_transform_matrix(&self.border_rect())
             .and_then(|transform| {
                 transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
             })

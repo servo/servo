@@ -7,7 +7,7 @@ use std::ffi::CString;
 use std::ptr::NonNull;
 
 use base::IpcSend;
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericOneshotSender, GenericSender};
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
@@ -799,7 +799,7 @@ pub(crate) fn handle_get_element_in_view_center_point(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
-    reply: IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>,
+    reply: GenericOneshotSender<Result<Option<(i64, i64)>, ErrorStatus>>,
     can_gc: CanGc,
 ) {
     reply

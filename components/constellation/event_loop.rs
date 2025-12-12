@@ -11,15 +11,14 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
+use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::ScriptEventLoopId;
 use constellation_traits::ServiceWorkerManagerFactory;
-use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::{Error, ipc};
 use layout_api::ScriptThreadFactory;
-use log::{error, warn};
+use log::error;
 use media::WindowGLContext;
 use script_traits::{InitialScriptState, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
@@ -73,23 +72,6 @@ impl EventLoop {
         let (script_chan, script_port) =
             base::generic_channel::channel().expect("Pipeline script chan");
 
-        // Route messages coming from content to devtools as appropriate.
-        let devtools_sender = constellation.devtools_sender.as_ref();
-        let script_to_devtools_callback = devtools_sender.map(|devtools_sender| {
-            let devtools_sender = devtools_sender.clone();
-            GenericCallback::new(move |message| match message {
-                Err(error) => error!("Cast to ScriptToDevtoolsControlMsg failed ({error})."),
-                Ok(message) => {
-                    if let Err(error) =
-                        devtools_sender.send(DevtoolsControlMsg::FromScript(message))
-                    {
-                        warn!("Sending to devtools failed ({error:?})")
-                    }
-                },
-            })
-            .expect("Could not create callback")
-        });
-
         let embedder_chan = constellation.embedder_proxy.sender.clone();
         let eventloop_waker = constellation.embedder_proxy.event_loop_waker.clone();
         let script_to_embedder_sender = ScriptToEmbedderChan::new(embedder_chan, eventloop_waker);
@@ -111,7 +93,7 @@ impl EventLoop {
             script_to_constellation_sender: constellation.script_sender.clone(),
             script_to_embedder_sender,
             namespace_request_sender: constellation.namespace_ipc_sender.clone(),
-            devtools_server_sender: script_to_devtools_callback,
+            devtools_server_sender: constellation.script_to_devtools_callback(),
             #[cfg(feature = "bluetooth")]
             bluetooth_sender: constellation.bluetooth_ipc_sender.clone(),
             system_font_service: constellation.system_font_service.to_sender(),
@@ -122,10 +104,7 @@ impl EventLoop {
             constellation_to_script_sender: script_chan,
             constellation_to_script_receiver: script_port,
             pipeline_namespace_id: constellation.next_pipeline_namespace_id(),
-            cross_process_compositor_api: constellation
-                .compositor_proxy
-                .cross_process_compositor_api
-                .clone(),
+            cross_process_paint_api: constellation.paint_proxy.cross_process_paint_api.clone(),
             webgl_chan: constellation
                 .webgl_threads
                 .as_ref()

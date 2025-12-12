@@ -36,12 +36,8 @@ use serde::Serialize;
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, Root};
-use crate::actors::device::DeviceActor;
 use crate::actors::framerate::FramerateActor;
 use crate::actors::network_event::NetworkEventActor;
-use crate::actors::performance::PerformanceActor;
-use crate::actors::preference::PreferenceActor;
-use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
 use crate::actors::thread::ThreadActor;
@@ -161,26 +157,8 @@ impl DevtoolsInstance {
 
         // Create basic actors
         let mut registry = ActorRegistry::new();
-        let performance = PerformanceActor::new(registry.new_name("performance"));
-        let device = DeviceActor::new(registry.new_name("device"));
-        let preference = PreferenceActor::new(registry.new_name("preference"));
-        let process = ProcessActor::new(registry.new_name("process"));
-        let root = RootActor {
-            tabs: vec![],
-            workers: vec![],
-            device: device.name(),
-            performance: performance.name(),
-            preference: preference.name(),
-            process: process.name(),
-            active_tab: None.into(),
-        };
 
-        registry.register(root);
-        registry.register(performance);
-        registry.register(device);
-        registry.register(preference);
-        registry.register(process);
-        registry.find::<RootActor>("root");
+        RootActor::register(&mut registry);
 
         let actors = registry.create_shareable();
 
@@ -505,6 +483,7 @@ impl DevtoolsInstance {
             NetworkEvent::HttpRequest(req) => req.browsing_context_id,
             NetworkEvent::HttpRequestUpdate(req) => req.browsing_context_id,
             NetworkEvent::HttpResponse(resp) => resp.browsing_context_id,
+            NetworkEvent::SecurityInfo(update) => update.browsing_context_id,
         };
 
         let Some(browsing_context_actor_name) = self.browsing_contexts.get(&browsing_context_id)

@@ -511,6 +511,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
             },
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
                 let inline_content_sizes_result = sizing::outer_inline(
+                    base,
                     &contents.layout_style(base),
                     containing_block,
                     &LogicalVec2::zero(),

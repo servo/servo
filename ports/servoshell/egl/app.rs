@@ -583,14 +583,14 @@ impl App {
         self.spin_event_loop();
     }
 
-    pub fn pause_compositor(&self) {
+    pub fn pause_painting(&self) {
         if let Err(e) = self.platform_window.rendering_context.take_window() {
             warn!("Unbinding native surface from context failed ({:?})", e);
         }
         self.spin_event_loop();
     }
 
-    pub fn resume_compositor(
+    pub fn resume_painting(
         &self,
         window_handle: RawWindowHandle,
         viewport_rect: Rect<i32, DevicePixel>,

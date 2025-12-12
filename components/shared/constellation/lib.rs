@@ -19,8 +19,8 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderControlId, EmbedderControlResponse, InputEventAndId,
-    JavaScriptEvaluationId, MediaSessionActionType, Theme, TraversalId, ViewportDetails,
+    EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
+    MediaSessionActionType, PaintHitTestResult, Theme, TraversalId, ViewportDetails,
     WebDriverCommandMsg,
 };
 pub use from_script_message::*;
@@ -79,7 +79,7 @@ pub enum EmbedderToConstellationMessage {
     /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an input event to an appropriate ScriptTask.
-    ForwardInputEvent(WebViewId, InputEventAndId, Option<CompositorHitTestResult>),
+    ForwardInputEvent(WebViewId, InputEventAndId, Option<PaintHitTestResult>),
     /// Request that the given pipeline refresh the cursor by doing a hit test at the most
     /// recently hovered cursor position and resetting the cursor. This happens after a
     /// display list update is rendered.

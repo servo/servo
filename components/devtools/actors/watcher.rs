@@ -81,7 +81,7 @@ impl SessionContext {
                 ("platform-message", false),
                 ("network-event", true),
                 ("network-event-stacktrace", false),
-                ("reflow", false),
+                ("reflow", true),
                 ("stylesheet", false),
                 ("source", true),
                 ("thread-state", false),

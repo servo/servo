@@ -56,6 +56,10 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
 };
 
+// https://w3c.github.io/webcrypto/#big-integer
+
+typedef Uint8Array BigInteger;
+
 // https://w3c.github.io/webcrypto/#algorithm-dictionary
 
 typedef (object or DOMString) AlgorithmIdentifier;
@@ -70,6 +74,25 @@ dictionary Algorithm {
 
 dictionary KeyAlgorithm {
   required DOMString name;
+};
+
+// https://w3c.github.io/webcrypto/#RsaKeyAlgorithm-dictionary
+
+dictionary RsaKeyAlgorithm : KeyAlgorithm {
+  required unsigned long modulusLength;
+  required BigInteger publicExponent;
+};
+
+// https://w3c.github.io/webcrypto/#RsaHashedKeyAlgorithm-dictionary
+
+dictionary RsaHashedKeyAlgorithm : RsaKeyAlgorithm {
+  required KeyAlgorithm hash;
+};
+
+// https://w3c.github.io/webcrypto/#RsaHashedImportParams-dictionary
+
+dictionary RsaHashedImportParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
 };
 
 // https://w3c.github.io/webcrypto/#EcdsaParams-dictionary

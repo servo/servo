@@ -108,10 +108,10 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 dirs = "6.0"
-egui = { version = "0.33.2", features = ["accesskit"] }
+egui = { version = "0.33.3", features = ["accesskit"] }
 egui-file-dialog = "0.12.0"
-egui-winit = { version = "0.33.2", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
-egui_glow = { version = "0.33.2", features = ["winit"] }
+egui-winit = { version = "0.33.3", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
+egui_glow = { version = "0.33.3", features = ["winit"] }
 gilrs = "0.11.0"
 glow = { workspace = true }
 headers = { workspace = true }

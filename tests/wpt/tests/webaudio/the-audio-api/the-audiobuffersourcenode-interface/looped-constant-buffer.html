@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Looped AudioBufferSourceNode Keeps Rendering</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+  <body>
+    <script>
+      promise_test(async () => {
+        const sampleRate = 44100;
+        const renderFrames = 2048;
+        const loopFrames = 64;
+
+        const context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        const loopDuration = loopFrames / sampleRate;
+
+        const src = new AudioBufferSourceNode(context, {
+          buffer: createConstantBuffer(context, loopFrames, 1),
+          loop: true,
+          loopStart: 0,
+          loopEnd: loopDuration,
+        });
+
+        src.connect(context.destination);
+        src.start();
+
+        const resultBuffer = await context.startRendering();
+        const result = resultBuffer.getChannelData(0);
+        const expected = new Float32Array(result.length).fill(1);
+
+        // WebAudio §1.9.5 requires that a looped region keeps playing until it is
+        // stopped, so the rendered output should remain constant 1 even after
+        // multiple loop passes.
+        assert_array_equals(
+          result,
+          expected,
+          'looped buffer should continue emitting ones even after first loop'
+        );
+      }, 'looped-constant-buffer-keeps-rendering');
+    </script>
+  </body>
+</html>

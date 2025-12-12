@@ -18,13 +18,13 @@ use embedder_traits::{
     MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId,
     ViewportDetails, WebViewPoint, WebViewRect,
 };
-use euclid::{Point2D, Scale, Size2D};
+use euclid::{Scale, Size2D};
 use image::RgbaImage;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use url::Url;
-use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceRect};
+use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
@@ -83,8 +83,7 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
 
-    /// The rectangle of the [`WebView`] in device pixels, which is the viewport.
-    rect: DeviceRect,
+    rendering_context: Rc<dyn RenderingContext>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
     status_text: Option<String>,
@@ -106,28 +105,24 @@ impl Drop for WebViewInner {
         self.servo
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::CloseWebView(self.id));
+        self.servo.paint_mut().remove_webview(self.id);
     }
 }
 
 impl WebView {
     pub(crate) fn new(builder: WebViewBuilder) -> Self {
         let servo = builder.servo;
-        let size = builder.size.map_or_else(
-            || builder.rendering_context.size2d().to_f32(),
-            |size| Size2D::new(size.width as f32, size.height as f32),
-        );
-
         let painter_id = servo
-            .compositor_mut()
-            .register_rendering_context(builder.rendering_context);
+            .paint_mut()
+            .register_rendering_context(builder.rendering_context.clone());
 
         let id = WebViewId::new(painter_id);
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
             servo: servo.clone(),
+            rendering_context: builder.rendering_context,
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
-            rect: DeviceRect::from_origin_and_size(Point2D::origin(), size),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -141,7 +136,7 @@ impl WebView {
         })));
 
         let viewport_details = webview.viewport_details();
-        servo.compositor().add_webview(
+        servo.paint().add_webview(
             Box::new(ServoRendererWebView {
                 weak_handle: webview.weak_handle(),
                 id,
@@ -182,7 +177,8 @@ impl WebView {
         // The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
         let inner = self.inner();
-        let scaled_viewport_size = inner.rect.size() / inner.hidpi_scale_factor;
+        let scaled_viewport_size =
+            inner.rendering_context.size2d().to_f32() / inner.hidpi_scale_factor;
         ViewportDetails {
             size: scaled_viewport_size / Scale::new(1.0),
             hidpi_scale_factor: Scale::new(inner.hidpi_scale_factor.0),
@@ -324,13 +320,17 @@ impl WebView {
         self.delegate().notify_animating_changed(self, new_value);
     }
 
-    pub fn rect(&self) -> DeviceRect {
-        self.inner().rect
+    /// The size of this [`WebView`]'s [`RenderingContext`].
+    pub fn size(&self) -> DeviceSize {
+        self.inner().rendering_context.size2d().to_f32()
     }
 
-    /// Request that the given [`WebView`]'s rendering area be resized. Note that the
+    /// Request that the given [`WebView`]'s [`RenderingContext`] be resized. Note that the
     /// minimum size for a WebView is 1 pixel by 1 pixel so any requested size will be
     /// clamped by that value.
+    ///
+    /// This will also resize any other [`WebView`] using the same [`RenderingContext`]. A
+    /// [`WebView`] is always as big as its [`RenderingContext`].
     pub fn resize(&self, new_size: PhysicalSize<u32>) {
         let new_size = PhysicalSize {
             width: new_size.width.max(MINIMUM_WEBVIEW_SIZE.width as u32),
@@ -339,7 +339,7 @@ impl WebView {
 
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .resize_rendering_context(self.id(), new_size);
     }
 
@@ -358,14 +358,14 @@ impl WebView {
         self.inner_mut().hidpi_scale_factor = new_scale_factor;
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
     }
 
     pub fn show(&self) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .show_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
@@ -373,7 +373,7 @@ impl WebView {
     pub fn hide(&self) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .hide_webview(self.id())
             .expect("BUG: invalid WebView instance");
     }
@@ -443,7 +443,7 @@ impl WebView {
     pub fn notify_scroll_event(&self, scroll: Scroll, point: WebViewPoint) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .notify_scroll_event(self.id(), scroll, point);
     }
 
@@ -451,11 +451,11 @@ impl WebView {
         let event: InputEventAndId = event.into();
         let event_id = event.id;
 
-        // Events with a `point` first go to the compositor for hit testing.
+        // Events with a `point` first go to `Paint` for hit testing.
         if event.event.point().is_some() {
             self.inner()
                 .servo
-                .compositor()
+                .paint()
                 .notify_input_event(self.id(), event);
         } else {
             self.inner().servo.constellation_proxy().send(
@@ -491,13 +491,13 @@ impl WebView {
     pub fn set_page_zoom(&self, new_zoom: f32) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .set_page_zoom(self.id(), new_zoom);
     }
 
     /// Get the page zoom of the [`WebView`].
     pub fn page_zoom(&self) -> f32 {
-        self.inner().servo.compositor().page_zoom(self.id())
+        self.inner().servo.paint().page_zoom(self.id())
     }
 
     /// Adjust the pinch zoom on this [`WebView`] multiplying the current pinch zoom
@@ -512,14 +512,14 @@ impl WebView {
     pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .pinch_zoom(self.id(), pinch_zoom_delta, center);
     }
 
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .device_pixels_per_page_pixel(self.id())
     }
 
@@ -537,14 +537,11 @@ impl WebView {
     }
 
     pub fn toggle_webrender_debugging(&self, debugging: WebRenderDebugOption) {
-        self.inner()
-            .servo
-            .compositor()
-            .toggle_webrender_debug(debugging);
+        self.inner().servo.paint().toggle_webrender_debug(debugging);
     }
 
     pub fn capture_webrender(&self) {
-        self.inner().servo.compositor().capture_webrender(self.id());
+        self.inner().servo.paint().capture_webrender(self.id());
     }
 
     pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
@@ -565,7 +562,7 @@ impl WebView {
 
     /// Paint the contents of this [`WebView`] into its `RenderingContext`.
     pub fn paint(&self) {
-        self.inner().servo.compositor().render(self.id());
+        self.inner().servo.paint().render(self.id());
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
@@ -606,7 +603,7 @@ impl WebView {
     ) {
         self.inner()
             .servo
-            .compositor()
+            .paint()
             .request_screenshot(self.id(), rect, Box::new(callback));
     }
 
@@ -735,7 +732,6 @@ pub struct WebViewBuilder {
     delegate: Rc<dyn WebViewDelegate>,
     auxiliary: bool,
     url: Option<Url>,
-    size: Option<PhysicalSize<u32>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
@@ -746,7 +742,6 @@ impl WebViewBuilder {
             rendering_context,
             auxiliary: false,
             url: None,
-            size: None,
             hidpi_scale_factor: Scale::new(1.0),
             delegate: Rc::new(DefaultWebViewDelegate),
         }
@@ -765,11 +760,6 @@ impl WebViewBuilder {
 
     pub fn url(mut self, url: Url) -> Self {
         self.url = Some(url);
-        self
-    }
-
-    pub fn size(mut self, size: PhysicalSize<u32>) -> Self {
-        self.size = Some(size);
         self
     }
 

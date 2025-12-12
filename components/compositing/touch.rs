@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use base::id::WebViewId;
-use embedder_traits::{CompositorHitTestResult, InputEventId, Scroll, TouchEventType, TouchId};
+use embedder_traits::{InputEventId, PaintHitTestResult, Scroll, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::FxHashMap;
@@ -14,7 +14,7 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceVector2D};
 
 use self::TouchSequenceState::*;
-use crate::compositor::RepaintReason;
+use crate::paint::RepaintReason;
 use crate::painter::Painter;
 use crate::refresh_driver::{BaseRefreshDriver, RefreshDriverObserver};
 use crate::webview_renderer::{ScrollEvent, ScrollZoomEvent, WebViewRenderer};
@@ -76,11 +76,11 @@ pub enum TouchMoveAllowed {
     Pending,
 }
 
-/// A cached [`CompositorHitTestResult`] to use during a touch sequence. This
+/// A cached [`PaintHitTestResult`] to use during a touch sequence. This
 /// is kept so that the renderer doesn't have to constantly keep making hit tests
 /// while during panning and flinging actions.
 struct HitTestResultCache {
-    value: CompositorHitTestResult,
+    value: PaintHitTestResult,
     device_pixels_per_page: Scale<f32, CSSPixel, DevicePixel>,
 }
 
@@ -521,7 +521,10 @@ impl TouchHandler {
     }
 
     pub fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
-        let touch_sequence = self.get_current_touch_sequence_mut();
+        let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
+            warn!("Current touch sequence not found");
+            return;
+        };
         let old = match touch_sequence
             .active_touch_points
             .iter()
@@ -624,7 +627,7 @@ impl TouchHandler {
         }
     }
 
-    pub(crate) fn get_hit_test_result_cache_value(&self) -> Option<CompositorHitTestResult> {
+    pub(crate) fn get_hit_test_result_cache_value(&self) -> Option<PaintHitTestResult> {
         let sequence = self.touch_sequence_map.get(&self.current_sequence_id)?;
         if sequence.state == Finished {
             return None;
@@ -637,7 +640,7 @@ impl TouchHandler {
 
     pub(crate) fn set_hit_test_result_cache_value(
         &mut self,
-        value: CompositorHitTestResult,
+        value: PaintHitTestResult,
         device_pixels_per_page: Scale<f32, CSSPixel, DevicePixel>,
     ) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&self.current_sequence_id) {

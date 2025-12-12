@@ -375,7 +375,7 @@ pub(crate) struct Document {
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
-    /// sending needless `ChangeRunningAnimationsState` messages to the compositor.
+    /// sending needless `ChangeRunningAnimationsState` messages to `Paint`.
     running_animation_callbacks: Cell<bool>,
     /// Tracks all outstanding loads related to this document.
     loader: DomRefCell<DocumentLoader>,
@@ -2801,7 +2801,7 @@ impl Document {
         if !image_keys.is_empty() {
             results.insert(ReflowPhasesRun::UpdatedImageData);
             self.waiting_on_canvas_image_updates.set(true);
-            self.window().compositor_api().delay_new_frame_for_canvas(
+            self.window().paint_api().delay_new_frame_for_canvas(
                 self.webview_id(),
                 self.window().pipeline_id(),
                 current_rendering_epoch,
@@ -2811,7 +2811,7 @@ impl Document {
 
         let results = results.union(self.window().reflow(ReflowGoal::UpdateTheRendering));
 
-        self.window().compositor_api().update_epoch(
+        self.window().paint_api().update_epoch(
             self.webview_id(),
             pipeline_id,
             current_rendering_epoch,

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
-use compositing_traits::display_list::{CompositorDisplayListInfo, SpatialTreeNodeInfo};
+use compositing_traits::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use compositing_traits::largest_contentful_paint_candidate::{
     LCPCandidateID, LargestContentfulPaintType,
 };
@@ -99,8 +99,8 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// The [`wr::DisplayListBuilder`] for this Servo [`DisplayListBuilder`].
     pub webrender_display_list_builder: &'a mut wr::DisplayListBuilder,
 
-    /// The [`CompositorDisplayListInfo`] used to collect display list items and metadata.
-    pub compositor_info: &'a mut CompositorDisplayListInfo,
+    /// The [`PaintDisplayListInfo`] used to collect display list items and metadata.
+    pub paint_info: &'a mut PaintDisplayListInfo,
 
     /// Data about the fragments that are highlighted by the inspector, if any.
     ///
@@ -176,8 +176,8 @@ impl DisplayListBuilder<'_> {
         lcp_candidate_collector: Option<&mut LargestContentfulPaintCandidateCollector>,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
-        let compositor_info = &mut stacking_context_tree.compositor_info;
-        let pipeline_id = compositor_info.pipeline_id;
+        let paint_info = &mut stacking_context_tree.paint_info;
+        let pipeline_id = paint_info.pipeline_id;
         let mut webrender_display_list_builder =
             webrender_api::DisplayListBuilder::new(pipeline_id);
         webrender_display_list_builder.begin();
@@ -192,11 +192,11 @@ impl DisplayListBuilder<'_> {
 
         let _span = profile_traits::trace_span!("DisplayListBuilder::build").entered();
         let mut builder = DisplayListBuilder {
-            current_scroll_node_id: compositor_info.root_reference_frame_id,
-            current_reference_frame_scroll_node_id: compositor_info.root_reference_frame_id,
+            current_scroll_node_id: paint_info.root_reference_frame_id,
+            current_reference_frame_scroll_node_id: paint_info.root_reference_frame_id,
             current_clip_id: ClipId::INVALID,
             webrender_display_list_builder: &mut webrender_display_list_builder,
-            compositor_info,
+            paint_info,
             inspector_highlight: highlighted_dom_node.map(InspectorHighlight::for_node),
             paint_body_background: true,
             clip_map: Default::default(),
@@ -213,8 +213,8 @@ impl DisplayListBuilder<'_> {
 
         // Add a single hit test that covers the entire viewport, so that WebRender knows
         // which pipeline it hits when doing hit testing.
-        let pipeline_id = builder.compositor_info.pipeline_id;
-        let viewport_size = builder.compositor_info.viewport_details.size;
+        let pipeline_id = builder.paint_info.pipeline_id;
+        let viewport_size = builder.paint_info.viewport_details.size;
         let viewport_rect = LayoutRect::from_size(viewport_size.cast_unit());
         builder.wr().push_hit_test(
             viewport_rect,
@@ -241,15 +241,15 @@ impl DisplayListBuilder<'_> {
     }
 
     fn pipeline_id(&mut self) -> wr::PipelineId {
-        self.compositor_info.pipeline_id
+        self.paint_info.pipeline_id
     }
 
     fn mark_is_contentful(&mut self) {
-        self.compositor_info.is_contentful = true;
+        self.paint_info.is_contentful = true;
     }
 
     fn spatial_id(&self, id: ScrollTreeNodeId) -> SpatialId {
-        self.compositor_info.scroll_tree.webrender_id(id)
+        self.paint_info.scroll_tree.webrender_id(id)
     }
 
     fn clip_chain_id(&self, id: ClipId) -> ClipChainId {
@@ -267,7 +267,7 @@ impl DisplayListBuilder<'_> {
         // list. This is merely to ensure that the currently-unused SpatialTreeItemKey
         // produced for every SpatialTree node is unique.
         let mut spatial_tree_count = 0;
-        let mut scroll_tree = std::mem::take(&mut self.compositor_info.scroll_tree);
+        let mut scroll_tree = std::mem::take(&mut self.paint_info.scroll_tree);
         let mut mapping = Vec::with_capacity(scroll_tree.nodes.len());
 
         mapping.push(SpatialId::root_reference_frame(self.pipeline_id()));
@@ -330,7 +330,7 @@ impl DisplayListBuilder<'_> {
         }
 
         scroll_tree.update_mapping(mapping);
-        self.compositor_info.scroll_tree = scroll_tree;
+        self.paint_info.scroll_tree = scroll_tree;
     }
 
     /// Add the given [`Clip`] to the WebRender display list and create a mapping from
@@ -532,7 +532,7 @@ impl DisplayListBuilder<'_> {
     ) {
         if let Some(lcp_collector) = &mut self.lcp_candidate_collector {
             let transform = self
-                .compositor_info
+                .paint_info
                 .scroll_tree
                 .cumulative_node_to_root_transform(self.current_scroll_node_id);
             lcp_collector.add_or_update_candidate(
@@ -1137,7 +1137,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder, rect: LayoutRect) {
         let external_scroll_node_id = builder
-            .compositor_info
+            .paint_info
             .external_scroll_id_for_scroll_tree_node(builder.current_scroll_node_id);
 
         let mut common = builder.common_properties(rect, &self.fragment.style);

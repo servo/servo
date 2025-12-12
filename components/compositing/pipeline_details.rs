@@ -30,8 +30,8 @@ pub(crate) struct PipelineDetails {
     /// Whether to use less resources by stopping animations.
     pub throttled: bool,
 
-    /// The compositor-side [ScrollTree]. This is used to allow finding and scrolling
-    /// nodes in the compositor before forwarding new offsets to WebRender.
+    /// The `Paint`-side [ScrollTree]. This is used to allow finding and scrolling
+    /// nodes in `Paint` before forwarding new offsets to WebRender.
     pub scroll_tree: ScrollTree,
 
     /// The paint metric status of the first paint.

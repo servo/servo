@@ -10,7 +10,7 @@ use std::sync::Arc;
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PainterId, PipelineId, WebViewId};
-use compositing_traits::display_list::{CompositorDisplayListInfo, ScrollType};
+use compositing_traits::display_list::{PaintDisplayListInfo, ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
@@ -22,7 +22,7 @@ use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    CompositorHitTestResult, InputEvent, InputEventAndId, InputEventId, InputEventResult,
+    InputEvent, InputEventAndId, InputEventId, InputEventResult, PaintHitTestResult,
     ScreenshotCaptureError, Scroll, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -54,9 +54,9 @@ use webrender_api::{
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
-use crate::IOCompositor;
-use crate::compositor::{RepaintReason, WebRenderDebugOption};
+use crate::Paint;
 use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
+use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
@@ -127,16 +127,21 @@ pub(crate) struct Painter {
 
 impl Drop for Painter {
     fn drop(&mut self) {
+        if let Err(error) = self.rendering_context.make_current() {
+            warn!("Failed to make the rendering context current: {error:?}");
+        }
+
         self.webrender_api.stop_render_backend();
         self.webrender_api.shut_down(true);
+
+        if let Some(webrender) = self.webrender.take() {
+            webrender.deinit();
+        }
     }
 }
 
 impl Painter {
-    pub(crate) fn new(
-        rendering_context: Rc<dyn RenderingContext>,
-        compositor: &IOCompositor,
-    ) -> Self {
+    pub(crate) fn new(rendering_context: Rc<dyn RenderingContext>, paint: &Paint) -> Self {
         let webrender_gl = rendering_context.gleam_gl_api();
 
         // Make sure the gl context is made current.
@@ -145,31 +150,29 @@ impl Painter {
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
-        let id_manager = compositor.webrender_external_image_id_manager();
+        let id_manager = paint.webrender_external_image_id_manager();
         let mut external_image_handlers = Box::new(WebRenderExternalImageHandlers::new(id_manager));
 
         // Set WebRender external image handler for WebGL textures.
         let image_handler = Box::new(WebGLExternalImages::new(
-            compositor.webgl_threads(),
+            paint.webgl_threads(),
             rendering_context.clone(),
-            compositor.swap_chains.clone(),
-            compositor.busy_webgl_contexts_map.clone(),
+            paint.swap_chains.clone(),
+            paint.busy_webgl_contexts_map.clone(),
         ));
         external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::WebGl);
 
         #[cfg(feature = "webgpu")]
         external_image_handlers.set_handler(
-            Box::new(webgpu::WebGpuExternalImages::new(
-                compositor.webgpu_image_map(),
-            )),
+            Box::new(webgpu::WebGpuExternalImages::new(paint.webgpu_image_map())),
             WebRenderImageHandlerType::WebGpu,
         );
 
         WindowGLContext::initialize_image_handler(&mut external_image_handlers);
 
-        let embedder_to_constellation_sender = compositor.embedder_to_constellation_sender.clone();
+        let embedder_to_constellation_sender = paint.embedder_to_constellation_sender.clone();
         let refresh_driver = Rc::new(BaseRefreshDriver::new(
-            compositor.event_loop_waker.clone_box(),
+            paint.event_loop_waker.clone_box(),
             rendering_context.refresh_driver(),
         ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
@@ -207,10 +210,7 @@ impl Painter {
         let painter_id = PainterId::next();
         let (mut webrender, webrender_api_sender) = webrender::create_webrender_instance(
             webrender_gl.clone(),
-            Box::new(RenderNotifier::new(
-                painter_id,
-                compositor.compositor_proxy.clone(),
-            )),
+            Box::new(RenderNotifier::new(painter_id, paint.paint_proxy.clone())),
             webrender::WebRenderOptions {
                 // We force the use of optimized shaders here because rendering is broken
                 // on Android emulators with unoptimized shaders. This is due to a known
@@ -292,16 +292,6 @@ impl Painter {
             .collect();
 
         self.send_zoom_and_scroll_offset_updates(need_zoom, scroll_offset_updates);
-    }
-
-    pub(crate) fn deinit(&mut self) {
-        if let Err(error) = self.rendering_context.make_current() {
-            warn!("Failed to make the rendering context current: {error:?}");
-        }
-        if let Some(webrender) = self.webrender.take() {
-            webrender.deinit();
-        }
-        self.lcp_calculator.clear();
     }
 
     #[track_caller]
@@ -393,7 +383,7 @@ impl Painter {
         self.rendering_context.prepare_for_rendering();
 
         time_profile!(
-            ProfilerCategory::Compositing,
+            ProfilerCategory::Painting,
             None,
             time_profiler_channel.clone(),
             || {
@@ -456,7 +446,7 @@ impl Painter {
 
                 match pipeline.first_paint_metric.get() {
                     // We need to check whether the current epoch is later, because
-                    // CrossProcessCompositorMessage::SendInitialTransaction sends an
+                    // CrossProcessPaintMessage::SendInitialTransaction sends an
                     // empty display list to WebRender which can happen before we receive
                     // the first "real" display list.
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
@@ -547,7 +537,7 @@ impl Painter {
         webrender_api: &RenderApi,
         webrender_document: DocumentId,
         point: DevicePoint,
-    ) -> Vec<CompositorHitTestResult> {
+    ) -> Vec<PaintHitTestResult> {
         // DevicePoint and WorldPoint are the same for us.
         let world_point = WorldPoint::from_untyped(point.to_untyped());
         let results = webrender_api.hit_test(webrender_document, world_point);
@@ -558,7 +548,7 @@ impl Painter {
             .map(|item| {
                 let pipeline_id = item.pipeline.into();
                 let external_scroll_id = ExternalScrollId(item.tag.0, item.pipeline);
-                CompositorHitTestResult {
+                PaintHitTestResult {
                     pipeline_id,
                     point_in_viewport: Point2D::from_untyped(item.point_in_viewport.to_untyped()),
                     external_scroll_id,
@@ -793,15 +783,6 @@ impl Painter {
         self.send_root_pipeline_display_list();
     }
 
-    pub(crate) fn remove_webview(&mut self, webview_id: WebViewId) {
-        if self.webview_renderers.remove(&webview_id).is_none() {
-            warn!("Tried removing unknown WebView: {webview_id:?}");
-            return;
-        };
-
-        self.send_root_pipeline_display_list();
-    }
-
     pub(crate) fn set_throttled(
         &mut self,
         webview_id: WebViewId,
@@ -830,7 +811,7 @@ impl Painter {
         pipeline_id: PipelineId,
         pipeline_exit_source: PipelineExitSource,
     ) {
-        debug!("Compositor got pipeline exited: {webview_id:?} {pipeline_id:?}",);
+        debug!("Paint got pipeline exited: {webview_id:?} {pipeline_id:?}",);
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
@@ -943,13 +924,13 @@ impl Painter {
                 return warn!("Could not receive display list info: {error}");
             },
         };
-        let display_list_info: CompositorDisplayListInfo =
-            match bincode::deserialize(&display_list_info) {
-                Ok(display_list_info) => display_list_info,
-                Err(error) => {
-                    return warn!("Could not deserialize display list info: {error}");
-                },
-            };
+        let display_list_info: PaintDisplayListInfo = match bincode::deserialize(&display_list_info)
+        {
+            Ok(display_list_info) => display_list_info,
+            Err(error) => {
+                return warn!("Could not deserialize display list info: {error}");
+            },
+        };
         let items_data = match display_list_receiver.recv() {
             Ok(display_list_data) => display_list_data,
             Err(error) => {
@@ -976,8 +957,7 @@ impl Painter {
             },
             display_list_descriptor,
         );
-        let _span =
-            profile_traits::trace_span!("ScriptToCompositorMsg::BuiltDisplayList",).entered();
+        let _span = profile_traits::trace_span!("PaintMessage::SendDisplayList",).entered();
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return warn!("Could not find WebView for incoming display list");
         };
@@ -1039,16 +1019,6 @@ impl Painter {
         self.frame_delayer.set_pending_frame(false);
         self.screenshot_taker
             .prepare_screenshot_requests_for_render(self)
-    }
-
-    pub(crate) fn generate_image_key(&self) -> ImageKey {
-        self.webrender_api.generate_image_key()
-    }
-
-    pub(crate) fn generate_image_keys(&self) -> Vec<ImageKey> {
-        (0..pref!(image_key_batch_size))
-            .map(|_| self.webrender_api.generate_image_key())
-            .collect()
     }
 
     pub(crate) fn update_images(&mut self, updates: SmallVec<[ImageUpdate; 1]>) {
@@ -1156,22 +1126,6 @@ impl Painter {
         self.send_transaction(transaction);
     }
 
-    /// Generate the font keys and send them to the `result_sender`.
-    /// Currently `RenderingGroupId` is not used.
-    pub(crate) fn generate_font_keys(
-        &self,
-        number_of_font_keys: usize,
-        number_of_font_instance_keys: usize,
-    ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
-        let font_keys = (0..number_of_font_keys)
-            .map(|_| self.webrender_api.generate_font_key())
-            .collect();
-        let font_instance_keys = (0..number_of_font_instance_keys)
-            .map(|_| self.webrender_api.generate_font_instance_key())
-            .collect();
-        (font_keys, font_instance_keys)
-    }
-
     pub(crate) fn set_viewport_description(
         &mut self,
         webview_id: WebViewId,
@@ -1205,6 +1159,20 @@ impl Painter {
                 self.refresh_driver.clone(),
                 self.webrender_document,
             ));
+    }
+
+    pub(crate) fn remove_webview(&mut self, webview_id: WebViewId) {
+        if self.webview_renderers.remove(&webview_id).is_none() {
+            warn!("Tried removing unknown WebView: {webview_id:?}");
+            return;
+        };
+
+        self.send_root_pipeline_display_list();
+        self.lcp_calculator.note_webview_removed(webview_id);
+    }
+
+    pub(crate) fn is_empty(&mut self) -> bool {
+        self.webview_renderers.is_empty()
     }
 
     pub(crate) fn set_webview_hidden(
@@ -1448,7 +1416,7 @@ impl Painter {
 
     /// Disable LCP feature when the user interacts with the page.
     fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
-        self.lcp_calculator.add_to_disabled_lcp_webviews(webview_id);
+        self.lcp_calculator.disable_for_webview(webview_id);
     }
 }
 

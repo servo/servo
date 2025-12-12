@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Defines data structures which are consumed by the Compositor.
+//! Defines data structures which are consumed by `Paint`.
 
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -419,12 +419,12 @@ impl ScrollTreeNode {
 }
 
 /// A tree of spatial nodes, which mirrors the spatial nodes in the WebRender
-/// display list, except these are used to scrolling in the compositor so that
+/// display list, except these are used for scrolling in `Paint` so that
 /// new offsets can be sent to WebRender.
 #[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTree {
-    /// A list of compositor-side scroll nodes that describe the tree
-    /// of WebRender spatial nodes, used by the compositor to scroll the
+    /// A list of `Paint`-side scroll nodes that describe the tree
+    /// of WebRender spatial nodes, used by `Paint` to scroll the
     /// contents of the display list.
     pub nodes: Vec<ScrollTreeNode>,
 }
@@ -799,10 +799,10 @@ impl ScrollTree {
     }
 }
 
-/// A data structure which stores compositor-side information about
-/// display lists sent to the compositor.
+/// A data structure which stores `Paint`-side information about
+/// display lists sent to `Paint`.
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct CompositorDisplayListInfo {
+pub struct PaintDisplayListInfo {
     /// The WebRender [PipelineId] of this display list.
     pub pipeline_id: PipelineId,
 
@@ -816,7 +816,7 @@ pub struct CompositorDisplayListInfo {
     /// The epoch of the display list.
     pub epoch: Epoch,
 
-    /// A ScrollTree used by the compositor to scroll the contents of the
+    /// A ScrollTree used by `Paint` to scroll the contents of the
     /// display list.
     pub scroll_tree: ScrollTree,
 
@@ -838,8 +838,8 @@ pub struct CompositorDisplayListInfo {
     pub first_reflow: bool,
 }
 
-impl CompositorDisplayListInfo {
-    /// Create a new CompositorDisplayListInfo with the root reference frame
+impl PaintDisplayListInfo {
+    /// Create a new PaintDisplayListInfo with the root reference frame
     /// and scroll frame already added to the scroll tree.
     pub fn new(
         viewport_details: ViewportDetails,
@@ -875,7 +875,7 @@ impl CompositorDisplayListInfo {
             }),
         );
 
-        CompositorDisplayListInfo {
+        PaintDisplayListInfo {
             pipeline_id,
             viewport_details,
             content_size,

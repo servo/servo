@@ -23,7 +23,7 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
@@ -407,10 +407,10 @@ pub(crate) struct Window {
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
 
-    /// Cross-process access to the compositor.
+    /// Cross-process access to `Paint`.
     #[ignore_malloc_size_of = "Wraps an IpcSender"]
     #[no_trace]
-    compositor_api: CrossProcessCompositorApi,
+    paint_api: CrossProcessPaintApi,
 
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unnecessary.
@@ -744,8 +744,8 @@ impl Window {
         let _ = std::mem::replace(&mut *self.pending_image_callbacks.borrow_mut(), images);
     }
 
-    pub(crate) fn compositor_api(&self) -> &CrossProcessCompositorApi {
-        &self.compositor_api
+    pub(crate) fn paint_api(&self) -> &CrossProcessPaintApi {
+        &self.paint_api
     }
 
     pub(crate) fn userscripts(&self) -> &[UserScript] {
@@ -2399,7 +2399,7 @@ impl Window {
         let reflow_phases_run =
             self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
         if reflow_phases_run.needs_frame() {
-            self.compositor_api()
+            self.paint_api()
                 .generate_frame(vec![self.webview_id().into()]);
         }
 
@@ -2657,7 +2657,7 @@ impl Window {
         //
         // See <https://github.com/servo/servo/issues/14719>
         if self.Document().update_the_rendering().needs_frame() {
-            self.compositor_api()
+            self.paint_api()
                 .generate_frame(vec![self.webview_id().into()]);
         }
     }
@@ -3155,7 +3155,7 @@ impl Window {
         // Set the window proxy to be this object.
         self.window_proxy().set_currently_active(self, can_gc);
 
-        // Push the document title to the compositor since we are
+        // Push the document title to `Paint` since we are
         // activating this document due to a navigation.
         self.Document().title_changed();
     }
@@ -3440,7 +3440,7 @@ impl Window {
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
-        compositor_api: CrossProcessCompositorApi,
+        paint_api: CrossProcessPaintApi,
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
@@ -3523,7 +3523,7 @@ impl Window {
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
             exists_mut_observer: Cell::new(false),
-            compositor_api,
+            paint_api,
             has_sent_idle_message: Cell::new(false),
             unminify_css,
             user_content_manager,

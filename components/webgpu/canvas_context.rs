@@ -10,8 +10,7 @@ use std::sync::{Arc, Mutex};
 use arrayvec::ArrayVec;
 use base::Epoch;
 use compositing_traits::{
-    CrossProcessCompositorApi, ExternalImageSource, SerializableImageData,
-    WebRenderExternalImageApi,
+    CrossProcessPaintApi, ExternalImageSource, SerializableImageData, WebRenderExternalImageApi,
 };
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSender;
@@ -466,11 +465,7 @@ impl ContextData {
 
     /// Destroy the context that this [`ContextData`] represents,
     /// freeing all of its buffers, and deleting the associated WebRender image.
-    fn destroy(
-        mut self,
-        script_sender: &IpcSender<WebGPUMsg>,
-        compositor_api: &CrossProcessCompositorApi,
-    ) {
+    fn destroy(mut self, script_sender: &IpcSender<WebGPUMsg>, paint_api: &CrossProcessPaintApi) {
         // This frees the id in the `ScriptThread`.
         for staging_buffer in self.inactive_staging_buffers {
             if let Err(error) = script_sender.send(WebGPUMsg::FreeBuffer(staging_buffer.buffer_id))
@@ -482,7 +477,7 @@ impl ContextData {
             };
         }
         if let Some(image_key) = self.image_key.take() {
-            compositor_api.delete_image(image_key);
+            paint_api.delete_image(image_key);
         }
     }
 
@@ -545,10 +540,10 @@ impl crate::WGPU {
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
 
         if let Some(old_image_key) = context_data.image_key.replace(image_key) {
-            self.compositor_api.delete_image(old_image_key);
+            self.paint_api.delete_image(old_image_key);
         }
 
-        self.compositor_api.add_image(
+        self.paint_api.add_image(
             image_key,
             ImageDescriptor {
                 format: ImageFormat::BGRA8,
@@ -655,7 +650,7 @@ impl crate::WGPU {
         }) = pending_texture
         else {
             context_data.clear_presentation();
-            self.compositor_api.update_image(
+            self.paint_api.update_image(
                 image_key,
                 ImageDescriptor {
                     format: ImageFormat::BGRA8,
@@ -672,7 +667,7 @@ impl crate::WGPU {
         let Some(staging_buffer) = context_data.get_or_make_available_buffer(&configuration) else {
             warn!("Failure obtaining available staging buffer");
             context_data.clear_presentation();
-            self.compositor_api.update_image(
+            self.paint_api.update_image(
                 image_key,
                 configuration.into(),
                 SerializableImageData::External(image_data(context_id)),
@@ -682,7 +677,7 @@ impl crate::WGPU {
         };
         let epoch = context_data.next_epoch();
         let wgpu_image_map = self.wgpu_image_map.clone();
-        let compositor_api = self.compositor_api.clone();
+        let paint_api = self.paint_api.clone();
         drop(webgpu_contexts);
         self.texture_download(
             texture_id,
@@ -702,7 +697,7 @@ impl crate::WGPU {
                     context_data.clear_presentation();
                 }
                 // update image in WR
-                compositor_api.update_image(
+                paint_api.update_image(
                     image_key,
                     configuration.into(),
                     SerializableImageData::External(image_data(context_id)),
@@ -798,6 +793,6 @@ impl crate::WGPU {
             .unwrap()
             .remove(&context_id)
             .unwrap()
-            .destroy(&self.script_sender, &self.compositor_api);
+            .destroy(&self.script_sender, &self.paint_api);
     }
 }

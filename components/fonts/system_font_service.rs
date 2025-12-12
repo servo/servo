@@ -9,7 +9,7 @@ use std::thread;
 
 use app_units::Au;
 use base::id::PainterId;
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use fonts_traits::{
     FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
     SystemFontServiceMessage, SystemFontServiceProxySender,
@@ -58,21 +58,21 @@ struct FontInstancesMapKey {
 pub struct SystemFontService {
     port: IpcReceiver<SystemFontServiceMessage>,
     local_families: FontStore,
-    compositor_api: CrossProcessCompositorApi,
+    paint_api: CrossProcessPaintApi,
     // keys already have the IdNamespace for webrender
     webrender_fonts: HashMap<(FontIdentifier, PainterId), FontKey>,
     font_instances: HashMap<FontInstancesMapKey, FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
 
     /// This is an optimization that allows the [`SystemFontService`] to send font data to
-    /// the compositor asynchronously for creating WebRender fonts, while immediately
+    /// `Paint` asynchronously for creating WebRender fonts, while immediately
     /// returning a font key for that data. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
     /// TODO: We currently do not delete the free keys if a `WebView` is removed.
     free_font_keys: FxHashMap<PainterId, Vec<FontKey>>,
 
     /// This is an optimization that allows the [`SystemFontService`] to create WebRender font
-    /// instances in the compositor asynchronously, while immediately returning a font
+    /// instances in `Paint` asynchronously, while immediately returning a font
     /// instance key for the instance. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
     free_font_instance_keys: FxHashMap<PainterId, Vec<FontInstanceKey>>,
@@ -80,7 +80,7 @@ pub struct SystemFontService {
 
 impl SystemFontService {
     pub fn spawn(
-        compositor_api: CrossProcessCompositorApi,
+        paint_api: CrossProcessPaintApi,
         memory_profiler_sender: ProfilerChan,
     ) -> SystemFontServiceProxySender {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -93,7 +93,7 @@ impl SystemFontService {
                 let mut cache = SystemFontService {
                     port: receiver,
                     local_families: Default::default(),
-                    compositor_api,
+                    paint_api,
                     webrender_fonts: HashMap::new(),
                     font_instances: HashMap::new(),
                     generic_fonts: Default::default(),
@@ -204,7 +204,7 @@ impl SystemFontService {
 
         const FREE_FONT_KEYS_BATCH_SIZE: usize = 40;
         const FREE_FONT_INSTANCE_KEYS_BATCH_SIZE: usize = 40;
-        let (mut new_font_keys, mut new_font_instance_keys) = self.compositor_api.fetch_font_keys(
+        let (mut new_font_keys, mut new_font_instance_keys) = self.paint_api.fetch_font_keys(
             FREE_FONT_KEYS_BATCH_SIZE - self.free_font_keys.len(),
             FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - self.free_font_instance_keys.len(),
             painter_id,
@@ -278,7 +278,7 @@ impl SystemFontService {
     ) -> FontInstanceKey {
         self.fetch_font_keys_if_needed(painter_id);
 
-        let compositor_api = &self.compositor_api;
+        let paint_api = &self.paint_api;
         let webrender_fonts = &mut self.webrender_fonts;
 
         let font_key = *webrender_fonts
@@ -293,8 +293,7 @@ impl SystemFontService {
                 let FontIdentifier::Local(local_font_identifier) = identifier else {
                     unreachable!("Should never have a web font in the system font service");
                 };
-                compositor_api
-                    .add_system_font(font_key, local_font_identifier.native_font_handle());
+                paint_api.add_system_font(font_key, local_font_identifier.native_font_handle());
                 font_key
             });
 
@@ -312,7 +311,7 @@ impl SystemFontService {
                 .expect("We just filled the keys")
                 .pop()
                 .unwrap();
-            compositor_api.add_font_instance(
+            paint_api.add_font_instance(
                 font_instance_key,
                 font_key,
                 pt_size.to_f32_px(),

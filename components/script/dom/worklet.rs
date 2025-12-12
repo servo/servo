@@ -697,7 +697,7 @@ impl WorkletThread {
             can_gc,
         )
         .ok()
-        .and_then(|(_, bytes)| String::from_utf8(bytes).ok());
+        .and_then(|(_, bytes, _)| String::from_utf8(bytes).ok());
 
         // Step 4.
         // NOTE: the spec parses and executes the script in separate steps,

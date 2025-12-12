@@ -65,11 +65,7 @@ impl<'a> BackgroundPainter<'a> {
         if &BackgroundAttachment::Fixed ==
             get_cyclic(&background.background_attachment.0, layer_index)
         {
-            return builder
-                .compositor_info
-                .viewport_details
-                .layout_size()
-                .into();
+            return builder.paint_info.viewport_details.layout_size().into();
         }
 
         match get_cyclic(&background.background_clip.0, layer_index) {
@@ -153,11 +149,7 @@ impl<'a> BackgroundPainter<'a> {
                 Origin::PaddingBox => *fragment_builder.padding_rect(),
                 Origin::BorderBox => fragment_builder.border_rect,
             },
-            BackgroundAttachment::Fixed => builder
-                .compositor_info
-                .viewport_details
-                .layout_size()
-                .into(),
+            BackgroundAttachment::Fixed => builder.paint_info.viewport_details.layout_size().into(),
         }
     }
 }
@@ -294,8 +286,18 @@ fn layout_1d(
     positioning_area_size: f32,
 ) -> Layout1DResult {
     // https://drafts.csswg.org/css-backgrounds/#background-repeat
+    // > If background-repeat is round for one (or both) dimensions, there is a second step.
+    // > The UA must scale the image in that dimension (or both dimensions) so that it fits
+    // > a whole number of times in the background positioning area. In the case of the
+    // > width (height is analogous):
+    // >
+    // > | If X ≠ 0 is the width of the image after step one and W is the width of the
+    // > | background positioning area, then the rounded width X' = W / round(W / X) where
+    // > | round() is a function that returns the nearest natural number (integer greater than
+    // > | zero).
     if let Repeat::Round = repeat {
-        *tile_size = positioning_area_size / (positioning_area_size / *tile_size).round();
+        let round = |number: f32| number.round().max(1.0);
+        *tile_size = positioning_area_size / round(positioning_area_size / *tile_size);
     }
     // https://drafts.csswg.org/css-backgrounds/#background-position
     let mut position = position

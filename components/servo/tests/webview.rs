@@ -9,7 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
-use euclid::Point2D;
+use euclid::{Point2D, Size2D};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
@@ -27,6 +27,19 @@ use webrender_api::units::{DeviceIntSize, DevicePoint};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
+/// Wait for the WebRender scene to reflect the current state of the WebView
+/// by triggering a screenshot, waiting for it to be ready, and then throwing
+/// away the results.
+fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &WebView) {
+    let waiting = Rc::new(Cell::new(true));
+    let callback_waiting = waiting.clone();
+    webview.take_screenshot(None, move |result| {
+        assert!(result.is_ok());
+        callback_waiting.set(false);
+    });
+    servo_test.spin(move || waiting.get());
+}
+
 fn show_webview_and_wait_for_rendering_to_be_ready(
     servo_test: &ServoTest,
     webview: &WebView,
@@ -43,6 +56,7 @@ fn show_webview_and_wait_for_rendering_to_be_ready(
         &servo_test,
         webview.clone(),
         "requestAnimationFrame(() => { \
+           document.body.style.background = 'red'; \
            document.body.style.background = 'green'; \
         });",
     );
@@ -369,12 +383,7 @@ fn test_resize_webview_zero() {
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(
-            Url::parse(
-                "data:text/html,<!DOCTYPE html><style> html { cursor: crosshair; margin: 0}</style><body>hello</body>",
-            )
-            .unwrap(),
-        )
+        .url(Url::parse("data:text/html,<!DOCTYPE html><body>hello</body>").unwrap())
         .build();
     webview.resize(PhysicalSize::new(0, 0));
 
@@ -383,6 +392,44 @@ fn test_resize_webview_zero() {
 
     // Reset the WebView size for other tests.
     webview.resize(PhysicalSize::new(500, 500));
+}
+
+/// This test ensure's that when a `WebView` is resize, input event are handled properly in the newly
+/// exposed region.
+#[test]
+fn test_webview_resize_interactivity() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html>\
+                <style>\
+                    html { margin: 0; }\
+                    div { margin-top: 500px; width: 100px; height: 100px; cursor: crosshair; }\
+                </style>\
+                <body><div></div></body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // Resize the WebView to expose the `<div>`.
+    assert_eq!(webview.size(), Size2D::new(500., 500.));
+    webview.resize(PhysicalSize::new(600, 600));
+
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(20., 520.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Crosshair);
 }
 
 #[test]

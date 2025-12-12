@@ -1966,7 +1966,7 @@ pub(crate) fn encode_multipart_form_data(
             FormDatumValue::String(ref s) => {
                 let content_disposition = format!("form-data; name=\"{}\"", entry.name);
                 let mut bytes =
-                    format!("Content-Disposition: {}\r\n\r\n{}", content_disposition, s)
+                    format!("Content-Disposition: {content_disposition}\r\n\r\n{s}\r\n",)
                         .into_bytes();
                 result.append(&mut bytes);
             },
@@ -1999,11 +1999,12 @@ pub(crate) fn encode_multipart_form_data(
                 let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);
 
                 result.append(&mut bytes);
+                result.extend(b"\r\n");
             },
         }
     }
 
-    let mut boundary_bytes = format!("\r\n--{}--\r\n", boundary).into_bytes();
+    let mut boundary_bytes = format!("--{boundary}--\r\n").into_bytes();
     result.append(&mut boundary_bytes);
 
     result

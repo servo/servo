@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericOneshotSender, GenericSender};
 use base::id::{BrowsingContextId, WebViewId};
 use cookie::Cookie;
 use crossbeam_channel::Sender;
@@ -83,9 +83,9 @@ pub enum CustomHandlersAutomationMode {
 #[derive(Debug)]
 pub enum WebDriverCommandMsg {
     /// Get the window rectangle.
-    GetWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
+    GetWindowRect(WebViewId, GenericOneshotSender<DeviceIndependentIntRect>),
     /// Get the viewport size.
-    GetViewportSize(WebViewId, IpcSender<Size2D<u32, DevicePixel>>),
+    GetViewportSize(WebViewId, GenericOneshotSender<Size2D<u32, DevicePixel>>),
     /// Load a URL in the top-level browsing context with the given ID.
     LoadUrl(WebViewId, Url, GenericSender<WebDriverLoadStatus>),
     /// Refresh the top-level browsing context with the given ID.
@@ -105,10 +105,10 @@ pub enum WebDriverCommandMsg {
     SetWindowRect(
         WebViewId,
         DeviceIndependentIntRect,
-        IpcSender<DeviceIndependentIntRect>,
+        GenericOneshotSender<DeviceIndependentIntRect>,
     ),
     /// Maximize the window. Send back result window rectangle.
-    MaximizeWebView(WebViewId, IpcSender<DeviceIndependentIntRect>),
+    MaximizeWebView(WebViewId, GenericOneshotSender<DeviceIndependentIntRect>),
     /// Take a screenshot of the viewport.
     TakeScreenshot(
         WebViewId,
@@ -119,28 +119,28 @@ pub enum WebDriverCommandMsg {
     /// the provided channels to return the top level browsing context id
     /// associated with the new webview, and sets a "load status sender" if provided.
     NewWebView(
-        IpcSender<WebViewId>,
+        GenericOneshotSender<WebViewId>,
         Option<GenericSender<WebDriverLoadStatus>>,
     ),
     /// Close the webview associated with the provided id.
-    CloseWebView(WebViewId, IpcSender<()>),
+    CloseWebView(WebViewId, GenericOneshotSender<()>),
     /// Focus the webview associated with the provided id.
     FocusWebView(WebViewId),
     /// Get focused webview. For now, this is only used when start new session.
-    GetFocusedWebView(IpcSender<Option<WebViewId>>),
+    GetFocusedWebView(GenericOneshotSender<Option<WebViewId>>),
     /// Get webviews state
-    GetAllWebViews(IpcSender<Vec<WebViewId>>),
+    GetAllWebViews(GenericOneshotSender<Vec<WebViewId>>),
     /// Check whether top-level browsing context is open.
-    IsWebViewOpen(WebViewId, IpcSender<bool>),
+    IsWebViewOpen(WebViewId, GenericOneshotSender<bool>),
     /// Check whether browsing context is open.
-    IsBrowsingContextOpen(BrowsingContextId, IpcSender<bool>),
-    CurrentUserPrompt(WebViewId, IpcSender<Option<WebDriverUserPrompt>>),
+    IsBrowsingContextOpen(BrowsingContextId, GenericOneshotSender<bool>),
+    CurrentUserPrompt(WebViewId, GenericOneshotSender<Option<WebDriverUserPrompt>>),
     HandleUserPrompt(
         WebViewId,
         WebDriverUserPromptAction,
-        IpcSender<Result<String, ()>>,
+        GenericOneshotSender<Result<String, ()>>,
     ),
-    GetAlertText(WebViewId, IpcSender<Result<String, ()>>),
+    GetAlertText(WebViewId, GenericOneshotSender<Result<String, ()>>),
     SendAlertText(WebViewId, String),
     FocusBrowsingContext(BrowsingContextId),
     Shutdown,
@@ -206,7 +206,10 @@ pub enum WebDriverScriptCommand {
     GetElementRect(String, IpcSender<Result<UntypedRect<f64>, ErrorStatus>>),
     GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
     GetElementText(String, IpcSender<Result<String, ErrorStatus>>),
-    GetElementInViewCenterPoint(String, IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>),
+    GetElementInViewCenterPoint(
+        String,
+        GenericOneshotSender<Result<Option<(i64, i64)>, ErrorStatus>>,
+    ),
     ScrollAndGetBoundingClientRect(String, IpcSender<Result<UntypedRect<f32>, ErrorStatus>>),
     GetBrowsingContextId(
         WebDriverFrameId,

@@ -17,9 +17,9 @@ use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use compositing::{IOCompositor, InitialCompositorState};
+use compositing::{InitialPaintState, Paint};
 pub use compositing_traits::rendering_context::RenderingContext;
-use compositing_traits::{CompositorMsg, CompositorProxy, CrossProcessCompositorApi};
+use compositing_traits::{CrossProcessPaintApi, PaintMessage, PaintProxy};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -135,7 +135,7 @@ mod media_platform {
 
 struct ServoInner {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
-    compositor: Rc<RefCell<IOCompositor>>,
+    paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
     public_resource_threads: ResourceThreads,
@@ -172,20 +172,20 @@ impl ServoInner {
         }
 
         {
-            let compositor = self.compositor.borrow();
+            let paint = self.paint.borrow();
             let mut messages = Vec::new();
-            while let Ok(message) = compositor.receiver().try_recv() {
+            while let Ok(message) = paint.receiver().try_recv() {
                 match message {
                     Ok(message) => messages.push(message),
                     Err(error) => {
-                        warn!("Router deserialization error: {error}. Ignoring this CompositorMsg.")
+                        warn!("Router deserialization error: {error}. Ignoring this PaintMessage.")
                     },
                 }
             }
-            compositor.handle_messages(messages);
+            paint.handle_messages(messages);
         }
 
-        // Only handle incoming embedder messages if the compositor hasn't already started shutting down.
+        // Only handle incoming embedder messages if `Paint` hasn't already started shutting down.
         while let Ok(message) = self.embedder_receiver.try_recv() {
             self.handle_embedder_message(message);
 
@@ -200,7 +200,7 @@ impl ServoInner {
                 .notify_error(ServoError::LostConnectionWithBackend);
         }
 
-        self.compositor.borrow_mut().perform_updates();
+        self.paint.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
@@ -213,7 +213,7 @@ impl ServoInner {
     }
 
     fn send_new_frame_ready_messages(&self) {
-        let webviews_needing_repaint = self.compositor.borrow().webviews_needing_repaint();
+        let webviews_needing_repaint = self.paint.borrow().webviews_needing_repaint();
 
         for webview in webviews_needing_repaint
             .iter()
@@ -242,7 +242,7 @@ impl ServoInner {
     fn finish_shutting_down(&self) {
         debug!("Servo received message that Constellation shutdown is complete");
         self.shutdown_state.set(ShutdownState::FinishedShuttingDown);
-        self.compositor.borrow_mut().finish_shutting_down();
+        self.paint.borrow_mut().finish_shutting_down();
     }
 
     fn handle_embedder_message(&self, message: EmbedderMsg) {
@@ -364,7 +364,7 @@ impl ServoInner {
                     .finish_evaluation(evaluation_id, result);
             },
             EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
-                self.compositor.borrow_mut().notify_input_event_handled(
+                self.paint.borrow_mut().notify_input_event_handled(
                     webview_id,
                     input_event_id,
                     result,
@@ -636,7 +636,6 @@ impl Drop for ServoInner {
         while self.spin_event_loop() {
             std::thread::sleep(Duration::from_micros(500));
         }
-        self.compositor.borrow_mut().deinit();
     }
 }
 
@@ -683,12 +682,11 @@ impl Servo {
         PipelineNamespace::install(PipelineNamespaceId(0));
 
         // Get both endpoints of a special channel for communication between
-        // the client window and the compositor. This channel is unique because
+        // the client window and `Paint`. This channel is unique because
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
         let event_loop_waker = builder.event_loop_waker;
-        let (compositor_proxy, compositor_receiver) =
-            create_compositor_channel(event_loop_waker.clone());
+        let (paint_proxy, paint_receiver) = create_paint_channel(event_loop_waker.clone());
         let (constellation_proxy, embedder_to_constellation_receiver) = ConstellationProxy::new();
         let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
@@ -719,12 +717,12 @@ impl Servo {
         let mut protocols = ProtocolRegistry::with_internal_protocols();
         protocols.merge(builder.protocol_registry);
 
-        // The compositor coordinates with the client window to create the final
+        // The `Paint` coordinates with the client window to create the final
         // rendered page and display it somewhere.
         let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
-        let compositor = IOCompositor::new(InitialCompositorState {
-            compositor_proxy: compositor_proxy.clone(),
-            receiver: compositor_receiver,
+        let paint = Paint::new(InitialPaintState {
+            paint_proxy: paint_proxy.clone(),
+            receiver: paint_receiver,
             embedder_to_constellation_sender: constellation_proxy.sender().clone(),
             time_profiler_chan: time_profiler_chan.clone(),
             mem_profiler_chan: mem_profiler_chan.clone(),
@@ -749,10 +747,10 @@ impl Servo {
 
         create_constellation(
             embedder_to_constellation_receiver,
-            &compositor.borrow(),
+            &paint.borrow(),
             opts.config_dir.clone(),
             embedder_proxy,
-            compositor_proxy.clone(),
+            paint_proxy.clone(),
             time_profiler_chan,
             mem_profiler_chan,
             devtools_sender,
@@ -769,7 +767,7 @@ impl Servo {
 
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
-            compositor,
+            paint,
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),
@@ -800,9 +798,9 @@ impl Servo {
 
     /// Spin the Servo event loop, which:
     ///
-    ///   - Performs updates in the compositor, such as queued pinch zoom events
+    ///   - Performs updates in `Paint`, such as queued pinch zoom events
     ///   - Runs delebgate methods on all `WebView`s and `Servo` itself
-    ///   - Maybe update the rendered compositor output, but *without* swapping buffers.
+    ///   - Maybe update the rendered `Paint` output, but *without* swapping buffers.
     pub fn spin_event_loop(&self) {
         self.0.spin_event_loop();
     }
@@ -847,12 +845,12 @@ impl Servo {
         self.0.private_resource_threads.clear_cookies();
     }
 
-    pub(crate) fn compositor<'a>(&'a self) -> Ref<'a, IOCompositor> {
-        self.0.compositor.borrow()
+    pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
+        self.0.paint.borrow()
     }
 
-    pub(crate) fn compositor_mut<'a>(&'a self) -> RefMut<'a, IOCompositor> {
-        self.0.compositor.borrow_mut()
+    pub(crate) fn paint_mut<'a>(&'a self) -> RefMut<'a, Paint> {
+        self.0.paint.borrow_mut()
     }
 
     pub(crate) fn webviews_mut<'a>(
@@ -883,14 +881,14 @@ fn create_embedder_channel(
     )
 }
 
-fn create_compositor_channel(
+fn create_paint_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (CompositorProxy, RoutedReceiver<CompositorMsg>) {
+) -> (PaintProxy, RoutedReceiver<PaintMessage>) {
     let (sender, receiver) = unbounded();
     let sender_clone = sender.clone();
     let event_loop_waker_clone = event_loop_waker.clone();
-    // This callback is equivalent to `CompositorProxy::send`
-    let result_callback = move |msg: Result<CompositorMsg, ipc_channel::Error>| {
+    // This callback is equivalent to `PaintProxy::send`
+    let result_callback = move |msg: Result<PaintMessage, ipc_channel::Error>| {
         if let Err(err) = sender_clone.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
@@ -899,23 +897,23 @@ fn create_compositor_channel(
 
     let generic_callback =
         GenericCallback::new(result_callback).expect("Failed to create callback");
-    let cross_process_compositor_api = CrossProcessCompositorApi::new(generic_callback);
-    let compositor_proxy = CompositorProxy {
+    let cross_process_paint_api = CrossProcessPaintApi::new(generic_callback);
+    let paint_proxy = PaintProxy {
         sender,
-        cross_process_compositor_api,
+        cross_process_paint_api,
         event_loop_waker,
     };
 
-    (compositor_proxy, receiver)
+    (paint_proxy, receiver)
 }
 
 #[allow(clippy::too_many_arguments)]
 fn create_constellation(
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
-    compositor: &IOCompositor,
+    paint: &Paint,
     config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
-    compositor_proxy: CompositorProxy,
+    paint_proxy: PaintProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
@@ -939,14 +937,14 @@ fn create_constellation(
 
     let system_font_service = Arc::new(
         SystemFontService::spawn(
-            compositor_proxy.cross_process_compositor_api.clone(),
+            paint_proxy.cross_process_paint_api.clone(),
             mem_profiler_chan.clone(),
         )
         .to_proxy(),
     );
 
     let initial_state = InitialConstellationState {
-        compositor_proxy,
+        paint_proxy,
         embedder_proxy,
         devtools_sender,
         #[cfg(feature = "bluetooth")]
@@ -959,13 +957,13 @@ fn create_constellation(
         time_profiler_chan,
         mem_profiler_chan,
         #[cfg(feature = "webxr")]
-        webxr_registry: Some(compositor.webxr_main_thread_registry()),
+        webxr_registry: Some(paint.webxr_main_thread_registry()),
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
-        webgl_threads: Some(compositor.webgl_threads()),
-        webrender_external_image_id_manager: compositor.webrender_external_image_id_manager(),
+        webgl_threads: Some(paint.webgl_threads()),
+        webrender_external_image_id_manager: paint.webrender_external_image_id_manager(),
         #[cfg(feature = "webgpu")]
-        wgpu_image_map: compositor.webgpu_image_map(),
+        wgpu_image_map: paint.webgpu_image_map(),
         user_content_manager,
         async_runtime,
         privileged_urls,

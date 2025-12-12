@@ -19,8 +19,8 @@ use crate::dom_traversal::NodeAndStyleInfo;
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
-#[derive(Clone, Debug, MallocSizeOf)]
-pub(crate) struct BaseFragment {
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
+pub(crate) struct BaseFragmentInfo {
     /// A tag which identifies the DOM node and pseudo element of this
     /// Fragment's content. If this fragment is for an anonymous box,
     /// the tag will be None.
@@ -31,9 +31,9 @@ pub(crate) struct BaseFragment {
     pub flags: FragmentFlags,
 }
 
-impl BaseFragment {
+impl BaseFragmentInfo {
     pub(crate) fn anonymous() -> Self {
-        BaseFragment {
+        Self {
             tag: None,
             flags: FragmentFlags::empty(),
         }
@@ -41,25 +41,6 @@ impl BaseFragment {
 
     pub(crate) fn is_anonymous(&self) -> bool {
         self.tag.is_none()
-    }
-}
-
-/// Information necessary to construct a new BaseFragment.
-#[derive(Clone, Copy, Debug, MallocSizeOf)]
-pub(crate) struct BaseFragmentInfo {
-    /// The tag to use for the new BaseFragment, if it is not an anonymous Fragment.
-    pub tag: Option<Tag>,
-
-    /// The flags to use for the new BaseFragment.
-    pub flags: FragmentFlags,
-}
-
-impl BaseFragmentInfo {
-    pub(crate) fn anonymous() -> Self {
-        Self {
-            tag: None,
-            flags: FragmentFlags::empty(),
-        }
     }
 
     pub(crate) fn new_for_testing(id: usize) -> Self {
@@ -122,15 +103,6 @@ impl From<ServoThreadSafeLayoutNode<'_>> for BaseFragmentInfo {
         Self {
             tag: Some(node.into()),
             flags,
-        }
-    }
-}
-
-impl From<BaseFragmentInfo> for BaseFragment {
-    fn from(info: BaseFragmentInfo) -> Self {
-        Self {
-            tag: info.tag,
-            flags: info.flags,
         }
     }
 }

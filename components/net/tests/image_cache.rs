@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
@@ -26,17 +26,15 @@ use crate::mock_origin;
 
 fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
     let (sender, receiver) = unbounded();
-    let compositor_api =
-        CrossProcessCompositorApi::dummy_with_callback(Some(Box::new(move |msg| {
-            if let compositing_traits::CompositorMsg::GenerateImageKeysForPipeline(_, pipeline_id) =
-                msg
-            {
-                let _ = sender.send(pipeline_id);
-            }
-        })));
+    let paint_api = CrossProcessPaintApi::dummy_with_callback(Some(Box::new(move |msg| {
+        if let compositing_traits::PaintMessage::GenerateImageKeysForPipeline(_, pipeline_id) = msg
+        {
+            let _ = sender.send(pipeline_id);
+        }
+    })));
 
     let factory = ImageCacheFactoryImpl::new(vec![]);
-    let cache = factory.create(TEST_WEBVIEW_ID, TEST_PIPELINE_ID, &compositor_api);
+    let cache = factory.create(TEST_WEBVIEW_ID, TEST_PIPELINE_ID, &paint_api);
     (cache, receiver)
 }
 

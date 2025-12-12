@@ -12,6 +12,9 @@ mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
+mod rsa_oaep_operation;
+mod rsa_pss_operation;
+mod rsassa_pkcs1_v1_5_operation;
 mod sha3_operation;
 mod sha_operation;
 mod x25519_operation;
@@ -37,7 +40,8 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, EcKeyAlgorithm,
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
     HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
-    Pbkdf2Params, RsaOtherPrimesInfo, SubtleCryptoMethods,
+    Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaKeyAlgorithm,
+    RsaOtherPrimesInfo, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -56,7 +60,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 
 // Regconized algorithm name from <https://w3c.github.io/webcrypto/>
-const ALG_RSASSA_PKCS1: &str = "RSASSA-PKCS1-v1_5";
+const ALG_RSASSA_PKCS1_V1_5: &str = "RSASSA-PKCS1-v1_5";
 const ALG_RSA_PSS: &str = "RSA-PSS";
 const ALG_RSA_OAEP: &str = "RSA-OAEP";
 const ALG_ECDSA: &str = "ECDSA";
@@ -87,7 +91,7 @@ const ALG_ARGON2I: &str = "Argon2i";
 const ALG_ARGON2ID: &str = "Argon2id";
 
 static SUPPORTED_ALGORITHMS: &[&str] = &[
-    ALG_RSASSA_PKCS1,
+    ALG_RSASSA_PKCS1_V1_5,
     ALG_RSA_PSS,
     ALG_RSA_OAEP,
     ALG_ECDSA,
@@ -1069,36 +1073,6 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 2.
         let key_data = match format {
-            // If format is equal to the string "raw", "pkcs8", or "spki":
-            // NOTE: Including other raw formats.
-            KeyFormat::Raw |
-            KeyFormat::Pkcs8 |
-            KeyFormat::Spki |
-            KeyFormat::Raw_public |
-            KeyFormat::Raw_private |
-            KeyFormat::Raw_seed |
-            KeyFormat::Raw_secret => {
-                match key_data {
-                    // Step 2.1. If the keyData parameter passed to the importKey() method is a
-                    // JsonWebKey dictionary, throw a TypeError.
-                    ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
-                        promise.reject_error(
-                            Error::Type("The keyData type does not match the format".to_string()),
-                            can_gc,
-                        );
-                        return promise;
-                    },
-
-                    // Step 2.2. Let keyData be the result of getting a copy of the bytes held by
-                    // the keyData parameter passed to the importKey() method.
-                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => {
-                        view.to_vec()
-                    },
-                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(buffer) => {
-                        buffer.to_vec()
-                    },
-                }
-            },
             // If format is equal to the string "jwk":
             KeyFormat::Jwk => {
                 match key_data {
@@ -1127,6 +1101,29 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                                 return promise;
                             },
                         }
+                    },
+                }
+            },
+            // Otherwise:
+            _ => {
+                match key_data {
+                    // Step 2.1. If the keyData parameter passed to the importKey() method is a
+                    // JsonWebKey dictionary, throw a TypeError.
+                    ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
+                        promise.reject_error(
+                            Error::Type("The keyData type does not match the format".to_string()),
+                            can_gc,
+                        );
+                        return promise;
+                    },
+
+                    // Step 2.2. Let keyData be the result of getting a copy of the bytes held by
+                    // the keyData parameter passed to the importKey() method.
+                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => {
+                        view.to_vec()
+                    },
+                    ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(buffer) => {
+                        buffer.to_vec()
                     },
                 }
             },
@@ -1263,12 +1260,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.
                 // Step 10.
-                // If format is equal to the strings "raw", "pkcs8", or "spki":
-                //     Let result be the result of creating an ArrayBuffer in realm, containing
-                //     result.
                 // If format is equal to the string "jwk":
                 //     Let result be the result of converting result to an ECMAScript Object in
                 //     realm, as defined by [WebIDL].
+                // Otherwise:
+                //     Let result be the result of creating an ArrayBuffer in realm, containing
+                //     result.
                 // Step 11. Resolve promise with result.
                 // NOTE: We determine the format by pattern matching on result, which is an
                 // ExportedKey enum.
@@ -1388,14 +1385,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 // Step 14.
-                // If format is equal to the strings "raw", "pkcs8", or "spki":
-                //     Let bytes be exportedKey.
                 // If format is equal to the string "jwk":
                 //     Step 14.1. Let json be the result of representing exportedKey as a UTF-16
                 //     string conforming to the JSON grammar; for example, by executing the
                 //     JSON.stringify algorithm specified in [ECMA-262] in the context of a new
                 //     global object.
                 //     Step 14.2. Let bytes be the result of UTF-8 encoding json.
+                // Otherwise:
+                //     Let bytes be exportedKey.
                 // NOTE: We determine the format by pattern matching on result, which is an
                 // ExportedKey enum.
                 let cx = GlobalScope::get_cx();
@@ -1563,14 +1560,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 };
 
                 // Step 15.
-                // If format is equal to the strings "raw", "pkcs8", or "spki":
-                //     Let key be bytes.
                 // If format is equal to the string "jwk":
                 //     Let key be the result of executing the parse a JWK algorithm, with bytes as
                 //     the data to be parsed.
                 //     NOTE: We only parse bytes by executing the parse a JWK algorithm, but keep
                 //     it as raw bytes for later steps, instead of converting it to a JsonWebKey
                 //     dictionary.
+                //
+                // Otherwise:
+                //     Let key be bytes.
                 let cx = GlobalScope::get_cx();
                 if format == KeyFormat::Jwk {
                     if let Err(error) = JsonWebKey::parse(cx, &bytes) {
@@ -1677,6 +1675,73 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
             name: self.name.clone().into(),
         };
         dictionary.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm>
+#[derive(Clone, MallocSizeOf)]
+pub(crate) struct SubtleRsaHashedKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm-modulusLength>
+    modulus_length: u32,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm-publicExponent>
+    public_exponent: Vec<u8>,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm-hash>
+    hash: Box<NormalizedAlgorithm>,
+}
+
+impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+        let public_exponent =
+            create_buffer_source(cx, &self.public_exponent, js_object.handle_mut(), can_gc)
+                .expect("Fail to convert publicExponent to Uint8Array");
+        let key_algorithm = KeyAlgorithm {
+            name: self.name.clone().into(),
+        };
+        let rsa_key_algorithm = RootedTraceableBox::new(RsaKeyAlgorithm {
+            parent: key_algorithm,
+            modulusLength: self.modulus_length,
+            publicExponent: public_exponent,
+        });
+        let rsa_hashed_key_algorithm = RootedTraceableBox::new(RsaHashedKeyAlgorithm {
+            parent: rsa_key_algorithm,
+            hash: KeyAlgorithm {
+                name: self.hash.name().into(),
+            },
+        });
+        rsa_hashed_key_algorithm.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleRsaHashedImportParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams-hash>
+    hash: Box<NormalizedAlgorithm>,
+}
+
+impl TryFrom<RootedTraceableBox<RsaHashedImportParams>> for SubtleRsaHashedImportParams {
+    type Error = Error;
+
+    fn try_from(value: RootedTraceableBox<RsaHashedImportParams>) -> Result<Self, Self::Error> {
+        let cx = GlobalScope::get_cx();
+        Ok(SubtleRsaHashedImportParams {
+            name: value.parent.name.to_string(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                &Operation::Digest,
+                &value.hash,
+                CanGc::note(),
+            )?),
+        })
     }
 }
 
@@ -2250,10 +2315,11 @@ enum ExportedKey {
 /// Union type of KeyAlgorithm and IDL dictionary types derived from it. Note that we actually use
 /// our "subtle" structs of the corresponding IDL dictionary types so that they can be easily
 /// passed to another threads.
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(SubtleKeyAlgorithm),
+    RsaHashedKeyAlgorithm(SubtleRsaHashedKeyAlgorithm),
     EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
@@ -2263,6 +2329,7 @@ impl KeyAlgorithmAndDerivatives {
     fn name(&self) -> &str {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
@@ -2282,6 +2349,9 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval, can_gc),
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => {
+                algo.safe_to_jsval(cx, rval, can_gc)
+            },
             KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => {
                 algo.safe_to_jsval(cx, rval, can_gc)
             },
@@ -2452,6 +2522,7 @@ impl JsonWebKeyExt for JsonWebKey {
 #[derive(Clone, MallocSizeOf)]
 enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
+    RsaHashedImportParams(SubtleRsaHashedImportParams),
     EcdsaParams(SubtleEcdsaParams),
     EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
@@ -2554,6 +2625,33 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
+                // <>https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
+                (ALG_RSASSA_PKCS1_V1_5, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+
+                // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
+                (ALG_RSA_PSS, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+
+                // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
+                (ALG_RSA_OAEP, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+
                 // <https://w3c.github.io/webcrypto/#ecdsa-registration>
                 (ALG_ECDSA, Operation::Sign) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
@@ -3086,6 +3184,7 @@ impl NormalizedAlgorithm {
     fn name(&self) -> &str {
         match self {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
+            NormalizedAlgorithm::RsaHashedImportParams(algo) => &algo.name,
             NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
@@ -3291,6 +3390,39 @@ impl NormalizedAlgorithm {
         can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match (self.name(), self) {
+            (ALG_RSASSA_PKCS1_V1_5, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
+                rsassa_pkcs1_v1_5_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
+            (ALG_RSA_PSS, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
+                rsa_pss_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
+            (ALG_RSA_OAEP, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
+                rsa_oaep_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
             (ALG_ECDSA, NormalizedAlgorithm::EcKeyImportParams(algo)) => {
                 ecdsa_operation::import_key(
                     global,

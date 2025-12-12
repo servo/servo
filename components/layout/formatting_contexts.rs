@@ -223,6 +223,7 @@ impl IndependentFormattingContext {
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
         sizing::outer_inline(
+            &self.base,
             &self.layout_style(),
             containing_block,
             auto_minimum,

@@ -335,6 +335,18 @@ impl FetchMetadata {
             Self::Filtered { unsafe_, .. } => unsafe_,
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#cors-cross-origin>
+    pub fn is_cors_cross_origin(&self) -> bool {
+        if let Self::Filtered { filtered, .. } = self {
+            match filtered {
+                FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => false,
+                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => true,
+            }
+        } else {
+            false
+        }
+    }
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
@@ -375,6 +387,67 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
             request.id, violations,
         ));
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TlsSecurityState {
+    /// The connection used to fetch this resource was not secure.
+    #[default]
+    Insecure,
+    /// This resource was transferred over a connection that used weak encryption.
+    Weak,
+    /// A security error prevented the resource from being loaded.
+    Broken,
+    /// The connection used to fetch this resource was secure.
+    Secure,
+}
+
+impl Display for TlsSecurityState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            TlsSecurityState::Insecure => "insecure",
+            TlsSecurityState::Weak => "weak",
+            TlsSecurityState::Broken => "broken",
+            TlsSecurityState::Secure => "secure",
+        };
+        f.write_str(text)
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct TlsSecurityInfo {
+    // "insecure", "weak", "broken", "secure".
+    #[serde(default)]
+    pub state: TlsSecurityState,
+    // Reasons explaining why the negotiated parameters are considered weak.
+    pub weakness_reasons: Vec<String>,
+    // Negotiated TLS protocol version (e.g. "TLS 1.3").
+    pub protocol_version: Option<String>,
+    // Negotiated cipher suite identifier.
+    pub cipher_suite: Option<String>,
+    // Negotiated key exchange group.
+    pub kea_group_name: Option<String>,
+    // Signature scheme used for certificate verification.
+    pub signature_scheme_name: Option<String>,
+    // Negotiated ALPN protocol (e.g. "h2" for HTTP/2, "http/1.1" for HTTP/1.1).
+    pub alpn_protocol: Option<String>,
+    // Server certificate chain encoded as DER bytes, leaf first.
+    pub certificate_chain_der: Vec<Vec<u8>>,
+    // Certificate Transparency status, if provided.
+    pub certificate_transparency: Option<String>,
+    // HTTP Strict Transport Security flag.
+    pub hsts: bool,
+    // HTTP Public Key Pinning flag (always false, kept for parity).
+    pub hpkp: bool,
+    // Encrypted Client Hello usage flag.
+    pub used_ech: bool,
+    // Delegated credentials usage flag.
+    pub used_delegated_credentials: bool,
+    // OCSP stapling usage flag.
+    pub used_ocsp: bool,
+    // Private DNS usage flag.
+    pub used_private_dns: bool,
 }
 
 impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
@@ -900,6 +973,8 @@ pub struct Metadata {
     pub timing: Option<ResourceFetchTiming>,
     /// True if the request comes from a redirection
     pub redirected: bool,
+    /// Detailed TLS metadata associated with the response, if any.
+    pub tls_security_info: Option<TlsSecurityInfo>,
 }
 
 impl Metadata {
@@ -917,6 +992,7 @@ impl Metadata {
             referrer_policy: ReferrerPolicy::EmptyString,
             timing: None,
             redirected: false,
+            tls_security_info: None,
         }
     }
 

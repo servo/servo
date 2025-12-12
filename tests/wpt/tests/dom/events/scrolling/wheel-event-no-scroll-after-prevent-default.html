@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+<head>
+<meta charset="utf-8">
+<title>Ensure that the calling `preventDefault` on a wheel event prevents a scroll from happening</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<body>
+    <div id="scroller" style="width: 100px; height: 100px; overflow: scroll; position: relative;">
+        <div style="position: absolute; width: 100px; height: 500px; background: red;"></div>
+        <div style="position: absolute; width: 100px; height: 100px; background: green;"></div>
+    </div>
+
+    <script>
+        function waitForFrame() {
+          return new Promise(resolve => {
+            window.requestAnimationFrame(resolve);
+          });
+        }
+
+        function runTest() {
+            promise_test(async(t) => {
+                let wheelEventFired = false;
+                let scrollEventFired = false;
+                scroller.addEventListener("wheel", (event) => {
+                    wheelEventFired = true;
+                    event.preventDefault()
+                });
+                scroller.addEventListener("scroll", (event) => {
+                    scrollEventFired = true;
+                    event.preventDefault()
+                });
+
+                await new test_driver.Actions()
+                  .addWheel("wheel1")
+                  .scroll(50, 50, 0, 30, {origin: "viewport"})
+                  .pause(1)
+                  .scroll(50, 50, 0, 30, {origin: "viewport"})
+                  .pause(1)
+                  .scroll(50, 50, 0, 30, {origin: "viewport"})
+                  .send();
+
+                await waitForFrame();
+                await waitForFrame();
+                await waitForFrame();
+                await waitForFrame();
+
+                assert_true(wheelEventFired);
+                assert_false(scrollEventFired);
+            }, "When `preventDefault` is called on a WheelEvent, scrolling should be prevented.");
+        }
+        window.onload = runTest;
+    </script>
+</body>
+

@@ -350,20 +350,21 @@ fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
     ))
 }
 
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
+fn console_message_to_stdout(global: &GlobalScope, message: &DOMString) {
+    let prefix = global.current_group_label().unwrap_or_default();
+    let formatted_message = format!("{}{}", prefix, message);
+    with_stderr_lock(move || {
+        println!("{}", formatted_message);
+    });
+}
+
 /// On OHOS/ Android, stdout and stderr will be redirected to go
 /// to the logger. As `Console::method` and `Console::send_string_message`
 /// already forwards all messages to the logger with appropriate level
 /// this does not need to do anything for these targets.
-fn console_message_to_stdout(global: &GlobalScope, message: &DOMString) {
-    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
-    {
-        let prefix = global.current_group_label().unwrap_or_default();
-        let formatted_message = format!("{}{}", prefix, message);
-        with_stderr_lock(move || {
-            println!("{}", formatted_message);
-        });
-    }
-}
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+fn console_message_to_stdout(_: &GlobalScope, _: &DOMString) {}
 
 #[derive(Debug, Eq, PartialEq)]
 enum IncludeStackTrace {

@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::sync::atomic::Ordering;
+
 use bitflags::Flags;
 use layout_api::LayoutDamage;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
@@ -15,7 +18,6 @@ use style::values::computed::Display;
 
 use crate::context::LayoutContext;
 use crate::dom::{DOMLayoutData, NodeExt};
-use crate::layout_box_base::LayoutBoxBase;
 
 pub struct RecalcStyle<'a> {
     context: &'a LayoutContext<'a>,
@@ -157,7 +159,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
 
     // Only propagate up layout phases from children, as other types of damage are
     // incorporated into `element_damage` above.
-    let damage_for_parent = element_damage | (damage_from_children & RestyleDamage::RELAYOUT);
+    let mut damage_for_parent = element_damage | (damage_from_children & RestyleDamage::RELAYOUT);
 
     // If we are going to potentially reuse this box tree node, then clear any cached
     // fragment layout.
@@ -167,13 +169,47 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     if element_damage != RestyleDamage::reconstruct() &&
         damage_for_parent.contains(RestyleDamage::RELAYOUT)
     {
-        node.with_each_layout_box_base_including_pseudos(
-            if (original_element_damage | damage_from_children).contains(RestyleDamage::RELAYOUT) {
-                LayoutBoxBase::clear_fragments_and_layout_cache
-            } else {
-                LayoutBoxBase::clear_fragments
-            },
-        );
+        let outer_inline_content_sizes_depend_on_content = Cell::new(false);
+        node.with_each_layout_box_base_including_pseudos(|base| {
+            base.clear_fragments();
+            if original_element_damage.contains(RestyleDamage::RELAYOUT) {
+                // If the node itself has damage, we must clear both the cached layout results
+                // and also the cached intrinsic inline sizes.
+                *base.cached_layout_result.borrow_mut() = None;
+                *base.cached_inline_content_size.borrow_mut() = None;
+            } else if damage_from_children.contains(RestyleDamage::RELAYOUT) {
+                // If the damage is propagated from children, then we still need to clear the cached
+                // layout results, but sometimes we can keep the cached intrinsic inline sizes.
+                *base.cached_layout_result.borrow_mut() = None;
+                if !damage_from_children.contains(LayoutDamage::recompute_inline_content_sizes()) {
+                    // This happens when there is a node which is a descendant of the current one and
+                    // an ancestor of the damaged one, whose inline size doesn't depend on its contents.
+                    return;
+                }
+                *base.cached_inline_content_size.borrow_mut() = None;
+            }
+
+            // When a block container has a mix of inline-level and block-level contents,
+            // the inline-level ones are wrapped inside an anonymous block associated with
+            // the block container. The anonymous block has an `auto` size, so its intrinsic
+            // contribution depends on content, but it can't affect the intrinsic size of
+            // ancestors if the block container is sized extrinsically.
+            if !base.base_fragment_info.is_anonymous() {
+                // TODO: Use `Cell::update()` once it becomes stable.
+                outer_inline_content_sizes_depend_on_content.set(
+                    outer_inline_content_sizes_depend_on_content.get() ||
+                        base.outer_inline_content_sizes_depend_on_content
+                            .load(Ordering::Relaxed),
+                );
+            }
+        });
+
+        // If the intrinsic contributions of this node depend on content, we will need to clear
+        // the cached intrinsic sizes of the parent. But if the contributions are purely extrinsic,
+        // then the intrinsic sizes of the ancestors won't be affected, and we can keep the cache.
+        if outer_inline_content_sizes_depend_on_content.get() {
+            damage_for_parent.insert(LayoutDamage::recompute_inline_content_sizes())
+        }
     }
 
     // If the box will be preserved, update the box's style and also in any fragments

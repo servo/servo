@@ -11,12 +11,11 @@ use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use compositing_traits::display_list::{
-    AxesScrollSensitivity, CompositorDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
+    AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
     SpatialTreeNodeInfo, StickyNodeInfo,
 };
 use embedder_traits::ViewportDetails;
-use euclid::SideOffsets2D;
-use euclid::default::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_config::opts::DiagnosticsLogging;
@@ -33,6 +32,7 @@ use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform::{self, GenericRotate, GenericScale, GenericTranslate};
 use style::values::specified::box_::DisplayOutside;
+use style_traits::CSSPixel;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
 use wr::StickyOffsetBounds;
@@ -106,11 +106,11 @@ pub(crate) struct StackingContextTree {
     /// The root stacking context of this [`StackingContextTree`].
     pub root_stacking_context: StackingContext,
 
-    /// The information about the WebRender display list that the compositor
+    /// The information about the WebRender display list that `Paint`
     /// consumes. This curerntly contains the out-of-band hit testing information
-    /// data structure that the compositor uses to map hit tests to information
+    /// data structure that `Paint` uses to map hit tests to information
     /// about the item hit.
-    pub compositor_info: CompositorDisplayListInfo,
+    pub paint_info: PaintDisplayListInfo,
 
     /// All of the clips collected for this [`StackingContextTree`]. These are added
     /// for things like `overflow`. More clips may be created later during WebRender
@@ -135,7 +135,7 @@ impl StackingContextTree {
         ));
 
         let viewport_size = viewport_details.layout_size();
-        let compositor_info = CompositorDisplayListInfo::new(
+        let paint_info = PaintDisplayListInfo::new(
             viewport_details,
             scrollable_overflow,
             pipeline_id,
@@ -145,7 +145,7 @@ impl StackingContextTree {
             first_reflow,
         );
 
-        let root_scroll_node_id = compositor_info.root_scroll_node_id;
+        let root_scroll_node_id = paint_info.root_scroll_node_id;
         let cb_for_non_fixed_descendants = ContainingBlock::new(
             fragment_tree.initial_containing_block,
             root_scroll_node_id,
@@ -154,7 +154,7 @@ impl StackingContextTree {
         );
         let cb_for_fixed_descendants = ContainingBlock::new(
             fragment_tree.initial_containing_block,
-            compositor_info.root_reference_frame_id,
+            paint_info.root_reference_frame_id,
             None,
             ClipId::INVALID,
         );
@@ -174,7 +174,7 @@ impl StackingContextTree {
         let mut stacking_context_tree = Self {
             // This is just a temporary value that will be replaced once we have finished building the tree.
             root_stacking_context: StackingContext::create_root(root_scroll_node_id, debug),
-            compositor_info,
+            paint_info,
             clip_store: Default::default(),
         };
 
@@ -209,7 +209,7 @@ impl StackingContextTree {
         transform: LayoutTransform,
         kind: wr::ReferenceFrameKind,
     ) -> ScrollTreeNodeId {
-        self.compositor_info.scroll_tree.add_scroll_tree_node(
+        self.paint_info.scroll_tree.add_scroll_tree_node(
             Some(parent_scroll_node_id),
             SpatialTreeNodeInfo::ReferenceFrame(ReferenceFrameNodeInfo {
                 origin,
@@ -229,7 +229,7 @@ impl StackingContextTree {
         clip_rect: LayoutRect,
         scroll_sensitivity: AxesScrollSensitivity,
     ) -> ScrollTreeNodeId {
-        self.compositor_info.scroll_tree.add_scroll_tree_node(
+        self.paint_info.scroll_tree.add_scroll_tree_node(
             Some(parent_scroll_node_id),
             SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
                 external_id,
@@ -250,7 +250,7 @@ impl StackingContextTree {
         vertical_offset_bounds: StickyOffsetBounds,
         horizontal_offset_bounds: StickyOffsetBounds,
     ) -> ScrollTreeNodeId {
-        self.compositor_info.scroll_tree.add_scroll_tree_node(
+        self.paint_info.scroll_tree.add_scroll_tree_node(
             Some(parent_scroll_node_id),
             SpatialTreeNodeInfo::Sticky(StickyNodeInfo {
                 frame_rect,
@@ -1505,7 +1505,7 @@ impl BoxFragment {
         let tag = self.base.tag?;
         let external_scroll_id = wr::ExternalScrollId(
             tag.to_display_list_fragment_id(),
-            stacking_context_tree.compositor_info.pipeline_id,
+            stacking_context_tree.paint_info.pipeline_id,
         );
 
         let sensitivity = AxesScrollSensitivity {
@@ -1546,7 +1546,7 @@ impl BoxFragment {
             None => {
                 // This is a direct descendant of a reference frame.
                 &stacking_context_tree
-                    .compositor_info
+                    .paint_info
                     .viewport_details
                     .layout_size()
             },
@@ -1686,10 +1686,8 @@ impl BoxFragment {
 
         let relative_border_rect = self.border_rect();
         let border_rect = relative_border_rect.translate(containing_block_rect.origin.to_vector());
-        let untyped_border_rect = border_rect.to_untyped();
-
-        let transform = self.calculate_transform_matrix(&untyped_border_rect);
-        let perspective = self.calculate_perspective_matrix(&untyped_border_rect);
+        let transform = self.calculate_transform_matrix(&border_rect);
+        let perspective = self.calculate_perspective_matrix(&border_rect);
         let (reference_frame_transform, reference_frame_kind) = match (transform, perspective) {
             (None, Some(perspective)) => (
                 perspective,
@@ -1722,7 +1720,10 @@ impl BoxFragment {
     }
 
     /// Returns the 4D matrix representing this fragment's transform.
-    pub fn calculate_transform_matrix(&self, border_rect: &Rect<Au>) -> Option<LayoutTransform> {
+    pub fn calculate_transform_matrix(
+        &self,
+        border_rect: &Rect<Au, CSSPixel>,
+    ) -> Option<LayoutTransform> {
         let list = &self.style.get_box().transform;
         let length_rect = au_rect_to_length_rect(border_rect);
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
@@ -1745,7 +1746,9 @@ impl BoxFragment {
         };
 
         let angle = euclid::Angle::radians(rotate.3.radians());
-        let transform_base = list.to_transform_3d_matrix(Some(&length_rect)).ok()?;
+        let transform_base = list
+            .to_transform_3d_matrix(Some(&length_rect.to_untyped()))
+            .ok()?;
         let transform = LayoutTransform::from_untyped(&transform_base.0)
             .then_rotate(rotate.0, rotate.1, rotate.2, angle)
             .then_scale(scale.0, scale.1, scale.2)
@@ -1766,7 +1769,10 @@ impl BoxFragment {
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
-    pub fn calculate_perspective_matrix(&self, border_rect: &Rect<Au>) -> Option<LayoutTransform> {
+    pub fn calculate_perspective_matrix(
+        &self,
+        border_rect: &Rect<Au, CSSPixel>,
+    ) -> Option<LayoutTransform> {
         match self.style.get_box().perspective {
             Perspective::Length(length) => {
                 let perspective_origin = &self.style.get_box().perspective_origin;
@@ -1847,7 +1853,7 @@ impl PositioningFragment {
     }
 }
 
-pub fn au_rect_to_length_rect(rect: &Rect<Au>) -> Rect<Length> {
+pub(crate) fn au_rect_to_length_rect(rect: &Rect<Au, CSSPixel>) -> Rect<Length, CSSPixel> {
     Rect::new(
         Point2D::new(rect.origin.x.into(), rect.origin.y.into()),
         Size2D::new(rect.size.width.into(), rect.size.height.into()),

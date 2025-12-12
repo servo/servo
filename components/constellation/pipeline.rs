@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
-use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
+use compositing_traits::{CompositionPipeline, PaintMessage, PaintProxy};
 use constellation_traits::{LoadData, ServiceWorkerManagerFactory};
 use embedder_traits::{AnimationState, FocusSequenceNumber};
 use ipc_channel::Error;
@@ -37,8 +37,8 @@ pub struct Pipeline {
     /// The event loop handling this pipeline.
     pub event_loop: Rc<EventLoop>,
 
-    /// A channel to the compositor.
-    pub compositor_proxy: CompositorProxy,
+    /// A channel to `Paint`.
+    pub paint_proxy: PaintProxy,
 
     /// The most recently loaded URL in this pipeline.
     /// Note that this URL can change, for example if the page navigates
@@ -91,7 +91,7 @@ impl Pipeline {
             new_pipeline_info.webview_id,
             new_pipeline_info.opener,
             event_loop,
-            constellation.compositor_proxy.clone(),
+            constellation.paint_proxy.clone(),
             throttled,
             new_pipeline_info.load_data,
         ))
@@ -105,7 +105,7 @@ impl Pipeline {
         webview_id: WebViewId,
         opener: Option<BrowsingContextId>,
         event_loop: Rc<EventLoop>,
-        compositor_proxy: CompositorProxy,
+        paint_proxy: PaintProxy,
         throttled: bool,
         load_data: LoadData,
     ) -> Self {
@@ -115,7 +115,7 @@ impl Pipeline {
             webview_id,
             opener,
             event_loop,
-            compositor_proxy,
+            paint_proxy,
             url: load_data.url.clone(),
             children: vec![],
             animation_state: AnimationState::NoAnimationsPresent,
@@ -155,7 +155,7 @@ impl Pipeline {
         }
     }
 
-    /// The compositor's view of a pipeline.
+    /// `Paint`'s view of a pipeline.
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id,
@@ -191,11 +191,11 @@ impl Pipeline {
     /// running timers at a heavily limited rate.
     pub fn set_throttled(&self, throttled: bool) {
         let script_msg = ScriptThreadMessage::SetThrottled(self.webview_id, self.id, throttled);
-        let compositor_msg = CompositorMsg::SetThrottled(self.webview_id, self.id, throttled);
+        let paint_message = PaintMessage::SetThrottled(self.webview_id, self.id, throttled);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
             warn!("Sending SetThrottled to script failed ({}).", e);
         }
-        self.compositor_proxy.send(compositor_msg);
+        self.paint_proxy.send(paint_message);
     }
 }

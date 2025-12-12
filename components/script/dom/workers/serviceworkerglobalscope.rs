@@ -46,7 +46,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::{ErrorReporting, GlobalScope, RethrowErrors};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
@@ -54,7 +54,10 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
+use crate::script_module::ScriptFetchOptions;
+use crate::script_runtime::{
+    CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
+};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -366,7 +369,7 @@ impl ServiceWorkerGlobalScope {
                     .policy_container(global_scope.policy_container())
                     .origin(origin);
 
-                let (_url, source) = match load_whole_resource(
+                let (url, source) = match load_whole_resource(
                     request,
                     &resource_threads_sender,
                     global.upcast(),
@@ -378,7 +381,7 @@ impl ServiceWorkerGlobalScope {
                         worker_scope.clear_js_runtime();
                         return;
                     },
-                    Ok((metadata, bytes)) => (metadata.final_url, bytes),
+                    Ok((metadata, bytes, _)) => (metadata.final_url, bytes),
                 };
 
                 unsafe {
@@ -394,7 +397,17 @@ impl ServiceWorkerGlobalScope {
                         InRealm::entered(&realm),
                         CanGc::note(),
                     );
-                    worker_scope.execute_script(String::from_utf8_lossy(&source), CanGc::note());
+
+                    let script = global_scope.create_a_classic_script(
+                        String::from_utf8_lossy(&source),
+                        url,
+                        ScriptFetchOptions::default_classic_script(global_scope),
+                        ErrorReporting::Unmuted,
+                        Some(IntroductionType::WORKER),
+                        1,
+                        true,
+                    );
+                    _ = global_scope.run_a_classic_script(script, RethrowErrors::No, CanGc::note());
                     global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }
 

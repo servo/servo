@@ -121,6 +121,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::ScriptId;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -3001,6 +3002,17 @@ impl GlobalScope {
         true
     }
 
+    /// Returns the idb factory for this global.
+    /// TODO: move the idb to the global itself.
+    pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.IndexedDB();
+        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.IndexedDB();
+        }
+        unreachable!("IndexedDB is only exposed on Window and WorkerGlobalScope.");
+    }
+
     /// Perform a microtask checkpoint.
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         if let Some(window) = self.downcast::<Window>() {
@@ -3481,11 +3493,13 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
     #[expect(unsafe_code)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn create_a_classic_script(
         &self,
         source: Cow<'_, str>,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
+        muted_errors: ErrorReporting,
         introduction_type: Option<&'static CStr>,
         line_number: u32,
         external: bool,
@@ -3499,7 +3513,6 @@ impl GlobalScope {
         // TODO Step 2. If scripting is disabled for settings, then set source to the empty string.
 
         // TODO Step 4. Set script's settings object to settings.
-        // TODO Step 7. Set script's muted errors to mutedErrors.
 
         // TODO Step 9. Record classic script creation time given script and sourceURLForWindowScripts.
 
@@ -3529,11 +3542,13 @@ impl GlobalScope {
         // Step 3. Let script be a new classic script that this algorithm will subsequently initialize.
         // Step 5. Set script's base URL to baseURL.
         // Step 6. Set script's fetch options to options.
+        // Step 7. Set script's muted errors to mutedErrors.
         // Step 12. Set script's record to result.
         let mut script = ClassicScript {
             record,
             url,
             fetch_options,
+            muted_errors,
             source: source_code,
             external,
             unminified_dir: self.unminified_js_dir(),
@@ -3546,7 +3561,12 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
     #[expect(unsafe_code)]
-    pub(crate) fn run_a_classic_script(&self, script: ClassicScript, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn run_a_classic_script(
+        &self,
+        script: ClassicScript,
+        rethrow_errors: RethrowErrors,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
         // TODO Step 1. Let settings be the settings object of script.
 
@@ -3591,21 +3611,30 @@ impl GlobalScope {
 
         // Step 8. If evaluationStatus is an abrupt completion, then:
         if !evaluation_status.is_undefined() {
-            unsafe { JS_ClearPendingException(*cx) };
             warn!("Error evaluating script");
 
-            // TODO Step 8.1. If rethrow errors is true and script's muted errors is false, then:
-            // Rethrow evaluationStatus.[[Value]].
+            match (rethrow_errors, script.muted_errors) {
+                // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
+                (RethrowErrors::Yes, ErrorReporting::Unmuted) => {
+                    // Rethrow evaluationStatus.[[Value]].
+                    return Err(Error::JSFailed);
+                },
+                // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
+                (RethrowErrors::Yes, ErrorReporting::Muted) => {
+                    unsafe { JS_ClearPendingException(*cx) };
+                    // Throw a "NetworkError" DOMException.
+                    return Err(Error::Network(None));
+                },
+                // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
+                _ => {
+                    unsafe { JS_ClearPendingException(*cx) };
+                    // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
+                    self.report_an_exception(cx, evaluation_status.handle(), can_gc);
 
-            // TODO Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-            // Throw a "NetworkError" DOMException.
-
-            // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
-            // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-            self.report_an_exception(cx, evaluation_status.handle(), can_gc);
-
-            // Return evaluationStatus.
-            return Err(Error::JSFailed);
+                    // Return evaluationStatus.
+                    return Err(Error::JSFailed);
+                },
+            }
         }
 
         maybe_resume_unwind();
@@ -3767,16 +3796,44 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     }
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum ErrorReporting {
+    Muted,
+    Unmuted,
+}
+
+impl From<bool> for ErrorReporting {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            ErrorReporting::Muted
+        } else {
+            ErrorReporting::Unmuted
+        }
+    }
+}
+
+pub(crate) enum RethrowErrors {
+    Yes,
+    No,
+}
+
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct ClassicScript {
     /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
     /// On failure <https://html.spec.whatwg.org/multipage/#concept-script-error-to-rethrow>
-    record: Result<NonNull<JSScript>, RethrowError>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "mozjs"]
+    pub record: Result<NonNull<JSScript>, RethrowError>,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-script-fetch-options>
     fetch_options: ScriptFetchOptions,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
+    #[no_trace]
     url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#muted-errors>
+    muted_errors: ErrorReporting,
     /// used for unminify_js
+    #[conditional_malloc_size_of]
     source: Rc<DOMString>,
     unminified_dir: Option<String>,
     external: bool,

@@ -9,7 +9,7 @@ use base::generic_channel::GenericSender;
 use base::{Epoch, generic_channel};
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
-use compositing_traits::CrossProcessCompositorApi;
+use compositing_traits::CrossProcessPaintApi;
 use crossbeam_channel::{Sender, select, unbounded};
 use euclid::default::{Rect, Size2D, Transform2D};
 use log::warn;
@@ -22,22 +22,22 @@ use crate::canvas_data::*;
 pub struct CanvasPaintThread {
     canvases: FxHashMap<CanvasId, Canvas>,
     next_canvas_id: CanvasId,
-    compositor_api: CrossProcessCompositorApi,
+    paint_api: CrossProcessPaintApi,
 }
 
 impl CanvasPaintThread {
-    fn new(compositor_api: CrossProcessCompositorApi) -> CanvasPaintThread {
+    fn new(paint_api: CrossProcessPaintApi) -> CanvasPaintThread {
         CanvasPaintThread {
             canvases: FxHashMap::default(),
             next_canvas_id: CanvasId(0),
-            compositor_api: compositor_api.clone(),
+            paint_api: paint_api.clone(),
         }
     }
 
     /// Creates a new `CanvasPaintThread` and returns an `IpcSender` to
     /// communicate with it.
     pub fn start(
-        compositor_api: CrossProcessCompositorApi,
+        paint_api: CrossProcessPaintApi,
     ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
         let (ipc_sender, ipc_receiver) = generic_channel::channel::<CanvasMsg>().unwrap();
         let msg_receiver = ipc_receiver.route_preserving_errors();
@@ -46,7 +46,7 @@ impl CanvasPaintThread {
             .name("Canvas".to_owned())
             .spawn(move || {
                 let mut canvas_paint_thread = CanvasPaintThread::new(
-                    compositor_api);
+                    paint_api);
                 loop {
                     select! {
                         recv(msg_receiver) -> msg => {
@@ -97,7 +97,7 @@ impl CanvasPaintThread {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas = Canvas::new(size, self.compositor_api.clone())?;
+        let canvas = Canvas::new(size, self.paint_api.clone())?;
         self.canvases.insert(canvas_id, canvas);
 
         Some(canvas_id)
@@ -298,17 +298,15 @@ enum Canvas {
 }
 
 impl Canvas {
-    fn new(size: Size2D<u64>, compositor_api: CrossProcessCompositorApi) -> Option<Self> {
+    fn new(size: Size2D<u64>, paint_api: CrossProcessPaintApi) -> Option<Self> {
         match servo_config::pref!(dom_canvas_backend)
             .to_lowercase()
             .as_str()
         {
             #[cfg(feature = "vello_cpu")]
-            "" | "auto" | "vello_cpu" => {
-                Some(Self::VelloCPU(CanvasData::new(size, compositor_api)))
-            },
+            "" | "auto" | "vello_cpu" => Some(Self::VelloCPU(CanvasData::new(size, paint_api))),
             #[cfg(feature = "vello")]
-            "" | "auto" | "vello" => Some(Self::Vello(CanvasData::new(size, compositor_api))),
+            "" | "auto" | "vello" => Some(Self::Vello(CanvasData::new(size, paint_api))),
             s => {
                 warn!("Unknown 2D canvas backend: `{s}`");
                 None

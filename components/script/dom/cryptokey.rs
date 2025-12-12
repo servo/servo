@@ -27,6 +27,8 @@ pub(crate) enum CryptoKeyOrCryptoKeyPair {
 
 /// The underlying cryptographic data this key represents
 pub(crate) enum Handle {
+    RsaPrivateKey(rsa::RsaPrivateKey),
+    RsaPublicKey(rsa::RsaPublicKey),
     P256PrivateKey(p256::SecretKey),
     P384PrivateKey(p384::SecretKey),
     P521PrivateKey(p521::SecretKey),
@@ -214,6 +216,8 @@ impl Handle {
 impl MallocSizeOf for Handle {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         match self {
+            Handle::RsaPrivateKey(private_key) => private_key.size_of(ops),
+            Handle::RsaPublicKey(public_key) => public_key.size_of(ops),
             Handle::P256PrivateKey(private_key) => private_key.size_of(ops),
             Handle::P384PrivateKey(private_key) => private_key.size_of(ops),
             Handle::P521PrivateKey(private_key) => private_key.size_of(ops),

@@ -67,6 +67,7 @@ pub struct SqliteEngine {
     connection: Connection,
     read_pool: Arc<ThreadPool>,
     write_pool: Arc<ThreadPool>,
+    created_db_path: bool,
 }
 
 impl SqliteEngine {
@@ -82,10 +83,14 @@ impl SqliteEngine {
         let db_parent = db_path.clone();
         db_path.push("db.sqlite");
 
-        if !db_path.exists() {
+        let created_db_path = if !db_path.exists() {
             std::fs::create_dir_all(db_parent).unwrap();
             std::fs::File::create(&db_path).unwrap();
-        }
+            true
+        } else {
+            false
+        };
+
         let connection = Self::init_db(&db_path, db_info)?;
 
         for stmt in DB_PRAGMAS {
@@ -98,7 +103,13 @@ impl SqliteEngine {
             db_path,
             read_pool: pool.clone(),
             write_pool: pool,
+            created_db_path,
         })
+    }
+
+    /// Returns whether the physical db was created as part of `new`.
+    pub(crate) fn created_db_path(&self) -> bool {
+        self.created_db_path
     }
 
     fn init_db(path: &Path, db_info: &IndexedDBDescription) -> Result<Connection, Error> {

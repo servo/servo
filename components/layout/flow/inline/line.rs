@@ -587,7 +587,7 @@ impl LineItemLayout<'_, '_> {
         self.current_state.inline_advance += inline_advance;
         self.current_state.fragments.push((
             Fragment::Text(ArcRefCell::new(TextFragment {
-                base: text_item.base_fragment_info.into(),
+                base: text_item.base_fragment_info,
                 inline_styles: text_item.inline_styles.clone(),
                 rect: PhysicalRect::zero(),
                 font_metrics: text_item.font_metrics,
