@@ -47,7 +47,9 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
-// Represents a `BufferSource` as defined in the WebIDL specification.
+pub(crate) type RootedTypedArray<T> = RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>;
+
+/// Represents a `BufferSource` as defined in the WebIDL specification.
 ///
 /// A `BufferSource` is either an `ArrayBuffer` or an `ArrayBufferView`, which
 /// provides a view onto an `ArrayBuffer`.
@@ -169,9 +171,7 @@ where
         }
     }
 
-    pub(crate) fn get_typed_array(
-        &self,
-    ) -> Result<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>, ()> {
+    pub(crate) fn get_typed_array(&self) -> Result<RootedTypedArray<T>, ()> {
         TypedArray::from(match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 buffer.get()
@@ -239,9 +239,7 @@ where
         }
     }
 
-    pub(crate) fn typed_array_to_option(
-        &self,
-    ) -> Option<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>> {
+    pub(crate) fn typed_array_to_option(&self) -> Option<RootedTypedArray<T>> {
         if self.is_initialized() {
             self.get_typed_array().ok()
         } else {
@@ -522,8 +520,7 @@ where
         can_gc: CanGc,
     ) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _: RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>> =
-            create_buffer_source(cx, data, array.handle_mut(), can_gc)?;
+        let _ = create_buffer_source::<T>(cx, data, array.handle_mut(), can_gc)?;
 
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
@@ -702,7 +699,7 @@ pub(crate) fn create_buffer_source<T>(
     data: &[T::Element],
     mut dest: MutableHandleObject,
     _can_gc: CanGc,
-) -> Result<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>, ()>
+) -> Result<RootedTypedArray<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
@@ -722,7 +719,7 @@ fn create_buffer_source_with_length<T>(
     len: usize,
     mut dest: MutableHandleObject,
     _can_gc: CanGc,
-) -> Result<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>, ()>
+) -> Result<RootedTypedArray<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
