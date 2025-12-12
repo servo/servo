@@ -12,6 +12,7 @@ mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod pbkdf2_operation;
+mod rsa_oaep_operation;
 mod rsa_pss_operation;
 mod rsassa_pkcs1_v1_5_operation;
 mod sha3_operation;
@@ -2642,6 +2643,15 @@ fn normalize_algorithm(
                     NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
                 },
 
+                // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
+                (ALG_RSA_OAEP, Operation::ImportKey) => {
+                    let mut params = dictionary_from_jsval::<
+                        RootedTraceableBox<RsaHashedImportParams>,
+                    >(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaHashedImportParams(params.try_into()?)
+                },
+
                 // <https://w3c.github.io/webcrypto/#ecdsa-registration>
                 (ALG_ECDSA, Operation::Sign) => {
                     let mut params = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(
@@ -3393,6 +3403,17 @@ impl NormalizedAlgorithm {
             },
             (ALG_RSA_PSS, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
                 rsa_pss_operation::import_key(
+                    global,
+                    algo,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                    can_gc,
+                )
+            },
+            (ALG_RSA_OAEP, NormalizedAlgorithm::RsaHashedImportParams(algo)) => {
+                rsa_oaep_operation::import_key(
                     global,
                     algo,
                     format,
