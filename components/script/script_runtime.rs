@@ -1290,9 +1290,16 @@ pub(crate) fn get_reports(
 
     // SpiderMonkey uses the system heap, not jemalloc.
     report(
-        path!["malloc-heap"],
+        path!["malloc-heap", "lol"],
         ReportKind::ExplicitSystemHeapSize,
         stats.mallocHeap,
+    );
+
+    // WORKAROUND(pylbrecht): mock value to understand the big picture.
+    report(
+        path!["malloc-heap", "pylbrecht"],
+        ReportKind::ExplicitSystemHeapSize,
+        1337,
     );
 
     report(
