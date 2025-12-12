@@ -19,7 +19,7 @@ pub fn main() {
     panic::set_hook(Box::new(panic_hook::panic_hook));
 
     let args = env::args().collect();
-    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
         ArgumentParsingResult::ContentProcess(token) => return servo::run_content_process(token),
         ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
             (opts, preferences, servoshell_preferences)
@@ -33,10 +33,6 @@ pub fn main() {
     };
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
-
-    if let Ok(proxy_uri) = env::var("http_proxy") {
-        preferences.network_http_proxy_uri = proxy_uri;
-    }
 
     let clean_shutdown = servoshell_preferences.clean_shutdown;
     let event_loop = match servoshell_preferences.headless {
