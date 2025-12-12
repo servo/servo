@@ -1141,7 +1141,9 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
         // https://searchfox.org/mozilla-esr128/source/js/public/GCAPI.h#1392
         _ => 5000,
     };
-    SetGCZeal(cx, level, frequency);
+    unsafe {
+        SetGCZeal(cx, level, frequency);
+    }
 }
 
 #[expect(unsafe_code)]
