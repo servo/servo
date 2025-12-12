@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use html5ever::LocalName;
+use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use style::attr::AttrValue;
 
@@ -58,6 +59,8 @@ use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::htmlbuttonelement::CommandState;
+use crate::dom::htmldialogelement::HTMLDialogElement;
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::svg::svgelement::SVGElement;
@@ -137,6 +140,23 @@ pub(crate) trait VirtualMethods {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#is-valid-command-steps>
+    fn is_valid_command_steps(&self, command: CommandState) -> bool {
+        self.super_type()
+            .is_some_and(|super_type| super_type.is_valid_command_steps(command))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#command-steps>
+    fn command_steps(
+        &self,
+        button: DomRoot<HTMLButtonElement>,
+        command: CommandState,
+        can_gc: CanGc,
+    ) -> bool {
+        self.super_type()
+            .is_some_and(|super_type| super_type.command_steps(button, command, can_gc))
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
     fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
@@ -192,6 +212,9 @@ pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDetailsElement)) => {
             node.downcast::<HTMLDetailsElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDialogElement)) => {
+            node.downcast::<HTMLDialogElement>().unwrap() as &dyn VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
             node.downcast::<HTMLFieldSetElement>().unwrap() as &dyn VirtualMethods

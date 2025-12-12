@@ -7,6 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::error::{Error, ErrorResult};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -20,8 +21,10 @@ use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::toggleevent::ToggleEvent;
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -360,5 +363,41 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         // Step 1. If returnValue is not given, then set it to null.
         // Step 2. Close the dialog this with returnValue and null.
         self.close_the_dialog(return_value, None, can_gc);
+    }
+}
+
+impl VirtualMethods for HTMLDialogElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-dialog-element:command-steps>
+    fn command_steps(
+        &self,
+        button: DomRoot<HTMLButtonElement>,
+        command: CommandState,
+        can_gc: CanGc,
+    ) -> bool {
+        if self
+            .super_type()
+            .unwrap()
+            .command_steps(button.clone(), command, can_gc)
+        {
+            return true;
+        }
+        let element = self.upcast::<Element>();
+        if element.has_attribute(&local_name!("open")) {
+            if command == CommandState::Close {
+                let button_element = DomRoot::from_ref(button.upcast::<Element>());
+                self.close_the_dialog(Some(button.Value()), Some(button_element), can_gc);
+                return true;
+            }
+        } else if command == CommandState::ShowModal {
+            let button_element = DomRoot::from_ref(button.upcast::<Element>());
+            let _ = self.show_a_modal(Some(button_element), can_gc);
+            return true;
+        }
+
+        false
     }
 }
