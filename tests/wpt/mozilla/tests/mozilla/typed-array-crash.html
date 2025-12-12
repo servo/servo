@@ -1,0 +1,7 @@
+<html>
+<head>
+<title>Typed array dictionary member rooting crash</title>
+<script>
+  let buffer = new Uint8Array(10);
+  (new TestBinding()).getDictionaryWithTypedArray({ typedArray: buffer });
+</script>

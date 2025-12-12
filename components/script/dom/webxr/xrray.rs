@@ -5,7 +5,8 @@
 use dom_struct::dom_struct;
 use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
-use js::typedarray::{Float32, Float32Array};
+use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, Ray};
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -125,7 +126,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-matrix>
-    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
+    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat32Array> {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
         if !self.matrix.is_initialized() {
             // Step 1

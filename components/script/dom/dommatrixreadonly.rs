@@ -15,8 +15,9 @@ use js::conversions::jsstr_to_string;
 use js::jsapi::JSObject;
 use js::jsval;
 use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
-use js::typedarray::{Float32Array, Float64Array};
+use js::typedarray::{Float32Array, Float64Array, HeapFloat32Array, HeapFloat64Array};
 use rustc_hash::FxHashMap;
+use script_bindings::trace::RootedTraceableBox;
 use style::parser::ParserContext;
 use url::Url;
 
@@ -812,7 +813,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array>
-    fn ToFloat32Array(&self, cx: JSContext, can_gc: CanGc) -> Float32Array {
+    fn ToFloat32Array(&self, cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat32Array> {
         let vec: Vec<f32> = self
             .matrix
             .borrow()
@@ -826,7 +827,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array>
-    fn ToFloat64Array(&self, cx: JSContext, can_gc: CanGc) -> Float64Array {
+    fn ToFloat64Array(&self, cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat64Array> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         create_buffer_source(
             cx,

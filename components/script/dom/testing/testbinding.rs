@@ -14,7 +14,8 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
-use js::typedarray::{self, Uint8ClampedArray};
+use js::typedarray::{self, HeapUint8ClampedArray};
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
 use servo_config::prefs;
@@ -25,7 +26,8 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
     SimpleCallback, TestBindingMethods, TestDictionary, TestDictionaryDefaults,
-    TestDictionaryParent, TestDictionaryWithParent, TestEnum, TestURLLike,
+    TestDictionaryParent, TestDictionaryWithParent, TestDictionaryWithTypedArray, TestEnum,
+    TestURLLike,
 };
 use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -222,7 +224,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         ByteStringOrLong::ByteString(ByteString::new(vec![]))
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
-    fn ArrayAttribute(&self, cx: SafeJSContext) -> Uint8ClampedArray {
+    fn ArrayAttribute(&self, cx: SafeJSContext) -> RootedTraceableBox<HeapUint8ClampedArray> {
         let data: [u8; 16] = [0; 16];
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
@@ -560,6 +562,12 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> {
         Some(vec![1])
+    }
+    fn GetDictionaryWithTypedArray(
+        &self,
+        _dictionary: RootedTraceableBox<TestDictionaryWithTypedArray>,
+    ) {
+        self.global().as_window().Gc();
     }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
         RootedTraceableBox::new(TestDictionary {

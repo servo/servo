@@ -7,7 +7,8 @@ use std::ptr;
 use dom_struct::dom_struct;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
-use js::typedarray::{ArrayBuffer, ArrayBufferU8};
+use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -103,7 +104,7 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
         cx: JSContext,
         blob: &Blob,
         can_gc: CanGc,
-    ) -> Fallible<ArrayBuffer> {
+    ) -> Fallible<RootedTraceableBox<HeapArrayBuffer>> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 

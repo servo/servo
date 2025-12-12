@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsapi::{JSObject, Type};
+use js::jsapi::{Heap, JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, TypedArray};
+use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, HeapArrayBufferView, TypedArray};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
+use script_bindings::trace::RootedTraceableBox;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
@@ -52,7 +53,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
         &self,
         _cx: JSContext,
         mut input: CustomAutoRooterGuard<ArrayBufferView>,
-    ) -> Fallible<ArrayBufferView> {
+    ) -> Fallible<RootedTraceableBox<HeapArrayBufferView>> {
         let array_type = input.get_array_type();
 
         if !is_integer_buffer(array_type) {
@@ -71,7 +72,8 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
             }
 
             let underlying_object = unsafe { input.underlying_object() };
-            TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(*underlying_object)
+            TypedArray::<ArrayBufferViewU8, Box<Heap<*mut JSObject>>>::from(*underlying_object)
+                .map(RootedTraceableBox::new)
                 .map_err(|_| Error::JSFailed)
         }
     }

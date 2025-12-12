@@ -17,7 +17,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue, ToString,
 };
-use js::typedarray::Uint8Array;
+use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -274,7 +274,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     // Step 4.2.2.1 Let chunk be the result of creating a Uint8Array object
     //      given output and encoder’s relevant realm.
     rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let chunk: Uint8Array = create_buffer_source(cx, output, js_object.handle_mut(), can_gc)
+    let chunk = create_buffer_source::<Uint8>(cx, output, js_object.handle_mut(), can_gc)
         .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut rval = UndefinedValue());
     chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
@@ -296,11 +296,13 @@ pub(crate) fn encode_and_flush(
         // Step 1.1 Let chunk be the result of creating a Uint8Array object
         //      given « 0xEF, 0xBF, 0xBD » and encoder’s relevant realm.
         rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        let chunk: Uint8Array =
-            create_buffer_source(cx, &[0xEF_u8, 0xBF, 0xBD], js_object.handle_mut(), can_gc)
-                .map_err(|_| {
-                    Error::Type("Cannot convert byte sequence to Uint8Array".to_owned())
-                })?;
+        let chunk = create_buffer_source::<Uint8>(
+            cx,
+            &[0xEF_u8, 0xBF, 0xBD],
+            js_object.handle_mut(),
+            can_gc,
+        )
+        .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
         rooted!(in(*cx) let mut rval = UndefinedValue());
         chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
         // Step 1.2 Enqueue chunk into encoder’s transform.

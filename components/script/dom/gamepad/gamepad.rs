@@ -6,7 +6,8 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
-use js::typedarray::{Float64, Float64Array};
+use js::typedarray::{Float64, HeapFloat64Array};
+use script_bindings::trace::RootedTraceableBox;
 
 use super::gamepadbuttonlist::GamepadButtonList;
 use super::gamepadhapticactuator::GamepadHapticActuator;
@@ -160,7 +161,7 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-axes>
-    fn Axes(&self, _cx: JSContext) -> Float64Array {
+    fn Axes(&self, _cx: JSContext) -> RootedTraceableBox<HeapFloat64Array> {
         self.axes
             .get_typed_array()
             .expect("Failed to get gamepad axes.")

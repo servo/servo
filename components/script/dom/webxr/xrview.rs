@@ -6,7 +6,8 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
-use js::typedarray::{Float32, Float32Array};
+use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, View};
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -96,7 +97,11 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix>
-    fn ProjectionMatrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
+    fn ProjectionMatrix(
+        &self,
+        _cx: JSContext,
+        can_gc: CanGc,
+    ) -> RootedTraceableBox<HeapFloat32Array> {
         if !self.proj.is_initialized() {
             let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
