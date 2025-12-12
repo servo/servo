@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
+use script_bindings::trace::RootedTraceableBox;
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::cell::DomRefCell;
@@ -62,7 +63,10 @@ impl ReadableStreamBYOBRequest {
 
 impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBYOBRequest {
     /// <https://streams.spec.whatwg.org/#rs-byob-request-view>
-    fn GetView(&self, _cx: SafeJSContext) -> Option<js::typedarray::ArrayBufferView> {
+    fn GetView(
+        &self,
+        _cx: SafeJSContext,
+    ) -> Option<RootedTraceableBox<js::typedarray::HeapArrayBufferView>> {
         // Return this.[[view]].
         self.view.borrow().typed_array_to_option()
     }

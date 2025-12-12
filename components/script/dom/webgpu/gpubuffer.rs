@@ -8,7 +8,8 @@ use std::string::String;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use js::typedarray::ArrayBuffer;
+use js::typedarray::HeapArrayBuffer;
+use script_bindings::trace::RootedTraceableBox;
 use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
 use wgpu_core::device::HostMap;
 use wgpu_core::resource::BufferAccessError;
@@ -301,7 +302,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         offset: GPUSize64,
         size: Option<GPUSize64>,
         can_gc: CanGc,
-    ) -> Fallible<ArrayBuffer> {
+    ) -> Fallible<RootedTraceableBox<HeapArrayBuffer>> {
         let range_size = if let Some(s) = size {
             s
         } else {

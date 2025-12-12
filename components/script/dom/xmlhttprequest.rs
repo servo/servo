@@ -25,7 +25,7 @@ use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue};
-use js::typedarray::{ArrayBuffer, ArrayBufferU8};
+use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
 use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
@@ -35,6 +35,7 @@ use net_traits::{
 };
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
+use script_bindings::trace::RootedTraceableBox;
 use script_traits::DocumentActivity;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
@@ -1342,7 +1343,11 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
-    fn arraybuffer_response(&self, cx: JSContext, can_gc: CanGc) -> Option<ArrayBuffer> {
+    fn arraybuffer_response(
+        &self,
+        cx: JSContext,
+        can_gc: CanGc,
+    ) -> Option<RootedTraceableBox<HeapArrayBuffer>> {
         // Step 5: Set the response object to a new ArrayBuffer with the received bytes
         // For caching purposes, skip this step if the response is already created
         if !self.response_arraybuffer.is_initialized() {

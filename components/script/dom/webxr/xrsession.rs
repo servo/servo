@@ -15,9 +15,10 @@ use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSObject;
 use js::rust::MutableHandleValue;
-use js::typedarray::Float32Array;
+use js::typedarray::HeapFloat32Array;
 use profile_traits::ipc;
 use rustc_hash::FxBuildHasher;
+use script_bindings::trace::RootedTraceableBox;
 use stylo_atoms::Atom;
 use webxr_api::{
     self, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
@@ -1001,7 +1002,11 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-supportedframerates>
-    fn GetSupportedFrameRates(&self, cx: JSContext, can_gc: CanGc) -> Option<Float32Array> {
+    fn GetSupportedFrameRates(
+        &self,
+        cx: JSContext,
+        can_gc: CanGc,
+    ) -> Option<RootedTraceableBox<HeapFloat32Array>> {
         let session = self.session.borrow();
         if self.mode == XRSessionMode::Inline || session.supported_frame_rates().is_empty() {
             None

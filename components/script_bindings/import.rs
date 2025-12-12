@@ -20,12 +20,11 @@ pub(crate) mod base {
     #[allow(unused_imports)]
     pub(crate) use js::realm::{AutoRealm, CurrentRealm};
     pub(crate) use js::rust::wrappers::Call;
-    pub(crate) use js::rust::{
-        CustomTrace, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
-    };
+    pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
     pub(crate) use js::typedarray;
     pub(crate) use js::typedarray::{
-        ArrayBuffer, ArrayBufferView, Float32Array, Float64Array, Uint8Array, Uint8ClampedArray,
+        HeapArrayBuffer, HeapArrayBufferView, HeapFloat32Array, HeapFloat64Array, HeapUint8Array,
+        HeapUint8ClampedArray,
     };
 
     pub(crate) use crate::callback::{

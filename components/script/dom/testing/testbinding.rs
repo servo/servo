@@ -14,7 +14,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
-use js::typedarray::{self, Uint8ClampedArray};
+use js::typedarray::{self, HeapUint8ClampedArray};
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
 use servo_config::prefs;
@@ -222,7 +222,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         ByteStringOrLong::ByteString(ByteString::new(vec![]))
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
-    fn ArrayAttribute(&self, cx: SafeJSContext) -> Uint8ClampedArray {
+    fn ArrayAttribute(&self, cx: SafeJSContext) -> RootedTraceableBox<HeapUint8ClampedArray> {
         let data: [u8; 16] = [0; 16];
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());

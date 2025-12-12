@@ -35,7 +35,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 #[cfg(feature = "webgpu")]
-use js::typedarray::{ArrayBuffer, HeapArrayBuffer};
+use js::typedarray::HeapArrayBuffer;
 use js::typedarray::{
     ArrayBufferU8, ArrayBufferViewU8, CreateWith, TypedArray, TypedArrayElement,
     TypedArrayElementCreator,
@@ -82,7 +82,7 @@ pub(crate) fn create_heap_buffer_source_with_length<T>(
     can_gc: CanGc,
 ) -> Fallible<HeapBufferSource<T>>
 where
-    T: TypedArrayElement + TypedArrayElementCreator,
+    T: TypedArrayElement + TypedArrayElementCreator + 'static,
     T::Element: Clone + Copy,
 {
     rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
@@ -169,12 +169,15 @@ where
         }
     }
 
-    pub(crate) fn get_typed_array(&self) -> Result<TypedArray<T, *mut JSObject>, ()> {
+    pub(crate) fn get_typed_array(
+        &self,
+    ) -> Result<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>, ()> {
         TypedArray::from(match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
                 buffer.get()
             },
         })
+        .map(RootedTraceableBox::new)
     }
 
     pub(crate) fn get_buffer_view_value(
@@ -236,7 +239,9 @@ where
         }
     }
 
-    pub(crate) fn typed_array_to_option(&self) -> Option<TypedArray<T, *mut JSObject>> {
+    pub(crate) fn typed_array_to_option(
+        &self,
+    ) -> Option<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>> {
         if self.is_initialized() {
             self.get_typed_array().ok()
         } else {
@@ -427,7 +432,7 @@ where
 
 impl<T> HeapBufferSource<T>
 where
-    T: TypedArrayElement + TypedArrayElementCreator,
+    T: TypedArrayElement + TypedArrayElementCreator + 'static,
     T::Element: Clone + Copy,
 {
     pub(crate) fn acquire_data(&self, cx: JSContext) -> Result<Vec<T::Element>, ()> {
@@ -517,7 +522,7 @@ where
         can_gc: CanGc,
     ) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _: TypedArray<T, *mut JSObject> =
+        let _: RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>> =
             create_buffer_source(cx, data, array.handle_mut(), can_gc)?;
 
         match &self.buffer_source {
@@ -697,7 +702,7 @@ pub(crate) fn create_buffer_source<T>(
     data: &[T::Element],
     mut dest: MutableHandleObject,
     _can_gc: CanGc,
-) -> Result<TypedArray<T, *mut JSObject>, ()>
+) -> Result<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
@@ -708,7 +713,7 @@ where
     if res.is_err() {
         Err(())
     } else {
-        TypedArray::from(dest.get())
+        TypedArray::from(dest.get()).map(RootedTraceableBox::new)
     }
 }
 
@@ -717,7 +722,7 @@ fn create_buffer_source_with_length<T>(
     len: usize,
     mut dest: MutableHandleObject,
     _can_gc: CanGc,
-) -> Result<TypedArray<T, *mut JSObject>, ()>
+) -> Result<RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
@@ -728,7 +733,7 @@ where
     if res.is_err() {
         Err(())
     } else {
-        TypedArray::from(dest.get())
+        TypedArray::from(dest.get()).map(RootedTraceableBox::new)
     }
 }
 
@@ -993,8 +998,10 @@ pub(crate) struct DataView {
 
 #[cfg(feature = "webgpu")]
 impl DataView {
-    pub(crate) fn array_buffer(&self) -> ArrayBuffer {
-        unsafe { ArrayBuffer::from(self.buffer.underlying_object().get()).unwrap() }
+    pub(crate) fn array_buffer(&self) -> RootedTraceableBox<HeapArrayBuffer> {
+        RootedTraceableBox::new(unsafe {
+            HeapArrayBuffer::from(self.buffer.underlying_object().get()).unwrap()
+        })
     }
 }
 

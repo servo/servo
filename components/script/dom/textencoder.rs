@@ -9,7 +9,8 @@ use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray;
-use js::typedarray::Uint8Array;
+use js::typedarray::HeapUint8Array;
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::{
@@ -64,7 +65,12 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encode>
-    fn Encode(&self, cx: JSContext, input: USVString, can_gc: CanGc) -> Uint8Array {
+    fn Encode(
+        &self,
+        cx: JSContext,
+        input: USVString,
+        can_gc: CanGc,
+    ) -> RootedTraceableBox<HeapUint8Array> {
         let encoded = input.0.as_bytes();
 
         rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());

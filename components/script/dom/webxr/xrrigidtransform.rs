@@ -5,7 +5,8 @@
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
-use js::typedarray::{Float32, Float32Array};
+use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
@@ -164,7 +165,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         })
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix>
-    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
+    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat32Array> {
         if !self.matrix.is_initialized() {
             self.matrix
                 .set_data(_cx, &self.transform.to_transform().to_array(), can_gc)

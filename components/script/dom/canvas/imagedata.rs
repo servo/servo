@@ -13,9 +13,10 @@ use ipc_channel::ipc::IpcSharedMemory;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
-use js::typedarray::{ClampedU8, Uint8ClampedArray};
+use js::typedarray::{ClampedU8, HeapUint8ClampedArray, TypedArray, Uint8ClampedArray};
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::{
     HeapBufferSource, create_buffer_source, create_heap_buffer_source_with_length,
@@ -67,8 +68,10 @@ impl ImageData {
 
             let cx = GlobalScope::get_cx();
             rooted!(in (*cx) let mut js_object = std::ptr::null_mut::<JSObject>());
-            auto_root!(in(*cx) let data = create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut(), can_gc)
-                        .map_err(|_| Error::JSFailed)?);
+            let _buffer_source =
+                create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut(), can_gc)
+                    .map_err(|_| Error::JSFailed)?;
+            auto_root!(in(*cx) let data = TypedArray::<ClampedU8, *mut JSObject>::from(js_object.get()).map_err(|_| Error::JSFailed)?);
 
             Self::Constructor_(global, None, can_gc, data, width, Some(height), &settings)
         } else {
@@ -353,7 +356,7 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
-    fn GetData(&self, _: JSContext) -> Fallible<Uint8ClampedArray> {
+    fn GetData(&self, _: JSContext) -> Fallible<RootedTraceableBox<HeapUint8ClampedArray>> {
         self.data.get_typed_array().map_err(|_| Error::JSFailed)
     }
 

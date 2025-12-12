@@ -1013,9 +1013,11 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         typeName = type.unroll().name  # unroll because it may be nullable
 
-        is_union_member = (isMember == "Union")
+        # For safety, we want to return types that are already rooted so callers
+        # don't have to think about it.
+        require_heap_root = (isMember in ["Union", "Dictionary"] or sourceDescription == "return value")
 
-        if is_union_member:
+        if require_heap_root:
             typeName = f"Heap{typeName}"
             map_call = ".map(RootedTraceableBox::new)"
         else:
@@ -1035,7 +1037,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         )
 
         declType = CGGeneric(f"typedarray::{typeName}")
-        if is_union_member:
+        if require_heap_root:
             declType = CGWrapper(declType, pre="RootedTraceableBox<", post=">")
 
         if type.nullable():
@@ -1547,7 +1549,11 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
         return builtin_return_type(returnType)
     if is_typed_array(returnType) and returnType.tag() in builtinNames:
-        return builtin_return_type(returnType)
+        arrayType = CGGeneric(f"Heap{builtinNames[returnType.tag()]}")
+        result = CGWrapper(arrayType, pre="RootedTraceableBox<", post=">")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
     if returnType.isDOMString():
         result = CGGeneric("DOMString")
         if returnType.nullable():

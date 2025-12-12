@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::typedarray::{Float32, Float32Array};
+use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
@@ -51,7 +52,7 @@ impl GamepadPose {
 
 impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
     /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-position>
-    fn GetPosition(&self, _cx: JSContext) -> Option<Float32Array> {
+    fn GetPosition(&self, _cx: JSContext) -> Option<RootedTraceableBox<HeapFloat32Array>> {
         self.position.typed_array_to_option()
     }
 
@@ -61,17 +62,20 @@ impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
     }
 
     /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearvelocity>
-    fn GetLinearVelocity(&self, _cx: JSContext) -> Option<Float32Array> {
+    fn GetLinearVelocity(&self, _cx: JSContext) -> Option<RootedTraceableBox<HeapFloat32Array>> {
         self.linear_vel.typed_array_to_option()
     }
 
     /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearacceleration>
-    fn GetLinearAcceleration(&self, _cx: JSContext) -> Option<Float32Array> {
+    fn GetLinearAcceleration(
+        &self,
+        _cx: JSContext,
+    ) -> Option<RootedTraceableBox<HeapFloat32Array>> {
         self.linear_acc.typed_array_to_option()
     }
 
     /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation>
-    fn GetOrientation(&self, _cx: JSContext) -> Option<Float32Array> {
+    fn GetOrientation(&self, _cx: JSContext) -> Option<RootedTraceableBox<HeapFloat32Array>> {
         self.orientation.typed_array_to_option()
     }
 
@@ -81,12 +85,15 @@ impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
     }
 
     /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularvelocity>
-    fn GetAngularVelocity(&self, _cx: JSContext) -> Option<Float32Array> {
+    fn GetAngularVelocity(&self, _cx: JSContext) -> Option<RootedTraceableBox<HeapFloat32Array>> {
         self.angular_vel.typed_array_to_option()
     }
 
     /// <https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularacceleration>
-    fn GetAngularAcceleration(&self, _cx: JSContext) -> Option<Float32Array> {
+    fn GetAngularAcceleration(
+        &self,
+        _cx: JSContext,
+    ) -> Option<RootedTraceableBox<HeapFloat32Array>> {
         self.angular_acc.typed_array_to_option()
     }
 }
