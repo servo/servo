@@ -4,7 +4,8 @@
 
 use std::cell::Cell;
 
-use base::{Epoch, IpcSend};
+use base::Epoch;
+use base::generic_channel::GenericSend;
 use constellation_traits::{LoadData, NavigationHistoryBehavior};
 use embedder_traits::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
