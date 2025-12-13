@@ -107,6 +107,13 @@ pub(crate) trait VirtualMethods {
         }
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-node-move-ext>
+    fn moving_steps(&self, old_parent: Option<&Node>, can_gc: CanGc) {
+        if let Some(s) = self.super_type() {
+            s.moving_steps(old_parent, can_gc);
+        }
+    }
+
     /// Called when a Node is appended to a tree.
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {

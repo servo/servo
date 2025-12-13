@@ -38,7 +38,6 @@ use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::ParsingMode;
 use url::Url;
-
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -2149,6 +2148,14 @@ impl VirtualMethods for HTMLImageElement {
         // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for
         // removedNode.
         if context.parent.is::<HTMLPictureElement>() && !self.upcast::<Node>().has_parent() {
+            self.update_the_image_data(can_gc);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage#the-img-element:html-element-moving-steps>
+    fn moving_steps(&self, old_parent: Option<&Node>, can_gc: CanGc) {
+        // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
+        if let Some(old_parent) = old_parent && old_parent.is::<HTMLPictureElement>() {
             self.update_the_image_data(can_gc);
         }
     }

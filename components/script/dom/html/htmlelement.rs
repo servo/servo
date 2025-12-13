@@ -13,7 +13,6 @@ use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
-
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
@@ -50,6 +49,7 @@ use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::htmlformelement::{FormControlElementHelpers};
 use crate::dom::node::{
     BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
 };
@@ -1276,6 +1276,15 @@ impl VirtualMethods for HTMLElement {
                 .super_type()
                 .unwrap()
                 .parse_plain_attribute(name, value),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/#dom-trees:html-element-moving-steps>
+    fn moving_steps(&self, old_parent: Option<&Node>, can_gc: CanGc) {
+        // 1. If movedNode is an element whose namespace is the HTML namespace, and this standard defines HTML element moving steps for movedNode's local name, then run the corresponding HTML element moving steps given movedNode.
+        // 2. If movedNode is a form-associated element with a non-null form owner and movedNode and its form owner are no longer in the same tree, then reset the form owner of movedNode.
+        if let Some(form_control) = self.upcast::<Element>().as_maybe_form_control() {
+            form_control.moving_steps(old_parent, can_gc)
         }
     }
 }

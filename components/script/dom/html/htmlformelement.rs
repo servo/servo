@@ -23,7 +23,6 @@ use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
-
 use crate::body::Extractable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -1786,6 +1785,17 @@ pub(crate) trait FormControl: DomObject {
             html_element.is_submittable_element() || element.is_instance_validatable()
         } else {
             false
+        }
+    }
+
+    fn moving_steps(&self, _old_parent: Option<&Node>, can_gc: CanGc) {
+        // If movedNode is a form-associated element with a non-null form owner and movedNode and its form owner are no longer in the same tree, then reset the form owner of movedNode.
+        let elem = self.to_element();
+        let same_subtree = self
+            .form_owner()
+            .is_none_or(|form| elem.is_in_same_home_subtree(&*form));
+        if !same_subtree {
+            self.reset_form_owner(can_gc)
         }
     }
 
