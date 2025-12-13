@@ -100,7 +100,7 @@ pub(crate) fn generate_key(
     let modulus_length = normalized_algorithm.modulus_length as usize;
     let public_exponent = BigUint::from_bytes_be(&normalized_algorithm.public_exponent);
     let private_key = RsaPrivateKey::new_with_exp(&mut rng, modulus_length, &public_exponent)
-        .map_err(|_| Error::Operation(Some("RSA fails to generate private key".to_string())))?;
+        .map_err(|_| Error::Operation(Some("RSA failed to generate private key".to_string())))?;
     let public_key = private_key.to_public_key();
 
     // Step 4. Let algorithm be a new RsaHashedKeyAlgorithm dictionary.
