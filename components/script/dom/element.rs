@@ -1691,20 +1691,6 @@ impl Element {
         }
     }
 
-    pub(crate) fn is_css_root_element(&self) -> bool {
-        // check if we're top of the tree that we're in
-        if *self.root_element() != *self {
-            return false;
-        }
-
-        // we need to be in a document tree but not in a shadow tree
-        if self.upcast::<Node>().is_in_a_shadow_tree() {
-            return false;
-        }
-
-        self.node.is_in_a_document_tree()
-    }
-
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
     pub(crate) fn lookup_prefix(&self, namespace: Namespace) -> Option<DOMString> {
         for node in self
@@ -3291,7 +3277,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         };
 
         // Step 5
-        if self.is_css_root_element() {
+        if self.is_document_element() {
             if doc.quirks_mode() == QuirksMode::Quirks {
                 return 0.0;
             }
@@ -3343,7 +3329,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         };
 
         // Step 7
-        if self.is_css_root_element() {
+        if self.is_document_element() {
             if doc.quirks_mode() != QuirksMode::Quirks {
                 win.scroll(win.ScrollX() as f32, y, behavior);
             }
@@ -3388,7 +3374,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         };
 
         // Step 5
-        if self.is_css_root_element() {
+        if self.is_document_element() {
             if doc.quirks_mode() != QuirksMode::Quirks {
                 // Step 6
                 return win.ScrollX() as f64;
@@ -3439,7 +3425,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         };
 
         // Step 7
-        if self.is_css_root_element() {
+        if self.is_document_element() {
             if doc.quirks_mode() == QuirksMode::Quirks {
                 return;
             }
@@ -4996,7 +4982,7 @@ impl Element {
         let in_quirks_mode = doc.quirks_mode() == QuirksMode::Quirks;
 
         if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
-            (!in_quirks_mode && self.is_css_root_element())
+            (!in_quirks_mode && self.is_document_element())
         {
             let viewport_dimensions = doc.window().viewport_details().size.round().to_i32();
             rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
