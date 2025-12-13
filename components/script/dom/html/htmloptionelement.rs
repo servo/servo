@@ -408,7 +408,7 @@ impl VirtualMethods for HTMLOptionElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/form-elements.html#the-option-element:html-element-moving-steps>
+    /// <https://html.spec.whatwg.org/multipage/#the-option-element:html-element-moving-steps>
     fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
         if let Some(super_type) = self.super_type() {
             super_type.moving_steps(context, can_gc);

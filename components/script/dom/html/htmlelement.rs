@@ -1281,7 +1281,7 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/#dom-trees:html-element-moving-steps>
+    /// <https://html.spec.whatwg.org/multipage/#dom-trees:html-element-moving-steps>
     fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
         // Step 1. If movedNode is an element whose namespace is the HTML namespace, and this
         // standard defines HTML element moving steps for movedNode's local name, then run the
