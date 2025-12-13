@@ -366,7 +366,12 @@ impl Node {
 
     /// Clean up flags and runs steps 11-14 of remove a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext, is_move: bool, can_gc: CanGc) {
+    pub(crate) fn complete_remove_subtree(
+        root: &Node,
+        context: &UnbindContext,
+        is_move: bool,
+        can_gc: CanGc,
+    ) {
         // Flags that reset when a node is disconnected
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
