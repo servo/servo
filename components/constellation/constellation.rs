@@ -1394,10 +1394,6 @@ where
                     },
                 }
             },
-            EmbedderToConstellationMessage::ClearCache => {
-                self.public_resource_threads.clear_cache();
-                self.private_resource_threads.clear_cache();
-            },
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.

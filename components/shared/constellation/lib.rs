@@ -46,8 +46,6 @@ pub enum EmbedderToConstellationMessage {
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
     LoadUrl(WebViewId, ServoUrl),
-    /// Clear the network cache.
-    ClearCache,
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection, TraversalId),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
