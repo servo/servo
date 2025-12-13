@@ -49,19 +49,7 @@ pub(crate) fn generate_key(
     can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     match rsa_algorithm {
-        RsaAlgorithm::RsaSsaPkcs1v15 => {
-            // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
-            // SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\" or \"verify\"".to_string(),
-                )));
-            }
-        },
-        RsaAlgorithm::RsaPss => {
+        RsaAlgorithm::RsaSsaPkcs1v15 | RsaAlgorithm::RsaPss => {
             // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
             // SyntaxError.
             if usages
