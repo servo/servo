@@ -150,7 +150,7 @@ canvas, embed, iframe, img, video {
   overflow-clip-margin: 0 !important;
 }
 
-input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]) {
+input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]):not([type=color i]) {
   cursor: text;
   overflow: hidden !important;
   white-space: pre;
