@@ -75,6 +75,7 @@ use storage::new_storage_threads;
 use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
+use crate::cookies::CookieManager;
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
@@ -138,8 +139,7 @@ struct ServoInner {
     paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
-    public_resource_threads: ResourceThreads,
-    private_resource_threads: ResourceThreads,
+    cookie_manager: Rc<RefCell<CookieManager>>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -768,6 +768,10 @@ impl Servo {
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             paint,
+            cookie_manager: Rc::new(RefCell::new(CookieManager::new(
+                public_resource_threads,
+                private_resource_threads,
+            ))),
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),
@@ -776,8 +780,6 @@ impl Servo {
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
-            public_resource_threads,
-            private_resource_threads,
             _js_engine_setup: js_engine_setup,
         }))
     }
@@ -840,9 +842,8 @@ impl Servo {
         prefs::set(preferences);
     }
 
-    pub fn clear_cookies(&self) {
-        self.0.public_resource_threads.clear_cookies();
-        self.0.private_resource_threads.clear_cookies();
+    pub fn cookie_manager<'a>(&'a self) -> Ref<'a, CookieManager> {
+        self.0.cookie_manager.borrow()
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
