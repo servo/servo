@@ -1282,8 +1282,12 @@ impl VirtualMethods for HTMLElement {
 
     /// <https://html.spec.whatwg.org/#dom-trees:html-element-moving-steps>
     fn moving_steps(&self, old_parent: Option<&Node>, can_gc: CanGc) {
-        // 1. If movedNode is an element whose namespace is the HTML namespace, and this standard defines HTML element moving steps for movedNode's local name, then run the corresponding HTML element moving steps given movedNode.
-        // 2. If movedNode is a form-associated element with a non-null form owner and movedNode and its form owner are no longer in the same tree, then reset the form owner of movedNode.
+        // Step 1. If movedNode is an element whose namespace is the HTML namespace, and this
+        // standard defines HTML element moving steps for movedNode's local name, then run the
+        // corresponding HTML element moving steps given movedNode.
+        // Step 2. If movedNode is a form-associated element with a non-null form owner and
+        // movedNode and its form owner are no longer in the same tree, then reset the form owner of
+        // movedNode.
         if let Some(form_control) = self.upcast::<Element>().as_maybe_form_control() {
             form_control.moving_steps(old_parent, can_gc)
         }

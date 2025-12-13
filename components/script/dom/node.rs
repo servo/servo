@@ -1182,6 +1182,7 @@ impl Node {
             },
             _ => child,
         };
+
         // Step 3. Move node into this before referenceChild.
         Node::move_fn(node, self, reference_child, can_gc)
     }
@@ -1193,25 +1194,34 @@ impl Node {
         child: Option<&Node>,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // 1. If newParent’s shadow-including root is not the same as node’s shadow-including root, then throw a "HierarchyRequestError" DOMException.
-        // This has the side effect of ensuring that a move is only performed if newParent’s connected is node’s connected.
+        // Step 1. If newParent’s shadow-including root is not the same as node’s shadow-including
+        // root, then throw a "HierarchyRequestError" DOMException.
+        // This has the side effect of ensuring that a move is only performed if newParent’s
+        // connected is node’s connected.
         if new_parent.GetRootNode(&GetRootNodeOptions::empty()) !=
             node.GetRootNode(&GetRootNodeOptions::empty())
         {
             return Err(Error::HierarchyRequest(None));
         }
-        // 2. If node is a host-including inclusive ancestor of newParent, then throw a "HierarchyRequestError" DOMException.
+
+        // Step 2. If node is a host-including inclusive ancestor of newParent, then throw a
+        // "HierarchyRequestError" DOMException.
         if node.is_inclusive_ancestor_of(new_parent) {
             return Err(Error::HierarchyRequest(None));
         }
-        // 3. If child is non-null and its parent is not newParent, then throw a "NotFoundError" DOMException.
+
+        // Step 3. If child is non-null and its parent is not newParent, then throw a
+        // "NotFoundError" DOMException.
         if let Some(child) = child {
             if !new_parent.is_parent_of(child) {
                 return Err(Error::NotFound(None));
             }
         }
-        // 4. If node is not an Element or a CharacterData node, then throw a "HierarchyRequestError" DOMException.
-        // 5. If node is a Text node and newParent is a document, then throw a "HierarchyRequestError" DOMException.
+
+        // Step 4. If node is not an Element or a CharacterData node, then throw a
+        // "HierarchyRequestError" DOMException.
+        // Step 5. If node is a Text node and newParent is a document, then throw a
+        // "HierarchyRequestError" DOMException.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if new_parent.is::<Document>() {
@@ -1228,12 +1238,16 @@ impl Node {
                 return Err(Error::HierarchyRequest(None));
             },
         }
-        // 6. If newParent is a document, node is an Element node, and either newParent has an element child, child is a doctype, or child is non-null and a doctype is following child then throw a "HierarchyRequestError" DOMException.
+
+        // Step 6. If newParent is a document, node is an Element node, and either newParent has an
+        // element child, child is a doctype, or child is non-null and a doctype is following child
+        // then throw a "HierarchyRequestError" DOMException.
         if new_parent.is::<Document>() && node.is::<Element>() {
             // either newParent has an element child
             if new_parent.child_elements().next().is_some() {
                 return Err(Error::HierarchyRequest(None));
             }
+
             // child is a doctype
             // or child is non-null and a doctype is following child
             if let Some(child) = child {
@@ -1245,23 +1259,33 @@ impl Node {
                 }
             }
         }
-        // 7. Let oldParent be node’s parent.
-        // 8. Assert: oldParent is non-null.
+
+        // Step 7. Let oldParent be node’s parent.
+        // Step 8. Assert: oldParent is non-null.
         let old_parent = node.parent_node.get().unwrap();
-        // 9. Run the live range pre-remove steps, given node.
+
+        // Step 9. Run the live range pre-remove steps, given node.
         let cached_index = Node::live_range_pre_remove_steps(node, &old_parent);
-        // TODO 10. For each NodeIterator object iterator whose root’s node document is node’s node document: run the NodeIterator pre-remove steps given node and iterator.
-        // 11. Let oldPreviousSibling be node’s previous sibling.
+
+        // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
+        // node document: run the NodeIterator pre-remove steps given node and iterator.
+
+        // Step 11. Let oldPreviousSibling be node’s previous sibling.
         let old_previous_sibling = node.prev_sibling.get();
-        // 12. Let oldNextSibling be node’s next sibling.
+
+        // Step 12. Let oldNextSibling be node’s next sibling.
         let old_next_sibling = node.next_sibling.get();
-        // 13. Remove node from oldParent’s children.
+
+        // Step 13. Remove node from oldParent’s children.
         old_parent.remove_child(node, cached_index, can_gc);
-        // 14. If node is assigned, then run assign slottables for node’s assigned slot.
+
+        // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
             slot.assign_slottables();
         }
-        // 15. If oldParent’s root is a shadow root, and oldParent is a slot whose assigned nodes is empty, then run signal a slot change for oldParent.
+
+        // Step 15. If oldParent’s root is a shadow root, and oldParent is a slot whose assigned
+        // nodes is empty, then run signal a slot change for oldParent.
         if old_parent.is_in_a_shadow_tree() {
             if let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>() {
                 if !slot_element.has_assigned_nodes() {
@@ -1269,35 +1293,45 @@ impl Node {
                 }
             }
         }
-        // 16. If node has an inclusive descendant that is a slot:
+
+        // Step 16. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
             .traverse_preorder(ShadowIncluding::No)
             .any(|elem| elem.is::<HTMLSlotElement>());
         if has_slot_descendant {
-            // 16.1. Run assign slottables for a tree with oldParent’s root.
+            // Step 16.1. Run assign slottables for a tree with oldParent’s root.
             old_parent
                 .GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree();
-            // 16.2. Run assign slottables for a tree with node.
+
+            // Step 16.2. Run assign slottables for a tree with node.
             node.assign_slottables_for_a_tree();
         }
-        // 17. If child is non-null:
+
+        // Step 17. If child is non-null:
         if let Some(child) = child {
-            // 17.1. For each live range whose start node is newParent and start offset is greater than child’s index: increase its start offset by 1.
-            // 17.2. For each live range whose end node is newParent and end offset is greater than child’s index: increase its end offset by 1.
+            // Step 17.1. For each live range whose start node is newParent and start offset is
+            // greater than child’s index: increase its start offset by 1.
+            // Step 17.2. For each live range whose end node is newParent and end offset is greater
+            // than child’s index: increase its end offset by 1.
             new_parent
                 .ranges()
                 .increase_above(new_parent, child.index(), 1)
         }
-        // 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and newParent’s last child otherwise.
+
+        // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
+        // newParent’s last child otherwise.
         let new_previous_sibling = match child {
             Some(child) => child.prev_sibling.get(),
             None => new_parent.last_child.get(),
         };
-        // 19. If child is null, then append node to newParent’s children.
-        // 20. Otherwise, insert node into newParent’s children before child’s index.
+
+        // Step 19. If child is null, then append node to newParent’s children.
+        // Step 20. Otherwise, insert node into newParent’s children before child’s index.
         new_parent.add_child(node, child, can_gc);
-        // 21. If newParent is a shadow host whose shadow root’s slot assignment is "named" and node is a slottable, then assign a slot for node.
+
+        // Step 21. If newParent is a shadow host whose shadow root’s slot assignment is "named" and
+        // node is a slottable, then assign a slot for node.
         if let Some(shadow_root) = new_parent
             .downcast::<Element>()
             .and_then(Element::shadow_root)
@@ -1310,7 +1344,9 @@ impl Node {
                 }
             }
         }
-        // 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned nodes is empty, then run signal a slot change for newParent.
+
+        // Step 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned
+        // nodes is empty, then run signal a slot change for newParent.
         if new_parent.is_in_a_shadow_tree() {
             if let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() {
                 if !slot_element.has_assigned_nodes() {
@@ -1318,22 +1354,28 @@ impl Node {
                 }
             }
         }
-        // 23. Run assign slottables for a tree with node’s root.
+
+        // Step 23. Run assign slottables for a tree with node’s root.
         node.GetRootNode(&GetRootNodeOptions::empty())
             .assign_slottables_for_a_tree();
-        // 24. For each shadow-including inclusive descendant inclusiveDescendant of node, in shadow-including tree order:
+
+        // Step 24. For each shadow-including inclusive descendant inclusiveDescendant of node, in
+        // shadow-including tree order:
         for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
-            // 24.1. If inclusiveDescendant is node, then run the moving steps with inclusiveDescendant and oldParent.
+            // Step 24.1. If inclusiveDescendant is node, then run the moving steps with
+            // inclusiveDescendant and oldParent.
             // Otherwise, run the moving steps with inclusiveDescendant and null.
             if descendant.is::<Node>() {
                 vtable_for(&descendant).moving_steps(Some(&old_parent), can_gc);
             } else {
                 vtable_for(&descendant).moving_steps(None, can_gc);
             }
-            // 24.2. If inclusiveDescendant is custom and newParent is connected,
+
+            // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
             if let Some(descendant) = descendant.downcast::<Element>() {
                 if descendant.is_custom() && new_parent.is_connected() {
-                    // TODO then enqueue a custom element callback reaction with inclusiveDescendant, callback name "connectedMoveCallback", and « ».
+                    // TODO then enqueue a custom element callback reaction with
+                    // inclusiveDescendant, callback name "connectedMoveCallback", and « ».
                     // let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
                     // custom_element_reaction_stack.enqueue_callback_reaction(
                     //     &descendant,
@@ -1343,7 +1385,9 @@ impl Node {
                 }
             }
         }
-        // 25. Queue a tree mutation record for oldParent with « », « node », oldPreviousSibling, and oldNextSibling.
+
+        // Step 25. Queue a tree mutation record for oldParent with « », « node »,
+        // oldPreviousSibling, and oldNextSibling.
         let nodes = [node];
         let mutation = LazyCell::new(|| Mutation::ChildList {
             added: None,
@@ -1352,7 +1396,9 @@ impl Node {
             next: old_next_sibling.as_deref(),
         });
         MutationObserver::queue_a_mutation_record(&old_parent, mutation);
-        // 26. Queue a tree mutation record for newParent with « node », « », newPreviousSibling, and child.
+
+        // Step 26. Queue a tree mutation record for newParent with « node », « »,
+        // newPreviousSibling, and child.
         let mutation = LazyCell::new(|| Mutation::ChildList {
             added: Some(&nodes),
             removed: None,
@@ -1360,6 +1406,7 @@ impl Node {
             next: child,
         });
         MutationObserver::queue_a_mutation_record(&old_parent, mutation);
+
         Ok(())
     }
 
