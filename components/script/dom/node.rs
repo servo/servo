@@ -366,7 +366,7 @@ impl Node {
 
     /// Clean up flags and runs steps 11-14 of remove a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext, can_gc: CanGc) {
+    pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext, is_move: bool, can_gc: CanGc) {
         // Flags that reset when a node is disconnected
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
@@ -398,20 +398,24 @@ impl Node {
         let cleanup_node = |node: &Node| {
             node.clean_up_style_and_layout_data();
 
-            // Step 11 & 14.1. Run the removing steps.
-            // This needs to be in its own loop, because unbind_from_tree may
-            // rely on the state of IS_IN_DOC of the context node's descendants,
-            // e.g. when removing a <form>.
-            vtable_for(node).unbind_from_tree(context, can_gc);
+            // Move operations should not trigger unbind_from_tree,
+            // or custom element disconnectedCallbacks.
+            if !is_move {
+                // Step 11 & 14.1. Run the removing steps.
+                // This needs to be in its own loop, because unbind_from_tree may
+                // rely on the state of IS_IN_DOC of the context node's descendants,
+                // e.g. when removing a <form>.
+                vtable_for(node).unbind_from_tree(context, can_gc);
 
-            // Step 12 & 14.2. Enqueue disconnected custom element reactions.
-            if is_parent_connected {
-                if let Some(element) = node.as_custom_element() {
-                    custom_element_reaction_stack.enqueue_callback_reaction(
-                        &element,
-                        CallbackReaction::Disconnected,
-                        None,
-                    );
+                // Step 12 & 14.2. Enqueue disconnected custom element reactions.
+                if is_parent_connected {
+                    if let Some(element) = node.as_custom_element() {
+                        custom_element_reaction_stack.enqueue_callback_reaction(
+                            &element,
+                            CallbackReaction::Disconnected,
+                            None,
+                        );
+                    }
                 }
             }
         };
@@ -482,11 +486,7 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        // Move operations should not trigger cleanup steps, such as unbind_from_tree,
-        // or custom element disconnectedCallbacks.
-        if !is_move {
-            Self::complete_remove_subtree(child, &context, can_gc);
-        }
+        Self::complete_remove_subtree(child, &context, is_move, can_gc);
     }
 
     pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
