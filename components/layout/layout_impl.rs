@@ -1266,6 +1266,7 @@ impl LayoutThread {
         reflow_request: &ReflowRequest,
         image_resolver: &Arc<ImageResolver>,
     ) -> bool {
+        dbg!("LayoutThread::build_display_list");
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
             .contains(ReflowPhases::DisplayListConstruction)
         {
@@ -1320,7 +1321,9 @@ impl LayoutThread {
             built_display_list,
         );
         if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut() {
+            dbg!("Sent display list, checking LCP candidate");
             if lcp_candidate_collector.did_lcp_candidate_update {
+                dbg!("LCP candidate updated, sending to compositor");
                 if let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
                     self.paint_api.send_lcp_candidate(
                         lcp_candidate,

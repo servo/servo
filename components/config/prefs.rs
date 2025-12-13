@@ -416,7 +416,7 @@ impl Preferences {
             js_wasm_enabled: true,
             js_wasm_ion_enabled: true,
             js_werror_enabled: false,
-            largest_contentful_paint_enabled: false,
+            largest_contentful_paint_enabled: true,
             layout_animations_test_enabled: false,
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
