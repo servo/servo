@@ -42,7 +42,12 @@ use crate::task::TaskOnce;
 
 pub(crate) enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),
-    ProcessReadData(TrustedFileReader, GenerationId),
+    ProcessReadData {
+        file_reader: TrustedFileReader,
+        generation_id: GenerationId,
+        total_bytes_read: u64,
+        total_bytes: u64,
+    },
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Vec<u8>),
 }
@@ -59,9 +64,18 @@ impl FileReadingTask {
 
         match self {
             ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id, can_gc),
-            ProcessReadData(reader, gen_id) => {
-                FileReader::process_read_data(reader, gen_id, can_gc)
-            },
+            ProcessReadData {
+                file_reader,
+                generation_id,
+                total_bytes_read,
+                total_bytes,
+            } => FileReader::process_read_data(
+                file_reader,
+                generation_id,
+                total_bytes_read,
+                total_bytes,
+                can_gc,
+            ),
             ProcessReadError(reader, gen_id, error) => {
                 FileReader::process_read_error(reader, gen_id, error, can_gc)
             },
@@ -231,6 +245,8 @@ impl FileReader {
     pub(crate) fn process_read_data(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
+        total_bytes_read: u64,
+        total_bytes: u64,
         can_gc: CanGc,
     ) {
         let fr = filereader.root();
@@ -243,8 +259,13 @@ impl FileReader {
             );
         );
         return_on_abort!();
-        // FIXME Step 7 send current progress
-        fr.dispatch_progress_event(atom!("progress"), 0, None, can_gc);
+        // Step 7 send current progress
+        fr.dispatch_progress_event(
+            atom!("progress"),
+            total_bytes_read,
+            Some(total_bytes),
+            can_gc,
+        );
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -500,6 +521,8 @@ impl FileReader {
         // Let reader be the result of getting a reader from stream.
         let reader = stream.and_then(|s| s.acquire_default_reader(can_gc))?;
 
+        let total_bytes = blob.Size();
+
         let type_ = blob.Type();
 
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
@@ -542,10 +565,12 @@ impl FileReader {
                 // Note: this should be done for each chunk,
                 // see issue above.
                 if !blob_contents.is_empty() {
-                    task_source.queue(FileReadingTask::ProcessReadData(
-                        Trusted::new(&filereader_success.clone()),
-                        gen_id,
-                    ));
+                    task_source.queue(FileReadingTask::ProcessReadData {
+                        file_reader: Trusted::new(&filereader_success.clone()),
+                        generation_id: gen_id,
+                        total_bytes_read: blob_contents.len() as u64,
+                        total_bytes,
+                    });
                 }
                 // Otherwise,
                 // if chunkPromise is fulfilled with an object whose done property is true,

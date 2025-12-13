@@ -77,6 +77,11 @@ class CreateOrUpdateBranchForPRStep(Step):
     def run(self, run: SyncRun) -> None:
         try:
             commits = self._get_upstreamable_commits_from_local_servo_repo(run.sync)
+            if not commits:
+                logging.info("  -> No upstreamable commits found. Skipping PR creation.")
+                run.steps = []
+                return
+
             branch_name = self._create_or_update_branch_for_pr(run, commits)
             branch = run.sync.downstream_wpt.get_branch(branch_name)
 
@@ -152,7 +157,16 @@ class CreateOrUpdateBranchForPRStep(Step):
         try:
             # Create a new branch with a unique name that is consistent between
             # updates of the same PR.
-            run.sync.local_wpt_repo.run("checkout", "-b", branch_name)
+            # Ensure we base off the authoritative upstream state URL to avoid stale local state or downstream forks.
+            base_ref = "master"
+            if not run.sync.suppress_force_push:
+                # Fetch directly from the upstream repo
+                upstream_url = f"https://github.com/{run.sync.wpt_repo}.git"
+                run.sync.local_wpt_repo.run("fetch", upstream_url, "master")
+                base_ref = "FETCH_HEAD"
+
+            # Use -B to force create/reset the branch to the base ref
+            run.sync.local_wpt_repo.run("checkout", "-B", branch_name, base_ref)
 
             for commit in commits:
                 self._apply_filtered_servo_commit_to_wpt(run, commit)
