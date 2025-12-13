@@ -1166,7 +1166,12 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
-    pub(crate) fn move_before(&self, node: &Node, child: Option<&Node>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn move_before(
+        &self,
+        node: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         // Step 1. Let referenceChild be child.
         // Step 2. If referenceChild is node, then set referenceChild to node’s next sibling.
         let reference_child_root;
@@ -1182,10 +1187,17 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#move>
-    pub(crate) fn move_fn(node: &Node, new_parent: &Node, child: Option<&Node>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn move_fn(
+        node: &Node,
+        new_parent: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         // 1. If newParent’s shadow-including root is not the same as node’s shadow-including root, then throw a "HierarchyRequestError" DOMException.
         // This has the side effect of ensuring that a move is only performed if newParent’s connected is node’s connected.
-        if new_parent.GetRootNode(&GetRootNodeOptions::empty()) != node.GetRootNode(&GetRootNodeOptions::empty()) {
+        if new_parent.GetRootNode(&GetRootNodeOptions::empty()) !=
+            node.GetRootNode(&GetRootNodeOptions::empty())
+        {
             return Err(Error::HierarchyRequest(None));
         }
         // 2. If node is a host-including inclusive ancestor of newParent, then throw a "HierarchyRequestError" DOMException.
@@ -1201,17 +1213,18 @@ impl Node {
         // 4. If node is not an Element or a CharacterData node, then throw a "HierarchyRequestError" DOMException.
         // 5. If node is a Text node and newParent is a document, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))  => {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if new_parent.is::<Document>() {
                     return Err(Error::HierarchyRequest(None));
                 }
-            }
+            },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
             NodeTypeId::Element(_) => (),
             NodeTypeId::DocumentFragment(_) |
             NodeTypeId::DocumentType |
-            NodeTypeId::Document(_) | NodeTypeId::Attr => {
+            NodeTypeId::Document(_) |
+            NodeTypeId::Attr => {
                 return Err(Error::HierarchyRequest(None));
             },
         }
@@ -1272,18 +1285,23 @@ impl Node {
         if let Some(child) = child {
             // 17.1. For each live range whose start node is newParent and start offset is greater than child’s index: increase its start offset by 1.
             // 17.2. For each live range whose end node is newParent and end offset is greater than child’s index: increase its end offset by 1.
-            new_parent.ranges().increase_above(new_parent, child.index(), 1)
+            new_parent
+                .ranges()
+                .increase_above(new_parent, child.index(), 1)
         }
         // 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and newParent’s last child otherwise.
         let new_previous_sibling = match child {
             Some(child) => child.prev_sibling.get(),
-            None => new_parent.last_child.get()
+            None => new_parent.last_child.get(),
         };
         // 19. If child is null, then append node to newParent’s children.
         // 20. Otherwise, insert node into newParent’s children before child’s index.
         new_parent.add_child(node, child, can_gc);
         // 21. If newParent is a shadow host whose shadow root’s slot assignment is "named" and node is a slottable, then assign a slot for node.
-        if let Some(shadow_root) = new_parent.downcast::<Element>().and_then(Element::shadow_root) {
+        if let Some(shadow_root) = new_parent
+            .downcast::<Element>()
+            .and_then(Element::shadow_root)
+        {
             if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
                 let cx = GlobalScope::get_cx();
                 if node.is::<Element>() || node.is::<Text>() {

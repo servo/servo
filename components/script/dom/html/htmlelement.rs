@@ -13,6 +13,7 @@ use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
+
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
@@ -49,7 +50,7 @@ use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::htmlformelement::{FormControlElementHelpers};
+use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::{
     BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
 };
