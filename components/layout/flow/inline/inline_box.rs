@@ -5,7 +5,7 @@
 use std::vec::IntoIter;
 
 use app_units::Au;
-use fonts::FontMetrics;
+use fonts::{FontMetrics, FontRef};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
@@ -23,7 +23,7 @@ use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
 
-#[derive(Debug, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub(crate) struct InlineBox {
     pub base: LayoutBoxBase,
     /// The [`SharedInlineStyles`] for this [`InlineBox`] that are used to share styles
@@ -39,7 +39,20 @@ pub(crate) struct InlineBox {
     pub is_last_split: bool,
     /// The index of the default font in the [`super::InlineFormattingContext`]'s font metrics store.
     /// This is initialized during IFC shaping.
-    pub default_font_index: Option<usize>,
+    pub default_font: Option<FontRef>,
+}
+
+// TODO: Use font identifier for debug?
+impl std::fmt::Debug for InlineBox {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InlineBox")
+            .field("base", &self.base)
+            .field("shared_inline_styles", &self.shared_inline_styles)
+            .field("identifier", &self.identifier)
+            .field("is_first_split", &self.is_first_split)
+            .field("is_last_split", &self.is_last_split)
+            .finish()
+    }
 }
 
 impl InlineBox {
@@ -51,7 +64,7 @@ impl InlineBox {
             identifier: InlineBoxIdentifier::default(),
             is_first_split: true,
             is_last_split: false,
-            default_font_index: None,
+            default_font: None,
         }
     }
 
@@ -61,6 +74,7 @@ impl InlineBox {
             shared_inline_styles: self.shared_inline_styles.clone(),
             is_first_split: false,
             is_last_split: false,
+            default_font: self.default_font.clone(),
             ..*self
         }
     }
