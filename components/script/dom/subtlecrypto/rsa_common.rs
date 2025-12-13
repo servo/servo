@@ -8,26 +8,202 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use num_bigint_dig::{BigInt, ModInverse, Sign};
 use num_traits::One;
 use pkcs8::EncodePrivateKey;
+use pkcs8::rand_core::OsRng;
 use pkcs8::spki::EncodePublicKey;
-use rsa::BigUint;
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
+use rsa::{BigUint, RsaPrivateKey};
 use sec1::der::Encode;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyMethods, KeyType};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
+};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     JsonWebKey, KeyFormat, RsaOtherPrimesInfo,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
+    ALG_RSA_OAEP, ALG_RSA_PSS, ALG_RSASSA_PKCS1_V1_5, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512,
+    ExportedKey, KeyAlgorithmAndDerivatives, SubtleRsaHashedKeyAlgorithm,
+    SubtleRsaHashedKeyGenParams,
 };
+use crate::script_runtime::CanGc;
 
 pub(crate) enum RsaAlgorithm {
     RsaSsaPkcs1v15,
     RsaPss,
     RsaOaep,
+}
+
+/// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-generate-key>
+/// <https://w3c.github.io/webcrypto/#rsa-pss-operations-generate-key>
+/// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
+pub(crate) fn generate_key(
+    rsa_algorithm: RsaAlgorithm,
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleRsaHashedKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<CryptoKeyPair, Error> {
+    match rsa_algorithm {
+        RsaAlgorithm::RsaSsaPkcs1v15 | RsaAlgorithm::RsaPss => {
+            // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
+            // SyntaxError.
+            if usages
+                .iter()
+                .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+            {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"sign\" or \"verify\"".to_string(),
+                )));
+            }
+        },
+        RsaAlgorithm::RsaOaep => {
+            // Step 1. If usages contains an entry which is not "encrypt", "decrypt", "wrapKey" or
+            // "unwrapKey", then throw a SyntaxError.
+            if usages.iter().any(|usage| {
+                !matches!(
+                    usage,
+                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
+                )
+            }) {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"encrypt\", \"decrypt\", \
+                    \"wrapKey\" or \"unwrapKey\""
+                        .to_string(),
+                )));
+            }
+        },
+    }
+
+    // Step 2. Generate an RSA key pair, as defined in [RFC3447], with RSA modulus length equal to
+    // the modulusLength attribute of normalizedAlgorithm and RSA public exponent equal to the
+    // publicExponent attribute of normalizedAlgorithm.
+    // Step 3. If generation of the key pair fails, then throw an OperationError.
+    // NOTE: If the public exponent is even, it is invalid for RSA, and RsaPrivateKey::new_with_exp
+    // should throw an error. However, RsaPrivateKey::new_with_exp would take a long period of time
+    // to validate this case. So, we manually check it before running RsaPrivateKey::new_with_exp,
+    // in order to throw error eariler.
+    if normalized_algorithm
+        .public_exponent
+        .last()
+        .is_none_or(|last_byte| last_byte % 2 == 0)
+    {
+        return Err(Error::Operation(Some(
+            "The public expoenent is an even number".to_string(),
+        )));
+    }
+    let mut rng = OsRng;
+    let modulus_length = normalized_algorithm.modulus_length as usize;
+    let public_exponent = BigUint::from_bytes_be(&normalized_algorithm.public_exponent);
+    let private_key = RsaPrivateKey::new_with_exp(&mut rng, modulus_length, &public_exponent)
+        .map_err(|_| Error::Operation(Some("RSA failed to generate private key".to_string())))?;
+    let public_key = private_key.to_public_key();
+
+    // Step 4. Let algorithm be a new RsaHashedKeyAlgorithm dictionary.
+    // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength attribute of
+    // normalizedAlgorithm.
+    // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent attribute
+    // of normalizedAlgorithm.
+    // Step 8. Set the hash attribute of algorithm to equal the hash member of normalizedAlgorithm.
+    let algorithm = SubtleRsaHashedKeyAlgorithm {
+        name: match rsa_algorithm {
+            // Step 5. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
+            RsaAlgorithm::RsaSsaPkcs1v15 => ALG_RSASSA_PKCS1_V1_5,
+            // Step 5. Set the name attribute of algorithm to "RSA-PSS".
+            RsaAlgorithm::RsaPss => ALG_RSA_PSS,
+            // Step 5. Set the name attribute of algorithm to "RSA-OAEP".
+            RsaAlgorithm::RsaOaep => ALG_RSA_OAEP,
+        }
+        .to_string(),
+        modulus_length: normalized_algorithm.modulus_length,
+        public_exponent: normalized_algorithm.public_exponent.clone(),
+        hash: normalized_algorithm.hash.clone(),
+    };
+
+    // Step 9. Let publicKey be a new CryptoKey representing the public key of the generated key
+    // pair.
+    // Step 10. Set the [[type]] internal slot of publicKey to "public"
+    // Step 11. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 12. Set the [[extractable]] internal slot of publicKey to true.
+    let intersected_usages = match rsa_algorithm {
+        RsaAlgorithm::RsaSsaPkcs1v15 | RsaAlgorithm::RsaPss => {
+            // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
+            // of usages and [ "verify" ].
+            usages
+                .iter()
+                .filter(|usage| **usage == KeyUsage::Verify)
+                .cloned()
+                .collect()
+        },
+        RsaAlgorithm::RsaOaep => {
+            // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
+            // of usages and [ "encrypt", "wrapKey" ].
+            usages
+                .iter()
+                .filter(|usage| matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
+                .cloned()
+                .collect()
+        },
+    };
+    let public_key = CryptoKey::new(
+        global,
+        KeyType::Public,
+        true,
+        KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.clone()),
+        intersected_usages,
+        Handle::RsaPublicKey(public_key),
+        can_gc,
+    );
+
+    // Step 14. Let privateKey be a new CryptoKey representing the private key of the generated key
+    // pair.
+    // Step 15. Set the [[type]] internal slot of privateKey to "private"
+    // Step 16. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 17. Set the [[extractable]] internal slot of privateKey to extractable.
+    let intersected_usages = match rsa_algorithm {
+        RsaAlgorithm::RsaSsaPkcs1v15 | RsaAlgorithm::RsaPss => {
+            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
+            // of usages and [ "sign" ].
+            usages
+                .iter()
+                .filter(|usage| **usage == KeyUsage::Sign)
+                .cloned()
+                .collect()
+        },
+        RsaAlgorithm::RsaOaep => {
+            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
+            // of usages and [ "decrypt", "unwrapKey" ].
+            usages
+                .iter()
+                .filter(|usage| matches!(usage, KeyUsage::Decrypt | KeyUsage::UnwrapKey))
+                .cloned()
+                .collect()
+        },
+    };
+    let private_key = CryptoKey::new(
+        global,
+        KeyType::Private,
+        extractable,
+        KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
+        intersected_usages,
+        Handle::RsaPrivateKey(private_key),
+        can_gc,
+    );
+
+    // Step 19. Let result be a new CryptoKeyPair dictionary.
+    // Step 20. Set the publicKey attribute of result to be publicKey.
+    // Step 21. Set the privateKey attribute of result to be privateKey.
+    let result = CryptoKeyPair {
+        publicKey: Some(public_key),
+        privateKey: Some(private_key),
+    };
+
+    // Step 22. Return result.
+    Ok(result)
 }
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-export-key>
@@ -77,14 +253,14 @@ pub(crate) fn export_key(
             };
             let data = public_key.to_public_key_der().map_err(|_| {
                 Error::Operation(Some(
-                    "Fail to convert RSA public key to SubjectPublicKeyInfo".to_string(),
+                    "Failed to convert RSA public key to SubjectPublicKeyInfo".to_string(),
                 ))
             })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
             ExportedKey::Bytes(data.to_der().map_err(|_| {
                 Error::Operation(Some(
-                    "Fail to convert SubjectPublicKeyInfo to DER-encodeing data".to_string(),
+                    "Failed to convert SubjectPublicKeyInfo to DER-encodeing data".to_string(),
                 ))
             })?)
         },
@@ -121,7 +297,7 @@ pub(crate) fn export_key(
             };
             let data = private_key.to_pkcs8_der().map_err(|_| {
                 Error::Operation(Some(
-                    "Fail to convert RSA private key to PrivateKeyInfo".to_string(),
+                    "Failed to convert RSA private key to PrivateKeyInfo".to_string(),
                 ))
             })?;
 
@@ -142,7 +318,7 @@ pub(crate) fn export_key(
             let KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm) = key.algorithm()
             else {
                 return Err(Error::Operation(Some(
-                    "The [[algorithm]] internal slot of key if not an RsaHashedKeyAlgorithm"
+                    "The [[algorithm]] internal slot of key is not an RsaHashedKeyAlgorithm"
                         .to_string(),
                 )));
             };
@@ -245,7 +421,8 @@ pub(crate) fn export_key(
                 Handle::RsaPublicKey(public_key) => (public_key.n(), public_key.e()),
                 _ => {
                     return Err(Error::Operation(Some(
-                        "Fail to extract modulus n and public exponent e from RSA key".to_string(),
+                        "Failed to extract modulus n and public exponent e from RSA key"
+                            .to_string(),
                     )));
                 },
             };
@@ -263,32 +440,34 @@ pub(crate) fn export_key(
                 };
                 let mut private_key = private_key.clone();
                 private_key.precompute().map_err(|_| {
-                    Error::Operation(Some("Fail to perform RSA pre-computation".to_string()))
+                    Error::Operation(Some("Failed to perform RSA pre-computation".to_string()))
                 })?;
                 let primes = private_key.primes();
                 let d = private_key.d();
                 let p = primes.first().ok_or(Error::Operation(Some(
-                    "Fail to extract first prime factor p from RSA private key".to_string(),
+                    "Failed to extract first prime factor p from RSA private key".to_string(),
                 )))?;
                 let q = primes.get(1).ok_or(Error::Operation(Some(
-                    "Fail to extract second prime factor q from RSA private key".to_string(),
+                    "Failed to extract second prime factor q from RSA private key".to_string(),
                 )))?;
                 let dp = private_key.dp().ok_or(Error::Operation(Some(
-                    "Fail to extract first factor CRT exponent dp from RSA private key".to_string(),
+                    "Failed to extract first factor CRT exponent dp from RSA private key"
+                        .to_string(),
                 )))?;
                 let dq = private_key.dq().ok_or(Error::Operation(Some(
-                    "Fail to extract second factor CRT exponent dq from RSA private key"
+                    "Failed to extract second factor CRT exponent dq from RSA private key"
                         .to_string(),
                 )))?;
                 let qi = private_key
                     .qinv()
                     .ok_or(Error::Operation(Some(
-                        "Fail to extract first CRT coefficient qi from RSA private key".to_string(),
+                        "Failed to extract first CRT coefficient qi from RSA private key"
+                            .to_string(),
                     )))?
                     .modpow(&BigInt::one(), &BigInt::from_biguint(Sign::Plus, p.clone()))
                     .to_biguint()
                     .ok_or(Error::Operation(Some(
-                        "Fail to convert first CRT coefficient qi to BigUint".to_string(),
+                        "Failed to convert first CRT coefficient qi to BigUint".to_string(),
                     )))?;
                 jwk.d = Some(Base64UrlUnpadded::encode_string(&d.to_bytes_be()).into());
                 jwk.p = Some(Base64UrlUnpadded::encode_string(&p.to_bytes_be()).into());
@@ -314,7 +493,7 @@ pub(crate) fn export_key(
                         .fold(BigUint::one(), |product, p_j| product.mul(p_j))
                         .mod_inverse(p_i)
                         .ok_or(Error::Operation(Some(
-                            "Fail to compute factor CRT coefficient of other RSA primes"
+                            "Failed to compute factor CRT coefficient of other RSA primes"
                                 .to_string(),
                         )))?
                         .modpow(
@@ -323,7 +502,7 @@ pub(crate) fn export_key(
                         )
                         .to_biguint()
                         .ok_or(Error::Operation(Some(
-                            "Fail to convert factor CRT coefficient of other RSA primes to BigUint"
+                            "Failed to convert factor CRT coefficient of other RSA primes to BigUint"
                                 .to_string(),
                         )))?;
                     oth.push(RsaOtherPrimesInfo {

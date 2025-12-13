@@ -209,6 +209,15 @@ xi-unicode = "0.3.0"
 xml5ever = "0.36.1"
 xpath = { path = "components/xpath" }
 
+# RSA key generation could be very slow without compilation
+# optimizations, in development mode. Without optimizations, WPT might
+# consider RSA key generation tests fail due to timeout.
+# Building with higher optimization levels can speed up the key
+# generation process to avoid false negative result in those tests.
+# More details: <https://docs.rs/rsa/0.9.8/rsa/index.html#example>
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+
 # Force tikv-jemalloc-sys to build with at least -O1.
 # This can help with build environments that force _FORTIFY_SOURCE, such as Nix.
 # More details: <https://github.com/tikv/jemallocator/issues/108>
