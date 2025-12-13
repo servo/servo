@@ -1207,8 +1207,9 @@ impl Node {
         // root, then throw a "HierarchyRequestError" DOMException.
         // This has the side effect of ensuring that a move is only performed if newParent’s
         // connected is node’s connected.
-        if new_parent.GetRootNode(&GetRootNodeOptions::empty()) !=
-            node.GetRootNode(&GetRootNodeOptions::empty())
+        let mut options = GetRootNodeOptions::empty();
+        options.composed = true;
+        if new_parent.GetRootNode(&options) != node.GetRootNode(&options)
         {
             return Err(Error::HierarchyRequest(None));
         }
