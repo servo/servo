@@ -42,7 +42,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
     HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
     Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaHashedKeyGenParams,
-    RsaKeyAlgorithm, RsaOtherPrimesInfo, SubtleCryptoMethods,
+    RsaKeyAlgorithm, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -2401,49 +2401,10 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
     }
 }
 
-#[expect(unused)]
-trait RsaOtherPrimesInfoExt {
-    fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error>;
-}
-
-impl RsaOtherPrimesInfoExt for RsaOtherPrimesInfo {
-    fn from_value(value: &serde_json::Value) -> Result<RsaOtherPrimesInfo, Error> {
-        let serde_json::Value::Object(object) = value else {
-            return Err(Error::Data(None));
-        };
-
-        let mut rsa_other_primes_info: RsaOtherPrimesInfo = Default::default();
-        for (key, value) in object {
-            match key.as_str() {
-                "r" => {
-                    rsa_other_primes_info.r =
-                        Some(DOMString::from(value.as_str().ok_or(Error::Data(None))?))
-                },
-                "d" => {
-                    rsa_other_primes_info.d =
-                        Some(DOMString::from(value.as_str().ok_or(Error::Data(None))?))
-                },
-                "t" => {
-                    rsa_other_primes_info.t =
-                        Some(DOMString::from(value.as_str().ok_or(Error::Data(None))?))
-                },
-                _ => {
-                    // Additional members can be present in the JWK; if not understood by
-                    // implementations encountering them, they MUST be ignored.
-                },
-            }
-        }
-
-        Ok(rsa_other_primes_info)
-    }
-}
-
 trait JsonWebKeyExt {
     fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
     fn stringify(&self, cx: JSContext) -> Result<DOMString, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
-    #[expect(unused)]
-    fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error>;
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
 }
 
@@ -2507,10 +2468,6 @@ impl JsonWebKeyExt for JsonWebKey {
             usages.push(KeyUsage::from_str(&op.str()).map_err(|_| Error::Data(None))?);
         }
         Ok(usages)
-    }
-
-    fn get_rsa_other_primes_info_from_oth(&self) -> Result<&[RsaOtherPrimesInfo], Error> {
-        self.oth.as_deref().ok_or(Error::Data(None))
     }
 
     /// If the key_ops field of jwk is present, and is invalid according to the requirements of
