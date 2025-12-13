@@ -104,52 +104,24 @@ pub(crate) fn generate_key(
     let public_key = private_key.to_public_key();
 
     // Step 4. Let algorithm be a new RsaHashedKeyAlgorithm dictionary.
-    let algorithm = match rsa_algorithm {
-        RsaAlgorithm::RsaSsaPkcs1v15 => {
+    // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
+    // attribute of normalizedAlgorithm.
+    // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
+    // attribute of normalizedAlgorithm.
+    // Step 8. Set the hash attribute of algorithm to equal the hash member of
+    // normalizedAlgorithm.
+    let algorithm = SubtleRsaHashedKeyAlgorithm {
+        name: match rsa_algorithm {
             // Step 5. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
-            // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
-            // attribute of normalizedAlgorithm.
-            // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
-            // attribute of normalizedAlgorithm.
-            // Step 8. Set the hash attribute of algorithm to equal the hash member of
-            // normalizedAlgorithm.
-            SubtleRsaHashedKeyAlgorithm {
-                name: ALG_RSASSA_PKCS1_V1_5.to_string(),
-                modulus_length: normalized_algorithm.modulus_length,
-                public_exponent: normalized_algorithm.public_exponent.clone(),
-                hash: normalized_algorithm.hash.clone(),
-            }
-        },
-        RsaAlgorithm::RsaPss => {
+            RsaAlgorithm::RsaSsaPkcs1v15 => ALG_RSASSA_PKCS1_V1_5,
             // Step 5. Set the name attribute of algorithm to "RSA-PSS".
-            // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
-            // attribute of normalizedAlgorithm.
-            // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
-            // attribute of normalizedAlgorithm.
-            // Step 8. Set the hash attribute of algorithm to equal the hash member of
-            // normalizedAlgorithm.
-            SubtleRsaHashedKeyAlgorithm {
-                name: ALG_RSA_PSS.to_string(),
-                modulus_length: normalized_algorithm.modulus_length,
-                public_exponent: normalized_algorithm.public_exponent.clone(),
-                hash: normalized_algorithm.hash.clone(),
-            }
-        },
-        RsaAlgorithm::RsaOaep => {
+            RsaAlgorithm::RsaPss => ALG_RSA_PSS,
             // Step 5. Set the name attribute of algorithm to "RSA-OAEP".
-            // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
-            // attribute of normalizedAlgorithm.
-            // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
-            // attribute of normalizedAlgorithm.
-            // Step 8. Set the hash attribute of algorithm to equal the hash member of
-            // normalizedAlgorithm.
-            SubtleRsaHashedKeyAlgorithm {
-                name: ALG_RSA_OAEP.to_string(),
-                modulus_length: normalized_algorithm.modulus_length,
-                public_exponent: normalized_algorithm.public_exponent.clone(),
-                hash: normalized_algorithm.hash.clone(),
-            }
-        },
+            RsaAlgorithm::RsaOaep => ALG_RSA_OAEP,
+        }.to_string(),
+        modulus_length: normalized_algorithm.modulus_length,
+        public_exponent: normalized_algorithm.public_exponent.clone(),
+        hash: normalized_algorithm.hash.clone(),
     };
 
     // Step 9. Let publicKey be a new CryptoKey representing the public key of the generated key
