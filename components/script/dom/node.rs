@@ -443,7 +443,7 @@ impl Node {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(&self, child: &Node, cached_index: Option<u32>, can_gc: CanGc) {
+    fn remove_child(&self, child: &Node, cached_index: Option<u32>, is_move: bool, can_gc: CanGc) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
 
@@ -482,7 +482,11 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        Self::complete_remove_subtree(child, &context, can_gc);
+        // Move operations should not trigger cleanup steps, such as unbind_from_tree,
+        // or custom element disconnectedCallbacks.
+        if !is_move {
+            Self::complete_remove_subtree(child, &context, can_gc);
+        }
     }
 
     pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -1279,7 +1283,7 @@ impl Node {
         let old_next_sibling = node.next_sibling.get();
 
         // Step 13. Remove node from oldParent’s children.
-        old_parent.remove_child(node, cached_index, can_gc);
+        old_parent.remove_child(node, cached_index, true, can_gc);
 
         // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
@@ -1376,8 +1380,15 @@ impl Node {
             // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
             if let Some(descendant) = descendant.downcast::<Element>() {
                 if descendant.is_custom() && new_parent.is_connected() {
-                    // TODO then enqueue a custom element callback reaction with
+                    // then enqueue a custom element callback reaction with
                     // inclusiveDescendant, callback name "connectedMoveCallback", and « ».
+                    let custom_element_reaction_stack =
+                        ScriptThread::custom_element_reaction_stack();
+                    custom_element_reaction_stack.enqueue_callback_reaction(
+                        &descendant,
+                        CallbackReaction::ConnectedMove,
+                        None,
+                    );
                 }
             }
         }
@@ -3052,7 +3063,7 @@ impl Node {
 
         // Step 7. Remove node from its parent's children.
         // Step 11-14. Run removing steps and enqueue disconnected custom element reactions for the subtree.
-        parent.remove_child(node, cached_index, can_gc);
+        parent.remove_child(node, cached_index, false, can_gc);
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
