@@ -307,6 +307,41 @@ fn test_cursor_change() {
     assert_eq!(webview.cursor(), Cursor::Default);
 }
 
+// A test to ensure that the cursor doesn't change when hovering over a input with type color
+#[test]
+fn test_cursor_unchanged_input_color() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html><body><input type=\"color\"><p>Test text for Cursor change</p></body>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(20., 65.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Text);
+
+    delegate.reset();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(20., 25.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Default);
+}
+
 /// A test that ensure that negative resize requests do not get passed to the embedder.
 #[test]
 fn test_negative_resize_to_request() {
