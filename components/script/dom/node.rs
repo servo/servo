@@ -1214,8 +1214,7 @@ impl Node {
         // connected is node’s connected.
         let mut options = GetRootNodeOptions::empty();
         options.composed = true;
-        if new_parent.GetRootNode(&options) != node.GetRootNode(&options)
-        {
+        if new_parent.GetRootNode(&options) != node.GetRootNode(&options) {
             return Err(Error::HierarchyRequest(None));
         }
 
