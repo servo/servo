@@ -1250,19 +1250,21 @@ impl Node {
 
             // child is a doctype
             // or child is non-null and a doctype is following child
-            if let Some(child) = child {
-                if child
+            if child.is_some_and(|child| {
+                child
                     .inclusively_following_siblings()
                     .any(|child| child.is_doctype())
-                {
-                    return Err(Error::HierarchyRequest(None));
-                }
+            }) {
+                return Err(Error::HierarchyRequest(None));
             }
         }
 
         // Step 7. Let oldParent be node’s parent.
         // Step 8. Assert: oldParent is non-null.
-        let old_parent = node.parent_node.get().unwrap();
+        let old_parent = node
+            .parent_node
+            .get()
+            .expect("old_parent should always be initialized");
 
         // Step 9. Run the live range pre-remove steps, given node.
         let cached_index = Node::live_range_pre_remove_steps(node, &old_parent);
@@ -1297,7 +1299,7 @@ impl Node {
         // Step 16. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
             .traverse_preorder(ShadowIncluding::No)
-            .any(|elem| elem.is::<HTMLSlotElement>());
+            .any(|element| element.is::<HTMLSlotElement>());
         if has_slot_descendant {
             // Step 16.1. Run assign slottables for a tree with oldParent’s root.
             old_parent
@@ -1321,10 +1323,10 @@ impl Node {
 
         // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
         // newParent’s last child otherwise.
-        let new_previous_sibling = match child {
-            Some(child) => child.prev_sibling.get(),
-            None => new_parent.last_child.get(),
-        };
+        let new_previous_sibling = child.map_or_else(
+            || new_parent.last_child.get(),
+            |child| child.prev_sibling.get(),
+        );
 
         // Step 19. If child is null, then append node to newParent’s children.
         // Step 20. Otherwise, insert node into newParent’s children before child’s index.
@@ -1376,22 +1378,16 @@ impl Node {
                 if descendant.is_custom() && new_parent.is_connected() {
                     // TODO then enqueue a custom element callback reaction with
                     // inclusiveDescendant, callback name "connectedMoveCallback", and « ».
-                    // let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
-                    // custom_element_reaction_stack.enqueue_callback_reaction(
-                    //     &descendant,
-                    //     CallbackReaction::ConnectedMove,
-                    //     None,
-                    // );
                 }
             }
         }
 
         // Step 25. Queue a tree mutation record for oldParent with « », « node »,
         // oldPreviousSibling, and oldNextSibling.
-        let nodes = [node];
+        let moved = [node];
         let mutation = LazyCell::new(|| Mutation::ChildList {
             added: None,
-            removed: Some(&nodes),
+            removed: Some(&moved),
             prev: old_previous_sibling.as_deref(),
             next: old_next_sibling.as_deref(),
         });
@@ -1400,7 +1396,7 @@ impl Node {
         // Step 26. Queue a tree mutation record for newParent with « node », « »,
         // newPreviousSibling, and child.
         let mutation = LazyCell::new(|| Mutation::ChildList {
-            added: Some(&nodes),
+            added: Some(&moved),
             removed: None,
             prev: new_previous_sibling.as_deref(),
             next: child,
@@ -3116,28 +3112,28 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
     fn live_range_pre_remove_steps(node: &Node, parent: &Node) -> Option<u32> {
         if parent.ranges_is_empty() {
-            None
-        } else {
-            // Step 1. Let parent be node’s parent.
-            // Step 2. Assert: parent is not null.
-            // NOTE: We already have the parent.
-
-            // Step 3. Let index be node’s index.
-            let index = node.index();
-
-            // Steps 4-5 are handled in Node::unbind_from_tree.
-
-            // Step 6. For each live range whose start node is parent and start offset is greater than index,
-            // decrease its start offset by 1.
-            // Step 7. For each live range whose end node is parent and end offset is greater than index,
-            // decrease its end offset by 1.
-            parent.ranges().decrease_above(parent, index, 1);
-
-            // Parent had ranges, we needed the index, let's keep track of
-            // it to avoid computing it for other ranges when calling
-            // unbind_from_tree recursively.
-            Some(index)
+            return None;
         }
+
+        // Step 1. Let parent be node’s parent.
+        // Step 2. Assert: parent is not null.
+        // NOTE: We already have the parent.
+
+        // Step 3. Let index be node’s index.
+        let index = node.index();
+
+        // Steps 4-5 are handled in Node::unbind_from_tree.
+
+        // Step 6. For each live range whose start node is parent and start offset is greater than index,
+        // decrease its start offset by 1.
+        // Step 7. For each live range whose end node is parent and end offset is greater than index,
+        // decrease its end offset by 1.
+        parent.ranges().decrease_above(parent, index, 1);
+
+        // Parent had ranges, we needed the index, let's keep track of
+        // it to avoid computing it for other ranges when calling
+        // unbind_from_tree recursively.
+        Some(index)
     }
 
     /// Ensure that for styles, we clone the already-parsed property declaration block.
