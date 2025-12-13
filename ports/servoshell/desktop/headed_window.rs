@@ -993,8 +993,8 @@ impl PlatformWindow for Window {
             });
     }
 
-    fn focused(&self) -> bool {
-        self.winit_window.has_focus()
+    fn focus(&self) {
+        self.winit_window.focus_window();
     }
 
     fn show_embedder_control(&self, webview_id: WebViewId, embedder_control: EmbedderControl) {

@@ -9,8 +9,10 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::atomic::AtomicU64;
 
 use euclid::{Point2D, Scale, Size2D};
+use log::error;
 use servo::{
     DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize,
     DevicePixel, RenderingContext, ScreenGeometry, SoftwareRenderingContext, WebView,
@@ -22,6 +24,7 @@ use crate::prefs::ServoShellPreferences;
 use crate::window::{MIN_WINDOW_INNER_SIZE, PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
 pub struct Window {
+    id: ServoShellWindowId,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
     inner_size: Cell<DeviceIntSize>,
@@ -51,7 +54,11 @@ impl Window {
                 (screen_size_override.to_f32() * hidpi_factor).to_i32()
             });
 
+        static CURRENT_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
         let window = Window {
+            id: CURRENT_WINDOW_ID
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                .into(),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
             inner_size: Cell::new(inner_size),
@@ -64,9 +71,17 @@ impl Window {
     }
 }
 
+impl Drop for Window {
+    fn drop(&mut self) {
+        if let Err(error) = self.rendering_context.make_current() {
+            error!("Failed to make the rendering context current: {error:?}");
+        }
+    }
+}
+
 impl PlatformWindow for Window {
     fn id(&self) -> ServoShellWindowId {
-        0.into()
+        self.id
     }
 
     fn screen_geometry(&self) -> servo::ScreenGeometry {
@@ -155,9 +170,5 @@ impl PlatformWindow for Window {
             self.screen_size.width as u32,
             self.screen_size.height as u32,
         ));
-    }
-
-    fn focused(&self) -> bool {
-        true
     }
 }
