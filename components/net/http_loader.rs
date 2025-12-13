@@ -1576,14 +1576,19 @@ async fn http_network_or_cache_fetch(
                     .await;
 
             let http_request = &mut http_fetch_params.request;
+            let request_key = CacheKey::new(http_request);
             // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
             // inclusive, invalidate appropriate stored responses in httpCache, as per the
             // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
-            if let Some(guard) = cache_guard.try_as_mut() &&
-                forward_response.status.in_range(200..=399) &&
-                !http_request.method.is_safe()
-            {
-                invalidate(http_request, &forward_response, guard).await;
+            if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
+                if let Some(guard) = cache_guard.try_as_mut() {
+                    invalidate(http_request, &forward_response, guard).await;
+                }
+                context
+                    .state
+                    .http_cache
+                    .invalidate_related_urls(http_request, &forward_response, &request_key)
+                    .await;
             }
 
             // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:

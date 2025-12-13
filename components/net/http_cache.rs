@@ -47,6 +47,11 @@ impl CacheKey {
             url: request.current_url(),
         }
     }
+
+    /// Create a cache-key from a resolved URL.
+    pub fn from_url(url: ServoUrl) -> CacheKey {
+        CacheKey { url }
+    }
 }
 
 /// A complete cached resource.
@@ -741,6 +746,18 @@ async fn invalidate_cached_resources(cached_resources: &mut [CachedResource]) {
     }
 }
 
+fn resolve_location_url(
+    request: &Request,
+    response: &Response,
+    header_name: header::HeaderName,
+) -> Option<ServoUrl> {
+    response
+        .headers
+        .get(header_name)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|location| request.current_url().join(location).ok())
+}
+
 impl HttpCache {
     /// Wake-up consumers of cached resources
     /// whose response body was still receiving data when the resource was constructed,
@@ -793,6 +810,31 @@ impl HttpCache {
     /// Clear the contents of this cache.
     pub fn clear(&self) {
         self.entries.clear();
+    }
+
+    /// Invalidate cache entries referenced by Location/Content-Location headers.
+    pub async fn invalidate_related_urls(
+        &self,
+        request: &Request,
+        response: &Response,
+        skip_key: &CacheKey,
+    ) {
+        for header_name in &[header::LOCATION, header::CONTENT_LOCATION] {
+            if let Some(location_url) = resolve_location_url(request, response, header_name.clone())
+            {
+                let location_key = CacheKey::from_url(location_url);
+                if &location_key != skip_key {
+                    self.invalidate_entry(&location_key).await;
+                }
+            }
+        }
+    }
+
+    async fn invalidate_entry(&self, key: &CacheKey) {
+        if let Some(entry) = self.entries.get(key) {
+            let mut guarded_resources = entry.write().await;
+            invalidate_cached_resources(guarded_resources.as_mut_slice()).await;
+        }
     }
 
     /// If the value exist in the cache, return it. If the value does not exist, return a guard you can use to insert values in the cache.
