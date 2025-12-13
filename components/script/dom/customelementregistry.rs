@@ -175,8 +175,8 @@ impl CustomElementRegistry {
         Ok(LifecycleCallbacks {
             connected_callback: get_callback(cx, prototype, c"connectedCallback")?,
             disconnected_callback: get_callback(cx, prototype, c"disconnectedCallback")?,
-            adopted_callback: get_callback(cx, prototype, c"adoptedCallback")?,
             connected_move_callback: get_callback(cx, prototype, c"connectedMoveCallback")?,
+            adopted_callback: get_callback(cx, prototype, c"adoptedCallback")?,
             attribute_changed_callback: get_callback(cx, prototype, c"attributeChangedCallback")?,
 
             form_associated_callback: None,
