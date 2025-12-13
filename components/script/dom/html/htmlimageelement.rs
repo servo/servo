@@ -74,7 +74,9 @@ use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    BindContext, MoveContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
+};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -2158,6 +2160,24 @@ impl VirtualMethods for HTMLImageElement {
         // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for
         // removedNode.
         if context.parent.is::<HTMLPictureElement>() && !self.upcast::<Node>().has_parent() {
+            self.update_the_image_data(cx);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage#the-img-element:html-element-moving-steps>
+    #[expect(unsafe_code)]
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+        // TODO: https://github.com/servo/servo/issues/43044
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
+        if let Some(old_parent) = context.old_parent &&
+            old_parent.is::<HTMLPictureElement>()
+        {
             self.update_the_image_data(cx);
         }
     }
