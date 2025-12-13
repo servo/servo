@@ -165,16 +165,7 @@ pub(crate) fn generate_key(
     // Step 16. Set the [[algorithm]] internal slot of privateKey to algorithm.
     // Step 17. Set the [[extractable]] internal slot of privateKey to extractable.
     let intersected_usages = match rsa_algorithm {
-        RsaAlgorithm::RsaSsaPkcs1v15 => {
-            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
-            // of usages and [ "sign" ].
-            usages
-                .iter()
-                .filter(|usage| **usage == KeyUsage::Sign)
-                .cloned()
-                .collect()
-        },
-        RsaAlgorithm::RsaPss => {
+        RsaAlgorithm::RsaSsaPkcs1v15 | RsaAlgorithm::RsaPss => {
             // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
             // of usages and [ "sign" ].
             usages
