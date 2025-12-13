@@ -37,7 +37,7 @@ use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
 use crate::dom::element::Element;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
-use crate::dom::node::{Node, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::trustedhtml::TrustedHTML;
@@ -1247,13 +1247,11 @@ impl WeakRangeVec {
     /// Used for steps 2-3. when removing a node.
     ///
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub(crate) fn drain_to_parent(&self, context: &UnbindContext, child: &Node) {
+    pub(crate) fn drain_to_parent(&self, parent: &Node, offset: u32, child: &Node) {
         if self.is_empty() {
             return;
         }
 
-        let offset = context.index();
-        let parent = context.parent;
         let ranges = &mut *self.cell.borrow_mut();
 
         ranges.update(|entry| {
@@ -1263,20 +1261,15 @@ impl WeakRangeVec {
             }
             if range.start().node() == child {
                 range.report_change();
-                range.start().set(context.parent, offset);
+                range.start().set(parent, offset);
             }
             if range.end().node() == child {
                 range.report_change();
-                range.end().set(context.parent, offset);
+                range.end().set(parent, offset);
             }
         });
 
-        context
-            .parent
-            .ranges()
-            .cell
-            .borrow_mut()
-            .extend(ranges.drain(..));
+        parent.ranges().cell.borrow_mut().extend(ranges.drain(..));
     }
 
     /// Used for steps 6.1-2. when normalizing a node.
