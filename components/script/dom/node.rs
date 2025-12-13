@@ -1422,7 +1422,7 @@ impl Node {
             prev: new_previous_sibling.as_deref(),
             next: child,
         });
-        MutationObserver::queue_a_mutation_record(&old_parent, mutation);
+        MutationObserver::queue_a_mutation_record(&new_parent, mutation);
 
         Ok(())
     }
