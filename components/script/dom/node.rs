@@ -1385,7 +1385,7 @@ impl Node {
                     let custom_element_reaction_stack =
                         ScriptThread::custom_element_reaction_stack();
                     custom_element_reaction_stack.enqueue_callback_reaction(
-                        &descendant,
+                        descendant,
                         CallbackReaction::ConnectedMove,
                         None,
                     );
