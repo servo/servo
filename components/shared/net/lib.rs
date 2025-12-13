@@ -703,7 +703,16 @@ impl FetchThread {
 
                     core_resource_thread.send(message).unwrap();
 
-                    self.active_fetches.insert(request_builder_id, callback);
+                    // When we terminate a fetch group, all deferred fetches are processed.
+                    // In case we were already processing a deferred fetch, we should not
+                    // process the second call. This should be handled by [`DeferredFetchRecord::process`]
+                    if self
+                        .active_fetches
+                        .insert(request_builder_id, callback)
+                        .is_some()
+                    {
+                        unreachable!();
+                    }
                 },
                 ToFetchThreadMessage::FetchResponse(fetch_response_msg) => {
                     let request_id = fetch_response_msg.request_id();
