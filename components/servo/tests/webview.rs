@@ -316,7 +316,7 @@ fn test_cursor_unchanged_input_color() {
         .delegate(delegate.clone())
         .url(
             Url::parse(
-                "data:text/html,<!DOCTYPE html><body><input type=\"color\"></body>",
+                "data:text/html,<!DOCTYPE html><body><input type=\"color\"><p>Test text for Cursor change</p></body>",
             )
             .unwrap(),
         )
@@ -325,7 +325,16 @@ fn test_cursor_unchanged_input_color() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
-        DevicePoint::new(10., 10.).into(),
+        DevicePoint::new(20., 65.).into(),
+    )));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.cursor_changed.get());
+    assert_eq!(webview.cursor(), Cursor::Text);
+
+    delegate.reset();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(20., 25.).into(),
     )));
 
     let captured_delegate = delegate.clone();
