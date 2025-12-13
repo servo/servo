@@ -1381,7 +1381,7 @@ impl Node {
             // Step 24.1. If inclusiveDescendant is node, then run the moving steps with
             // inclusiveDescendant and oldParent.
             // Otherwise, run the moving steps with inclusiveDescendant and null.
-            if descendant.is::<Node>() {
+            if descendant.deref() == node {
                 vtable_for(&descendant).moving_steps(Some(&old_parent), can_gc);
             } else {
                 vtable_for(&descendant).moving_steps(None, can_gc);
