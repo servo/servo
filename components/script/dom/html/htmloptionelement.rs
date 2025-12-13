@@ -29,7 +29,9 @@ use crate::dom::html::htmlformelement::HTMLFormElement;
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    BindContext, ChildrenMutation, MoveContext, Node, ShadowIncluding, UnbindContext,
+};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
@@ -407,11 +409,14 @@ impl VirtualMethods for HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/form-elements.html#the-option-element:html-element-moving-steps>
-    fn moving_steps(&self, old_parent: Option<&Node>, can_gc: CanGc) {
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+
         // The option HTML element moving steps, given movedNode and oldParent, are to run update an
         // option's nearest ancestor select given movedNode.
-
-        if let Some(old_parent) = old_parent {
+        if let Some(old_parent) = context.old_parent {
             if let Some(select) = old_parent
                 .inclusive_ancestors(ShadowIncluding::No)
                 .find_map(DomRoot::downcast::<HTMLSelectElement>)

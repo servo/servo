@@ -73,7 +73,9 @@ use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    BindContext, MoveContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
+};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -2154,9 +2156,13 @@ impl VirtualMethods for HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#the-img-element:html-element-moving-steps>
-    fn moving_steps(&self, old_parent: Option<&Node>, can_gc: CanGc) {
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+
         // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
-        if let Some(old_parent) = old_parent &&
+        if let Some(old_parent) = context.old_parent &&
             old_parent.is::<HTMLPictureElement>()
         {
             self.update_the_image_data(can_gc);

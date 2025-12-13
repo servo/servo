@@ -1789,7 +1789,7 @@ pub(crate) trait FormControl: DomObject {
         }
     }
 
-    fn moving_steps(&self, _old_parent: Option<&Node>, can_gc: CanGc) {
+    fn moving_steps(&self, can_gc: CanGc) {
         // If movedNode is a form-associated element with a non-null form owner and movedNode and
         // its form owner are no longer in the same tree, then reset the form owner of movedNode.
         let same_subtree = self

@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
-use std::ops::Range;
+use std::ops::{Deref, Range};
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -366,12 +366,7 @@ impl Node {
 
     /// Clean up flags and runs steps 11-14 of remove a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub(crate) fn complete_remove_subtree(
-        root: &Node,
-        context: &UnbindContext,
-        is_move: bool,
-        can_gc: CanGc,
-    ) {
+    pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext, can_gc: CanGc) {
         // Flags that reset when a node is disconnected
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
@@ -401,33 +396,78 @@ impl Node {
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
         let cleanup_node = |node: &Node| {
-            // Animations should be preserved for move operations.
-            if !is_move {
-                node.owner_doc().cancel_animations_for_node(node);
-            }
-            node.style_data.borrow_mut().take();
-            node.layout_data.borrow_mut().take();
+            node.clean_up_style_and_layout_data();
 
-            // Move operations should not trigger unbind_from_tree,
-            // or custom element disconnectedCallbacks.
-            if !is_move {
-                // Step 11 & 14.1. Run the removing steps.
-                // This needs to be in its own loop, because unbind_from_tree may
-                // rely on the state of IS_IN_DOC of the context node's descendants,
-                // e.g. when removing a <form>.
-                vtable_for(node).unbind_from_tree(context, can_gc);
+            // Step 11 & 14.1. Run the removing steps.
+            // This needs to be in its own loop, because unbind_from_tree may
+            // rely on the state of IS_IN_DOC of the context node's descendants,
+            // e.g. when removing a <form>.
+            vtable_for(node).unbind_from_tree(context, can_gc);
 
-                // Step 12 & 14.2. Enqueue disconnected custom element reactions.
-                if is_parent_connected {
-                    if let Some(element) = node.as_custom_element() {
-                        custom_element_reaction_stack.enqueue_callback_reaction(
-                            &element,
-                            CallbackReaction::Disconnected,
-                            None,
-                        );
-                    }
+            // Step 12 & 14.2. Enqueue disconnected custom element reactions.
+            if is_parent_connected {
+                if let Some(element) = node.as_custom_element() {
+                    custom_element_reaction_stack.enqueue_callback_reaction(
+                        &element,
+                        CallbackReaction::Disconnected,
+                        None,
+                    );
                 }
             }
+        };
+
+        for node in root.traverse_preorder(ShadowIncluding::No) {
+            cleanup_node(&node);
+
+            // Make sure that we don't accidentally initialize the rare data for this node
+            // by setting it to None
+            if node.containing_shadow_root().is_some() {
+                // Reset the containing shadowRoot after we unbind the node, since some elements
+                // require the containing shadowRoot for cleanup logic (e.g. <style>).
+                node.set_containing_shadow_root(None);
+            }
+
+            // If the element has a shadow root attached to it then we traverse that as well,
+            // but without resetting the contained shadow root
+            if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
+                for node in shadow_root
+                    .upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::Yes)
+                {
+                    cleanup_node(&node);
+                }
+            }
+        }
+    }
+
+    pub(crate) fn complete_move_subtree(root: &Node) {
+        // Flags that reset when a node is moved
+        const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
+            .union(NodeFlags::IS_CONNECTED)
+            .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
+            .union(NodeFlags::HAS_SNAPSHOT)
+            .union(NodeFlags::HANDLED_SNAPSHOT);
+
+        for node in root.traverse_preorder(ShadowIncluding::No) {
+            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
+
+            // If the element has a shadow root attached to it then we traverse that as well,
+            // but without touching the IS_IN_SHADOW_TREE flags of the children
+            if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
+                for node in shadow_root
+                    .upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::Yes)
+                {
+                    node.set_flag(RESET_FLAGS, false);
+                }
+            }
+        }
+
+        // Since both the initial traversal in light dom and the inner traversal
+        // in shadow DOM share the same code, we define a closure to prevent omissions.
+        let cleanup_node = |node: &Node| {
+            node.style_data.borrow_mut().take();
+            node.layout_data.borrow_mut().take();
         };
 
         for node in root.traverse_preorder(ShadowIncluding::No) {
@@ -457,7 +497,7 @@ impl Node {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(&self, child: &Node, cached_index: Option<u32>, is_move: bool, can_gc: CanGc) {
+    fn remove_child(&self, child: &Node, cached_index: Option<u32>, can_gc: CanGc) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
 
@@ -496,7 +536,18 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        Self::complete_remove_subtree(child, &context, is_move, can_gc);
+        Self::complete_remove_subtree(child, &context, can_gc);
+    }
+
+    fn move_child(&self, child: &Node) {
+        assert!(child.parent_node.get().as_deref() == Some(self));
+        self.note_dirty_descendants();
+
+        child.prev_sibling.set(None);
+        child.next_sibling.set(None);
+        child.parent_node.set(None);
+        self.children_count.set(self.children_count.get() - 1);
+        Self::complete_move_subtree(child)
     }
 
     pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -1292,8 +1343,42 @@ impl Node {
         // Step 12. Let oldNextSibling be node’s next sibling.
         let old_next_sibling = node.next_sibling.get();
 
+        let prev_sibling = node.GetPreviousSibling();
+        match prev_sibling {
+            None => {
+                old_parent
+                    .first_child
+                    .set(node.next_sibling.get().as_deref());
+            },
+            Some(ref prev_sibling) => {
+                prev_sibling
+                    .next_sibling
+                    .set(node.next_sibling.get().as_deref());
+            },
+        }
+        let next_sibling = node.GetNextSibling();
+        match next_sibling {
+            None => {
+                old_parent
+                    .last_child
+                    .set(node.prev_sibling.get().as_deref());
+            },
+            Some(ref next_sibling) => {
+                next_sibling
+                    .prev_sibling
+                    .set(node.prev_sibling.get().as_deref());
+            },
+        }
+
+        let mut context = MoveContext::new(
+            Some(&old_parent),
+            prev_sibling.as_deref(),
+            next_sibling.as_deref(),
+            cached_index,
+        );
+
         // Step 13. Remove node from oldParent’s children.
-        old_parent.remove_child(node, cached_index, true, can_gc);
+        old_parent.move_child(node);
 
         // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
@@ -1382,9 +1467,10 @@ impl Node {
             // inclusiveDescendant and oldParent.
             // Otherwise, run the moving steps with inclusiveDescendant and null.
             if descendant.deref() == node {
-                vtable_for(&descendant).moving_steps(Some(&old_parent), can_gc);
+                vtable_for(&descendant).moving_steps(&context, can_gc);
             } else {
-                vtable_for(&descendant).moving_steps(None, can_gc);
+                context.old_parent = None;
+                vtable_for(&descendant).moving_steps(&context, can_gc);
             }
 
             // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
@@ -3073,7 +3159,7 @@ impl Node {
 
         // Step 7. Remove node from its parent's children.
         // Step 11-14. Run removing steps and enqueue disconnected custom element reactions for the subtree.
-        parent.remove_child(node, cached_index, false, can_gc);
+        parent.remove_child(node, cached_index, can_gc);
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
@@ -4411,7 +4497,26 @@ impl VirtualMethods for Node {
         // unbind operation happened further up in the tree and we should not
         // drain any ranges.
         if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
-            self.ranges().drain_to_parent(context, self);
+            self.ranges()
+                .drain_to_parent(context.parent, context.index(), self);
+        }
+    }
+
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+
+        // Ranges should only drain to the parent from inclusive non-shadow
+        // including descendants. If we're in a shadow tree at this point then the
+        // unbind operation happened further up in the tree and we should not
+        // drain any ranges.
+        if let Some(old_parent) = context.old_parent &&
+            !self.is_in_a_shadow_tree() &&
+            !self.ranges_is_empty()
+        {
+            self.ranges()
+                .drain_to_parent(old_parent, context.index(), self);
         }
     }
 
@@ -4686,6 +4791,46 @@ impl<'a> UnbindContext<'a> {
     }
 
     /// The index of the inclusive ancestor that was removed from the tree.
+    pub(crate) fn index(&self) -> u32 {
+        if let Some(index) = self.index.get() {
+            return index;
+        }
+        let index = self.prev_sibling.map_or(0, |sibling| sibling.index() + 1);
+        self.index.set(Some(index));
+        index
+    }
+}
+
+/// The context of the moving from a tree of a node when one of its
+/// inclusive ancestors is moved.
+pub(crate) struct MoveContext<'a> {
+    /// The index of the inclusive ancestor that was moved.
+    index: Cell<Option<u32>>,
+    /// The old parent, if any, of the inclusive ancestor that was moved.
+    pub(crate) old_parent: Option<&'a Node>,
+    /// The previous sibling of the inclusive ancestor that was moved.
+    prev_sibling: Option<&'a Node>,
+    /// The next sibling of the inclusive ancestor that was moved.
+    pub(crate) next_sibling: Option<&'a Node>,
+}
+
+impl<'a> MoveContext<'a> {
+    /// Create a new `MoveContext` value.
+    pub(crate) fn new(
+        old_parent: Option<&'a Node>,
+        prev_sibling: Option<&'a Node>,
+        next_sibling: Option<&'a Node>,
+        cached_index: Option<u32>,
+    ) -> Self {
+        MoveContext {
+            index: Cell::new(cached_index),
+            old_parent,
+            prev_sibling,
+            next_sibling,
+        }
+    }
+
+    /// The index of the inclusive ancestor that was moved from the tree.
     pub(crate) fn index(&self) -> u32 {
         if let Some(index) = self.index.get() {
             return index;
