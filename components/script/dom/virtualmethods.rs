@@ -5,7 +5,7 @@
 use html5ever::LocalName;
 use script_bindings::script_runtime::CanGc;
 use style::attr::AttrValue;
-
+use script_bindings::root::DomRoot;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::inheritance::{
     Castable, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId,
@@ -14,7 +14,7 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, CommandState, Element};
 use crate::dom::event::Event;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
@@ -58,6 +58,7 @@ use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::htmldialogelement::HTMLDialogElement;
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::svg::svgelement::SVGElement;
@@ -137,6 +138,22 @@ pub(crate) trait VirtualMethods {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/form-elements.html#is-valid-command-steps>
+    fn is_valid_command_steps(&self, command: CommandState) -> bool {
+        if let Some(s) = self.super_type() {
+            s.is_valid_command_steps(command);
+        }
+        false
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/form-elements.html#command-steps>
+    fn command_steps(&self, button: DomRoot<HTMLButtonElement>, command: CommandState, can_gc: CanGc) -> bool {
+        if let Some(s) = self.super_type() {
+            s.command_steps(button, command, can_gc);
+        }
+        false
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
     fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
@@ -192,6 +209,9 @@ pub(crate) fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDetailsElement)) => {
             node.downcast::<HTMLDetailsElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDialogElement)) => {
+            node.downcast::<HTMLDialogElement>().unwrap() as &dyn VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
             node.downcast::<HTMLFieldSetElement>().unwrap() as &dyn VirtualMethods
