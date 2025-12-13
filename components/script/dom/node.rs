@@ -401,7 +401,12 @@ impl Node {
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
         let cleanup_node = |node: &Node| {
-            node.clean_up_style_and_layout_data();
+            // Animations should be preserved for move operations.
+            if !is_move {
+                node.owner_doc().cancel_animations_for_node(node);
+            }
+            node.style_data.borrow_mut().take();
+            node.layout_data.borrow_mut().take();
 
             // Move operations should not trigger unbind_from_tree,
             // or custom element disconnectedCallbacks.
