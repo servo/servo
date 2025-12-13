@@ -104,12 +104,11 @@ pub(crate) fn generate_key(
     let public_key = private_key.to_public_key();
 
     // Step 4. Let algorithm be a new RsaHashedKeyAlgorithm dictionary.
-    // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength
-    // attribute of normalizedAlgorithm.
-    // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent
-    // attribute of normalizedAlgorithm.
-    // Step 8. Set the hash attribute of algorithm to equal the hash member of
+    // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength attribute of
     // normalizedAlgorithm.
+    // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent attribute
+    // of normalizedAlgorithm.
+    // Step 8. Set the hash attribute of algorithm to equal the hash member of normalizedAlgorithm.
     let algorithm = SubtleRsaHashedKeyAlgorithm {
         name: match rsa_algorithm {
             // Step 5. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
@@ -118,7 +117,8 @@ pub(crate) fn generate_key(
             RsaAlgorithm::RsaPss => ALG_RSA_PSS,
             // Step 5. Set the name attribute of algorithm to "RSA-OAEP".
             RsaAlgorithm::RsaOaep => ALG_RSA_OAEP,
-        }.to_string(),
+        }
+        .to_string(),
         modulus_length: normalized_algorithm.modulus_length,
         public_exponent: normalized_algorithm.public_exponent.clone(),
         hash: normalized_algorithm.hash.clone(),
@@ -253,14 +253,14 @@ pub(crate) fn export_key(
             };
             let data = public_key.to_public_key_der().map_err(|_| {
                 Error::Operation(Some(
-                    "Fail to convert RSA public key to SubjectPublicKeyInfo".to_string(),
+                    "Failed to convert RSA public key to SubjectPublicKeyInfo".to_string(),
                 ))
             })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
             ExportedKey::Bytes(data.to_der().map_err(|_| {
                 Error::Operation(Some(
-                    "Fail to convert SubjectPublicKeyInfo to DER-encodeing data".to_string(),
+                    "Failed to convert SubjectPublicKeyInfo to DER-encodeing data".to_string(),
                 ))
             })?)
         },
@@ -297,7 +297,7 @@ pub(crate) fn export_key(
             };
             let data = private_key.to_pkcs8_der().map_err(|_| {
                 Error::Operation(Some(
-                    "Fail to convert RSA private key to PrivateKeyInfo".to_string(),
+                    "Failed to convert RSA private key to PrivateKeyInfo".to_string(),
                 ))
             })?;
 
@@ -318,7 +318,7 @@ pub(crate) fn export_key(
             let KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm) = key.algorithm()
             else {
                 return Err(Error::Operation(Some(
-                    "The [[algorithm]] internal slot of key if not an RsaHashedKeyAlgorithm"
+                    "The [[algorithm]] internal slot of key is not an RsaHashedKeyAlgorithm"
                         .to_string(),
                 )));
             };
@@ -421,7 +421,8 @@ pub(crate) fn export_key(
                 Handle::RsaPublicKey(public_key) => (public_key.n(), public_key.e()),
                 _ => {
                     return Err(Error::Operation(Some(
-                        "Fail to extract modulus n and public exponent e from RSA key".to_string(),
+                        "Failed to extract modulus n and public exponent e from RSA key"
+                            .to_string(),
                     )));
                 },
             };
@@ -439,32 +440,34 @@ pub(crate) fn export_key(
                 };
                 let mut private_key = private_key.clone();
                 private_key.precompute().map_err(|_| {
-                    Error::Operation(Some("Fail to perform RSA pre-computation".to_string()))
+                    Error::Operation(Some("Failed to perform RSA pre-computation".to_string()))
                 })?;
                 let primes = private_key.primes();
                 let d = private_key.d();
                 let p = primes.first().ok_or(Error::Operation(Some(
-                    "Fail to extract first prime factor p from RSA private key".to_string(),
+                    "Failed to extract first prime factor p from RSA private key".to_string(),
                 )))?;
                 let q = primes.get(1).ok_or(Error::Operation(Some(
-                    "Fail to extract second prime factor q from RSA private key".to_string(),
+                    "Failed to extract second prime factor q from RSA private key".to_string(),
                 )))?;
                 let dp = private_key.dp().ok_or(Error::Operation(Some(
-                    "Fail to extract first factor CRT exponent dp from RSA private key".to_string(),
+                    "Failed to extract first factor CRT exponent dp from RSA private key"
+                        .to_string(),
                 )))?;
                 let dq = private_key.dq().ok_or(Error::Operation(Some(
-                    "Fail to extract second factor CRT exponent dq from RSA private key"
+                    "Failed to extract second factor CRT exponent dq from RSA private key"
                         .to_string(),
                 )))?;
                 let qi = private_key
                     .qinv()
                     .ok_or(Error::Operation(Some(
-                        "Fail to extract first CRT coefficient qi from RSA private key".to_string(),
+                        "Failed to extract first CRT coefficient qi from RSA private key"
+                            .to_string(),
                     )))?
                     .modpow(&BigInt::one(), &BigInt::from_biguint(Sign::Plus, p.clone()))
                     .to_biguint()
                     .ok_or(Error::Operation(Some(
-                        "Fail to convert first CRT coefficient qi to BigUint".to_string(),
+                        "Failed to convert first CRT coefficient qi to BigUint".to_string(),
                     )))?;
                 jwk.d = Some(Base64UrlUnpadded::encode_string(&d.to_bytes_be()).into());
                 jwk.p = Some(Base64UrlUnpadded::encode_string(&p.to_bytes_be()).into());
@@ -490,7 +493,7 @@ pub(crate) fn export_key(
                         .fold(BigUint::one(), |product, p_j| product.mul(p_j))
                         .mod_inverse(p_i)
                         .ok_or(Error::Operation(Some(
-                            "Fail to compute factor CRT coefficient of other RSA primes"
+                            "Failed to compute factor CRT coefficient of other RSA primes"
                                 .to_string(),
                         )))?
                         .modpow(
@@ -499,7 +502,7 @@ pub(crate) fn export_key(
                         )
                         .to_biguint()
                         .ok_or(Error::Operation(Some(
-                            "Fail to convert factor CRT coefficient of other RSA primes to BigUint"
+                            "Failed to convert factor CRT coefficient of other RSA primes to BigUint"
                                 .to_string(),
                         )))?;
                     oth.push(RsaOtherPrimesInfo {
