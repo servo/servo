@@ -10,7 +10,7 @@ use rsa::pkcs1::{self, DecodeRsaPrivateKey};
 use rsa::traits::PublicKeyParts;
 use rsa::{BigUint, RsaPrivateKey, RsaPublicKey};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AlgorithmIdentifier, JsonWebKey, KeyFormat,
 };
@@ -23,9 +23,27 @@ use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
     ALG_RSASSA_PKCS1_V1_5, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey,
     JsonWebKeyExt, KeyAlgorithmAndDerivatives, Operation, SubtleRsaHashedImportParams,
-    SubtleRsaHashedKeyAlgorithm, normalize_algorithm,
+    SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams, normalize_algorithm,
 };
 use crate::script_runtime::CanGc;
+
+/// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-generate-key>
+pub(crate) fn generate_key(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleRsaHashedKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<CryptoKeyPair, Error> {
+    rsa_common::generate_key(
+        RsaAlgorithm::RsaSsaPkcs1v15,
+        global,
+        normalized_algorithm,
+        extractable,
+        usages,
+        can_gc,
+    )
+}
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-import-key>
 pub(crate) fn import_key(

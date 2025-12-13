@@ -190,33 +190,22 @@ impl SystemFontService {
 
     #[servo_tracing::instrument(skip_all)]
     fn fetch_font_keys_if_needed(&mut self, painter_id: PainterId) {
-        if !self
-            .free_font_keys
-            .get(&painter_id)
-            .is_none_or(|v| v.is_empty()) &&
-            !self
-                .free_font_instance_keys
-                .get(&painter_id)
-                .is_none_or(|v| v.is_empty())
-        {
+        let free_font_keys = self.free_font_keys.entry(painter_id).or_default();
+        let free_font_instance_keys = self.free_font_instance_keys.entry(painter_id).or_default();
+        if !free_font_keys.is_empty() && !free_font_instance_keys.is_empty() {
             return;
         }
 
         const FREE_FONT_KEYS_BATCH_SIZE: usize = 40;
         const FREE_FONT_INSTANCE_KEYS_BATCH_SIZE: usize = 40;
         let (mut new_font_keys, mut new_font_instance_keys) = self.paint_api.fetch_font_keys(
-            FREE_FONT_KEYS_BATCH_SIZE - self.free_font_keys.len(),
-            FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - self.free_font_instance_keys.len(),
+            FREE_FONT_KEYS_BATCH_SIZE - free_font_keys.len(),
+            FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - free_font_instance_keys.len(),
             painter_id,
         );
-        self.free_font_keys
-            .entry(painter_id)
-            .or_default()
-            .append(&mut new_font_keys);
-        self.free_font_instance_keys
-            .entry(painter_id)
-            .or_default()
-            .append(&mut new_font_instance_keys);
+
+        free_font_keys.append(&mut new_font_keys);
+        free_font_instance_keys.append(&mut new_font_instance_keys);
     }
 
     #[servo_tracing::instrument(skip_all)]

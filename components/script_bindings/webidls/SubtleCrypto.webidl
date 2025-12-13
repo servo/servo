@@ -76,6 +76,19 @@ dictionary KeyAlgorithm {
   required DOMString name;
 };
 
+// https://w3c.github.io/webcrypto/#RsaKeyGenParams-dictionary
+
+dictionary RsaKeyGenParams : Algorithm {
+  required [EnforceRange] unsigned long modulusLength;
+  required BigInteger publicExponent;
+};
+
+// https://w3c.github.io/webcrypto/#RsaHashedKeyGenParams-dictionary
+
+dictionary RsaHashedKeyGenParams : RsaKeyGenParams {
+  required HashAlgorithmIdentifier hash;
+};
+
 // https://w3c.github.io/webcrypto/#RsaKeyAlgorithm-dictionary
 
 dictionary RsaKeyAlgorithm : KeyAlgorithm {

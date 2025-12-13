@@ -1090,7 +1090,6 @@ impl HostTrait for HostCallbacks {
         if load_status == LoadStatus::Complete {
             #[cfg(feature = "tracing-hitrace")]
             let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
-            self.show_alert("Page finished loading!".to_string());
         } else {
             #[cfg(feature = "tracing-hitrace")]
             let _ = hitrace::ScopedTrace::start_trace_str(&format!(
