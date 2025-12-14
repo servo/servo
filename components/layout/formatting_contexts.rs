@@ -354,7 +354,7 @@ impl IndependentFormattingContext {
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         let cached_layout_result_snapshot = {
-            let cache_guard = self.base.cached_layout_result.lock();
+            let cache_guard = self.base.cached_layout_result.read();
             cache_guard.as_ref().map(|cache| {
                 (
                     cache.result.clone(),
@@ -397,7 +397,7 @@ impl IndependentFormattingContext {
         );
 
         {
-            let mut cache_guard = self.base.cached_layout_result.lock();
+            let mut cache_guard = self.base.cached_layout_result.write();
             *cache_guard = Some(Box::new(CacheableLayoutResultAndInputs {
                 result: result.clone(),
                 positioning_context: child_positioning_context.clone(),

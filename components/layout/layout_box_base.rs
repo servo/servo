@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicBool;
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
@@ -28,10 +28,10 @@ use crate::{ConstraintSpace, ContainingBlockSize};
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
     pub style: Arc<ComputedValues>,
-    pub cached_inline_content_size: Mutex<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
+    pub cached_inline_content_size: RwLock<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub outer_inline_content_sizes_depend_on_content: AtomicBool,
-    pub cached_layout_result: Mutex<Option<Box<CacheableLayoutResultAndInputs>>>,
-    pub fragments: Mutex<Vec<Fragment>>,
+    pub cached_layout_result: RwLock<Option<Box<CacheableLayoutResultAndInputs>>>,
+    pub fragments: RwLock<Vec<Fragment>>,
 }
 
 impl LayoutBoxBase {
@@ -39,10 +39,10 @@ impl LayoutBoxBase {
         Self {
             base_fragment_info,
             style,
-            cached_inline_content_size: Mutex::new(None),
+            cached_inline_content_size: RwLock::new(None),
             outer_inline_content_sizes_depend_on_content: AtomicBool::new(true),
-            cached_layout_result: Mutex::new(None),
-            fragments: Mutex::new(Vec::new()),
+            cached_layout_result: RwLock::new(None),
+            fragments: RwLock::new(Vec::new()),
         }
     }
 
@@ -55,7 +55,7 @@ impl LayoutBoxBase {
         layout_box: &impl ComputeInlineContentSizes,
     ) -> InlineContentSizesResult {
         {
-            let cache = self.cached_inline_content_size.lock();
+            let cache = self.cached_inline_content_size.read();
             if let Some(cached_inline_content_size) = cache.as_ref() {
                 let (previous_cb_block_size, result) = **cached_inline_content_size;
                 if !result.depends_on_block_constraints ||
@@ -70,31 +70,31 @@ impl LayoutBoxBase {
         let result =
             layout_box.compute_inline_content_sizes_with_fixup(layout_context, constraint_space);
         {
-            let mut cache = self.cached_inline_content_size.lock();
+            let mut cache = self.cached_inline_content_size.write();
             *cache = Some(Box::new((constraint_space.block_size, result)));
         }
         result
     }
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
-        self.fragments.lock().clone()
+        self.fragments.read().clone()
     }
 
     pub(crate) fn add_fragment(&self, fragment: Fragment) {
-        self.fragments.lock().push(fragment);
+        self.fragments.write().push(fragment);
     }
 
     pub(crate) fn set_fragment(&self, fragment: Fragment) {
-        *self.fragments.lock() = vec![fragment];
+        *self.fragments.write() = vec![fragment];
     }
 
     pub(crate) fn clear_fragments(&self) {
-        self.fragments.lock().clear();
+        self.fragments.write().clear();
     }
 
     pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = new_style.clone();
-        for fragment in self.fragments.lock().iter_mut() {
+        for fragment in self.fragments.write().iter_mut() {
             fragment.repair_style(new_style);
         }
     }
