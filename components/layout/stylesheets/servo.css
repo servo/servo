@@ -150,13 +150,13 @@ canvas, embed, iframe, img, video {
   overflow-clip-margin: 0 !important;
 }
 
-input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]) {
+input:not([type=radio i], [type=checkbox i], [type=reset i], [type=button i], [type=submit i]) {
   cursor: text;
   overflow: hidden !important;
   white-space: pre;
 }
 
-input:is([type=submit i], [type=reset i], [type=button i], [type=checkbox i], [type=radio i]) {
+input:is([type=submit i], [type=reset i], [type=button i], [type=checkbox i], [type=radio i], [type=color i]) {
   cursor: default;
 }
 
