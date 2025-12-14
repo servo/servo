@@ -8,6 +8,7 @@ use std::sync::atomic::AtomicBool;
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::Mutex;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
@@ -29,7 +30,7 @@ pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
     pub style: Arc<ComputedValues>,
     pub cached_inline_content_size:
-        AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
+        Mutex<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub outer_inline_content_sizes_depend_on_content: AtomicBool,
     pub cached_layout_result: AtomicRefCell<Option<Box<CacheableLayoutResultAndInputs>>>,
     pub fragments: AtomicRefCell<Vec<Fragment>>,
@@ -40,7 +41,7 @@ impl LayoutBoxBase {
         Self {
             base_fragment_info,
             style,
-            cached_inline_content_size: AtomicRefCell::default(),
+            cached_inline_content_size: Mutex::new(None),
             outer_inline_content_sizes_depend_on_content: AtomicBool::new(true),
             cached_layout_result: AtomicRefCell::default(),
             fragments: AtomicRefCell::default(),
@@ -55,20 +56,25 @@ impl LayoutBoxBase {
         constraint_space: &ConstraintSpace,
         layout_box: &impl ComputeInlineContentSizes,
     ) -> InlineContentSizesResult {
-        let mut cache = self.cached_inline_content_size.borrow_mut();
-        if let Some(cached_inline_content_size) = cache.as_ref() {
-            let (previous_cb_block_size, result) = **cached_inline_content_size;
-            if !result.depends_on_block_constraints ||
-                previous_cb_block_size == constraint_space.block_size
-            {
-                return result;
+        {
+            let cache = self.cached_inline_content_size.lock();
+            if let Some(cached_inline_content_size) = cache.as_ref() {
+                let (previous_cb_block_size, result) = **cached_inline_content_size;
+                if !result.depends_on_block_constraints ||
+                    previous_cb_block_size == constraint_space.block_size
+                {
+                    return result;
+                }
+                // TODO: Should we keep multiple caches for various block sizes?
             }
-            // TODO: Should we keep multiple caches for various block sizes?
         }
 
         let result =
             layout_box.compute_inline_content_sizes_with_fixup(layout_context, constraint_space);
-        *cache = Some(Box::new((constraint_space.block_size, result)));
+        {
+            let mut cache = self.cached_inline_content_size.lock();
+            *cache = Some(Box::new((constraint_space.block_size, result)));
+        }
         result
     }
 

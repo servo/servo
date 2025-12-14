@@ -176,7 +176,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
                 // If the node itself has damage, we must clear both the cached layout results
                 // and also the cached intrinsic inline sizes.
                 *base.cached_layout_result.borrow_mut() = None;
-                *base.cached_inline_content_size.borrow_mut() = None;
+                *base.cached_inline_content_size.lock() = None;
             } else if damage_from_children.contains(RestyleDamage::RELAYOUT) {
                 // If the damage is propagated from children, then we still need to clear the cached
                 // layout results, but sometimes we can keep the cached intrinsic inline sizes.
@@ -186,7 +186,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
                     // an ancestor of the damaged one, whose inline size doesn't depend on its contents.
                     return;
                 }
-                *base.cached_inline_content_size.borrow_mut() = None;
+                *base.cached_inline_content_size.lock() = None;
             }
 
             // When a block container has a mix of inline-level and block-level contents,
