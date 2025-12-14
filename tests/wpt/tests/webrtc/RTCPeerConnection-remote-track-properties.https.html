@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+async function setupPeerConnectionAndWaitForTrack(t, localTrack, localStream) {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(localTrack, localStream);
+  const pc2 = createPeerConnectionWithCleanup(t);
+
+  const haveTrackEvent = waitUntilEvent(pc2, "track");
+  await exchangeOfferAnswer(pc1, pc2);
+  const trackEvent = await haveTrackEvent;
+  return [ trackEvent.track, trackEvent.streams[0] ];
+}
+
+function testStreamId(localStream, remoteStream, kind)
+{
+  test(() => {
+    assert_equals(localStream.id, remoteStream.id);
+  }, "Stream id for " + kind);
+}
+
+function testTrackLabel(remoteTrack, kind)
+{
+  test(() => {
+    assert_equals(remoteTrack.label, "remote " + kind);
+  }, "Track label for " + kind);
+}
+
+promise_test(async t => {
+  const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "video");
+  const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
+
+  testStreamId(localStream, remoteStream, "video");
+  testTrackLabel(remoteTrack, "video");
+}, 'Remote video track and stream');
+
+promise_test(async t => {
+  const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "audio");
+  const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
+
+  testStreamId(localStream, remoteStream, "audio");
+  testTrackLabel(remoteTrack, "audio");
+}, 'Remote audio track and stream');
+
+promise_test(async t => {
+  const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "audio");
+  const remoteTrackIds = new Set();
+  for (let i = 0; i < 10; ++i) {
+    const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
+    remoteTrackIds.add(remoteTrack.id);
+  }
+
+  assert_greater_than(remoteTrackIds.size, 1, "Remote tracks should have their own id");
+}, 'Remote audio track ID is different on different PCs');
+
+promise_test(async t => {
+  const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "video");
+  const remoteTrackIds = new Set();
+  for (let i = 0; i < 10; ++i) {
+    const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
+    remoteTrackIds.add(remoteTrack.id);
+  }
+
+  assert_greater_than(remoteTrackIds.size, 1, "Remote tracks should have their own id");
+}, 'Remote video track ID is different on different PCs');
+
+</script>

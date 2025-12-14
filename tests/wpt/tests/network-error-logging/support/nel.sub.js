@@ -69,12 +69,21 @@ function getURLForResourceWithBasicPolicy(subdomain) {
   return _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=1.0");
 }
 
+function getURLForResourceWithBasicPolicyv1(subdomain) {
+  return _getNELResourceURL(subdomain, "pass2.png?id="+reportID+"&success_fraction=1.0");
+}
+
 function getSanitizedURLForResourceWithNoPolicy(subdomain) {
   return _getNELResourceURL(subdomain, "no-policy-pass.png", { sanitize: true });
 }
 
 function fetchResourceWithBasicPolicy(subdomain) {
   const url = getURLForResourceWithBasicPolicy(subdomain);
+  return fetch(url, {mode: "no-cors"});
+}
+
+function fetchResourceWithBasicPolicyv1(subdomain) {
+  const url = getURLForResourceWithBasicPolicyv1(subdomain);
   return fetch(url, {mode: "no-cors"});
 }
 

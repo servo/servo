@@ -15,7 +15,6 @@ window.addEventListener("message", async (e) => {
   let message = "";
   // Step 4 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
   try {
-    await MaybeSetStorageAccess("*", "*", "blocked");
     if (type == "cookies") {
       await test_driver.set_permission({ name: 'storage-access' }, 'denied');
       let didSeeError = false;
@@ -25,20 +24,13 @@ window.addEventListener("message", async (e) => {
         didSeeError = true;
       }
       if (!didSeeError) {
-        message = "First-party cookies should not be readable if storage access is denied.";
+        message = "document.requestStorageAccess() should reject if storage access is denied.";
       }
-      await test_driver.set_permission({ name: 'storage-access' }, 'granted');
-      let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
-      if (hasUnpartitionedCookieAccess) {
-        message = "First-party cookies should not be readable before handle is loaded.";
-      }
-    } else {
-      await test_driver.set_permission({ name: 'storage-access' }, 'granted');
     }
+    await test_driver.set_permission({ name: 'storage-access' }, 'granted');
     const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({all: true}));
     if (type == "cookies") {
-      hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
-      if (!hasUnpartitionedCookieAccess) {
+      if (!(await document.hasUnpartitionedCookieAccess())) {
         message = "First-party cookies should be readable after handle is loaded.";
       }
     }
@@ -139,12 +131,6 @@ window.addEventListener("message", async (e) => {
       case "ThirdPartyBlobURL": {
         break;
       }
-      case "unpartitioned": {
-        const channel = handle.BroadcastChannel(id);
-        channel.postMessage("Cross-origin handle access");
-        channel.close();
-        break;
-      }
       case "BlobURLSharedWorker": {
         break;
       }
@@ -156,7 +142,6 @@ window.addEventListener("message", async (e) => {
   } catch (_) {
     message = "Unable to load handle in cross-site context for all";
   }
-  await MaybeSetStorageAccess("*", "*", "allowed");
   await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
   if (message) {
     window.top.postMessage({type: "result", message: message}, "*");

@@ -17,13 +17,13 @@
 }
 </style>
 <body>
-  <p>Ensure that dense-packing places items correctly based on the auto-placement cursor location when there are multiple gaps. Item 5 should go into the bottom-most gap.</p>
+  <p>Ensure that dense-packing always prioritizes the start-most track opening. Item 6 should go into the top-most track-opening.</p>
   <div class="grid">
     <div class="flex">
       <div style="background: lightskyblue; width: 20px;" >
         1
       </div>
-      <div style="background: red; width: 40px;">
+      <div style="background: yellow; width: 40px;">
         6
       </div>
     </div>

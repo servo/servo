@@ -9,9 +9,9 @@
 <script>
 
 const TEST_CASES = [
-  {value: "", expected: "", test: "Empty value"},
-  {value: "a=b", expected: "a=b", test: "A simple cookie"},
-  {value: "b=A\0Z", expected: "", test: "A null char"},
+  {value: "", expected: "", name: "Empty value"},
+  {value: "a=b", expected: "a=b", name: "A simple cookie"},
+  {value: "b=A\0Z", expected: "", name: "A null char"},
 ];
 
 test(function(){

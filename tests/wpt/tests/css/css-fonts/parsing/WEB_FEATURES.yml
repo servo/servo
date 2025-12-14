@@ -26,12 +26,29 @@ features:
 - name: font-synthesis-weight
   files:
   - font-synthesis-weight*
+- name: font-variant
+  files:
+  - font-variant-valid.html
+  - font-variant-invalid.html
+  - font-variant-serialization.html
 - name: font-variant-alternates
   files:
   - font-variant-alternates-*
+- name: font-variant-caps
+  files:
+  - font-variant-caps-*
+- name: font-variant-east-asian
+  files:
+  - font-variant-east-asian-*
 - name: font-variant-emoji
   files:
   - font-variant-emoji-*
+- name: font-variant-ligatures
+  files:
+  - font-variant-ligatures-*
+- name: font-variant-numeric
+  files:
+  - font-variant-numeric-*
 - name: font-variant-position
   files:
   - font-variant-position-*

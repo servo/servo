@@ -8,8 +8,8 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <body>
-  <iframe id="same-origin"></iframe>
   <iframe id="cross-origin" allow="digital-credentials-get"></iframe>
+  <iframe id="same-origin"></iframe>
 </body>
 <script type="module">
   import { makeGetOptions, sendMessage, loadIframe } from "./support/helper.js";
@@ -31,16 +31,8 @@
   promise_test(async (t) => {
     const invalidData = [null, undefined, "", 123, true, false];
     for (const data of invalidData) {
-      const options = {
-        digital: {
-          requests: [
-            {
-              data,
-              protocol: "openid4vp-v1-unsigned",
-            },
-          ],
-        },
-      };
+      const options = makeGetOptions({ data });
+      await test_driver.bless("user activation");
       await promise_rejects_js(
         t,
         TypeError,
@@ -231,17 +223,16 @@
   }, "navigator.credentials.get() promise is rejected if abort controller is aborted after call to get() in cross-origin iframe.");
 
   promise_test(async (t) => {
-    /** @type sequence<CredentialMediationRequirement> */
-    const mediations = ["silent", "optional", "conditional", "required"];
-    const abortController = new AbortController();
-    const { signal } = abortController;
-    abortController.abort();
-    for (const mediation of mediations) {
-      const requestPromise = navigator.credentials.get({
+    for (const mediation of ["silent", "optional", "conditional", "required"]) {
+      const abortController = new AbortController();
+      const { signal } = abortController;
+      await test_driver.bless("user activation");
+      const requestPromise = navigator.credentials.get(makeGetOptions({
         mediation,
         signal,
-      });
-      await promise_rejects_dom(t, "AbortError", requestPromise);
+      }));
+      abortController.abort(new Error(`Aborted for testing mediation "${mediation}"`));
+      await promise_rejects_js(t, Error, requestPromise);
     }
   }, "Mediation is implicitly required and hence ignored. Request is aborted regardless.");
 
@@ -253,8 +244,7 @@ promise_test(async t => {
   ];
 
   for (const badValue of throwingValues) {
-    const options = makeGetOptions();
-    options.digital.requests[0].data = badValue;
+    const options = makeGetOptions({ data: badValue });
 
     await promise_rejects_js(
       t,

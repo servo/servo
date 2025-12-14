@@ -181,7 +181,7 @@
   },
   "dequantizeLinear": {
     "input": {
-      "dataTypes": ["int32", "int8", "uint8"],
+      "dataTypes": ["int8", "uint8"],
       "rankRange": {"min": 0, "max": 5}
     },
     "scale": {"dataTypes": ["float32"], "rankRange": {"min": 0, "max": 5}},

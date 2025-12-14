@@ -81,7 +81,7 @@ const tests = [
     initial: "<div><select><option>abc</option></select></div>",
     // <option> is a part of <select> and they are replaced so that it should
     // be handled outside of it.
-    expected: "<div><select><option>abc</option></select></div>",
+    expected: "<div><br></div><div><select><option>abc</option></select></div>",
   },
   {
     selector: "progress",

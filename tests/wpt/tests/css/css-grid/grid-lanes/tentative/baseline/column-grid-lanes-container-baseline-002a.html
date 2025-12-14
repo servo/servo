@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: align-items:baseline</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#masonry-baseline-alignment">
+  <link rel="match" href="column-grid-lanes-container-baseline-002a-ref.html">
+  <style>
+    .container {
+      display: flex;
+      align-items: baseline;
+      gap: 20px;
+      border: 2px solid darkblue;
+      padding: 10px;
+      font: 16px/1 monospace;
+      width: 600px;
+      text-decoration: underline;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(2, 100px);
+      gap: 10px;
+      border: 1px solid red;
+      background: #f0f0f0;
+    }
+
+    .grid-lanes-item {
+      border: 1px solid navy;
+      font-size: 14px;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .top {
+      align-items: flex-start;
+    }
+
+    .text-reference {
+      background: yellow;
+      padding: 8px;
+    }
+
+    .grid-lanes-item:nth-child(1) {
+      height: 30px;
+      background: lightcoral;
+      padding: 4px;
+    }
+
+    .grid-lanes-item:nth-child(2) {
+      height: 80px;
+      background: lightgreen;
+      padding: 4px;
+    }
+
+    .grid-lanes-item:nth-child(3) {
+      height: 50px;
+      background: lightblue;
+      padding: 4px;
+    }
+
+    .grid-lanes-item:nth-child(4) {
+      height: 90px;
+      background: lightpink;
+      padding: 4px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="text-reference">Reference Text</div>
+  <div class="grid-lanes">
+    <div class="grid-lanes-item">Short</div>
+    <div class="grid-lanes-item">Tall</div>
+    <div class="grid-lanes-item">Medium</div>
+    <div class="grid-lanes-item">Tallest</div>
+  </div>
+  <div class="text-reference">Reference Text</div>
+</div>
+<div class="container">
+  <div class="text-reference">Reference Text</div>
+  <div class="grid-lanes">
+    <div class="grid-lanes-item"></div>
+    <div class="grid-lanes-item">Tall</div>
+    <div class="grid-lanes-item">Medium</div>
+    <div class="grid-lanes-item">Tallest</div>
+  </div>
+  <div class="text-reference">Reference Text</div>
+</div>
+</body>
+</html>

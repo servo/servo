@@ -29,8 +29,8 @@
     const sr = host.attachShadow({mode: 'open'});
     sr.innerHTML = `
       <button id=item1 tabindex=0>One</button>
-      <button id=item2 tabindex=-1>Two</button>
-      <button id=item3 tabindex=-1>Three</button>`;
+      <button id=item2 tabindex=0>Two</button>
+      <button id=item3 tabindex=0>Three</button>`;
     const item1 = sr.getElementById('item1');
     const item2 = sr.getElementById('item2');
     const item3 = sr.getElementById('item3');

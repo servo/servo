@@ -7,13 +7,8 @@ class WebExtension(BidiModule):
     def install(
         self,
         extension_data: Mapping[str, Any],
-        **kwargs: Mapping[str, Any]
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"extensionData": extension_data}
-
-        # Allow vendor specific parameters
-        params.update(**kwargs)
-
         return params
 
     @install.result

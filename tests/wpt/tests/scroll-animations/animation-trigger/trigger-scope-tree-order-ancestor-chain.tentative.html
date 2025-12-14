@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/css-animations-2/#trigger-scope">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+    <script src="support/trigger-scope-support.js"></script>
+  </head>
+  <body>
+    <style>
+      @keyframes expand {
+        from { transform: scaleX(1) }
+        to { transform: scaleX(2) }
+      }
+      #scroller {
+        overflow-y: scroll;
+        height: 200px;
+        width: 200px;
+        border: solid 1px;
+        trigger-scope: all;
+        display: block;
+        position: relative;
+      }
+      .source {
+        top: 100%;
+        height: 100px;
+        width: 100px;
+        background-color: blue;
+        timeline-trigger: --trigger view() contain;
+        color: white;
+      }
+      .target {
+        background-color: red;
+        height: 100px;
+        width: 100px;
+        animation: expand linear 1s both;
+        animation-trigger: --trigger play-forwards play-backwards;
+        position: sticky;
+        top: 0%;
+        left: 50%;
+      }
+
+      .long {
+        width: 50%;
+        height: 100%;
+      }
+    </style>
+    <div id="scroller">
+      <div id="target" class="target">Target</div>
+      <div class="long"></div>
+      <div id="source1" class="source">SOURCE 1
+        <div class="long"></div>
+        <div id="source2" class="source">SOURCE 2
+          <div class="long"></div>
+          <div id="source3" class="source">SOURCE 3
+            <div class="long"></div>
+            <div id="source4" class="source">SOURCE 4
+              <div class="long"></div>
+              <div id="source5" class="source">SOURCE 5</div>
+              <div class="long"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+
+      promise_test(async() => {
+        await assert_playstate_and_current_time(target.id,
+                                          target.getAnimations()[0],
+                                          "paused");
+        let scrollend_promise;
+
+        // Sources 1 through 4 come earlier than source5 in tree-order so they
+        // should have no effect.
+        for (const source of [source1, source2, source3, source4]) {
+          scrollend_promise =
+              waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+          source.scrollIntoView({block: "center"});
+          await scrollend_promise;
+          await waitForCompositorReady();
+          await assert_playstate_and_current_time(target.id,
+                                            target.getAnimations()[0],
+                                            "paused");
+        }
+
+        scrollend_promise =
+              waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+        source5.scrollIntoView({block: "center"});
+        await scrollend_promise;
+        await waitForCompositorReady();
+
+        await assert_greater_than(scroller.scrollTop, 0, "did scroll");
+        // The target should now be playing as its trigger condition has been
+        // met.
+        await assert_playstate_and_current_time(target.id,
+                                          target.getAnimations()[0],
+                                          "running");
+      }, "Among in-scope triggers with same name, last in tree-order is "+
+         "selected.");
+    </script>
+  </body>
+</html>

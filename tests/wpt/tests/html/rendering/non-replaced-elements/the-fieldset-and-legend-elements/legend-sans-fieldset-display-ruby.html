@@ -1,0 +1,27 @@
+<!doctype html>
+<title>legend sans fieldset and CSS display (ruby)</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ * { margin: 0; padding: 0; }
+ .ruby { display: ruby; }
+ .rt { display: ruby-text; }
+ rt { font-size: inherit; }
+</style>
+<p><legend class=ruby>ruby<legend class=rt>rt</legend></legend> <ruby>ruby<rt>rt</ruby>
+<script>
+  function test_display(testSelector, refSelector) {
+    test(() => {
+      const testElm = document.querySelector(testSelector);
+      const refElm = document.querySelector(refSelector);
+      const testStyle = getComputedStyle(testElm);
+      const refStyle = getComputedStyle(refElm);
+      assert_equals(testStyle.display, refStyle.display, testSelector + ' display');
+      assert_equals(testStyle.width, refStyle.width, testSelector + ' width');
+      assert_equals(testStyle.height, refStyle.height, testSelector + ' height');
+    }, testSelector);
+  }
+
+  test_display('.ruby', 'ruby');
+  test_display('.rt', 'rt');
+</script>

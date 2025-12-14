@@ -85,8 +85,6 @@ function assert_config(config, expected) {
 
   assert_config_is_valid(config);
 
-  // XXX dataAttributes
-  // XXX comments
   // XXX duplications
   // XXX other consistency checks
 
@@ -167,4 +165,12 @@ function assert_config(config, expected) {
   assert_elems("elements");
   assert_elems("removeElements");
   assert_elems("replaceWithChildrenElements");
+
+  if ("comments" in expected) {
+    assert_equals(config.comments, expected.comments, "comments should match");
+  }
+
+  if ("dataAttributes" in expected) {
+    assert_equals(config.dataAttributes, expected.dataAttributes, "dataAttributes should match");
+  }
 }

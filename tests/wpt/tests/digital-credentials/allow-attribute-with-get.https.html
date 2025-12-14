@@ -10,7 +10,9 @@
         <script src="/resources/testharnessreport.js"></script>
         <script src="/resources/testdriver.js"></script>
         <script src="/resources/testdriver-vendor.js"></script>
-        <script>
+        <script type="module">
+            import { makeGetOptions } from "./support/helper.js";
+
             const hostInfo = get_host_info();
             const iframeDetails = [
                 {
@@ -90,6 +92,8 @@
                             : location.origin
                     ).href;
                     iframe.dataset.expectIsAllowed = expectIsAllowed;
+                    iframe.width = "400";
+                    iframe.height = "200";
                     document.body.appendChild(iframe);
                 });
                 iframe.focus();
@@ -100,15 +104,12 @@
                 for (const details of iframeDetails) {
                     promise_test(async (test) => {
                         const iframe = await loadIframe(details);
+                        test.add_cleanup(() => {
+                            document.body.removeChild(iframe);
+                        });
                         const { expectIsAllowed } = details;
                         const action = "get";
-                        const options = {
-                            digital: {
-                                // Results in TypeError when allowed (since the requests list is empty),
-                                // NotAllowedError when disallowed
-                                requests: [],
-                            },
-                        };
+                        const options = makeGetOptions({ protocol: [] });
                         await test_driver.bless("User activation");
                         const { data } = await new Promise((resolve) => {
                             const callback = (e) => {
@@ -133,11 +134,12 @@
                             // When the call is disallowed, it MUST result in a NotAllowedError.
                             assert_equals(name, "NotAllowedError", fullMessage);
                         }
-                        iframe.remove();
+
                     }, `With Get: Policy to use: ${details.policy}, is cross-origin: ${details.crossOrigin}, is allowed by policy: ${details.expectIsAllowed}`);
                 }
             }
+            window.onload = runTests;
         </script>
     </head>
-    <body onload="runTests()"></body>
+    <body></body>
 </html>

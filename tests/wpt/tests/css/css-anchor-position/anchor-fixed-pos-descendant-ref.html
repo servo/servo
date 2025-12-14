@@ -1,0 +1,30 @@
+<!doctype html>
+<title>CSS Test Reference</title>
+<style>
+p {
+  display: block;
+  outline: 1px solid;
+  height: 1lh;
+  anchor-name: --foo;
+  anchor-scope: --foo;
+  overflow: hidden;
+  resize: horizontal;
+}
+
+p > span {
+  position: fixed;
+  pointer-events: none;
+  inset: anchor(--foo inside);
+  right: anchor(--foo right, 0);
+  left: 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 10px;
+    background-color: pink;
+  }
+}
+</style>
+<p style="width: 100px"><span></span></p>

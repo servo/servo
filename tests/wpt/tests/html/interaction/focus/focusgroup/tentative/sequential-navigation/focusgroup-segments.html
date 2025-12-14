@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Sequential navigation with focusgroup segments</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Opted-out elements create multiple focusgroup entry points -->
+<div id=before tabindex=0>Before toolbar</div>
+
+<div id=toolbar focusgroup="toolbar wrap" aria-label="Text formatting">
+  <button id=bold type="button" focusgroup-entry-priority>Bold (priority)</button>
+  <button id=italic type="button">Italic</button>
+  <span id=help-group focusgroup="none" aria-label="Help group">
+    <button id=help type="button">Help</button>
+    <button id=shortcuts type="button">Shortcuts</button>
+  </span>
+  <button id=underline type="button" focusgroup-entry-priority>Underline (priority)</button>
+</div>
+
+<div id=after tabindex=0>After toolbar</div>
+
+<!-- Test complex nested opt-out -->
+<div id=before2 tabindex=0>Before complex</div>
+
+<div id=complex-focusgroup focusgroup="toolbar no-memory">
+  <button id=item1 focusgroup-entry-priority>Item 1 (priority)</button>
+  <div id=nested-opt-out focusgroup="none">
+    <button id=opted-out-1>Opted out 1</button>
+    <div id=deeply-nested focusgroup="none">
+      <button id=deeply-opted-out>Deeply opted out</button>
+    </div>
+    <button id=opted-out-2>Opted out 2</button>
+  </div>
+  <button id=item2 focusgroup-entry-priority>Item 2 (priority)</button>
+  <button id=item3>Item 3</button>
+</div>
+
+<div id=after2 tabindex=0>After complex</div>
+
+<script>
+  promise_test(async t => {
+    var before = document.getElementById("before");
+    var bold = document.getElementById("bold");
+    var help = document.getElementById("help");
+    var shortcuts = document.getElementById("shortcuts");
+    var underline = document.getElementById("underline");
+    var after = document.getElementById("after");
+
+    before.focus();
+    await navigateFocusForward();
+    assert_equals(document.activeElement, bold, "Tab from before should focus Bold (first focusgroup item)");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, help, "Tab from Bold should focus Help (first opted-out element)");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, shortcuts, "Tab from Help should focus Shortcuts (next in opted-out subtree)");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, underline, "Tab from Shortcuts should focus Underline (re-enter focusgroup)");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, after, "Tab from Underline should exit focusgroup");
+  }, "Tab navigation through focusgroup segments - forward direction");
+
+  promise_test(async t => {
+    var before = document.getElementById("before");
+    var italic = document.getElementById("italic");
+    var help = document.getElementById("help");
+    var shortcuts = document.getElementById("shortcuts");
+    var underline = document.getElementById("underline");
+    var after = document.getElementById("after");
+
+    help.focus();
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, bold, "Shift+Tab from Help should focus Bold");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, before, "Shift+Tab from Bold should exit focusgroup");
+  }, "Shift+Tab navigation through focusgroup segments - backward direction");
+
+  promise_test(async t => {
+    var bold = document.getElementById("bold");
+    var italic = document.getElementById("italic");
+    var underline = document.getElementById("underline");
+
+    bold.focus();
+
+    await focusAndKeyPress(bold, kArrowRight);
+    assert_equals(document.activeElement, italic, "Arrow right should move from Bold to Italic");
+
+    await focusAndKeyPress(italic, kArrowRight);
+    assert_equals(document.activeElement, underline, "Arrow right should skip opted-out span and move to Underline");
+
+    await focusAndKeyPress(underline, kArrowLeft);
+    assert_equals(document.activeElement, italic, "Arrow left should skip opted-out span and move to Italic");
+  }, "Arrow key navigation treats opted-out elements as if they don't exist");
+
+  promise_test(async t => {
+    var before2 = document.getElementById("before2");
+    var item1 = document.getElementById("item1");
+    var optedOut1 = document.getElementById("opted-out-1");
+    var deeplyOptedOut = document.getElementById("deeply-opted-out");
+    var optedOut2 = document.getElementById("opted-out-2");
+    var item2 = document.getElementById("item2");
+    var after2 = document.getElementById("after2");
+
+    before2.focus();
+    await navigateFocusForward();
+    assert_equals(document.activeElement, item1, "Tab should enter at Item 1");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, optedOut1, "Tab should move to first opted-out element");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, deeplyOptedOut, "Tab should move to deeply nested opted-out element");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, optedOut2, "Tab should move to second opted-out element");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, item2, "Tab should re-enter focusgroup at Item 2");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, after2, "Tab should exit focusgroup");
+  }, "Complex nested opt-out creates proper focusgroup segments");
+
+  promise_test(async t => {
+    var help = document.getElementById("help");
+    var shortcuts = document.getElementById("shortcuts");
+
+    help.focus();
+
+    await focusAndKeyPress(help, kArrowRight);
+    assert_equals(document.activeElement, help, "Arrow keys should not work within opted-out section");
+
+    await focusAndKeyPress(help, kArrowDown);
+    assert_equals(document.activeElement, help, "Vertical arrow keys should not work within opted-out section");
+  }, "Arrow keys do not work within opted-out focusgroup sections");
+</script>

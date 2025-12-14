@@ -33,20 +33,22 @@ promise_test(t => {
     let target = document.getElementById("target");
     let observer = new IntersectionObserver(function(changes) {
       entries = entries.concat(changes);
+      assert_true(entries[0].isIntersecting);
       changes.forEach(entry => {
         if (!entry.isIntersecting) {
           resolve("Received not-intersecting notification before animationend.");
         }
       });
     });
-    observer.observe(target);
-    await waitForNotification();
-    assert_equals(entries.length, 1);
-    assert_true(entries[0].isIntersecting);
     target.style.animation = "3s linear slideup";
     setTimeout(() => {
       reject("Did not get a not-intersecting notification within 2 seconds.");
     }, 2000);
+    target.addEventListener("animationend", evt => {
+      reject("animationend event fired before not-intersecting notification.");
+    });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    observer.observe(target);
   });
 }, "IntersectionObserver generates notifications when "
   + "a transform animation changes intersection state");

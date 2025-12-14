@@ -15,7 +15,7 @@ legend { width:initial; }
   // several CSS specs, but no browser engines appear likely to support it.
   const values = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
                   'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow', 'flow-root', 'inline',
-                  'inline-block', 'inline-table', 'block ruby', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container',
+                  'inline-block', 'inline-table',
                   'grid', 'inline-grid', 'flex', 'inline-flex'];
   const extraStyle = ['', 'overflow:hidden', 'columns:1', 'overflow:hidden;columns:1'];
 
@@ -27,10 +27,6 @@ legend { width:initial; }
         testElm.style.display = val;
         const computed = getComputedStyle(testElm);
         // Note that computed value is different from the used value.
-        // E.g., if ruby is not supported, the following assertion will
-        // fail as the computed value of display will be block.
-        // If ruby is supported, computed.display will return "ruby",
-        // but the used value is supposed to be "block ruby".
         // Also, 'flow' is serialized as 'block' for legacy reasons.
         let expected = val == 'flow' ? 'block' : val;
         assert_equals(computed.display, expected, `display: ${val} is not supported`);

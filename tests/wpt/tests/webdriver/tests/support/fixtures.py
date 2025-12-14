@@ -510,9 +510,3 @@ async function getText() {
 """ % encoded_pdf_data)
 
     return test_page_with_pdf_js
-
-
-@pytest_asyncio.fixture
-async def top_context(bidi_session):
-    contexts = await bidi_session.browsing_context.get_tree()
-    return contexts[0]

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Entry element priority with focusgroup-entry-priority attribute</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Priority Tier 1: focusgroup-entry-priority attribute -->
+<div id=before1 tabindex=0>Before test 1</div>
+
+<div id=fg1 focusgroup="toolbar no-memory">
+  <span id=item1 tabindex=0>Item 1 (no priority)</span>
+  <span id=item2 tabindex=0 focusgroup-entry-priority>Item 2 (has priority)</span>
+  <span id=item3 tabindex=0>Item 3 (no priority)</span>
+</div>
+
+<div id=after1 tabindex=0>After test 1</div>
+
+<!-- Priority Tier 2: First element in tree order when no priority attribute -->
+<div id=before2 tabindex=0>Before test 2</div>
+
+<div id=fg2 focusgroup="toolbar no-memory">
+  <span id=first tabindex=0>First (no priority)</span>
+  <span id=second tabindex=0>Second (no priority)</span>
+</div>
+
+<div id=after2 tabindex=0>After test 2</div>
+
+<!-- Priority Tier 3: First element with priority attribute when multiple have it -->
+<div id=before3 tabindex=0>Before test 3</div>
+
+<div id=fg3 focusgroup="toolbar no-memory">
+  <span id=early1 tabindex=0 focusgroup-entry-priority>Early (has priority)</span>
+  <span id=early2 tabindex=0 focusgroup-entry-priority>Later (has priority)</span>
+</div>
+
+<div id=after3 tabindex=0>After test 3</div>
+
+<!-- Test with buttons (natively focusable) -->
+<div id=before4 tabindex=0>Before test 4</div>
+
+<div id=fg4 focusgroup="toolbar no-memory">
+  <button id=btn1>Button 1</button>
+  <button id=btn2 focusgroup-entry-priority>Button 2 (has priority)</button>
+  <button id=btn3>Button 3</button>
+</div>
+
+<div id=after4 tabindex=0>After test 4</div>
+
+<script>
+  promise_test(async t => {
+    document.getElementById("before1").focus();
+    await navigateFocusForward();
+    assert_equals(document.activeElement, document.getElementById("item2"),
+                  "Entry element is item with focusgroup-entry-priority");
+  }, "Element with focusgroup-entry-priority is selected as entry element");
+
+  promise_test(async t => {
+    document.getElementById("before2").focus();
+    await navigateFocusForward();
+    assert_equals(document.activeElement, document.getElementById("first"),
+                  "First item in tree order is selected when no priority attributes");
+  }, "When no elements have focusgroup-entry-priority, first in tree order is selected");
+
+  promise_test(async t => {
+    document.getElementById("before3").focus();
+    await navigateFocusForward();
+    assert_equals(document.activeElement, document.getElementById("early1"),
+                  "First element with priority attribute is selected");
+  }, "When multiple items have focusgroup-entry-priority, earliest in tree order wins");
+
+  promise_test(async t => {
+    document.getElementById("before4").focus();
+    await navigateFocusForward();
+    assert_equals(document.activeElement, document.getElementById("btn2"),
+                  "Priority attribute overrides tree order for native focusable elements");
+  }, "focusgroup-entry-priority works with natively focusable elements");
+
+  promise_test(async t => {
+    document.getElementById("after1").focus();
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, document.getElementById("item2"),
+                  "Reverse navigation respects same priority algorithm");
+  }, "Reverse navigation uses same priority algorithm");
+</script>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+::picker(select) {
+  width: 600px;
+  height: 600px;
+  top: 0;
+  left: 0;
+  position-area: none;
+  position-try-fallbacks: none;
+}
+</style>
+
+<select></select>
+
+<script>
+promise_test(async () => {
+  const select = document.querySelector('select');
+  await (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: select})
+    .pointerDown()
+    .pointerUp())
+    .send();
+  await new Promise(requestAnimationFrame);
+  assert_true(select.matches(':open'),
+    'Select should be open after clicking it.');
+
+  let selectClicked = false;
+  select.addEventListener('click', () => {
+    selectClicked = true;
+  });
+
+  await (new test_driver.Actions()
+    .pointerMove(300, 300)
+    .pointerDown()
+    .pointerUp())
+    .send();
+
+  assert_true(selectClicked,
+    'Clicking ::picker(select) should fire a click event on the select element.');
+  assert_true(select.matches(':open'),
+    'Select should not close when clicking its picker.');
+}, 'Clicking directly on ::picker(select) should not trigger light dismiss.');
+</script>

@@ -2,6 +2,11 @@ features:
 - name: style-attr
   files:
   - style-01.html
+- name: translate
+  files:
+  - the-translate-attribute-*
+  - translate-enumerated-ascii-case-insensitive.html
+  - translate-inherit-no-parent-element.html
 - name: title-attr
   files:
   - title-manual.html

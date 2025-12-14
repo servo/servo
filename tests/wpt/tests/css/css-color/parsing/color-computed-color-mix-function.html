@@ -568,6 +568,9 @@
 
     // Percent with calc that uses font-relative length.
     fuzzy_test_computed_color(`color-mix(in srgb, red calc(50% + (sign(100em - 1px) * 10%)), blue)`, `color(srgb 0.6 0 0.4)`);
+
+    // Carry forward hue that became powerless due to conversion of colorspace
+    fuzzy_test_computed_color(`color-mix(in oklch, hsl(0 100% 100%), blue)`, `oklch(0.726007 0.156607 264.052)`);
 </script>
 </body>
 </html>

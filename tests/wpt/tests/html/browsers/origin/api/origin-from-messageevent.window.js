@@ -1,6 +1,11 @@
 // META: title=`Origin.from(MessageEvent)`
 // META: script=/common/get-host-info.sub.js
 
+test(t => {
+  const e = new MessageEvent("message", { origin: get_host_info().ORIGIN });
+  assert_throws_js(TypeError, _ => Origin.from(e));
+}, "Constructed `MessageEvent` objects have no real origins.");
+
 async_test(t => {
   const el = document.createElement('iframe');
   el.src = "/html/browsers/windows/resources/message-parent.html"

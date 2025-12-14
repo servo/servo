@@ -38,3 +38,6 @@ features:
   files:
   - "deprecated-sameas-*"
   - "system-color-*"
+- name: contrast-color
+  files:
+  - contrast-color-001.html

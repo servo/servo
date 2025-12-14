@@ -8,8 +8,8 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <body>
-  <iframe id="same-origin"></iframe>
   <iframe id="cross-origin" allow="digital-credentials-create"></iframe>
+  <iframe id="same-origin"></iframe>
 </body>
 
 <script type="module">
@@ -236,8 +236,7 @@
     ];
 
     for (const badValue of throwingValues) {
-      const options = makeCreateOptions();
-      options.digital.requests[0].data = badValue;
+      const options = makeCreateOptions({ data: badValue });
 
       await promise_rejects_js(
         t,

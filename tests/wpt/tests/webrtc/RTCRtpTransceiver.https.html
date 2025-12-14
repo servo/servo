@@ -2267,7 +2267,43 @@ const tests = [
     await exchangeOfferAnswer(pc1, pc2);
     await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
     assert_false(pc2.getReceivers()[0].track.muted, `track is unmuted`);
-  }, `track with ${kind} gets unmuted when setting the transceiver direction to 'sendrecv ' after 'inactive'`);
+  }, `track with ${kind} gets unmuted when setting the transceiver direction to 'sendrecv' after 'inactive'`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    let stream;
+    if (kind === 'audio') {
+      stream = await navigator.mediaDevices.getUserMedia({[kind]: true});
+    } else {
+      stream = await getNoiseStream({[kind]: true});
+    }
+    t.add_cleanup(() => stream.getTracks().forEach(t => t.stop()));
+
+    pc1.addTrack(stream.getTracks()[0], stream);
+    pc2.ontrack = t.step_func(async e => {
+      assert_true(e.track.muted, `track is muted in ontrack`);
+    });
+
+    await exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
+    assert_false(pc2.getReceivers()[0].track.muted, `track is unmuted`);
+    pc1.getSenders()[0].replaceTrack(null);
+
+    pc1.getTransceivers()[0].direction = 'inactive';
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'mute', t);
+    assert_true(pc2.getReceivers()[0].track.muted, `track is muted`);
+
+    pc1.getTransceivers()[0].direction = 'sendrecv';
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
+    assert_true(pc2.getReceivers()[0].track.muted, `track remains muted`);
+  }, `track with ${kind} stays muted when setting the transceiver direction to 'sendrecv' after 'inactive' but no packets flow`);
 });
 
 </script>

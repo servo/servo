@@ -20,6 +20,24 @@ test(t => {
 }, 'Copied KeyframeEffect has the same target');
 
 test(t => {
+  const target = createElement(t, 'input');
+  target.setAttribute('type', 'input');
+  target.setAttribute('placeholder', "hello");
+  let effect = undefined;
+  try {
+    // Pseudo-elements for which the user agent has no usable level of support
+    // are deemed invalid. Test passes if no effect is generated.
+    effect = new KeyframeEffect(target, [], { pseudoElement: '::placeholder' });
+  } catch (e) {}
+  if (effect) {
+    // If an effect is generated (UA supports the pseudo), then the copy
+    // constructor is to retain the correct target.
+    const copy = new KeyframeEffect(effect);
+    assert_equals(copy.target, target);
+  }
+}, 'Copied KeyframeEffect does not expose UA-shadow DOM');
+
+test(t => {
   const effect =
     new KeyframeEffect(null,
                        [ { marginLeft: '0px' },
