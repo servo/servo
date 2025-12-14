@@ -566,12 +566,13 @@ impl Window {
     }
 
     pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
-        if let Some(index) = self
-            .reporting_observer_list
-            .borrow()
-            .iter()
-            .position(|observer| &**observer == reporting_observer)
-        {
+        let index = {
+            let list = self.reporting_observer_list.borrow();
+            list.iter()
+                .position(|observer| &**observer == reporting_observer)
+        };
+
+        if let Some(index) = index {
             self.reporting_observer_list.borrow_mut().remove(index);
         }
     }
