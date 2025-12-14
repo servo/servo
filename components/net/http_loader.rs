@@ -1571,12 +1571,18 @@ async fn http_network_or_cache_fetch(
 
             // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
             // includeCredentials, and isNewConnectionFetch.
+            drop(cache_guard);
             let forward_response =
                 http_network_fetch(http_fetch_params, include_credentials, done_chan, context)
                     .await;
 
             let http_request = &mut http_fetch_params.request;
             let request_key = CacheKey::new(http_request);
+            cache_guard = context
+                .state
+                .http_cache
+                .get_or_guard(request_key.clone())
+                .await;
             // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
             // inclusive, invalidate appropriate stored responses in httpCache, as per the
             // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
