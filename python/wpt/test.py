@@ -30,7 +30,6 @@ import tempfile
 import threading
 import time
 import unittest
-
 from functools import partial
 from typing import Any, Optional, Type
 from wsgiref.simple_server import WSGIRequestHandler, make_server
@@ -39,7 +38,7 @@ import flask
 import flask.cli
 import requests
 
-from .exporter import SyncRun, WPTSync, LocalGitRepo
+from .exporter import LocalGitRepo, SyncRun, WPTSync
 from .exporter.step import CreateOrUpdateBranchForPRStep
 
 TESTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests")
@@ -580,6 +579,29 @@ class TestFullSyncRun(unittest.TestCase):
         self.assertListEqual(self.run_test("merged.json", ["non-wpt.diff"]), [])
 
 
+class TestGithubActionRunURLRegex(unittest.TestCase):
+    """Tests that the URL used for detecting Github action runs works correctedly."""
+
+    def test_action_run_url(self) -> None:
+        from . import update
+
+        simple_url = "https://github.com/servo/servo/actions/runs/19952163512"
+        self.assertRegexpMatches(simple_url, update.GITHUB_ACTION_RUN_URL_REGEX)
+        match = update.GITHUB_ACTION_RUN_URL_REGEX.search(simple_url)
+        assert match
+        self.assertEquals(match.group(1), "servo/servo")
+        self.assertEquals(match.group(2), "19952163512")
+
+        url_with_cases = "https://github.com/CaMeL/CaSe/actions/runs/19952163512"
+        match = update.GITHUB_ACTION_RUN_URL_REGEX.search(url_with_cases)
+        assert match
+        self.assertEquals(match.group(1), "CaMeL/CaSe")
+
+        url_with_bad_run_id = "https://github.com/servo/servo/actions/runs/19952aa163512"
+        match = update.GITHUB_ACTION_RUN_URL_REGEX.search(url_with_bad_run_id)
+        self.assertIsNone(match)
+
+
 def setUpModule() -> None:
     # pylint: disable=invalid-name
     global TMP_DIR, SYNC
@@ -632,5 +654,6 @@ def run_tests() -> bool:
             run_suite(TestApplyCommitsToWPT),
             run_suite(TestCleanUpBodyText),
             run_suite(TestFullSyncRun),
+            run_suite(TestGithubActionRunURLRegex),
         ]
     )
