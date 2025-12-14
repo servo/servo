@@ -171,7 +171,7 @@ pub trait ImageCacheFactory: Sync + Send {
 /// An [`ImageCache`] manages fetching and decoding images for a single `Pipeline` for its
 /// `Document` and all of its associated `Worker`s.
 pub trait ImageCache: Sync + Send {
-    fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report;
+    fn memory_reports(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Vec<Report>;
 
     /// Get an [`ImageKey`] to be used for external WebRender image management for
     /// things like canvas rendering. Returns `None` when an [`ImageKey`] cannot

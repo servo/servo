@@ -14,7 +14,7 @@ use base::threadpool::ThreadPool;
 use compositing_traits::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use log::{debug, warn};
-use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
+use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use net_traits::image_cache::{
@@ -724,13 +724,21 @@ pub struct ImageCacheImpl {
 }
 
 impl ImageCache for ImageCacheImpl {
-    fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report {
-        let size = self.store.lock().size_of(ops);
-        Report {
-            path: path![prefix, "image-cache"],
-            kind: ReportKind::ExplicitSystemHeapSize,
-            size,
-        }
+    fn memory_reports(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Vec<Report> {
+        let store_size = self.store.lock().size_of(ops);
+        let fontdb_size = self.fontdb.conditional_size_of(ops);
+        vec![
+            Report {
+                path: path![prefix, "image-cache"],
+                kind: ReportKind::ExplicitSystemHeapSize,
+                size: store_size,
+            },
+            Report {
+                path: path![prefix, "image-cache", "fontdb"],
+                kind: ReportKind::ExplicitSystemHeapSize,
+                size: fontdb_size,
+            },
+        ]
     }
 
     fn get_image_key(&self) -> Option<WebRenderImageKey> {

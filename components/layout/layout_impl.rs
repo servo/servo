@@ -553,7 +553,7 @@ impl Layout for LayoutThread {
             size: self.stacking_context_tree.size_of(ops),
         });
 
-        reports.push(self.image_cache.memory_report(formatted_url, ops));
+        reports.extend(self.image_cache.memory_reports(formatted_url, ops));
     }
 
     fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
