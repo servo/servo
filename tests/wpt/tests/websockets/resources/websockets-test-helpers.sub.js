@@ -26,10 +26,10 @@ async function openThenCloseWebSocket(remoteContextHelper) {
 
 // Opens a new WebSocket connection and close it in pagehide event listener.
 async function openWebSocketAndCloseItInPageHide(remoteContextHelper) {
-  window.wsErrorOccurred = false;
-  window.wsCloseOccurred = false;
-
   let return_value = await remoteContextHelper.executeScript((domain) => {
+    window.wsErrorOccurred = false;
+    window.wsCloseOccurred = false;
+
     return new Promise((resolve) => {
       var testWebSocket = new WebSocket(domain + '/echo');
       testWebSocket.onopen = () => {
@@ -51,8 +51,8 @@ async function openWebSocketAndCloseItInPageHide(remoteContextHelper) {
 async function readWebSocketCloseAndErrorFlags(remoteContext) {
   return await remoteContext.executeScript(() => {
     return {
-      wsError: window.wsErrorOccurred === true,
-      wsClose: window.wsCloseOccurred === true
+      wsError: window.wsErrorOccurred,
+      wsClose: window.wsCloseOccurred
     };
   });
 }

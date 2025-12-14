@@ -106,6 +106,9 @@
         {at: 2, expect: 'path("M 250 260 H 200 V 240 H 210 V 230 L 240 210 Z")'}
       ]);
 
+      // At progress 0.125/0.875, arc flags in path() should consider
+      // non-zero interpolated values as one to match <path> behaviour.
+      // https://svgwg.org/specs/paths/#PathElement
       test_interpolation({
         property: 'd',
         from: 'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50")',
@@ -113,8 +116,8 @@
       }, [
         {at: -1, expect: 'path("M 2 28 A -30 -60 -10 1 0 10 30 A 70 80 -10 1 1 310 160")'},
         {at: 0, expect: 'path("M 10 20 A 10 20 30 1 0 50 70 A 110 120 30 1 1 190 120")'},
-        {at: 0.125, expect: 'path("M 11 19 A 15 30 35 1 0 55 75 A 115 125 35 1 1 175 115")'},
-        {at: 0.875, expect: 'path("M 17 13 A 45 90 65 0 1 85 105 A 145 155 65 0 1 85 85")'},
+        {at: 0.125, expect: 'path("M 11 19 A 15 30 35 1 1 55 75 A 115 125 35 1 1 175 115")'},
+        {at: 0.875, expect: 'path("M 17 13 A 45 90 65 1 1 85 105 A 145 155 65 1 1 85 85")'},
         {at: 1, expect: 'path("M 18 12 A 50 100 70 0 1 90 110 A 150 160 70 0 1 70 80")'},
         {at: 2, expect: 'path("M 26 4 A 90 180 110 0 1 130 150 A 190 200 110 0 1 -50 40")'}
       ]);

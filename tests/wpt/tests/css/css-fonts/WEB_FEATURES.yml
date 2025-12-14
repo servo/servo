@@ -24,13 +24,32 @@ features:
 - name: font-synthesis-weight
   files:
   - font-synthesis-weight*
+- name: font-variant
+  files:
+  - font-variant-01.html
+  - font-variant-02.html
+  - font-variant-03.html
+  - font-variant-04.html
 - name: font-variant-alternates
   files:
   - alternates-order.html
   - font-variant-alternates-*
+- name: font-variant-caps
+  files:
+  - font-variant-caps-*
+- name: font-variant-east-asian
+  files:
+  - font-variant-east-asian-*
 - name: font-variant-emoji
   files:
   - font-variant-emoji-*
+- name: font-variant-ligatures
+  files:
+  - font-variant-ligatures-*
+  - language-specific-01.html
+- name: font-variant-numeric
+  files:
+  - font-variant-numeric-*
 - name: font-variant-position
   files:
   - font-variant-position-*
@@ -45,3 +64,6 @@ features:
 - name: font-family-ui
   files:
   - standard-font-family-*
+- name: font-weight
+  files:
+  - font-weight-*

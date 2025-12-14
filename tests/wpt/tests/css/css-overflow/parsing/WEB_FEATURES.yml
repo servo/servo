@@ -1,4 +1,7 @@
 features:
+- name: scroll-markers
+  files:
+  - scroll-markers*
 - name: scrollbar-buttons
   files:
   - scroll-button*

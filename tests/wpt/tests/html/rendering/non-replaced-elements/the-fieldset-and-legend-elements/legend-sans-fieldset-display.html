@@ -14,9 +14,6 @@
  .inline { display: inline; }
  .inline-block { display: inline-block; }
  .inline-table { display: inline-table; }
- .ruby { display: ruby; }
- .rt { display: ruby-text; }
- rt { font-size: inherit; }
 </style>
 <legend class=table>
   <legend class=caption>caption</legend>
@@ -40,7 +37,6 @@
 </ul>
 <p>foo <legend class=inline>inline</legend> <span>inline</span>
 <p>foo <legend class=inline-block>inline-block</legend> <span class=inline-block>inline-block</span>
-<p><legend class=ruby>ruby<legend class=rt>rt</legend></legend> <ruby>ruby<rt>rt</ruby>
 <script>
   function test_display(testSelector, refSelector) {
     test(() => {
@@ -63,6 +59,4 @@
   test_display('.li', 'li');
   test_display('.inline', 'span');
   test_display('.inline-block', 'span.inline-block');
-  test_display('.ruby', 'ruby');
-  test_display('.rt', 'rt');
 </script>

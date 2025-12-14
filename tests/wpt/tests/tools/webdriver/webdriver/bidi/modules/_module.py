@@ -64,6 +64,8 @@ class command:
         @functools.wraps(params_fn)
         async def inner(self: Any, **kwargs: Any) -> Any:
             raw_result = kwargs.pop("raw_result", False)
+            extension_params = kwargs.pop("_extension_params", {})
+
             params = remove_undefined(params_fn(self, **kwargs))
 
             # Convert the classname and the method name to a bidi command name
@@ -71,6 +73,14 @@ class command:
             if hasattr(owner, "prefix"):
                 mod_name = f"{owner.prefix}:{mod_name}"
             cmd_name = f"{mod_name}.{to_camelcase(name)}"
+
+            # Verify specified vendor parameters
+            for key in extension_params:
+                if ":" not in key:
+                    raise ValueError(f"Extension parameter '{key}' misses prefix.")
+
+            # Merge into params (vendor keys win if duplicates)
+            params.update(extension_params)
 
             future = await self.session.send_command(cmd_name, params)
             result = await future

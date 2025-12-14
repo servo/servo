@@ -33,9 +33,20 @@ export interface MobileDocumentRequest {
  */
 export interface MakeGetOptionsConfig {
   /**
-   * Protocol(s) to use for the request
+   * Protocol(s) to use for the request.
+   * Can be a single protocol, array of protocols, or empty array.
+   * If not provided, uses the default supported protocol.
    */
   protocol?: GetProtocol | GetProtocol[];
+  /**
+   * Explicit credential requests.
+   * When provided, these are used in addition to any protocol-based requests.
+   */
+  requests?: DigitalCredentialGetRequest[];
+  /**
+   * Optional data to override canonical data for protocol-based requests.
+   */
+  data?: MobileDocumentRequest | object;
   /**
    * Credential mediation requirement
    */
@@ -51,9 +62,20 @@ export interface MakeGetOptionsConfig {
  */
 export interface MakeCreateOptionsConfig {
   /**
-   * Protocol(s) to use for the request
+   * Protocol(s) to use for the request.
+   * Can be a single protocol, array of protocols, or empty array.
+   * If not provided, uses the default supported protocol.
    */
   protocol?: CreateProtocol | CreateProtocol[];
+  /**
+   * Explicit credential requests.
+   * When provided, these are used in addition to any protocol-based requests.
+   */
+  requests?: DigitalCredentialCreateRequest[];
+  /**
+   * Optional data to override canonical data for protocol-based requests.
+   */
+  data?: object;
   /**
    * Credential mediation requirement
    */
@@ -87,7 +109,7 @@ export interface DigitalCredentialRequestOptions {
  */
 export interface CredentialRequestOptions {
   digital: DigitalCredentialRequestOptions;
-  mediation: CredentialMediationRequirement;
+  mediation?: CredentialMediationRequirement;
   signal?: AbortSignal;
 }
 
@@ -114,7 +136,7 @@ export interface DigitalCredentialCreationOptions {
  */
 export interface CredentialCreationOptions {
   digital: DigitalCredentialCreationOptions;
-  mediation: CredentialMediationRequirement;
+  mediation?: CredentialMediationRequirement;
   signal?: AbortSignal;
 }
 

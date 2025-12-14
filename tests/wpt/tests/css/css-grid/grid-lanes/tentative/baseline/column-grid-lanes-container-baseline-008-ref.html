@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: flex;
+      gap: 20px;
+      border: 2px solid blue;
+      width: 400px;
+      padding: 10px;
+      font-size: 16px;
+      text-decoration: underline;
+    }
+
+    .multicolumn {
+      column-count: 2;
+      column-width: 100px;
+      column-gap: 10px;
+      border: 1px solid red;
+      background: #f0f0f0;
+      display: inline-block;
+    }
+
+    .multicolumn-item {
+      background-color: transparent;
+      padding: 8px;
+      border: 4px solid navy;
+      break-inside: avoid;
+      margin-bottom: 10px;
+      text-decoration: underline;
+    }
+
+    .multicolumn-item:nth-child(1) { height: 40px; font-size: 20px;color: lightcoral; display: flex; align-items: end; border-color: lightcoral;}
+    .multicolumn-item:nth-child(3) { height: 80px; }
+    .multicolumn-item:nth-child(2) { height: 60px; font-size: 22px;color: greenyellow; border-color: greenyellow;}
+  </style>
+</head>
+<body>
+<div class="container" style="align-items: baseline;">
+  <div>Ref</div>
+  <div class="multicolumn">
+    <div class="multicolumn-item" style="margin-bottom: -70px;">Item 1</div>
+    <div class="multicolumn-item">Item 3</div>
+    <div class="multicolumn-item"></div>
+  </div>
+</div>
+<div class="container" style="align-items: baseline;">
+  <div>Ref</div>
+  <div class="multicolumn">
+    <div class="multicolumn-item" style="margin-bottom: -70px;">Item 1</div>
+    <div class="multicolumn-item">Item 3</div>
+    <div class="multicolumn-item"></div>
+  </div>
+</div>
+</body>
+</html>

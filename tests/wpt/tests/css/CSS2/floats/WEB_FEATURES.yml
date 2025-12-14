@@ -1,0 +1,5 @@
+features:
+  - name: float-clear
+    files:
+      - 'float-root.html'
+      - 'inheritance.html'

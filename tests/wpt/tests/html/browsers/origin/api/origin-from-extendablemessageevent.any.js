@@ -14,12 +14,8 @@ function WorkerActivationPromise() {
 
 test(t => {
   const e = new ExtendableMessageEvent("message", { origin: get_host_info().ORIGIN });
-  const origin = Origin.from(e);
-  assert_true(!!origin, "It's not null!");
-  assert_false(origin.opaque, "It's not opaque!");
-  assert_true(origin.isSameOrigin(Origin.from(self)), "It's same-origin with an Origin!");
-}, "Constructed `ExtendableMessageEvent` objects have origins.");
-
+  assert_throws_js(TypeError, _ => Origin.from(e));
+}, "Constructed `ExtendableMessageEvent` objects have no real origins.");
 
 promise_test(async t => {
   await WorkerActivationPromise();

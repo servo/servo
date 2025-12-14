@@ -23,7 +23,7 @@
 
             function videoCanPlay() {
                 video.addEventListener("timeupdate", test.step_func(onTimeUpdate));
-                video.play();
+                video.play().catch(() => test.unreached_func("play() rejected"));
                 video.currentTime = seekTime;
             }
 
@@ -40,8 +40,8 @@
         const testerVideo = document.createElement("video");
         if (testerVideo.canPlayType("video/mp4"))
             testTimeupdateOnSeek("mp4");
-        if (testerVideo.canPlayType("video/ogg"))
-            testTimeupdateOnSeek("ogv");
+        if (testerVideo.canPlayType("video/webm"))
+            testTimeupdateOnSeek("webm");
     }
 </script>
 </body>

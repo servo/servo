@@ -10,3 +10,6 @@ features:
 - name: system-color
   files:
   - color-valid-system-color.html
+- name: contrast-color
+  files:
+  - color-*-contrast-color-function.html

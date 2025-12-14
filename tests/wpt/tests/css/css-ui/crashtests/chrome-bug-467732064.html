@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<title>Chrome crash with accentcolor in constructed document</title>
+<link rel="help" href="https://crbug.com/467732064">
+<script>
+  let doc = document.implementation.createHTMLDocument();
+  doc.documentElement.setAttribute("style", "color:accentcolor");
+</script>

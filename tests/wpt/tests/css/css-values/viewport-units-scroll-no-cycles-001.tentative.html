@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<title>CSS Values and Units Test: Viewport units and scrollbars</title>
+<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13189">
+<link rel="help" href="https://crbug.com/467164228">
+<meta name="assert" content="Ensure that a viewport unit cycle in an if() condition causes the if() to be invalid at computed value time.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  iframe {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<iframe id="iframe" srcdoc="<!doctype html>
+<style>
+@property --vw-tracker {
+  syntax: '<length>';
+  initial-value: 0px;
+  inherits: false;
+}
+
+:root {
+  --vw-tracker: 100vw;
+  overflow: if(
+    style(--vw-tracker = 100px): scroll;
+    else: hidden;
+  );
+}
+</style>
+"></iframe>
+<script>
+  function waitForLoad(w) {
+    return new Promise(resolve => w.addEventListener('load', resolve));
+  }
+
+  promise_test(async () => {
+    await waitForLoad(window);
+    const root = iframe.contentDocument.documentElement;
+    const win = iframe.contentWindow;
+    const style = win.getComputedStyle(root);
+    // overflow should be its default value of 'visible'.
+    assert_equals(style.overflow, 'visible');
+  });
+</script>

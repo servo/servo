@@ -10,7 +10,9 @@
         <script src="/resources/testharnessreport.js"></script>
         <script src="/resources/testdriver.js"></script>
         <script src="/resources/testdriver-vendor.js"></script>
-        <script>
+        <script type="module">
+            import { makeCreateOptions } from "./support/helper.js";
+
             const hostInfo = get_host_info();
             const iframeDetails = [
                 {
@@ -100,14 +102,13 @@
                 for (const details of iframeDetails) {
                     promise_test(async (test) => {
                         const iframe = await loadIframe(details);
+                        test.add_cleanup(() => {
+                            document.body.removeChild(iframe);
+                        });
                         const { expectIsAllowed } = details;
                         const action = "create";
-                        const options = {
-                            digital: {
-                                // Results in TypeError when allowed, NotAllowedError when disallowed
-                                requests: [],
-                            },
-                        };
+                        // Results in TypeError when allowed, NotAllowedError when disallowed
+                        const options = makeCreateOptions({ protocol: [] });
                         const { data } = await new Promise((resolve) => {
                             const callback = (e) => {
                                 if (e.source === iframe.contentWindow) {
@@ -131,11 +132,11 @@
                         } else {
                             assert_equals(name, "NotAllowedError", fullMessage);
                         }
-                        iframe.remove();
                     }, `With Create: Policy to use: ${details.policy}, is cross-origin: ${details.crossOrigin}, is allowed by policy: ${details.expectIsAllowed}`);
                 }
             }
+            window.onload = runTests;
         </script>
     </head>
-    <body onload="runTests()"></body>
+    <body></body>
 </html>

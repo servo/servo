@@ -18,7 +18,8 @@ const insertText = command === "insertText" ? "XYZ" : "";
  * <option> and <optgroup>, but Selection API can do it (but browsers don't
  * show the result).  In this case, any elements under `<select>` element
  * shouldn't be modified (deleted) for avoiding unexpected data loss for the
- * users.
+ * users. However, if inserting text when selection range is entirely in the
+ * <select>, it's fine to insert text around the <select>.
  */
 
 promise_test(async () => {
@@ -32,7 +33,12 @@ function addPromiseTest(desc, initFunc, expectedResults) {
     initFunc();
     document.execCommand(command, false, insertText);
     if (Array.isArray(expectedResults)) {
-      assert_in_array(document.body.innerHTML.replace(/(=""|<br>)/g, ""), expectedResults);
+      const uniqueArray = [...new Set(expectedResults)];
+      if (uniqueArray.length > 1) {
+        assert_in_array(document.body.innerHTML.replace(/(=""|<br>)/g, ""), expectedResults);
+      } else {
+        assert_equals(document.body.innerHTML.replace(/(=""|<br>)/g, ""), expectedResults[0]);
+      }
     } else {
       assert_equals(document.body.innerHTML.replace(/(=""|<br>)/g, ""), expectedResults);
     }
@@ -55,6 +61,8 @@ for (const multiple of ["", " multiple"]) {
     [
       `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select></div>`,
       `<div contenteditable><p>ab${insertText}</p><select${multiple}><option>def</option></select></div>`,
+      // </p> is in the range so that <select> may be moved into the <p>.
+      `<div contenteditable><p>ab${insertText}<select${multiple}><option>def</option></select></p></div>`,
     ]
   );
 
@@ -68,7 +76,13 @@ for (const multiple of ["", " multiple"]) {
         1
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select></div>`,
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option></select></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select>${insertText}</div>`,
+    ]
   );
 
   addPromiseTest(
@@ -86,6 +100,8 @@ for (const multiple of ["", " multiple"]) {
     [
       `<div contenteditable><select${multiple}><option>abc</option></select><p>def</p></div>`,
       `<div contenteditable><select${multiple}><option>abc</option></select><p>${insertText}ef</p></div>`,
+      // <p> is in the range so that it's fine to move <select> into the <p>.
+      `<div contenteditable><select${multiple}><option>abc</option></select>${insertText}ef</div>`,
     ]
   );
 
@@ -99,7 +115,13 @@ for (const multiple of ["", " multiple"]) {
         0
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select><p>ghi</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select><p>ghi</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option></select><p>ghi</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select>${insertText}<p>ghi</p></div>`,
+    ]
   );
 
   addPromiseTest(
@@ -112,7 +134,13 @@ for (const multiple of ["", " multiple"]) {
         1
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select><p>ghi</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select><p>ghi</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option></select><p>ghi</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select>${insertText}<p>ghi</p></div>`,
+    ]
   );
 
   addPromiseTest(
@@ -124,7 +152,13 @@ for (const multiple of ["", " multiple"]) {
         document.querySelector("option")
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select><p>ghi</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select><p>ghi</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option></select><p>ghi</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option></select>${insertText}<p>ghi</p></div>`,
+    ],
   );
 
   addPromiseTest(
@@ -139,7 +173,13 @@ for (const multiple of ["", " multiple"]) {
         1,
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select>${insertText}<p>jkl</p></div>`,
+    ]
   );
 
   addPromiseTest(
@@ -154,7 +194,13 @@ for (const multiple of ["", " multiple"]) {
         1,
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select>${insertText}<p>jkl</p></div>`,
+    ]
   );
 
   addPromiseTest(
@@ -169,7 +215,13 @@ for (const multiple of ["", " multiple"]) {
         2,
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select>${insertText}<p>jkl</p></div>`,
+    ]
   );
 
   addPromiseTest(
@@ -181,7 +233,13 @@ for (const multiple of ["", " multiple"]) {
         document.querySelector("select")
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><option>def</option><option>ghi</option></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><option>def</option><option>ghi</option></select>${insertText}<p>jkl</p></div>`,
+    ]
   );
 
   addPromiseTest(
@@ -193,7 +251,13 @@ for (const multiple of ["", " multiple"]) {
         document.querySelector("optgroup")
       );
     },
-    `<div contenteditable><p>abc</p><select${multiple}><optgroup><option>def</option><option>ghi</option></optgroup></select><p>jkl</p></div>`
+    [
+      `<div contenteditable><p>abc</p><select${multiple}><optgroup><option>def</option><option>ghi</option></optgroup></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed before <selection>, it's fine to insert text before <select>.
+      `<div contenteditable><p>abc</p>${insertText}<select${multiple}><optgroup><option>def</option><option>ghi</option></optgroup></select><p>jkl</p></div>`,
+      // If selection is treated as collapsed after <selection>, it's fine to insert text after <select>.
+      `<div contenteditable><p>abc</p><select${multiple}><optgroup><option>def</option><option>ghi</option></optgroup></select>${insertText}<p>jkl</p></div>`,
+    ]
   );
 
   addPromiseTest(
@@ -209,7 +273,9 @@ for (const multiple of ["", " multiple"]) {
       );
     },
     [
+      // XXX I think the first should be the best because <select> was between the <p>.
       `<div contenteditable><p>abc</p>${insertText}<p>jkl</p></div>`,
+      // XXX However, some browsers may want to normalize selection into the previous or next <p>.
       `<div contenteditable><p>abc${insertText}</p><p>jkl</p></div>`,
       `<div contenteditable><p>abc</p><p>${insertText}jkl</p></div>`,
     ]
@@ -228,7 +294,9 @@ for (const multiple of ["", " multiple"]) {
       );
     },
     [
+      // XXX I think the first should be the best because <select> was between the <p>.
       `<div contenteditable><p>abc</p>${insertText}<p>jkl</p></div>`,
+      // XXX However, some browsers may want to normalize selection into the previous or next <p>.
       `<div contenteditable><p>abc${insertText}</p><p>jkl</p></div>`,
       `<div contenteditable><p>abc</p><p>${insertText}jkl</p></div>`,
     ]
@@ -243,7 +311,7 @@ for (const multiple of ["", " multiple"]) {
         document.querySelector("select")
       );
     },
-    `<select${multiple} contenteditable><option>abc</option><option>def</option></select>`
+    `<select${multiple} contenteditable><option>abc</option><option>def</option></select>`,
   );
 
   addPromiseTest(
@@ -292,6 +360,7 @@ addPromiseTest(
       document.querySelector("option")
     );
   },
+  // XXX It might be fine to modify <optgroup>/<option> not in <select> nor <datalist> if the browser does not replace its content.
   `<optgroup contenteditable><option>abc</option><option>def</option></optgroup>`
 );
 
@@ -304,6 +373,7 @@ addPromiseTest(
       document.querySelector("option")
     );
   },
+  // XXX It might be fine to modify <option> not in <select> nor <datalist> if the browser does not replace its content.
   `<option contenteditable>abc</option>`
 );
 </script>

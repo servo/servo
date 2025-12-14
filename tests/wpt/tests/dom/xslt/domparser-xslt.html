@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DOMParser output as XSLT Stylesheet</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="output-container"></div>
+
+    <script>
+        test(() => {
+            const xsltStr = `
+            <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                <xsl:template match="/">
+                    <ul>
+                        <xsl:for-each select="data/item">
+                            <li><xsl:value-of select="name"/>: <xsl:value-of select="value"/></li>
+                        </xsl:for-each>
+                    </ul>
+                </xsl:template>
+            </xsl:stylesheet>`;
+
+            const xmlStr = `
+            <data>
+                <item><name>Alpha</name><value>10</value></item>
+                <item><name>Beta</name><value>20</value></item>
+            </data>`;
+
+            const parser = new DOMParser();
+            const processor = new XSLTProcessor();
+
+            const xsltDoc = parser.parseFromString(xsltStr, "text/xml");
+            const xmlDoc = parser.parseFromString(xmlStr, "text/xml");
+
+            processor.importStylesheet(xsltDoc);
+            const fragment = processor.transformToFragment(xmlDoc, document);
+
+            const container = document.getElementById("output-container");
+            container.appendChild(fragment);
+
+            const listItems = container.querySelectorAll("li");
+            assert_equals(listItems.length, 2, "Should have exactly 2 list items");
+            assert_equals(listItems[0].textContent, "Alpha: 10", "First item content mismatch");
+            assert_equals(listItems[1].textContent, "Beta: 20", "Second item content mismatch");
+
+        }, "Verify XSLT transformation from DOMParser creates expected HTML output.");
+    </script>
+</body>
+</html>

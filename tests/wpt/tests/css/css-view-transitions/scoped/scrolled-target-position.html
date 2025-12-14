@@ -4,6 +4,8 @@
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <link rel="match" href="scrolled-target-position-ref.html">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Accommodate small color mismatch -->
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-7824">
 <script src="/common/reftest-wait.js"></script>
 <script src="/web-animations/testcommon.js"></script>
 
@@ -25,9 +27,14 @@
   background: yellow;
 }
 
-html::view-transition-group(*) { animation-play-state: paused; }
-html::view-transition-old(*) { animation: none; opacity: 1; }
-html::view-transition-new(*) { animation: none; opacity: 0; }
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  /* freeze all animations at start */
+  animation-duration: 100000s;
+  animation-timing-function: steps(1, jump-end);
+}
 </style>
 
 <div id="target">
@@ -35,9 +42,10 @@ html::view-transition-new(*) { animation: none; opacity: 0; }
 </div>
 
 <script>
-function runTest() {
+async function runTest() {
   target.scrollTop = 25;
-  target.startViewTransition().ready.then(takeScreenshot);
+  await target.startViewTransition().ready;
+  takeScreenshotOnAnimationsReady();
 }
 
 waitForCompositorReady().then(runTest);

@@ -1,0 +1,9 @@
+features:
+  - name: float-clear
+    files:
+      - 'clear-computed.html'
+      - 'clear-invalid.html'
+      - 'clear-valid.html'
+      - 'float-computed.html'
+      - 'float-invalid.html'
+      - 'float-valid.html'

@@ -13,7 +13,7 @@
 <div id=outer_fg focusgroup="toolbar inline">
   <button id=outer1 tabindex=0>Outer 1</button>
   <div id=shadow_host></div>
-  <button id=outer2 tabindex=-1>Outer 2</button>
+  <button id=outer2 tabindex=0>Outer 2</button>
 </div>
 
 <script>
@@ -30,7 +30,7 @@
     sr.innerHTML = `
       <div id=inner_fg focusgroup="menu inline">
         <button id=inner1 tabindex=0>Inner 1</button>
-        <button id=inner2 tabindex=-1>Inner 2</button>
+        <button id=inner2 tabindex=0>Inner 2</button>
       </div>`;
     const outer1 = document.getElementById('outer1');
     const outer2 = document.getElementById('outer2');

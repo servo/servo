@@ -13,33 +13,33 @@
 <!-- Valid behavior-first examples -->
 <div id=valid1 focusgroup="toolbar">
   <span id=item1 tabindex=0>item1</span>
-  <span id=item2 tabindex=-1>item2</span>
+  <span id=item2 tabindex=0>item2</span>
 </div>
 
 <div id=valid2 focusgroup="tablist inline">
   <span id=item3 tabindex=0>item3</span>
-  <span id=item4 tabindex=-1>item4</span>
+  <span id=item4 tabindex=0>item4</span>
 </div>
 
 <div id=valid3 focusgroup="radiogroup wrap">
   <span id=item5 tabindex=0>item5</span>
-  <span id=item6 tabindex=-1>item6</span>
+  <span id=item6 tabindex=0>item6</span>
 </div>
 
 <!-- Invalid behavior-first examples (should be ignored) -->
 <div id=invalid1 focusgroup="">
   <span id=item7 tabindex=0>item7</span>
-  <span id=item8 tabindex=-1>item8</span>
+  <span id=item8 tabindex=0>item8</span>
 </div>
 
 <div id=invalid2 focusgroup="inline">
   <span id=item9 tabindex=0>item9</span>
-  <span id=item10 tabindex=-1>item10</span>
+  <span id=item10 tabindex=0>item10</span>
 </div>
 
 <div id=invalid3 focusgroup="wrap">
   <span id=item11 tabindex=0>item11</span>
-  <span id=item12 tabindex=-1>item12</span>
+  <span id=item12 tabindex=0>item12</span>
 </div>
 
 <script>

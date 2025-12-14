@@ -71,7 +71,7 @@
     let iframe = await createIframe();
     const DOMExceptionCtor = iframe.contentWindow.DOMException;
     let stolenNavigator = iframe.contentWindow.navigator;
-    const request = makeGetOptions({ protocol: "openid4vp-v1-unsigned" });
+    const request = makeGetOptions();
     await test_driver.bless("User activation", null, iframe.contentWindow);
     await iframe.focus();
     const p = promise_rejects_dom(

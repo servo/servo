@@ -14,33 +14,33 @@
   <button id=item1 tabindex=0>Item 1</button>
 
   <div>
-    <button id=item2 tabindex=-1>Item 2</button>
+    <button id=item2 tabindex=0>Item 2</button>
 
     <div id=optout1 focusgroup="none">
-      <button id=optout_item1 tabindex=-1>Opted out 1</button>
+      <button id=optout_item1 tabindex=0>Opted out 1</button>
 
       <div>
-        <button id=optout_item2 tabindex=-1>Opted out 2 (nested)</button>
+        <button id=optout_item2 tabindex=0>Opted out 2 (nested)</button>
 
         <!-- Nested focusgroup within opt-out should function independently and not participate in ancestor group -->
         <div id=nested_in_optout focusgroup="menu">
-          <button id=nested_optout_item1 tabindex=-1>Nested in opt-out 1</button>
-          <button id=nested_optout_item2 tabindex=-1>Nested in opt-out 2</button>
+          <button id=nested_optout_item1 tabindex=0>Nested in opt-out 1</button>
+          <button id=nested_optout_item2 tabindex=0>Nested in opt-out 2</button>
         </div>
       </div>
 
       <!-- Another opt-out within opt-out (redundant but valid) -->
       <div id=optout2 focusgroup="none">
-        <button id=double_optout tabindex=-1>Double opt-out</button>
+        <button id=double_optout tabindex=0>Double opt-out</button>
       </div>
     </div>
 
-    <button id=item3 tabindex=-1>Item 3</button>
+    <button id=item3 tabindex=0>Item 3</button>
   </div>
 
   <div>
     <div>
-      <button id=item4 tabindex=-1>Item 4 (deeply nested)</button>
+      <button id=item4 tabindex=0>Item 4 (deeply nested)</button>
     </div>
   </div>
 </div>

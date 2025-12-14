@@ -1,6 +1,6 @@
 cairocffi==1.7.0
 fonttools==4.51.0
-genshi==0.7.7
+genshi==0.7.10
 jinja2==3.1.6
 pyyaml==6.0.1
 types-pyyaml==6.0.12.20241230

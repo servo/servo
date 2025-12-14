@@ -55,7 +55,7 @@ const iterations = 5;
 // does not generate deterministic test failure output. Chrome relies on test
 // failure output to be deterministic and stable for failing test expectations.
 function test_random_equals(actual, expected, message = "Random values should be equal") {
-  assert_equals(actual, expected, message);
+  assert_true(actual == expected, message);
 }
 
 function test_random_computed_value(property, specified, computed, titleExtra, options = {}) {
@@ -184,6 +184,21 @@ function test_random_computed_value_has_fixed(property, specified, minPercentage
   }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
 
+function test_random_base_is_not_1(property, specified) {
+  test(() => {
+    for (i = 0; i < iterations; ++i) {
+      const target = document.getElementById('target');
+      assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
+      assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
+      target.style[property] = '';
+      target.style[property] = specified;
+      const computed = target.computedStyleMap().get(property);
+      assert_true(computed instanceof CSSUnitValue);
+      assert_false(computed.value == 100.0, "Random base value should not be clamped to 1");
+    }
+  }, `Property ${property} value '${specified}'`);
+}
+
 const property = 'scale';
 
 test_random_computed_value_in_range(property, 'random(1, 11)', '1', '11');
@@ -280,7 +295,7 @@ test_random_computed_value('font-size', 'random(30%, 10%)', '4.8px');
 test_random_computed_value('font-size', 'random(10px * 10% / 1%, 0%)', '100px');
 
 // Test out of range math functions for fixed value
-test_random_computed_value_has_fixed('translate', 'random(fixed random(1, 2), 10%, 100%)', '10%', '100%');
+test_random_base_is_not_1('width', 'random(fixed random(1, 2), 10px, 100px)');
 test_random_computed_value_has_fixed('translate', 'random(fixed random(-2, -1), 10%, 100%)', '10%', '100%', 0);
 
 // Test random value sharing
