@@ -42,7 +42,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
     HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
     Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaHashedKeyGenParams,
-    RsaKeyAlgorithm, SubtleCryptoMethods,
+    RsaKeyAlgorithm, RsaPssParams, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1781,6 +1781,25 @@ impl TryFrom<RootedTraceableBox<RsaHashedImportParams>> for SubtleRsaHashedImpor
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-RsaPssParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleRsaPssParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaPssParams-saltLength>
+    salt_length: u32,
+}
+
+impl From<RsaPssParams> for SubtleRsaPssParams {
+    fn from(value: RsaPssParams) -> Self {
+        SubtleRsaPssParams {
+            name: value.parent.name.to_string(),
+            salt_length: value.saltLength,
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams>
 #[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleEcdsaParams {
@@ -2517,6 +2536,7 @@ enum NormalizedAlgorithm {
     Algorithm(SubtleAlgorithm),
     RsaHashedKeyGenParams(SubtleRsaHashedKeyGenParams),
     RsaHashedImportParams(SubtleRsaHashedImportParams),
+    RsaPssParams(SubtleRsaPssParams),
     EcdsaParams(SubtleEcdsaParams),
     EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
@@ -2654,6 +2674,18 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
+                (ALG_RSA_PSS, Operation::Sign) => {
+                    let mut params =
+                        dictionary_from_jsval::<RsaPssParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaPssParams(params.into())
+                },
+                (ALG_RSA_PSS, Operation::Verify) => {
+                    let mut params =
+                        dictionary_from_jsval::<RsaPssParams>(cx, value.handle(), can_gc)?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaPssParams(params.into())
+                },
                 (ALG_RSA_PSS, Operation::GenerateKey) => {
                     let mut params = dictionary_from_jsval::<
                         RootedTraceableBox<RsaHashedKeyGenParams>,
@@ -3231,6 +3263,7 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::Algorithm(algo) => &algo.name,
             NormalizedAlgorithm::RsaHashedKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::RsaHashedImportParams(algo) => &algo.name,
+            NormalizedAlgorithm::RsaPssParams(algo) => &algo.name,
             NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
@@ -3291,6 +3324,9 @@ impl NormalizedAlgorithm {
             (ALG_RSASSA_PKCS1_V1_5, NormalizedAlgorithm::Algorithm(_algo)) => {
                 rsassa_pkcs1_v1_5_operation::sign(key, message)
             },
+            (ALG_RSA_PSS, NormalizedAlgorithm::RsaPssParams(algo)) => {
+                rsa_pss_operation::sign(algo, key, message)
+            },
             (ALG_ECDSA, NormalizedAlgorithm::EcdsaParams(algo)) => {
                 ecdsa_operation::sign(algo, key, message)
             },
@@ -3306,6 +3342,9 @@ impl NormalizedAlgorithm {
         match (self.name(), self) {
             (ALG_RSASSA_PKCS1_V1_5, NormalizedAlgorithm::Algorithm(_algo)) => {
                 rsassa_pkcs1_v1_5_operation::verify(key, message, signature)
+            },
+            (ALG_RSA_PSS, NormalizedAlgorithm::RsaPssParams(algo)) => {
+                rsa_pss_operation::verify(algo, key, message, signature)
             },
             (ALG_ECDSA, NormalizedAlgorithm::EcdsaParams(algo)) => {
                 ecdsa_operation::verify(algo, key, message, signature)
