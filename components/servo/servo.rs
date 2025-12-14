@@ -80,6 +80,7 @@ use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
+use crate::site_data::SiteDataManager;
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, FilePicker, NavigationRequest,
@@ -140,6 +141,7 @@ struct ServoInner {
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
     cookie_manager: Rc<RefCell<CookieManager>>,
+    site_data_manager: Rc<RefCell<SiteDataManager>>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -769,6 +771,10 @@ impl Servo {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             paint,
             cookie_manager: Rc::new(RefCell::new(CookieManager::new(
+                public_resource_threads.clone(),
+                private_resource_threads.clone(),
+            ))),
+            site_data_manager: Rc::new(RefCell::new(SiteDataManager::new(
                 public_resource_threads,
                 private_resource_threads,
             ))),
@@ -844,6 +850,10 @@ impl Servo {
 
     pub fn cookie_manager<'a>(&'a self) -> Ref<'a, CookieManager> {
         self.0.cookie_manager.borrow()
+    }
+
+    pub fn site_data_manager<'a>(&'a self) -> Ref<'a, SiteDataManager> {
+        self.0.site_data_manager.borrow()
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
