@@ -353,21 +353,35 @@ impl IndependentFormattingContext {
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
-        if let Some(cache) = self.base.cached_layout_result.borrow().as_ref() {
-            let cache = &**cache;
-            if cache.containing_block_for_children_size.inline ==
+        let cached_layout_result_snapshot = {
+            let cache_guard = self.base.cached_layout_result.lock();
+            cache_guard.as_ref().map(|cache| {
+                (
+                    cache.result.clone(),
+                    cache.positioning_context.clone(),
+                    cache.containing_block_for_children_size.clone(),
+                )
+            })
+        };
+        if let Some((
+            cache_result,
+            cache_positioning_context,
+            cache_containing_block_for_children_size,
+        )) = cached_layout_result_snapshot
+        {
+            if cache_containing_block_for_children_size.inline ==
                 containing_block_for_children.size.inline &&
-                (cache.containing_block_for_children_size.block ==
+                (cache_containing_block_for_children_size.block ==
                     containing_block_for_children.size.block ||
-                    !cache.result.depends_on_block_constraints)
+                    !cache_result.depends_on_block_constraints)
             {
-                positioning_context.append(cache.positioning_context.clone());
-                return cache.result.clone();
+                positioning_context.append(cache_positioning_context);
+                return cache_result;
             }
             #[cfg(feature = "tracing")]
             tracing::debug!(
                 name: "IndependentFormattingContext::layout cache miss",
-                cached = ?cache.containing_block_for_children_size,
+                cached = ?cache_containing_block_for_children_size,
                 required = ?containing_block_for_children.size,
             );
         }
@@ -382,12 +396,14 @@ impl IndependentFormattingContext {
             lazy_block_size,
         );
 
-        *self.base.cached_layout_result.borrow_mut() =
-            Some(Box::new(CacheableLayoutResultAndInputs {
+        {
+            let mut cache_guard = self.base.cached_layout_result.lock();
+            *cache_guard = Some(Box::new(CacheableLayoutResultAndInputs {
                 result: result.clone(),
                 positioning_context: child_positioning_context.clone(),
                 containing_block_for_children_size: containing_block_for_children.size.clone(),
             }));
+        }
         positioning_context.append(child_positioning_context);
 
         result

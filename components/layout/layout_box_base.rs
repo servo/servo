@@ -6,7 +6,6 @@ use std::fmt::{Debug, Formatter};
 use std::sync::atomic::AtomicBool;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use servo_arc::Arc;
@@ -29,11 +28,10 @@ use crate::{ConstraintSpace, ContainingBlockSize};
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
     pub style: Arc<ComputedValues>,
-    pub cached_inline_content_size:
-        Mutex<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
+    pub cached_inline_content_size: Mutex<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub outer_inline_content_sizes_depend_on_content: AtomicBool,
-    pub cached_layout_result: AtomicRefCell<Option<Box<CacheableLayoutResultAndInputs>>>,
-    pub fragments: AtomicRefCell<Vec<Fragment>>,
+    pub cached_layout_result: Mutex<Option<Box<CacheableLayoutResultAndInputs>>>,
+    pub fragments: Mutex<Vec<Fragment>>,
 }
 
 impl LayoutBoxBase {
@@ -43,8 +41,8 @@ impl LayoutBoxBase {
             style,
             cached_inline_content_size: Mutex::new(None),
             outer_inline_content_sizes_depend_on_content: AtomicBool::new(true),
-            cached_layout_result: AtomicRefCell::default(),
-            fragments: AtomicRefCell::default(),
+            cached_layout_result: Mutex::new(None),
+            fragments: Mutex::new(Vec::new()),
         }
     }
 
@@ -79,24 +77,24 @@ impl LayoutBoxBase {
     }
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
-        self.fragments.borrow().clone()
+        self.fragments.lock().clone()
     }
 
     pub(crate) fn add_fragment(&self, fragment: Fragment) {
-        self.fragments.borrow_mut().push(fragment);
+        self.fragments.lock().push(fragment);
     }
 
     pub(crate) fn set_fragment(&self, fragment: Fragment) {
-        *self.fragments.borrow_mut() = vec![fragment];
+        *self.fragments.lock() = vec![fragment];
     }
 
     pub(crate) fn clear_fragments(&self) {
-        self.fragments.borrow_mut().clear();
+        self.fragments.lock().clear();
     }
 
     pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = new_style.clone();
-        for fragment in self.fragments.borrow_mut().iter_mut() {
+        for fragment in self.fragments.lock().iter_mut() {
             fragment.repair_style(new_style);
         }
     }
