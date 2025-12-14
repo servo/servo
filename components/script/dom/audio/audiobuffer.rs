@@ -134,7 +134,7 @@ impl AudioBuffer {
 
     fn restore_js_channel_data(&self, cx: JSContext, can_gc: CanGc) -> bool {
         let _ac = enter_realm(self);
-        for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
+        for (i, channel) in self.js_channels.borrow().iter().enumerate() {
             if channel.is_initialized() {
                 // Already have data in JS array.
                 continue;
