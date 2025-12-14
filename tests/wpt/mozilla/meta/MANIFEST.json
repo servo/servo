@@ -88,6 +88,13 @@
       {}
      ]
     ],
+    "reporting-observer-disconnect-no-crash.html": [
+     "02fa141ce4e15db1e4442e81df7bb52244843b75",
+     [
+      null,
+      {}
+     ]
+    ],
     "slice-blob-twice-crash.html": [
      "94227dcc74d80dae19b39df025708ffc24ee78c5",
      [
