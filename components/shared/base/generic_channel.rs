@@ -232,6 +232,18 @@ impl From<crossbeam_channel::RecvError> for ReceiveError {
     }
 }
 
+impl fmt::Display for ReceiveError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ReceiveError::DeserializationFailed(ref error) => {
+                write!(fmt, "deserialization error: {error}")
+            },
+            ReceiveError::Io(ref error) => write!(fmt, "io error: {error}"),
+            ReceiveError::Disconnected => write!(fmt, "disconnected"),
+        }
+    }
+}
+
 pub enum TryReceiveError {
     Empty,
     ReceiveError(ReceiveError),
