@@ -53,6 +53,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use resvg::usvg::fontdb::Source;
 use style::properties::ComputedValues;
 use style::values::generics::length::GenericLengthPercentageOrAuto;
 pub use stylo_malloc_size_of::MallocSizeOfOps;
@@ -865,6 +866,11 @@ malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
 malloc_size_of_is_0!(mime::Mime);
 malloc_size_of_is_0!(resvg::usvg::Tree);
+malloc_size_of_is_0!(resvg::usvg::fontdb::ID);
+malloc_size_of_is_0!(resvg::usvg::fontdb::Style);
+malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
+malloc_size_of_is_0!(resvg::usvg::fontdb::Stretch);
+malloc_size_of_is_0!(resvg::usvg::fontdb::Language);
 malloc_size_of_is_0!(std::num::NonZeroU16);
 malloc_size_of_is_0!(std::num::NonZeroU64);
 malloc_size_of_is_0!(std::num::NonZeroUsize);
@@ -1018,5 +1024,33 @@ where
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         <GenericLengthPercentageOrAuto<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
+impl MallocSizeOf for resvg::usvg::fontdb::Source {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            Source::Binary(_) => 0,
+            Source::File(path) => path.size_of(ops),
+            Source::SharedFile(path, _) => path.size_of(ops),
+        }
+    }
+}
+
+impl MallocSizeOf for resvg::usvg::fontdb::FaceInfo {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.id.size_of(ops) +
+            self.source.size_of(ops) +
+            self.families.size_of(ops) +
+            self.post_script_name.size_of(ops) +
+            self.style.size_of(ops) +
+            self.weight.size_of(ops) +
+            self.stretch.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for resvg::usvg::fontdb::Database {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.faces().map(|face| face.size_of(ops)).sum()
     }
 }
