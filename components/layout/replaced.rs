@@ -7,11 +7,13 @@ use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
+use html5ever::local_name;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{IFrameSize, LayoutImageDestination};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
+use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::object_fit::T as ObjectFit;
@@ -128,6 +130,7 @@ pub(crate) enum ReplacedContentKind {
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
     SVGElement(Option<VectorImage>),
+    Audio,
 }
 
 impl ReplacedContents {
@@ -207,7 +210,18 @@ impl ReplacedContents {
                 };
                 (ReplacedContentKind::SVGElement(vector_image), natural_size)
             } else {
-                return None;
+                let element = node.as_html_element()?;
+                if !element.has_local_name(&local_name!("audio")) {
+                    return None;
+                }
+                let natural_size = NaturalSizes {
+                    width: None,
+                    // 40px is the height of the controls.
+                    // See /components/script/resources/media-controls.css
+                    height: Some(Au::from_px(40)),
+                    ratio: None,
+                };
+                (ReplacedContentKind::Audio, natural_size)
             }
         };
 
@@ -484,6 +498,7 @@ impl ReplacedContents {
                     .into_iter()
                     .collect()
             },
+            ReplacedContentKind::Audio => vec![],
         }
     }
 
@@ -492,6 +507,11 @@ impl ReplacedContents {
         style: &ComputedValues,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
+        if matches!(self.kind, ReplacedContentKind::Audio) {
+            // This isn't specified, but other browsers don't support `aspect-ratio` on `<audio>`.
+            // See <https://phabricator.services.mozilla.com/D118245>
+            return None;
+        }
         if self.is_broken_image() {
             // This isn't specified, but when an image is broken, we should prefer to the aspect
             // ratio from the style, rather than the aspect ratio from the broken image icon.
