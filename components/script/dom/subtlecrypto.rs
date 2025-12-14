@@ -2619,7 +2619,19 @@ fn normalize_algorithm(
             // NOTE: Step 10.1.3 is done by the `From` and `TryFrom` trait implementation of
             // "subtle" binding structs.
             let normalized_algorithm = match (alg_name, op) {
-                // <>https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
+                // <https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
+                (ALG_RSASSA_PKCS1_V1_5, Operation::Sign) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
+                (ALG_RSASSA_PKCS1_V1_5, Operation::Verify) => {
+                    let mut params =
+                        dictionary_from_jsval::<Algorithm>(cx, value.handle(), can_gc)?;
+                    params.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::Algorithm(params.into())
+                },
                 (ALG_RSASSA_PKCS1_V1_5, Operation::GenerateKey) => {
                     let mut params = dictionary_from_jsval::<
                         RootedTraceableBox<RsaHashedKeyGenParams>,
@@ -3276,6 +3288,9 @@ impl NormalizedAlgorithm {
 
     fn sign(&self, key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
         match (self.name(), self) {
+            (ALG_RSASSA_PKCS1_V1_5, NormalizedAlgorithm::Algorithm(_algo)) => {
+                rsassa_pkcs1_v1_5_operation::sign(key, message)
+            },
             (ALG_ECDSA, NormalizedAlgorithm::EcdsaParams(algo)) => {
                 ecdsa_operation::sign(algo, key, message)
             },
@@ -3289,6 +3304,9 @@ impl NormalizedAlgorithm {
 
     fn verify(&self, key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
         match (self.name(), self) {
+            (ALG_RSASSA_PKCS1_V1_5, NormalizedAlgorithm::Algorithm(_algo)) => {
+                rsassa_pkcs1_v1_5_operation::verify(key, message, signature)
+            },
             (ALG_ECDSA, NormalizedAlgorithm::EcdsaParams(algo)) => {
                 ecdsa_operation::verify(algo, key, message, signature)
             },
