@@ -1239,6 +1239,7 @@ impl InitialFlexLineLayout<'_> {
             frozen: Cell<bool>,
             target_main_size: Cell<Au>,
             flex_factor: f32,
+            min_max_violation_kind: Cell<Ordering>,
         }
 
         // > 1. Determine the used flex factor. Sum the outer hypothetical main sizes of all
@@ -1286,6 +1287,8 @@ impl InitialFlexLineLayout<'_> {
                     frozen,
                     target_main_size,
                     flex_factor,
+                    // The actual violation will be computed later.
+                    min_max_violation_kind: Cell::new(Ordering::Equal),
                 }
             })
             .collect();
@@ -1391,14 +1394,19 @@ impl InitialFlexLineLayout<'_> {
             // > If the item’s target main size was made smaller by this, it’s a max
             // > violation. If the item’s target main size was made larger by this, it’s a
             // > min violation.
-            let violation = |item: &FlexibleLengthResolutionItem| {
-                let size = item.target_main_size.get();
-                let clamped = size.clamp_between_extremums(
+            let mut total_violation = Au::zero();
+            for item in unfrozen_items() {
+                let unclamped = item.target_main_size.get();
+                let clamped = unclamped.clamp_between_extremums(
                     item.item.content_min_main_size,
                     item.item.content_max_main_size,
                 );
-                clamped - size
-            };
+                item.target_main_size.set(clamped);
+                // We represent min violations with Ordering::Greater, and max violations
+                // with Ordering::Less.
+                item.min_max_violation_kind.set(clamped.cmp(&unclamped));
+                total_violation += clamped - unclamped;
+            }
 
             // > 5. e. Freeze over-flexed items. The total violation is the sum of the
             // > adjustments from the previous step ∑(clamped size - unclamped size). If the
@@ -1406,7 +1414,6 @@ impl InitialFlexLineLayout<'_> {
             // > - Zero:  Freeze all items.
             // > - Positive: Freeze all the items with min violations.
             // > - Negative:  Freeze all the items with max violations.
-            let total_violation: Au = unfrozen_items().map(violation).sum();
             match total_violation.cmp(&Au::zero()) {
                 Ordering::Equal => {
                     // “Freeze all items.”
@@ -1414,29 +1421,9 @@ impl InitialFlexLineLayout<'_> {
                     let remaining_free_space = free_space(true);
                     return (main_sizes(items), remaining_free_space);
                 },
-                Ordering::Greater => {
-                    // “Freeze all the items with min violations.”
-                    // “If the item’s target main size was made larger by [clamping],
-                    //  it’s a min violation.”
-                    for item in items.iter() {
-                        if violation(item) > Au::zero() {
-                            item.target_main_size.set(item.item.content_min_main_size);
-                            item.frozen.set(true);
-                            frozen_count += 1;
-                        }
-                    }
-                },
-                Ordering::Less => {
-                    // Negative total violation
-                    // “Freeze all the items with max violations.”
-                    // “If the item’s target main size was made smaller by [clamping],
-                    //  it’s a max violation.”
-                    for item in items.iter() {
-                        if violation(item) < Au::zero() {
-                            let Some(max_size) = item.item.content_max_main_size else {
-                                unreachable!()
-                            };
-                            item.target_main_size.set(max_size);
+                total_violation_kind => {
+                    for item in unfrozen_items() {
+                        if item.min_max_violation_kind.get() == total_violation_kind {
                             item.frozen.set(true);
                             frozen_count += 1;
                         }
