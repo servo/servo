@@ -342,7 +342,7 @@ impl CrossProcessPaintApi {
 
     /// Inform WebRender of a new display list for the given pipeline.
     /// We send the `PaintDisplayListInfo` and `DisplayListPayload` separately to not overwhelm
-    /// the ipc_channel (see https://github.com/servo/servo/pull/36484)
+    /// the ipc_channel (see <https://github.com/servo/servo/pull/36484>)
     #[servo_tracing::instrument(skip_all)]
     pub fn send_display_list(
         &self,
