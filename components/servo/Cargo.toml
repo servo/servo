@@ -152,6 +152,9 @@ tracing = { workspace = true }
 winit = { workspace = true }
 
 [[test]]
+name = "cookies"
+
+[[test]]
 name = "webview"
 
 [[test]]
