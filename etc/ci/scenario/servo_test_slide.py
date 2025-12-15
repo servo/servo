@@ -12,11 +12,9 @@
 import time
 import subprocess
 
-from selenium.common import NoSuchElementException
 
 import common_function_for_servo_test
 import common_function_for_mossel
-from selenium.webdriver.common.by import By
 
 
 def operator():

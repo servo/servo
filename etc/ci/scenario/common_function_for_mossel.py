@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+
+# Copyright 2025 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium import webdriver
@@ -18,5 +29,5 @@ def close_popup(driver: webdriver.Remote):
         birthday_element = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
         birthday_element.click()
         print("Closed the popup")
-    except NoSuchElementException as e:
+    except NoSuchElementException:
         print(f"Failed to find pop_up element with selector `{popup_css_selector}`. Skip it.")

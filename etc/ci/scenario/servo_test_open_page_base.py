@@ -9,8 +9,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import time
-import subprocess
 
 from selenium.common import NoSuchElementException
 

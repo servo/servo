@@ -205,7 +205,7 @@ def run_test(test_fn, test_name: str):
         print("Stopping potential old servo instance ...")
         stop_servo()
         hdc = HarmonyDeviceConnector()
-        print(f"Starting new servo instance...")
+        print("Starting new servo instance...")
         hdc.cmd(f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn --webdriver", timeout=10)
         setup_hdc_forward()
     except Exception as e:
