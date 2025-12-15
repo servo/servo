@@ -8,7 +8,6 @@
 # except according to those terms.
 
 import argparse
-from argparse import ArgumentParser
 import json
 import logging
 import os
@@ -18,8 +17,9 @@ import shutil
 import subprocess
 import sys
 import textwrap
-from typing import Any, Optional, List
+from argparse import ArgumentParser
 from pathlib import Path
+from typing import Any, List, Optional
 
 import tidy
 import wpt
