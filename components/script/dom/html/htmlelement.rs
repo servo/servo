@@ -38,7 +38,10 @@ use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
 use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
-use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::element::{
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
+    is_element_affected_by_legacy_background_presentational_hint,
+};
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -1268,10 +1271,37 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        let element = self.upcast::<Element>();
+        if is_element_affected_by_legacy_background_presentational_hint(
+            element.namespace(),
+            element.local_name(),
+        ) && attr.local_name() == &local_name!("background")
+        {
+            return true;
+        }
+
+        self.super_type()
+            .unwrap()
+            .attribute_affects_presentational_hints(attr)
+    }
+
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        let element = self.upcast::<Element>();
         match *name {
             local_name!("itemprop") => AttrValue::from_serialized_tokenlist(value.into()),
             local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("background")
+                if is_element_affected_by_legacy_background_presentational_hint(
+                    element.namespace(),
+                    element.local_name(),
+                ) =>
+            {
+                AttrValue::from_resolved_url(
+                    &self.owner_document().base_url().get_arc(),
+                    value.into(),
+                )
+            },
             _ => self
                 .super_type()
                 .unwrap()

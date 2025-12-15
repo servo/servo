@@ -6,7 +6,6 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, LoadStatus};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
-use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
 
@@ -88,7 +87,6 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
 pub(crate) trait HTMLBodyElementLayoutHelpers {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_color(self) -> Option<AbsoluteColor>;
-    fn get_background(self) -> Option<ServoUrl>;
 }
 
 impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
@@ -104,14 +102,6 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
             .get_attr_for_layout(&ns!(), &local_name!("text"))
             .and_then(AttrValue::as_color)
             .cloned()
-    }
-
-    fn get_background(self) -> Option<ServoUrl> {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("background"))
-            .and_then(AttrValue::as_resolved_url)
-            .cloned()
-            .map(Into::into)
     }
 }
 
@@ -154,10 +144,6 @@ impl VirtualMethods for HTMLBodyElement {
             local_name!("bgcolor") | local_name!("text") => {
                 AttrValue::from_legacy_color(value.into())
             },
-            local_name!("background") => AttrValue::from_resolved_url(
-                &self.owner_document().base_url().get_arc(),
-                value.into(),
-            ),
             _ => self
                 .super_type()
                 .unwrap()
