@@ -6,6 +6,7 @@ mod engines;
 
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
+use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
@@ -13,6 +14,7 @@ use std::thread;
 use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
 use base::threadpool::ThreadPool;
+use base::{read_json_from_file, write_json_to_file};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::{
@@ -20,9 +22,10 @@ use profile_traits::mem::{
 };
 use profile_traits::path;
 use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
+use storage_traits::webstorage_thread::{OriginDescriptor, StorageType, WebStorageThreadMsg};
 use uuid::Uuid;
 
 use crate::webstorage::engines::WebStorageEngine;
@@ -54,6 +57,34 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
             })
             .expect("Thread spawning failed");
         chan
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct StorageDescriptor {
+    origin_descriptors: FxHashMap<String, OriginDescriptor>,
+}
+
+impl StorageDescriptor {
+    fn new() -> Self {
+        StorageDescriptor {
+            origin_descriptors: FxHashMap::default(),
+        }
+    }
+
+    fn ensure_origin_descriptor(&mut self, origin: &ImmutableOrigin) -> bool {
+        let origin = origin.ascii_serialization();
+        match self.origin_descriptors.entry(origin.clone()) {
+            Entry::Occupied(_) => false,
+            Entry::Vacant(entry) => {
+                entry.insert(OriginDescriptor::new(origin));
+                true
+            },
+        }
+    }
+
+    fn get_origin_descriptors(&self) -> Vec<OriginDescriptor> {
+        self.origin_descriptors.values().cloned().collect()
     }
 }
 
@@ -137,6 +168,8 @@ impl<E: WebStorageEngine> Drop for WebStorageEnvironment<E> {
 
 struct WebStorageManager {
     port: GenericReceiver<WebStorageThreadMsg>,
+    session_storage_descriptor: StorageDescriptor,
+    local_storage_descriptor: StorageDescriptor,
     session_data: FxHashMap<WebViewId, FxHashMap<ImmutableOrigin, OriginEntry>>,
     config_dir: Option<PathBuf>,
     thread_pool: Arc<ThreadPool>,
@@ -148,6 +181,14 @@ impl WebStorageManager {
         port: GenericReceiver<WebStorageThreadMsg>,
         config_dir: Option<PathBuf>,
     ) -> WebStorageManager {
+        let mut local_storage_descriptor = StorageDescriptor::new();
+        if let Some(ref config_dir) = config_dir {
+            read_json_from_file(
+                &mut local_storage_descriptor,
+                config_dir,
+                "localstorage.json",
+            );
+        }
         // Uses an estimate of the system cpus to process Webstorage transactions
         // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
         // If no information can be obtained about the system, uses 4 threads as a default
@@ -157,6 +198,8 @@ impl WebStorageManager {
             .min(pref!(threadpools_webstorage_workers_max).max(1) as usize);
         WebStorageManager {
             port,
+            session_storage_descriptor: StorageDescriptor::new(),
+            local_storage_descriptor,
             session_data: FxHashMap::default(),
             config_dir,
             thread_pool: Arc::new(ThreadPool::new(thread_count, "WebStorage".to_string())),
@@ -205,6 +248,9 @@ impl WebStorageManager {
                     self.clone(src_webview_id, dest_webview_id);
                     let _ = sender.send(());
                 },
+                WebStorageThreadMsg::GetOriginDescriptors(sender, storage_type) => {
+                    self.get_origin_descriptors(sender, storage_type);
+                },
                 WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
@@ -236,6 +282,16 @@ impl WebStorageManager {
         reports
     }
 
+    fn save_local_storage_descriptor(&self) {
+        if let Some(ref config_dir) = self.config_dir {
+            write_json_to_file(
+                &self.local_storage_descriptor,
+                config_dir,
+                "localstorage.json",
+            );
+        }
+    }
+
     fn get_origin_location(&self, origin: &ImmutableOrigin) -> Option<PathBuf> {
         match &self.config_dir {
             Some(config_dir) => {
@@ -253,6 +309,14 @@ impl WebStorageManager {
         }
     }
 
+    fn add_new_environment(&mut self, origin: &ImmutableOrigin) {
+        let origin_location = self.get_origin_location(origin);
+
+        let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone()).unwrap();
+        let environment = WebStorageEnvironment::new(engine);
+        self.environments.insert(origin.clone(), environment);
+    }
+
     fn get_environment(
         &mut self,
         origin: &ImmutableOrigin,
@@ -261,11 +325,8 @@ impl WebStorageManager {
             return self.environments.get(origin).unwrap();
         }
 
-        let origin_location = self.get_origin_location(origin);
+        self.add_new_environment(origin);
 
-        let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone()).unwrap();
-        let environment = WebStorageEnvironment::new(engine);
-        self.environments.insert(origin.clone(), environment);
         self.environments.get(origin).unwrap()
     }
 
@@ -277,11 +338,8 @@ impl WebStorageManager {
             return self.environments.get_mut(origin).unwrap();
         }
 
-        let origin_location = self.get_origin_location(origin);
+        self.add_new_environment(origin);
 
-        let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone()).unwrap();
-        let environment = WebStorageEnvironment::new(engine);
-        self.environments.insert(origin.clone(), environment);
         self.environments.get_mut(origin).unwrap()
     }
 
@@ -296,7 +354,19 @@ impl WebStorageManager {
                 .session_data
                 .get(&webview_id)
                 .and_then(|origin_map| origin_map.get(&origin)),
-            StorageType::Local => Some(&self.get_environment(&origin).data),
+            StorageType::Local => {
+                // FIXME: Selecting data for read only operations should not
+                // create a new origin descriptor. However, this currently
+                // needs to happen because get_environment always creates an
+                // environment, even for read only operations.
+                if self
+                    .local_storage_descriptor
+                    .ensure_origin_descriptor(&origin)
+                {
+                    self.save_local_storage_descriptor();
+                }
+                Some(&self.get_environment(&origin).data)
+            },
         }
     }
 
@@ -311,7 +381,19 @@ impl WebStorageManager {
                 .session_data
                 .get_mut(&webview_id)
                 .and_then(|origin_map| origin_map.get_mut(&origin)),
-            StorageType::Local => Some(&mut self.get_environment_mut(&origin).data),
+            StorageType::Local => {
+                // FIXME: Selecting data for read only operations should not
+                // create a new origin descriptor. However, this currently
+                // needs to happen because get_environment always creates an
+                // environment, even for read only operations.
+                if self
+                    .local_storage_descriptor
+                    .ensure_origin_descriptor(&origin)
+                {
+                    self.save_local_storage_descriptor();
+                }
+                Some(&mut self.get_environment_mut(&origin).data)
+            },
         }
     }
 
@@ -322,13 +404,24 @@ impl WebStorageManager {
         origin: ImmutableOrigin,
     ) -> &mut OriginEntry {
         match storage_type {
-            StorageType::Session => self
-                .session_data
-                .entry(webview_id)
-                .or_default()
-                .entry(origin)
-                .or_default(),
-            StorageType::Local => &mut self.get_environment_mut(&origin).data,
+            StorageType::Session => {
+                self.session_storage_descriptor
+                    .ensure_origin_descriptor(&origin);
+                self.session_data
+                    .entry(webview_id)
+                    .or_default()
+                    .entry(origin)
+                    .or_default()
+            },
+            StorageType::Local => {
+                if self
+                    .local_storage_descriptor
+                    .ensure_origin_descriptor(&origin)
+                {
+                    self.save_local_storage_descriptor();
+                }
+                &mut self.get_environment_mut(&origin).data
+            },
         }
     }
 
@@ -419,6 +512,7 @@ impl WebStorageManager {
                             Ok((true, Some(old)))
                         }
                     });
+            // XXX Should this be scoped to localStorage only?
             let env = self.get_environment_mut(&url.origin());
             env.set(&name, &value);
             result
@@ -486,5 +580,17 @@ impl WebStorageManager {
         let dest_origin_entries = src_origin_entries.clone();
         self.session_data
             .insert(dest_webview_id, dest_origin_entries);
+    }
+
+    fn get_origin_descriptors(
+        &mut self,
+        sender: GenericSender<Vec<OriginDescriptor>>,
+        storage_type: StorageType,
+    ) {
+        let origin_descriptors = match storage_type {
+            StorageType::Session => self.session_storage_descriptor.get_origin_descriptors(),
+            StorageType::Local => self.local_storage_descriptor.get_origin_descriptors(),
+        };
+        let _ = sender.send(origin_descriptors);
     }
 }
