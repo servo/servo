@@ -462,6 +462,8 @@ impl Default for Preferences {
         preferences.user_agent = UserAgentPlatform::default().to_user_agent_string();
         if let Ok(proxy_uri) = std::env::var("http_proxy") {
             preferences.network_http_proxy_uri = proxy_uri;
+        } else if let Ok(proxy_uri) = std::env::var("HTTP_PROXY") {
+            preferences.network_http_proxy_uri = proxy_uri;
         }
         preferences
     }
