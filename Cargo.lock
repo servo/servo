@@ -3928,9 +3928,9 @@ dependencies = [
 
 [[package]]
 name = "hilog-sys"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51434915c43a27465a1806e65273b52293feb27cfd28ee1996c5c2b37eecfffe"
+checksum = "96b1d492766a538e49020f97af3e91e0acb718b3b008ed4ab6d39374f42b3e83"
 dependencies = [
  "log",
 ]
