@@ -3946,9 +3946,9 @@ dependencies = [
 
 [[package]]
 name = "hitrace-sys"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "164f0e3568306af8b47c191406743476d9383e49d717960288cdb3469f9b7f54"
+checksum = "86e82963c048325a74d79bf6eb25fcc1e864807b3aa61c47cbc5669a04267bdb"
 
 [[package]]
 name = "hkdf"
