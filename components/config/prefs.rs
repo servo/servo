@@ -463,6 +463,9 @@ impl Default for Preferences {
         if let Ok(proxy_uri) = std::env::var("http_proxy") {
             preferences.network_http_proxy_uri = proxy_uri;
         }
+        if let Ok(proxy_uri) = std::env::var("HTTP_PROXY") {
+            preferences.network_http_proxy_uri = proxy_uri;
+        }
         preferences
     }
 }
