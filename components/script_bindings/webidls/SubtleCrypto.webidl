@@ -108,6 +108,12 @@ dictionary RsaHashedImportParams : Algorithm {
   required HashAlgorithmIdentifier hash;
 };
 
+// https://w3c.github.io/webcrypto/#RsaPssParams-dictionary
+
+dictionary RsaPssParams : Algorithm {
+  required [EnforceRange] unsigned long saltLength;
+};
+
 // https://w3c.github.io/webcrypto/#EcdsaParams-dictionary
 dictionary EcdsaParams : Algorithm {
   required HashAlgorithmIdentifier hash;
