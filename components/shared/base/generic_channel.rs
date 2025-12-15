@@ -674,10 +674,10 @@ mod generic_receiversets_tests {
         set.add(recv2);
 
         std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_secs(1));
             snd1_c.send(10).unwrap();
         });
         std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(1));
             snd2_c.send(20).unwrap();
         });
 
@@ -685,7 +685,7 @@ mod generic_receiversets_tests {
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
-            GenericSelectionResult::MessageReceived(1, 20)
+            GenericSelectionResult::MessageReceived(0, 10)
         );
     }
 
@@ -702,11 +702,10 @@ mod generic_receiversets_tests {
         set.add(recv2);
 
         std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_secs(2));
+            std::thread::sleep(Duration::from_secs(1));
             snd1_c.send(10).unwrap();
         });
         std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_secs(1));
             snd2_c.send(20).unwrap();
         });
 
@@ -803,6 +802,7 @@ mod generic_receiversets_tests {
     #[test]
     fn test_ipc_no_crash_on_disconnect() {
         // Test that we do not crash if a channel gets disconnected.
+        // Channel 2 gets disconnected because snd2 gets moved into the thread and then falls out of scope
         let (snd1, recv1) = new_generic_channel_ipc().unwrap();
         let (snd2, recv2) = new_generic_channel_ipc().unwrap();
 
@@ -819,7 +819,7 @@ mod generic_receiversets_tests {
         std::thread::spawn(move || {
             snd2.send(20).unwrap();
         });
-
+        std::thread::sleep(Duration::from_secs(1));
         let select_result = set.select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
@@ -830,6 +830,7 @@ mod generic_receiversets_tests {
 
     #[test]
     fn test_crossbeam_no_crash_on_disconnect() {
+        // Channel 2 gets disconnected because snd2 gets moved into the thread and then falls out of scope
         let (snd1, recv1) = new_generic_channel_crossbeam();
         let (snd2, recv2) = new_generic_channel_crossbeam();
 
@@ -846,7 +847,7 @@ mod generic_receiversets_tests {
         std::thread::spawn(move || {
             snd2.send(20).unwrap();
         });
-
+        std::thread::sleep(Duration::from_secs(1));
         let select_result = set.select();
         let channel_result = select_result.first().unwrap();
         assert_eq!(
