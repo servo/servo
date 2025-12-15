@@ -20,6 +20,11 @@ impl SiteDataManager {
         }
     }
 
+    pub fn clear_cookies(&self) {
+        self.public_resource_threads.clear_cookies();
+        self.private_resource_threads.clear_cookies();
+    }
+
     // TODO: This currently does not wait for cache clearing to complete.
     pub fn clear_cache(&self) {
         self.public_resource_threads.clear_cache();

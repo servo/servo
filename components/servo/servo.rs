@@ -75,8 +75,8 @@ use storage::new_storage_threads;
 use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
-use crate::cookies::CookieManager;
 use crate::javascript_evaluator::JavaScriptEvaluator;
+use crate::net::NetworkManager;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
@@ -140,7 +140,7 @@ struct ServoInner {
     paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
-    cookie_manager: Rc<RefCell<CookieManager>>,
+    network_manager: Rc<RefCell<NetworkManager>>,
     site_data_manager: Rc<RefCell<SiteDataManager>>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
@@ -770,7 +770,7 @@ impl Servo {
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             paint,
-            cookie_manager: Rc::new(RefCell::new(CookieManager::new(
+            network_manager: Rc::new(RefCell::new(NetworkManager::new(
                 public_resource_threads.clone(),
                 private_resource_threads.clone(),
             ))),
@@ -848,8 +848,8 @@ impl Servo {
         prefs::set(preferences);
     }
 
-    pub fn cookie_manager<'a>(&'a self) -> Ref<'a, CookieManager> {
-        self.0.cookie_manager.borrow()
+    pub fn network_manager<'a>(&'a self) -> Ref<'a, NetworkManager> {
+        self.0.network_manager.borrow()
     }
 
     pub fn site_data_manager<'a>(&'a self) -> Ref<'a, SiteDataManager> {

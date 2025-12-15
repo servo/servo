@@ -13,8 +13,8 @@
 //! `ScriptThread` and the `LayoutThread`, as well maintains the navigation context.
 
 mod clipboard_delegate;
-mod cookies;
 mod javascript_evaluator;
+mod net;
 mod proxies;
 mod responders;
 mod servo;
