@@ -52,7 +52,7 @@ enum SegmentStartSoftWrapPolicy {
     FollowLinebreaker,
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct TextRunSegment {
     /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
@@ -73,19 +73,6 @@ pub(crate) struct TextRunSegment {
 
     /// The shaped runs within this segment.
     pub runs: Vec<GlyphRun>,
-}
-
-// TODO: Use font identifier for debug?
-impl std::fmt::Debug for TextRunSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TextRunSegment")
-            .field("script", &self.script)
-            .field("bidi_level", &self.bidi_level)
-            .field("range", &self.range)
-            .field("break_at_start", &self.break_at_start)
-            .field("runs", &self.runs)
-            .finish()
-    }
 }
 
 impl TextRunSegment {

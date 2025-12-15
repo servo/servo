@@ -23,7 +23,7 @@ use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
 
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct InlineBox {
     pub base: LayoutBoxBase,
     /// The [`SharedInlineStyles`] for this [`InlineBox`] that are used to share styles
@@ -40,19 +40,6 @@ pub(crate) struct InlineBox {
     /// The index of the default font in the [`super::InlineFormattingContext`]'s font metrics store.
     /// This is initialized during IFC shaping.
     pub default_font: Option<FontRef>,
-}
-
-// TODO: Use font identifier for debug?
-impl std::fmt::Debug for InlineBox {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("InlineBox")
-            .field("base", &self.base)
-            .field("shared_inline_styles", &self.shared_inline_styles)
-            .field("identifier", &self.identifier)
-            .field("is_first_split", &self.is_first_split)
-            .field("is_last_split", &self.is_last_split)
-            .finish()
-    }
 }
 
 impl InlineBox {

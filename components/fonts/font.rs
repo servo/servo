@@ -253,6 +253,15 @@ pub struct Font {
     can_do_fast_shaping: OnceLock<bool>,
 }
 
+impl std::fmt::Debug for Font {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Font")
+            .field("template", &self.template)
+            .field("descriptor", &self.descriptor)
+            .finish()
+    }
+}
+
 impl malloc_size_of::MallocSizeOf for Font {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         // TODO: Collect memory usage for platform fonts and for shapers.
@@ -570,7 +579,7 @@ impl Font {
     }
 }
 
-#[derive(Clone, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct FontRef(#[conditional_malloc_size_of] pub(crate) Arc<Font>);
 
 impl Deref for FontRef {
