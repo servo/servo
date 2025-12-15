@@ -20,8 +20,7 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    IMPLICIT_WAIT_TIME = 10
-    WEBDRIVER_WAIT_TIME = 60
+    IMPLICIT_WAIT_TIME = 30
     PAGE_URL = "https://m.huaweimossel.com"
     driver = common_function_for_servo_test.create_driver()
     driver.get(PAGE_URL)
@@ -41,8 +40,6 @@ def operator():
     # TODO: Replace with Element click to be robust against screen size changes.
     cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    # Wait for the page to load, up to WEBDRIVER_WAIT_TIME seconds.
-    common_function_for_servo_test.wait_for_page_load(driver, WEBDRIVER_WAIT_TIME)
 
     # Step 4. Find components
     print("Finding components ...")

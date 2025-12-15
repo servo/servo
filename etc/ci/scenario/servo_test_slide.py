@@ -16,10 +16,12 @@ import subprocess
 import common_function_for_servo_test
 import common_function_for_mossel
 
+from selenium.common import NoSuchElementException
+from selenium.webdriver.common.by import By
+
 
 def operator():
-    IMPLICIT_WAIT_TIME = 10
-    WEBDRIVER_WAIT_TIME = 60
+    IMPLICIT_WAIT_TIME = 30
     PAGE_URL = "https://m.huaweimossel.com"
     driver = common_function_for_servo_test.create_driver()
     driver.get(PAGE_URL)
@@ -38,9 +40,21 @@ def operator():
     cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
-    common_function_for_servo_test.wait_for_page_load(driver, WEBDRIVER_WAIT_TIME)
+    # Step 4. Find components which indicates the page has loaded, before sliding.
+    print("Finding components ...")
+    target_css_selector = (
+        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
+        "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
+        "> uni-view.item.active"
+    )
 
-    # Step 4. Check if slide actually happened.
+    try:
+        driver.find_element(By.CSS_SELECTOR, target_css_selector)
+    except NoSuchElementException:
+        raise NoSuchElementException("Components not found. Test failed.")
+
+    print("Find components successful! Ready to swipe.")
+    # Step 4. Slide and check if it actually happened.
     print("Screenshot before swiping.")
     before = driver.get_screenshot_as_base64()
     time.sleep(1)
