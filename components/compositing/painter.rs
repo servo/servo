@@ -11,12 +11,12 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::GenericReceiver;
 use base::id::{PainterId, PipelineId, WebViewId};
-use compositing_traits::display_list::ScrollType;
+use compositing_traits::display_list::{PaintDisplayListInfo, ScrollType};
 use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{
-    DisplayListForPainter, ImageUpdate, PipelineExitSource, SendableFrameTree,
+    DisplayListPayloadSerializeable, ImageUpdate, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
 };
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
@@ -917,16 +917,19 @@ impl Painter {
         &mut self,
         webview_id: WebViewId,
         display_list_descriptor: BuiltDisplayListDescriptor,
-        display_list_receiver: GenericReceiver<DisplayListForPainter>,
+        display_list_info_receiver: GenericReceiver<PaintDisplayListInfo>,
+        display_list_data_receiver: GenericReceiver<DisplayListPayloadSerializeable>,
     ) {
-        let Ok(display_list_for_webrender) = display_list_receiver.recv() else {
+        let Ok(display_list_info) = display_list_info_receiver.recv() else {
             return log::error!("Could not receive display list info");
         };
+        let Ok(display_list_data) = display_list_data_receiver.recv() else {
+            return log::error!("Could not receive display list data");
+        };
 
-        let display_list_info = display_list_for_webrender.display_list_info;
-        let items_data = display_list_for_webrender.display_list_data.items_data;
-        let cache_data = display_list_for_webrender.display_list_data.cache_data;
-        let spatial_tree = display_list_for_webrender.display_list_data.spatial_tree;
+        let items_data = display_list_data.items_data;
+        let cache_data = display_list_data.cache_data;
+        let spatial_tree = display_list_data.spatial_tree;
 
         let built_display_list = BuiltDisplayList::from_data(
             DisplayListPayload {

@@ -132,8 +132,11 @@ pub enum PaintMessage {
         webview_id: WebViewId,
         /// A descriptor of this display list used to construct this display list from raw data.
         display_list_descriptor: BuiltDisplayListDescriptor,
-        /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
-        display_list_receiver: generic_channel::GenericReceiver<DisplayListForPainter>,
+        /// A [GenericReceiver] used to send the DisplayListInfo
+        display_list_info_receiver: generic_channel::GenericReceiver<PaintDisplayListInfo>,
+        /// A [GenericReceiver] used to send the DisplayListData
+        display_list_data_receiver:
+            generic_channel::GenericReceiver<DisplayListPayloadSerializeable>,
     },
     /// Ask the renderer to generate a frame for the current set of display lists
     /// from the given `PainterId`s that have been sent to the renderer.
@@ -338,6 +341,8 @@ impl CrossProcessPaintApi {
     }
 
     /// Inform WebRender of a new display list for the given pipeline.
+    /// We send the `PaintDisplayListInfo` and `DisplayListPayload` separately to not overwhelm
+    /// the ipc_channel (see https://github.com/servo/servo/pull/36484)
     #[servo_tracing::instrument(skip_all)]
     pub fn send_display_list(
         &self,
@@ -346,26 +351,30 @@ impl CrossProcessPaintApi {
         list: BuiltDisplayList,
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
-        let (display_list_sender, display_list_receiver) = generic_channel::channel().unwrap();
+        let (display_list_data_sender, display_list_data_receiver) =
+            generic_channel::channel().unwrap();
+        let (display_list_info_sender, display_list_info_receiver) =
+            generic_channel::channel().unwrap();
         if let Err(e) = self.0.send(PaintMessage::SendDisplayList {
             webview_id,
             display_list_descriptor,
-            display_list_receiver,
+            display_list_info_receiver,
+            display_list_data_receiver,
         }) {
             warn!("Error sending display list: {}", e);
         }
 
+        if let Err(error) = display_list_info_sender.send(display_list_info.clone()) {
+            warn!("Error sending display list info: {error}. Not sending the rest");
+            return;
+        }
         let display_list_data = DisplayListPayloadSerializeable {
             items_data: display_list_data.items_data,
             cache_data: display_list_data.cache_data,
             spatial_tree: display_list_data.spatial_tree,
         };
-        let sending = DisplayListForPainter {
-            display_list_info: display_list_info.clone(),
-            display_list_data,
-        };
 
-        if let Err(error) = display_list_sender.send(sending) {
+        if let Err(error) = display_list_data_sender.send(display_list_data) {
             warn!("Error sending display list: {error}");
         }
     }
