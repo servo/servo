@@ -523,8 +523,9 @@ impl ResourceChannelManager {
                     history_states.remove(&history_state);
                 }
             },
-            CoreResourceMsg::ClearCache => {
+            CoreResourceMsg::ClearCache(callback) => {
                 http_state.http_cache.write().clear();
+                let _ = callback.send(());
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {

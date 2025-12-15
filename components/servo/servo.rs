@@ -626,6 +626,9 @@ impl ServoInner {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
                 }
             },
+            EmbedderMsg::RunSiteDataManagerCallback(id) => {
+                self.site_data_manager.borrow_mut().run_callback(id);
+            },
         }
     }
 }
@@ -751,7 +754,7 @@ impl Servo {
             embedder_to_constellation_receiver,
             &paint.borrow(),
             opts.config_dir.clone(),
-            embedder_proxy,
+            embedder_proxy.clone(),
             paint_proxy.clone(),
             time_profiler_chan,
             mem_profiler_chan,
@@ -775,6 +778,7 @@ impl Servo {
                 private_resource_threads.clone(),
             ))),
             site_data_manager: Rc::new(RefCell::new(SiteDataManager::new(
+                embedder_proxy,
                 public_resource_threads,
                 private_resource_threads,
             ))),
@@ -854,6 +858,10 @@ impl Servo {
 
     pub fn site_data_manager<'a>(&'a self) -> Ref<'a, SiteDataManager> {
         self.0.site_data_manager.borrow()
+    }
+
+    pub fn site_data_manager_mut<'a>(&'a self) -> RefMut<'a, SiteDataManager> {
+        self.0.site_data_manager.borrow_mut()
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {

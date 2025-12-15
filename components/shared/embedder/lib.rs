@@ -500,6 +500,7 @@ pub enum EmbedderMsg {
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventHandled(WebViewId, InputEventId, InputEventResult),
+    RunSiteDataManagerCallback(usize),
 }
 
 impl Debug for EmbedderMsg {

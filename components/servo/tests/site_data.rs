@@ -4,6 +4,7 @@
 
 mod common;
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 use http_body_util::combinators::BoxBody;
@@ -38,7 +39,17 @@ fn test_clear_cache() {
 
     let _ = server.close();
 
-    servo_test.servo().site_data_manager().clear_cache();
+    let cleared = Rc::new(Cell::new(false));
+
+    let cleared_clone = cleared.clone();
+    servo_test
+        .servo()
+        .site_data_manager_mut()
+        .clear_cache(Box::new(move || {
+            cleared_clone.set(true);
+        }));
+
+    servo_test.spin(move || !cleared.get());
 
     // TODO: Check that the cache was actually cleared once there's a way to
     //       check it.
