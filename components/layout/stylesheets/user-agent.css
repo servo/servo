@@ -394,6 +394,10 @@ iframe:not([seamless]) { border: 2px inset; }
 iframe[seamless] { display: block; }
 video { object-fit: contain; }
 
+audio:not([controls]) {
+  display: none !important;
+}
+
 
 textarea { white-space: pre-wrap; }
 
