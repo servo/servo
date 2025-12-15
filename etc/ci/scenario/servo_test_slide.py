@@ -16,8 +16,6 @@ import subprocess
 import common_function_for_servo_test
 import common_function_for_mossel
 
-from selenium.webdriver.support.wait import WebDriverWait
-
 
 def operator():
     IMPLICIT_WAIT_TIME = 10
@@ -40,10 +38,7 @@ def operator():
     cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
 
-    # Wait for the page to load, up to WEBDRIVER_WAIT_TIME seconds.
-    WebDriverWait(driver, WEBDRIVER_WAIT_TIME).until(
-        lambda driver: driver.execute_script("return document.readyState") == "complete"
-    )
+    common_function_for_servo_test.wait_for_page_load(driver, WEBDRIVER_WAIT_TIME)
 
     # Step 4. Check if slide actually happened.
     print("Screenshot before swiping.")

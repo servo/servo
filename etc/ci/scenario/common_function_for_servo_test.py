@@ -23,6 +23,7 @@ from selenium.webdriver.common.options import ArgOptions
 from urllib3.exceptions import ProtocolError
 from PIL import Image
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.wait import WebDriverWait
 
 WEBDRIVER_PORT = 7000
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
@@ -196,6 +197,12 @@ def element_screenshot(element: WebElement, filename: str):
         region.save(save_path)
     except Exception as e:
         print(f"Element Screenshot failed with error: {e}")
+
+
+def wait_for_page_load(driver: webdriver.Remote, timeout: float = 60):
+    WebDriverWait(driver, timeout).until(
+        lambda driver: driver.execute_script("return document.readyState") == "complete"
+    )
 
 
 # We always load "about:blank" first, and then use
