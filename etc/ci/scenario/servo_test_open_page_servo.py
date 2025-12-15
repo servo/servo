@@ -16,7 +16,7 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    WEBDRIVER_WAIT_TIME = 10
+    IMPLICIT_WAIT_TIME = 10
     PAGE_URL = "https://servo.org"
     driver = common_function_for_servo_test.create_driver()
     driver.get(PAGE_URL)
@@ -24,7 +24,7 @@ def operator():
     print("Page loaded.")
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
-    driver.implicitly_wait(WEBDRIVER_WAIT_TIME)
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
     print("Finding components ...")
     goal_css_selector1 = "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"

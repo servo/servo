@@ -17,10 +17,12 @@ from selenium.common import NoSuchElementException
 import common_function_for_servo_test
 import common_function_for_mossel
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
 
 
 def operator():
-    WEBDRIVER_WAIT_TIME = 10
+    IMPLICIT_WAIT_TIME = 10
+    WEBDRIVER_WAIT_TIME = 60
     PAGE_URL = "https://m.huaweimossel.com"
     driver = common_function_for_servo_test.create_driver()
     driver.get(PAGE_URL)
@@ -28,7 +30,7 @@ def operator():
     print("Page loaded.")
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
-    driver.implicitly_wait(WEBDRIVER_WAIT_TIME)
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
     # Step 2. Click to close the pop-up
     common_function_for_mossel.close_popup(driver)
@@ -36,10 +38,14 @@ def operator():
     time.sleep(2)
 
     # Step 3. Click to page: Categories
-    print("Clicking 'Categories' element")
+    print("Clicking 'Categories' element.")
+    # TODO: Replace with Element click to be robust against screen size changes.
     cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    time.sleep(8)
+    # Wait for the page to load, up to WEBDRIVER_WAIT_TIME seconds.
+    WebDriverWait(driver, WEBDRIVER_WAIT_TIME).until(
+        lambda driver: driver.execute_script("return document.readyState") == "complete"
+    )
 
     # Step 4. Find components
     print("Finding components ...")
