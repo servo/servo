@@ -17,6 +17,7 @@ from selenium import webdriver
 # Click to close the pop-up
 # Note that the pop-up may not exist, either because we did this in the past
 # which sets localstorage, or the website does not have seasonal promotions/recommendations.
+# ASSUMPTION: driver is already created, and implicit wait is set properly.
 def close_popup(driver: webdriver.Remote):
     popup_css_selector = (
         "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "

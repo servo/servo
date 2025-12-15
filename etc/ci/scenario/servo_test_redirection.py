@@ -31,8 +31,6 @@ def operator():
     driver.implicitly_wait(WEBDRIVER_WAIT_TIME)
 
     # Step 2. Click to close the pop-up
-    # Note that the pop-up may not exist, either because we did this in the past
-    # which sets localstorage, or the website does not have seasonal promotions/recommendations.
     common_function_for_mossel.close_popup(driver)
 
     time.sleep(2)
