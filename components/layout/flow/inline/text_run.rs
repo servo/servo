@@ -26,7 +26,7 @@ use unicode_script::Script;
 use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
-use super::{FontKeyAndMetrics, InlineFormattingContextLayout, SharedInlineStyles};
+use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::context::LayoutContext;
 use crate::fragment_tree::BaseFragmentInfo;
 
@@ -56,7 +56,7 @@ enum SegmentStartSoftWrapPolicy {
 pub(crate) struct TextRunSegment {
     /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
-    pub font_index: usize,
+    pub font: FontRef,
 
     /// The [`Script`] of this segment.
     pub script: Script,
@@ -76,9 +76,9 @@ pub(crate) struct TextRunSegment {
 }
 
 impl TextRunSegment {
-    fn new(font_index: usize, script: Script, bidi_level: Level, start_offset: usize) -> Self {
+    fn new(font: FontRef, script: Script, bidi_level: Level, start_offset: usize) -> Self {
         Self {
-            font_index,
+            font,
             script,
             bidi_level,
             range: start_offset..start_offset,
@@ -96,7 +96,6 @@ impl TextRunSegment {
         new_font: &FontRef,
         script: Script,
         bidi_level: Level,
-        fonts: &[FontKeyAndMetrics],
     ) -> bool {
         fn is_specific(script: Script) -> bool {
             script != Script::Common && script != Script::Inherited
@@ -106,11 +105,12 @@ impl TextRunSegment {
             return false;
         }
 
-        let current_font_key_and_metrics = &fonts[self.font_index];
         let painter_id = layout_context.painter_id;
         let font_context = &layout_context.font_context;
-        if new_font.key(painter_id, font_context) != current_font_key_and_metrics.key ||
-            new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
+        if new_font.key(painter_id, font_context) !=
+            self.font
+                .key(layout_context.painter_id, &layout_context.font_context) ||
+            new_font.descriptor.pt_size != self.font.descriptor.pt_size
         {
             return false;
         }
@@ -152,7 +152,7 @@ impl TextRunSegment {
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.glyph_store.clone(),
                 text_run,
-                self.font_index,
+                &self.font,
                 self.bidi_level,
                 ServoRange::<ByteIndex>::new(
                     byte_processed + ByteIndex(self.range.start as isize),
@@ -167,11 +167,12 @@ impl TextRunSegment {
         &mut self,
         range: &Range<usize>,
         formatting_context_text: &str,
-        segment_font: &FontRef,
         options: &ShapingOptions,
     ) {
         self.runs.push(GlyphRun {
-            glyph_store: segment_font.shape_text(&formatting_context_text[range.clone()], options),
+            glyph_store: self
+                .font
+                .shape_text(&formatting_context_text[range.clone()], options),
             range: ServoRange::new(
                 ByteIndex(range.start as isize),
                 ByteIndex(range.len() as isize),
@@ -188,7 +189,6 @@ impl TextRunSegment {
         formatting_context_text: &str,
         linebreaker: &mut LineBreaker,
         shaping_options: &ShapingOptions,
-        font: FontRef,
     ) {
         // Gather the linebreaks that apply to this segment from the inline formatting context's collection
         // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
@@ -268,7 +268,7 @@ impl TextRunSegment {
 
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
-                self.shape_and_push_range(&slice, formatting_context_text, &font, &options);
+                self.shape_and_push_range(&slice, formatting_context_text, &options);
             }
 
             if whitespace.is_empty() {
@@ -289,7 +289,6 @@ impl TextRunSegment {
                     self.shape_and_push_range(
                         &(index..index + character.len_utf8()),
                         formatting_context_text,
-                        &font,
                         &options,
                     );
                 }
@@ -305,17 +304,15 @@ impl TextRunSegment {
                 self.shape_and_push_range(
                     &(whitespace.start..whitespace.end - 1),
                     formatting_context_text,
-                    &font,
                     &options,
                 );
                 self.shape_and_push_range(
                     &(whitespace.end - 1..whitespace.end),
                     formatting_context_text,
-                    &font,
                     &options,
                 );
             } else {
-                self.shape_and_push_range(&whitespace, formatting_context_text, &font, &options);
+                self.shape_and_push_range(&whitespace, formatting_context_text, &options);
             }
         }
     }
@@ -372,7 +369,6 @@ impl TextRun {
         formatting_context_text: &str,
         layout_context: &LayoutContext,
         linebreaker: &mut LineBreaker,
-        font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
@@ -403,16 +399,16 @@ impl TextRun {
             .segment_text_by_font(
                 layout_context,
                 formatting_context_text,
-                font_cache,
                 bidi_info,
                 &parent_style,
             )
             .into_iter()
-            .map(|(mut segment, font)| {
+            .map(|mut segment| {
                 let word_spacing = style_word_spacing.unwrap_or_else(|| {
-                    let space_width = font
+                    let space_width = segment
+                        .font
                         .glyph_index(' ')
-                        .map(|glyph_id| font.glyph_h_advance(glyph_id))
+                        .map(|glyph_id| segment.font.glyph_h_advance(glyph_id))
                         .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
                     specified_word_spacing.to_used_value(Au::from_f64_px(space_width))
                 });
@@ -433,7 +429,6 @@ impl TextRun {
                     formatting_context_text,
                     linebreaker,
                     &shaping_options,
-                    font,
                 );
 
                 segment
@@ -444,21 +439,19 @@ impl TextRun {
     }
 
     /// Take the [`TextRun`]'s text and turn it into [`TextRunSegment`]s. Each segment has a matched
-    /// font and script. Fonts may differ when glyphs are found in fallback fonts. Fonts are stored
-    /// in the `font_cache` which is a cache of all font keys and metrics used in this
+    /// font and script. Fonts may differ when glyphs are found in fallback fonts.
     /// [`super::InlineFormattingContext`].
     fn segment_text_by_font(
         &mut self,
         layout_context: &LayoutContext,
         formatting_context_text: &str,
-        font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
         parent_style: &Arc<ComputedValues>,
-    ) -> Vec<(TextRunSegment, FontRef)> {
+    ) -> Vec<TextRunSegment> {
         let font_group = layout_context
             .font_context
             .font_group(parent_style.clone_font());
-        let mut current: Option<(TextRunSegment, FontRef)> = None;
+        let mut current: Option<TextRunSegment> = None;
         let mut results = Vec::new();
 
         let text_run_text = &formatting_context_text[self.text_range.clone()];
@@ -477,9 +470,9 @@ impl TextRun {
             // at the bottom of the list.
             let script = Script::from(character);
             let bidi_level = bidi_info.levels[current_byte_index];
-            let current_font = current.as_ref().and_then(|(text_run_segment, font)| {
+            let current_font = current.as_ref().and_then(|text_run_segment| {
                 if text_run_segment.bidi_level == bidi_level && text_run_segment.script == script {
-                    Some(font.clone())
+                    Some(text_run_segment.font.clone())
                 } else {
                     None
                 }
@@ -499,18 +492,10 @@ impl TextRun {
 
             // If the existing segment is compatible with the character, keep going.
             if let Some(current) = current.as_mut() {
-                if current.0.update_if_compatible(
-                    layout_context,
-                    &font,
-                    script,
-                    bidi_level,
-                    font_cache,
-                ) {
+                if current.update_if_compatible(layout_context, &font, script, bidi_level) {
                     continue;
                 }
             }
-
-            let font_index = add_or_get_font(layout_context, &font, font_cache);
 
             // Add the new segment and finish the existing one, if we had one. If the first
             // characters in the run were control characters we may be creating the first
@@ -520,13 +505,10 @@ impl TextRun {
                 Some(_) => current_byte_index,
                 None => self.text_range.start,
             };
-            let new = (
-                TextRunSegment::new(font_index, script, bidi_level, start_byte_index),
-                font,
-            );
+            let new = TextRunSegment::new(font, script, bidi_level, start_byte_index);
             if let Some(mut finished) = current.replace(new) {
                 // The end of the previous segment is the start of the next one.
-                finished.0.range.end = current_byte_index;
+                finished.range.end = current_byte_index;
                 results.push(finished);
             }
         }
@@ -538,22 +520,13 @@ impl TextRun {
                 .write()
                 .first(&layout_context.font_context)
                 .map(|font| {
-                    let font_index = add_or_get_font(layout_context, &font, font_cache);
-                    (
-                        TextRunSegment::new(
-                            font_index,
-                            Script::Common,
-                            Level::ltr(),
-                            self.text_range.start,
-                        ),
-                        font,
-                    )
+                    TextRunSegment::new(font, Script::Common, Level::ltr(), self.text_range.start)
                 })
         }
 
         // Extend the last segment to the end of the string and add it to the results.
         if let Some(mut last_segment) = current.take() {
-            last_segment.0.range.end = self.text_range.end;
+            last_segment.range.end = self.text_range.end;
             results.push(last_segment);
         }
 
@@ -602,27 +575,6 @@ fn char_does_not_change_font(character: char) -> bool {
         class == XI_LINE_BREAKING_CLASS_ZW ||
         class == XI_LINE_BREAKING_CLASS_WJ ||
         class == XI_LINE_BREAKING_CLASS_ZWJ
-}
-
-pub(super) fn add_or_get_font(
-    layout_context: &LayoutContext,
-    font: &FontRef,
-    ifc_fonts: &mut Vec<FontKeyAndMetrics>,
-) -> usize {
-    let font_instance_key = font.key(layout_context.painter_id, &layout_context.font_context);
-    for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
-        if ifc_font_info.key == font_instance_key &&
-            ifc_font_info.pt_size == font.descriptor.pt_size
-        {
-            return index;
-        }
-    }
-    ifc_fonts.push(FontKeyAndMetrics {
-        metrics: font.metrics.clone(),
-        key: font_instance_key,
-        pt_size: font.descriptor.pt_size,
-    });
-    ifc_fonts.len() - 1
 }
 
 pub(super) fn get_font_for_first_font_for_style(
