@@ -26,6 +26,7 @@ from selenium.webdriver.remote.webelement import WebElement
 
 WEBDRIVER_PORT = 7000
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
+ABOUT_BLANK = "about:blank"
 
 
 def calculate_frame_rate():
@@ -197,13 +198,15 @@ def element_screenshot(element: WebElement, filename: str):
         print(f"Element Screenshot failed with error: {e}")
 
 
-def run_test(test_fn, test_name: str, initial_url: str):
+# We always load "about:blank" first, and then use
+# WebDriver to load target url so that it is blocked until fully loaded.
+def run_test(test_fn, test_name: str):
     try:
         print("Stopping potential old servo instance ...")
         stop_servo()
         hdc = HarmonyDeviceConnector()
-        print(f"Starting new servo instance, loading {initial_url} ...")
-        hdc.cmd(f"aa start -a EntryAbility -b org.servo.servo -U {initial_url} --psn --webdriver", timeout=10)
+        print("Starting new servo instance...")
+        hdc.cmd(f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn --webdriver", timeout=10)
         setup_hdc_forward()
     except Exception as e:
         print(f"Scenario test setup failed with error: {e} (exception: {type(e)})")
@@ -217,5 +220,5 @@ def run_test(test_fn, test_name: str, initial_url: str):
         hdc.screenshot(f"servo_scenario_{test_name}_error.jpg")
         stop_servo()
         sys.exit(1)
-
+    print("\033[32mTest Succeeded.\033[0m")
     stop_servo()

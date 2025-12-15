@@ -12,51 +12,50 @@
 import time
 import subprocess
 
-from selenium.common import NoSuchWindowException, NoSuchElementException
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common import NoSuchElementException
 
 import common_function_for_servo_test
+import common_function_for_mossel
 from selenium.webdriver.common.by import By
 
 
 def operator():
+    IMPLICIT_WAIT_TIME = 30
+    PAGE_URL = "https://m.huaweimossel.com"
     driver = common_function_for_servo_test.create_driver()
+    driver.get(PAGE_URL)
+
+    print("Page loaded.")
+    # This is used to wait for element retrieval if not found
+    # and certain element click, element send key exceptions.
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
     # Step 2. Click to close the pop-up
-    popup_css_selector = (
-        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
-        "> uni-view:nth-child(5) "
-        "> uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid "
-        "> uni-view > uni-view > uni-button:nth-child(1)"
-    )
-    print("Waiting for popup to appear ...")
-    WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
-    )
-    time.sleep(1)
+    common_function_for_mossel.close_popup(driver)
 
-    birthday_ = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
-    birthday_.click()
-    print("Closed the popup")
-
-    # Step 3. Click to page: Categories
-    print("Clicking 'Categories' element")
-    cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(2)
 
+    # Step 3. Click to page: Categories
+    print("Clicking 'Categories' element.")
+    # TODO: Replace with Element click to be robust against screen size changes.
+    cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+
+    # Step 4. Find components
     print("Finding components ...")
-    goal_css_selector = (
+    target_css_selector = (
         "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
         "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
         "> uni-view.item.active"
     )
-    WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, goal_css_selector))
-    )
+
+    try:
+        driver.find_element(By.CSS_SELECTOR, target_css_selector)
+    except NoSuchElementException:
+        raise NoSuchElementException("Components not found. Test failed.")
+
     print("Find components successful!")
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_redirection", "https://m.huaweimossel.com")
+    common_function_for_servo_test.run_test(operator, "mossel_redirection")

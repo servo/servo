@@ -12,44 +12,52 @@
 import time
 import subprocess
 
-from selenium.common import NoSuchWindowException, NoSuchElementException
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
+
 import common_function_for_servo_test
+import common_function_for_mossel
+
+from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 
 def operator():
-    # Step 1.Connect to Webdriver
-    print("Connecting to Webdriver server...")
+    IMPLICIT_WAIT_TIME = 30
+    PAGE_URL = "https://m.huaweimossel.com"
     driver = common_function_for_servo_test.create_driver()
+    driver.get(PAGE_URL)
+
+    print("Page loaded.")
+    # This is used to wait for element retrieval if not found
+    # and certain element click, element send key exceptions.
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
     # Step 2. Click to close the pop-up
-    popup_css_selector = (
-        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
-        "> uni-view:nth-child(5) "
-        "> uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid "
-        "> uni-view > uni-view > uni-button:nth-child(1)"
-    )
-    print("Waiting for popup to appear ...")
-    WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
-    )
-    time.sleep(1)
-
-    birthday_ = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
-    birthday_.click()
-    print("Closed the popup")
+    common_function_for_mossel.close_popup(driver)
 
     # Step 3. Click to page: Categories
     print("Clicking 'Categories' element.")
+    # TODO: Replace with Element click to be robust against screen size changes.
     cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    time.sleep(2)
 
-    # Step 4. Check sliding effect
+    # Step 4. Find components which indicates the page has loaded, before sliding.
+    print("Finding components ...")
+    target_css_selector = (
+        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
+        "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
+        "> uni-view.item.active"
+    )
+
+    try:
+        driver.find_element(By.CSS_SELECTOR, target_css_selector)
+    except NoSuchElementException:
+        raise NoSuchElementException("Components not found. Test failed.")
+
+    print("Find components successful! Ready to swipe.")
+    # Step 4. Slide and check if it actually happened.
     print("Screenshot before swiping.")
     before = driver.get_screenshot_as_base64()
+    time.sleep(1)
 
     print("swiping...")
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
@@ -64,4 +72,4 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_slide", "https://m.huaweimossel.com")
+    common_function_for_servo_test.run_test(operator, "mossel_slide")
