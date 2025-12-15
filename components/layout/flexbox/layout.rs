@@ -261,7 +261,7 @@ impl FlexLineItem<'_> {
         }
 
         if style.clone_position() == Position::Relative {
-            fragment.content_rect.origin += relative_adjustement(style, containing_block)
+            fragment.base.rect.origin += relative_adjustement(style, containing_block)
                 .to_physical_size(containing_block.style.writing_mode)
         }
 
@@ -865,7 +865,7 @@ impl FlexContainer {
                 let physical_line_position =
                     flow_relative_line_position.to_physical_size(self.style.writing_mode);
                 for (fragment, _) in &mut final_line_layout.item_fragments {
-                    fragment.borrow_mut().content_rect.origin += physical_line_position;
+                    fragment.borrow_mut().base.rect.origin += physical_line_position;
                 }
                 final_line_layout.item_fragments
             })

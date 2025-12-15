@@ -520,7 +520,7 @@ impl TaffyContainer {
                         child
                             .positioning_context
                             .adjust_static_position_of_hoisted_fragments_with_offset(
-                                &box_fragment.content_rect.origin.to_vector(),
+                                &box_fragment.content_rect().origin.to_vector(),
                                 PositioningContextLength::zero(),
                             );
                         container_ctx

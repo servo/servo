@@ -52,7 +52,7 @@ pub(crate) struct ContainingBlockManager<'a, T> {
 impl<'a, T> ContainingBlockManager<'a, T> {
     pub(crate) fn get_containing_block_for_fragment(&self, fragment: &Fragment) -> &T {
         if let Fragment::Box(box_fragment) = fragment {
-            match box_fragment.borrow().style.clone_position() {
+            match box_fragment.borrow().style().clone_position() {
                 ComputedPosition::Fixed => self.for_absolute_and_fixed_descendants,
                 ComputedPosition::Absolute => self
                     .for_absolute_descendants

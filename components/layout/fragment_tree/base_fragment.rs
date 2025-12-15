@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Deref;
+
+use app_units::Au;
+use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use html5ever::local_name;
 use layout_api::combine_id_with_fragment_type;
@@ -11,16 +15,63 @@ use layout_api::wrapper_traits::{
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoThreadSafeLayoutNode;
+use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
+use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
+use crate::geom::PhysicalRect;
+
+pub(crate) enum BaseFragmentStyleRef<'a> {
+    Owned(&'a ServoArc<ComputedValues>),
+    Shared(AtomicRef<'a, ServoArc<ComputedValues>>),
+}
+
+impl<'a> Deref for BaseFragmentStyleRef<'a> {
+    type Target = ServoArc<ComputedValues>;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            BaseFragmentStyleRef::Owned(style) => style,
+            BaseFragmentStyleRef::Shared(style_ref) => style_ref.deref(),
+        }
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub(crate) enum BaseFragmentStyle {
+    Owned(ServoArc<ComputedValues>),
+    Shared(SharedStyle),
+}
+
+impl From<ServoArc<ComputedValues>> for BaseFragmentStyle {
+    fn from(style: ServoArc<ComputedValues>) -> Self {
+        BaseFragmentStyle::Owned(style)
+    }
+}
+
+impl From<SharedStyle> for BaseFragmentStyle {
+    fn from(style: SharedStyle) -> Self {
+        BaseFragmentStyle::Shared(style)
+    }
+}
+
+impl std::fmt::Debug for BaseFragmentStyle {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BaseFragmentStyle::Owned(..) => write!(formatter, "BaseFragmentStyle::Owned"),
+            BaseFragmentStyle::Shared(..) => write!(formatter, "BaseFragmentStyle::Shared"),
+        }
+    }
+}
 
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
-#[derive(Clone, Copy, Debug, MallocSizeOf)]
-pub(crate) struct BaseFragmentInfo {
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
     /// Fragment's content. If this fragment is for an anonymous box,
     /// the tag will be None.
@@ -28,6 +79,59 @@ pub(crate) struct BaseFragmentInfo {
 
     /// Flags which various information about this fragment used during
     /// layout.
+    pub flags: FragmentFlags,
+
+    /// The style for this [`BaseFragment`]. Depending on the fragment type this is either
+    /// a shared or non-shared style.
+    pub style: BaseFragmentStyle,
+
+    /// The content rect of this fragment in the parent fragment's content rectangle. This
+    /// does not include padding, border, or margin -- it only includes content. This is
+    /// relative to the parent containing block.
+    pub rect: PhysicalRect<Au>,
+}
+
+impl BaseFragment {
+    pub(crate) fn new(
+        base_fragment_info: BaseFragmentInfo,
+        style: BaseFragmentStyle,
+        rect: PhysicalRect<Au>,
+    ) -> Self {
+        Self {
+            tag: base_fragment_info.tag,
+            flags: base_fragment_info.flags,
+            style,
+            rect,
+        }
+    }
+
+    pub(crate) fn is_anonymous(&self) -> bool {
+        self.tag.is_none()
+    }
+
+    pub(crate) fn repair_style(&mut self, style: &ServoArc<ComputedValues>) {
+        self.style = style.clone().into();
+    }
+
+    pub(crate) fn style<'a>(&'a self) -> BaseFragmentStyleRef<'a> {
+        match &self.style {
+            BaseFragmentStyle::Owned(computed_values) => {
+                BaseFragmentStyleRef::Owned(computed_values)
+            },
+            BaseFragmentStyle::Shared(shared_style) => {
+                BaseFragmentStyleRef::Shared(shared_style.borrow())
+            },
+        }
+    }
+}
+
+/// Information necessary to construct a new BaseFragment.
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
+pub(crate) struct BaseFragmentInfo {
+    /// The tag to use for the new BaseFragment, if it is not an anonymous Fragment.
+    pub tag: Option<Tag>,
+
+    /// The flags to use for the new BaseFragment.
     pub flags: FragmentFlags,
 }
 
@@ -39,10 +143,6 @@ impl BaseFragmentInfo {
         }
     }
 
-    pub(crate) fn is_anonymous(&self) -> bool {
-        self.tag.is_none()
-    }
-
     pub(crate) fn new_for_testing(id: usize) -> Self {
         Self {
             tag: Some(Tag {
@@ -51,6 +151,10 @@ impl BaseFragmentInfo {
             }),
             flags: FragmentFlags::empty(),
         }
+    }
+
+    pub(crate) fn is_anonymous(&self) -> bool {
+        self.tag.is_none()
     }
 }
 

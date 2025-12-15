@@ -2079,9 +2079,7 @@ impl IndependentFormattingContext {
         let pbm_physical_offset = pbm_sums
             .start_offset()
             .to_physical_size(container_writing_mode);
-        fragment.content_rect = fragment
-            .content_rect
-            .translate(pbm_physical_offset.to_vector());
+        fragment.base.rect.origin += pbm_physical_offset.to_vector();
 
         // Apply baselines.
         fragment = fragment.with_baselines(baselines);
@@ -2092,7 +2090,7 @@ impl IndependentFormattingContext {
             None
         } else {
             if fragment
-                .style
+                .style()
                 .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
             {
                 child_positioning_context
@@ -2109,11 +2107,7 @@ impl IndependentFormattingContext {
             layout.process_soft_wrap_opportunity();
         }
 
-        let size = pbm_sums.sum() +
-            fragment
-                .content_rect
-                .size
-                .to_logical(container_writing_mode);
+        let size = pbm_sums.sum() + fragment.base.rect.size.to_logical(container_writing_mode);
         let baseline_offset = self
             .pick_baseline(&fragment.baselines(container_writing_mode))
             .map(|baseline| pbm_sums.block_start + baseline)

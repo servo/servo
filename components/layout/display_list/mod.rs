@@ -570,17 +570,12 @@ impl InspectorHighlight {
             );
         }
 
-        let fragment_relative_rect = match fragment {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                state.maybe_box_fragment = Some(fragment.clone());
-
-                fragment.borrow().content_rect
-            },
-            Fragment::Positioning(fragment) => fragment.borrow().rect,
-            Fragment::Text(fragment) => fragment.borrow().rect,
-            Fragment::Image(image_fragment) => image_fragment.borrow().rect,
-            Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::IFrame(iframe_fragment) => iframe_fragment.borrow().rect,
+        let Some(fragment_relative_rect) = fragment.base().map(|base| base.rect) else {
+            return;
+        };
+        state.maybe_box_fragment = match fragment {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => Some(fragment.clone()),
+            _ => None,
         };
 
         state.content_box = state
@@ -615,7 +610,7 @@ impl Fragment {
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                 let box_fragment = &*box_fragment.borrow();
-                match box_fragment.style.get_inherited_box().visibility {
+                match box_fragment.style().get_inherited_box().visibility {
                     Visibility::Visible => BuilderForBoxFragment::new(
                         box_fragment,
                         containing_block,
@@ -630,16 +625,15 @@ impl Fragment {
             Fragment::AbsoluteOrFixedPositioned(_) | Fragment::Positioning(_) => {},
             Fragment::Image(image) => {
                 let image = image.borrow();
-                match image.style.get_inherited_box().visibility {
+                let style = image.base.style();
+                match style.get_inherited_box().visibility {
                     Visibility::Visible => {
                         builder.mark_is_contentful();
 
-                        let image_rendering = image
-                            .style
-                            .get_inherited_box()
-                            .image_rendering
-                            .to_webrender();
+                        let image_rendering =
+                            style.get_inherited_box().image_rendering.to_webrender();
                         let rect = image
+                            .base
                             .rect
                             .translate(containing_block.origin.to_vector())
                             .to_webrender();
@@ -647,7 +641,7 @@ impl Fragment {
                             .clip
                             .translate(containing_block.origin.to_vector())
                             .to_webrender();
-                        let common = builder.common_properties(clip, &image.style);
+                        let common = builder.common_properties(clip, &style);
 
                         if let Some(image_key) = image.image_key {
                             builder.wr().push_image(
@@ -686,12 +680,16 @@ impl Fragment {
             },
             Fragment::IFrame(iframe) => {
                 let iframe = iframe.borrow();
-                match iframe.style.get_inherited_box().visibility {
+                let style = iframe.base.style();
+                match style.get_inherited_box().visibility {
                     Visibility::Visible => {
                         builder.mark_is_contentful();
-                        let rect = iframe.rect.translate(containing_block.origin.to_vector());
+                        let rect = iframe
+                            .base
+                            .rect
+                            .translate(containing_block.origin.to_vector());
 
-                        let common = builder.common_properties(rect.to_webrender(), &iframe.style);
+                        let common = builder.common_properties(rect.to_webrender(), &style);
                         builder.wr().push_iframe(
                             rect.to_webrender(),
                             common.clip_rect,
@@ -709,13 +707,7 @@ impl Fragment {
             },
             Fragment::Text(text) => {
                 let text = &*text.borrow();
-                match text
-                    .inline_styles
-                    .style
-                    .borrow()
-                    .get_inherited_box()
-                    .visibility
-                {
+                match text.base.style().get_inherited_box().visibility {
                     Visibility::Visible => self.build_display_list_for_text_fragment(
                         text,
                         builder,
@@ -741,7 +733,10 @@ impl Fragment {
 
         builder.mark_is_contentful();
 
-        let rect = fragment.rect.translate(containing_block.origin.to_vector());
+        let rect = fragment
+            .base
+            .rect
+            .translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
         let include_whitespace =
@@ -757,7 +752,7 @@ impl Fragment {
             return;
         }
 
-        let parent_style = fragment.inline_styles.style.borrow();
+        let parent_style = fragment.base.style();
         let color = parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.device_pixel_ratio.get();
@@ -837,8 +832,7 @@ impl Fragment {
                     Point2D::new(end.x.to_f32_px(), containing_block.max_y().to_f32_px()),
                 );
                 if let Some(selection_color) = fragment
-                    .inline_styles
-                    .selected
+                    .selected_style
                     .borrow()
                     .clone_background_color()
                     .as_absolute()
@@ -1029,7 +1023,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn content_rect(&self) -> &units::LayoutRect {
         self.content_rect.get_or_init(|| {
             self.fragment
-                .content_rect
+                .content_rect()
                 .translate(self.containing_block.origin.to_vector())
                 .to_webrender()
         })
@@ -1105,7 +1099,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
         if self.is_hit_test_for_scrollable_overflow &&
-            self.fragment.style.get_inherited_ui().pointer_events !=
+            self.fragment.style().get_inherited_ui().pointer_events !=
                 style::computed_values::pointer_events::T::None
         {
             self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
@@ -1140,7 +1134,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             .paint_info
             .external_scroll_id_for_scroll_tree_node(builder.current_scroll_node_id);
 
-        let mut common = builder.common_properties(rect, &self.fragment.style);
+        let mut common = builder.common_properties(rect, &self.fragment.style());
         if let Some(clip_chain_id) = self.border_edge_clip(builder, false) {
             common.clip_chain_id = clip_chain_id;
         }
@@ -1215,7 +1209,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         let painter = BackgroundPainter {
-            style: &self.fragment.style,
+            style: &self.fragment.style(),
             painting_area_override: None,
             positioning_area_override: None,
         };
@@ -1372,7 +1366,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         };
         let mut common =
-            builder.common_properties(units::LayoutRect::default(), &self.fragment.style);
+            builder.common_properties(units::LayoutRect::default(), &self.fragment.style());
         let radius = wr::BorderRadius::default();
         let mut column_sum = Au::zero();
         for (x, column_size) in table_info.track_sizes.x.iter().enumerate() {
@@ -1413,7 +1407,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     *row_size - top_adjustment + border_widths.bottom / 2,
                 );
                 let border_rect = PhysicalRect::new(origin, size)
-                    .translate(self.fragment.content_rect.origin.to_vector())
+                    .translate(self.fragment.content_rect().origin.to_vector())
                     .translate(self.containing_block.origin.to_vector())
                     .to_webrender();
                 common.clip_rect = border_rect;
@@ -1436,7 +1430,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let border = self.fragment.style.get_border();
+        let style = self.fragment.style();
+        let border = style.get_border();
         let border_widths = self.fragment.border.to_webrender();
 
         if border_widths == SideOffsets2D::zero() {
@@ -1444,12 +1439,12 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         // `border-image` replaces an element's border entirely.
-        let common = builder.common_properties(self.border_rect, &self.fragment.style);
+        let common = builder.common_properties(self.border_rect, &style);
         if self.build_border_image(builder, &common, border, border_widths) {
             return;
         }
 
-        let current_color = self.fragment.style.get_inherited_text().clone_color();
+        let current_color = style.get_inherited_text().clone_color();
         let style_color = BorderStyleColor::from_border(border, &current_color);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(style_color.top),
@@ -1472,7 +1467,8 @@ impl<'a> BuilderForBoxFragment<'a> {
         border: &Border,
         border_widths: SideOffsets2D<f32, LayoutPixel>,
     ) -> bool {
-        let border_style_struct = self.fragment.style.get_border();
+        let style = self.fragment.style();
+        let border_style_struct = style.get_border();
         let border_image_outset =
             resolve_border_image_outset(border_style_struct.border_image_outset, border_widths);
         let border_image_area = self.border_rect.to_rect().outer_rect(border_image_outset);
@@ -1506,11 +1502,11 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                 width = size.width;
                 height = size.height;
-                let image_rendering = self.fragment.style.clone_image_rendering().to_webrender();
+                let image_rendering = style.clone_image_rendering().to_webrender();
                 NinePatchBorderSource::Image(key, image_rendering)
             },
             Ok(ResolvedImage::Gradient(gradient)) => {
-                match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
+                match gradient::build(&style, gradient, border_image_size, builder) {
                     WebRenderGradient::Linear(gradient) => {
                         NinePatchBorderSource::Gradient(gradient)
                     },
@@ -1552,7 +1548,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
-        let style = &self.fragment.style;
+        let style = self.fragment.style();
         let outline = style.get_outline();
         let width = outline.outline_width.to_f32_px();
         if width == 0.0 {
@@ -1571,7 +1567,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             offset.max(-self.border_rect.width() / 2.0 + width),
             offset.max(-self.border_rect.height() / 2.0 + width),
         );
-        let common = builder.common_properties(outline_rect, &self.fragment.style);
+        let common = builder.common_properties(outline_rect, &style);
         let widths = SideOffsets2D::new_all_same(width);
         let border_style = match outline.outline_style {
             // TODO: treating 'auto' as 'solid' is allowed by the spec,
@@ -1597,13 +1593,14 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_box_shadow(&self, builder: &mut DisplayListBuilder<'_>) {
-        let box_shadows = &self.fragment.style.get_effects().box_shadow.0;
+        let style = self.fragment.style();
+        let box_shadows = &style.get_effects().box_shadow.0;
         if box_shadows.is_empty() {
             return;
         }
 
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
-        let common = builder.common_properties(MaxRect::max_rect(), &self.fragment.style);
+        let common = builder.common_properties(MaxRect::max_rect(), &style);
         for box_shadow in box_shadows.iter().rev() {
             let (rect, clip_mode) = if box_shadow.inset {
                 (*self.padding_rect(), BoxShadowClipMode::Inset)
@@ -1618,7 +1615,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     box_shadow.base.horizontal.px(),
                     box_shadow.base.vertical.px(),
                 ),
-                rgba(self.fragment.style.resolve_color(&box_shadow.base.color)),
+                rgba(style.resolve_color(&box_shadow.base.color)),
                 box_shadow.base.blur.px(),
                 box_shadow.spread.px(),
                 self.border_radius,
@@ -1836,7 +1833,8 @@ pub(super) fn compute_margin_box_radius(
     layout_rect: LayoutSize,
     fragment: &BoxFragment,
 ) -> wr::BorderRadius {
-    let margin = fragment.style.physical_margin();
+    let style = fragment.style();
+    let margin = style.physical_margin();
     let adjust_radius = |radius: f32, margin: f32| -> f32 {
         if margin <= 0. || (radius / margin) >= 1. {
             (radius + margin).max(0.)
@@ -1888,7 +1886,8 @@ pub(super) fn compute_margin_box_radius(
 
 impl BoxFragment {
     fn border_radius(&self) -> BorderRadius {
-        let border = self.style.get_border();
+        let style = self.style();
+        let border = style.get_border();
         if border.border_top_left_radius.0.is_zero() &&
             border.border_top_right_radius.0.is_zero() &&
             border.border_bottom_right_radius.0.is_zero() &&

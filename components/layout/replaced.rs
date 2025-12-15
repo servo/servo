@@ -29,7 +29,7 @@ use crate::cell::ArcRefCell;
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
-    BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
+    BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
 };
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
@@ -376,6 +376,7 @@ impl ReplacedContents {
         let (object_fit_size, rect) = self.calculate_fragment_rect(style, size);
         let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
 
+        let mut base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
         match &self.kind {
             ReplacedContentKind::Image(image, showing_broken_image_icon) => image
                 .as_ref()
@@ -395,9 +396,7 @@ impl ReplacedContents {
                 })
                 .map(|image_key| {
                     Fragment::Image(ArcRefCell::new(ImageFragment {
-                        base: self.base_fragment_info,
-                        style: style.clone(),
-                        rect,
+                        base,
                         clip,
                         image_key: Some(image_key),
                         showing_broken_image_icon: *showing_broken_image_icon,
@@ -407,9 +406,7 @@ impl ReplacedContents {
                 .collect(),
             ReplacedContentKind::Video(video) => {
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {
-                    base: self.base_fragment_info,
-                    style: style.clone(),
-                    rect,
+                    base,
                     clip,
                     image_key: video.as_ref().map(|video| video.image_key),
                     showing_broken_image_icon: false,
@@ -431,10 +428,8 @@ impl ReplacedContents {
                     },
                 );
                 vec![Fragment::IFrame(ArcRefCell::new(IFrameFragment {
-                    base: self.base_fragment_info,
-                    style: style.clone(),
+                    base,
                     pipeline_id: iframe.pipeline_id,
-                    rect,
                 }))]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
@@ -449,9 +444,7 @@ impl ReplacedContents {
                 };
 
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {
-                    base: self.base_fragment_info,
-                    style: style.clone(),
-                    rect,
+                    base,
                     clip,
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
@@ -461,9 +454,9 @@ impl ReplacedContents {
                 let Some(vector_image) = vector_image else {
                     return vec![];
                 };
-                let scale = layout_context.style_context.device_pixel_ratio();
+
                 // TODO: This is incorrect if the SVG has a viewBox.
-                let size = PhysicalSize::new(
+                base.rect = PhysicalSize::new(
                     vector_image
                         .metadata
                         .width
@@ -474,12 +467,15 @@ impl ReplacedContents {
                         .height
                         .try_into()
                         .map_or(MAX_AU, Au::from_px),
-                );
-                let rect = PhysicalRect::from_size(size);
+                )
+                .into();
+
+                let scale = layout_context.style_context.device_pixel_ratio();
                 let raster_size = Size2D::new(
-                    size.width.scale_by(scale.0).to_px(),
-                    size.height.scale_by(scale.0).to_px(),
+                    base.rect.size.width.scale_by(scale.0).to_px(),
+                    base.rect.size.height.scale_by(scale.0).to_px(),
                 );
+
                 let tag = self.base_fragment_info.tag.unwrap();
                 layout_context
                     .image_resolver
@@ -487,9 +483,7 @@ impl ReplacedContents {
                     .and_then(|image| image.id)
                     .map(|image_key| {
                         Fragment::Image(ArcRefCell::new(ImageFragment {
-                            base: self.base_fragment_info,
-                            style: style.clone(),
-                            rect,
+                            base,
                             clip,
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,

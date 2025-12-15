@@ -136,7 +136,7 @@ impl FragmentTree {
                     if fragment
                         .retrieve_box_fragment()
                         .is_some_and(|box_fragment| {
-                            box_fragment.borrow().style.get_box().position == Position::Fixed
+                            box_fragment.borrow().style().get_box().position == Position::Fixed
                         })
                     {
                         return overflow;

@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use app_units::Au;
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use euclid::{Point2D, Rect, Size2D, UnknownUnit};
@@ -12,17 +13,15 @@ use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range as ServoRange;
-use servo_arc::Arc as ServoArc;
 use style::Zero;
-use style::properties::ComputedValues;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
-    BaseFragmentInfo, BoxFragment, ContainingBlockManager, HoistedSharedFragment,
-    PositioningFragment, Tag,
+    BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, PositioningFragment,
+    Tag,
 };
+use crate::SharedStyle;
 use crate::cell::ArcRefCell;
-use crate::flow::inline::SharedInlineStyles;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
@@ -64,9 +63,8 @@ pub(crate) struct CollapsedMargin {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct TextFragment {
-    pub base: BaseFragmentInfo,
-    pub inline_styles: SharedInlineStyles,
-    pub rect: PhysicalRect<Au>,
+    pub base: BaseFragment,
+    pub selected_style: SharedStyle,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
     #[conditional_malloc_size_of]
@@ -79,9 +77,7 @@ pub(crate) struct TextFragment {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct ImageFragment {
-    pub base: BaseFragmentInfo,
-    pub style: ServoArc<ComputedValues>,
-    pub rect: PhysicalRect<Au>,
+    pub base: BaseFragment,
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
@@ -89,35 +85,55 @@ pub(crate) struct ImageFragment {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct IFrameFragment {
-    pub base: BaseFragmentInfo,
+    pub base: BaseFragment,
     pub pipeline_id: PipelineId,
-    pub rect: PhysicalRect<Au>,
-    pub style: ServoArc<ComputedValues>,
 }
 
 impl Fragment {
-    pub fn base(&self) -> Option<BaseFragmentInfo> {
+    pub fn base<'a>(&'a self) -> Option<AtomicRef<'a, BaseFragment>> {
         Some(match self {
-            Fragment::Box(fragment) => fragment.borrow().base,
-            Fragment::Text(fragment) => fragment.borrow().base,
+            Fragment::Box(fragment) => AtomicRef::map(fragment.borrow(), |fragment| &fragment.base),
+            Fragment::Text(fragment) => {
+                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => return None,
-            Fragment::Positioning(fragment) => fragment.borrow().base,
-            Fragment::Image(fragment) => fragment.borrow().base,
-            Fragment::IFrame(fragment) => fragment.borrow().base,
-            Fragment::Float(fragment) => fragment.borrow().base,
+            Fragment::Positioning(fragment) => {
+                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
+            },
+            Fragment::Image(fragment) => {
+                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
+            },
+            Fragment::IFrame(fragment) => {
+                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
+            },
+            Fragment::Float(fragment) => {
+                AtomicRef::map(fragment.borrow(), |fragment| &fragment.base)
+            },
         })
     }
 
-    pub(crate) fn mutate_content_rect(&mut self, callback: impl FnOnce(&mut PhysicalRect<Au>)) {
-        match self {
-            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                callback(&mut box_fragment.borrow_mut().content_rect)
+    pub fn base_mut<'a>(&'a self) -> Option<AtomicRefMut<'a, BaseFragment>> {
+        Some(match self {
+            Fragment::Box(fragment) => {
+                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
             },
-            Fragment::Positioning(_) | Fragment::AbsoluteOrFixedPositioned(_) => {},
-            Fragment::Text(text_fragment) => callback(&mut text_fragment.borrow_mut().rect),
-            Fragment::Image(image_fragment) => callback(&mut image_fragment.borrow_mut().rect),
-            Fragment::IFrame(iframe_fragment) => callback(&mut iframe_fragment.borrow_mut().rect),
-        }
+            Fragment::Text(fragment) => {
+                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
+            },
+            Fragment::AbsoluteOrFixedPositioned(_) => return None,
+            Fragment::Positioning(fragment) => {
+                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
+            },
+            Fragment::Image(fragment) => {
+                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
+            },
+            Fragment::IFrame(fragment) => {
+                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
+            },
+            Fragment::Float(fragment) => {
+                AtomicRefMut::map(fragment.borrow_mut(), |fragment| &mut fragment.base)
+            },
+        })
     }
 
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
@@ -179,11 +195,11 @@ impl Fragment {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 return fragment.borrow().scrollable_overflow_for_parent();
             },
-            Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Positioning(fragment) => fragment.borrow().scrollable_overflow_for_parent(),
-            Fragment::Text(fragment) => fragment.borrow().rect,
-            Fragment::Image(fragment) => fragment.borrow().rect,
-            Fragment::IFrame(fragment) => fragment.borrow().rect,
+            Fragment::AbsoluteOrFixedPositioned(_) |
+            Fragment::Text(..) |
+            Fragment::Image(..) |
+            Fragment::IFrame(..) => self.base().map(|base| base.rect).unwrap_or_default(),
         }
     }
 
@@ -213,7 +229,7 @@ impl Fragment {
             }),
             Fragment::Positioning(fragment) => {
                 let fragment = fragment.borrow();
-                Some(fragment.offset_by_containing_block(&fragment.rect))
+                Some(fragment.offset_by_containing_block(&fragment.base.rect))
             },
             Fragment::Text(_) |
             Fragment::AbsoluteOrFixedPositioned(_) |
@@ -272,19 +288,18 @@ impl Fragment {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let fragment = fragment.borrow();
+                let style = fragment.style();
                 let content_rect = fragment
-                    .content_rect
+                    .content_rect()
                     .translate(containing_block.origin.to_vector());
                 let padding_rect = fragment
                     .padding_rect()
                     .translate(containing_block.origin.to_vector());
-                let new_manager = if fragment
-                    .style
+                let new_manager = if style
                     .establishes_containing_block_for_all_descendants(fragment.base.flags)
                 {
                     manager.new_for_absolute_and_fixed_descendants(&content_rect, &padding_rect)
-                } else if fragment
-                    .style
+                } else if style
                     .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
                 {
                     manager.new_for_absolute_descendants(&content_rect, &padding_rect)
@@ -299,7 +314,10 @@ impl Fragment {
             },
             Fragment::Positioning(fragment) => {
                 let fragment = fragment.borrow();
-                let content_rect = fragment.rect.translate(containing_block.origin.to_vector());
+                let content_rect = fragment
+                    .base
+                    .rect
+                    .translate(containing_block.origin.to_vector());
                 let new_manager = manager.new_for_non_absolute_descendants(&content_rect);
                 fragment
                     .children
@@ -307,25 +325,6 @@ impl Fragment {
                     .find_map(|child| child.find(&new_manager, level + 1, process_func))
             },
             _ => None,
-        }
-    }
-
-    pub(crate) fn repair_style(&self, style: &ServoArc<ComputedValues>) {
-        match self {
-            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                box_fragment.borrow_mut().style = style.clone()
-            },
-            Fragment::Positioning(positioning_fragment) => {
-                positioning_fragment.borrow_mut().style = style.clone();
-            },
-            Fragment::AbsoluteOrFixedPositioned(positioned_fragment) => {
-                if let Some(ref fragment) = positioned_fragment.borrow().fragment {
-                    fragment.repair_style(style);
-                }
-            },
-            Fragment::Text(..) => unreachable!("Should never try to repair style of TextFragment"),
-            Fragment::Image(image_fragment) => image_fragment.borrow_mut().style = style.clone(),
-            Fragment::IFrame(iframe_fragment) => iframe_fragment.borrow_mut().style = style.clone(),
         }
     }
 
@@ -345,7 +344,7 @@ impl TextFragment {
                 .iter()
                 .map(|glyph_store| glyph_store.len().0)
                 .sum::<isize>(),
-            self.rect,
+            self.base.rect,
         ));
     }
 
@@ -359,7 +358,7 @@ impl ImageFragment {
         tree.add_item(format!(
             "Image\
                 \nrect={:?}",
-            self.rect
+            self.base.rect
         ));
     }
 }
@@ -369,7 +368,7 @@ impl IFrameFragment {
         tree.add_item(format!(
             "IFrame\
                 \npipeline={:?} rect={:?}",
-            self.pipeline_id, self.rect
+            self.pipeline_id, self.base.rect
         ));
     }
 }

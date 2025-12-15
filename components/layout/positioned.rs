@@ -148,16 +148,11 @@ impl PositioningContext {
         parent_fragment: &Fragment,
         index: PositioningContextLength,
     ) {
-        let start_offset = match &parent_fragment {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.borrow().content_rect.origin
-            },
-            Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Positioning(fragment) => fragment.borrow().rect.origin,
-            _ => unreachable!(),
+        let Some(base) = parent_fragment.base() else {
+            return;
         };
         self.adjust_static_position_of_hoisted_fragments_with_offset(
-            &start_offset.to_vector(),
+            &base.rect.origin.to_vector(),
             index,
         );
     }
@@ -204,7 +199,7 @@ impl PositioningContext {
         self.append(new_context);
 
         if base.style.clone_position() == Position::Relative {
-            new_fragment.content_rect.origin += relative_adjustement(&base.style, containing_block)
+            new_fragment.base.rect.origin += relative_adjustement(&base.style, containing_block)
                 .to_physical_vector(containing_block.style.writing_mode)
         }
 
@@ -217,16 +212,12 @@ impl PositioningContext {
         boxes_to_layout_out: &mut Vec<HoistedAbsolutelyPositionedBox>,
         boxes_to_continue_hoisting_out: &mut Vec<HoistedAbsolutelyPositionedBox>,
     ) {
+        let style = new_fragment.style();
         debug_assert!(
-            new_fragment
-                .style
-                .establishes_containing_block_for_absolute_descendants(new_fragment.base.flags)
+            style.establishes_containing_block_for_absolute_descendants(new_fragment.base.flags)
         );
 
-        if new_fragment
-            .style
-            .establishes_containing_block_for_all_descendants(new_fragment.base.flags)
-        {
+        if style.establishes_containing_block_for_all_descendants(new_fragment.base.flags) {
             boxes_to_layout_out.append(&mut self.absolutes);
             return;
         }
@@ -259,24 +250,20 @@ impl PositioningContext {
         // Handling this case here, when the PositioningContext is completely ineffectual other than
         // as a temporary container for hoisted boxes, means that callers can execute less conditional
         // code.
-        if !new_fragment
-            .style
-            .establishes_containing_block_for_absolute_descendants(new_fragment.base.flags)
-        {
+        let style = new_fragment.style().clone();
+        if !style.establishes_containing_block_for_absolute_descendants(new_fragment.base.flags) {
             return;
         }
 
         let padding_rect = PhysicalRect::new(
             // Ignore the content rect’s position in its own containing block:
             PhysicalPoint::origin(),
-            new_fragment.content_rect.size,
+            new_fragment.base.rect.size,
         )
         .outer_rect(new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
-            size: padding_rect
-                .size
-                .to_logical(new_fragment.style.writing_mode),
-            style: &new_fragment.style,
+            size: padding_rect.size.to_logical(style.writing_mode),
+            style: &style,
         };
 
         let mut fixed_position_boxes_to_hoist = Vec::new();
@@ -659,7 +646,7 @@ impl HoistedAbsolutelyPositionedBox {
         // other elements. If any of them have a static start position though, we need to
         // adjust it to account for the start corner of this absolute.
         positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-            &new_fragment.content_rect.origin.to_vector(),
+            &new_fragment.base.rect.origin.to_vector(),
             PositioningContextLength::zero(),
         );
 

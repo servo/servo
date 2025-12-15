@@ -346,21 +346,12 @@ impl OutsideMarker {
                 .iter()
                 .fold(Au::zero(), |current_max, fragment| {
                     current_max.max(
-                        match fragment {
-                            Fragment::Text(text) => text.borrow().rect,
-                            Fragment::Image(image) => image.borrow().rect,
-                            Fragment::Positioning(positioning) => positioning.borrow().rect,
-                            Fragment::Box(_) |
-                            Fragment::Float(_) |
-                            Fragment::AbsoluteOrFixedPositioned(_) |
-                            Fragment::IFrame(_) => {
-                                unreachable!(
-                                    "Found unexpected fragment type in outside list marker!"
-                                );
-                            },
-                        }
-                        .to_logical(&containing_block_for_children)
-                        .max_inline_position(),
+                        fragment
+                            .base()
+                            .map(|base| base.rect)
+                            .unwrap_or_default()
+                            .to_logical(&containing_block_for_children)
+                            .max_inline_position(),
                     )
                 });
 
@@ -2037,7 +2028,7 @@ impl<'container> PlacementState<'container> {
         }
 
         let box_block_offset = box_fragment
-            .content_rect
+            .content_rect()
             .origin
             .to_logical(self.containing_block)
             .block;
@@ -2077,7 +2068,7 @@ impl<'container> PlacementState<'container> {
                     assert!(self.marker_block_size.is_none());
                     self.marker_block_size = Some(
                         fragment
-                            .content_rect
+                            .content_rect()
                             .size
                             .to_logical(self.containing_block.style.writing_mode)
                             .block,
@@ -2133,7 +2124,7 @@ impl<'container> PlacementState<'container> {
                         .adjoin_assign(&fragment_block_margins.start);
                 }
 
-                fragment.content_rect.origin += LogicalVec2 {
+                fragment.base.rect.origin += LogicalVec2 {
                     inline: Au::zero(),
                     block: self.current_margin.solve() + self.current_block_direction_position,
                 }

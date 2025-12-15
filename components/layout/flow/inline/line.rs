@@ -19,7 +19,7 @@ use webrender_api::FontInstanceKey;
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
 use crate::cell::ArcRefCell;
-use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
+use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
@@ -286,7 +286,7 @@ impl LineItemLayout<'_, '_> {
         let fragments_and_rectangles = std::mem::take(&mut self.current_state.fragments);
         fragments_and_rectangles
             .into_iter()
-            .map(|(mut fragment, logical_rect)| {
+            .map(|(fragment, logical_rect)| {
                 if matches!(fragment, Fragment::Float(_)) {
                     return fragment;
                 }
@@ -294,9 +294,9 @@ impl LineItemLayout<'_, '_> {
                 // We do not know the actual physical position of a logically laid out inline element, until
                 // we know the width of the containing inline block. This step converts the logical rectangle
                 // into a physical one based on the inline formatting context width.
-                fragment.mutate_content_rect(|content_rect| {
-                    *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
-                });
+                if let Some(mut base) = fragment.base_mut() {
+                    base.rect = logical_rect.as_physical(Some(self.layout.containing_block));
+                }
 
                 fragment
             })
@@ -450,19 +450,19 @@ impl LineItemLayout<'_, '_> {
         let fragments = inner_state
             .fragments
             .into_iter()
-            .map(|(mut fragment, logical_rect)| {
+            .map(|(fragment, logical_rect)| {
                 let is_float = matches!(fragment, Fragment::Float(_));
-                fragment.mutate_content_rect(|content_rect| {
+                if let Some(mut base) = fragment.base_mut() {
                     if is_float {
-                        content_rect.origin -=
+                        base.rect.origin -=
                             pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
                     } else {
                         // We do not know the actual physical position of a logically laid out inline element, until
                         // we know the width of the containing inline block. This step converts the logical rectangle
                         // into a physical one now that we've computed inline size of the containing inline block above.
-                        *content_rect = logical_rect.as_physical(Some(&inline_box_containing_block))
+                        base.rect = logical_rect.as_physical(Some(&inline_box_containing_block))
                     }
-                });
+                }
                 fragment
             })
             .collect();
@@ -587,9 +587,12 @@ impl LineItemLayout<'_, '_> {
         self.current_state.inline_advance += inline_advance;
         self.current_state.fragments.push((
             Fragment::Text(ArcRefCell::new(TextFragment {
-                base: text_item.base_fragment_info,
-                inline_styles: text_item.inline_styles.clone(),
-                rect: PhysicalRect::zero(),
+                base: BaseFragment::new(
+                    text_item.base_fragment_info,
+                    text_item.inline_styles.style.clone().into(),
+                    PhysicalRect::zero(),
+                ),
+                selected_style: text_item.inline_styles.selected.clone(),
                 font_metrics: text_item.font_metrics,
                 font_key: text_item.font_key,
                 glyphs: text_item.text,
@@ -620,9 +623,9 @@ impl LineItemLayout<'_, '_> {
                     padding_border_margin_sides.block_start,
             };
 
-            if atomic_fragment.style.get_box().position == Position::Relative {
-                atomic_offset +=
-                    relative_adjustement(&atomic_fragment.style, self.layout.containing_block);
+            let style = atomic_fragment.style();
+            if style.get_box().position == Position::Relative {
+                atomic_offset += relative_adjustement(&style, self.layout.containing_block);
             }
 
             // Reconstruct a logical rectangle relative to the inline box container that will be used
@@ -630,7 +633,7 @@ impl LineItemLayout<'_, '_> {
             LogicalRect {
                 start_corner: atomic_offset,
                 size: atomic_fragment
-                    .content_rect
+                    .content_rect()
                     .size
                     .to_logical(ifc_writing_mode),
             }
@@ -726,7 +729,7 @@ impl LineItemLayout<'_, '_> {
             inline: self.current_state.parent_offset.inline,
             block: self.line_metrics.block_offset + self.current_state.parent_offset.block,
         };
-        float.fragment.borrow_mut().content_rect.origin -= distance_from_parent_to_ifc
+        float.fragment.borrow_mut().base.rect.origin -= distance_from_parent_to_ifc
             .to_physical_size(self.layout.containing_block.style.writing_mode);
 
         self.current_state
@@ -875,7 +878,7 @@ impl AtomicLineItem {
     /// Given the metrics for a line, our vertical alignment, and our block size, find a block start
     /// position relative to the top of the line.
     fn calculate_block_start(&self, line_metrics: &LineMetrics) -> Au {
-        match self.fragment.borrow().style.clone_vertical_align() {
+        match self.fragment.borrow().style().clone_vertical_align() {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => Au::zero(),
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
                 line_metrics.block_size - self.size.block
