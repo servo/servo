@@ -31,8 +31,8 @@ use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, after, select, unbou
 use embedder_traits::{
     CustomHandlersAutomationMode, EventLoopWaker, ImeEvent, InputEvent, JSValue,
     JavaScriptEvaluationError, JavaScriptEvaluationResultSerializationError, MouseButton,
-    WebDriverCommandMsg, WebDriverFrameId, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand,
+    NewWindowTypeHint, WebDriverCommandMsg, WebDriverFrameId, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
@@ -623,7 +623,8 @@ impl Handler {
                 // We need to create a new one. See https://github.com/servo/servo/issues/37408
                 let (sender, receiver) = generic_channel::oneshot().unwrap();
 
-                self.send_message_to_embedder(WebDriverCommandMsg::NewWebView(
+                self.send_message_to_embedder(WebDriverCommandMsg::NewWindow(
+                    NewWindowTypeHint::Auto,
                     sender,
                     Some(self.load_status_sender.clone()),
                 ))?;
@@ -1193,7 +1194,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#new-window>
     fn handle_new_window(
         &mut self,
-        _parameters: &NewWindowParameters,
+        parameters: &NewWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = generic_channel::oneshot().unwrap();
 
@@ -1206,11 +1207,30 @@ impl Handler {
         // Step 3. Handle any user prompt.
         self.handle_any_user_prompts(webview_id)?;
 
-        let cmd_msg =
-            WebDriverCommandMsg::NewWebView(sender, Some(self.load_status_sender.clone()));
-        // Step 5. Create a new top-level browsing context by running the window open steps.
-        // This MUST be done without invoking the focusing steps.
-        self.send_message_to_embedder(cmd_msg)?;
+        // Step 4. Let type hint be the result of getting the property "type" from
+        // parameters.
+        let type_hint = match parameters.type_hint.as_deref() {
+            Some("tab") => NewWindowTypeHint::Tab,
+            Some("window") => NewWindowTypeHint::Window,
+            _ => NewWindowTypeHint::Auto,
+        };
+
+        // Step 5. Create a new top-level browsing context by running the window open
+        // steps with URL set to "about:blank", target set to the empty string, and
+        // features set to "noopener" and the user agent configured to create a new
+        // browsing context. This must be done without invoking the focusing steps for the
+        // created browsing context. If type hint has the value "tab", and the
+        // implementation supports multiple browsing context in the same OS window, the
+        // new browsing context should share an OS window with session's current browsing
+        // context. If type hint is "window", and the implementation supports multiple
+        // browsing contexts in separate OS windows, the created browsing context should
+        // be in a new OS window. In all other cases the details of how the browsing
+        // context is presented to the user are implementation defined.
+        self.send_message_to_embedder(WebDriverCommandMsg::NewWindow(
+            type_hint,
+            sender,
+            Some(self.load_status_sender.clone()),
+        ))?;
 
         if let Ok(webview_id) = receiver.recv() {
             let _ = self.wait_for_navigation_complete();

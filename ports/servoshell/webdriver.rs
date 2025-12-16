@@ -8,12 +8,13 @@ use std::rc::Rc;
 
 use log::warn;
 use servo::{
-    EmbedderControl, EmbedderControlId, SimpleDialog, WebDriverCommandMsg, WebDriverUserPrompt,
-    WebDriverUserPromptAction, WebViewId,
+    EmbedderControl, EmbedderControlId, NewWindowTypeHint, SimpleDialog, WebDriverCommandMsg,
+    WebDriverUserPrompt, WebDriverUserPromptAction, WebViewId,
 };
 use url::Url;
 
 use crate::running_app_state::RunningAppState;
+use crate::window::PlatformWindow;
 
 #[derive(Default)]
 pub(crate) struct WebDriverEmbedderControls {
@@ -127,7 +128,10 @@ impl WebDriverEmbedderControls {
 }
 
 impl RunningAppState {
-    pub(crate) fn handle_webdriver_messages(self: &Rc<Self>) {
+    pub(crate) fn handle_webdriver_messages(
+        self: &Rc<Self>,
+        create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
+    ) {
         let Some(webdriver_receiver) = self.webdriver_receiver() else {
             return;
         };
@@ -151,10 +155,25 @@ impl RunningAppState {
                 WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
                     self.servo().execute_webdriver_command(msg);
                 },
-                WebDriverCommandMsg::NewWebView(response_sender, load_status_sender) => {
-                    let new_webview = self
-                        .any_window()
-                        .create_toplevel_webview(self.clone(), Url::parse("about:blank").unwrap());
+                WebDriverCommandMsg::NewWindow(type_hint, response_sender, load_status_sender) => {
+                    let url = Url::parse("about:blank").unwrap();
+                    let new_webview = match (type_hint, create_platform_window) {
+                        (
+                            NewWindowTypeHint::Window | NewWindowTypeHint::Auto,
+                            Some(create_platform_window),
+                        ) => {
+                            let window = self.open_window(create_platform_window(url.clone()), url);
+                            window
+                                .active_webview()
+                                .expect("Should have at last one WebView in new window")
+                        },
+                        _ => self
+                            .windows()
+                            .values()
+                            .nth(0)
+                            .expect("Expected at least one window to be open")
+                            .create_toplevel_webview(self.clone(), url),
+                    };
 
                     if let Err(error) = response_sender.send(new_webview.id()) {
                         warn!("Failed to send response of NewWebview: {error}");
@@ -171,8 +190,9 @@ impl RunningAppState {
                     }
                 },
                 WebDriverCommandMsg::FocusWebView(webview_id) => {
-                    self.window_for_webview_id(webview_id)
-                        .activate_webview(webview_id);
+                    let window = self.window_for_webview_id(webview_id);
+                    window.activate_webview(webview_id);
+                    self.focus_window(window);
                 },
                 WebDriverCommandMsg::FocusBrowsingContext(..) => {
                     self.servo().execute_webdriver_command(msg);
@@ -234,8 +254,11 @@ impl RunningAppState {
                 },
                 // This is only received when start new session.
                 WebDriverCommandMsg::GetFocusedWebView(sender) => {
-                    let active_webview = self.any_window().active_webview();
-                    if let Err(error) = sender.send(active_webview.map(|w| w.id())) {
+                    let focused_webview = self
+                        .focused_window()
+                        .and_then(|window| window.active_webview())
+                        .map(|webview| webview.id());
+                    if let Err(error) = sender.send(focused_webview) {
                         warn!("Failed to send response of GetFocusedWebView: {error}");
                     };
                 },
