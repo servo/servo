@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["selenium"]
+# ///
 
 # Copyright 2025 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
@@ -14,6 +19,7 @@ import json
 import os
 from pathlib import PurePath
 import subprocess
+import sys
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -38,7 +44,7 @@ IGNORE_TESTS = [
 ]
 
 
-def create_driver(timeout: int = 10) -> webdriver.Remote | None:
+def create_driver(webdriver_port: int, timeout: int = 3) -> webdriver.Remote | None:
     """Create the webdriver connection."""
     print("Trying to create driver")
     options = ArgOptions()
@@ -47,7 +53,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote | None:
     start_time = time.time()
     while driver is None and time.time() - start_time < timeout:
         try:
-            driver = webdriver.Remote(command_executor="http://127.0.0.1:7000", options=options)
+            driver = webdriver.Remote(command_executor=f"http://127.0.0.1:{webdriver_port}", options=options)
         except (ConnectionError, ProtocolError):
             time.sleep(0.2)
         except Exception as e:
@@ -59,15 +65,19 @@ def create_driver(timeout: int = 10) -> webdriver.Remote | None:
     return driver
 
 
-def start_servo(servo_path: str) -> webdriver.Remote | None:
+def start_servo(webdriver_port: int, servo_path: str) -> webdriver.Remote | None:
     """Start servo and create webdriver"""
-    subprocess.Popen(
-        [
-            servo_path,
-            "--webdriver",
-        ]
-    )
-    return create_driver()
+    try:
+        subprocess.Popen(
+            [
+                servo_path,
+                f"--webdriver={webdriver_port}",
+            ]
+        )
+    except FileNotFoundError:
+        print("The servo binary does not exist")
+        return sys.exit(1)
+    return create_driver(webdriver_port)
 
 
 def kill_servo():
@@ -124,6 +134,7 @@ def write_file(results):
 def main():
     parser = argparse.ArgumentParser(description="Run Blink Perf Tests on Servo Instance.")
     parser.add_argument("servo_path", type=str, help="the servo binary")
+    parser.add_argument('-w', '--webdriver', default=7000, type=int, action="store", help="The webdriver port servo will listen on.")
     parser.add_argument(
         "-p",
         "--prepend",
@@ -132,7 +143,7 @@ def main():
     )
     args = parser.parse_args()
 
-    webdriver = start_servo(args.servo_path)
+    webdriver = start_servo(args.webdriver, args.servo_path)
     final_result = {}
     time.sleep(2)
     if webdriver:
