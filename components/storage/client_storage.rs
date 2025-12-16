@@ -5,7 +5,10 @@
 use std::path::PathBuf;
 use std::thread;
 
-use base::generic_channel::{self, GenericReceiver, GenericSender};
+use base::generic_channel::{
+    self, GenericReceiver, GenericSender, RoutedReceiver, to_receive_result,
+};
+use log::warn;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 
 pub trait ClientStorageThreadFactory {
@@ -32,7 +35,8 @@ impl ClientStorageThreadFactory for GenericSender<ClientStorageThreadMessage> {
 pub struct ClientStorageThread {
     _base_dir: PathBuf,
     _generic_sender: GenericSender<ClientStorageThreadMessage>,
-    generic_receiver: GenericReceiver<ClientStorageThreadMessage>,
+    routed_receiver: RoutedReceiver<ClientStorageThreadMessage>,
+    exiting: bool,
 }
 
 impl ClientStorageThread {
@@ -45,22 +49,46 @@ impl ClientStorageThread {
             .unwrap_or_else(|| PathBuf::from("."))
             .join("clientstorage");
 
+        let routed_receiver = generic_receiver.route_preserving_errors();
+
         ClientStorageThread {
             _base_dir: base_dir,
             _generic_sender: generic_sender,
-            generic_receiver,
+            routed_receiver,
+            exiting: false,
         }
     }
 
     pub fn start(&mut self) {
-        #[allow(clippy::never_loop)]
         loop {
-            match self.generic_receiver.recv().unwrap() {
-                ClientStorageThreadMessage::Exit(sender) => {
-                    let _ = sender.send(());
-                    return;
+            let receive_result = to_receive_result(self.routed_receiver.recv());
+
+            let message = match receive_result {
+                Ok(message) => message,
+                Err(error) => {
+                    warn!("Error on ClientStorageThread receive ({})", error);
+                    break;
                 },
+            };
+
+            self.handle_message(message);
+
+            if self.exiting {
+                break;
             }
         }
+    }
+
+    fn handle_message(&mut self, message: ClientStorageThreadMessage) {
+        match message {
+            ClientStorageThreadMessage::Exit(sender) => {
+                self.handle_exit();
+                let _ = sender.send(());
+            },
+        }
+    }
+
+    fn handle_exit(&mut self) {
+        self.exiting = true;
     }
 }
