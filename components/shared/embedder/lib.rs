@@ -385,6 +385,31 @@ impl Image {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ConsoleLogLevel {
+    Log,
+    Debug,
+    Info,
+    Warn,
+    Error,
+    Clear,
+    Trace,
+}
+
+impl From<ConsoleLogLevel> for log::Level {
+    fn from(value: ConsoleLogLevel) -> Self {
+        match value {
+            ConsoleLogLevel::Log => log::Level::Info,
+            ConsoleLogLevel::Clear => log::Level::Info,
+            ConsoleLogLevel::Debug => log::Level::Debug,
+            ConsoleLogLevel::Info => log::Level::Info,
+            ConsoleLogLevel::Warn => log::Level::Warn,
+            ConsoleLogLevel::Error => log::Level::Error,
+            ConsoleLogLevel::Trace => log::Level::Trace,
+        }
+    }
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {

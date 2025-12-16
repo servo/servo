@@ -22,9 +22,9 @@ use base::generic_channel::{self, GenericSender};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
-    ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder, DevtoolScriptControlMsg,
-    DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
-    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageBuilder,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState, NetworkEvent,
+    PageError, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -259,7 +259,7 @@ impl DevtoolsInstance {
                     css_error,
                 )) => {
                     let mut console_message = ConsoleMessageBuilder::new(
-                        LogLevel::Warn,
+                        ConsoleLogLevel::Warn,
                         css_error.filename,
                         css_error.line,
                         css_error.column,

@@ -7,7 +7,7 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use devtools_traits::{
-    ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder, LogLevel,
+    ConsoleLogLevel, ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder,
     ScriptToDevtoolsControlMsg, StackFrame,
 };
 use js::conversions::jsstr_to_string;
@@ -40,7 +40,7 @@ pub(crate) struct Console;
 
 impl Console {
     #[expect(unsafe_code)]
-    fn build_message(level: LogLevel) -> ConsoleMessageBuilder {
+    fn build_message(level: ConsoleLogLevel) -> ConsoleMessageBuilder {
         let cx = GlobalScope::get_cx();
         let caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
 
@@ -49,7 +49,7 @@ impl Console {
 
     /// Helper to send a message that only consists of a single string to log,
     /// console and stdout
-    fn send_string_message(global: &GlobalScope, level: LogLevel, message: String) {
+    fn send_string_message(global: &GlobalScope, level: ConsoleLogLevel, message: String) {
         let s = DOMString::from(message.clone());
         log!(level.clone().into(), "{}", &s);
         console_message_to_stdout(global, &s);
@@ -63,7 +63,7 @@ impl Console {
 
     fn method(
         global: &GlobalScope,
-        level: LogLevel,
+        level: ConsoleLogLevel,
         messages: Vec<HandleValue>,
         include_stacktrace: IncludeStackTrace,
     ) {
@@ -101,7 +101,7 @@ impl Console {
 
     // Directly logs a DOMString, without processing the message
     pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
-        Console::send_string_message(global, LogLevel::Warn, String::from(message.clone()));
+        Console::send_string_message(global, ConsoleLogLevel::Warn, String::from(message.clone()));
     }
 }
 
@@ -375,38 +375,68 @@ enum IncludeStackTrace {
 impl consoleMethods<crate::DomTypeHolder> for Console {
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/log>
     fn Log(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        Console::method(global, LogLevel::Log, messages, IncludeStackTrace::No);
+        Console::method(
+            global,
+            ConsoleLogLevel::Log,
+            messages,
+            IncludeStackTrace::No,
+        );
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/clear>
     fn Clear(global: &GlobalScope) {
-        let message = Console::build_message(LogLevel::Clear).finish();
+        let message = Console::build_message(ConsoleLogLevel::Clear).finish();
         Console::send_to_devtools(global, message);
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
     fn Debug(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        Console::method(global, LogLevel::Debug, messages, IncludeStackTrace::No);
+        Console::method(
+            global,
+            ConsoleLogLevel::Debug,
+            messages,
+            IncludeStackTrace::No,
+        );
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/info>
     fn Info(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        Console::method(global, LogLevel::Info, messages, IncludeStackTrace::No);
+        Console::method(
+            global,
+            ConsoleLogLevel::Info,
+            messages,
+            IncludeStackTrace::No,
+        );
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/warn>
     fn Warn(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        Console::method(global, LogLevel::Warn, messages, IncludeStackTrace::No);
+        Console::method(
+            global,
+            ConsoleLogLevel::Warn,
+            messages,
+            IncludeStackTrace::No,
+        );
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/error>
     fn Error(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        Console::method(global, LogLevel::Error, messages, IncludeStackTrace::No);
+        Console::method(
+            global,
+            ConsoleLogLevel::Error,
+            messages,
+            IncludeStackTrace::No,
+        );
     }
 
     /// <https://console.spec.whatwg.org/#trace>
     fn Trace(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        Console::method(global, LogLevel::Trace, messages, IncludeStackTrace::Yes);
+        Console::method(
+            global,
+            ConsoleLogLevel::Trace,
+            messages,
+            IncludeStackTrace::Yes,
+        );
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/assert>
@@ -414,7 +444,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if !condition {
             let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
 
-            Console::send_string_message(global, LogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
         }
     }
 
@@ -422,7 +452,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     fn Time(global: &GlobalScope, label: DOMString) {
         if let Ok(()) = global.time(label.clone()) {
             let message = format!("{label}: timer started");
-            Console::send_string_message(global, LogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
         }
     }
 
@@ -431,7 +461,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(delta) = global.time_log(&label) {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
 
-            Console::send_string_message(global, LogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
         }
     }
 
@@ -440,7 +470,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(delta) = global.time_end(&label) {
             let message = format!("{label}: {delta}ms");
 
-            Console::send_string_message(global, LogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
         }
     }
 
@@ -464,7 +494,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         let count = global.increment_console_count(&label);
         let message = format!("{label}: {count}");
 
-        Console::send_string_message(global, LogLevel::Log, message.clone());
+        Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
     }
 
     /// <https://console.spec.whatwg.org/#countreset>
