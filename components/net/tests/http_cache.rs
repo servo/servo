@@ -59,13 +59,13 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     }
 }
 
-#[test]
-fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
+#[tokio::test]
+async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     let actual_body_len = 10;
     let incomplete_response_body = &[1, 2, 3, 4, 5];
     let url = ServoUrl::parse("https://servo.org").unwrap();
 
-    let mut cache = HttpCache::default();
+    let cache = HttpCache::default();
     let mut headers = HeaderMap::new();
 
     headers.insert(
@@ -100,11 +100,11 @@ fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
         .headers
         .insert(EXPIRES, HeaderValue::from_str("0").unwrap());
     initial_incomplete_response.status = StatusCode::PARTIAL_CONTENT.into();
-    cache.store(&request, &initial_incomplete_response);
+    cache.store(&request, &initial_incomplete_response).await;
 
     // Try to construct response from http_cache
     let mut done_chan = None;
-    let consecutive_response = cache.construct_response(&request, &mut done_chan);
+    let consecutive_response = cache.construct_response(&request, &mut done_chan).await;
     assert!(
         consecutive_response.is_none(),
         "Should not construct response from incomplete response!"

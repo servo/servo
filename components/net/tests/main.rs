@@ -21,7 +21,6 @@ mod http_loader;
 mod image_cache;
 mod resource_thread;
 mod subresource_integrity;
-use std::collections::HashMap;
 use std::sync::{Arc, Weak};
 
 use base::threadpool::ThreadPool;

@@ -812,6 +812,24 @@ impl HttpCache {
         self.entries.clear();
     }
 
+    /// Insert a response for `request` into the cache (used by tests that need direct access).
+    pub async fn store(&self, request: &Request, response: &Response) {
+        let guard = self.get_or_guard(CacheKey::new(request)).await;
+        guard.insert(request, response).await;
+    }
+
+    /// Try to construct a cached response for `request`.
+    pub async fn construct_response(
+        &self,
+        request: &Request,
+        done_chan: &mut DoneChannel,
+    ) -> Option<Response> {
+        let entry = self.entries.get(&CacheKey::new(request))?;
+        let cached_resources = entry.read().await;
+        construct_response(request, done_chan, cached_resources.as_slice())
+            .map(|cached| cached.response)
+    }
+
     /// Invalidate cache entries referenced by Location/Content-Location headers.
     pub async fn invalidate_related_urls(
         &self,
