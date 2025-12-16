@@ -1103,15 +1103,21 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             ));
         }
 
-        let background = self
-            .downcast::<HTMLBodyElement>()
-            .and_then(HTMLBodyElementLayoutHelpers::get_background);
-        if let Some(url) = background {
-            push(PropertyDeclaration::BackgroundImage(
-                background_image::SpecifiedValue(
-                    vec![specified::Image::for_cascade(url.get_arc())].into(),
-                ),
-            ));
+        if is_element_affected_by_legacy_background_presentational_hint(
+            self.namespace(),
+            self.local_name(),
+        ) {
+            if let Some(url) = self
+                .get_attr_for_layout(&ns!(), &local_name!("background"))
+                .and_then(AttrValue::as_resolved_url)
+                .cloned()
+            {
+                push(PropertyDeclaration::BackgroundImage(
+                    background_image::SpecifiedValue(
+                        vec![specified::Image::for_cascade(url)].into(),
+                    ),
+                ));
+            }
         }
 
         let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
@@ -5557,4 +5563,22 @@ pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings
     element
         .get_attribute(&ns!(), &local_name!("crossorigin"))
         .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
+}
+
+pub(crate) fn is_element_affected_by_legacy_background_presentational_hint(
+    namespace: &Namespace,
+    local_name: &LocalName,
+) -> bool {
+    *namespace == ns!(html) &&
+        matches!(
+            *local_name,
+            local_name!("body") |
+                local_name!("table") |
+                local_name!("thead") |
+                local_name!("tbody") |
+                local_name!("tfoot") |
+                local_name!("tr") |
+                local_name!("td") |
+                local_name!("th")
+        )
 }
