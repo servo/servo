@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
+use std::rc::Rc;
 
-use base::generic_channel::{GenericSender, SendResult};
-use base::id::PipelineId;
+use base::generic_channel::GenericSender;
+use base::id::{PipelineId, WebViewId};
+use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ContextMenuAction,
@@ -13,17 +15,16 @@ use embedder_traits::{
     EmbedderControlResponse, FilePickerRequest, FilterPattern, GamepadHapticEffectType,
     InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
     PermissionFeature, PromptResponse, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
-    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
+    SimpleDialogRequest, TraversalId, ViewportDetails, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
-use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::proxies::ConstellationProxy;
-use crate::responders::ServoErrorSender;
-use crate::{RegisterOrUnregister, WebView};
+use crate::responders::{IpcResponder, ServoErrorSender};
+use crate::{RegisterOrUnregister, Servo, WebView, WebViewBuilder};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
 /// asynchronously. If not handled, the request will automatically be allowed.
@@ -62,48 +63,6 @@ impl Drop for NavigationRequest {
                     self.pipeline_id,
                     true,
                 ));
-        }
-    }
-}
-
-/// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
-pub(crate) struct IpcResponder<T: Serialize> {
-    response_sender: GenericSender<T>,
-    response_sent: bool,
-    /// Always present, except when taken by [`Drop`].
-    default_response: Option<T>,
-}
-
-impl<T: Serialize> IpcResponder<T> {
-    pub(crate) fn new(response_sender: GenericSender<T>, default_response: T) -> Self {
-        Self {
-            response_sender,
-            response_sent: false,
-            default_response: Some(default_response),
-        }
-    }
-
-    pub(crate) fn send(&mut self, response: T) -> SendResult {
-        let result = self.response_sender.send(response);
-        self.response_sent = true;
-        result
-    }
-
-    pub(crate) fn into_inner(self) -> GenericSender<T> {
-        self.response_sender.clone()
-    }
-}
-
-impl<T: Serialize> Drop for IpcResponder<T> {
-    fn drop(&mut self) {
-        if !self.response_sent {
-            let response = self
-                .default_response
-                .take()
-                .expect("Guaranteed by inherent impl");
-            // Don’t notify embedder about send errors for the default response,
-            // since they didn’t send anything and probably don’t care.
-            let _ = self.response_sender.send(response);
         }
     }
 }
@@ -829,6 +788,17 @@ impl PromptDialog {
     }
 }
 
+pub struct CreateNewWebViewRequest {
+    pub(crate) servo: Servo,
+    pub(crate) responder: IpcResponder<Option<(WebViewId, ViewportDetails)>>,
+}
+
+impl CreateNewWebViewRequest {
+    pub fn builder(self, rendering_context: Rc<dyn RenderingContext>) -> WebViewBuilder {
+        WebViewBuilder::new_for_create_request(&self.servo, rendering_context, self.responder)
+    }
+}
+
 pub trait WebViewDelegate {
     /// Get the [`ScreenGeometry`] for this [`WebView`]. If this is unimplemented or returns `None`
     /// the screen will have the size of the [`WebView`]'s `RenderingContext` and `WebView` will be
@@ -917,12 +887,26 @@ pub trait WebViewDelegate {
     /// size. For instance, a reasonable limitation might be that the final size is no
     /// larger than the screen size.
     fn request_resize_to(&self, _webview: WebView, _requested_outer_size: DeviceIntSize) {}
-    /// Whether or not to allow script to open a new `WebView`. If not handled by the
-    /// embedder, these requests are automatically denied.
-    fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
-        None
-    }
-
+    /// This method is called when web content makes a request to open a new
+    /// `WebView`, such as via the [`window.open`] DOM API. If this request is
+    /// ignored, no new `WebView` will be opened. Embedders can handle this method by
+    /// using the provided [`CreateNewWebViewRequest`] to build a new `WebView`.
+    ///
+    /// ```rust
+    /// fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
+    ///     let webview = request
+    ///         .builder(self.rendering_context())
+    ///         .delegate(parent_webview.delegate())
+    ///         .build();
+    ///     self.register_webview(webview);
+    /// }
+    /// ```
+    ///
+    /// **Important:** It is important to keep a live handle to the new `WebView` in the application or
+    /// it will be immediately destroyed.
+    ///
+    /// [`window.open`]: https://developer.mozilla.org/en-US/docs/Web/API/Window/open
+    fn request_create_new(&self, _parent_webview: WebView, _: CreateNewWebViewRequest) {}
     /// Content in a [`WebView`] is requesting permission to access a feature requiring
     /// permission from the user. The embedder should allow or deny the request, either by
     /// reading a cached value or querying the user for permission via the user interface.
