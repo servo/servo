@@ -120,33 +120,58 @@ impl OpenRequestListener {
         event.fire(request.upcast(), can_gc);
     }
 
-    fn handle_delete_db(&self, result: BackendResult<()>, can_gc: CanGc) {
+    /// The contionuation of the parallel steps of
+    /// https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase
+    fn handle_delete_db(&self, result: BackendResult<u64>, can_gc: CanGc) {
+        // Step 4.1: Let result be the result of deleting a database, with storageKey, name, and request.
+        // Note: done with the `result` argument.
+
+        // Step 4.2: Set request’s processed flag to true.
+        // TODO: implemen the flag.
+        // Note: the flag may be need to be set on the backend(as well as here?).
+
+        // Step 3: Queue a database task to run these steps:
+        // Note: we are in the queued task.
+
         let open_request = self.open_request.root();
         let global = open_request.global();
+
+        // Note: setting the done flag here as it is done in both branches below.
         open_request.idbrequest.set_ready_state_done();
 
-        match result {
-            Ok(_) => {
-                let _ac = enter_realm(&*open_request);
-                #[expect(unsafe_code)]
-                unsafe {
-                    open_request
-                        .set_result(js::gc::Handle::from_raw(js::jsapi::UndefinedHandleValue));
-                }
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut rval = UndefinedValue());
 
-                let event = Event::new(
+        let _ac = enter_realm(&*open_request);
+
+        match result {
+            Ok(version) => {
+                // Step 4.3.2: Otherwise,
+                // set request’s result to undefined,
+                // set request’s done flag to true,
+                // and fire a version change event named success at request with result and null.
+                open_request.set_result(rval.handle());
+                let event = IDBVersionChangeEvent::new(
                     &global,
                     Atom::from("success"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    can_gc,
+                    version,
+                    None,
+                    CanGc::note(),
                 );
-                event.fire(open_request.upcast(), can_gc);
+                event.upcast::<Event>().fire(open_request.upcast(), can_gc);
             },
-            Err(_e) => {
-                // FIXME(arihant2math) Set the error of request to the
-                // appropriate error
+            Err(_error) => {
+                // Step 4.3.1:
+                // If result is an error,
+                // set request’s error to result,
+                // set request’s done flag to true,
+                // and fire an event named error at request
+                // with its bubbles and cancelable attributes initialized to true.
 
+                // TODO: transform backend error into jsval.
+                open_request.set_result(rval.handle());
                 let event = Event::new(
                     &global,
                     Atom::from("error"),

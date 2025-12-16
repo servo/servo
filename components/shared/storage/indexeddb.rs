@@ -432,7 +432,7 @@ pub enum SyncOperation {
 
     /// Deletes the database
     DeleteDatabase(
-        GenericCallback<BackendResult<()>>,
+        GenericCallback<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
     ),

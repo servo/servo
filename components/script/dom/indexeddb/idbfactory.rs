@@ -1,12 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 use js::rust::HandleValue;
 use servo_url::origin::ImmutableOrigin;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::IDBFactoryMethods;
+use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
+    IDBDatabaseInfo, IDBFactoryMethods,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
@@ -16,6 +20,7 @@ use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
+use crate::dom::promise::Promise;
 use crate::indexeddb::convert_value_to_key;
 use crate::script_runtime::CanGc;
 
@@ -90,15 +95,19 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         Ok(request)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-deletedatabase>
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase>
     fn DeleteDatabase(&self, name: DOMString) -> Fallible<DomRoot<IDBOpenDBRequest>> {
-        // Step 1: Let origin be the origin of the global scope used to
-        // access this IDBFactory.
+        // Step 1: Let environment be this’s relevant settings object.
         let global = self.global();
+
+        // Step 2: Let storageKey be the result of running obtain a storage key given environment.
+        // If failure is returned, then throw a "SecurityError" DOMException and abort these steps.
+        // TODO: use a storage key.
         let origin = global.origin();
 
-        // Step 2: if origin is an opaque origin,
+        // Legacy step 2: if origin is an opaque origin,
         // throw a "SecurityError" DOMException and abort these steps.
+        // TODO: remove when a storage key is used.
         if let ImmutableOrigin::Opaque(_) = origin.immutable() {
             return Err(Error::Security(None));
         }
@@ -115,10 +124,10 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         Ok(request)
     }
 
-    // // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-databases
-    // fn Databases(&self) -> Rc<Promise> {
-    //     unimplemented!();
-    // }
+    /// https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases
+    fn Databases(&self) -> Rc<Promise> {
+        unimplemented!();
+    }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp>
     fn Cmp(&self, cx: SafeJSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
