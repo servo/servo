@@ -5,11 +5,13 @@
 use base::generic_channel::{self, GenericSender};
 use base::id::StorageKeyConnectionId;
 use serde::{Deserialize, Serialize};
+use servo_url::origin::ImmutableOrigin;
 
 #[derive(Deserialize, Serialize)]
 pub enum ClientStorageThreadMessage {
     NewStorageKeyConnection {
         connection_id: StorageKeyConnectionId,
+        origin: ImmutableOrigin,
     },
 
     StorageKeyConnectionBackendMessage {
@@ -30,9 +32,16 @@ impl ClientStorageProxy {
         ClientStorageProxy { generic_sender }
     }
 
-    pub fn send_new_storage_key_connection(&self, connection_id: StorageKeyConnectionId) {
+    pub fn send_new_storage_key_connection(
+        &self,
+        connection_id: StorageKeyConnectionId,
+        origin: ImmutableOrigin,
+    ) {
         self.generic_sender
-            .send(ClientStorageThreadMessage::NewStorageKeyConnection { connection_id })
+            .send(ClientStorageThreadMessage::NewStorageKeyConnection {
+                connection_id,
+                origin,
+            })
             .unwrap();
     }
 

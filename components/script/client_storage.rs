@@ -4,22 +4,25 @@
 
 use base::generic_channel::GenericSender;
 use base::id::StorageKeyConnectionId;
+use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::{ClientStorageProxy, StorageKeyConnectionBackendMessage};
 
 pub struct StorageKeyConnection {
     proxy: ClientStorageProxy,
     connection_id: StorageKeyConnectionId,
+    _origin: ImmutableOrigin,
 }
 
 impl StorageKeyConnection {
-    pub fn new(proxy: ClientStorageProxy) -> StorageKeyConnection {
+    pub fn new(proxy: ClientStorageProxy, origin: ImmutableOrigin) -> StorageKeyConnection {
         let connection_id = StorageKeyConnectionId::new();
 
-        proxy.send_new_storage_key_connection(connection_id);
+        proxy.send_new_storage_key_connection(connection_id, origin.clone());
 
         StorageKeyConnection {
             proxy,
             connection_id,
+            _origin: origin,
         }
     }
 

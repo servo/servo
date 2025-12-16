@@ -42,7 +42,9 @@ impl ClientStorageTest {
 
         let proxy = ClientStorageProxy::new(thread);
 
-        let connection = StorageKeyConnection::new(proxy);
+        let origin = global.origin().immutable().clone();
+
+        let connection = StorageKeyConnection::new(proxy, origin);
 
         reflect_dom_object_with_proto(
             Box::new(ClientStorageTest::new_inherited(connection)),

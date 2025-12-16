@@ -11,6 +11,7 @@ use base::generic_channel::{
 };
 use base::id::StorageKeyConnectionId;
 use log::{debug, warn};
+use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::{
     ClientStorageThreadMessage, StorageKeyConnectionBackendMessage,
 };
@@ -87,8 +88,11 @@ impl ClientStorageThread {
 
     fn handle_message(&mut self, message: ClientStorageThreadMessage) {
         match message {
-            ClientStorageThreadMessage::NewStorageKeyConnection { connection_id } => {
-                self.handle_new_storage_key_connection(connection_id);
+            ClientStorageThreadMessage::NewStorageKeyConnection {
+                connection_id,
+                origin,
+            } => {
+                self.handle_new_storage_key_connection(connection_id, origin);
             },
             ClientStorageThreadMessage::StorageKeyConnectionBackendMessage {
                 connection_id,
@@ -103,8 +107,12 @@ impl ClientStorageThread {
         }
     }
 
-    fn handle_new_storage_key_connection(&mut self, connection_id: StorageKeyConnectionId) {
-        let connection = StorageKeyConnection::new(connection_id);
+    fn handle_new_storage_key_connection(
+        &mut self,
+        connection_id: StorageKeyConnectionId,
+        origin: ImmutableOrigin,
+    ) {
+        let connection = StorageKeyConnection::new(connection_id, origin);
 
         self.storage_key_connections
             .insert(connection_id, connection);
@@ -127,12 +135,14 @@ impl ClientStorageThread {
 
 pub struct StorageKeyConnection {
     _connection_id: StorageKeyConnectionId,
+    _origin: ImmutableOrigin,
 }
 
 impl StorageKeyConnection {
-    pub fn new(connection_id: StorageKeyConnectionId) -> Self {
+    pub fn new(connection_id: StorageKeyConnectionId, origin: ImmutableOrigin) -> Self {
         StorageKeyConnection {
             _connection_id: connection_id,
+            _origin: origin,
         }
     }
 
