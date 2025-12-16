@@ -185,7 +185,7 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::dom::xpathexpression::XPathExpression;
-use crate::fetch::FetchCanceller;
+use crate::fetch::{FetchCanceller, QueuedDeferredFetchRecord};
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
@@ -1948,6 +1948,10 @@ impl Document {
         self.loader_mut().fetch_async_background(request, callback);
     }
 
+    pub(crate) fn append_deferred_fetch(&self, request: QueuedDeferredFetchRecord) {
+        self.loader_mut().append_deferred_fetch(request);
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-end
     // https://html.spec.whatwg.org/multipage/#delay-the-load-event
     pub(crate) fn finish_load(&self, load: LoadType, can_gc: CanGc) {
@@ -2473,7 +2477,11 @@ impl Document {
             }
         }
 
-        // Step 2.
+        // Step 2. Cancel any instances of the fetch algorithm in the context of document,
+        // discarding any tasks queued for them, and discarding any further data received
+        // from the network for them. If this resulted in any instances of the fetch algorithm
+        // being canceled or any queued tasks or any network data getting discarded,
+        // then make document unsalvageable given document and "fetch".
         self.script_blocking_stylesheets_count.set(0);
         *self.pending_parsing_blocking_script.borrow_mut() = None;
         *self.asap_scripts_set.borrow_mut() = vec![];
@@ -2494,10 +2502,16 @@ impl Document {
             .task_manager()
             .cancel_pending_tasks_for_source(TaskSourceName::Networking);
 
-        // Step 3.
+        // Step 3. If document's during-loading navigation ID for WebDriver BiDi is non-null, then:
+        // TODO
+
+        // Step 4. If document has an active parser, then:
         if let Some(parser) = self.get_current_parser() {
+            // Step 4.1. Set document's active parser was aborted to true.
             self.active_parser_was_aborted.set(true);
+            // Step 4.2. Abort that parser.
             parser.abort(can_gc);
+            // Step 4.3. Make document unsalvageable given document and "parser-aborted".
             self.salvageable.set(false);
         }
     }
