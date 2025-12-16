@@ -131,7 +131,7 @@ impl WebView {
             rendering_context: builder.rendering_context,
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
-            credential_management_delegate: Rc::new(DefaultCredentialManagementDelegate::new()),
+            credential_management_delegate: Rc::new(DefaultCredentialManagementDelegate::default()),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,

@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::Mutex;
 
 use servo_url::ImmutableOrigin;
 
@@ -20,37 +20,23 @@ pub trait CredentialManagementDelegate {
     fn delete_secret(&self, key: ImmutableOrigin) -> Result<(), String>;
 }
 
+#[derive(Default)]
 pub struct DefaultCredentialManagementDelegate {
-    secrets: Mutex<HashMap<ImmutableOrigin, Vec<u8>>>,
-}
-
-impl DefaultCredentialManagementDelegate {
-    pub fn new() -> Self {
-        DefaultCredentialManagementDelegate {
-            secrets: Mutex::new(HashMap::new()),
-        }
-    }
+    secrets: RefCell<HashMap<ImmutableOrigin, Vec<u8>>>,
 }
 
 impl CredentialManagementDelegate for DefaultCredentialManagementDelegate {
     fn store_secret(&self, key: ImmutableOrigin, secret: Vec<u8>) -> Result<(), String> {
-        let mut secrets = self.secrets.lock().map_err(|e| e.to_string())?;
-        secrets.insert(key, secret);
+        self.secrets.borrow_mut().insert(key, secret);
         Ok(())
     }
 
     fn retrieve_secret(&self, key: ImmutableOrigin) -> Result<Option<Vec<u8>>, String> {
-        let secrets = self.secrets.lock().map_err(|e| e.to_string())?;
-        if let Some(secret) = secrets.get(&key) {
-            Ok(Some(secret.clone()))
-        } else {
-            Ok(None)
-        }
+        Ok(self.secrets.borrow().get(&key).cloned())
     }
 
     fn delete_secret(&self, key: ImmutableOrigin) -> Result<(), String> {
-        let mut secrets = self.secrets.lock().map_err(|e| e.to_string())?;
-        secrets.remove(&key);
+        self.secrets.borrow_mut().remove(&key);
         Ok(())
     }
 }
