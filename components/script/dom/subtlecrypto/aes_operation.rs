@@ -93,7 +93,7 @@ pub(crate) fn encrypt_aes_ctr(
             let key_data = GenericArray::from_slice(data);
             Aes256Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
         },
-        _ => return Err(Error::Data(None)),
+        _ => return Err(Error::Data(Some("The key is not an AES key".into()))),
     };
 
     // Step 3. Return ciphertext.
@@ -175,7 +175,9 @@ pub(crate) fn encrypt_aes_cbc(
     // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
     // throw an OperationError.
     if normalized_algorithm.iv.len() != 16 {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "The initialization vector length is not 16 bytes".into(),
+        )));
     }
 
     // Step 2. Let paddedPlaintext be the result of adding padding octets to plaintext according to
@@ -198,7 +200,7 @@ pub(crate) fn encrypt_aes_cbc(
             let key_data = GenericArray::from_slice(data);
             Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
         },
-        _ => return Err(Error::Data(None)),
+        _ => return Err(Error::Data(Some("The key is not an AES key".into()))),
     };
 
     // Step 4. Return ciphertext.
@@ -214,13 +216,20 @@ pub(crate) fn decrypt_aes_cbc(
     // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
     // throw an OperationError.
     if normalized_algorithm.iv.len() != 16 {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "The initialization vector length is not 16 bytes".into(),
+        )));
     }
 
     // Step 2. If the length of ciphertext is zero or is not a multiple of 16 bytes, then throw an
     // OperationError.
-    if ciphertext.is_empty() || ciphertext.len() % 16 != 0 {
-        return Err(Error::Operation(None));
+    if ciphertext.is_empty() {
+        return Err(Error::Operation(Some("The ciphertext is empty".into())));
+    }
+    if ciphertext.len() % 16 != 0 {
+        return Err(Error::Operation(Some(
+            "The ciphertext length is not a multiple of 16 bytes".into(),
+        )));
     }
 
     // Step 3. Let paddedPlaintext be the result of performing the CBC Decryption operation
@@ -237,21 +246,21 @@ pub(crate) fn decrypt_aes_cbc(
             let key_data = GenericArray::from_slice(data);
             Aes128CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation(None))?
+                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
         },
         Handle::Aes192(data) => {
             let key_data = GenericArray::from_slice(data);
             Aes192CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation(None))?
+                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
         },
         Handle::Aes256(data) => {
             let key_data = GenericArray::from_slice(data);
             Aes256CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation(None))?
+                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
         },
-        _ => return Err(Error::Data(None)),
+        _ => return Err(Error::Data(Some("The key is not an AES key".into()))),
     };
 
     // Step 7. Return plaintext.
