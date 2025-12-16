@@ -277,7 +277,6 @@ impl ResourceChannelManager {
                             let group = if id == private_id {
                                 &private_http_state
                             } else {
-                                println!("IDS {private_id}, {public_id}");
                                 assert_eq!(id, public_id);
                                 &public_http_state
                             };
