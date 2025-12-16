@@ -99,7 +99,7 @@ ohos-ime = "0.4.0"
 ohos-ime-sys = "0.2.2"
 ohos-vsync = "0.1.3"
 ohos-window-manager-sys = { version = "0.1", features = ["api-14"] }
-xcomponent-sys = { version = "0.3.4", features = ["api-14", "keyboard-types"] }
+xcomponent-sys = { version = "0.3.5", features = ["api-14", "keyboard-types"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
 nix = { workspace = true, features = ["fs"] }
