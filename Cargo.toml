@@ -39,7 +39,12 @@ backtrace = "0.3"
 base = { path = "components/shared/base" }
 base64 = "0.22.1"
 base64ct = { version = "1.8", features = ["alloc"] }
-bincode = "1"
+# bincode 1.3.3 is the last known good version of bincode 1.
+# The crate was declared finished and won't receive further updates by the author.
+# Since the git history was rewritten by the author, any bump of this crate should
+# be reviewed carefully by doing a manual diff based on the crates.io version,
+# before doing **any** bump to this dependency to rule out a supply chain attack.
+bincode = "=1.3.3"
 bitflags = "2.10"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 brotli = "8.0.2"
