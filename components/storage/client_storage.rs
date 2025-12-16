@@ -100,6 +100,9 @@ impl ClientStorageThread {
             } => {
                 self.handle_storage_key_connection_backend_message(connection_id, message);
             },
+            ClientStorageThreadMessage::RemoveStorageKeyConnection { connection_id } => {
+                self.handle_remove_storage_key_connection(connection_id);
+            },
             ClientStorageThreadMessage::Exit(sender) => {
                 self.handle_exit();
                 let _ = sender.send(());
@@ -128,8 +131,18 @@ impl ClientStorageThread {
         connection.handle_message(message);
     }
 
+    fn handle_remove_storage_key_connection(&mut self, connection_id: StorageKeyConnectionId) {
+        self.storage_key_connections.remove(&connection_id);
+    }
+
     fn handle_exit(&mut self) {
         self.exiting = true;
+    }
+}
+
+impl Drop for ClientStorageThread {
+    fn drop(&mut self) {
+        debug!("Dropping storage::ClientStorageThread");
     }
 }
 
@@ -157,5 +170,11 @@ impl StorageKeyConnection {
     fn handle_test(&self, sender: GenericSender<i32>) {
         debug!("Handlig Test");
         let _ = sender.send(42);
+    }
+}
+
+impl Drop for StorageKeyConnection {
+    fn drop(&mut self) {
+        debug!("Dropping storage::StorageKeyConnection");
     }
 }

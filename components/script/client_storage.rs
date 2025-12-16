@@ -4,6 +4,7 @@
 
 use base::generic_channel::GenericSender;
 use base::id::StorageKeyConnectionId;
+use log::debug;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::{ClientStorageProxy, StorageKeyConnectionBackendMessage};
 
@@ -31,5 +32,14 @@ impl StorageKeyConnection {
             self.connection_id,
             StorageKeyConnectionBackendMessage::Test(sender),
         );
+    }
+}
+
+impl Drop for StorageKeyConnection {
+    fn drop(&mut self) {
+        debug!("Dropping script::StorageKeyConnection");
+
+        self.proxy
+            .send_remove_storage_key_connection(self.connection_id);
     }
 }

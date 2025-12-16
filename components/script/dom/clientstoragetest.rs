@@ -70,3 +70,9 @@ impl ClientStorageTestMethods<crate::DomTypeHolder> for ClientStorageTest {
         receiver.recv().unwrap()
     }
 }
+
+impl Drop for ClientStorageTest {
+    fn drop(&mut self) {
+        debug!("Dropping script::ClientStorageTest");
+    }
+}

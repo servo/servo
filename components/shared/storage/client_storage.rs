@@ -4,6 +4,7 @@
 
 use base::generic_channel::{self, GenericSender};
 use base::id::StorageKeyConnectionId;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
 
@@ -17,6 +18,10 @@ pub enum ClientStorageThreadMessage {
     StorageKeyConnectionBackendMessage {
         connection_id: StorageKeyConnectionId,
         message: StorageKeyConnectionBackendMessage,
+    },
+
+    RemoveStorageKeyConnection {
+        connection_id: StorageKeyConnectionId,
     },
 
     /// Send a reply when done cleaning up thread resources and then shut it down
@@ -60,12 +65,24 @@ impl ClientStorageProxy {
             .unwrap();
     }
 
+    pub fn send_remove_storage_key_connection(&self, connection_id: StorageKeyConnectionId) {
+        self.generic_sender
+            .send(ClientStorageThreadMessage::RemoveStorageKeyConnection { connection_id })
+            .unwrap();
+    }
+
     pub fn send_exit(&self) {
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.generic_sender
             .send(ClientStorageThreadMessage::Exit(sender))
             .unwrap();
         receiver.recv().unwrap()
+    }
+}
+
+impl Drop for ClientStorageProxy {
+    fn drop(&mut self) {
+        debug!("Dropping storage_traits::ClientStorageProxy");
     }
 }
 
