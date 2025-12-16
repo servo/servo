@@ -2,19 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::{self, GenericSender};
+use base::generic_channel::GenericSender;
 use storage::ClientStorageThreadFactory;
-use storage_traits::client_storage::ClientStorageThreadMessage;
+use storage_traits::client_storage::{ClientStorageProxy, ClientStorageThreadMessage};
 
 #[test]
 fn test_exit() {
     let thread: GenericSender<ClientStorageThreadMessage> = ClientStorageThreadFactory::new(None);
 
-    let (sender, receiver) = generic_channel::channel().unwrap();
-    thread
-        .send(ClientStorageThreadMessage::Exit(sender))
-        .unwrap();
-    receiver.recv().unwrap();
+    let proxy = ClientStorageProxy::new(thread);
+
+    proxy.send_exit();
 
     // Workaround for https://github.com/servo/servo/issues/32912
     #[cfg(windows)]
