@@ -141,16 +141,17 @@ impl Gui {
         winit_window: &Window,
         event: &WindowEvent,
     ) -> EventResponse {
-        let mut result = self.context.on_window_event(winit_window, event);
-        result.consumed &= match event {
+        match event {
             WindowEvent::CursorMoved { position, .. } => {
                 let scale = Scale::<_, DeviceIndependentPixel, _>::new(
                     self.context.egui_ctx.pixels_per_point(),
                 );
-                self.last_mouse_position =
-                    Some(winit_position_to_euclid_point(*position).to_f32() / scale);
-                self.last_mouse_position
-                    .is_some_and(|p| self.is_in_egui_toolbar_rect(p))
+
+                let point = winit_position_to_euclid_point(*position).to_f32() / scale;
+                self.last_mouse_position = Some(point);
+                if !self.is_in_egui_toolbar_rect(point) {
+                    return EventResponse::default();
+                }
             },
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -158,7 +159,10 @@ impl Gui {
                 ..
             } => {
                 self.event_queue.push(UserInterfaceCommand::Forward);
-                true
+                return EventResponse {
+                    consumed: true,
+                    repaint: false,
+                };
             },
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -166,14 +170,30 @@ impl Gui {
                 ..
             } => {
                 self.event_queue.push(UserInterfaceCommand::Back);
-                true
+                return EventResponse {
+                    consumed: true,
+                    repaint: false,
+                };
             },
-            WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
-                .last_mouse_position
-                .is_some_and(|p| self.is_in_egui_toolbar_rect(p)),
-            _ => true,
+            WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
+                if self
+                    .last_mouse_position
+                    .is_some_and(|point| !self.is_in_egui_toolbar_rect(point)) =>
+            {
+                return EventResponse::default();
+            },
+            WindowEvent::KeyboardInput { .. }
+                if self
+                    .context
+                    .egui_ctx
+                    .memory(|memory| memory.focused().is_none()) =>
+            {
+                return EventResponse::default();
+            },
+            _ => {},
         };
-        result
+
+        self.context.on_window_event(winit_window, event)
     }
 
     /// The height of the top toolbar of this user inteface ie the distance from the top of the
