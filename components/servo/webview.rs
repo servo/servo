@@ -30,7 +30,6 @@ use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::credential_management_delegate::{
     CredentialManagementDelegate, DefaultCredentialManagementDelegate,
 };
-use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
@@ -128,7 +127,7 @@ impl WebView {
             rendering_context: builder.rendering_context,
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
-            credential_management_delegate: Rc::new(DefaultCredentialManagementDelegate::new()),
+            credential_management_delegate: Rc::new(DefaultCredentialManagementDelegate::default()),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
