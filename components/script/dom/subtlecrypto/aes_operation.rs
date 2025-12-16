@@ -246,19 +246,19 @@ pub(crate) fn decrypt_aes_cbc(
             let key_data = GenericArray::from_slice(data);
             Aes128CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|err| Error::Operation(Some(err.to_string())))?
+                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
         },
         Handle::Aes192(data) => {
             let key_data = GenericArray::from_slice(data);
             Aes192CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|err| Error::Operation(Some(err.to_string())))?
+                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
         },
         Handle::Aes256(data) => {
             let key_data = GenericArray::from_slice(data);
             Aes256CbcDec::new(key_data, iv)
                 .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|err| Error::Operation(Some(err.to_string())))?
+                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
         },
         _ => return Err(Error::Data(Some("The key is not an AES key".into()))),
     };
