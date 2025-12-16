@@ -124,7 +124,12 @@ def write_file(results):
 def main():
     parser = argparse.ArgumentParser(description="Run Blink Perf Tests on Servo Instance.")
     parser.add_argument("servo_path", type=str, help="the servo binary")
-    parser.add_argument('-p', "-prepend", default="", help="A value prepended to all results. Useful to distinguish between profiles.")
+    parser.add_argument(
+        "-p",
+        "--prepend",
+        action="store",
+        help="A value prepended to all results. Useful to distinguish between profiles.",
+    )
     args = parser.parse_args()
 
     webdriver = start_servo(args.servo_path)
