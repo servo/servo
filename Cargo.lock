@@ -5734,6 +5734,7 @@ dependencies = [
  "servo_arc",
  "servo_malloc_size_of",
  "servo_url",
+ "tokio",
  "tower",
  "url",
  "uuid",

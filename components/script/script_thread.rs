@@ -3513,7 +3513,7 @@ impl ScriptThread {
             self.resource_threads.core_thread.clone(),
         );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
-            .initiate_fetch(&self.resource_threads.core_thread, None);
+            .initiate_fetch(self.resource_threads.core_thread.clone(), None);
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
 
@@ -3649,7 +3649,7 @@ impl ScriptThread {
             self.resource_threads.core_thread.clone(),
         );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
-            .initiate_fetch(&self.resource_threads.core_thread, response_init);
+            .initiate_fetch(self.resource_threads.core_thread.clone(), response_init);
     }
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`

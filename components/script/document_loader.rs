@@ -141,7 +141,12 @@ impl DocumentLoader {
             request.id,
             self.resource_threads.core_thread.clone(),
         ));
-        fetch_async(&self.resource_threads.core_thread, request, None, callback);
+        fetch_async(
+            self.resource_threads.core_thread.clone(),
+            request,
+            None,
+            callback,
+        );
     }
 
     /// Mark an in-progress network request complete.

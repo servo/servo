@@ -920,7 +920,7 @@ impl RemoteWebFontDownloader {
         };
 
         fetch_async(
-            &core_resource_thread_clone,
+            core_resource_thread_clone.clone(),
             request,
             None,
             Box::new(move |response_message| {

@@ -55,7 +55,7 @@ impl NavigationListener {
 
     pub fn initiate_fetch(
         self,
-        core_resource_thread: &CoreResourceThread,
+        core_resource_thread: CoreResourceThread,
         response_init: Option<ResponseInit>,
     ) {
         fetch_async(

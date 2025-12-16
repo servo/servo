@@ -152,7 +152,7 @@ use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::registered_domain_name;
-use net_traits::{self, AsyncRuntime, ResourceThreads, exit_fetch_thread, start_fetch_thread};
+use net_traits::{self, AsyncRuntime, ResourceThreads, start_fetch_thread};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
@@ -780,27 +780,22 @@ where
         // Start a fetch thread.
         // In single-process mode this will be the global fetch thread;
         // in multi-process mode this will be used only by the canvas paint thread.
-        let join_handle = start_fetch_thread();
+        {
+            let _fetch_thread_guard = start_fetch_thread();
 
-        while !self.shutting_down || !self.pipelines.is_empty() {
-            // Randomly close a pipeline if --random-pipeline-closure-probability is set
-            // This is for testing the hardening of the constellation.
-            self.maybe_close_random_pipeline();
-            self.handle_request();
-            self.clean_up_finished_script_event_loops();
+            while !self.shutting_down || !self.pipelines.is_empty() {
+                // Randomly close a pipeline if --random-pipeline-closure-probability is set
+                // This is for testing the hardening of the constellation.
+                self.maybe_close_random_pipeline();
+                self.handle_request();
+                self.clean_up_finished_script_event_loops();
+            }
+            self.handle_shutdown();
+
+            if !opts::get().multiprocess {
+                StyleThreadPool::shutdown();
+            }
         }
-        self.handle_shutdown();
-
-        if !opts::get().multiprocess {
-            StyleThreadPool::shutdown();
-        }
-
-        // Shut down the fetch thread started above.
-        exit_fetch_thread();
-        join_handle
-            .join()
-            .expect("Failed to join on the fetch thread in the constellation");
-
         // Note: the last thing the constellation does, is asking the embedder to
         // shut down. This helps ensure we've shut down all our internal threads before
         // de-initializing Servo (see the `thread_count` warning on MacOS).

@@ -6,14 +6,12 @@
 
 use std::fmt::Display;
 use std::sync::{LazyLock, OnceLock};
-use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{CookieStoreId, HistoryStateId};
 use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
-use crossbeam_channel::{Receiver, Sender, unbounded};
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
@@ -622,10 +620,10 @@ pub enum CoreResourceMsg {
 enum ToFetchThreadMessage {
     Cancel(Vec<RequestId>, CoreResourceThread),
     StartFetch(
-        /* request_builder */ RequestBuilder,
-        /* response_init */ Option<ResponseInit>,
-        /* callback  */ BoxedFetchCallback,
-        /* core resource thread channel */ CoreResourceThread,
+        RequestBuilder,
+        Option<ResponseInit>,
+        BoxedFetchCallback,
+        CoreResourceThread,
     ),
     FetchResponse(FetchResponseMsg),
     /// Stop the background thread.
@@ -644,15 +642,17 @@ struct FetchThread {
     /// A crossbeam receiver attached to the router proxy which converts incoming fetch
     /// updates from IPC messages to crossbeam messages as well as another sender which
     /// handles requests from clients wanting to do fetches.
-    receiver: Receiver<ToFetchThreadMessage>,
+    receiver: tokio::sync::mpsc::Receiver<ToFetchThreadMessage>,
     /// An [`IpcSender`] that's sent with every fetch request and leads back to our
     /// router proxy.
     to_fetch_sender: IpcSender<FetchResponseMsg>,
 }
 
 impl FetchThread {
-    fn spawn() -> (Sender<ToFetchThreadMessage>, JoinHandle<()>) {
-        let (sender, receiver) = unbounded();
+    fn spawn() -> tokio::sync::mpsc::Sender<ToFetchThreadMessage> {
+        //let (sender, receiver) = unbounded();
+        let (sender, receiver) = tokio::sync::mpsc::channel(10);
+        //let (to_fetch_sender, from_fetch_sender) = tokio::sync::mpsc::channel(10);
         let (to_fetch_sender, from_fetch_sender) = ipc::channel().unwrap();
 
         let sender_clone = sender.clone();
@@ -663,29 +663,25 @@ impl FetchThread {
                 let _ = sender_clone.send(ToFetchThreadMessage::FetchResponse(message));
             }),
         );
-        let join_handle = thread::Builder::new()
-            .name("FetchThread".to_owned())
-            .spawn(move || {
-                let mut fetch_thread = FetchThread {
-                    active_fetches: FxHashMap::default(),
-                    receiver,
-                    to_fetch_sender,
-                };
-                fetch_thread.run();
-            })
-            .expect("Thread spawning failed");
-        (sender, join_handle)
+
+        let mut fetch_thread = FetchThread {
+            active_fetches: FxHashMap::default(),
+            receiver,
+            to_fetch_sender,
+        };
+        tokio::spawn(async move { fetch_thread.run().await });
+        sender
     }
 
-    fn run(&mut self) {
+    async fn run(&mut self) {
         loop {
-            match self.receiver.recv().unwrap() {
-                ToFetchThreadMessage::StartFetch(
+            match self.receiver.recv().await {
+                Some(ToFetchThreadMessage::StartFetch(
                     request_builder,
                     response_init,
                     callback,
                     core_resource_thread,
-                ) => {
+                )) => {
                     let request_builder_id = request_builder.id;
 
                     // Only redirects have a `response_init` field.
@@ -705,7 +701,7 @@ impl FetchThread {
 
                     self.active_fetches.insert(request_builder_id, callback);
                 },
-                ToFetchThreadMessage::FetchResponse(fetch_response_msg) => {
+                Some(ToFetchThreadMessage::FetchResponse(fetch_response_msg)) => {
                     let request_id = fetch_response_msg.request_id();
                     let fetch_finished =
                         matches!(fetch_response_msg, FetchResponseMsg::ProcessResponseEOF(..));
@@ -720,35 +716,45 @@ impl FetchThread {
                         self.active_fetches.remove(&request_id);
                     }
                 },
-                ToFetchThreadMessage::Cancel(request_ids, core_resource_thread) => {
+                Some(ToFetchThreadMessage::Cancel(request_ids, core_resource_thread)) => {
                     // Errors are ignored here, because Servo sends many cancellation requests when shutting down.
                     // At this point the networking task might be shut down completely, so just ignore errors
                     // during this time.
                     let _ = core_resource_thread.send(CoreResourceMsg::Cancel(request_ids));
                 },
-                ToFetchThreadMessage::Exit => break,
+                Some(ToFetchThreadMessage::Exit) | None => break,
             }
         }
     }
 }
 
-static FETCH_THREAD: OnceLock<Sender<ToFetchThreadMessage>> = OnceLock::new();
+static FETCH_THREAD: OnceLock<tokio::sync::mpsc::Sender<ToFetchThreadMessage>> = OnceLock::new();
+
+pub struct FetchThreadGuard();
+
+impl Drop for FetchThreadGuard {
+    fn drop(&mut self) {
+        exit_fetch_thread();
+    }
+}
 
 /// Start the fetch thread,
 /// and returns the join handle to the background thread.
-pub fn start_fetch_thread() -> JoinHandle<()> {
-    let (sender, join_handle) = FetchThread::spawn();
+#[must_use]
+pub fn start_fetch_thread() -> FetchThreadGuard {
+    let sender = FetchThread::spawn();
     FETCH_THREAD
         .set(sender)
         .expect("Fetch thread should be set only once on start-up");
-    join_handle
+
+    FetchThreadGuard()
 }
 
 /// Send the exit message to the background thread,
 /// after which the caller can,
 /// and should,
 /// join on the thread.
-pub fn exit_fetch_thread() {
+fn exit_fetch_thread() {
     let _ = FETCH_THREAD
         .get()
         .expect("Fetch thread should always be initialized on start-up")
@@ -757,32 +763,38 @@ pub fn exit_fetch_thread() {
 
 /// Instruct the resource thread to make a new fetch request.
 pub fn fetch_async(
-    core_resource_thread: &CoreResourceThread,
+    core_resource_thread: CoreResourceThread,
     request: RequestBuilder,
     response_init: Option<ResponseInit>,
     callback: BoxedFetchCallback,
 ) {
-    let _ = FETCH_THREAD
-        .get()
-        .expect("Fetch thread should always be initialized on start-up")
-        .send(ToFetchThreadMessage::StartFetch(
-            request,
-            response_init,
-            callback,
-            core_resource_thread.clone(),
-        ));
+    tokio::spawn(async move {
+        let _ = FETCH_THREAD
+            .get()
+            .expect("Fetch thread should always be initialized on start-up")
+            .send(ToFetchThreadMessage::StartFetch(
+                request,
+                response_init,
+                callback,
+                core_resource_thread.clone(),
+            ))
+            .await;
+    });
 }
 
 /// Instruct the resource thread to cancel an existing request. Does nothing if the
 /// request has already completed or has not been fetched yet.
-pub fn cancel_async_fetch(request_ids: Vec<RequestId>, core_resource_thread: &CoreResourceThread) {
-    let _ = FETCH_THREAD
-        .get()
-        .expect("Fetch thread should always be initialized on start-up")
-        .send(ToFetchThreadMessage::Cancel(
-            request_ids,
-            core_resource_thread.clone(),
-        ));
+pub fn cancel_async_fetch(request_ids: Vec<RequestId>, core_resource_thread: CoreResourceThread) {
+    tokio::spawn(async move {
+        let _ = FETCH_THREAD
+            .get()
+            .expect("Fetch thread should always be initialized on start-up")
+            .send(ToFetchThreadMessage::Cancel(
+                request_ids,
+                core_resource_thread.clone(),
+            ))
+            .await;
+    });
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

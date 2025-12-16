@@ -57,7 +57,7 @@ use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
-use net_traits::{ResourceThreads, exit_fetch_thread, start_fetch_thread};
+use net_traits::{ResourceThreads, start_fetch_thread};
 use profile::{mem as profile_mem, system_reporter, time as profile_time};
 use profile_traits::mem::{MemoryReportResult, ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
@@ -1044,7 +1044,7 @@ pub fn run_content_process(token: String) {
             media_platform::init();
 
             // Start the fetch thread for this content process.
-            let fetch_thread_join_handle = start_fetch_thread();
+            let _fetch_thread_guard = start_fetch_thread();
 
             set_logger(
                 new_event_loop_info
@@ -1080,12 +1080,6 @@ pub fn run_content_process(token: String) {
                 .expect("Failed to join on the BHM background thread.");
 
             StyleThreadPool::shutdown();
-
-            // Shut down the fetch thread started above.
-            exit_fetch_thread();
-            fetch_thread_join_handle
-                .join()
-                .expect("Failed to join on the fetch thread in the constellation");
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();

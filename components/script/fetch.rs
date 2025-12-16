@@ -92,7 +92,7 @@ impl FetchCanceller {
             if let Some(ref core_resource_thread) = self.core_resource_thread {
                 // No error handling here. Cancellation is a courtesy call,
                 // we don't actually care if the other side heard.
-                cancel_async_fetch(vec![request_id], core_resource_thread);
+                cancel_async_fetch(vec![request_id], core_resource_thread.clone());
             }
         }
     }

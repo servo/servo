@@ -3331,7 +3331,7 @@ impl GlobalScope {
         network_listener: NetworkListener<Listener>,
     ) {
         fetch_async(
-            &self.core_resource_thread(),
+            self.core_resource_thread(),
             request_builder,
             None,
             network_listener.into_callback(),
