@@ -523,10 +523,10 @@ impl WebStorageManager {
                             Ok((true, Some(old)))
                         }
                     });
-            // XXX Should this be scoped to localStorage only?
-            // Tracked in issue #41324.
-            let env = self.get_environment_mut(&url.origin());
-            env.set(&name, &value);
+            if storage_type == StorageType::Local {
+                let env = self.get_environment_mut(&url.origin());
+                env.set(&name, &value);
+            }
             result
         };
         sender.send(message).unwrap();
@@ -558,8 +558,10 @@ impl WebStorageManager {
         let data = self.select_data_mut(storage_type, webview_id, url.origin());
         let old_value = data.and_then(|entry| entry.remove(&name));
         sender.send(old_value).unwrap();
-        let env = self.get_environment_mut(&url.origin());
-        env.delete(&name);
+        if storage_type == StorageType::Local {
+            let env = self.get_environment_mut(&url.origin());
+            env.delete(&name);
+        }
     }
 
     fn clear(
@@ -580,8 +582,10 @@ impl WebStorageManager {
                 }
             }))
             .unwrap();
-        let env = self.get_environment_mut(&url.origin());
-        env.clear();
+        if storage_type == StorageType::Local {
+            let env = self.get_environment_mut(&url.origin());
+            env.clear();
+        }
     }
 
     fn clone(&mut self, src_webview_id: WebViewId, dest_webview_id: WebViewId) {
