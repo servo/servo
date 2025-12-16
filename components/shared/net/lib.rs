@@ -9,6 +9,7 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericCallback;
 use base::id::{CookieStoreId, HistoryStateId};
 use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
@@ -503,8 +504,8 @@ impl ResourceThreads {
         ResourceThreads { core_thread }
     }
 
-    pub fn clear_cache(&self) {
-        let _ = self.core_thread.send(CoreResourceMsg::ClearCache);
+    pub fn clear_cache(&self, callback: GenericCallback<()>) {
+        let _ = self.core_thread.send(CoreResourceMsg::ClearCache(callback));
     }
 
     pub fn clear_cookies(&self) {
@@ -607,7 +608,7 @@ pub enum CoreResourceMsg {
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
     /// Clear the network cache.
-    ClearCache,
+    ClearCache(GenericCallback<()>),
     /// Send the service worker network mediator for an origin to CoreResourceThread
     NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler

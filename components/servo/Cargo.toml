@@ -161,5 +161,8 @@ name = "webview"
 name = "servo"
 
 [[test]]
+name = "site_data"
+
+[[test]]
 name = "multiprocess"
 harness = false
