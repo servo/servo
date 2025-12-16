@@ -14,12 +14,12 @@
 
 mod clipboard_delegate;
 mod javascript_evaluator;
-mod net;
+mod network_manager;
 mod proxies;
 mod responders;
 mod servo;
 mod servo_delegate;
-mod site_data;
+mod site_data_manager;
 mod webview;
 mod webview_delegate;
 

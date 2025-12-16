@@ -76,11 +76,11 @@ use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
 use crate::javascript_evaluator::JavaScriptEvaluator;
-use crate::net::NetworkManager;
+use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
-use crate::site_data::SiteDataManager;
+use crate::site_data_manager::SiteDataManager;
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, FilePicker, NavigationRequest,
