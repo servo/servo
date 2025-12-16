@@ -1805,7 +1805,6 @@ impl From<RsaPssParams> for SubtleRsaPssParams {
 struct SubtleRsaOaepParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
-
     /// <https://w3c.github.io/webcrypto/#dfn-RsaOaepParams-label>
     label: Option<Vec<u8>>,
 }
