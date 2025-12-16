@@ -281,11 +281,11 @@ codegen-units = 1
 #
 # For html5ever:
 #
-# html5ever = { path = "../html5ever/html5ever" }
-# markup5ever = { path = "../html5ever/markup5ever" }
-# web_atoms = { path = "../html5ever/web_atoms" }
-# xml5ever = { path = "../html5ever/xml5ever" }
-# tendril = { path = "../html5ever/tendril" }
+html5ever = { path = "../html5ever/html5ever" }
+markup5ever = { path = "../html5ever/markup5ever" }
+web_atoms = { path = "../html5ever/web_atoms" }
+xml5ever = { path = "../html5ever/xml5ever" }
+tendril = { path = "../html5ever/tendril" }
 #
 # Or for Stylo:
 #

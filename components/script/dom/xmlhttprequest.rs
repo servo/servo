@@ -67,8 +67,8 @@ use crate::dom::node::Node;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::servoparser::ServoParser;
 use crate::dom::servoparser::html::HtmlSerialize;
+use crate::dom::servoparser::{EncodingInformation, ServoParser};
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
@@ -1500,8 +1500,7 @@ impl XMLHttpRequest {
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
-            None,
-            None,
+            EncodingInformation::Irrelevant,
             can_gc,
         );
         document
@@ -1518,7 +1517,7 @@ impl XMLHttpRequest {
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
-            None,
+            EncodingInformation::Irrelevant,
             can_gc,
         );
         document
@@ -1552,6 +1551,7 @@ impl XMLHttpRequest {
             doc.has_trustworthy_ancestor_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
+            None,
             can_gc,
         )
     }

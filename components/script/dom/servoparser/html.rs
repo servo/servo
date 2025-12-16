@@ -104,6 +104,9 @@ impl Tokenizer {
             TokenizerResult::Script(script) => {
                 TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()))
             },
+            TokenizerResult::EncodingIndicator(encoding) => {
+                TokenizerResult::EncodingIndicator(encoding)
+            },
         }
     }
 

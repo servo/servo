@@ -71,6 +71,7 @@ impl XMLDocument {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 window.Document().creation_sandboxing_flag_set(),
+                None,
             ),
         }
     }

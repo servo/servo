@@ -12,6 +12,7 @@ use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, StrTendril, TendrilSink};
 
 use crate::dom::document::Document;
+use crate::dom::servoparser::EncodingConfidence;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(super) struct DetectingState {
@@ -36,6 +37,10 @@ pub(super) struct DecodingState {
     #[ignore_malloc_size_of = "Defined in tendril"]
     #[no_trace]
     decoder: Option<LossyDecoder<NetworkSink>>,
+
+    /// How confident we are that the current encoding is the correct one.
+    pub(super) confidence: EncodingConfidence,
+
     #[no_trace]
     pub(super) encoding: &'static Encoding,
 }
@@ -66,7 +71,7 @@ impl DetectingState {
         data: &[u8],
         document: &Document,
         is_at_end_of_file: AtEndOfFile,
-    ) -> Option<&'static Encoding> {
+    ) -> Option<(&'static Encoding, EncodingConfidence)> {
         self.buffered_bytes.extend_from_slice(data);
         let can_wait_longer = self.start_timestamp.elapsed() < Self::MAX_TIME_TO_BUFFER;
         self.determine_the_character_encoding(document, can_wait_longer, is_at_end_of_file)
@@ -78,7 +83,7 @@ impl DetectingState {
         document: &Document,
         potentially_wait_for_more_data: bool,
         is_at_end_of_file: AtEndOfFile,
-    ) -> Option<&'static Encoding> {
+    ) -> Option<(&'static Encoding, EncodingConfidence)> {
         // Step 1. If the result of BOM sniffing is an encoding, return that encoding with confidence certain.
         if !self.attempted_bom_sniffing && self.buffered_bytes.len() > 2 {
             self.attempted_bom_sniffing = true;
@@ -88,7 +93,7 @@ impl DetectingState {
                     "Determined that the document is {} via BOM-sniffing",
                     encoding.name()
                 );
-                return Some(encoding);
+                return Some((encoding, EncodingConfidence::Certain));
             }
         }
 
@@ -109,7 +114,7 @@ impl DetectingState {
                 "Inferred encoding to be {} from the Content-Type header",
                 encoding_hint_from_content_type.name()
             );
-            return Some(encoding_hint_from_content_type);
+            return Some((encoding_hint_from_content_type, EncodingConfidence::Certain));
         }
 
         // Step 5. Optionally, prescan the byte stream to determine its encoding, with the end condition
@@ -129,7 +134,7 @@ impl DetectingState {
                 "Prescanning the byte stream determined that the encoding is {}",
                 encoding.name()
             );
-            return Some(encoding);
+            return Some((encoding, EncodingConfidence::Certain));
         }
 
         if document.is_html_document() {
@@ -138,21 +143,20 @@ impl DetectingState {
             // Step 6.1 Let parentDocument be d's container document.
             // Step 6.2 If parentDocument's origin is same origin with d's origin and parentDocument's character encoding
             // is not UTF-16BE/LE, then return parentDocument's character encoding, with the confidence tentative.
-            // NOTE: This should not happen for XML documents
             if let Some(encoding) = self.encoding_of_container_document {
                 if encoding != UTF_16LE && encoding != UTF_16BE {
                     log::debug!(
                         "Inferred encoding to be that of the container document, which is {}",
                         encoding.name()
                     );
-                    return Some(encoding);
+                    return Some((encoding, EncodingConfidence::Tentative));
                 }
-            }
 
-            // Step 7. Otherwise, if the user agent has information on the likely encoding for this page, e.g.
-            // based on the encoding of the page when it was last visited, then return that encoding,
-            // with the confidence tentative.
-            // NOTE: We have no such information.
+                // Step 7. Otherwise, if the user agent has information on the likely encoding for this page, e.g.
+                // based on the encoding of the page when it was last visited, then return that encoding,
+                // with the confidence tentative.
+                // NOTE: We have no such information.
+            }
 
             // Step 8. The user agent may attempt to autodetect the character encoding from applying frequency analysis
             // or other algorithms to the data stream.
@@ -170,7 +174,7 @@ impl DetectingState {
                     "chardetng determined that the document encoding is {}",
                     guessed_encoding.name()
                 );
-                return Some(guessed_encoding);
+                return Some((guessed_encoding, EncodingConfidence::Tentative));
             }
         }
 
@@ -179,10 +183,10 @@ impl DetectingState {
         // TODO: The spec has a cool table here for determining an appropriate fallback encoding based on the
         // user locale. Use it!
         log::debug!("Failed to determine encoding of byte stream, falling back to UTF-8");
-        Some(UTF_8)
+        Some((UTF_8, EncodingConfidence::Tentative))
     }
 
-    fn finish(&mut self, document: &Document) -> &'static Encoding {
+    fn finish(&mut self, document: &Document) -> (&'static Encoding, EncodingConfidence) {
         self.determine_the_character_encoding(document, false, AtEndOfFile::Yes)
             .expect("Should always return character encoding when we're not allowed to wait")
     }
@@ -202,6 +206,17 @@ impl NetworkDecoderState {
         })
     }
 
+    pub(super) fn new_with_known_encoding(known_encoding: &'static Encoding) -> Self {
+        Self::Decoding(DecodingState {
+            decoder: Some(LossyDecoder::new_encoding_rs(
+                known_encoding,
+                NetworkSink::default(),
+            )),
+            confidence: EncodingConfidence::Certain,
+            encoding: known_encoding,
+        })
+    }
+
     /// Feeds the network decoder a chunk of bytes.
     ///
     /// If a new encoding is detected, then the encoding of `document` is updated appropriately.
@@ -213,7 +228,9 @@ impl NetworkDecoderState {
     pub(super) fn push(&mut self, chunk: &[u8], document: &Document) -> Option<StrTendril> {
         match self {
             Self::Detecting(encoding_detector) => {
-                if let Some(encoding) = encoding_detector.buffer(chunk, document, AtEndOfFile::No) {
+                if let Some((encoding, confidence)) =
+                    encoding_detector.buffer(chunk, document, AtEndOfFile::No)
+                {
                     document.set_encoding(encoding);
                     let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                     *self = Self::Decoding(DecodingState {
@@ -221,6 +238,7 @@ impl NetworkDecoderState {
                             encoding,
                             NetworkSink::default(),
                         )),
+                        confidence,
                         encoding,
                     });
                     return self.push(&buffered_bytes, document);
@@ -242,7 +260,7 @@ impl NetworkDecoderState {
     pub(super) fn finish(&mut self, document: &Document) -> StrTendril {
         match self {
             Self::Detecting(encoding_detector) => {
-                let encoding = encoding_detector.finish(document);
+                let (encoding, confidence) = encoding_detector.finish(document);
                 document.set_encoding(encoding);
                 let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                 let mut decoder = LossyDecoder::new_encoding_rs(encoding, NetworkSink::default());
@@ -250,6 +268,7 @@ impl NetworkDecoderState {
                 *self = Self::Decoding(DecodingState {
                     // Important to set `None` here to indicate that we're done decoding
                     decoder: None,
+                    confidence,
                     encoding,
                 });
                 let mut chunk = std::mem::take(&mut decoder.inner_sink_mut().output);

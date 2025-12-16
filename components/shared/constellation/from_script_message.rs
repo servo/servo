@@ -131,6 +131,9 @@ pub struct LoadData {
     /// If this is a load operation for an `<iframe>` whose origin is same-origin with its
     /// container documents origin then this is the encoding of the container document.
     pub container_document_encoding: Option<&'static Encoding>,
+    /// Indicates that servo has previously attempted to load this document with an incompatible
+    /// encoding and detected that this one should be used instead.
+    pub encoding_override: Option<&'static Encoding>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -176,6 +179,7 @@ impl LoadData {
             destination: Destination::Document,
             creation_sandboxing_flag_set,
             container_document_encoding: None,
+            encoding_override: None,
         }
     }
 

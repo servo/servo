@@ -184,6 +184,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             self.document.has_trustworthy_ancestor_or_current_origin(),
             self.document.custom_element_reaction_stack(),
             self.document.creation_sandboxing_flag_set(),
+            None,
             can_gc,
         );
 

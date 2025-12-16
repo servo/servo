@@ -166,6 +166,7 @@ enum ToTokenizerMsg {
         #[ignore_malloc_size_of = "Defined in html5ever"]
         updated_input: VecDeque<SendTendril<UTF8>>,
     },
+    EncodingIndicator(#[ignore_malloc_size_of = "Defined in html5ever"] SendTendril<UTF8>),
     End, // Sent to Tokenizer to signify HtmlTokenizer's end method has returned
 
     // From Sink
@@ -364,10 +365,8 @@ impl Tokenizer {
                     self.process_operation(parse_op, can_gc)
                 },
                 ToTokenizerMsg::TokenizerResultDone { updated_input: _ } |
-                ToTokenizerMsg::TokenizerResultScript {
-                    script: _,
-                    updated_input: _,
-                } => continue,
+                ToTokenizerMsg::TokenizerResultScript { .. } |
+                ToTokenizerMsg::EncodingIndicator(_) => continue,
                 ToTokenizerMsg::End => return,
             };
         }
@@ -682,6 +681,9 @@ fn run(
                     TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript {
                         script,
                         updated_input,
+                    },
+                    TokenizerResult::EncodingIndicator(encoding) => {
+                        ToTokenizerMsg::EncodingIndicator(encoding.into())
                     },
                 };
                 sender.send(res).unwrap();
