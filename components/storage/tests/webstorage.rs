@@ -272,7 +272,7 @@ fn origin_descriptors() {
 #[test]
 fn no_storage_type_conflict() {
     // Ensures that editing session storage does not affect local storage and vice versa.
-    let (_tmp_dir, threads) = init();
+    let (tmp_dir, threads) = init();
     let url = ServoUrl::parse("https://example.com").unwrap();
     // Set local storage item.
     let (sender, receiver) = base_channel::channel().unwrap();
@@ -300,6 +300,9 @@ fn no_storage_type_conflict() {
         ))
         .unwrap();
     let _ = receiver.recv().unwrap();
+    // Shutdown threads to ensure data is cleared from session storage and local storage is loaded from disk
+    shutdown(&threads);
+    let threads = init_with(&tmp_dir);
     // Get local storage item.
     let (sender, receiver) = base_channel::channel().unwrap();
     threads
@@ -312,6 +315,8 @@ fn no_storage_type_conflict() {
         ))
         .unwrap();
     assert_eq!(receiver.recv().unwrap(), Some("local_value".into()));
+    shutdown(&threads);
+    let threads = init_with(&tmp_dir);
     // Get session storage item.
     let (sender, receiver) = base_channel::channel().unwrap();
     threads
@@ -323,5 +328,5 @@ fn no_storage_type_conflict() {
             "key".into(),
         ))
         .unwrap();
-    assert_eq!(receiver.recv().unwrap(), Some("session_value".into()));
+    assert_eq!(receiver.recv().unwrap(), None);
 }
