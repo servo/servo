@@ -115,7 +115,7 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
                 GenericReceiverVariants::Crossbeam(receiver),
             ) => {
                 receivers.push(receiver);
-                receivers.len() as u64
+                receivers.len().checked_sub(1).unwrap() as u64
             },
         }
     }

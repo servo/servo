@@ -670,8 +670,8 @@ mod generic_receiversets_tests {
         let snd1_c = snd1.clone();
         let snd2_c = snd2.clone();
         let mut set = create_ipc_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             snd1_c.send(10).unwrap();
@@ -685,7 +685,7 @@ mod generic_receiversets_tests {
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
-            GenericSelectionResult::MessageReceived(0, 10)
+            GenericSelectionResult::MessageReceived(recv1_select_index, 10)
         );
     }
 
@@ -698,8 +698,8 @@ mod generic_receiversets_tests {
         let snd1_c = snd1.clone();
         let snd2_c = snd2.clone();
         let mut set = create_ipc_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(1));
@@ -713,7 +713,7 @@ mod generic_receiversets_tests {
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
-            GenericSelectionResult::MessageReceived(1, 20)
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
         );
     }
 
@@ -726,8 +726,8 @@ mod generic_receiversets_tests {
         let snd1_c = snd1.clone();
         let snd2_c = snd2.clone();
         let mut set = create_ipc_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             snd1_c.send(10).unwrap();
@@ -739,8 +739,18 @@ mod generic_receiversets_tests {
 
         let select_result = set.select();
         assert_eq!(select_result.len(), 2);
-        assert!(select_result.contains(&GenericSelectionResult::MessageReceived(1, 20)));
-        assert!(select_result.contains(&GenericSelectionResult::MessageReceived(0, 10)));
+        assert!(
+            select_result.contains(&GenericSelectionResult::MessageReceived(
+                recv2_select_index,
+                20
+            ))
+        );
+        assert!(
+            select_result.contains(&GenericSelectionResult::MessageReceived(
+                recv1_select_index,
+                10
+            ))
+        );
     }
 
     #[test]
@@ -752,8 +762,8 @@ mod generic_receiversets_tests {
         let snd1_c = snd1.clone();
         let snd2_c = snd2.clone();
         let mut set = create_crossbeam_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             snd1_c.send(10).unwrap();
@@ -767,7 +777,7 @@ mod generic_receiversets_tests {
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
-            GenericSelectionResult::MessageReceived(0, 10)
+            GenericSelectionResult::MessageReceived(recv1_select_index, 10)
         );
     }
 
@@ -780,8 +790,8 @@ mod generic_receiversets_tests {
         let snd1_c = snd1.clone();
         let snd2_c = snd2.clone();
         let mut set = create_crossbeam_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
@@ -795,7 +805,7 @@ mod generic_receiversets_tests {
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
-            GenericSelectionResult::MessageReceived(1, 20)
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
         );
     }
 
@@ -809,8 +819,8 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_ipc_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
@@ -824,7 +834,7 @@ mod generic_receiversets_tests {
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
-            GenericSelectionResult::MessageReceived(1, 20)
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
         );
     }
 
@@ -837,8 +847,8 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_crossbeam_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
@@ -852,7 +862,7 @@ mod generic_receiversets_tests {
         let channel_result = select_result.first().unwrap();
         assert_eq!(
             *channel_result,
-            GenericSelectionResult::MessageReceived(1, 20)
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
         );
     }
 
@@ -865,8 +875,8 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_ipc_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
@@ -878,7 +888,10 @@ mod generic_receiversets_tests {
 
         let select_result = set.select();
         let channel_result = select_result.first().unwrap();
-        assert_eq!(*channel_result, GenericSelectionResult::ChannelClosed(1));
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::ChannelClosed(recv2_select_index)
+        );
     }
 
     #[test]
@@ -889,8 +902,8 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_crossbeam_receiver_set();
-        set.add(recv1);
-        set.add(recv2);
+        let recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
@@ -902,6 +915,9 @@ mod generic_receiversets_tests {
 
         let select_result = set.select();
         let channel_result = select_result.first().unwrap();
-        assert_eq!(*channel_result, GenericSelectionResult::ChannelClosed(1));
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::ChannelClosed(recv2_select_index)
+        );
     }
 }
