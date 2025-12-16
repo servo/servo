@@ -6351,9 +6351,9 @@ checksum = "53b4cf1e03e0c2e7af1a26dae44a464be782ffe7c97207bedba4f002f5a1a0e8"
 
 [[package]]
 name = "ohos-sys-opaque-types"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8e3076cb0f4f6c738a2451ff104551b68358abf5fc3cf068216158a040c6fe7"
+checksum = "3c699301fe165da20dacc921761b3596f697be775800df13e3d0de377d50d154"
 
 [[package]]
 name = "ohos-vsync"
