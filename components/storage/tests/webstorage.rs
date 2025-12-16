@@ -268,3 +268,60 @@ fn origin_descriptors() {
 
     shutdown(&threads);
 }
+
+#[test]
+fn no_storage_type_conflict() {
+    // Ensures that editing session storage does not affect local storage and vice versa.
+    let (_tmp_dir, threads) = init();
+    let url = ServoUrl::parse("https://example.com").unwrap();
+    // Set local storage item.
+    let (sender, receiver) = base_channel::channel().unwrap();
+    threads
+        .send(WebStorageThreadMsg::SetItem(
+            sender,
+            StorageType::Local,
+            TEST_WEBVIEW_ID,
+            url.clone(),
+            "key".into(),
+            "local_value".into(),
+        ))
+        .unwrap();
+    let _ = receiver.recv().unwrap();
+    // Set session storage item.
+    let (sender, receiver) = base_channel::channel().unwrap();
+    threads
+        .send(WebStorageThreadMsg::SetItem(
+            sender,
+            StorageType::Session,
+            TEST_WEBVIEW_ID,
+            url.clone(),
+            "key".into(),
+            "session_value".into(),
+        ))
+        .unwrap();
+    let _ = receiver.recv().unwrap();
+    // Get local storage item.
+    let (sender, receiver) = base_channel::channel().unwrap();
+    threads
+        .send(WebStorageThreadMsg::GetItem(
+            sender,
+            StorageType::Local,
+            TEST_WEBVIEW_ID,
+            url.clone(),
+            "key".into(),
+        ))
+        .unwrap();
+    assert_eq!(receiver.recv().unwrap(), Some("local_value".into()));
+    // Get session storage item.
+    let (sender, receiver) = base_channel::channel().unwrap();
+    threads
+        .send(WebStorageThreadMsg::GetItem(
+            sender,
+            StorageType::Session,
+            TEST_WEBVIEW_ID,
+            url.clone(),
+            "key".into(),
+        ))
+        .unwrap();
+    assert_eq!(receiver.recv().unwrap(), Some("session_value".into()));
+}
