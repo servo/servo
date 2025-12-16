@@ -69,7 +69,6 @@ pub(crate) fn encrypt(
             "[[algorithm]] internal slot of key is not an RsaHashedKeyAlgorithm".to_string(),
         )));
     };
-    let mut rng = OsRng;
     let padding = match algorithm.hash.name() {
         ALG_SHA1 => Oaep::new_with_label::<Sha1, _>(label),
         ALG_SHA256 => Oaep::new_with_label::<Sha256, _>(label),
@@ -83,7 +82,7 @@ pub(crate) fn encrypt(
         },
     };
     let ciphertext = public_key
-        .encrypt(&mut rng, padding, plaintext)
+        .encrypt(&mut OsRng, padding, plaintext)
         .map_err(|_| Error::Operation(Some("RSA-OAEP failed to encrypt plaintext".to_string())))?;
 
     // Step 6. Return ciphertext.
