@@ -51,8 +51,38 @@ fn test_clear_cookies() {
         Ok(JSValue::String("foo1=bar1; foo2=bar2; foo3=bar3".into()))
     );
 
-    servo_test.servo().cookie_manager().clear_cookies();
+    servo_test.servo().site_data_manager().clear_cookies();
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "document.cookie");
     assert_eq!(result, Ok(JSValue::String("".into())));
+}
+
+#[test]
+fn test_clear_cache() {
+    let servo_test = ServoTest::new();
+
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
+
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.into_url())
+        .build();
+
+    servo_test.spin(move || !delegate.url_changed.get());
+
+    let _ = server.close();
+
+    servo_test.servo().site_data_manager().clear_cache();
+
+    // TODO: Check that the cache was actually cleared once there's a way to
+    //       check it.
 }

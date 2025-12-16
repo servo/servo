@@ -4,14 +4,12 @@
 
 use net_traits::ResourceThreads;
 
-pub struct CookieManager {
+pub struct SiteDataManager {
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
 }
 
-// TODO: Eventually rename to `NetworkManager` that could also cover protocol
-// handlers and related networking functionality.
-impl CookieManager {
+impl SiteDataManager {
     pub(crate) fn new(
         public_resource_threads: ResourceThreads,
         private_resource_threads: ResourceThreads,
@@ -25,5 +23,11 @@ impl CookieManager {
     pub fn clear_cookies(&self) {
         self.public_resource_threads.clear_cookies();
         self.private_resource_threads.clear_cookies();
+    }
+
+    // TODO: This currently does not wait for cache clearing to complete.
+    pub fn clear_cache(&self) {
+        self.public_resource_threads.clear_cache();
+        self.private_resource_threads.clear_cache();
     }
 }

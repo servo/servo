@@ -152,13 +152,13 @@ tracing = { workspace = true }
 winit = { workspace = true }
 
 [[test]]
-name = "cookies"
-
-[[test]]
 name = "webview"
 
 [[test]]
 name = "servo"
+
+[[test]]
+name = "site_data"
 
 [[test]]
 name = "multiprocess"
