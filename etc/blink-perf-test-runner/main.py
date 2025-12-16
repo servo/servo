@@ -54,7 +54,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote | None:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
             time.sleep(1)
     print(
-        "Established Webdriver connection in",
+        "Established Webdriver connection",
     )
     return driver
 
@@ -65,7 +65,6 @@ def start_servo(servo_path: str) -> webdriver.Remote | None:
         [
             servo_path,
             "--webdriver",
-            "--pref=network_http_proxy_uri=http://127.0.0.1:3128",
         ]
     )
     return create_driver()
@@ -79,7 +78,7 @@ def test(s: str, driver: webdriver.Remote) -> tuple[str, str, str] | AbortReason
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
-    print("Running: " + canonical_test_path(s))
+    print("Running: " + canonical_test_path(s, None))
     try:
         driver.get(s)
         for i in range(MAX_WAIT_TIME):
@@ -96,18 +95,21 @@ def test(s: str, driver: webdriver.Remote) -> tuple[str, str, str] | AbortReason
     except NoSuchElementException:
         print("Could not find log?")
         return AbortReason.NotFound
-    except:  # noqa: E722
-        print("Some other exception for this test case")
+    except Exception as e:
+        print(f"Some other exception for this test case: {e}")
         return AbortReason.Panic
     return AbortReason.NotFound
 
 
-def canonical_test_path(filePath: str) -> str:
+def canonical_test_path(filePath: str, prepend: str | None) -> str:
     """Make the filepath into just the directory and name"""
     p = PurePath(filePath)
     parts = p.parts
     index = parts.index("perf_tests")
-    return "/".join(parts[index:])
+    if prepend:
+        return prepend + "/" + "/".join(parts[index:])
+    else:
+        return "/".join(parts[index:])
 
 
 def test_file(file_name: str) -> bool:
@@ -120,9 +122,9 @@ def write_file(results):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run Chrome Tests on Servo Instance.")
+    parser = argparse.ArgumentParser(description="Run Blink Perf Tests on Servo Instance.")
     parser.add_argument("servo_path", type=str, help="the servo binary")
-    parser.add_argument("test_dir", type=str, help="The directory for the chromium tests.")
+    parser.add_argument('-p', "-prepend", default="", help="A value prepended to all results. Useful to distinguish between profiles.")
     args = parser.parse_args()
 
     webdriver = start_servo(args.servo_path)
@@ -130,7 +132,7 @@ def main():
     time.sleep(2)
     if webdriver:
         webdriver.implicitly_wait(30)
-        for root, dir, files in os.walk(args.test_dir):
+        for root, dir, files in os.walk("../../tests/blink_perf_tests/perf_tests/layout"):
             for file in files:
                 if test_file(file):
                     filePath = os.path.join(os.path.abspath(root), file)
@@ -146,7 +148,7 @@ def main():
                         combined_result["lower_value"] = result[1]
                         combined_result["upper_value"] = result[2]
 
-                        final_result[canonical_test_path(filePath)] = {"throughput": combined_result}
+                        final_result[canonical_test_path(filePath, args.prepend)] = {"throughput": combined_result}
 
     print(final_result)
     write_file(final_result)
