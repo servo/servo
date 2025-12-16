@@ -21,6 +21,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
+pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
 use malloc_size_of_derive::MallocSizeOf;
@@ -321,37 +322,11 @@ pub struct RuleModification {
     pub priority: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum LogLevel {
-    Log,
-    Debug,
-    Info,
-    Warn,
-    Error,
-    Clear,
-    Trace,
-}
-
-impl From<LogLevel> for log::Level {
-    fn from(value: LogLevel) -> Self {
-        match value {
-            LogLevel::Log => log::Level::Info,
-            LogLevel::Clear => log::Level::Info,
-
-            LogLevel::Debug => log::Level::Debug,
-            LogLevel::Info => log::Level::Info,
-            LogLevel::Warn => log::Level::Warn,
-            LogLevel::Error => log::Level::Error,
-            LogLevel::Trace => log::Level::Trace,
-        }
-    }
-}
-
 /// A console message as it is sent from script to the constellation
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConsoleMessage {
-    pub log_level: LogLevel,
+    pub log_level: ConsoleLogLevel,
     pub filename: String,
     pub line_number: usize,
     pub column_number: usize,
@@ -423,13 +398,13 @@ pub struct ConsoleLog {
 impl From<ConsoleMessage> for ConsoleLog {
     fn from(value: ConsoleMessage) -> Self {
         let level = match value.log_level {
-            LogLevel::Debug => "debug",
-            LogLevel::Info => "info",
-            LogLevel::Warn => "warn",
-            LogLevel::Error => "error",
-            LogLevel::Clear => "clear",
-            LogLevel::Trace => "trace",
-            LogLevel::Log => "log",
+            ConsoleLogLevel::Debug => "debug",
+            ConsoleLogLevel::Info => "info",
+            ConsoleLogLevel::Warn => "warn",
+            ConsoleLogLevel::Error => "error",
+            ConsoleLogLevel::Clear => "clear",
+            ConsoleLogLevel::Trace => "trace",
+            ConsoleLogLevel::Log => "log",
         }
         .to_owned();
 
@@ -577,7 +552,7 @@ impl From<String> for ConsoleMessageArgument {
 }
 
 pub struct ConsoleMessageBuilder {
-    level: LogLevel,
+    level: ConsoleLogLevel,
     filename: String,
     line_number: u32,
     column_number: u32,
@@ -586,7 +561,12 @@ pub struct ConsoleMessageBuilder {
 }
 
 impl ConsoleMessageBuilder {
-    pub fn new(level: LogLevel, filename: String, line_number: u32, column_number: u32) -> Self {
+    pub fn new(
+        level: ConsoleLogLevel,
+        filename: String,
+        line_number: u32,
+        column_number: u32,
+    ) -> Self {
         Self {
             level,
             filename,
