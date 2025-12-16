@@ -32,3 +32,14 @@ def close_popup(driver: webdriver.Remote):
         print("Closed the popup")
     except NoSuchElementException:
         print(f"Failed to find pop_up element with selector `{popup_css_selector}`. Skip it.")
+
+
+def click_category(driver: webdriver.Remote):
+    print("Clicking 'Categories' element.")
+    category_css_selector = "div.uni-tabbar__item:nth-child(3)"
+    try:
+        category_element = driver.find_element(By.CSS_SELECTOR, category_css_selector)
+    except NoSuchElementException:
+        raise NoSuchElementException("Category element not found. Test failed.")
+
+    category_element.click()

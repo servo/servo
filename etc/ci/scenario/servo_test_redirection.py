@@ -10,7 +10,6 @@
 # except according to those terms.
 
 import time
-import subprocess
 
 from selenium.common import NoSuchElementException
 
@@ -20,15 +19,17 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    IMPLICIT_WAIT_TIME = 30
+    IMPLICIT_WAIT_TIME_FOR_POPUP = 15
     PAGE_URL = "https://m.huaweimossel.com"
+    # Based on experience, it could take up to 40 seconds to load the page after click.
+    IMPLICIT_WAIT_TIME_AFTER_REDIRECTION = 60
     driver = common_function_for_servo_test.create_driver()
     driver.get(PAGE_URL)
 
     print("Page loaded.")
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
-    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME_FOR_POPUP)
 
     # Step 2. Click to close the pop-up
     common_function_for_mossel.close_popup(driver)
@@ -36,13 +37,9 @@ def operator():
     time.sleep(2)
 
     # Step 3. Click to page: Categories
-    print("Clicking 'Categories' element.")
-    # TODO: Replace with Element click to be robust against screen size changes.
-    cmd = ["hdc", "shell", "uinput -T -c 380 2556"]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    common_function_for_mossel.click_category(driver)
 
     # Step 4. Find components
-    print("Finding components ...")
     target_css_selector = (
         "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
         "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
@@ -50,6 +47,8 @@ def operator():
     )
 
     try:
+        print("Finding components ...")
+        driver.implicitly_wait(IMPLICIT_WAIT_TIME_AFTER_REDIRECTION)
         driver.find_element(By.CSS_SELECTOR, target_css_selector)
     except NoSuchElementException:
         raise NoSuchElementException("Components not found. Test failed.")
