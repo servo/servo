@@ -15,6 +15,17 @@ pub enum StorageType {
     Local,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct OriginDescriptor {
+    pub name: String,
+}
+
+impl OriginDescriptor {
+    pub fn new(name: String) -> Self {
+        OriginDescriptor { name }
+    }
+}
+
 /// Request operations on the storage data associated with a particular url
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebStorageThreadMsg {
@@ -71,6 +82,9 @@ pub enum WebStorageThreadMsg {
         src: WebViewId,
         dest: WebViewId,
     },
+
+    /// gets the list of origin descriptors for given storage type
+    OriginDescriptors(GenericSender<Vec<OriginDescriptor>>, StorageType),
 
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),
