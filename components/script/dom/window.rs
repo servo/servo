@@ -2999,7 +2999,7 @@ impl Window {
                 let old_url = doc.url().into_string();
                 let new_url = load_data.url.clone().into_string();
 
-                // https://html.spec.whatwg.org/multipage/browsing-the-web.html#update-document-for-history-step-application
+                // https://html.spec.whatwg.org/multipage/#update-document-for-history-step-application
                 // Step 6.4.5: If oldURL's fragment is not equal to entry's URL's fragment, then queue a global task on the
                 // DOM manipulation task source given document's relevant global object to fire an event named hashchange at
                 // document's relevant global object, using HashChangeEvent, with the oldURL attribute initialized to the
@@ -3010,8 +3010,6 @@ impl Window {
                 if old_fragment != new_fragment {
                     let webdriver_sender_for_task = webdriver_sender.clone();
                     let task = task!(hashchange_event: move || {
-                        println!("hashchange task: firing hashchange old_url={} new_url={}", old_url, new_url);
-
                         let this = this.root();
                         let event = HashChangeEvent::new(
                             &this,
@@ -3032,10 +3030,8 @@ impl Window {
                         .task_manager()
                         .dom_manipulation_task_source()
                         .queue(task);
-                } else {
-                    if let Some(sender) = webdriver_sender {
-                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                    }
+                } else if let Some(sender) = webdriver_sender {
+                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
                 }
                 doc.set_url(load_data.url.clone());
                 return;
