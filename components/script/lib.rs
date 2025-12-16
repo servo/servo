@@ -26,6 +26,7 @@ mod script_window_proxies;
 #[macro_use]
 mod task;
 mod body;
+pub(crate) mod client_storage;
 pub(crate) mod clipboard_provider;
 pub(crate) mod conversions;
 mod devtools;
