@@ -61,17 +61,21 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct StorageDescriptor {
+pub struct StorageOrigins {
     origin_descriptors: FxHashMap<String, OriginDescriptor>,
 }
 
-impl StorageDescriptor {
+impl StorageOrigins {
     fn new() -> Self {
-        StorageDescriptor {
+        StorageOrigins {
             origin_descriptors: FxHashMap::default(),
         }
     }
 
+    /// Ensures that an origin descriptor exists for the given origin.
+    ///
+    /// Returns `true` if a new origin descriptor was created, or `false` if
+    /// one already existed.
     fn ensure_origin_descriptor(&mut self, origin: &ImmutableOrigin) -> bool {
         let origin = origin.ascii_serialization();
         match self.origin_descriptors.entry(origin.clone()) {
@@ -83,7 +87,7 @@ impl StorageDescriptor {
         }
     }
 
-    fn get_origin_descriptors(&self) -> Vec<OriginDescriptor> {
+    fn origin_descriptors(&self) -> Vec<OriginDescriptor> {
         self.origin_descriptors.values().cloned().collect()
     }
 }
@@ -168,8 +172,8 @@ impl<E: WebStorageEngine> Drop for WebStorageEnvironment<E> {
 
 struct WebStorageManager {
     port: GenericReceiver<WebStorageThreadMsg>,
-    session_storage_descriptor: StorageDescriptor,
-    local_storage_descriptor: StorageDescriptor,
+    session_storage_origins: StorageOrigins,
+    local_storage_origins: StorageOrigins,
     session_data: FxHashMap<WebViewId, FxHashMap<ImmutableOrigin, OriginEntry>>,
     config_dir: Option<PathBuf>,
     thread_pool: Arc<ThreadPool>,
@@ -181,13 +185,9 @@ impl WebStorageManager {
         port: GenericReceiver<WebStorageThreadMsg>,
         config_dir: Option<PathBuf>,
     ) -> WebStorageManager {
-        let mut local_storage_descriptor = StorageDescriptor::new();
+        let mut local_storage_origins = StorageOrigins::new();
         if let Some(ref config_dir) = config_dir {
-            read_json_from_file(
-                &mut local_storage_descriptor,
-                config_dir,
-                "localstorage.json",
-            );
+            read_json_from_file(&mut local_storage_origins, config_dir, "localstorage.json");
         }
         // Uses an estimate of the system cpus to process Webstorage transactions
         // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
@@ -198,8 +198,8 @@ impl WebStorageManager {
             .min(pref!(threadpools_webstorage_workers_max).max(1) as usize);
         WebStorageManager {
             port,
-            session_storage_descriptor: StorageDescriptor::new(),
-            local_storage_descriptor,
+            session_storage_origins: StorageOrigins::new(),
+            local_storage_origins,
             session_data: FxHashMap::default(),
             config_dir,
             thread_pool: Arc::new(ThreadPool::new(thread_count, "WebStorage".to_string())),
@@ -248,8 +248,8 @@ impl WebStorageManager {
                     self.clone(src_webview_id, dest_webview_id);
                     let _ = sender.send(());
                 },
-                WebStorageThreadMsg::GetOriginDescriptors(sender, storage_type) => {
-                    self.get_origin_descriptors(sender, storage_type);
+                WebStorageThreadMsg::OriginDescriptors(sender, storage_type) => {
+                    self.origin_descriptors(sender, storage_type);
                 },
                 WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
@@ -282,13 +282,9 @@ impl WebStorageManager {
         reports
     }
 
-    fn save_local_storage_descriptor(&self) {
+    fn save_local_storage_origins(&self) {
         if let Some(ref config_dir) = self.config_dir {
-            write_json_to_file(
-                &self.local_storage_descriptor,
-                config_dir,
-                "localstorage.json",
-            );
+            write_json_to_file(&self.local_storage_origins, config_dir, "localstorage.json");
         }
     }
 
@@ -359,11 +355,8 @@ impl WebStorageManager {
                 // create a new origin descriptor. However, this currently
                 // needs to happen because get_environment always creates an
                 // environment, even for read only operations.
-                if self
-                    .local_storage_descriptor
-                    .ensure_origin_descriptor(&origin)
-                {
-                    self.save_local_storage_descriptor();
+                if self.local_storage_origins.ensure_origin_descriptor(&origin) {
+                    self.save_local_storage_origins();
                 }
                 Some(&self.get_environment(&origin).data)
             },
@@ -386,11 +379,8 @@ impl WebStorageManager {
                 // create a new origin descriptor. However, this currently
                 // needs to happen because get_environment always creates an
                 // environment, even for read only operations.
-                if self
-                    .local_storage_descriptor
-                    .ensure_origin_descriptor(&origin)
-                {
-                    self.save_local_storage_descriptor();
+                if self.local_storage_origins.ensure_origin_descriptor(&origin) {
+                    self.save_local_storage_origins();
                 }
                 Some(&mut self.get_environment_mut(&origin).data)
             },
@@ -405,7 +395,7 @@ impl WebStorageManager {
     ) -> &mut OriginEntry {
         match storage_type {
             StorageType::Session => {
-                self.session_storage_descriptor
+                self.session_storage_origins
                     .ensure_origin_descriptor(&origin);
                 self.session_data
                     .entry(webview_id)
@@ -414,11 +404,8 @@ impl WebStorageManager {
                     .or_default()
             },
             StorageType::Local => {
-                if self
-                    .local_storage_descriptor
-                    .ensure_origin_descriptor(&origin)
-                {
-                    self.save_local_storage_descriptor();
+                if self.local_storage_origins.ensure_origin_descriptor(&origin) {
+                    self.save_local_storage_origins();
                 }
                 &mut self.get_environment_mut(&origin).data
             },
@@ -513,6 +500,7 @@ impl WebStorageManager {
                         }
                     });
             // XXX Should this be scoped to localStorage only?
+            // Tracked in issue #41324.
             let env = self.get_environment_mut(&url.origin());
             env.set(&name, &value);
             result
@@ -582,14 +570,14 @@ impl WebStorageManager {
             .insert(dest_webview_id, dest_origin_entries);
     }
 
-    fn get_origin_descriptors(
+    fn origin_descriptors(
         &mut self,
         sender: GenericSender<Vec<OriginDescriptor>>,
         storage_type: StorageType,
     ) {
         let origin_descriptors = match storage_type {
-            StorageType::Session => self.session_storage_descriptor.get_origin_descriptors(),
-            StorageType::Local => self.local_storage_descriptor.get_origin_descriptors(),
+            StorageType::Session => self.session_storage_origins.origin_descriptors(),
+            StorageType::Local => self.local_storage_origins.origin_descriptors(),
         };
         let _ = sender.send(origin_descriptors);
     }

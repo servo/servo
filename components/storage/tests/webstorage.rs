@@ -211,7 +211,7 @@ fn remove_item_and_clear() {
 }
 
 #[test]
-fn get_origin_descriptors() {
+fn origin_descriptors() {
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // (storage_type, survives_restart)
@@ -237,10 +237,7 @@ fn get_origin_descriptors() {
         // Get origin descriptors.
         let (sender, receiver) = base_channel::channel().unwrap();
         threads
-            .send(WebStorageThreadMsg::GetOriginDescriptors(
-                sender,
-                storage_type,
-            ))
+            .send(WebStorageThreadMsg::OriginDescriptors(sender, storage_type))
             .unwrap();
 
         let descriptors = receiver.recv().unwrap();
@@ -256,10 +253,7 @@ fn get_origin_descriptors() {
         // Get origin descriptors.
         let (sender, receiver) = base_channel::channel().unwrap();
         threads
-            .send(WebStorageThreadMsg::GetOriginDescriptors(
-                sender,
-                storage_type,
-            ))
+            .send(WebStorageThreadMsg::OriginDescriptors(sender, storage_type))
             .unwrap();
 
         let descriptors = receiver.recv().unwrap();
