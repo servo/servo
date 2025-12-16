@@ -16,8 +16,7 @@ use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use encoding_rs::Encoding;
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
+use html5ever::tendril::StrTendril;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
@@ -37,7 +36,6 @@ use script_traits::DocumentActivity;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
-use tendril::stream::LossyDecoder;
 
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::bindings::cell::DomRefCell;
@@ -89,10 +87,12 @@ use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 
 mod async_html;
+pub(crate) mod encoding;
 pub(crate) mod html;
 mod prefetch;
 mod xml;
 
+use encoding::NetworkDecoderState;
 pub(crate) use html::serialize_html_fragment;
 
 #[dom_struct]
@@ -119,7 +119,7 @@ pub(crate) struct ServoParser {
     /// found so far.
     bom_sniff: DomRefCell<Option<Vec<u8>>>,
     /// The decoder used for the network input.
-    network_decoder: DomRefCell<Option<NetworkDecoder>>,
+    network_decoder: DomRefCell<NetworkDecoderState>,
     /// Input received from network.
     #[ignore_malloc_size_of = "Defined in html5ever"]
     #[no_trace]
@@ -504,7 +504,7 @@ impl ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
             bom_sniff: DomRefCell::new(Some(Vec::with_capacity(3))),
-            network_decoder: DomRefCell::new(Some(NetworkDecoder::new(document.encoding()))),
+            network_decoder: DomRefCell::new(NetworkDecoderState::new()),
             network_input: BufferQueue::default(),
             script_input: BufferQueue::default(),
             tokenizer,
@@ -588,13 +588,9 @@ impl ServoParser {
         }
 
         // For byte input, we convert it to text using the network decoder.
-        let chunk = self
-            .network_decoder
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .decode(chunk);
-        self.push_tendril_input_chunk(chunk);
+        if let Some(decoded_chunk) = self.network_decoder.borrow_mut().push(&chunk) {
+            self.push_tendril_input_chunk(decoded_chunk);
+        }
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
@@ -616,11 +612,9 @@ impl ServoParser {
         // the parser remains unsuspended.
 
         if self.last_chunk_received.get() {
-            if let Some(decoder) = self.network_decoder.borrow_mut().take() {
-                let chunk = decoder.finish();
-                if !chunk.is_empty() {
-                    self.network_input.push_back(chunk);
-                }
+            let chunk = self.network_decoder.borrow_mut().finish();
+            if !chunk.is_empty() {
+                self.network_input.push_back(chunk);
             }
         }
 
@@ -731,7 +725,7 @@ impl ServoParser {
         assert!(self.last_chunk_received.get());
         assert!(self.script_input.is_empty());
         assert!(self.network_input.is_empty());
-        assert!(self.network_decoder.borrow().is_none());
+        assert!(self.network_decoder.borrow().is_finished());
 
         // Step 1.
         self.document
@@ -1817,54 +1811,6 @@ fn create_element_for_token(
 
     // Step 13.
     element
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct NetworkDecoder {
-    #[ignore_malloc_size_of = "Defined in tendril"]
-    #[custom_trace]
-    decoder: LossyDecoder<NetworkSink>,
-}
-
-impl NetworkDecoder {
-    fn new(encoding: &'static Encoding) -> Self {
-        Self {
-            decoder: LossyDecoder::new_encoding_rs(encoding, Default::default()),
-        }
-    }
-
-    fn decode(&mut self, chunk: Vec<u8>) -> StrTendril {
-        self.decoder.process(ByteTendril::from(&*chunk));
-        std::mem::take(&mut self.decoder.inner_sink_mut().output)
-    }
-
-    fn finish(self) -> StrTendril {
-        self.decoder.finish()
-    }
-}
-
-#[derive(Default, JSTraceable)]
-struct NetworkSink {
-    #[no_trace]
-    output: StrTendril,
-}
-
-impl TendrilSink<UTF8> for NetworkSink {
-    type Output = StrTendril;
-
-    fn process(&mut self, t: StrTendril) {
-        if self.output.is_empty() {
-            self.output = t;
-        } else {
-            self.output.push_tendril(&t);
-        }
-    }
-
-    fn error(&mut self, _desc: Cow<'static, str>) {}
-
-    fn finish(self) -> Self::Output {
-        self.output
-    }
 }
 
 fn attach_declarative_shadow_inner(host: &Node, template: &Node, attributes: &[Attribute]) -> bool {
