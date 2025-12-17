@@ -11,6 +11,8 @@ use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, StrTendril, TendrilSink};
 
+use crate::dom::document::Document;
+
 #[derive(JSTraceable, MallocSizeOf)]
 pub(super) struct EncodingDetector {
     /// The `charset` that was specified in the `Content-Type` header, if any.
@@ -156,10 +158,11 @@ impl NetworkDecoderState {
         })
     }
 
-    pub(super) fn push(&mut self, chunk: &[u8]) -> Option<StrTendril> {
+    pub(super) fn push(&mut self, chunk: &[u8], document: &Document) -> Option<StrTendril> {
         match self {
             Self::Buffering(encoding_detector) => {
                 if let Some(encoding) = encoding_detector.buffer(chunk) {
+                    document.set_encoding(encoding);
                     let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                     *self = Self::Decoding(NetworkDecoder {
                         decoder: Some(LossyDecoder::new_encoding_rs(
@@ -168,7 +171,7 @@ impl NetworkDecoderState {
                         )),
                         encoding,
                     });
-                    return self.push(&buffered_bytes);
+                    return self.push(&buffered_bytes, document);
                 }
 
                 None

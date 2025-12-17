@@ -112,12 +112,6 @@ pub(crate) struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: Dom<Document>,
-    /// The BOM sniffing state.
-    ///
-    /// `None` means we've found the BOM, we've found there isn't one, or
-    /// we're not parsing from a byte stream. `Some` contains the BOM bytes
-    /// found so far.
-    bom_sniff: DomRefCell<Option<Vec<u8>>>,
     /// The decoder used for the network input.
     network_decoder: DomRefCell<NetworkDecoderState>,
     /// Input received from network.
@@ -317,7 +311,6 @@ impl ServoParser {
             None,
             CanGc::note(),
         );
-        *parser.bom_sniff.borrow_mut() = None;
         document.set_current_parser(Some(&parser));
     }
 
@@ -516,7 +509,6 @@ impl ServoParser {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
-            bom_sniff: DomRefCell::new(Some(Vec::with_capacity(3))),
             network_decoder: DomRefCell::new(NetworkDecoderState::new(
                 encoding_hint_from_content_type,
             )),
@@ -589,37 +581,13 @@ impl ServoParser {
     }
 
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
-        // BOM sniff. This is needed because NetworkDecoder will switch the
-        // encoding based on the BOM, but it won't change
-        // `self.document.encoding` in the process.
-        {
-            let mut bom_sniff = self.bom_sniff.borrow_mut();
-            if let Some(partial_bom) = bom_sniff.as_mut() {
-                if partial_bom.len() + chunk.len() >= 3 {
-                    partial_bom.extend(chunk.iter().take(3 - partial_bom.len()).copied());
-                    if let Some((encoding, _)) = Encoding::for_bom(partial_bom) {
-                        self.document.set_encoding(encoding);
-                    }
-                    drop(bom_sniff);
-                    *self.bom_sniff.borrow_mut() = None;
-                } else {
-                    partial_bom.extend(chunk.iter().copied());
-                }
-            }
-        }
-
         // For byte input, we convert it to text using the network decoder.
-        if let Some(decoded_chunk) = self.network_decoder.borrow_mut().push(&chunk) {
+        if let Some(decoded_chunk) = self.network_decoder.borrow_mut().push(&chunk, &self.document) {
             self.push_tendril_input_chunk(decoded_chunk);
         }
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
-        // If the input is a string, we don't have a BOM.
-        if self.bom_sniff.borrow().is_some() {
-            *self.bom_sniff.borrow_mut() = None;
-        }
-
         // The input has already been decoded as a string, so doesn't need
         // to be decoded by the network decoder again.
         let chunk = StrTendril::from(chunk);
