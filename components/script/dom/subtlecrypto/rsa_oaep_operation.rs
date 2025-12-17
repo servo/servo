@@ -105,8 +105,11 @@ pub(crate) fn decrypt(
 
     // Step 2. Let label be the label member of normalizedAlgorithm or the empty byte sequence if
     // the label member of normalizedAlgorithm is not present.
-    let label = String::try_from(normalized_algorithm.label.clone().unwrap_or_default())
-        .map_err(|_| Error::Operation(Some("Invalid RSA-OAEP label".to_string())))?;
+    let label = normalized_algorithm
+        .label
+        .as_ref()
+        .map(|label| String::from_utf8_lossy(label))
+        .unwrap_or_default();
 
     // Step 3. Perform the decryption operation defined in Section 7.1 of [RFC3447] with the key
     // represented by key as the recipient's RSA private key, ciphertext as the ciphertext to be
