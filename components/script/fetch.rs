@@ -71,23 +71,25 @@ pub(crate) struct FetchCanceller {
     request_id: Option<RequestId>,
     #[no_trace]
     core_resource_thread: Option<CoreResourceThread>,
+    keep_alive: bool,
 }
 
 impl FetchCanceller {
     /// Create a FetchCanceller associated with a request,
     /// and a particular(public vs private) resource thread.
-    pub(crate) fn new(request_id: RequestId, core_resource_thread: CoreResourceThread) -> Self {
+    pub(crate) fn new(
+        request_id: RequestId,
+        keep_alive: bool,
+        core_resource_thread: CoreResourceThread,
+    ) -> Self {
         Self {
             request_id: Some(request_id),
             core_resource_thread: Some(core_resource_thread),
+            keep_alive,
         }
     }
 
-    /// Step 1 of <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
     pub(crate) fn cancel(&mut self) {
-        // Step 1. For each fetch record record of fetchGroup’s fetch records,
-        // if record’s controller is non-null and record’s request’s done flag
-        // is unset and keepalive is false, terminate record’s controller.
         if let Some(request_id) = self.request_id.take() {
             // stop trying to make fetch happen
             // it's not going to happen
@@ -226,6 +228,7 @@ pub(crate) fn Fetch(
         return promise;
     }
 
+    let keep_alive = request.keep_alive;
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
     let mut request_init = request_init_from_request(request, global);
@@ -248,7 +251,7 @@ pub(crate) fn Fetch(
         request: Trusted::new(&*request_object),
         global: Trusted::new(global),
         locally_aborted: false,
-        canceller: FetchCanceller::new(request_id, global.core_resource_thread()),
+        canceller: FetchCanceller::new(request_id, keep_alive, global.core_resource_thread()),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
@@ -276,12 +279,14 @@ fn queue_deferred_fetch(
     global: &GlobalScope,
 ) -> QueuedDeferredFetchRecord {
     let trusted_global = Trusted::new(global);
+    let mut request = request;
     // Step 1. Populate request from client given request.
-    // TODO
+    request.client = Some(global.request_client());
+    request.populate_request_from_client();
     // Step 2. Set request’s service-workers mode to "none".
-    // TODO
+    request.service_workers_mode = ServiceWorkersMode::None;
     // Step 3. Set request’s keepalive to true.
-    // TODO
+    request.keep_alive = true;
     // Step 4. Let deferredRecord be a new deferred fetch record whose request is request, and whose notify invoked is onActivatedWithoutTermination.
     let deferred_record = Arc::new(Mutex::new(DeferredFetchRecord {
         request,

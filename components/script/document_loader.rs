@@ -158,6 +158,7 @@ impl DocumentLoader {
     ) {
         self.cancellers.push(FetchCanceller::new(
             request.id,
+            request.keep_alive,
             self.resource_threads.core_thread.clone(),
         ));
         fetch_async(&self.resource_threads.core_thread, request, None, callback);
