@@ -65,8 +65,9 @@ pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, ColorPicker, ConfirmDialog,
-    ContextMenu, EmbedderControl, FilePicker, InputMethodControl, NavigationRequest,
-    PermissionRequest, PromptDialog, SelectElement, SimpleDialog, WebResourceLoad, WebViewDelegate,
+    ContextMenu, CreateNewWebViewRequest, EmbedderControl, FilePicker, InputMethodControl,
+    NavigationRequest, PermissionRequest, PromptDialog, SelectElement, SimpleDialog,
+    WebResourceLoad, WebViewDelegate,
 };
 
 // Since WebXR is guarded by conditional compilation it is exported via submodule.

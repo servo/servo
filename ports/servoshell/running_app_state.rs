@@ -14,13 +14,12 @@ use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use log::{error, info, warn};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, CSSPixel, DeviceIntPoint, DeviceIntSize,
-    EmbedderControl, EmbedderControlId, EventLoopWaker, GamepadHapticEffectType, GenericSender,
-    InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus, MediaSessionEvent,
-    PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate, ServoError,
-    TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewBuilder, WebViewDelegate, WebViewId,
-    pref,
+    AllowOrDenyRequest, AuthenticationRequest, CSSPixel, CreateNewWebViewRequest, DeviceIntPoint,
+    DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker, GamepadHapticEffectType,
+    GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus,
+    MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
+    ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate, WebViewId, pref,
 };
 use url::Url;
 
@@ -622,18 +621,16 @@ impl WebViewDelegate for RunningAppState {
             .show_http_authentication_dialog(webview.id(), authentication_request);
     }
 
-    fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
+    fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
         let window = self.window_for_webview_id(parent_webview.id());
         let platform_window = window.platform_window();
-
-        let webview =
-            WebViewBuilder::new_auxiliary(&self.servo, platform_window.rendering_context())
-                .hidpi_scale_factor(platform_window.hidpi_scale_factor())
-                .delegate(parent_webview.delegate())
-                .build();
+        let webview = request
+            .builder(platform_window.rendering_context())
+            .hidpi_scale_factor(platform_window.hidpi_scale_factor())
+            .delegate(parent_webview.delegate())
+            .build();
 
         webview.notify_theme_change(platform_window.theme());
-
         window.add_webview(webview.clone());
 
         // When WebDriver is enabled, do not focus and raise the WebView to the top,
@@ -644,8 +641,6 @@ impl WebViewDelegate for RunningAppState {
         } else {
             webview.hide();
         }
-
-        Some(webview)
     }
 
     fn notify_closed(&self, webview: WebView) {

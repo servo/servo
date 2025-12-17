@@ -7,6 +7,7 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
+use base::generic_channel::GenericSender;
 use base::id::WebViewId;
 use compositing_traits::WebViewTrait;
 use compositing_traits::rendering_context::RenderingContext;
@@ -27,7 +28,8 @@ use url::Url;
 use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
-use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
+use crate::responders::IpcResponder;
+use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
     WebRenderDebugOption,
@@ -110,7 +112,7 @@ impl Drop for WebViewInner {
 }
 
 impl WebView {
-    pub(crate) fn new(builder: WebViewBuilder) -> Self {
+    pub(crate) fn new(mut builder: WebViewBuilder) -> Self {
         let servo = builder.servo;
         let painter_id = servo
             .paint_mut()
@@ -148,18 +150,29 @@ impl WebView {
             .webviews_mut()
             .insert(webview.id(), webview.weak_handle());
 
-        if !builder.auxiliary {
-            let url = builder.url.unwrap_or(
-                Url::parse("about:blank").expect("Should always be able to parse 'about:blank'."),
-            );
+        // There are two possibilities here. Either the WebView is a new toplevel
+        // WebView in which case `Self::create_new_webview_responder` is `None` or this
+        // is the response to a `WebViewDelegate::request_create_new` method in which
+        // case script expects that we just return the information directly back to
+        // the `ScriptThread`.
+        match builder.create_new_webview_responder.as_mut() {
+            Some(responder) => {
+                let _ = responder.send(Some((webview.id(), viewport_details)));
+            },
+            None => {
+                let url = builder.url.unwrap_or(
+                    Url::parse("about:blank")
+                        .expect("Should always be able to parse 'about:blank'."),
+                );
 
-            servo
-                .constellation_proxy()
-                .send(EmbedderToConstellationMessage::NewWebView(
-                    url.into(),
-                    webview.id(),
-                    viewport_details,
-                ));
+                servo
+                    .constellation_proxy()
+                    .send(EmbedderToConstellationMessage::NewWebView(
+                        url.into(),
+                        webview.id(),
+                        viewport_details,
+                    ));
+            },
         }
 
         webview
@@ -171,6 +184,17 @@ impl WebView {
 
     fn inner_mut(&self) -> RefMut<'_, WebViewInner> {
         self.0.borrow_mut()
+    }
+
+    pub(crate) fn request_create_new(
+        &self,
+        response_sender: GenericSender<Option<(WebViewId, ViewportDetails)>>,
+    ) {
+        let request = CreateNewWebViewRequest {
+            servo: self.inner().servo.clone(),
+            responder: IpcResponder::new(response_sender, None),
+        };
+        self.delegate().request_create_new(self.clone(), request);
     }
 
     pub(crate) fn viewport_details(&self) -> ViewportDetails {
@@ -730,9 +754,9 @@ pub struct WebViewBuilder {
     servo: Servo,
     rendering_context: Rc<dyn RenderingContext>,
     delegate: Rc<dyn WebViewDelegate>,
-    auxiliary: bool,
     url: Option<Url>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    create_new_webview_responder: Option<IpcResponder<Option<(WebViewId, ViewportDetails)>>>,
 }
 
 impl WebViewBuilder {
@@ -740,16 +764,20 @@ impl WebViewBuilder {
         Self {
             servo: servo.clone(),
             rendering_context,
-            auxiliary: false,
             url: None,
             hidpi_scale_factor: Scale::new(1.0),
             delegate: Rc::new(DefaultWebViewDelegate),
+            create_new_webview_responder: None,
         }
     }
 
-    pub fn new_auxiliary(servo: &Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
+    pub(crate) fn new_for_create_request(
+        servo: &Servo,
+        rendering_context: Rc<dyn RenderingContext>,
+        responder: IpcResponder<Option<(WebViewId, ViewportDetails)>>,
+    ) -> Self {
         let mut builder = Self::new(servo, rendering_context);
-        builder.auxiliary = true;
+        builder.create_new_webview_responder = Some(responder);
         builder
     }
 

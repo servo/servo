@@ -321,11 +321,7 @@ impl ServoInner {
             },
             EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let webview_id_and_viewport_details = webview
-                        .delegate()
-                        .request_open_auxiliary_webview(webview)
-                        .map(|webview| (webview.id(), webview.viewport_details()));
-                    let _ = response_sender.send(webview_id_and_viewport_details);
+                    webview.request_create_new(response_sender);
                 }
             },
             EmbedderMsg::WebViewClosed(webview_id) => {

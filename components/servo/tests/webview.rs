@@ -16,10 +16,10 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server};
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
-    ContextMenuItem, Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue,
-    JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent,
-    MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, Servo, SimpleDialog, Theme, WebView,
-    WebViewBuilder, WebViewDelegate,
+    ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, SimpleDialog,
+    Theme, WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use url::Url;
@@ -347,20 +347,18 @@ fn test_cursor_unchanged_input_color() {
 fn test_negative_resize_to_request() {
     let servo_test = ServoTest::new();
     struct WebViewResizeTestDelegate {
-        servo: Servo,
         rendering_context: Rc<dyn RenderingContext>,
         popup: RefCell<Option<WebView>>,
         resize_request: Cell<Option<DeviceIntSize>>,
     }
 
     impl WebViewDelegate for WebViewResizeTestDelegate {
-        fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-            let webview =
-                WebViewBuilder::new_auxiliary(&self.servo, self.rendering_context.clone())
-                    .delegate(parent_webview.delegate())
-                    .build();
+        fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
+            let webview = request
+                .builder(self.rendering_context.clone())
+                .delegate(parent_webview.delegate())
+                .build();
             self.popup.borrow_mut().replace(webview.clone());
-            Some(webview)
         }
 
         fn request_resize_to(&self, _: WebView, requested_outer_size: DeviceIntSize) {
@@ -369,7 +367,6 @@ fn test_negative_resize_to_request() {
     }
 
     let delegate = Rc::new(WebViewResizeTestDelegate {
-        servo: servo_test.servo.clone(),
         rendering_context: servo_test.rendering_context.clone(),
         popup: None.into(),
         resize_request: None.into(),
