@@ -93,7 +93,7 @@ hilog = "0.2.2"
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.1.4"
 napi-ohos = "1.1.4"
-ohos-abilitykit-sys = { version = "0.1.3", features = ["api-14"] }
+ohos-abilitykit-sys = { version = "0.1.4", features = ["api-14"] }
 ohos-deviceinfo = "0.1.0"
 ohos-ime = "0.4.0"
 ohos-ime-sys = "0.2.3"
