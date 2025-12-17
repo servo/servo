@@ -42,7 +42,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
     HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
     Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaHashedKeyGenParams,
-    RsaKeyAlgorithm, RsaPssParams, SubtleCryptoMethods,
+    RsaKeyAlgorithm, RsaOaepParams, RsaPssParams, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -1800,6 +1800,28 @@ impl From<RsaPssParams> for SubtleRsaPssParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-RsaOaepParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleRsaOaepParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+    /// <https://w3c.github.io/webcrypto/#dfn-RsaOaepParams-label>
+    label: Option<Vec<u8>>,
+}
+
+impl From<RootedTraceableBox<RsaOaepParams>> for SubtleRsaOaepParams {
+    fn from(value: RootedTraceableBox<RsaOaepParams>) -> Self {
+        let label = value.label.as_ref().map(|label| match label {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        });
+        SubtleRsaOaepParams {
+            name: value.parent.name.to_string(),
+            label,
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams>
 #[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleEcdsaParams {
@@ -2537,6 +2559,7 @@ enum NormalizedAlgorithm {
     RsaHashedKeyGenParams(SubtleRsaHashedKeyGenParams),
     RsaHashedImportParams(SubtleRsaHashedImportParams),
     RsaPssParams(SubtleRsaPssParams),
+    RsaOaepParams(SubtleRsaOaepParams),
     EcdsaParams(SubtleEcdsaParams),
     EcKeyGenParams(SubtleEcKeyGenParams),
     EcKeyImportParams(SubtleEcKeyImportParams),
@@ -2708,6 +2731,24 @@ fn normalize_algorithm(
                 },
 
                 // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
+                (ALG_RSA_OAEP, Operation::Encrypt) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<RsaOaepParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaOaepParams(params.into())
+                },
+                (ALG_RSA_OAEP, Operation::Decrypt) => {
+                    let mut params = dictionary_from_jsval::<RootedTraceableBox<RsaOaepParams>>(
+                        cx,
+                        value.handle(),
+                        can_gc,
+                    )?;
+                    params.parent.name = DOMString::from(alg_name);
+                    NormalizedAlgorithm::RsaOaepParams(params.into())
+                },
                 (ALG_RSA_OAEP, Operation::GenerateKey) => {
                     let mut params = dictionary_from_jsval::<
                         RootedTraceableBox<RsaHashedKeyGenParams>,
@@ -3264,6 +3305,7 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::RsaHashedKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::RsaHashedImportParams(algo) => &algo.name,
             NormalizedAlgorithm::RsaPssParams(algo) => &algo.name,
+            NormalizedAlgorithm::RsaOaepParams(algo) => &algo.name,
             NormalizedAlgorithm::EcdsaParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::EcKeyImportParams(algo) => &algo.name,
@@ -3285,6 +3327,9 @@ impl NormalizedAlgorithm {
 
     fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
         match (self.name(), self) {
+            (ALG_RSA_OAEP, NormalizedAlgorithm::RsaOaepParams(algo)) => {
+                rsa_oaep_operation::encrypt(algo, key, plaintext)
+            },
             (ALG_AES_CTR, NormalizedAlgorithm::AesCtrParams(algo)) => {
                 aes_operation::encrypt_aes_ctr(algo, key, plaintext)
             },
@@ -3303,6 +3348,9 @@ impl NormalizedAlgorithm {
 
     fn decrypt(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
         match (self.name(), self) {
+            (ALG_RSA_OAEP, NormalizedAlgorithm::RsaOaepParams(algo)) => {
+                rsa_oaep_operation::decrypt(algo, key, ciphertext)
+            },
             (ALG_AES_CTR, NormalizedAlgorithm::AesCtrParams(algo)) => {
                 aes_operation::decrypt_aes_ctr(algo, key, ciphertext)
             },
