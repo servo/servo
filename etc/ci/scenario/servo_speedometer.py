@@ -12,12 +12,10 @@
 import json
 import sys
 import time
-import subprocess
 from typing import Any
 import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-from hdc_py.hdc import HarmonyDevicePerfMode
 
 
 def speedometer_to_bmf(speedometer: dict[str, Any], bmf_output: str, profile: str | None = None) -> None:
@@ -53,74 +51,45 @@ def speedometer_to_bmf(speedometer: dict[str, Any], bmf_output: str, profile: st
         json.dump(output, f, indent=4)
 
 
-def run():
-    subprocess.run(
-        ["hdc", "shell", "aa", "force-stop", "org.servo.servo"],
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
-    subprocess.run(
-        [
-            "hdc",
-            "shell",
-            "aa",
-            "start",
-            "-a",
-            "EntryAbility",
-            "-b",
-            "org.servo.servo",
-            "-U",
-            "about:blank",
-            "--psn",
-            "--webdriver",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=1,
-    )
+def run_speedometer():
+    driver = common_function_for_servo_test.create_driver()
+    try:
+        driver.get("https://servospeedometer.netlify.app")
+        driver.implicitly_wait(10)
+        start_button = driver.find_element(By.CLASS_NAME, "start-tests-button")
+    except NoSuchElementException:
+        print("Error: Could not find the start button. There might be a network issue, or the page changed")
+        raise
+    print("Clicking start button")
+    start_button.click()
+    print("Waiting for speedometer run to finish")
+    for i in range(10):
+        time.sleep(30)
+        finished = driver.execute_script("return globalThis.benchmarkClient._hasResults")
+        if finished:
+            break
+    print("Getting benchmark result")
+    result = driver.execute_script("return globalThis.benchmarkClient._formattedJSONResult({modern: true})")
+    try:
+        speedometer_json = json.loads(result)
+    except json.decoder.JSONDecodeError:
+        print("Error: Failed to parse speedometer results")
+        print(f"json result: `{result}`")
+        raise
 
-    time.sleep(1)
-
-    common_function_for_servo_test.setup_hdc_forward()
-    with HarmonyDevicePerfMode():
-        driver = common_function_for_servo_test.create_driver()
-        if driver is not None:
-            try:
-                driver.get("https://servospeedometer.netlify.app")
-                driver.implicitly_wait(10)
-                start_button = driver.find_element(By.CLASS_NAME, "start-tests-button")
-                print("Clicking start button")
-                start_button.click()
-                print("Waiting for speedometer run to finish")
-                for i in range(10):
-                    time.sleep(30)
-                    finished = driver.execute_script("return globalThis.benchmarkClient._hasResults")
-                    if finished:
-                        break
-                print("Getting benchmark result")
-                result = driver.execute_script("return globalThis.benchmarkClient._formattedJSONResult({modern: true})")
-                speedometer_json = json.loads(result)
-
-                print("Writing to file")
-                try:
-                    speedometer_to_bmf(speedometer_json, "speedometer.json", sys.argv[1])
-                    return True
-                except IndexError:
-                    print("You need to supply a profile")
-                    return False
-            except json.decoder.JSONDecodeError:
-                print("Error: Failed to parse speedometer results")
-                return False
-            except NoSuchElementException:
-                print("Could not find element, we probably did not load the page.")
-                return False
-            except Exception as e:  # noqa: E722
-                print(f"Exception caught: {e}")
-                return False
+    print("Writing to file")
+    try:
+        speedometer_to_bmf(speedometer_json, "speedometer.json", sys.argv[1])
+    except IndexError:
+        print("You need to supply a profile")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    result = run()
-    if not result:
+    # todo: use argparse
+    try:
+        sys.argv[1]
+    except IndexError:
+        print("Usage: You need to supply a profile for the bencher bmf output")
         sys.exit(1)
+    common_function_for_servo_test.run_test(run_speedometer, "speedometer")
