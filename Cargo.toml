@@ -44,7 +44,7 @@ base64ct = { version = "1.8", features = ["alloc"] }
 # Since the git history was rewritten by the author, any bump of this crate should
 # be reviewed carefully by doing a manual diff based on the crates.io version,
 # before doing **any** bump to this dependency to rule out a supply chain attack.
-bincode = "=1.3.3"
+bincode = "=3.0.0"
 bitflags = "2.10"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 brotli = "8.0.2"
