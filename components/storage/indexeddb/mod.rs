@@ -20,8 +20,8 @@ use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
-    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
+    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DataBaseInfo, DbResult,
+    IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
 };
 use uuid::Uuid;
 
@@ -565,7 +565,60 @@ impl IndexedDBManager {
 
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
-            SyncOperation::GetDatabases(sender, origin) => {},
+            SyncOperation::GetDatabases(sender, origin) => {
+                // The in-parallel steps of https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases
+
+                // Step 4.1 Let databases be the set of databases in storageKey.
+                // If this cannot be determined for any reason,
+                // then queue a database task to reject p with an appropriate error
+                // (e.g. an "UnknownError" DOMException) and terminate these steps.
+                // TODO: separate database and connection concepts.
+                // For now using `self.databases`, which track connections.
+
+                // Step 4.2: Let result be a new list.
+                let info_list: Vec<DataBaseInfo> = self
+                    .databases
+                    .iter()
+                    .filter_map(|(description, info)| {
+                        // Step 4.3: For each db of databases:
+                        if let Ok(version) = info.version() {
+                            // Step 4.3.4: If db’s version is 0, then continue.
+                            if version == 0 {
+                                None
+                            } else {
+                                // Step 4.3.5: Let info be a new IDBDatabaseInfo dictionary.
+                                // Step 4.3.6: Set info’s name dictionary member to db’s name.
+                                // Step 4.3.7: Set info’s version dictionary member to db’s version.
+                                // Step 4.3.8: Append info to result.
+                                if description.origin == origin {
+                                    Some(DataBaseInfo {
+                                        name: description.name.clone(),
+                                        version: version,
+                                    })
+                                } else {
+                                    None
+                                }
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                // Note: if anything went wrong, we reply with an error.
+                let result = if info_list.len() == self.databases.len() {
+                    Ok(info_list)
+                } else {
+                    Err(BackendError::DbErr(
+                        "Unknown error getting database info.".to_string(),
+                    ))
+                };
+
+                // Step 4.4: Queue a database task to resolve p with result.
+                if sender.send(result).is_err() {
+                    debug!("Couldn't send SyncOperation::GetDatabases reply.");
+                }
+            },
             SyncOperation::CloseDatabase(sender, origin, db_name) => {
                 // TODO: Wait for all transactions created using connection to complete.
                 // Note: current behavior is as if the `forced` flag is always set.
