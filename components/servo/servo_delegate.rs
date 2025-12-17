@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use base::generic_channel;
-use embedder_traits::Notification;
+use embedder_traits::{ConsoleLogLevel, Notification};
 
 use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
 
@@ -38,6 +38,10 @@ pub trait ServoDelegate {
 
     /// Request to display a notification.
     fn show_notification(&self, _notification: Notification) {}
+
+    /// A console message was logged by content not associated with a specific [`WebView`].
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
+    fn show_console_message(&self, _level: ConsoleLogLevel, _message: String) {}
 }
 
 pub(crate) struct DefaultServoDelegate;

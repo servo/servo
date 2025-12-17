@@ -171,4 +171,9 @@ impl PlatformWindow for Window {
             self.screen_size.height as u32,
         ));
     }
+
+    fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {
+        println!("{message}");
+        log::log!(level.into(), "{message}");
+    }
 }

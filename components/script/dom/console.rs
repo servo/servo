@@ -10,6 +10,7 @@ use devtools_traits::{
     ConsoleLogLevel, ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder,
     ScriptToDevtoolsControlMsg, StackFrame,
 };
+use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::{Int32Value, UndefinedValue};
@@ -47,12 +48,12 @@ impl Console {
         ConsoleMessageBuilder::new(level, caller.filename, caller.line, caller.col)
     }
 
-    /// Helper to send a message that only consists of a single string to log,
-    /// console and stdout
+    /// Helper to send a message that only consists of a single string
     fn send_string_message(global: &GlobalScope, level: ConsoleLogLevel, message: String) {
-        let s = DOMString::from(message.clone());
-        log!(level.clone().into(), "{}", &s);
-        console_message_to_stdout(global, &s);
+        let prefix = global.current_group_label().unwrap_or_default();
+        let formatted_message = format!("{prefix}{message}");
+
+        Self::send_to_embedder(global, level.clone(), formatted_message);
 
         let mut builder = Self::build_message(level);
         builder.add_argument(message.into());
@@ -80,12 +81,11 @@ impl Console {
 
         Console::send_to_devtools(global, log.finish());
 
+        let prefix = global.current_group_label().unwrap_or_default();
         let msgs = stringify_handle_values(&messages);
-        // Also log messages to stdout
-        console_message_to_stdout(global, &msgs);
+        let formatted_message = format!("{prefix}{msgs}");
 
-        // Also output to the logger which will be at script::dom::console
-        log!(level.into(), "{}", &msgs);
+        Self::send_to_embedder(global, level, formatted_message);
     }
 
     fn send_to_devtools(global: &GlobalScope, message: ConsoleMessage) {
@@ -99,26 +99,18 @@ impl Console {
         }
     }
 
+    fn send_to_embedder(global: &GlobalScope, level: ConsoleLogLevel, message: String) {
+        global.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
+            global.webview_id(),
+            level,
+            message,
+        ));
+    }
+
     // Directly logs a DOMString, without processing the message
     pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
         Console::send_string_message(global, ConsoleLogLevel::Warn, String::from(message.clone()));
     }
-}
-
-// In order to avoid interleaving the stdout output of the Console API methods
-// with stderr that could be in use on other threads, we lock stderr until
-// we're finished with stdout. Since the stderr lock is reentrant, there is
-// no risk of deadlock if the callback ends up trying to write to stderr for
-// any reason.
-#[cfg(not(any(target_os = "android", target_env = "ohos")))]
-fn with_stderr_lock<F>(f: F)
-where
-    F: FnOnce(),
-{
-    use std::io;
-    let stderr = io::stderr();
-    let _handle = stderr.lock();
-    f()
 }
 
 #[expect(unsafe_code)]
@@ -349,22 +341,6 @@ fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
         " ",
     ))
 }
-
-#[cfg(not(any(target_os = "android", target_env = "ohos")))]
-fn console_message_to_stdout(global: &GlobalScope, message: &DOMString) {
-    let prefix = global.current_group_label().unwrap_or_default();
-    let formatted_message = format!("{}{}", prefix, message);
-    with_stderr_lock(move || {
-        println!("{}", formatted_message);
-    });
-}
-
-/// On OHOS/ Android, stdout and stderr will be redirected to go
-/// to the logger. As `Console::method` and `Console::send_string_message`
-/// already forwards all messages to the logger with appropriate level
-/// this does not need to do anything for these targets.
-#[cfg(any(target_os = "android", target_env = "ohos"))]
-fn console_message_to_stdout(_: &GlobalScope, _: &DOMString) {}
 
 #[derive(Debug, Eq, PartialEq)]
 enum IncludeStackTrace {
