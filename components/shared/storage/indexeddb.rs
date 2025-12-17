@@ -416,7 +416,7 @@ pub enum SyncOperation {
     ),
 
     OpenDatabase(
-        GenericCallback<OpenDatabaseResult>, // Returns the result
+        GenericCallback<BackendResult<OpenDatabaseResult>>, // Returns the result
         ImmutableOrigin,
         String,      // Database
         Option<u64>, // Eventual version

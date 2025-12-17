@@ -197,7 +197,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 /// Keeping track of pending upgrade transactions.
 /// TODO: move into general transaction lifecycle.
 struct PendingUpgrade {
-    sender: GenericCallback<OpenDatabaseResult>,
+    sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
     db_version: u64,
 }
 
@@ -289,10 +289,10 @@ impl IndexedDBManager {
         };
         if pending_upgrade
             .sender
-            .send(OpenDatabaseResult::Connection {
+            .send(Ok(OpenDatabaseResult::Connection {
                 version: pending_upgrade.db_version,
                 upgraded: true,
-            })
+            }))
             .is_err()
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
@@ -334,7 +334,7 @@ impl IndexedDBManager {
         idb_description: IndexedDBDescription,
         new_version: u64,
         db_name: String,
-        sender: GenericCallback<OpenDatabaseResult>,
+        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
     ) {
         // Step 1: Let db be connection’s database.
         // TODO: connection.
@@ -368,11 +368,11 @@ impl IndexedDBManager {
 
         // Step 10: Queue a database task to run these steps:
         if sender
-            .send(OpenDatabaseResult::Upgrade {
+            .send(Ok(OpenDatabaseResult::Upgrade {
                 version: new_version,
                 old_version,
                 transaction: transaction_id,
-            })
+            }))
             .is_err()
         {
             error!("Couldn't queue task for indexeddb upgrade event.");
@@ -391,7 +391,7 @@ impl IndexedDBManager {
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     fn open_database(
         &mut self,
-        sender: GenericCallback<OpenDatabaseResult>,
+        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
         origin: ImmutableOrigin,
         db_name: String,
         version: Option<u64>,
@@ -408,6 +408,7 @@ impl IndexedDBManager {
         };
 
         let idb_base_dir = self.idb_base_dir.as_path();
+        let requested_version = version;
 
         // Step 4: Let db be the database named name in origin, or null otherwise.
         let (db_version, version) = match self.databases.entry(idb_description.clone()) {
@@ -415,31 +416,49 @@ impl IndexedDBManager {
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
                 // Note: done below with the zero as first tuple item.
 
-                // Step 6: If db is null, let db be a new database
-                // with name name, version 0 (zero), and with no object stores.
-                // If this fails for any reason, return an appropriate error
-                // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
-                // TODO: return error.
-                let engine =
-                    SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
-                        .expect("Failed to create sqlite engine");
+                // https://www.w3.org/TR/IndexedDB-2/#open-a-database
+                // Step 6: If db is null, let db be a new database with name name, version 0, and no object stores.
+                // If creation or opening fails, return an appropriate error to the open request.
+                let engine = match SqliteEngine::new(
+                    idb_base_dir,
+                    &idb_description,
+                    self.thread_pool.clone(),
+                ) {
+                    Ok(engine) => engine,
+                    Err(err) => {
+                        let _ = sender.send(Err(BackendError::DbErr(format!("{err:?}"))));
+                        return;
+                    },
+                };
                 let created_db_path = engine.created_db_path();
                 let db = IndexedDBEnvironment::new(engine);
-                let db_version = db.version().expect("DB should have a version.");
+                let db_version = match db.version() {
+                    Ok(version) => version,
+                    Err(err) => {
+                        let _ = sender.send(Err(BackendError::DbErr(format!("{err:?}"))));
+                        return;
+                    },
+                };
 
                 let version = if created_db_path {
-                    version.unwrap_or(1)
+                    requested_version.unwrap_or(1)
                 } else {
-                    version.unwrap_or(db_version)
+                    requested_version.unwrap_or(db_version)
                 };
 
                 e.insert(db);
                 (db_version, version)
             },
             Entry::Occupied(db) => {
-                let db_version = db.get().version().expect("Db should have a version.");
+                let db_version = match db.get().version() {
+                    Ok(version) => version,
+                    Err(err) => {
+                        let _ = sender.send(Err(BackendError::DbErr(format!("{err:?}"))));
+                        return;
+                    },
+                };
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
-                (db_version, version.unwrap_or(db_version))
+                (db_version, requested_version.unwrap_or(db_version))
             },
         };
 
@@ -447,7 +466,7 @@ impl IndexedDBManager {
         // return a newly created "VersionError" DOMException
         // and abort these steps.
         if version < db_version {
-            if sender.send(OpenDatabaseResult::VersionError).is_err() {
+            if sender.send(Ok(OpenDatabaseResult::VersionError)).is_err() {
                 debug!("Script exit during indexeddb database open");
             }
             return;
@@ -479,10 +498,10 @@ impl IndexedDBManager {
 
         // Step 11:
         if sender
-            .send(OpenDatabaseResult::Connection {
+            .send(Ok(OpenDatabaseResult::Connection {
                 version: db_version,
                 upgraded: false,
-            })
+            }))
             .is_err()
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
