@@ -17,6 +17,7 @@ base = { workspace = true }
 bincode = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+libc = { workspace = true }
 log = { workspace = true }
 profile_traits = { workspace = true }
 rusqlite = { version = "0.37", features = ["bundled"] }

@@ -163,15 +163,12 @@ impl OpenRequestListener {
 
 fn map_backend_error_to_dom_error(error: BackendError) -> Error {
     match error {
+        BackendError::QuotaExceeded => Error::QuotaExceeded {
+            quota: None,
+            requested: None,
+        },
         BackendError::DbErr(details) => {
-            if details.contains("SQLITE_FULL") || details.contains("No space left") {
-                Error::QuotaExceeded {
-                    quota: None,
-                    requested: None,
-                }
-            } else {
-                Error::Operation(Some(format!("IndexedDB open failed: {details}")))
-            }
+            Error::Operation(Some(format!("IndexedDB open failed: {details}")))
         },
         other => Error::Operation(Some(format!("IndexedDB open failed: {other:?}"))),
     }

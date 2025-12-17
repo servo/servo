@@ -7,14 +7,17 @@ mod engines;
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
+use std::error::Error as StdError;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use base::threadpool::ThreadPool;
+use libc::ENOSPC;
 use log::{debug, error, warn};
 use profile_traits::generic_callback::GenericCallback;
+use rusqlite::{Error as RusqliteError, ffi};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -183,14 +186,68 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         );
     }
 
-    fn version(&self) -> DbResult<u64> {
-        self.engine.version().map_err(|err| format!("{err:?}"))
+    fn version(&self) -> Result<u64, E::Error> {
+        self.engine.version()
     }
 
     fn set_version(&mut self, version: u64) -> DbResult<()> {
         self.engine
             .set_version(version)
             .map_err(|err| format!("{err:?}"))
+    }
+}
+
+fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
+    if is_sqlite_disk_full_error(&err) {
+        BackendError::QuotaExceeded
+    } else {
+        BackendError::DbErr(format!("{err:?}"))
+    }
+}
+
+fn is_sqlite_disk_full_error(error: &RusqliteError) -> bool {
+    fn has_enospc(mut source: Option<&(dyn StdError + 'static)>) -> bool {
+        while let Some(err) = source {
+            if let Some(io_err) = err.downcast_ref::<std::io::Error>() {
+                if io_err.raw_os_error() == Some(ENOSPC) {
+                    return true;
+                }
+            }
+            source = err.source();
+        }
+        false
+    }
+
+    // Walk the full chain (including `error` itself).
+    let saw_enospc = has_enospc(Some(error as &(dyn StdError + 'static)));
+
+    match error {
+        RusqliteError::SqliteFailure(sqlite_err, _) => {
+            // High confidence "database or disk is full".
+            if sqlite_err.code == ffi::ErrorCode::DiskFull ||
+                sqlite_err.extended_code == ffi::SQLITE_FULL
+            {
+                return true;
+            }
+
+            // Only treat IO errors as quota-related if ENOSPC is present.
+            if saw_enospc &&
+                matches!(
+                    sqlite_err.extended_code,
+                    ffi::SQLITE_IOERR |
+                        ffi::SQLITE_IOERR_WRITE |
+                        ffi::SQLITE_IOERR_FSYNC |
+                        ffi::SQLITE_IOERR_DIR_FSYNC |
+                        ffi::SQLITE_IOERR_TRUNCATE |
+                        ffi::SQLITE_IOERR_MMAP
+                )
+            {
+                return true;
+            }
+
+            false
+        },
+        _ => saw_enospc,
     }
 }
 
@@ -426,7 +483,7 @@ impl IndexedDBManager {
                 ) {
                     Ok(engine) => engine,
                     Err(err) => {
-                        let _ = sender.send(Err(BackendError::DbErr(format!("{err:?}"))));
+                        let _ = sender.send(Err(backend_error_from_sqlite_error(err)));
                         return;
                     },
                 };
@@ -435,7 +492,7 @@ impl IndexedDBManager {
                 let db_version = match db.version() {
                     Ok(version) => version,
                     Err(err) => {
-                        let _ = sender.send(Err(BackendError::DbErr(format!("{err:?}"))));
+                        let _ = sender.send(Err(backend_error_from_sqlite_error(err)));
                         return;
                     },
                 };
@@ -453,7 +510,7 @@ impl IndexedDBManager {
                 let db_version = match db.get().version() {
                     Ok(version) => version,
                     Err(err) => {
-                        let _ = sender.send(Err(BackendError::DbErr(format!("{err:?}"))));
+                        let _ = sender.send(Err(backend_error_from_sqlite_error(err)));
                         return;
                     },
                 };
@@ -587,7 +644,7 @@ impl IndexedDBManager {
                         let _ = db.set_version(version);
                     }
                     // erroring out if the version is not upgraded can be and non-replicable
-                    let _ = sender.send(db.version().map_err(BackendError::from));
+                    let _ = sender.send(db.version().map_err(backend_error_from_sqlite_error));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
@@ -624,7 +681,7 @@ impl IndexedDBManager {
             },
             SyncOperation::Version(sender, origin, db_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = sender.send(db.version().map_err(BackendError::from));
+                    let _ = sender.send(db.version().map_err(backend_error_from_sqlite_error));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
