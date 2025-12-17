@@ -35,6 +35,7 @@ use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_traits::DocumentActivity;
+use selectors::bloom::BloomFilter;
 use selectors::matching::{
     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags,
     matches_selector_list,
@@ -598,19 +599,22 @@ impl Iterator for QuerySelectorIterator {
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let selectors = &self.selectors;
 
+        let (quirks_mode, filter) = match self.iterator.by_ref().peek() {
+            Some(node) => (node.owner_doc().quirks_mode(), BloomFilter::default()),
+            None => return None,
+        };
+
         self.iterator.by_ref().find_map(|node| {
-            // TODO(cgaebel): Is it worth it to build a bloom filter here
-            // (instead of passing `None`)? Probably.
-            let mut nth_index_cache = Default::default();
-            let mut ctx = MatchingContext::new(
-                MatchingMode::Normal,
-                None,
-                &mut nth_index_cache,
-                node.owner_doc().quirks_mode(),
-                NeedsSelectorFlags::No,
-                MatchingForInvalidation::No,
-            );
             if let Some(element) = DomRoot::downcast(node) {
+                let mut nth_index_cache = Default::default();
+                let mut ctx = MatchingContext::new(
+                    MatchingMode::Normal,
+                    Some(&filter),
+                    &mut nth_index_cache,
+                    quirks_mode,
+                    NeedsSelectorFlags::No,
+                    MatchingForInvalidation::No,
+                );
                 if matches_selector_list(selectors, &SelectorWrapper::Borrowed(&element), &mut ctx)
                 {
                     return Some(DomRoot::upcast(element));
@@ -1181,9 +1185,10 @@ impl Node {
             // Step 3.
             Ok(selectors) => {
                 let mut nth_index_cache = Default::default();
+                let filter = BloomFilter::default();
                 let mut ctx = MatchingContext::new(
                     MatchingMode::Normal,
-                    None,
+                    Some(&filter),
                     &mut nth_index_cache,
                     doc.quirks_mode(),
                     NeedsSelectorFlags::No,
