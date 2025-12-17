@@ -2998,25 +2998,41 @@ impl Window {
                 let this = Trusted::new(self);
                 let old_url = doc.url().into_string();
                 let new_url = load_data.url.clone().into_string();
-                let task = task!(hashchange_event: move || {
-                    let this = this.root();
-                    let event = HashChangeEvent::new(
-                        &this,
-                        atom!("hashchange"),
-                        false,
-                        false,
-                        old_url,
-                        new_url,
-                        CanGc::note());
-                    event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
-                    if let Some(sender) = webdriver_sender {
-                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                    }
-                });
-                self.as_global_scope()
-                    .task_manager()
-                    .dom_manipulation_task_source()
-                    .queue(task);
+
+                // https://html.spec.whatwg.org/multipage/#update-document-for-history-step-application
+                // Step 6.4.5: If oldURL's fragment is not equal to entry's URL's fragment, then queue a global task on the
+                // DOM manipulation task source given document's relevant global object to fire an event named hashchange at
+                // document's relevant global object, using HashChangeEvent, with the oldURL attribute initialized to the
+                // serialization of oldURL and the newURL attribute initialized to the serialization of entry's URL.
+                let old_fragment = doc.url().fragment().map(ToOwned::to_owned);
+                let new_fragment = load_data.url.fragment().map(ToOwned::to_owned);
+
+                if old_fragment != new_fragment {
+                    let webdriver_sender_for_task = webdriver_sender.clone();
+                    let task = task!(hashchange_event: move || {
+                        let this = this.root();
+                        let event = HashChangeEvent::new(
+                            &this,
+                            atom!("hashchange"),
+                            false,
+                            false,
+                            old_url,
+                            new_url,
+                            CanGc::note(),
+                        );
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
+                        if let Some(sender) = webdriver_sender_for_task {
+                            let _ = sender.send(WebDriverLoadStatus::NavigationStop);
+                        }
+                    });
+
+                    self.as_global_scope()
+                        .task_manager()
+                        .dom_manipulation_task_source()
+                        .queue(task);
+                } else if let Some(sender) = webdriver_sender {
+                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
+                }
                 doc.set_url(load_data.url.clone());
                 return;
             }
