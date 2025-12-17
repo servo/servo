@@ -14,12 +14,13 @@ use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use log::{error, info, warn};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, CSSPixel, CreateNewWebViewRequest, DeviceIntPoint,
-    DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker, GamepadHapticEffectType,
-    GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus,
-    MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
-    ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate, WebViewId, pref,
+    AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
+    DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
+    GamepadHapticEffectType, GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender,
+    JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError,
+    Servo, ServoDelegate, ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
+    WebViewId, pref,
 };
 use url::Url;
 
@@ -786,6 +787,11 @@ impl WebViewDelegate for RunningAppState {
         self.platform_window_for_webview_id(webview.id())
             .notify_crashed(webview, reason, backtrace);
     }
+
+    fn show_console_message(&self, webview: WebView, level: ConsoleLogLevel, message: String) {
+        self.platform_window_for_webview_id(webview.id())
+            .show_console_message(level, &message);
+    }
 }
 
 struct ServoShellServoDelegate;
@@ -800,5 +806,12 @@ impl ServoDelegate for ServoShellServoDelegate {
 
     fn notify_error(&self, error: ServoError) {
         error!("Saw Servo error: {error:?}!");
+    }
+
+    fn show_console_message(&self, level: ConsoleLogLevel, message: String) {
+        // For messages without a WebView context, apply platform-specific behavior
+        #[cfg(not(any(target_os = "android", target_env = "ohos")))]
+        println!("{message}");
+        log::log!(level.into(), "{message}");
     }
 }

@@ -211,6 +211,10 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     fn notify_crashed(&self, _webview: WebView, reason: String, backtrace: Option<String>) {
         self.host.on_panic(reason, backtrace);
     }
+
+    fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {
+        log::log!(level.into(), "{message}");
+    }
 }
 
 #[derive(Default)]

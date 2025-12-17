@@ -512,6 +512,9 @@ pub enum EmbedderMsg {
     ShutdownComplete,
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
+    /// Let the embedder process a DOM Console API message.
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
+    ShowConsoleApiMessage(Option<WebViewId>, ConsoleLogLevel, String),
     /// Request to display a form control to the embedder.
     ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
     /// Request to display a form control to the embedder.

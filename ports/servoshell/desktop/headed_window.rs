@@ -1117,6 +1117,11 @@ impl PlatformWindow for Window {
     fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
         self.dialogs.borrow_mut().remove(&webview_id);
     }
+
+    fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {
+        println!("{message}");
+        log::log!(level.into(), "{message}");
+    }
 }
 
 fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {

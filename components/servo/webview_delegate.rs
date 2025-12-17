@@ -10,8 +10,8 @@ use base::id::{PipelineId, WebViewId};
 use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
-    AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ContextMenuAction,
-    ContextMenuElementInformation, ContextMenuItem, Cursor, EmbedderControlId,
+    AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ConsoleLogLevel,
+    ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, Cursor, EmbedderControlId,
     EmbedderControlResponse, FilePickerRequest, FilterPattern, GamepadHapticEffectType,
     InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
     PermissionFeature, PromptResponse, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
@@ -963,6 +963,10 @@ pub trait WebViewDelegate {
 
     /// Request to display a notification.
     fn show_notification(&self, _webview: WebView, _notification: Notification) {}
+
+    /// A console message was logged by content in this [`WebView`].
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
+    fn show_console_message(&self, _webview: WebView, _level: ConsoleLogLevel, _message: String) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;
