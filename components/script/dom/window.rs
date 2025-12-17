@@ -810,6 +810,38 @@ impl Window {
         doc.abort(can_gc);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
+    fn destroy_top_level_traversable(&self, can_gc: CanGc) {
+        // Step 1. Let browsingContext be traversable's active browsing context.
+        // TODO
+        // Step 2. For each historyEntry in traversable's session history entries:
+        // TODO
+        // Step 2.1. Let document be historyEntry's document.
+        let document = self.Document();
+        // Step 2.2. If document is not null, then destroy a document and its descendants given document.
+        document.destroy_document_and_its_descendants(can_gc);
+        // Step 3-6.
+        self.send_to_constellation(ScriptToConstellationMessage::DiscardTopLevelBrowsingContext);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#definitely-close-a-top-level-traversable>
+    fn definitely_close(&self, can_gc: CanGc) {
+        let document = self.Document();
+        // Step 1. Let toUnload be traversable's active document's inclusive descendant navigables.
+        //
+        // Implemented by passing `false` into the method below
+        // Step 2. If the result of checking if unloading is canceled for toUnload is not "continue", then return.
+        if !document.check_if_unloading_is_cancelled(false, can_gc) {
+            return;
+        }
+        // Step 3. Append the following session history traversal steps to traversable:
+        // TODO
+        // Step 3.2. Unload a document and its descendants given traversable's active document, null, and afterAllUnloads.
+        document.unload(false, can_gc);
+        // Step 3.1. Let afterAllUnloads be an algorithm step which destroys traversable.
+        self.destroy_top_level_traversable(can_gc);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#cannot-show-simple-dialogs>
     fn cannot_show_simple_dialogs(&self) -> bool {
         // Step 1: If the active sandboxing flag set of window's associated Document has
@@ -1238,12 +1270,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
     fn Close(&self) {
-        // Step 1, Let current be this Window object's browsing context.
-        // Step 2, If current is null or its is closing is true, then return.
+        // Step 1. Let thisTraversable be this's navigable.
         let window_proxy = match self.window_proxy.get() {
             Some(proxy) => proxy,
+            // Step 2. If thisTraversable is not a top-level traversable, then return.
             None => return,
         };
+        // Step 3. If thisTraversable's is closing is true, then return.
         if window_proxy.is_closing() {
             return;
         }
@@ -1261,31 +1294,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             // Is the incumbent settings object's responsible browsing context familiar with current?
             // Is the incumbent settings object's responsible browsing context allowed to navigate current?
             if is_script_closable {
-                // Step 3.1, set current's is closing to true.
+                // Step 6.1. Set thisTraversable's is closing to true.
                 window_proxy.close();
 
-                // Step 3.2, queue a task on the DOM manipulation task source to close current.
+                // Step 6.2. Queue a task on the DOM manipulation task source to definitely close thisTraversable.
                 let this = Trusted::new(self);
                 let task = task!(window_close_browsing_context: move || {
                     let window = this.root();
-                    let document = window.Document();
-                    // https://html.spec.whatwg.org/multipage/#closing-browsing-contexts
-                    // Step 1, check if traversable is closing, was already done above.
-                    // Steps 2 and 3, prompt to unload for all inclusive descendant navigables.
-                    // TODO: We should be prompting for all inclusive descendant navigables,
-                    // but we pass false here, which suggests we are not doing that. Why?
-                    if document.prompt_to_unload(false, CanGc::note()) {
-                        // Step 4, unload.
-                        document.unload(false, CanGc::note());
-
-                        // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-                        // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
-                        // TODO: This should be removed once step 20 of `document.unload` is correctly
-                        // implemented.
-                        window.discard_browsing_context();
-
-                        window.send_to_constellation(ScriptToConstellationMessage::DiscardTopLevelBrowsingContext);
-                    }
+                    window.definitely_close(CanGc::note());
                 });
                 self.as_global_scope()
                     .task_manager()
@@ -3048,8 +3064,9 @@ impl Window {
             }
         }
 
-        // Step 8
-        if doc.prompt_to_unload(false, can_gc) {
+        // Step 23. Let unloadPromptCanceled be the result of checking if unloading
+        // is canceled for navigable's active document's inclusive descendant navigables.
+        if doc.check_if_unloading_is_cancelled(false, can_gc) {
             let window_proxy = self.window_proxy();
             if window_proxy.parent().is_some() {
                 // Step 10

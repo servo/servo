@@ -3061,11 +3061,14 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
+    /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
     fn handle_close_top_level_browsing_context(&mut self, webview_id: WebViewId) {
         debug!("{webview_id}: Closing");
         let browsing_context_id = BrowsingContextId::from(webview_id);
+        // Step 5. Remove traversable from the user agent's top-level traversable set.
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
+        // Step 4. Remove traversable from the user interface (e.g., close or hide its tab in a tabbed browser).
         self.webviews.remove(&webview_id);
         self.embedder_proxy
             .send(EmbedderMsg::WebViewClosed(webview_id));
@@ -3076,15 +3079,22 @@ where
                 browsing_context_id
             );
         };
-        // https://html.spec.whatwg.org/multipage/#bcg-remove
+        // Step 3. Remove browsingContext.
+        //
+        // Steps are now for https://html.spec.whatwg.org/multipage/#bcg-remove
         let bc_group_id = browsing_context.bc_group_id;
+        // Step 2. Let group be browsingContext's group.
         let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) else {
+            // Step 1. Assert: browsingContext's group is non-null.
             warn!("{}: Browsing context group not found!", bc_group_id);
             return;
         };
+        // Step 4. Remove browsingContext from group's browsing context set.
         if !bc_group.top_level_browsing_context_set.remove(&webview_id) {
             warn!("{webview_id}: Top-level browsing context not found in {bc_group_id}",);
         }
+        // Step 5. If group's browsing context set is empty, then remove group
+        // from the user agent's browsing context group set.
         if bc_group.top_level_browsing_context_set.is_empty() {
             self.browsing_context_group_set
                 .remove(&browsing_context.bc_group_id);

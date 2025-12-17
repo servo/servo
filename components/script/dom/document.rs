@@ -2005,8 +2005,12 @@ impl Document {
         ScriptThread::mark_document_with_no_blocked_loads(self);
     }
 
-    // https://html.spec.whatwg.org/multipage/#prompt-to-unload-a-document
-    pub(crate) fn prompt_to_unload(&self, recursive_flag: bool, can_gc: CanGc) -> bool {
+    /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
+    pub(crate) fn check_if_unloading_is_cancelled(
+        &self,
+        recursive_flag: bool,
+        can_gc: CanGc,
+    ) -> bool {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2045,13 +2049,13 @@ impl Document {
         }
         // Step 9
         if !recursive_flag {
-            // `prompt_to_unload` might cause futher modifications to the DOM so collecting here prevents
+            // `check_if_unloading_is_cancelled` might cause futher modifications to the DOM so collecting here prevents
             // a double borrow if the `IFrameCollection` needs to be validated again.
             let iframes: Vec<_> = self.iframes().iter().collect();
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
                 let document = iframe.owner_document();
-                can_unload = document.prompt_to_unload(true, can_gc);
+                can_unload = document.check_if_unloading_is_cancelled(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
