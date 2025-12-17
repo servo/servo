@@ -25,6 +25,9 @@ pub enum BackendError {
     DbNotFound,
     /// The requested object store does not exist
     StoreNotFound,
+    /// The storage quota was exceeded
+    QuotaExceeded,
+
     DbErr(DbError),
 }
 
@@ -36,7 +39,12 @@ impl From<DbError> for BackendError {
 
 impl Display for BackendError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            BackendError::DbNotFound => write!(f, "DbNotFound"),
+            BackendError::StoreNotFound => write!(f, "StoreNotFound"),
+            BackendError::QuotaExceeded => write!(f, "QuotaExceeded"),
+            BackendError::DbErr(err) => write!(f, "{err}"),
+        }
     }
 }
 
@@ -416,7 +424,7 @@ pub enum SyncOperation {
     ),
 
     OpenDatabase(
-        GenericCallback<OpenDatabaseResult>, // Returns the result
+        GenericCallback<BackendResult<OpenDatabaseResult>>, // Returns the result
         ImmutableOrigin,
         String,      // Database
         Option<u64>, // Eventual version

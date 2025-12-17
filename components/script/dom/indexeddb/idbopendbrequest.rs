@@ -9,7 +9,7 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
 use storage_traits::indexeddb::{
-    BackendResult, IndexedDBThreadMsg, OpenDatabaseResult, SyncOperation,
+    BackendError, BackendResult, IndexedDBThreadMsg, OpenDatabaseResult, SyncOperation,
 };
 use stylo_atoms::Atom;
 
@@ -28,6 +28,7 @@ use crate::dom::indexeddb::idbfactory::DBName;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
+use crate::dom::map_backend_error_to_dom_error;
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 
@@ -44,9 +45,7 @@ impl OpenRequestListener {
         let global = request.global();
         let idb_factory = global.get_indexeddb();
         let name = DBName(name);
-        let dom_exception = match response {
-            OpenDatabaseResult::VersionError => Error::Version(None),
-            OpenDatabaseResult::AbortError => Error::Abort(None),
+        match response {
             OpenDatabaseResult::Connection { version, upgraded } => {
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
@@ -66,7 +65,6 @@ impl OpenRequestListener {
                     connection
                 });
                 request.dispatch_success(&connection);
-                return;
             },
             OpenDatabaseResult::Upgrade {
                 version,
@@ -85,26 +83,41 @@ impl OpenRequestListener {
                     connection
                 });
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
-                return;
             },
-        };
+            OpenDatabaseResult::VersionError => {
+                // Step 2.1 If result is an error, see dispatch_error().
+                self.dispatch_error(Error::Version(None), can_gc);
+            },
+            OpenDatabaseResult::AbortError => {
+                // Step 2.1 If result is an error, see dispatch_error().
+                self.dispatch_error(Error::Abort(None), can_gc);
+            },
+        }
+    }
 
-        // Step 2.1 If result is an error,
-        // set request’s result to undefined,
-        // set request’s error to result,
-        // set request’s done flag,
-        // and fire an event named error at request
-        // with its bubbles and cancelable attributes initialized to true.
+    fn handle_backend_error(&self, backend_error: BackendError, can_gc: CanGc) {
+        self.dispatch_error(map_backend_error_to_dom_error(backend_error), can_gc);
+    }
+
+    // Step 2.1 If result is an error,
+    // set request’s result to undefined,
+    // set request’s error to result,
+    // set request’s done flag,
+    // and fire an event named error at request
+    // with its bubbles and cancelable attributes initialized to true.
+    fn dispatch_error(&self, dom_exception: Error, can_gc: CanGc) {
+        let request = self.open_request.root();
+        let global = request.global();
         request.set_result(HandleValue::undefined());
-        request.set_error(Some(dom_exception), CanGc::note());
+        request.set_error(Some(dom_exception), can_gc);
         let event = Event::new(
             &global,
             Atom::from("error"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            CanGc::note(),
+            can_gc,
         );
-        event.fire(request.upcast(), CanGc::note());
+        event.fire(request.upcast(), can_gc);
     }
 
     fn handle_delete_db(&self, result: BackendResult<()>, can_gc: CanGc) {
@@ -269,11 +282,20 @@ impl IDBOpenDBRequest {
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
             let response_listener = response_listener.clone();
             let name = name_copy.clone();
+            let backend_result = match message {
+                Ok(inner) => inner,
+                Err(err) => Err(BackendError::DbErr(format!("{err:?}"))),
+            };
             task_source.queue(task!(set_request_result_to_database: move || {
-                response_listener.handle_open_db(name, message.unwrap(), CanGc::note());
+                match backend_result {
+                    Ok(response) => {
+                        response_listener.handle_open_db(name, response, CanGc::note())
+                    }
+                    Err(error) => response_listener.handle_backend_error(error, CanGc::note()),
+                }
             }));
         })
-        .expect("Could not create delete database callback");
+        .expect("Could not create open database callback");
 
         let open_operation = SyncOperation::OpenDatabase(
             callback,

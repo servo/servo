@@ -15,6 +15,7 @@ use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use base::threadpool::ThreadPool;
 use log::{debug, error, warn};
 use profile_traits::generic_callback::GenericCallback;
+use rusqlite::Error as RusqliteError;
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -25,6 +26,7 @@ use storage_traits::indexeddb::{
 use uuid::Uuid;
 
 use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
+use crate::shared::is_sqlite_disk_full_error;
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -183,8 +185,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         );
     }
 
-    fn version(&self) -> DbResult<u64> {
-        self.engine.version().map_err(|err| format!("{err:?}"))
+    fn version(&self) -> Result<u64, E::Error> {
+        self.engine.version()
     }
 
     fn set_version(&mut self, version: u64) -> DbResult<()> {
@@ -194,10 +196,18 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 }
 
+fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
+    if is_sqlite_disk_full_error(&err) {
+        BackendError::QuotaExceeded
+    } else {
+        BackendError::DbErr(format!("{err:?}"))
+    }
+}
+
 /// Keeping track of pending upgrade transactions.
 /// TODO: move into general transaction lifecycle.
 struct PendingUpgrade {
-    sender: GenericCallback<OpenDatabaseResult>,
+    sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
     db_version: u64,
 }
 
@@ -289,10 +299,10 @@ impl IndexedDBManager {
         };
         if pending_upgrade
             .sender
-            .send(OpenDatabaseResult::Connection {
+            .send(Ok(OpenDatabaseResult::Connection {
                 version: pending_upgrade.db_version,
                 upgraded: true,
-            })
+            }))
             .is_err()
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
@@ -334,7 +344,7 @@ impl IndexedDBManager {
         idb_description: IndexedDBDescription,
         new_version: u64,
         db_name: String,
-        sender: GenericCallback<OpenDatabaseResult>,
+        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
     ) {
         // Step 1: Let db be connection’s database.
         // TODO: connection.
@@ -368,11 +378,11 @@ impl IndexedDBManager {
 
         // Step 10: Queue a database task to run these steps:
         if sender
-            .send(OpenDatabaseResult::Upgrade {
+            .send(Ok(OpenDatabaseResult::Upgrade {
                 version: new_version,
                 old_version,
                 transaction: transaction_id,
-            })
+            }))
             .is_err()
         {
             error!("Couldn't queue task for indexeddb upgrade event.");
@@ -391,7 +401,7 @@ impl IndexedDBManager {
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     fn open_database(
         &mut self,
-        sender: GenericCallback<OpenDatabaseResult>,
+        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
         origin: ImmutableOrigin,
         db_name: String,
         version: Option<u64>,
@@ -408,6 +418,7 @@ impl IndexedDBManager {
         };
 
         let idb_base_dir = self.idb_base_dir.as_path();
+        let requested_version = version;
 
         // Step 4: Let db be the database named name in origin, or null otherwise.
         let (db_version, version) = match self.databases.entry(idb_description.clone()) {
@@ -415,31 +426,58 @@ impl IndexedDBManager {
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
                 // Note: done below with the zero as first tuple item.
 
+                // https://www.w3.org/TR/IndexedDB/#open-a-database-connection
                 // Step 6: If db is null, let db be a new database
                 // with name name, version 0 (zero), and with no object stores.
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
-                // TODO: return error.
-                let engine =
-                    SqliteEngine::new(idb_base_dir, &idb_description, self.thread_pool.clone())
-                        .expect("Failed to create sqlite engine");
+                let engine = match SqliteEngine::new(
+                    idb_base_dir,
+                    &idb_description,
+                    self.thread_pool.clone(),
+                ) {
+                    Ok(engine) => engine,
+                    Err(err) => {
+                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                            debug!("Script exit during indexeddb database open {:?}", e);
+                        }
+                        return;
+                    },
+                };
                 let created_db_path = engine.created_db_path();
                 let db = IndexedDBEnvironment::new(engine);
-                let db_version = db.version().expect("DB should have a version.");
+                let db_version = match db.version() {
+                    Ok(version) => version,
+                    Err(err) => {
+                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                            debug!("Script exit during indexeddb database open {:?}", e);
+                        }
+
+                        return;
+                    },
+                };
 
                 let version = if created_db_path {
-                    version.unwrap_or(1)
+                    requested_version.unwrap_or(1)
                 } else {
-                    version.unwrap_or(db_version)
+                    requested_version.unwrap_or(db_version)
                 };
 
                 e.insert(db);
                 (db_version, version)
             },
             Entry::Occupied(db) => {
-                let db_version = db.get().version().expect("Db should have a version.");
+                let db_version = match db.get().version() {
+                    Ok(version) => version,
+                    Err(err) => {
+                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                            debug!("Script exit during indexeddb database open {:?}", e);
+                        }
+                        return;
+                    },
+                };
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
-                (db_version, version.unwrap_or(db_version))
+                (db_version, requested_version.unwrap_or(db_version))
             },
         };
 
@@ -447,7 +485,7 @@ impl IndexedDBManager {
         // return a newly created "VersionError" DOMException
         // and abort these steps.
         if version < db_version {
-            if sender.send(OpenDatabaseResult::VersionError).is_err() {
+            if sender.send(Ok(OpenDatabaseResult::VersionError)).is_err() {
                 debug!("Script exit during indexeddb database open");
             }
             return;
@@ -479,10 +517,10 @@ impl IndexedDBManager {
 
         // Step 11:
         if sender
-            .send(OpenDatabaseResult::Connection {
+            .send(Ok(OpenDatabaseResult::Connection {
                 version: db_version,
                 upgraded: false,
-            })
+            }))
             .is_err()
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
@@ -568,7 +606,7 @@ impl IndexedDBManager {
                         let _ = db.set_version(version);
                     }
                     // erroring out if the version is not upgraded can be and non-replicable
-                    let _ = sender.send(db.version().map_err(BackendError::from));
+                    let _ = sender.send(db.version().map_err(backend_error_from_sqlite_error));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
@@ -605,7 +643,7 @@ impl IndexedDBManager {
             },
             SyncOperation::Version(sender, origin, db_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = sender.send(db.version().map_err(BackendError::from));
+                    let _ = sender.send(db.version().map_err(backend_error_from_sqlite_error));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
