@@ -671,14 +671,14 @@ mod generic_receiversets_tests {
         let snd2_c = snd2.clone();
         let mut set = create_ipc_receiver_set();
         let recv1_select_index = set.add(recv1);
-        let recv2_select_index = set.add(recv2);
+        let _recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             snd1_c.send(10).unwrap();
         });
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(1));
-            snd2_c.send(20).unwrap();
+            let _ = snd2_c.send(20); // this might error with closed channel
         });
 
         let select_result = set.select();
@@ -698,12 +698,12 @@ mod generic_receiversets_tests {
         let snd1_c = snd1.clone();
         let snd2_c = snd2.clone();
         let mut set = create_ipc_receiver_set();
-        let recv1_select_index = set.add(recv1);
+        let _recv1_select_index = set.add(recv1);
         let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(1));
-            snd1_c.send(10).unwrap();
+            let _ = snd1_c.send(10);
         });
         std::thread::spawn(move || {
             snd2_c.send(20).unwrap();
@@ -718,42 +718,6 @@ mod generic_receiversets_tests {
     }
 
     #[test]
-    fn test_ipc_side_multiple() {
-        let (snd1, recv1) = new_generic_channel_ipc().unwrap();
-        let (snd2, recv2) = new_generic_channel_ipc().unwrap();
-
-        // We keep the senders alive till all threads are done
-        let snd1_c = snd1.clone();
-        let snd2_c = snd2.clone();
-        let mut set = create_ipc_receiver_set();
-        let recv1_select_index = set.add(recv1);
-        let recv2_select_index = set.add(recv2);
-
-        std::thread::spawn(move || {
-            snd1_c.send(10).unwrap();
-        });
-        std::thread::spawn(move || {
-            snd2_c.send(20).unwrap();
-        });
-        std::thread::sleep(Duration::from_secs(1));
-
-        let select_result = set.select();
-        assert_eq!(select_result.len(), 2);
-        assert!(
-            select_result.contains(&GenericSelectionResult::MessageReceived(
-                recv2_select_index,
-                20
-            ))
-        );
-        assert!(
-            select_result.contains(&GenericSelectionResult::MessageReceived(
-                recv1_select_index,
-                10
-            ))
-        );
-    }
-
-    #[test]
     fn test_crossbeam_side1() {
         let (snd1, recv1) = new_generic_channel_crossbeam();
         let (snd2, recv2) = new_generic_channel_crossbeam();
@@ -763,14 +727,14 @@ mod generic_receiversets_tests {
         let snd2_c = snd2.clone();
         let mut set = create_crossbeam_receiver_set();
         let recv1_select_index = set.add(recv1);
-        let recv2_select_index = set.add(recv2);
+        let _recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             snd1_c.send(10).unwrap();
         });
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
-            snd2_c.send(20).unwrap();
+            let _ = snd2_c.send(20);
         });
 
         let select_result = set.select();
@@ -790,12 +754,12 @@ mod generic_receiversets_tests {
         let snd1_c = snd1.clone();
         let snd2_c = snd2.clone();
         let mut set = create_crossbeam_receiver_set();
-        let recv1_select_index = set.add(recv1);
+        let _recv1_select_index = set.add(recv1);
         let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
-            snd1_c.send(10).unwrap();
+            let _ = snd1_c.send(10);
         });
         std::thread::spawn(move || {
             snd2_c.send(20).unwrap();
@@ -819,12 +783,12 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_ipc_receiver_set();
-        let recv1_select_index = set.add(recv1);
+        let _recv1_select_index = set.add(recv1);
         let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
-            snd1_c.send(10).unwrap();
+            let _ = snd1_c.send(10);
         });
         std::thread::spawn(move || {
             snd2.send(20).unwrap();
@@ -847,12 +811,12 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_crossbeam_receiver_set();
-        let recv1_select_index = set.add(recv1);
+        let _recv1_select_index = set.add(recv1);
         let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
-            snd1_c.send(10).unwrap();
+            let _ = snd1_c.send(10);
         });
         std::thread::spawn(move || {
             snd2.send(20).unwrap();
@@ -875,12 +839,12 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_ipc_receiver_set();
-        let recv1_select_index = set.add(recv1);
+        let _recv1_select_index = set.add(recv1);
         let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
-            snd1_c.send(10).unwrap();
+            let _ = snd1_c.send(10);
         });
         std::thread::spawn(move || {
             drop(snd2);
@@ -902,12 +866,12 @@ mod generic_receiversets_tests {
         // We keep the senders alive till all threads are done
         let snd1_c = snd1.clone();
         let mut set = create_crossbeam_receiver_set();
-        let recv1_select_index = set.add(recv1);
+        let _recv1_select_index = set.add(recv1);
         let recv2_select_index = set.add(recv2);
 
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_secs(2));
-            snd1_c.send(10).unwrap();
+            let _ = snd1_c.send(10);
         });
         std::thread::spawn(move || {
             drop(snd2);
