@@ -71,7 +71,7 @@ def run():
             "-b",
             "org.servo.servo",
             "-U",
-            "https://servospeedometer.netlify.app",
+            "about:blank",
             "--psn",
             "--webdriver",
         ],
@@ -80,15 +80,16 @@ def run():
         timeout=1,
     )
 
-    time.sleep(5)
+    time.sleep(1)
 
     common_function_for_servo_test.setup_hdc_forward()
     with HarmonyDevicePerfMode():
         driver = common_function_for_servo_test.create_driver()
         if driver is not None:
             try:
+                driver.get("https://servospeedometer.netlify.app")
+                driver.implicitly_wait(10)
                 start_button = driver.find_element(By.CLASS_NAME, "start-tests-button")
-                time.sleep(10)
                 print("Clicking start button")
                 start_button.click()
                 print("Waiting for speedometer run to finish")
