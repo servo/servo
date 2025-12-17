@@ -21,7 +21,7 @@ use url::Url;
 
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
-use crate::running_app_state::RunningAppState;
+use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
 pub(super) struct EmbeddedPlatformWindow {
@@ -309,21 +309,21 @@ impl App {
         &self.state.servoshell_preferences
     }
 
-    pub(crate) fn active_or_newest_webview(&self) -> Option<WebView> {
+    pub(crate) fn window(&self) -> Rc<ServoShellWindow> {
         self.state
             .windows()
             .values()
             .nth(0)
             .expect("Should always have one open window")
-            .active_or_newest_webview()
+            .clone()
+    }
+
+    pub(crate) fn active_or_newest_webview(&self) -> Option<WebView> {
+        self.window().active_or_newest_webview()
     }
 
     pub(crate) fn create_and_activate_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
-        self.state
-            .windows()
-            .values()
-            .nth(0)
-            .expect("Should always have one open window")
+        self.window()
             .create_and_activate_toplevel_webview(self.state.clone(), url)
     }
 
@@ -345,25 +345,17 @@ impl App {
     }
 
     /// Load an URL.
-    pub fn load_uri(&self, url: &str) {
-        if let Some(webview) = self.active_or_newest_webview() {
-            let Some(url) = crate::parser::location_bar_input_to_url(
-                url,
-                &self.servoshell_preferences().searchpage,
-            ) else {
-                warn!("Cannot parse URL");
-                return;
-            };
-            webview.load(url.into_url());
-        }
+    pub fn load_uri(&self, location: &str) {
+        self.window()
+            .queue_user_interface_command(UserInterfaceCommand::Go(location.into()));
+        self.spin_event_loop();
     }
 
     /// Reload the page.
     pub fn reload(&self) {
-        if let Some(webview) = self.active_or_newest_webview() {
-            webview.reload();
-            self.spin_event_loop();
-        }
+        self.window()
+            .queue_user_interface_command(UserInterfaceCommand::Reload);
+        self.spin_event_loop();
     }
 
     /// Stop loading the page.
@@ -373,18 +365,16 @@ impl App {
 
     /// Go back in history.
     pub fn go_back(&self) {
-        if let Some(webview) = self.active_or_newest_webview() {
-            webview.go_back(1);
-            self.spin_event_loop();
-        }
+        self.window()
+            .queue_user_interface_command(UserInterfaceCommand::Back);
+        self.spin_event_loop();
     }
 
     /// Go forward in history.
     pub fn go_forward(&self) {
-        if let Some(webview) = self.active_or_newest_webview() {
-            webview.go_forward(1);
-            self.spin_event_loop();
-        }
+        self.window()
+            .queue_user_interface_command(UserInterfaceCommand::Forward);
+        self.spin_event_loop();
     }
 
     /// Let Servo know that the window has been resized.

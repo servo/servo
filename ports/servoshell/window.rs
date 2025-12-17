@@ -53,6 +53,8 @@ pub(crate) struct ServoShellWindow {
     /// List of webviews that have favicon textures which are not yet uploaded
     /// to the GPU by egui.
     pending_favicon_loads: RefCell<Vec<WebViewId>>,
+    /// Pending [`UserInterfaceCommand`] that have yet to be processed by the main loop.
+    pending_commands: RefCell<Vec<UserInterfaceCommand>>,
 }
 
 impl ServoShellWindow {
@@ -64,6 +66,7 @@ impl ServoShellWindow {
             needs_update: Default::default(),
             needs_repaint: Default::default(),
             pending_favicon_loads: Default::default(),
+            pending_commands: Default::default(),
         }
     }
 
@@ -269,13 +272,18 @@ impl ServoShellWindow {
         self.set_needs_repaint();
     }
 
+    pub(crate) fn queue_user_interface_command(&self, command: UserInterfaceCommand) {
+        self.pending_commands.borrow_mut().push(command)
+    }
+
     /// Takes any events generated during UI updates and performs their actions.
     pub(crate) fn handle_interface_commands(
         &self,
         state: &Rc<RunningAppState>,
         create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
     ) {
-        for event in self.platform_window().take_user_interface_commands() {
+        let commands = std::mem::take(&mut *self.pending_commands.borrow_mut());
+        for event in commands {
             match event {
                 UserInterfaceCommand::Go(location) => {
                     self.set_needs_update();
@@ -377,9 +385,6 @@ pub(crate) trait PlatformWindow {
     /// makes more sense when we are mixing headed and headless windows.
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]
     fn handle_winit_app_event(&self, _: crate::desktop::event_loop::AppEvent) {}
-    fn take_user_interface_commands(&self) -> Vec<UserInterfaceCommand> {
-        Default::default()
-    }
     /// Request that the window redraw itself. It is up to the window to do this
     /// once the windowing system is ready. If this is a headless window, the redraw
     /// will happen immediately.
