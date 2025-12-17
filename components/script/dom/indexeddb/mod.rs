@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use storage_traits::indexeddb::BackendError;
+
+use crate::dom::bindings::error::Error;
+
 pub(crate) mod idbcursor;
 pub(crate) mod idbcursorwithvalue;
 pub(crate) mod idbdatabase;
@@ -13,3 +17,16 @@ pub(crate) mod idbopendbrequest;
 pub(crate) mod idbrequest;
 pub(crate) mod idbtransaction;
 pub(crate) mod idbversionchangeevent;
+
+pub(crate) fn map_backend_error_to_dom_error(error: BackendError) -> Error {
+    match error {
+        BackendError::QuotaExceeded => Error::QuotaExceeded {
+            quota: None,
+            requested: None,
+        },
+        BackendError::DbErr(details) => {
+            Error::Operation(Some(format!("IndexedDB open failed: {details}")))
+        },
+        other => Error::Operation(Some(format!("IndexedDB open failed: {other:?}"))),
+    }
+}

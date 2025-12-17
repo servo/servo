@@ -28,6 +28,7 @@ use crate::dom::indexeddb::idbfactory::DBName;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
+use crate::dom::map_backend_error_to_dom_error;
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 
@@ -64,7 +65,6 @@ impl OpenRequestListener {
                     connection
                 });
                 request.dispatch_success(&connection);
-                return;
             },
             OpenDatabaseResult::Upgrade {
                 version,
@@ -83,15 +83,14 @@ impl OpenRequestListener {
                     connection
                 });
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
-                return;
             },
             OpenDatabaseResult::VersionError => {
-                self.dispatch_error(Error::Version(None), can_gc);
                 // Step 2.1 If result is an error, see dispatch_error().
+                self.dispatch_error(Error::Version(None), can_gc);
             },
             OpenDatabaseResult::AbortError => {
-                self.dispatch_error(Error::Abort(None), can_gc);
                 // Step 2.1 If result is an error, see dispatch_error().
+                self.dispatch_error(Error::Abort(None), can_gc);
             },
         }
     }
@@ -158,19 +157,6 @@ impl OpenRequestListener {
                 event.fire(open_request.upcast(), can_gc);
             },
         }
-    }
-}
-
-fn map_backend_error_to_dom_error(error: BackendError) -> Error {
-    match error {
-        BackendError::QuotaExceeded => Error::QuotaExceeded {
-            quota: None,
-            requested: None,
-        },
-        BackendError::DbErr(details) => {
-            Error::Operation(Some(format!("IndexedDB open failed: {details}")))
-        },
-        other => Error::Operation(Some(format!("IndexedDB open failed: {other:?}"))),
     }
 }
 

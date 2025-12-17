@@ -7,17 +7,15 @@ mod engines;
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
-use std::error::Error as StdError;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use base::threadpool::ThreadPool;
-use libc::ENOSPC;
 use log::{debug, error, warn};
 use profile_traits::generic_callback::GenericCallback;
-use rusqlite::{Error as RusqliteError, ffi};
+use rusqlite::Error as RusqliteError;
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
@@ -28,6 +26,7 @@ use storage_traits::indexeddb::{
 use uuid::Uuid;
 
 use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
+use crate::shared::is_sqlite_disk_full_error;
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -202,52 +201,6 @@ fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
         BackendError::QuotaExceeded
     } else {
         BackendError::DbErr(format!("{err:?}"))
-    }
-}
-
-fn is_sqlite_disk_full_error(error: &RusqliteError) -> bool {
-    fn has_enospc(mut source: Option<&(dyn StdError + 'static)>) -> bool {
-        while let Some(err) = source {
-            if let Some(io_err) = err.downcast_ref::<std::io::Error>() {
-                if io_err.raw_os_error() == Some(ENOSPC) {
-                    return true;
-                }
-            }
-            source = err.source();
-        }
-        false
-    }
-
-    // Walk the full chain (including `error` itself).
-    let saw_enospc = has_enospc(Some(error as &(dyn StdError + 'static)));
-
-    match error {
-        RusqliteError::SqliteFailure(sqlite_err, _) => {
-            // High confidence "database or disk is full".
-            if sqlite_err.code == ffi::ErrorCode::DiskFull ||
-                sqlite_err.extended_code == ffi::SQLITE_FULL
-            {
-                return true;
-            }
-
-            // Only treat IO errors as quota-related if ENOSPC is present.
-            if saw_enospc &&
-                matches!(
-                    sqlite_err.extended_code,
-                    ffi::SQLITE_IOERR |
-                        ffi::SQLITE_IOERR_WRITE |
-                        ffi::SQLITE_IOERR_FSYNC |
-                        ffi::SQLITE_IOERR_DIR_FSYNC |
-                        ffi::SQLITE_IOERR_TRUNCATE |
-                        ffi::SQLITE_IOERR_MMAP
-                )
-            {
-                return true;
-            }
-
-            false
-        },
-        _ => saw_enospc,
     }
 }
 
@@ -473,9 +426,11 @@ impl IndexedDBManager {
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
                 // Note: done below with the zero as first tuple item.
 
-                // https://www.w3.org/TR/IndexedDB-2/#open-a-database
-                // Step 6: If db is null, let db be a new database with name name, version 0, and no object stores.
-                // If creation or opening fails, return an appropriate error to the open request.
+                // https://www.w3.org/TR/IndexedDB/#open-a-database-connection
+                // Step 6: If db is null, let db be a new database
+                // with name name, version 0 (zero), and with no object stores.
+                // If this fails for any reason, return an appropriate error
+                // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
                 let engine = match SqliteEngine::new(
                     idb_base_dir,
                     &idb_description,
@@ -483,7 +438,9 @@ impl IndexedDBManager {
                 ) {
                     Ok(engine) => engine,
                     Err(err) => {
-                        let _ = sender.send(Err(backend_error_from_sqlite_error(err)));
+                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                            debug!("Script exit during indexeddb database open {:?}", e);
+                        }
                         return;
                     },
                 };
@@ -492,7 +449,10 @@ impl IndexedDBManager {
                 let db_version = match db.version() {
                     Ok(version) => version,
                     Err(err) => {
-                        let _ = sender.send(Err(backend_error_from_sqlite_error(err)));
+                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                            debug!("Script exit during indexeddb database open {:?}", e);
+                        }
+
                         return;
                     },
                 };
@@ -510,7 +470,9 @@ impl IndexedDBManager {
                 let db_version = match db.get().version() {
                     Ok(version) => version,
                     Err(err) => {
-                        let _ = sender.send(Err(backend_error_from_sqlite_error(err)));
+                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                            debug!("Script exit during indexeddb database open {:?}", e);
+                        }
                         return;
                     },
                 };
