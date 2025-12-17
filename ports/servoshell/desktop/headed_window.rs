@@ -99,6 +99,8 @@ pub struct Window {
     dialogs: RefCell<HashMap<WebViewId, Vec<Dialog>>>,
     /// A list of showing [`InputMethod`] interfaces.
     visible_input_methods: RefCell<Vec<EmbedderControlId>>,
+    /// The position of the mouse cursor after the most recent `MouseMove` event.
+    last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
 }
 
 impl Window {
@@ -210,6 +212,7 @@ impl Window {
             last_title: RefCell::new(String::from(INITIAL_WINDOW_TITLE)),
             dialogs: Default::default(),
             visible_input_methods: Default::default(),
+            last_mouse_position: Default::default(),
         })
     }
 
@@ -602,6 +605,27 @@ impl PlatformWindow for Window {
             gui.paint(&self.winit_window);
         }
 
+        let forward_mouse_event_to_egui = |point: Option<PhysicalPosition<f64>>| {
+            if window
+                .active_webview()
+                .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
+            {
+                return true;
+            }
+
+            let Some(point) = point
+                .map(|point| {
+                    winit_position_to_euclid_point(point).to_f32() / self.hidpi_scale_factor()
+                })
+                .or(self.last_mouse_position.get())
+            else {
+                return true;
+            };
+
+            self.last_mouse_position.set(Some(point));
+            self.gui.borrow().is_in_egui_toolbar_rect(point)
+        };
+
         // Handle the event
         let mut consumed = false;
         match event {
@@ -627,6 +651,30 @@ impl PlatformWindow for Window {
                 // the GUI, and present the new frame.
                 self.winit_window.request_redraw();
             },
+            WindowEvent::CursorMoved { position, .. }
+                if !forward_mouse_event_to_egui(Some(position)) => {},
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Forward,
+                ..
+            } => {
+                window.queue_user_interface_command(UserInterfaceCommand::Forward);
+                consumed = true;
+            },
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Back,
+                ..
+            } => {
+                window.queue_user_interface_command(UserInterfaceCommand::Back);
+                consumed = true;
+            },
+            WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
+                if !forward_mouse_event_to_egui(None) => {},
+            WindowEvent::KeyboardInput { .. } if !self.gui.borrow().has_keyboard_focus() => {
+                // Keyboard events should go to the WebView unless some other GUI
+                // component has keyboard focus.
+            },
             ref event => {
                 let response = self
                     .gui
@@ -645,19 +693,6 @@ impl PlatformWindow for Window {
                 // Note that servo doesn’t yet support tabbing through links and inputs
                 consumed = response.consumed;
             },
-        }
-
-        if matches!(
-            event,
-            WindowEvent::CursorMoved { .. } |
-                WindowEvent::MouseInput { .. } |
-                WindowEvent::MouseWheel { .. } |
-                WindowEvent::KeyboardInput { .. }
-        ) && window
-            .active_webview()
-            .is_some_and(|webview| self.has_active_dialog_for_webview(webview.id()))
-        {
-            consumed = true;
         }
 
         if !consumed {
@@ -1081,10 +1116,6 @@ impl PlatformWindow for Window {
 
     fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
         self.dialogs.borrow_mut().remove(&webview_id);
-    }
-
-    fn take_user_interface_commands(&self) -> Vec<UserInterfaceCommand> {
-        self.gui.borrow_mut().take_user_interface_commands()
     }
 }
 

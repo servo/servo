@@ -22,11 +22,10 @@ use servo::{
     RenderingContext, WebView, WebViewId,
 };
 use url::Url;
-use winit::event::{ElementState, MouseButton, WindowEvent};
+use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::Window;
 
-use super::geometry::winit_position_to_euclid_point;
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
@@ -37,10 +36,8 @@ use crate::window::ServoShellWindow;
 pub struct Gui {
     rendering_context: Rc<OffscreenRenderingContext>,
     context: EguiGlow,
-    event_queue: Vec<UserInterfaceCommand>,
     toolbar_height: Length<f32, DeviceIndependentPixel>,
 
-    last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: String,
 
     /// Whether the location has been edited by the user without clicking Go.
@@ -119,9 +116,7 @@ impl Gui {
         Self {
             rendering_context,
             context,
-            event_queue: vec![],
             toolbar_height: Default::default(),
-            last_mouse_position: None,
             location: initial_url.to_string(),
             location_dirty: false,
             load_status: LoadStatus::Complete,
@@ -132,8 +127,10 @@ impl Gui {
         }
     }
 
-    pub(crate) fn take_user_interface_commands(&mut self) -> Vec<UserInterfaceCommand> {
-        std::mem::take(&mut self.event_queue)
+    pub(crate) fn has_keyboard_focus(&self) -> bool {
+        self.context
+            .egui_ctx
+            .memory(|memory| memory.focused().is_some())
     }
 
     pub(crate) fn on_window_event(
@@ -141,58 +138,6 @@ impl Gui {
         winit_window: &Window,
         event: &WindowEvent,
     ) -> EventResponse {
-        match event {
-            WindowEvent::CursorMoved { position, .. } => {
-                let scale = Scale::<_, DeviceIndependentPixel, _>::new(
-                    self.context.egui_ctx.pixels_per_point(),
-                );
-
-                let point = winit_position_to_euclid_point(*position).to_f32() / scale;
-                self.last_mouse_position = Some(point);
-                if !self.is_in_egui_toolbar_rect(point) {
-                    return EventResponse::default();
-                }
-            },
-            WindowEvent::MouseInput {
-                state: ElementState::Pressed,
-                button: MouseButton::Forward,
-                ..
-            } => {
-                self.event_queue.push(UserInterfaceCommand::Forward);
-                return EventResponse {
-                    consumed: true,
-                    repaint: false,
-                };
-            },
-            WindowEvent::MouseInput {
-                state: ElementState::Pressed,
-                button: MouseButton::Back,
-                ..
-            } => {
-                self.event_queue.push(UserInterfaceCommand::Back);
-                return EventResponse {
-                    consumed: true,
-                    repaint: false,
-                };
-            },
-            WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
-                if self
-                    .last_mouse_position
-                    .is_some_and(|point| !self.is_in_egui_toolbar_rect(point)) =>
-            {
-                return EventResponse::default();
-            },
-            WindowEvent::KeyboardInput { .. }
-                if self
-                    .context
-                    .egui_ctx
-                    .memory(|memory| memory.focused().is_none()) =>
-            {
-                return EventResponse::default();
-            },
-            _ => {},
-        };
-
         self.context.on_window_event(winit_window, event)
     }
 
@@ -203,7 +148,10 @@ impl Gui {
     }
 
     /// Return true iff the given position is over the egui toolbar.
-    fn is_in_egui_toolbar_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
+    pub(crate) fn is_in_egui_toolbar_rect(
+        &self,
+        position: Point2D<f32, DeviceIndependentPixel>,
+    ) -> bool {
         position.y < self.toolbar_height.get()
     }
 
@@ -221,7 +169,6 @@ impl Gui {
         ui: &mut egui::Ui,
         window: &ServoShellWindow,
         webview: WebView,
-        event_queue: &mut Vec<UserInterfaceCommand>,
         favicon_texture: Option<egui::load::SizedTexture>,
     ) {
         let label = match (webview.page_title(), webview.url()) {
@@ -284,7 +231,8 @@ impl Gui {
                 info
             });
             if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
-                event_queue.push(UserInterfaceCommand::CloseWebView(webview.id()))
+                window
+                    .queue_user_interface_command(UserInterfaceCommand::CloseWebView(webview.id()));
             } else if !active && tab.clicked() {
                 window.activate_webview(webview.id());
             }
@@ -313,7 +261,6 @@ impl Gui {
         let Self {
             rendering_context,
             context,
-            event_queue,
             toolbar_height,
             location,
             location_dirty,
@@ -345,7 +292,7 @@ impl Gui {
                             });
                             if back_button.clicked() {
                                 *location_dirty = false;
-                                event_queue.push(UserInterfaceCommand::Back);
+                                window.queue_user_interface_command(UserInterfaceCommand::Back);
                             }
 
                             let forward_button =
@@ -357,7 +304,7 @@ impl Gui {
                             });
                             if forward_button.clicked() {
                                 *location_dirty = false;
-                                event_queue.push(UserInterfaceCommand::Forward);
+                                window.queue_user_interface_command(UserInterfaceCommand::Forward);
                             }
 
                             match self.load_status {
@@ -381,7 +328,9 @@ impl Gui {
                                     });
                                     if reload_button.clicked() {
                                         *location_dirty = false;
-                                        event_queue.push(UserInterfaceCommand::Reload);
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Reload,
+                                        );
                                     }
                                 },
                             }
@@ -407,7 +356,9 @@ impl Gui {
                                             experimental_preferences_enabled,
                                         );
                                         *location_dirty = false;
-                                        event_queue.push(UserInterfaceCommand::ReloadAll);
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::ReloadAll,
+                                        );
                                     }
 
                                     let location_id = egui::Id::new("location_input");
@@ -450,8 +401,9 @@ impl Gui {
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
-                                        event_queue
-                                            .push(UserInterfaceCommand::Go(location.clone()));
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Go(location.clone()),
+                                        );
                                     }
                                 },
                             );
@@ -470,7 +422,7 @@ impl Gui {
                                     .get(&id)
                                     .map(|(_, favicon)| favicon)
                                     .copied();
-                                Self::browser_tab(ui, window, webview, event_queue, favicon);
+                                Self::browser_tab(ui, window, webview, favicon);
                             }
 
                             let new_tab_button = ui.add(Gui::toolbar_button("+"));
@@ -480,7 +432,8 @@ impl Gui {
                                 info
                             });
                             if new_tab_button.clicked() {
-                                event_queue.push(UserInterfaceCommand::NewWebView);
+                                window
+                                    .queue_user_interface_command(UserInterfaceCommand::NewWebView);
                             }
 
                             let new_window_button = ui.add(Gui::toolbar_button("⊞"));
@@ -490,7 +443,8 @@ impl Gui {
                                 info
                             });
                             if new_window_button.clicked() {
-                                event_queue.push(UserInterfaceCommand::NewWindow);
+                                window
+                                    .queue_user_interface_command(UserInterfaceCommand::NewWindow);
                             }
                         },
                     );
