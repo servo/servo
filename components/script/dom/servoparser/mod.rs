@@ -179,18 +179,21 @@ impl ServoParser {
         document: &Document,
         input: Option<DOMString>,
         url: ServoUrl,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
         can_gc: CanGc,
     ) {
         // Step 1. Set document's type to "html".
         //
         // Set by callers of this function and asserted here
         assert!(document.is_html_document());
+
         // Step 2. Create an HTML parser parser, associated with document.
         let parser = if pref!(dom_servoparser_async_html_tokenizer_enabled) {
             ServoParser::new(
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
                 ParserKind::Normal,
+                encoding_hint_from_content_type,
                 can_gc,
             )
         } else {
@@ -203,6 +206,7 @@ impl ServoParser {
                     ParsingAlgorithm::Normal,
                 )),
                 ParserKind::Normal,
+                encoding_hint_from_content_type,
                 can_gc,
             )
         };
@@ -288,6 +292,7 @@ impl ServoParser {
                 ParsingAlgorithm::Fragment,
             )),
             ParserKind::Normal,
+            None,
             can_gc,
         );
         parser.parse_complete_string_chunk(String::from(input), can_gc);
@@ -309,6 +314,7 @@ impl ServoParser {
                 ParsingAlgorithm::Normal,
             )),
             ParserKind::ScriptCreated,
+            None,
             CanGc::note(),
         );
         *parser.bom_sniff.borrow_mut() = None;
@@ -319,12 +325,14 @@ impl ServoParser {
         document: &Document,
         input: Option<DOMString>,
         url: ServoUrl,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
         can_gc: CanGc,
     ) {
         let parser = ServoParser::new(
             document,
             Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
             ParserKind::Normal,
+            encoding_hint_from_content_type,
             can_gc,
         );
 
@@ -492,7 +500,12 @@ impl ServoParser {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_inherited(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> Self {
+    fn new_inherited(
+        document: &Document,
+        tokenizer: Tokenizer,
+        kind: ParserKind,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+    ) -> Self {
         // Store the whole input for the devtools Sources panel, if the devtools server is running
         // and we are parsing for a document load (not just things like innerHTML).
         // TODO: check if a devtools client is actually connected and/or wants the sources?
@@ -504,7 +517,9 @@ impl ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
             bom_sniff: DomRefCell::new(Some(Vec::with_capacity(3))),
-            network_decoder: DomRefCell::new(NetworkDecoderState::new()),
+            network_decoder: DomRefCell::new(NetworkDecoderState::new(
+                encoding_hint_from_content_type,
+            )),
             network_input: BufferQueue::default(),
             script_input: BufferQueue::default(),
             tokenizer,
@@ -524,10 +539,16 @@ impl ServoParser {
         document: &Document,
         tokenizer: Tokenizer,
         kind: ParserKind,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(ServoParser::new_inherited(document, tokenizer, kind)),
+            Box::new(ServoParser::new_inherited(
+                document,
+                tokenizer,
+                kind,
+                encoding_hint_from_content_type,
+            )),
             document.window(),
             can_gc,
         )

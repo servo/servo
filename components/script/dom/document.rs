@@ -4770,7 +4770,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             can_gc,
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, can_gc);
+        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, can_gc);
         // Step 5. Return document.
         document.set_ready_state(DocumentReadyState::Complete, can_gc);
         Ok(document)
