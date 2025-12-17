@@ -1,10 +1,5 @@
 #!/usr/bin/env -S uv run --script
 
-# /// script
-# requires-python = ">=3.12"
-# dependencies = ["selenium"]
-# ///
-
 # Copyright 2025 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
 #
@@ -13,6 +8,10 @@
 # <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["selenium"]
+# ///
 
 import argparse
 import json
@@ -131,10 +130,17 @@ def write_file(results):
         json.dump(results, f)
 
 
+def oswalk_error(error: OSError):
+    print(error)
+    sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run Blink Perf Tests on Servo Instance.")
     parser.add_argument("servo_path", type=str, help="the servo binary")
-    parser.add_argument('-w', '--webdriver', default=7000, type=int, action="store", help="The webdriver port servo will listen on.")
+    parser.add_argument(
+        "-w", "--webdriver", default=7000, type=int, action="store", help="The webdriver port servo will listen on."
+    )
     parser.add_argument(
         "-p",
         "--prepend",
@@ -148,14 +154,14 @@ def main():
     time.sleep(2)
     if webdriver:
         webdriver.implicitly_wait(30)
-        for root, dir, files in os.walk("../../tests/blink_perf_tests/perf_tests/layout"):
+        for root, dir, files in os.walk("tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
             for file in files:
                 if test_file(file):
                     filePath = os.path.join(os.path.abspath(root), file)
                     result = test("file://" + filePath, webdriver)
                     if result == AbortReason.Panic:
                         print("Restarting servo")
-                        start_servo(args.servo_path)
+                        start_servo(args.webdriver, args.servo_path)
                     elif result == AbortReason.NotFound:
                         pass
                     else:
