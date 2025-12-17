@@ -6968,6 +6968,12 @@ class CGInterfaceTrait(CGThing):
                 yield "retval", outparamTypeFromReturnType(attribute_type)
 
         def members() -> Iterator[tuple[str, Iterable[tuple[str, str]], str, bool]]:
+            # Some attributes only differ by the capitalization of a character in the name. For
+            # example CSSStyleDeclaration.webkitTransform and CSSStyleDeclaration.WebKitTransform
+            # are both exposed. In this case the code generation for the binding maps to the same
+            # attribute name, so we can skip the second one in the trait.
+            used_names = set()
+
             for m in descriptor.interface.members:
                 if (m.isMethod()
                         and not m.isMaplikeOrSetlikeOrIterableMethod()
@@ -6988,6 +6994,13 @@ class CGInterfaceTrait(CGThing):
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
                 elif m.isAttr():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
+
+                    # If this attribute is a repetition due to capitalization differences in the JavaScript
+                    # name, just skip the subsequent ones.
+                    if name in used_names:
+                        continue
+                    used_names.add(name)
+
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
                     yield (name,
                            attribute_arguments(

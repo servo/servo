@@ -149,24 +149,48 @@ def attribute_names(property_name: str) -> Iterator[str]:
     else:
         yield "_float"
 
-    # https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-camel-cased-attribute
+    # From https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-camel-cased-attribute
+    # The camel-cased attribute attribute, on getting, must return the result of invoking
+    # getPropertyValue() with the argument being the result of running the IDL attribute
+    # to CSS property algorithm for camel-cased attribute.
     if "-" in property_name:
-        yield "".join(camel_case(property_name))
+        yield "".join(camel_case(property_name, False))
+
+    # For each CSS property property that is a supported CSS property and that begins with
+    # the string -webkit-, the following partial interface applies where webkit-cased
+    # attribute is obtained by running the CSS property to IDL attribute algorithm for
+    # property, with the lowercase first flag set.
+    if property_name.startswith("-webkit"):
+        yield "".join(camel_case(property_name, True))
 
 
 
 # https://drafts.csswg.org/cssom/#css-property-to-idl-attribute
-def camel_case(chars: str) -> Iterator[str]:
-    next_is_uppercase = False
-    for c in chars:
-        if c == '-':
-            next_is_uppercase = True
-        elif next_is_uppercase:
-            next_is_uppercase = False
+def camel_case(property: str, lowercase_first: bool) -> Iterator[str]:
+    # The CSS property to IDL attribute algorithm for property, optionally with a
+    # *lowercase first* flag set, is as follows:
+    # Step 1. Let output be the empty string.
+    # Step 2. Let *uppercase next* be unset.
+    uppercase_next = False
+
+    # Step 3: If the *lowercase first* flag is set, remove the first character from property.
+    if lowercase_first:
+        property = property[1:]
+
+    # Step 4. For each character c in property:
+    for character in property:
+        # Step 4.1: If c is "-" (U+002D), let *uppercase next* be set.
+        if character == '-':
+            uppercase_next = True
+        # Step 4.2: Otherwise, if *uppercase next* is set, let *uppercase next* be unset and
+        #           append c converted to ASCII uppercase to output.
+        elif uppercase_next:
+            uppercase_next = False
             # Should be ASCII-uppercase, but all non-custom CSS property names are within ASCII
-            yield c.upper()
+            yield character.upper()
+        # Otherwise, append c to output.
         else:
-            yield c
+            yield character
 
 
 if __name__ == "__main__":
