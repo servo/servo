@@ -565,6 +565,7 @@ impl IndexedDBManager {
 
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
+            SyncOperation::GetDatabases(sender, origin) => {},
             SyncOperation::CloseDatabase(sender, origin, db_name) => {
                 // TODO: Wait for all transactions created using connection to complete.
                 // Note: current behavior is as if the `forced` flag is always set.
