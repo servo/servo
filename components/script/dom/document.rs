@@ -2136,6 +2136,9 @@ impl Document {
 
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
+
+        // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
+        // TODO
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
@@ -2152,14 +2155,16 @@ impl Document {
         // See https://github.com/servo/servo/issues/22507
         let not_ready_for_load = self.loader.borrow().is_blocked() ||
             !self.is_fully_active() ||
-            is_in_delaying_load_events_mode;
+            is_in_delaying_load_events_mode ||
+            // In case we have already aborted this document and receive a
+            // a subsequent message to load the document
+            self.loader.borrow().events_inhibited();
 
         if not_ready_for_load {
             // Step 6.
             return;
         }
 
-        assert!(!self.loader.borrow().events_inhibited());
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
@@ -2463,7 +2468,86 @@ impl Document {
         // TODO: client message queue.
     }
 
-    // https://html.spec.whatwg.org/multipage/#abort-a-document
+    /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
+    pub(crate) fn destroy_document_and_its_descendants(&self, can_gc: CanGc) {
+        // Step 1. If document is not fully active, then:
+        if !self.is_fully_active() {
+            // Step 1.1. Let reason be a string from user-agent specific blocking reasons.
+            // If none apply, then let reason be "masked".
+            // TODO
+            // Step 1.2. Make document unsalvageable given document and reason.
+            self.salvageable.set(false);
+            // Step 1.3. If document's node navigable is a top-level traversable,
+            // build not restored reasons for a top-level traversable and its descendants given document's node navigable.
+            // TODO
+        }
+        // TODO(#31973): all of the steps below are implemented synchronously at the moment.
+        // They need to become asynchronous later, at which point the counting of
+        // numberDestroyed becomes relevant.
+
+        // Step 2. Let childNavigables be document's child navigables.
+        // Step 3. Let numberDestroyed be 0.
+        // Step 4. For each childNavigable of childNavigables, queue a global task on
+        // the navigation and traversal task source given childNavigable's active
+        // window to perform the following steps:
+        // Step 4.1. Let incrementDestroyed be an algorithm step which increments numberDestroyed.
+        // Step 4.2. Destroy a document and its descendants given childNavigable's active document and incrementDestroyed.
+        // Step 5. Wait until numberDestroyed equals childNavigable's size.
+        for exited_iframe in self.iframes().iter() {
+            debug!("Destroying nested iframe document");
+            exited_iframe.destroy_document_and_its_descendants(can_gc);
+        }
+        // Step 6. Queue a global task on the navigation and traversal task source
+        // given document's relevant global object to perform the following steps:
+        // TODO
+        // Step 6.1. Destroy document.
+        self.destroy(can_gc);
+        // Step 6.2. If afterAllDestruction was given, then run it.
+        // TODO
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#destroy-a-document>
+    pub(crate) fn destroy(&self, can_gc: CanGc) {
+        let exited_window = self.window();
+        // Step 2. Abort document.
+        self.abort(can_gc);
+        // Step 3. Set document's salvageable state to false.
+        self.salvageable.set(false);
+        // Step 4. Let ports be the list of MessagePorts whose relevant
+        // global object's associated Document is document.
+        // TODO
+
+        // Step 5. For each port in ports, disentangle port.
+        // TODO
+
+        // Step 6. Run any unloading document cleanup steps for document that
+        // are defined by this specification and other applicable specifications.
+        self.unloading_cleanup_steps();
+
+        // Step 7. Remove any tasks whose document is document from any task queue
+        // (without running those tasks).
+        exited_window
+            .as_global_scope()
+            .task_manager()
+            .cancel_all_tasks_and_ignore_future_tasks();
+
+        // Step 8. Set document's browsing context to null.
+        exited_window.discard_browsing_context();
+
+        // Step 9. Set document's node navigable's active session history entry's
+        // document state's document to null.
+        // TODO
+
+        // Step 10. Remove document from the owner set of each WorkerGlobalScope
+        // object whose set contains document.
+        // TODO
+
+        // Step 11. For each workletGlobalScope in document's worklet global scopes,
+        // terminate workletGlobalScope.
+        // TODO
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
     pub(crate) fn abort(&self, can_gc: CanGc) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
@@ -2471,9 +2555,7 @@ impl Document {
         // Step 1.
         for iframe in self.iframes().iter() {
             if let Some(document) = iframe.GetContentDocument() {
-                // TODO: abort the active documents of every child browsing context.
                 document.abort(can_gc);
-                // TODO: salvageable flag.
             }
         }
 

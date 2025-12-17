@@ -624,6 +624,77 @@ impl HTMLIFrameElement {
                 parse_a_sandboxing_directive(&tokens)
             }));
     }
+
+    /// Step 4.2. of <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
+    pub(crate) fn destroy_document_and_its_descendants(&self, can_gc: CanGc) {
+        let Some(pipeline_id) = self.pipeline_id.get() else {
+            return;
+        };
+        // Step 4.2. Destroy a document and its descendants given childNavigable's active document and incrementDestroyed.
+        if let Some(exited_document) = ScriptThread::find_document(pipeline_id) {
+            exited_document.destroy_document_and_its_descendants(can_gc);
+        }
+        self.destroy_nested_browsing_context();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#destroy-a-child-navigable>
+    fn destroy_child_navigable(&self, can_gc: CanGc) {
+        let blocker = &self.load_blocker;
+        LoadBlocker::terminate(blocker, CanGc::note());
+
+        // Step 1. Let navigable be container's content navigable.
+        let Some(browsing_context_id) = self.browsing_context_id() else {
+            // Step 2. If navigable is null, then return.
+            return;
+        };
+        // Store now so that we can destroy the context and delete the
+        // document later
+        let pipeline_id = self.pipeline_id.get();
+
+        // Step 3. Set container's content navigable to null.
+        //
+        // Resetting the pipeline_id to None is required here so that
+        // if this iframe is subsequently re-added to the document
+        // the load doesn't think that it's a navigation, but instead
+        // a new iframe. Without this, the constellation gets very
+        // confused.
+        self.destroy_nested_browsing_context();
+
+        // Step 4. Inform the navigation API about child navigable destruction given navigable.
+        // TODO
+
+        // Step 5. Destroy a document and its descendants given navigable's active document.
+        let (sender, receiver) =
+            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let msg = ScriptToConstellationMessage::RemoveIFrame(browsing_context_id, sender);
+        self.owner_window()
+            .as_global_scope()
+            .script_to_constellation_chan()
+            .send(msg)
+            .unwrap();
+        let _exited_pipeline_ids = receiver.recv().unwrap();
+        let Some(pipeline_id) = pipeline_id else {
+            return;
+        };
+        if let Some(exited_document) = ScriptThread::find_document(pipeline_id) {
+            exited_document.destroy_document_and_its_descendants(can_gc);
+        }
+
+        // Step 6. Let parentDocState be container's node navigable's active session history entry's document state.
+        // TODO
+
+        // Step 7. Remove the nested history from parentDocState's nested histories whose id equals navigable's id.
+        // TODO
+
+        // Step 8. Let traversable be container's node navigable's traversable navigable.
+        // TODO
+
+        // Step 9. Append the following session history traversal steps to traversable:
+        // TODO
+
+        // Step 10. Invoke WebDriver BiDi navigable destroyed with navigable.
+        // TODO
+    }
 }
 
 pub(crate) trait HTMLIFrameElementLayoutMethods {
@@ -906,58 +977,12 @@ impl VirtualMethods for HTMLIFrameElement {
         self.owner_document().invalidate_iframes_collection();
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-removing-steps>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
-        let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, CanGc::note());
-
-        // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-        let window = self.owner_window();
-        let (sender, receiver) =
-            ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-
-        // Ask the constellation to remove the iframe, and tell us the
-        // pipeline ids of the closed pipelines.
-        let browsing_context_id = match self.browsing_context_id() {
-            None => return warn!("Unbinding already unbound iframe."),
-            Some(id) => id,
-        };
-        debug!("Unbinding frame {}.", browsing_context_id);
-
-        let msg = ScriptToConstellationMessage::RemoveIFrame(browsing_context_id, sender);
-        window
-            .as_global_scope()
-            .script_to_constellation_chan()
-            .send(msg)
-            .unwrap();
-        let exited_pipeline_ids = receiver.recv().unwrap();
-
-        // The spec for discarding is synchronous,
-        // so we need to discard the browsing contexts now, rather than
-        // when the `PipelineExit` message arrives.
-        for exited_pipeline_id in exited_pipeline_ids {
-            // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-            if let Some(exited_document) = ScriptThread::find_document(exited_pipeline_id) {
-                debug!(
-                    "Discarding browsing context for pipeline {}",
-                    exited_pipeline_id
-                );
-                let exited_window = exited_document.window();
-                exited_window.discard_browsing_context();
-                for exited_iframe in exited_document.iframes().iter() {
-                    debug!("Discarding nested browsing context");
-                    exited_iframe.destroy_nested_browsing_context();
-                }
-            }
-        }
-
-        // Resetting the pipeline_id to None is required here so that
-        // if this iframe is subsequently re-added to the document
-        // the load doesn't think that it's a navigation, but instead
-        // a new iframe. Without this, the constellation gets very
-        // confused.
-        self.destroy_nested_browsing_context();
+        // The iframe HTML element removing steps, given removedNode, are to destroy a child navigable given removedNode
+        self.destroy_child_navigable(can_gc);
 
         self.owner_document().invalidate_iframes_collection();
     }
