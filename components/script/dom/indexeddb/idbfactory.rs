@@ -163,7 +163,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         Ok(request)
     }
 
-    /// https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases>
     fn Databases(&self, can_gc: CanGc) -> Rc<Promise> {
         // Step 1: Let environment be this’s relevant settings object
         let global = self.global();

@@ -121,7 +121,7 @@ impl OpenRequestListener {
     }
 
     /// The contionuation of the parallel steps of
-    /// https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase>
     fn handle_delete_db(&self, result: BackendResult<u64>, can_gc: CanGc) {
         // Step 4.1: Let result be the result of deleting a database, with storageKey, name, and request.
         // Note: done with the `result` argument.
