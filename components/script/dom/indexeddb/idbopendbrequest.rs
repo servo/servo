@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
@@ -47,6 +49,20 @@ impl OpenRequestListener {
         let name = DBName(name);
         match response {
             OpenDatabaseResult::Connection { version, upgraded } => {
+                // IndexedDB 3.0 — 5.1 Opening a database connection
+                // https://w3c.github.io/IndexedDB/#open-a-database-connection
+                // Step 10.7: “If connection was closed, return a newly created "AbortError" DOMException and abort these steps.”
+                // Step 10.8: “If request’s error is set, run the steps to close a database connection with connection, return a newly
+                // created "AbortError" DOMException and abort these steps.”
+                if request.upgrade_aborted() {
+                    self.dispatch_error(Error::Abort(None), can_gc);
+                    return;
+                }
+                if request.upgrade_aborted() {
+                    self.dispatch_error(Error::Abort(None), can_gc);
+                    return;
+                }
+
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
                 // set request’s done flag,
@@ -163,12 +179,14 @@ impl OpenRequestListener {
 #[dom_struct]
 pub struct IDBOpenDBRequest {
     idbrequest: IDBRequest,
+    upgrade_aborted: Cell<bool>,
 }
 
 impl IDBOpenDBRequest {
     pub fn new_inherited() -> IDBOpenDBRequest {
         IDBOpenDBRequest {
             idbrequest: IDBRequest::new_inherited(),
+            upgrade_aborted: Cell::new(false),
         }
     }
 
@@ -200,6 +218,7 @@ impl IDBOpenDBRequest {
             transaction,
             can_gc,
         );
+        transaction.set_upgrade_request(Some(self));
         connection.set_transaction(&transaction);
 
         rooted!(in(*cx) let mut connection_val = UndefinedValue());
@@ -374,6 +393,14 @@ impl IDBOpenDBRequest {
                 event.fire(this.upcast(), CanGc::note());
             }),
         );
+    }
+
+    pub(crate) fn mark_upgrade_aborted(&self) {
+        self.upgrade_aborted.set(true);
+    }
+
+    pub(crate) fn upgrade_aborted(&self) -> bool {
+        self.upgrade_aborted.get()
     }
 }
 

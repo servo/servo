@@ -32,6 +32,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::dom::types::IDBOpenDBRequest;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -58,6 +59,7 @@ pub struct IDBTransaction {
     // An unique identifier, used to commit and revert this transaction
     // FIXME:(rasviitanen) Replace this with a channel
     serial_number: u64,
+    upgrade_request: MutNullableDom<IDBOpenDBRequest>,
 }
 
 impl IDBTransaction {
@@ -80,6 +82,17 @@ impl IDBTransaction {
             finished: Cell::new(false),
             pending_request_count: Cell::new(0),
             serial_number,
+            upgrade_request: MutNullableDom::new(None),
+        }
+    }
+
+    pub fn set_upgrade_request(&self, request: Option<&IDBOpenDBRequest>) {
+        self.upgrade_request.set(request);
+    }
+
+    fn notify_upgrade_request_aborted(&self) {
+        if let Some(request) = self.upgrade_request.get() {
+            request.mark_upgrade_aborted();
         }
     }
 
@@ -354,6 +367,10 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         }
 
         self.active.set(false);
+
+        // IndexedDB 3.0 — https://w3c.github.io/IndexedDB/#open-a-database-connection
+        // Step 10.7 / 10.8 require the open request to complete with "AbortError" when the versionchange upgrade is aborted.
+        self.notify_upgrade_request_aborted();
 
         Ok(())
     }
