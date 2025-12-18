@@ -42,7 +42,7 @@ use embedder_traits::{
     WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
-use euclid::{Point2D, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, WebFontDocumentContext};
 use ipc_channel::ipc::IpcSender;
 use js::glue::DumpJSStack;
@@ -175,6 +175,7 @@ use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{ImageBitmap, UIEvent};
+use crate::dom::visualviewport::VisualViewport;
 use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -455,6 +456,10 @@ pub(crate) struct Window {
 
     /// Whether or not this [`Window`] has a pending screenshot readiness request.
     has_pending_screenshot_readiness_request: Cell<bool>,
+
+    /// Visual viewport interface that is associated to this [`Window`].
+    /// <https://drafts.csswg.org/cssom-view/#visualviewport>
+    visual_viewport: MutNullableDom<VisualViewport>,
 }
 
 impl Window {
@@ -1563,8 +1568,28 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     window_event_handlers!();
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Window/screen>
-    fn Screen(&self) -> DomRoot<Screen> {
-        self.screen.or_init(|| Screen::new(self, CanGc::note()))
+    fn Screen(&self, can_gc: CanGc) -> DomRoot<Screen> {
+        self.screen.or_init(|| Screen::new(self, can_gc))
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#visualviewport>
+    fn GetVisualViewport(&self, can_gc: CanGc) -> Option<DomRoot<VisualViewport>> {
+        // Visual viewport is only relevant when the document is fully active.
+        if !self.document.get()?.is_fully_active() {
+            return None;
+        }
+
+        // TODO(#41341): we are only initializing the visual viewport here, but it is never updated.
+        Some(self.visual_viewport.or_init(|| {
+            VisualViewport::new_from_layout_viewport(
+                self,
+                Rect::new(
+                    self.scroll_offset().to_point().cast_unit(),
+                    self.viewport_details().size,
+                ),
+                can_gc,
+            )
+        }))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
@@ -3539,6 +3564,7 @@ impl Window {
             endpoints_list: Default::default(),
             script_window_proxies: ScriptThread::window_proxies(),
             has_pending_screenshot_readiness_request: Default::default(),
+            visual_viewport: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)

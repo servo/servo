@@ -103,6 +103,7 @@ dictionary ScrollToOptions : ScrollOptions {
 partial interface Window {
   [Exposed=(Window), NewObject] MediaQueryList matchMedia(DOMString query);
   [SameObject, Replaceable] readonly attribute Screen screen;
+  [SameObject, Replaceable] readonly attribute VisualViewport? visualViewport;
 
   // browsing context
   undefined moveTo(long x, long y);
