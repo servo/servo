@@ -184,16 +184,16 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                 let can_gc = CanGc::note();
                 let factory = trusted_clone.root();
                 match result {
-                Err(_) => factory.reject_pending_db_info_promise(can_gc),
-                Ok(info_list) => {
-                    let info_list: Vec<IDBDatabaseInfo> = info_list
-                        .into_iter()
-                        .map(|info| IDBDatabaseInfo {
-                            name: Some(DOMString::from(info.name)),
-                            version: Some(info.version),
+                    Err(_) => factory.reject_pending_db_info_promise(can_gc),
+                    Ok(info_list) => {
+                        let info_list: Vec<IDBDatabaseInfo> = info_list
+                            .into_iter()
+                            .map(|info| IDBDatabaseInfo {
+                                name: Some(DOMString::from(info.name)),
+                                version: Some(info.version),
                         })
                         .collect();
-                    factory.resolve_pending_db_info_promise(info_list, can_gc);
+                         factory.resolve_pending_db_info_promise(info_list, can_gc);
                 },
             }
             }));
