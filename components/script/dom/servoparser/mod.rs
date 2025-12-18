@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{RefCell, Cell};
 use std::rc::Rc;
+use std::mem;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
@@ -14,7 +15,7 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
-use encoding_rs::Encoding;
+use encoding_rs::{Encoding, UTF_8};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::StrTendril;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
@@ -36,6 +37,8 @@ use script_traits::DocumentActivity;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
+use tendril::stream::LossyDecoder;
+use tendril::{ByteTendril, TendrilSink};
 
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::bindings::cell::DomRefCell;
@@ -92,7 +95,7 @@ pub(crate) mod html;
 mod prefetch;
 mod xml;
 
-use encoding::NetworkDecoderState;
+use encoding::{NetworkDecoderState, NetworkSink};
 pub(crate) use html::serialize_html_fragment;
 
 #[dom_struct]
@@ -134,6 +137,13 @@ pub(crate) struct ServoParser {
     aborted: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
+    /// A decoder exclusively for input to the prefetch tokenizer.
+    ///
+    /// Unlike the actual decoder, this one takes a best guess at the encoding and starts
+    /// decoding immediately.
+    #[ignore_malloc_size_of = "Defined in tendril"]
+    #[no_trace]
+    prefetch_decoder: RefCell<LossyDecoder<NetworkSink>>,
     /// We do a quick-and-dirty parse of the input looking for resources to prefetch.
     // TODO: if we had speculative parsing, we could do this when speculatively
     // building the DOM. https://github.com/servo/servo/pull/19203
@@ -520,6 +530,10 @@ impl ServoParser {
             script_nesting_level: Default::default(),
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
+            prefetch_decoder: RefCell::new(LossyDecoder::new_encoding_rs(
+                encoding_hint_from_content_type.unwrap_or(UTF_8),
+                Default::default(),
+            )),
             prefetch_tokenizer: prefetch::Tokenizer::new(document),
             prefetch_input: BufferQueue::default(),
             content_for_devtools,
@@ -559,22 +573,7 @@ impl ServoParser {
         if chunk.is_empty() {
             return;
         }
-        // Per https://github.com/whatwg/html/issues/1495
-        // stylesheets should not be loaded for documents
-        // without browsing contexts.
-        // https://github.com/whatwg/html/issues/1495#issuecomment-230334047
-        // suggests that no content should be preloaded in such a case.
-        // We're conservative, and only prefetch for documents
-        // with browsing contexts.
-        if self.document.browsing_context().is_some() {
-            // Push the chunk into the prefetch input stream,
-            // which is tokenized eagerly, to scan for resources
-            // to prefetch. If the user script uses `document.write()`
-            // to overwrite the network input, this prefetching may
-            // have been wasted, but in most cases it won't.
-            self.prefetch_input.push_back(chunk.clone());
-            self.prefetch_tokenizer.feed(&self.prefetch_input);
-        }
+
         // Push the chunk into the network input stream,
         // which is tokenized lazily.
         self.network_input.push_back(chunk);
@@ -582,9 +581,39 @@ impl ServoParser {
 
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
         // For byte input, we convert it to text using the network decoder.
-        if let Some(decoded_chunk) = self.network_decoder.borrow_mut().push(&chunk, &self.document) {
+        if let Some(decoded_chunk) = self
+            .network_decoder
+            .borrow_mut()
+            .push(&chunk, &self.document)
+        {
             self.push_tendril_input_chunk(decoded_chunk);
         }
+
+        if self.should_prefetch() {
+            // Push the chunk into the prefetch input stream,
+            // which is tokenized eagerly, to scan for resources
+            // to prefetch. If the user script uses `document.write()`
+            // to overwrite the network input, this prefetching may
+            // have been wasted, but in most cases it won't.
+            let mut prefetch_decoder = self.prefetch_decoder.borrow_mut();
+            prefetch_decoder.process(ByteTendril::from(&*chunk));
+
+            self.prefetch_input.push_back(mem::take(
+                &mut prefetch_decoder.inner_sink_mut().output,
+            ));
+            self.prefetch_tokenizer.feed(&self.prefetch_input);
+        }
+    }
+
+    fn should_prefetch(&self) -> bool {
+        // Per https://github.com/whatwg/html/issues/1495
+        // stylesheets should not be loaded for documents
+        // without browsing contexts.
+        // https://github.com/whatwg/html/issues/1495#issuecomment-230334047
+        // suggests that no content should be preloaded in such a case.
+        // We're conservative, and only prefetch for documents
+        // with browsing contexts.
+        self.document.browsing_context().is_some()
     }
 
     fn push_string_input_chunk(&self, chunk: String) {

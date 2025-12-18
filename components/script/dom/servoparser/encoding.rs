@@ -227,9 +227,9 @@ impl NetworkDecoderState {
 /// An implementor of `TendrilSink` with the sole purpose of buffering decoded data
 /// so we can take it later.
 #[derive(Default, JSTraceable)]
-struct NetworkSink {
+pub(crate) struct NetworkSink {
     #[no_trace]
-    output: StrTendril,
+    pub(crate) output: StrTendril,
 }
 
 impl TendrilSink<UTF8> for NetworkSink {
