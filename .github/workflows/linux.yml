@@ -221,13 +221,6 @@ jobs:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
-      - name: Build package for target
-        run: tar -czf target.tar.gz target/${{ inputs.profile }}/servo resources
-      - name: Upload artifact for target
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.profile }}-binary-linux
-          path: target.tar.gz
 
   wpt-2020:
     if: ${{ inputs.wpt }}
