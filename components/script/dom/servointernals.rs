@@ -20,7 +20,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -47,11 +47,11 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         let global = &self.global();
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let task_source = global.task_manager().dom_manipulation_task_source();
-        let sender = route_promise(&promise, self, task_source);
+        let callback = callback_promise(&promise, self, task_source);
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
-            .send(ScriptToConstellationMessage::ReportMemory(sender))
+            .send(ScriptToConstellationMessage::ReportMemory(callback))
             .is_err()
         {
             promise.reject_error(Error::Operation(None), can_gc);

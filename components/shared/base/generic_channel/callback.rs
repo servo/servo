@@ -71,7 +71,7 @@ use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
 
-use crate::generic_channel::{SendError, SendResult};
+use crate::generic_channel::{self, GenericReceiver, SendError, SendResult};
 
 /// The callback type of our messages.
 ///
@@ -143,6 +143,18 @@ where
             GenericCallback(GenericCallbackVariants::InProcess(callback))
         };
         Ok(generic_callback)
+    }
+
+    /// Produces a GenericCallback and a channel. You can block on this channel for the result.
+    pub fn new_blocking() -> Result<(Self, GenericReceiver<T>), ipc_channel::Error> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let callback = GenericCallback::new(move |message| {
+            if let Err(e) = sender.send(message.unwrap()) {
+                log::error!("Could not send for generic callback ({e})");
+            }
+        })
+        .unwrap();
+        Ok((callback, receiver))
     }
 
     /// Send `value` to the callback.

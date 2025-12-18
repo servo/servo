@@ -290,7 +290,7 @@ pub enum ProfilerMsg {
     Exit,
 
     /// Triggers sending back the memory profiling metrics,
-    Report(IpcSender<MemoryReportResult>),
+    Report(GenericCallback<MemoryReportResult>),
 }
 
 thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {

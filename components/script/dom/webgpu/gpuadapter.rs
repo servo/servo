@@ -27,7 +27,7 @@ use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::realms::InRealm;
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -192,7 +192,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     ) -> Rc<Promise> {
         // Step 2
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(
+        let callback = callback_promise(
             &promise,
             self,
             self.global().task_manager().dom_manipulation_task_source(),
@@ -235,7 +235,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             .channel
             .0
             .send(WebGPURequest::RequestDevice {
-                sender,
+                sender: callback,
                 adapter_id: self.adapter,
                 descriptor: desc,
                 device_id,

@@ -453,7 +453,7 @@ pub enum EmbedderMsg {
     /// Inform embedder to clear the clipboard
     ClearClipboard(WebViewId),
     /// Gets system clipboard contents
-    GetClipboardText(WebViewId, IpcSender<Result<String, String>>),
+    GetClipboardText(WebViewId, GenericCallback<Result<String, String>>),
     /// Sets system clipboard contents
     SetClipboardText(WebViewId, String),
     /// Changes the cursor.

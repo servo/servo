@@ -697,7 +697,7 @@ pub enum ScriptToConstellationMessage {
     #[cfg(feature = "webgpu")]
     /// Create a WebGPU Adapter instance
     RequestAdapter(
-        IpcSender<WebGPUAdapterResponse>,
+        GenericCallback<WebGPUAdapterResponse>,
         wgpu_core::instance::RequestAdapterOptions,
         wgpu_core::id::AdapterId,
     ),
@@ -709,7 +709,7 @@ pub enum ScriptToConstellationMessage {
     /// Notify the constellation that the size of some `<iframe>`s has changed.
     IFrameSizes(Vec<IFrameSizeMsg>),
     /// Request results from the memory reporter.
-    ReportMemory(IpcSender<MemoryReportResult>),
+    ReportMemory(GenericCallback<MemoryReportResult>),
     /// Return the result of the evaluated JavaScript with the given [`JavaScriptEvaluationId`].
     FinishJavaScriptEvaluation(
         JavaScriptEvaluationId,
