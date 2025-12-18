@@ -683,6 +683,11 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         DOMString::from_string(r.integrity_metadata.clone())
     }
 
+    /// <https://fetch.spec.whatwg.org/#dom-request-keepalive>
+    fn Keepalive(&self) -> bool {
+        self.request.borrow().keep_alive
+    }
+
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
     fn GetBody(&self) -> Option<DomRoot<ReadableStream>> {
         self.body()

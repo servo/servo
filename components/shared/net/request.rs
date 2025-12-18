@@ -442,6 +442,9 @@ pub struct RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#use-cors-preflight-flag>
     pub use_cors_preflight: bool,
 
+    /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
+    pub keep_alive: bool,
+
     /// <https://fetch.spec.whatwg.org/#concept-request-credentials-mode>
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
@@ -500,6 +503,7 @@ impl RequestBuilder {
             mode: RequestMode::NoCors,
             cache_mode: CacheMode::Default,
             use_cors_preflight: false,
+            keep_alive: false,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             origin: Origin::Client,
@@ -572,6 +576,12 @@ impl RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#use-cors-preflight-flag>
     pub fn use_cors_preflight(mut self, use_cors_preflight: bool) -> RequestBuilder {
         self.use_cors_preflight = use_cors_preflight;
+        self
+    }
+
+    /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
+    pub fn keep_alive(mut self, keep_alive: bool) -> RequestBuilder {
+        self.keep_alive = keep_alive;
         self
     }
 
@@ -705,6 +715,7 @@ impl RequestBuilder {
         request.synchronous = self.synchronous;
         request.mode = self.mode;
         request.use_cors_preflight = self.use_cors_preflight;
+        request.keep_alive = self.keep_alive;
         request.credentials_mode = self.credentials_mode;
         request.use_url_credentials = self.use_url_credentials;
         request.cache_mode = self.cache_mode;

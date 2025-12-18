@@ -1594,8 +1594,11 @@ impl XMLHttpRequest {
             )
         };
 
-        *self.canceller.borrow_mut() =
-            FetchCanceller::new(request_builder.id, global.core_resource_thread());
+        *self.canceller.borrow_mut() = FetchCanceller::new(
+            request_builder.id,
+            request_builder.keep_alive,
+            global.core_resource_thread(),
+        );
 
         global.fetch(request_builder, context, task_source);
 
