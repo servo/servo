@@ -248,8 +248,9 @@ impl WebStorageManager {
                     self.clone(src_webview_id, dest_webview_id);
                     let _ = sender.send(());
                 },
-                WebStorageThreadMsg::OriginDescriptors(sender, storage_type) => {
-                    self.origin_descriptors(sender, storage_type);
+                WebStorageThreadMsg::ListOrigins(sender, storage_type) => {
+                    let origin_descriptors = self.origin_descriptors(storage_type);
+                    let _ = sender.send(origin_descriptors);
                 },
                 WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
@@ -570,15 +571,10 @@ impl WebStorageManager {
             .insert(dest_webview_id, dest_origin_entries);
     }
 
-    fn origin_descriptors(
-        &mut self,
-        sender: GenericSender<Vec<OriginDescriptor>>,
-        storage_type: StorageType,
-    ) {
-        let origin_descriptors = match storage_type {
+    fn origin_descriptors(&mut self, storage_type: StorageType) -> Vec<OriginDescriptor> {
+        match storage_type {
             StorageType::Session => self.session_storage_origins.origin_descriptors(),
             StorageType::Local => self.local_storage_origins.origin_descriptors(),
-        };
-        let _ = sender.send(origin_descriptors);
+        }
     }
 }

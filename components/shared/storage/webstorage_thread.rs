@@ -84,7 +84,7 @@ pub enum WebStorageThreadMsg {
     },
 
     /// gets the list of origin descriptors for given storage type
-    OriginDescriptors(GenericSender<Vec<OriginDescriptor>>, StorageType),
+    ListOrigins(GenericSender<Vec<OriginDescriptor>>, StorageType),
 
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),

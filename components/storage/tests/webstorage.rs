@@ -234,10 +234,10 @@ fn origin_descriptors() {
             .unwrap();
         assert_eq!(receiver.recv().unwrap(), Ok((true, None)));
 
-        // Get origin descriptors.
+        // List origins.
         let (sender, receiver) = base_channel::channel().unwrap();
         threads
-            .send(WebStorageThreadMsg::OriginDescriptors(sender, storage_type))
+            .send(WebStorageThreadMsg::ListOrigins(sender, storage_type))
             .unwrap();
 
         let descriptors = receiver.recv().unwrap();
@@ -250,10 +250,10 @@ fn origin_descriptors() {
     let threads = init_with(&tmp_dir);
 
     for (storage_type, survives_restart) in cases {
-        // Get origin descriptors.
+        // List origins.
         let (sender, receiver) = base_channel::channel().unwrap();
         threads
-            .send(WebStorageThreadMsg::OriginDescriptors(sender, storage_type))
+            .send(WebStorageThreadMsg::ListOrigins(sender, storage_type))
             .unwrap();
 
         let descriptors = receiver.recv().unwrap();
