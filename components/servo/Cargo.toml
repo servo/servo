@@ -158,7 +158,7 @@ name = "webview"
 name = "servo"
 
 [[test]]
-name = "site_data"
+name = "site_data_manager"
 
 [[test]]
 name = "multiprocess"
