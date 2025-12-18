@@ -72,6 +72,7 @@ webxr = [
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
 bincode = { workspace = true }
+bitflags = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }

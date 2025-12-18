@@ -467,6 +467,9 @@ impl WebStorageManager {
         name: String,
         value: String,
     ) {
+        // XXX localStorage and sessionStorage shouldn't share usage and quota.
+        // This has a side effect that origin descriptor is created also for
+        // localStorage when set_item is called for sessionStorage.
         let (this_storage_size, other_storage_size) = {
             let local_data = self.select_data(WebStorageType::Local, webview_id, url.origin());
             let local_data_size = local_data.map_or(0, OriginEntry::size);
