@@ -8056,7 +8056,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "once_cell",
  "servo-media-audio",
@@ -8069,7 +8069,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "byte-slice-cast",
  "euclid",
@@ -8090,7 +8090,7 @@ dependencies = [
 [[package]]
 name = "servo-media-derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8100,7 +8100,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "ipc-channel",
  "servo-media",
@@ -8114,7 +8114,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -8147,7 +8147,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -8157,7 +8157,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8171,7 +8171,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8185,7 +8185,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -8197,7 +8197,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "uuid",
 ]
@@ -8205,12 +8205,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#5b101dcf3bd9b04aa767ceb5c2c741bce02976a0"
+source = "git+https://github.com/Taym95/media?branch=fix-audioparam-catchup-setvalueattime#f765cd85e1a3eb07242c3c9ea64089d2eb4c7dfc"
 dependencies = [
  "log",
  "servo-media-streams",

@@ -153,9 +153,9 @@ serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo-media = { git = "https://github.com/servo/media" }
-servo-media-dummy = { git = "https://github.com/servo/media" }
-servo-media-gstreamer = { git = "https://github.com/servo/media" }
+servo-media = { git = "https://github.com/Taym95/media", branch = "fix-audioparam-catchup-setvalueattime" }
+servo-media-dummy = { git = "https://github.com/Taym95/media", branch = "fix-audioparam-catchup-setvalueattime" }
+servo-media-gstreamer = { git = "https://github.com/Taym95/media", branch = "fix-audioparam-catchup-setvalueattime" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 sha1 = "0.10"
