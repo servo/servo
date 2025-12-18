@@ -104,7 +104,9 @@ impl PlatformFontMethods for PlatformFont {
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
-        let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
+        let Ok(filename) = CString::new(&*font_identifier.path) else {
+            return Err("filename contains null byte!");
+        };
 
         let face = FreeTypeFace::new_from_file(
             &library,
@@ -197,7 +199,9 @@ impl PlatformFontMethods for PlatformFont {
 
         let void_glyph = face.as_ref().glyph;
         let slot: FT_GlyphSlot = void_glyph;
-        assert!(!slot.is_null());
+        if void_glyph.is_null() {
+            return None;
+        }
 
         if self.synthetic_bold {
             mozilla_glyphslot_embolden_less(slot);
