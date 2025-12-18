@@ -209,7 +209,7 @@ jobs:
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ inputs.profile }}
+          name: ${{ inputs.profile }}-binary-linux
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
       - name: Upload nightly
         if: ${{ inputs.upload }}
@@ -241,7 +241,7 @@ jobs:
     with:
       target: 'linux'
       profile: ${{ inputs.profile }}
-      compressed-file-path: linux-${{ inputs.profile }}/servo-tech-demo.tar.gz
+      compressed-file-path: ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
       binary-path: servo/servo
       file-size: true
       # We only evaluate speedometer and dromaeo score in release

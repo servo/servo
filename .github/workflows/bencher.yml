@@ -80,8 +80,8 @@ jobs:
       - uses: servo/ci-runners/actions/checkout@44317e3cd86c5ff2ef0b08878b90da246bc237da
       - uses: actions/download-artifact@v4
         with:
-          name: linux-${{ inputs.profile }}
-          path: linux-${{ inputs.profile }}
+          name: ${{ inputs.profile }}-binary-${{ inputs.target }}
+          path: ${{ inputs.profile }}-binary-${{ inputs.target }}
       # Linux and macOS uploads compressed binary, need to extract first
       - name: unPackage binary (tar)
         if: ${{ inputs.compressed-file-path != '' && contains(inputs.compressed-file-path, '.tar.gz') }}
