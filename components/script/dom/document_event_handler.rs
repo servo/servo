@@ -684,6 +684,9 @@ impl DocumentEventHandler {
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
 
+        // For nodes inside a text input UA shadow DOM, dispatch dblclick at the shadow host.
+        let delegated = element.find_focusable_shadow_host_if_necessary();
+        let element = delegated.as_deref().unwrap_or(element);
         self.most_recently_clicked_element.set(Some(element));
 
         element.set_click_in_progress(true);
