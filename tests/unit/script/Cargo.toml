@@ -12,8 +12,8 @@ name = "script_tests"
 path = "lib.rs"
 
 [dependencies]
+encoding_rs = { workspace = true }
 euclid = { workspace = true }
 keyboard-types = { workspace = true }
 script = {path = "../../../components/script"}
 servo_url = {path = "../../../components/url"}
-encoding_rs = { workspace = true }
