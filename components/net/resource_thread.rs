@@ -526,6 +526,9 @@ impl ResourceChannelManager {
                     history_states.remove(&history_state);
                 }
             },
+            CoreResourceMsg::ListCacheEntries(sender) => {
+                let _ = sender.send(http_state.http_cache.cache_entry_descriptors());
+            },
             CoreResourceMsg::ClearCache(sender) => {
                 http_state.http_cache.clear();
                 if let Some(sender) = sender {

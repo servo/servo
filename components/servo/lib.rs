@@ -61,6 +61,7 @@ pub use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 
+pub use crate::network_manager::{CacheEntry, NetworkManager};
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};

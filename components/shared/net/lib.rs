@@ -504,6 +504,14 @@ impl ResourceThreads {
         ResourceThreads { core_thread }
     }
 
+    pub fn cache_entries(&self) -> Vec<CacheEntryDescriptor> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::ListCacheEntries(sender));
+        receiver.recv().unwrap()
+    }
+
     pub fn clear_cache(&self) {
         // NOTE: Messages used in these methods are currently handled
         // synchronously on the backend without consulting other threads, so
@@ -624,6 +632,8 @@ pub enum CoreResourceMsg {
     SetHistoryState(HistoryStateId, Vec<u8>),
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
+    /// Gets a list of origin descriptors derived from entries in the cache
+    ListCacheEntries(GenericSender<Vec<CacheEntryDescriptor>>),
     /// Clear the network cache.
     ClearCache(Option<GenericSender<()>>),
     /// Send the service worker network mediator for an origin to CoreResourceThread
@@ -643,6 +653,17 @@ pub struct SiteDescriptor {
 impl SiteDescriptor {
     pub fn new(name: String) -> Self {
         SiteDescriptor { name }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CacheEntryDescriptor {
+    pub key: String,
+}
+
+impl CacheEntryDescriptor {
+    pub fn new(key: String) -> Self {
+        CacheEntryDescriptor { key }
     }
 }
 
