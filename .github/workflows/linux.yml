@@ -232,6 +232,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       number-of-wpt-chunks: ${{ inputs. number-of-wpt-chunks }}
+      binary-path: servo/servo
     secrets: inherit
 
   bencher:
