@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::{GenericSend, GenericSender, SendResult};
+use base::generic_channel::{self, GenericSend, GenericSender, SendResult};
 use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
 
 use crate::client_storage::ClientStorageThreadMessage;
 use crate::indexeddb::IndexedDBThreadMsg;
-use crate::webstorage_thread::WebStorageThreadMsg;
+use crate::webstorage_thread::{OriginDescriptor, StorageType, WebStorageThreadMsg};
 
 pub mod client_storage;
 pub mod indexeddb;
@@ -32,6 +32,14 @@ impl StorageThreads {
             idb_thread,
             web_storage_thread,
         }
+    }
+
+    pub fn list_webstorage_origins(&self, storage_type: StorageType) -> Vec<OriginDescriptor> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .web_storage_thread
+            .send(WebStorageThreadMsg::ListOrigins(sender, storage_type));
+        receiver.recv().unwrap()
     }
 }
 
