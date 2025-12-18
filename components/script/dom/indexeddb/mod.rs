@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use storage_traits::indexeddb::BackendError;
-
-use crate::dom::bindings::error::Error;
-
 pub(crate) mod idbcursor;
 pub(crate) mod idbcursorwithvalue;
 pub(crate) mod idbdatabase;
