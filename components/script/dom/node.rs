@@ -1155,12 +1155,15 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
     pub(crate) fn replace_children(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        // Step 1.
+        // Step 1. Let node be the result of converting nodes into a node given nodes and this’s
+        // node document.
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
-        // Step 2.
+
+        // Step 2. Ensure pre-insert validity of node into this before null.
         Node::ensure_pre_insertion_validity(&node, self, None)?;
-        // Step 3.
+
+        // Step 3. Replace all with node within this.
         Node::replace_all(Some(&node), self, can_gc);
         Ok(())
     }
@@ -2715,13 +2718,13 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
     pub(crate) fn replace_all(node: Option<&Node>, parent: &Node, can_gc: CanGc) {
         parent.owner_doc().add_script_and_layout_blocker();
-        // Step 1.
-        if let Some(node) = node {
-            Node::adopt(node, &parent.owner_doc(), can_gc);
-        }
-        // Step 2.
-        rooted_vec!(let removed_nodes <- parent.children().map(|c| DomRoot::as_traced(&c)));
-        // Step 3.
+
+        // Step 1. Let removedNodes be parent’s children.
+        rooted_vec!(let removed_nodes <- parent.children().map(|child| DomRoot::as_traced(&child)));
+
+        // Step 2. Let addedNodes be the empty set.
+        // Step 3. If node is a DocumentFragment node, then set addedNodes to node’s children.
+        // Step 4. Otherwise, if node is non-null, set addedNodes to « node ».
         rooted_vec!(let mut added_nodes);
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment(_) = node.type_id() {
@@ -2733,20 +2736,24 @@ impl Node {
         } else {
             &[] as &[&Node]
         };
-        // Step 4.
+
+        // Step 5. Remove all parent’s children, in tree order, with suppressObservers set to true.
         for child in &*removed_nodes {
             Node::remove(child, parent, SuppressObserver::Suppressed, can_gc);
         }
-        // Step 5.
+
+        // Step 6. If node is non-null, then insert node into parent before null with suppressObservers set to true.
         if let Some(node) = node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed, can_gc);
         }
-        // Step 6.
+
         vtable_for(parent).children_changed(
             &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes),
             can_gc,
         );
 
+        // Step 7. If either addedNodes or removedNodes is not empty, then queue a tree mutation record
+        // for parent with addedNodes, removedNodes, null, and null.
         if !removed_nodes.is_empty() || !added_nodes.is_empty() {
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(added_nodes),
