@@ -14,7 +14,7 @@ use tendril::{ByteTendril, StrTendril, TendrilSink};
 use crate::dom::document::Document;
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub(super) struct EncodingDetector {
+pub(super) struct DetectingState {
     /// The `charset` that was specified in the `Content-Type` header, if any.
     #[no_trace]
     encoding_hint_from_content_type: Option<&'static Encoding>,
@@ -24,7 +24,7 @@ pub(super) struct EncodingDetector {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub(super) struct NetworkDecoder {
+pub(super) struct DecodingState {
     /// The actual decoder.
     ///
     /// This field is `None` after we've finished parsing, because `LossyDecoder::finish`
@@ -39,11 +39,11 @@ pub(super) struct NetworkDecoder {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(super) enum NetworkDecoderState {
     /// In this stage the decoder is buffering bytes until it has enough to determine the encoding.
-    Buffering(EncodingDetector),
-    Decoding(NetworkDecoder),
+    Detecting(DetectingState),
+    Decoding(DecodingState),
 }
 
-impl EncodingDetector {
+impl DetectingState {
     /// The maximum amount of bytes to buffer before attempting to determine the encoding
     const BUFFER_THRESHOLD: usize = 1024;
 
@@ -150,7 +150,7 @@ impl EncodingDetector {
 
 impl NetworkDecoderState {
     pub(super) fn new(encoding_hint_from_content_type: Option<&'static Encoding>) -> Self {
-        Self::Buffering(EncodingDetector {
+        Self::Detecting(DetectingState {
             encoding_hint_from_content_type,
             start_timestamp: Instant::now(),
             attempted_bom_sniffing: false,
@@ -158,13 +158,21 @@ impl NetworkDecoderState {
         })
     }
 
+    /// Feeds the network decoder a chunk of bytes.
+    ///
+    /// If a new encoding is detected, then the encoding of `document` is updated appropriately.
+    ///
+    /// The decoded bytes are returned to the caller. Note that there is not necessarily a 1:1
+    /// relation between `chunk` and the return value. In the beginning, the decoder will buffer
+    /// bytes and return `None`, then later it will flush them and return a large `StrTendril` all
+    /// at once.
     pub(super) fn push(&mut self, chunk: &[u8], document: &Document) -> Option<StrTendril> {
         match self {
-            Self::Buffering(encoding_detector) => {
+            Self::Detecting(encoding_detector) => {
                 if let Some(encoding) = encoding_detector.buffer(chunk) {
                     document.set_encoding(encoding);
                     let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
-                    *self = Self::Decoding(NetworkDecoder {
+                    *self = Self::Decoding(DecodingState {
                         decoder: Some(LossyDecoder::new_encoding_rs(
                             encoding,
                             NetworkSink::default(),
@@ -189,12 +197,12 @@ impl NetworkDecoderState {
 
     pub(super) fn finish(&mut self) -> StrTendril {
         match self {
-            Self::Buffering(encoding_detector) => {
+            Self::Detecting(encoding_detector) => {
                 let encoding = encoding_detector.finish();
                 let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                 let mut decoder = LossyDecoder::new_encoding_rs(encoding, NetworkSink::default());
                 decoder.process(ByteTendril::from(&*buffered_bytes));
-                *self = Self::Decoding(NetworkDecoder {
+                *self = Self::Decoding(DecodingState {
                     // Important to set `None` here to indicate that we're done decoding
                     decoder: None,
                     encoding,
@@ -213,14 +221,14 @@ impl NetworkDecoderState {
 
     pub(super) fn is_finished(&self) -> bool {
         match self {
-            Self::Buffering(_) => false,
+            Self::Detecting(_) => false,
             Self::Decoding(network_decoder) => network_decoder.decoder.is_none(),
         }
     }
 
-    pub(super) fn decoder(&mut self) -> &mut NetworkDecoder {
+    pub(super) fn decoder(&mut self) -> &mut DecodingState {
         match self {
-            Self::Buffering(_) => panic!("Cannot access decoder before decoding"),
+            Self::Detecting(_) => unreachable!("Cannot access decoder before decoding"),
             Self::Decoding(decoder) => decoder,
         }
     }
@@ -237,11 +245,11 @@ pub(crate) struct NetworkSink {
 impl TendrilSink<UTF8> for NetworkSink {
     type Output = StrTendril;
 
-    fn process(&mut self, t: StrTendril) {
+    fn process(&mut self, tendril: StrTendril) {
         if self.output.is_empty() {
-            self.output = t;
+            self.output = tendril;
         } else {
-            self.output.push_tendril(&t);
+            self.output.push_tendril(&tendril);
         }
     }
 
@@ -258,7 +266,7 @@ struct Attribute {
     value: Vec<u8>,
 }
 
-/// <https://html.spec.whatwg.org/multipage/parsing.html#prescan-a-byte-stream-to-determine-its-encoding>
+/// <https://html.spec.whatwg.org/multipage/#prescan-a-byte-stream-to-determine-its-encoding>
 pub fn prescan_the_byte_stream_to_determine_the_encoding(
     byte_stream: &[u8],
 ) -> Option<&'static Encoding> {
@@ -339,10 +347,8 @@ pub fn prescan_the_byte_stream_to_determine_the_encoding(
                 // NOTE: This happens in the match arms below
                 // Step 9. Run the appropriate step from the following list, if one applies:
                 match attribute.name.as_slice() {
-                    b"http-equiv" => {
-                        if have_seen_http_equiv_attribute {
-                            continue;
-                        }
+                    // If the attribute's name is "http-equiv"
+                    b"http-equiv" if !have_seen_http_equiv_attribute => {
                         have_seen_http_equiv_attribute = true;
 
                         // If the attribute's value is "content-type", then set got pragma to true.
@@ -350,11 +356,8 @@ pub fn prescan_the_byte_stream_to_determine_the_encoding(
                             got_pragma = true;
                         }
                     },
-
-                    b"content" => {
-                        if have_seen_content_attribute {
-                            continue;
-                        }
+                    // If the attribute's name is "content"
+                    b"content" if !have_seen_content_attribute => {
                         have_seen_content_attribute = true;
 
                         // Apply the algorithm for extracting a character encoding from a meta element,
@@ -371,10 +374,7 @@ pub fn prescan_the_byte_stream_to_determine_the_encoding(
                         }
                     },
                     // If the attribute's name is "charset"
-                    b"charset" => {
-                        if have_seen_charset_attribute {
-                            continue;
-                        }
+                    b"charset" if !have_seen_charset_attribute => {
                         have_seen_charset_attribute = true;
 
                         // Let charset be the result of getting an encoding from the attribute's value,

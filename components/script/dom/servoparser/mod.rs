@@ -141,7 +141,6 @@ pub(crate) struct ServoParser {
     ///
     /// Unlike the actual decoder, this one takes a best guess at the encoding and starts
     /// decoding immediately.
-    #[ignore_malloc_size_of = "Defined in tendril"]
     #[no_trace]
     prefetch_decoder: RefCell<LossyDecoder<NetworkSink>>,
     /// We do a quick-and-dirty parse of the input looking for resources to prefetch.
