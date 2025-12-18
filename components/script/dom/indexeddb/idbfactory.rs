@@ -40,6 +40,8 @@ pub struct IDBFactory {
     /// The connections pending #open-a-database-connection.
     connections_pending_open: DomRefCell<HashMapTracedValues<DBName, Dom<IDBDatabase>>>,
 
+    /// Keeping track of pending promises resolving to database info.
+    /// Only necessary because of #41356
     #[ignore_malloc_size_of = "rc"]
     pending_db_info_promises: DomRefCell<VecDeque<Rc<Promise>>>,
 }
