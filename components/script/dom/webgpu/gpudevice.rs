@@ -63,7 +63,7 @@ use crate::dom::webgpu::gpusupportedfeatures::GPUSupportedFeatures;
 use crate::dom::webgpu::gputexture::GPUTexture;
 use crate::dom::webgpu::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::realms::InRealm;
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -500,12 +500,12 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(
+        let callback = callback_promise(
             &promise,
             self,
             self.global().task_manager().dom_manipulation_task_source(),
         );
-        GPUComputePipeline::create(self, descriptor, Some(sender));
+        GPUComputePipeline::create(self, descriptor, Some(callback));
         promise
     }
 
@@ -552,12 +552,12 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     ) -> Fallible<Rc<Promise>> {
         let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(
+        let callback = callback_promise(
             &promise,
             self,
             self.global().task_manager().dom_manipulation_task_source(),
         );
-        GPURenderPipeline::create(self, implicit_ids, desc, Some(sender))?;
+        GPURenderPipeline::create(self, implicit_ids, desc, Some(callback))?;
         Ok(promise)
     }
 
@@ -587,7 +587,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
     fn PopErrorScope(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(
+        let callback = callback_promise(
             &promise,
             self,
             self.global().task_manager().dom_manipulation_task_source(),
@@ -597,7 +597,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
             .0
             .send(WebGPURequest::PopErrorScope {
                 device_id: self.device.0,
-                sender,
+                callback,
             })
             .is_err()
         {

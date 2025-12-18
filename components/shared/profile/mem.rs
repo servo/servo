@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::marker::Send;
 
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericCallback, GenericSender};
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -294,7 +294,7 @@ pub enum ProfilerMsg {
     Exit,
 
     /// Triggers sending back the memory profiling metrics,
-    Report(IpcSender<MemoryReportResult>),
+    Report(GenericCallback<MemoryReportResult>),
 }
 
 thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {

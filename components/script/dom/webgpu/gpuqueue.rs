@@ -23,7 +23,7 @@ use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -200,13 +200,13 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         let global = self.global();
         let promise = Promise::new(&global, can_gc);
         let task_source = global.task_manager().dom_manipulation_task_source();
-        let sender = route_promise(&promise, self, task_source);
+        let callback = callback_promise(&promise, self, task_source);
 
         if let Err(e) = self
             .channel
             .0
             .send(WebGPURequest::QueueOnSubmittedWorkDone {
-                sender,
+                sender: callback,
                 queue_id: self.queue.0,
             })
         {
