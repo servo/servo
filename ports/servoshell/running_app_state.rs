@@ -456,7 +456,10 @@ impl RunningAppState {
             .remove(&webview_id);
     }
 
-    fn set_script_command_interrupt_sender(&self, sender: Option<IpcSender<WebDriverJSResult>>) {
+    fn set_script_command_interrupt_sender(
+        &self,
+        sender: Option<GenericSender<WebDriverJSResult>>,
+    ) {
         self.webdriver_senders
             .borrow_mut()
             .script_evaluation_interrupt_sender = sender;
