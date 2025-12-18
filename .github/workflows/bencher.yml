@@ -122,7 +122,7 @@ jobs:
       - name: Speedometer
         if: ${{ inputs.speedometer == true }}
         run: |
-            ./mach test-speedometer -r --bmf-output speedometer.json
+            ./mach test-speedometer --bin ${{ inputs.binary-path }} --bmf-output speedometer.json
             echo "SERVO_SPEEDOMETER_RESULT=speedometer.json" >> "$GITHUB_ENV"
       - name: Dromaeo
         if: ${{ inputs.dromaeo == true }}
