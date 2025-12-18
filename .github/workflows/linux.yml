@@ -241,7 +241,7 @@ jobs:
     with:
       target: 'linux'
       profile: ${{ inputs.profile }}
-      compressed-file-path: $linux-{{ inputs.profile }}/servo-tech-demo.tar.gz
+      compressed-file-path: linux-{{ inputs.profile }}/servo-tech-demo.tar.gz
       binary-path: servo/servo
       file-size: true
       # We only evaluate speedometer and dromaeo score in release
