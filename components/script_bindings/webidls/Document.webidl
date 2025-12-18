@@ -50,7 +50,7 @@ interface Document : Node {
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
   [CEReactions, NewObject, Throws]
-  Node importNode(Node node, optional boolean deep = false);
+  Node importNode(Node node, optional (boolean or ImportNodeOptions) options = false);
   [CEReactions, Throws]
   Node adoptNode(Node node);
 
@@ -82,6 +82,11 @@ enum DocumentVisibilityState { "visible", "hidden" };
 
 dictionary ElementCreationOptions {
   DOMString is;
+};
+
+dictionary ImportNodeOptions {
+  CustomElementRegistry customElementRegistry;
+  boolean selfOnly = false;
 };
 
 // https://html.spec.whatwg.org/multipage/#the-document-object

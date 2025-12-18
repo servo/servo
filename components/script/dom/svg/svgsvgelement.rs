@@ -128,6 +128,7 @@ impl SVGSVGElement {
             referenced_node,
             None,
             CloneChildrenFlag::CloneChildren,
+            None,
             can_gc,
         );
         let root_node = self.upcast::<Node>();
