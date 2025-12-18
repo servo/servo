@@ -9,6 +9,7 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{self, GenericSender};
 use base::id::{CookieStoreId, HistoryStateId};
 use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
@@ -504,7 +505,17 @@ impl ResourceThreads {
     }
 
     pub fn clear_cache(&self) {
-        let _ = self.core_thread.send(CoreResourceMsg::ClearCache);
+        // NOTE: Messages used in these methods are currently handled
+        // synchronously on the backend without consulting other threads, so
+        // waiting for the response here cannot deadlock. If the backend
+        // handling ever becomes asynchronous or involves sending messages
+        // back to the originating thread, this code will need to be revisited
+        // to avoid potential deadlocks.
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::ClearCache(Some(sender)));
+        let _ = receiver.recv();
     }
 
     pub fn clear_cookies(&self) {
@@ -607,7 +618,7 @@ pub enum CoreResourceMsg {
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
     /// Clear the network cache.
-    ClearCache,
+    ClearCache(Option<GenericSender<()>>),
     /// Send the service worker network mediator for an origin to CoreResourceThread
     NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler
