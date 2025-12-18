@@ -59,10 +59,8 @@ use crate::network_listener::{
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
-/// RAII fetch canceller object.
-/// By default initialized to having a
-/// request associated with it, which can be manually cancelled with `cancel`,
-/// or automatically cancelled on drop.
+/// RAII fetch canceller object. By default initialized to having a
+/// request associated with it, which can be aborted or terminated.
 /// Calling `ignore` will sever the relationship with the request,
 /// meaning it cannot be cancelled through this canceller from that point on.
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -89,7 +87,11 @@ impl FetchCanceller {
         }
     }
 
-    pub(crate) fn cancel(&mut self) {
+    pub(crate) fn keep_alive(&self) -> bool {
+        self.keep_alive
+    }
+
+    fn cancel(&mut self) {
         if let Some(request_id) = self.request_id.take() {
             // stop trying to make fetch happen
             // it's not going to happen
@@ -107,11 +109,15 @@ impl FetchCanceller {
     pub(crate) fn ignore(&mut self) {
         let _ = self.request_id.take();
     }
-}
 
-impl Drop for FetchCanceller {
-    fn drop(&mut self) {
-        self.cancel()
+    /// <https://fetch.spec.whatwg.org/#fetch-controller-abort>
+    pub(crate) fn abort(&mut self) {
+        self.cancel();
+    }
+
+    /// <https://fetch.spec.whatwg.org/#fetch-controller-terminate>
+    pub(crate) fn terminate(&mut self) {
+        self.cancel();
     }
 }
 
@@ -479,7 +485,7 @@ impl FetchContext {
         // N/a, that's self
 
         // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
-        self.canceller.cancel();
+        self.canceller.abort();
 
         // Step 11.4. Abort the fetch() call with p, request, responseObject,
         // and requestObject’s signal’s abort reason.

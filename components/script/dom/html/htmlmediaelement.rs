@@ -3666,7 +3666,7 @@ impl HTMLMediaElementFetchContext {
         }
         self.cancel_reason = Some(reason);
         self.data_source.borrow_mut().reset();
-        self.fetch_canceller.cancel();
+        self.fetch_canceller.abort();
     }
 
     fn cancel_reason(&self) -> &Option<CancelReason> {

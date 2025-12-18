@@ -433,7 +433,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
         if !status_is_ok {
             self.cancelled = true;
-            self.fetch_canceller.cancel();
+            self.fetch_canceller.abort();
         }
     }
 
