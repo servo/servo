@@ -28,7 +28,7 @@ use crate::dom::indexeddb::idbfactory::DBName;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
-use crate::dom::map_backend_error_to_dom_error;
+use crate::indexeddb::map_backend_error_to_dom_error;
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 

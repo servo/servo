@@ -548,7 +548,7 @@ impl IndexedDBManager {
             // TODO: implement connections.
 
             // Step 10: Let version be db’s version.
-            let version = db.version()?;
+            let version = db.version().map_err(backend_error_from_sqlite_error)?;
 
             // Step 11: Delete db.
             // If this fails for any reason,

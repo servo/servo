@@ -6,16 +6,19 @@ use std::rc::Rc;
 
 use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
+use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use servo_url::origin::ImmutableOrigin;
-use storage_traits::indexeddb::{BackendResult, DataBaseInfo, IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{
+    BackendError, BackendResult, DataBaseInfo, IndexedDBThreadMsg, SyncOperation,
+};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
     IDBDatabaseInfo, IDBFactoryMethods,
 };
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
@@ -26,7 +29,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::promise::Promise;
-use crate::indexeddb::convert_value_to_key;
+use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
 use crate::script_runtime::CanGc;
 
 /// A non-jstraceable string wrapper for use in `HashMapTracedValues`.
@@ -79,13 +82,18 @@ impl IDBFactory {
         promise.resolve_native(&info, can_gc);
     }
 
-    fn reject_pending_db_info_promise(&self, can_gc: CanGc) {
+    fn reject_pending_db_info_promise(&self, error: BackendError, can_gc: CanGc) {
         let Some(promise) = self.pending_db_info_promises.borrow_mut().pop_front() else {
             return error!("Pending promise db info not found.");
         };
 
-        // TODO: appropriate error.
-        promise.reject_native(&(), can_gc);
+        let error = map_backend_error_to_dom_error(error);
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        error
+            .clone()
+            .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+        promise.reject_native(&rval.handle(), can_gc);
     }
 }
 
@@ -186,7 +194,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                 let can_gc = CanGc::note();
                 let factory = trusted_clone.root();
                 match result {
-                    Err(_) => factory.reject_pending_db_info_promise(can_gc),
+                    Err(err) => factory.reject_pending_db_info_promise(err, can_gc),
                     Ok(info_list) => {
                         let info_list: Vec<IDBDatabaseInfo> = info_list
                             .into_iter()

@@ -17,16 +17,3 @@ pub(crate) mod idbopendbrequest;
 pub(crate) mod idbrequest;
 pub(crate) mod idbtransaction;
 pub(crate) mod idbversionchangeevent;
-
-pub(crate) fn map_backend_error_to_dom_error(error: BackendError) -> Error {
-    match error {
-        BackendError::QuotaExceeded => Error::QuotaExceeded {
-            quota: None,
-            requested: None,
-        },
-        BackendError::DbErr(details) => {
-            Error::Operation(Some(format!("IndexedDB open failed: {details}")))
-        },
-        other => Error::Operation(Some(format!("IndexedDB open failed: {other:?}"))),
-    }
-}
