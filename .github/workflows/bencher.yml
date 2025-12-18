@@ -127,7 +127,7 @@ jobs:
       - name: Dromaeo
         if: ${{ inputs.dromaeo == true }}
         run: |
-            ./mach test-dromaeo -r dom --bmf-output dromaeo.json
+            ./mach test-dromaeo --bin ${{ inputs.binary-path }} dom --bmf-output dromaeo.json
             echo "SERVO_DROMAEO_RESULT=dromaeo.json" >> "$GITHUB_ENV"
       # set options
       - name: Set bencher opts for PRs (label try run)
