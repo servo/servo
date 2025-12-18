@@ -74,15 +74,15 @@ impl EncodingDetector {
 
             // https://encoding.spec.whatwg.org/#bom-sniff
             match self.buffered_bytes.as_slice() {
-                &[0xEF, 0xBB, 0xBF, ..] => {
+                [0xEF, 0xBB, 0xBF, ..] => {
                     log::debug!("Determined that the document is UTF-8 via BOM-sniffing");
                     return Some(UTF_8);
                 },
-                &[0xFE, 0xFF, ..] => {
+                [0xFE, 0xFF, ..] => {
                     log::debug!("Determined that the document is UTF-16BE via BOM-sniffing");
                     return Some(UTF_16BE);
                 },
-                &[0xFF, 0xFE, ..] => {
+                [0xFF, 0xFE, ..] => {
                     log::debug!("Determined that the document is UTF-16LE via BOM-sniffing");
                     return Some(UTF_16LE);
                 },
@@ -181,7 +181,7 @@ impl NetworkDecoderState {
                     .decoder
                     .as_mut()
                     .expect("Can't push after call to finish()");
-                decoder.process(ByteTendril::from(&*chunk));
+                decoder.process(ByteTendril::from(chunk));
                 Some(std::mem::take(&mut decoder.inner_sink_mut().output))
             },
         }
@@ -199,7 +199,9 @@ impl NetworkDecoderState {
                     decoder: None,
                     encoding,
                 });
-                std::mem::take(&mut decoder.inner_sink_mut().output)
+                let mut chunk = std::mem::take(&mut decoder.inner_sink_mut().output);
+                chunk.push_tendril(&decoder.finish());
+                chunk
             },
             Self::Decoding(network_decoder) => network_decoder
                 .decoder

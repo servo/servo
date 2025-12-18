@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::{RefCell, Cell};
-use std::rc::Rc;
+use std::cell::{Cell, RefCell};
 use std::mem;
+use std::rc::Rc;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
@@ -598,9 +598,8 @@ impl ServoParser {
             let mut prefetch_decoder = self.prefetch_decoder.borrow_mut();
             prefetch_decoder.process(ByteTendril::from(&*chunk));
 
-            self.prefetch_input.push_back(mem::take(
-                &mut prefetch_decoder.inner_sink_mut().output,
-            ));
+            self.prefetch_input
+                .push_back(mem::take(&mut prefetch_decoder.inner_sink_mut().output));
             self.prefetch_tokenizer.feed(&self.prefetch_input);
         }
     }
