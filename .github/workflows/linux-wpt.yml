@@ -18,7 +18,7 @@ on:
         required: false
         type: number
       binary-path:
-        required: false
+        required: true
         default: ""
         type: string
 
