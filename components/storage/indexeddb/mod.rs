@@ -593,7 +593,7 @@ impl IndexedDBManager {
                                 if description.origin == origin {
                                     Some(DataBaseInfo {
                                         name: description.name.clone(),
-                                        version: version,
+                                        version,
                                     })
                                 } else {
                                     None
