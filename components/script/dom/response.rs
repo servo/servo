@@ -545,10 +545,6 @@ impl Response {
     pub(crate) fn finish(&self, can_gc: CanGc) {
         if let Some(body) = self.fetch_body_stream.get() {
             body.controller_close_native(can_gc);
-        } else {
-            println!(
-                "[fetch][Response::finish] NOTE: fetch_body_stream is None; no controller_close_native()"
-            );
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {
