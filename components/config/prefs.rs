@@ -86,15 +86,20 @@ pub struct Preferences {
     /// Port number to start a server to listen to remote Firefox devtools connections.
     /// 0 for random port.
     pub devtools_server_port: i64,
+    // feature: WebGPU | #24706 | Web/API/WebGPU_API
     pub dom_webgpu_enabled: bool,
     /// List of comma-separated backends to be used by wgpu.
     pub dom_webgpu_wgpu_backend: String,
+    // feature: AbortController | #34866 | Web/API/AbortController
     pub dom_abort_controller_enabled: bool,
+    // feature: Adopted Stylesheet | #38132 | Web/API/Document/adoptedStyleSheets
     pub dom_adoptedstylesheet_enabled: bool,
+    // feature: Clipboard API | #36084 | Web/API/Clipboard_API
     pub dom_async_clipboard_enabled: bool,
     pub dom_bluetooth_enabled: bool,
     pub dom_bluetooth_testing_enabled: bool,
     pub dom_allow_scripts_to_close_windows: bool,
+    // feature: Media Capture and Streams API | #26861 | Web/API/Media_Capture_and_Streams_API
     pub dom_canvas_capture_enabled: bool,
     pub dom_canvas_text_enabled: bool,
     /// Selects canvas backend
@@ -107,29 +112,45 @@ pub struct Preferences {
     pub dom_clipboardevent_enabled: bool,
     pub dom_command_invokers_enabled: bool,
     pub dom_composition_event_enabled: bool,
+    // feature: CookieStore | #37674 | Web/API/CookieStore
     pub dom_cookiestore_enabled: bool,
+    // feature: Credential Management API | #38788 | Web/API/Credential_Management_API
     pub dom_credential_management_enabled: bool,
+    // feature: WebCrypto API | #40687 | Web/API/Web_Crypto_API
     pub dom_crypto_subtle_enabled: bool,
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
+    // feature: CSS Font Loading API | #29376 | Web/API/CSS_Font_Loading_API
     pub dom_fontface_enabled: bool,
     pub dom_fullscreen_test: bool,
+    // feature: Gamepad API | #10977 | Web/API/Gamepad_API
     pub dom_gamepad_enabled: bool,
+    // feature: Geolocation API | #38903 | Web/API/Geolocation_API
     pub dom_geolocation_enabled: bool,
+    // feature: IndexedDB | #6963 | Web/API/IndexedDB_API
     pub dom_indexeddb_enabled: bool,
+    // feature: IntersectionObserver | #35767 | Web/API/Intersection_Observer_API
     pub dom_intersection_observer_enabled: bool,
     pub dom_microdata_testing_enabled: bool,
     pub dom_uievent_which_enabled: bool,
+    // feature: MutationObserver | #6633 | Web/API/MutationObserver
     pub dom_mutation_observer_enabled: bool,
+    // feature: Navigator.registerProtocolHandler() | #40615 | Web/API/Navigator/registerProtocolHandler
     pub dom_navigator_protocol_handlers_enabled: bool,
+    // feature: Navigator.sendBeacon() | #38302 | Web/API/Navigator/sendBeacon
     pub dom_navigator_sendbeacon_enabled: bool,
+    // feature: Notification API | #34841 | Web/API/Notifications_API
     pub dom_notification_enabled: bool,
+    // feature: OffscreenCanvas | #34111 | Web/API/OffscreenCanvas
     pub dom_offscreen_canvas_enabled: bool,
     pub dom_parallel_css_parsing_enabled: bool,
+    // feature: Permissions API | #31235 | Web/API/Permissions_API
     pub dom_permissions_enabled: bool,
     pub dom_permissions_testing_allowed_in_nonsecure_contexts: bool,
+    // feature: ResizeObserver | #39790 | Web/API/ResizeObserver
     pub dom_resize_observer_enabled: bool,
     pub dom_script_asynch: bool,
+    // feature: ServiceWorker | #36538 | Web/API/Service_Worker_API
     pub dom_serviceworker_enabled: bool,
     pub dom_serviceworker_timeout_seconds: i64,
     pub dom_servo_helpers_enabled: bool,
@@ -150,9 +171,13 @@ pub struct Preferences {
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
     /// Enable WebGL2 APIs.
+    // feature: WebGL2 | #41394 | Web/API/WebGL2RenderingContext
     pub dom_webgl2_enabled: bool,
+    // feature: WebRTC | #41396 | Web/API/WebRTC_API
     pub dom_webrtc_enabled: bool,
+    // feature: WebRTC Transceiver | #41396 | Web/API/RTCRtpTransceiver
     pub dom_webrtc_transceiver_enabled: bool,
+    // feature: WebVTT | #22312 | Web/API/WebVTT_API
     pub dom_webvtt_enabled: bool,
     pub dom_webxr_enabled: bool,
     pub dom_webxr_test: bool,
@@ -163,6 +188,7 @@ pub struct Preferences {
     pub dom_webxr_glwindow_spherical: bool,
     pub dom_webxr_glwindow_cubemap: bool,
     pub dom_webxr_hands_enabled: bool,
+    // feature: WebXR Layers | #27468 | Web/API/XRCompositionLayer
     pub dom_webxr_layers_enabled: bool,
     pub dom_webxr_openxr_enabled: bool,
     pub dom_webxr_sessionavailable: bool,
@@ -228,15 +254,20 @@ pub struct Preferences {
     pub js_werror_enabled: bool,
     pub largest_contentful_paint_enabled: bool,
     pub layout_animations_test_enabled: bool,
+    // feature: CSS Multicol | #22397 | Web/CSS/Guides/Multicol_layout
     pub layout_columns_enabled: bool,
+    // feature: CSS Grid | #34479 | Web/CSS/Guides/Grid_layout
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
     pub layout_css_transition_behavior_enabled: bool,
+    // feature: CSS Flexbox | #12453 | Web/CSS/Guides/Flexible_box_layout
     pub layout_flexbox_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
+    // feature: Variable fonts | #38800 | Web/CSS/Guides/Fonts/Variable_fonts
     pub layout_variable_fonts_enabled: bool,
+    // feature: CSS writing modes | #2560 | Web/CSS/Guides/Writing_modes
     pub layout_writing_mode_enabled: bool,
     /// Enable hardware acceleration for video playback.
     pub media_glvideo_enabled: bool,
