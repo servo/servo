@@ -237,6 +237,7 @@ impl RunningAppState {
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window));
+        self.focus_window(window.clone());
         window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()
