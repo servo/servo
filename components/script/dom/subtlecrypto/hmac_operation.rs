@@ -90,7 +90,7 @@ pub(crate) fn generate_key(
         None => {
             // Let length be the block size in bits of the hash function identified by the
             // hash member of normalizedAlgorithm.
-            normalized_algorithm.hash.block_size_in_bits()?
+            hash_function_block_size_in_bits(normalized_algorithm.hash.name())?
         },
         // Otherwise, if the length member of normalizedAlgorithm is non-zero:
         Some(length) if length != 0 => {
@@ -119,7 +119,7 @@ pub(crate) fn generate_key(
     // normalizedAlgorithm.
     // Step 11. Set the hash attribute of algorithm to hash.
     let hash = SubtleKeyAlgorithm {
-        name: normalized_algorithm.hash.name.clone(),
+        name: normalized_algorithm.hash.name().to_string(),
     };
     let algorithm = SubtleHmacKeyAlgorithm {
         name: ALG_HMAC.to_string(),
@@ -157,6 +157,7 @@ pub(crate) fn import_key(
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
+
     // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
     // Note: This is not explicitly spec'ed, but also throw a SyntaxError if usages is empty
     if usages
@@ -179,7 +180,7 @@ pub(crate) fn import_key(
             data = key_data.to_vec();
 
             // Step 4.2. Set hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.clone();
+            hash = normalized_algorithm.hash.as_ref();
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -202,10 +203,10 @@ pub(crate) fn import_key(
                 .map_err(|_| Error::Data(None))?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.clone();
+            hash = normalized_algorithm.hash.as_ref();
 
             // Step 2.6.
-            match hash.name.as_str() {
+            match hash.name() {
                 // If the name attribute of hash is "SHA-1":
                 ALG_SHA1 => {
                     // If the alg field of jwk is present and is not "HS1", then throw a DataError.
@@ -296,7 +297,9 @@ pub(crate) fn import_key(
     // Step 13. Set the hash attribute of algorithm to hash.
     let algorithm = SubtleHmacKeyAlgorithm {
         name: ALG_HMAC.to_string(),
-        hash,
+        hash: SubtleKeyAlgorithm {
+            name: hash.name().to_string(),
+        },
         length,
     };
 
@@ -382,15 +385,7 @@ pub(crate) fn get_key_length(
         None => {
             // Let length be the block size in bits of the hash function identified by the hash
             // member of normalizedDerivedKeyAlgorithm.
-            match normalized_derived_key_algorithm.hash.name.as_str() {
-                ALG_SHA1 => 160,
-                ALG_SHA256 => 256,
-                ALG_SHA384 => 384,
-                ALG_SHA512 => 512,
-                _ => {
-                    return Err(Error::Type("Unidentified hash member".to_string()));
-                },
-            }
+            hash_function_block_size_in_bits(normalized_derived_key_algorithm.hash.name())?
         },
         // Otherwise, if the length member of normalizedDerivedKeyAlgorithm is non-zero:
         Some(length) if length != 0 => {
@@ -406,4 +401,18 @@ pub(crate) fn get_key_length(
 
     // Step 2. Return length.
     Ok(Some(length))
+}
+
+/// Return the block size in bits of a hash function, according to Figure 1 of
+/// <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf>.
+fn hash_function_block_size_in_bits(hash: &str) -> Result<u32, Error> {
+    match hash {
+        ALG_SHA1 => Ok(512),
+        ALG_SHA256 => Ok(512),
+        ALG_SHA384 => Ok(1024),
+        ALG_SHA512 => Ok(1024),
+        _ => Err(Error::NotSupported(Some(
+            "Unidentified hash member".to_string(),
+        ))),
+    }
 }

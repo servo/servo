@@ -1646,22 +1646,6 @@ pub(crate) struct SubtleKeyAlgorithm {
     name: String,
 }
 
-impl SubtleKeyAlgorithm {
-    fn block_size_in_bits(&self) -> Result<u32, Error> {
-        let size = match self.name.as_str() {
-            ALG_SHA1 => 512,
-            ALG_SHA256 => 512,
-            ALG_SHA384 => 1024,
-            ALG_SHA512 => 1024,
-            _ => {
-                return Err(Error::NotSupported(None));
-            },
-        };
-
-        Ok(size)
-    }
-}
-
 impl From<NormalizedAlgorithm> for SubtleKeyAlgorithm {
     fn from(value: NormalizedAlgorithm) -> Self {
         SubtleKeyAlgorithm {
@@ -1823,13 +1807,13 @@ impl From<RootedTraceableBox<RsaOaepParams>> for SubtleRsaOaepParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleEcdsaParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams-hash>
-    hash: SubtleKeyAlgorithm,
+    hash: Box<NormalizedAlgorithm>,
 }
 
 impl TryFrom<RootedTraceableBox<EcdsaParams>> for SubtleEcdsaParams {
@@ -1840,7 +1824,7 @@ impl TryFrom<RootedTraceableBox<EcdsaParams>> for SubtleEcdsaParams {
         let hash = normalize_algorithm(cx, &Operation::Digest, &value.hash, CanGc::note())?;
         Ok(SubtleEcdsaParams {
             name: value.parent.name.to_string(),
-            hash: hash.into(),
+            hash: Box::new(hash),
         })
     }
 }
@@ -2073,13 +2057,13 @@ impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleHmacImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-hash>
-    hash: SubtleKeyAlgorithm,
+    hash: Box<NormalizedAlgorithm>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-length>
     length: Option<u32>,
@@ -2093,7 +2077,7 @@ impl TryFrom<RootedTraceableBox<HmacImportParams>> for SubtleHmacImportParams {
         let hash = normalize_algorithm(cx, &Operation::Digest, &params.hash, CanGc::note())?;
         Ok(SubtleHmacImportParams {
             name: params.parent.name.to_string(),
-            hash: hash.into(),
+            hash: Box::new(hash),
             length: params.length,
         })
     }
@@ -2130,13 +2114,13 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleHmacKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-hash>
-    hash: SubtleKeyAlgorithm,
+    hash: Box<NormalizedAlgorithm>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
     length: Option<u32>,
@@ -2150,20 +2134,20 @@ impl TryFrom<RootedTraceableBox<HmacKeyGenParams>> for SubtleHmacKeyGenParams {
         let hash = normalize_algorithm(cx, &Operation::Digest, &params.hash, CanGc::note())?;
         Ok(SubtleHmacKeyGenParams {
             name: params.parent.name.to_string(),
-            hash: hash.into(),
+            hash: Box::new(hash),
             length: params.length,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleHkdfParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-hash>
-    hash: SubtleKeyAlgorithm,
+    hash: Box<NormalizedAlgorithm>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-salt>
     salt: Vec<u8>,
@@ -2188,7 +2172,7 @@ impl TryFrom<RootedTraceableBox<HkdfParams>> for SubtleHkdfParams {
         };
         Ok(SubtleHkdfParams {
             name: params.parent.name.to_string(),
-            hash: hash.into(),
+            hash: Box::new(hash),
             salt,
             info,
         })
@@ -2196,7 +2180,7 @@ impl TryFrom<RootedTraceableBox<HkdfParams>> for SubtleHkdfParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtlePbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: String,
@@ -2208,7 +2192,7 @@ pub(crate) struct SubtlePbkdf2Params {
     iterations: u32,
 
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-hash>
-    hash: SubtleKeyAlgorithm,
+    hash: Box<NormalizedAlgorithm>,
 }
 
 impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
@@ -2225,7 +2209,7 @@ impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
             name: params.parent.name.to_string(),
             salt,
             iterations: params.iterations,
-            hash: hash.into(),
+            hash: Box::new(hash),
         })
     }
 }

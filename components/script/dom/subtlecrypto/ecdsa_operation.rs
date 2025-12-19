@@ -58,7 +58,7 @@ pub(crate) fn sign(
 
     // Step 3. Let M be the result of performing the digest operation specified by hashAlgorithm
     // using message.
-    let m = match hash_algorithm.name.as_str() {
+    let m = match hash_algorithm.name() {
         ALG_SHA1 => Sha1::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA256 => Sha256::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA384 => Sha384::new_with_prefix(message).finalize().to_vec(),
@@ -158,7 +158,7 @@ pub(crate) fn verify(
 
     // Step 3. Let M be the result of performing the digest operation specified by hashAlgorithm
     // using message.
-    let m = match hash_algorithm.name.as_str() {
+    let m = match hash_algorithm.name() {
         ALG_SHA1 => Sha1::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA256 => Sha256::new_with_prefix(message).finalize().to_vec(),
         ALG_SHA384 => Sha384::new_with_prefix(message).finalize().to_vec(),
