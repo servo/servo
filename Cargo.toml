@@ -300,3 +300,8 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/rust-content-security-policy"]
 # content-security-policy = { path = "../rust-content-security-policy" }
+
+[patch."https://github.com/servo/media"]
+servo-media = { git = "https://github.com/tharkum/servo-media", branch = "gstreamer-containers-codecs-registration" }
+servo-media-dummy = { git = "https://github.com/tharkum/servo-media", branch = "gstreamer-containers-codecs-registration" }
+servo-media-gstreamer = { git = "https://github.com/tharkum/servo-media", branch = "gstreamer-containers-codecs-registration" }
