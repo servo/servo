@@ -26,7 +26,7 @@ mod webview_delegate;
 
 // These are Servo's public exports. Everything (apart from a couple exceptions below)
 // should be exported at the root. See <https://github.com/servo/servo/issues/18475>.
-pub use base::generic_channel::GenericSender;
+pub use base::generic_channel::{GenericCallback, GenericSender};
 pub use base::id::WebViewId;
 pub use compositing::WebRenderDebugOption;
 pub use compositing_traits::rendering_context::{
@@ -35,7 +35,6 @@ pub use compositing_traits::rendering_context::{
 pub use embedder_traits::user_contents::UserScript;
 pub use embedder_traits::*;
 pub use image::RgbaImage;
-pub use ipc_channel::ipc::IpcSender;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
