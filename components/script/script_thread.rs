@@ -17,7 +17,7 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use std::cell::{Cell, OnceCell, RefCell};
+use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::option::Option;
@@ -52,7 +52,7 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::user_contents::UserContents;
+use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
@@ -326,15 +326,11 @@ pub struct ScriptThread {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// The [`UserContents`] for each `WebView` hosted by this `ScriptThread`.
+    /// A map from [`UserContentManagerId`] to its [`UserContents`]. This is initialized
+    /// with a copy of the map in constellation (via the `InitialScriptState`). After that,
+    /// the constellation forwards any mutations to this `ScriptThread` using messages.
     #[no_trace]
-    user_contents_for_webview: RefCell<FxHashMap<WebViewId, Rc<UserContents>>>,
-
-    // The default `UserContents` used when embedder has not set a `UserContentManager`
-    // on a `WebView`. This must be empty and should have no effect on the pages
-    // loaded in the `WebView`.
-    #[no_trace]
-    default_user_contents: OnceCell<Rc<UserContents>>,
+    user_contents_for_manager_id: RefCell<FxHashMap<UserContentManagerId, Rc<UserContents>>>,
 
     /// Application window's GL Context for Media player
     #[no_trace]
@@ -942,7 +938,15 @@ impl ScriptThread {
             gpu_id_hub.clone(),
             CanGc::note(),
         );
+
         debugger_global.execute(CanGc::note());
+
+        let mut user_contents_for_manager_id = FxHashMap::default();
+        for (user_content_manager_id, user_contents) in
+            state.user_contents_for_manager_id.into_iter()
+        {
+            user_contents_for_manager_id.insert(user_content_manager_id, Rc::new(user_contents));
+        }
 
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
@@ -976,8 +980,7 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-            user_contents_for_webview: RefCell::new(Default::default()),
-            default_user_contents: Default::default(),
+            user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
             player_context: state.player_context,
             pipeline_to_node_ids: Default::default(),
             is_user_interacting: Rc::new(Cell::new(false)),
@@ -1884,13 +1887,15 @@ impl ScriptThread {
             ScriptThreadMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response, can_gc);
             },
-            ScriptThreadMessage::SetUserContents(user_contents, webview_ids) => {
-                let user_contents = Rc::new(user_contents);
-                for webview_id in webview_ids {
-                    self.user_contents_for_webview
-                        .borrow_mut()
-                        .insert(webview_id, user_contents.clone());
-                }
+            ScriptThreadMessage::SetUserContents(user_content_manager_id, user_contents) => {
+                self.user_contents_for_manager_id
+                    .borrow_mut()
+                    .insert(user_content_manager_id, Rc::new(user_contents));
+            },
+            ScriptThreadMessage::DestroyUserContentManager(user_content_manager_id) => {
+                self.user_contents_for_manager_id
+                    .borrow_mut()
+                    .remove(&user_content_manager_id);
             },
         }
     }
@@ -3168,11 +3173,15 @@ impl ScriptThread {
             theme: incomplete.theme,
         };
 
-        let user_contents = self
-            .user_contents_for_webview
-            .borrow()
-            .get(&incomplete.webview_id)
-            .cloned();
+        let user_contents =
+            incomplete
+                .user_content_manager_id
+                .and_then(|user_content_manager_id| {
+                    self.user_contents_for_manager_id
+                        .borrow()
+                        .get(&user_content_manager_id)
+                        .cloned()
+                });
 
         // Create the window and document objects.
         let window = Window::new(

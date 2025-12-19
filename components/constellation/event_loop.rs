@@ -112,6 +112,7 @@ impl EventLoop {
             webxr_registry: constellation.webxr_registry.clone(),
             player_context: WindowGLContext::get(),
             privileged_urls: constellation.privileged_urls.clone(),
+            user_contents_for_manager_id: constellation.user_contents_for_manager_id.clone(),
         };
 
         let event_loop = if opts::get().multiprocess {

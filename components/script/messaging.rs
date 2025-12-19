@@ -103,6 +103,7 @@ impl MixedMessage {
                 ScriptThreadMessage::RequestScreenshotReadiness(_, id) => Some(*id),
                 ScriptThreadMessage::EmbedderControlResponse(id, _) => Some(id.pipeline_id),
                 ScriptThreadMessage::SetUserContents(..) => None,
+                ScriptThreadMessage::DestroyUserContentManager(..) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {

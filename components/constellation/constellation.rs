@@ -510,7 +510,7 @@ pub struct Constellation<STF, SWF> {
     /// Multiple `WebView`s can share the same `UserContentManager` and any mutations
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
     /// the relevant `WebView`.
-    user_contents_for_manager_id: HashMap<UserContentManagerId, UserContents>,
+    pub(crate) user_contents_for_manager_id: HashMap<UserContentManagerId, UserContents>,
 }
 
 /// State needed to construct a constellation.
@@ -1008,22 +1008,6 @@ where
         }
 
         let event_loop = EventLoop::spawn(self, is_private)?;
-        let user_contents = self
-            .webviews
-            .get(&webview_id)
-            .and_then(|webview| webview.user_content_manager_id)
-            .and_then(|user_content_manager_id| {
-                self.user_contents_for_manager_id
-                    .get(&user_content_manager_id)
-            })
-            .cloned();
-        if let Some(user_contents) = user_contents {
-            let _ = event_loop.send(ScriptThreadMessage::SetUserContents(
-                user_contents,
-                vec![webview_id],
-            ));
-        }
-
         if let Some(registered_domain_name) = registered_domain_name {
             self.set_event_loop(&event_loop, registered_domain_name, webview_id, opener);
         }
@@ -1073,6 +1057,11 @@ where
             Err(error) => return self.handle_send_error(new_pipeline_id, error),
         };
 
+        let user_content_manager_id = self
+            .webviews
+            .get(&webview_id)
+            .and_then(|webview| webview.user_content_manager_id);
+
         let new_pipeline_info = NewPipelineInfo {
             parent_info: parent_pipeline_id,
             new_pipeline_id,
@@ -1081,6 +1070,7 @@ where
             opener,
             load_data,
             viewport_details: initial_viewport_details,
+            user_content_manager_id,
             theme,
         };
         let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, throttled) {
@@ -1588,6 +1578,7 @@ where
     ) {
         match action {
             UserContentManagerAction::AddUserScript(user_script) => {
+                let event_loops = self.event_loops();
                 let user_contents = self
                     .user_contents_for_manager_id
                     .entry(user_content_manager_id)
@@ -1595,30 +1586,22 @@ where
 
                 user_contents.scripts.push(user_script);
 
-                let mut event_loop_to_webview_ids_map =
-                    HashMap::<Rc<EventLoop>, HashSet<WebViewId>>::new();
-                for pipeline in self.pipelines.values() {
-                    let webview = self.webviews.get(&pipeline.webview_id);
-                    if webview.is_some_and(|webview| {
-                        webview.user_content_manager_id == Some(user_content_manager_id)
-                    }) {
-                        event_loop_to_webview_ids_map
-                            .entry(pipeline.event_loop.clone())
-                            .or_default()
-                            .insert(pipeline.webview_id);
-                    }
-                }
-
-                for (event_loop, webview_ids) in event_loop_to_webview_ids_map {
+                for event_loop in event_loops {
                     let _ = event_loop.send(ScriptThreadMessage::SetUserContents(
+                        user_content_manager_id,
                         user_contents.clone(),
-                        webview_ids.into_iter().collect(),
                     ));
                 }
             },
             UserContentManagerAction::DestroyUserContentManager => {
                 self.user_contents_for_manager_id
                     .remove(&user_content_manager_id);
+
+                for event_loop in self.event_loops() {
+                    let _ = event_loop.send(ScriptThreadMessage::DestroyUserContentManager(
+                        user_content_manager_id,
+                    ));
+                }
             },
         }
     }
@@ -3465,6 +3448,7 @@ where
         let _ = response_sender.send(Some(AuxiliaryWebViewCreationResponse {
             new_webview_id,
             new_pipeline_id,
+            user_content_manager_id,
         }));
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
