@@ -141,6 +141,10 @@ impl DocumentLoader {
         self.deferred_fetches.push(deferred_fetch);
     }
 
+    pub(crate) fn deferred_fetches(&self) -> Vec<QueuedDeferredFetchRecord> {
+        self.deferred_fetches.clone()
+    }
+
     /// Initiate a new fetch given a response callback.
     pub(crate) fn fetch_async_with_callback(
         &mut self,

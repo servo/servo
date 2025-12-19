@@ -1948,8 +1948,89 @@ impl Document {
         self.loader_mut().fetch_async_background(request, callback);
     }
 
+    /// <https://fetch.spec.whatwg.org/#deferred-fetch-control-document>
+    fn deferred_fetch_control_document(&self) -> DomRoot<Document> {
+        match self.window().window_proxy().frame_element() {
+            // Step 1. If document’ node navigable’s container document is null
+            // or a document whose origin is not same origin with document, then return document;
+            None => DomRoot::from_ref(self),
+            // otherwise, return the deferred-fetch control document given document’s node navigable’s container document.
+            Some(container) => container.owner_document().deferred_fetch_control_document(),
+        }
+    }
+
     pub(crate) fn append_deferred_fetch(&self, request: QueuedDeferredFetchRecord) {
         self.loader_mut().append_deferred_fetch(request);
+    }
+
+    /// <https://fetch.spec.whatwg.org/#available-deferred-fetch-quota>
+    pub(crate) fn available_deferred_fetch_quota(&self, origin: ImmutableOrigin) -> isize {
+        // Step 1. Let controlDocument be document’s deferred-fetch control document.
+        let control_document = self.deferred_fetch_control_document();
+        // Step 2. Let navigable be controlDocument’s node navigable.
+        let navigable = control_document.window();
+        // Step 3. Let isTopLevel be true if controlDocument’s node navigable
+        // is a top-level traversable; otherwise false.
+        let is_top_level = navigable.is_top_level();
+        // Step 4. Let deferredFetchAllowed be true if controlDocument is allowed
+        // to use the policy-controlled feature "deferred-fetch"; otherwise false.
+        // TODO
+        let deferred_fetch_allowed = true;
+        // Step 5. Let deferredFetchMinimalAllowed be true if controlDocument
+        // is allowed to use the policy-controlled feature "deferred-fetch-minimal"; otherwise false.
+        // TODO
+        let deferred_fetch_minimal_allowed = true;
+        // Step 6. Let quota be the result of the first matching statement:
+        let mut quota = match is_top_level {
+            // isTopLevel is true and deferredFetchAllowed is false
+            true if !deferred_fetch_allowed => 0,
+            // isTopLevel is true and deferredFetchMinimalAllowed is false
+            true if !deferred_fetch_minimal_allowed => 640 * 1024,
+            // isTopLevel is true
+            true => 512 * 1024,
+            // deferredFetchAllowed is true, and navigable’s navigable container’s
+            // reserved deferred-fetch quota is normal quota
+            // TODO
+            _ if deferred_fetch_allowed => 0,
+            // deferredFetchMinimalAllowed is true, and navigable’s navigable container’s
+            // reserved deferred-fetch quota is minimal quota
+            // TODO
+            _ if deferred_fetch_minimal_allowed => 8 * 1024,
+            // Otherwise
+            _ => 0,
+        } as isize;
+        // Step 7. Let quotaForRequestOrigin be 64 kibibytes.
+        let mut quota_for_request_origin = 64 * 1024_isize;
+        // Step 8. For each navigable in controlDocument’s node navigable’s
+        // inclusive descendant navigables whose active document’s deferred-fetch control document is controlDocument:
+        // TODO
+        // Step 8.1. For each container in navigable’s active document’s shadow-including inclusive descendants
+        // which is a navigable container, decrement quota by container’s reserved deferred-fetch quota.
+        // TODO
+        // Step 8.2. For each deferred fetch record deferredRecord of navigable’s active document’s
+        // relevant settings object’s fetch group’s deferred fetch records:
+        for deferred_fetch in control_document.loader().deferred_fetches() {
+            let deferred_fetch = deferred_fetch.lock().unwrap();
+            // Step 8.2.1. Let requestLength be the total request length of deferredRecord’s request.
+            let request_length = deferred_fetch.request.total_request_length();
+            // Step 8.2.2. Decrement quota by requestLength.
+            quota -= request_length as isize;
+            // Step 8.2.3. If deferredRecord’s request’s URL’s origin is same origin with origin,
+            // then decrement quotaForRequestOrigin by requestLength.
+            if deferred_fetch.request.url().origin() == origin {
+                quota_for_request_origin -= request_length as isize;
+            }
+        }
+        // Step 9. If quota is equal or less than 0, then return 0.
+        if quota <= 0 {
+            return 0;
+        }
+        // Step 10. If quota is less than quotaForRequestOrigin, then return quota.
+        if quota < quota_for_request_origin {
+            return quota;
+        }
+        // Step 11. Return quotaForRequestOrigin.
+        quota_for_request_origin
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
