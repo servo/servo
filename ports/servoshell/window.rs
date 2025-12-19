@@ -374,7 +374,7 @@ pub(crate) trait PlatformWindow {
     fn handle_winit_window_event(
         &self,
         _: Rc<RunningAppState>,
-        _: &ServoShellWindow,
+        _: Rc<ServoShellWindow>,
         _: winit::event::WindowEvent,
     ) {
     }
