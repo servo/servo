@@ -9,12 +9,12 @@ use gilrs::{EventType, Gilrs};
 use log::{debug, warn};
 use servo::{
     GamepadEvent, GamepadHapticEffectType, GamepadIndex, GamepadInputBounds,
-    GamepadSupportedHapticEffects, GamepadUpdateType, GenericCallback, InputEvent, WebView,
+    GamepadSupportedHapticEffects, GamepadUpdateType, InputEvent, WebView,
 };
 
 pub struct HapticEffect {
     pub effect: Effect,
-    pub callback: GenericCallback<bool>,
+    pub callback: Box<dyn Fn(bool)>,
 }
 
 pub(crate) struct GamepadSupport {
@@ -117,10 +117,7 @@ impl GamepadSupport {
                         warn!("Failed to find haptic effect for id {}", event.id);
                         return;
                     };
-                    effect
-                        .callback
-                        .send(true)
-                        .expect("Failed to send haptic effect completion.");
+                    (effect.callback)(true);
                     self.haptic_effects.remove(&event.id.into());
                 },
                 _ => {},
@@ -161,7 +158,7 @@ impl GamepadSupport {
         &mut self,
         index: usize,
         effect_type: GamepadHapticEffectType,
-        effect_complete_sender: GenericCallback<bool>,
+        effect_complete_sender: Box<dyn Fn(bool)>,
     ) {
         let GamepadHapticEffectType::DualRumble(params) = effect_type;
         if let Some(connected_gamepad) = self

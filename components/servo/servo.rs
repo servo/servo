@@ -549,15 +549,25 @@ impl ServoInner {
                         webview,
                         gamepad_index,
                         gamepad_haptic_effect_type,
-                        callback,
+                        Box::new(move |msg| {
+                            callback
+                                .send(msg)
+                                .expect("Could not send message via callback")
+                        }),
                     );
                 }
             },
             EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, callback) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .stop_gamepad_haptic_effect(webview, gamepad_index, callback);
+                    webview.delegate().stop_gamepad_haptic_effect(
+                        webview,
+                        gamepad_index,
+                        Box::new(move |msg| {
+                            callback
+                                .send(msg)
+                                .expect("Could not send message via callback")
+                        }),
+                    );
                 }
             },
             EmbedderMsg::ShowNotification(webview_id, notification) => {
