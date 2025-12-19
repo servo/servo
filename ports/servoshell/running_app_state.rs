@@ -237,6 +237,11 @@ impl RunningAppState {
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window));
+
+        // On Android and OHOS, newly created windows are automatically focused.
+        // On Desktop, it is up to the `winit::event::WindowEvent::Focused`.
+        #[cfg(any(target_env = "ohos", target_os = "android"))]
+        self.focus_window(window.clone());
         window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()
