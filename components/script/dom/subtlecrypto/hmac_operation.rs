@@ -90,7 +90,7 @@ pub(crate) fn generate_key(
         None => {
             // Let length be the block size in bits of the hash function identified by the
             // hash member of normalizedAlgorithm.
-            hash_fucntion_block_size_in_bits(normalized_algorithm.hash.name())?
+            hash_function_block_size_in_bits(normalized_algorithm.hash.name())?
         },
         // Otherwise, if the length member of normalizedAlgorithm is non-zero:
         Some(length) if length != 0 => {
@@ -385,7 +385,7 @@ pub(crate) fn get_key_length(
         None => {
             // Let length be the block size in bits of the hash function identified by the hash
             // member of normalizedDerivedKeyAlgorithm.
-            hash_fucntion_block_size_in_bits(normalized_derived_key_algorithm.hash.name())?
+            hash_function_block_size_in_bits(normalized_derived_key_algorithm.hash.name())?
         },
         // Otherwise, if the length member of normalizedDerivedKeyAlgorithm is non-zero:
         Some(length) if length != 0 => {
@@ -405,7 +405,7 @@ pub(crate) fn get_key_length(
 
 /// Return the block size in bits of a hash function, according to Figure 1 of
 /// <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf>.
-fn hash_fucntion_block_size_in_bits(hash: &str) -> Result<u32, Error> {
+fn hash_function_block_size_in_bits(hash: &str) -> Result<u32, Error> {
     match hash {
         ALG_SHA1 => Ok(512),
         ALG_SHA256 => Ok(512),
