@@ -66,7 +66,7 @@ impl DroppableEventSource {
     }
 
     pub(crate) fn cancel(&self) {
-        self.canceller.borrow_mut().cancel();
+        self.canceller.borrow_mut().abort();
     }
 
     pub(crate) fn set_canceller(&self, data: FetchCanceller) {

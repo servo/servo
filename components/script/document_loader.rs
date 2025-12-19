@@ -110,13 +110,15 @@ impl DocumentLoader {
 
     /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
     pub(crate) fn cancel_all_loads(&mut self) -> bool {
+        let canceled_any = !self.cancellers.is_empty();
         // Step 1. For each fetch record record of fetchGroup’s fetch records,
         // if record’s controller is non-null and record’s request’s done flag
         // is unset and keepalive is false, terminate record’s controller.
-        //
-        // Implemented in [`FetchCanceller::cancel`] which runs when these cancellers are dropped.
-        let canceled_any = !self.cancellers.is_empty();
-        self.cancellers.clear();
+        for mut canceller in self.cancellers.drain(..) {
+            if !canceller.keep_alive() {
+                canceller.terminate();
+            }
+        }
         // Step 2. Process deferred fetches for fetchGroup.
         for deferred_fetch in self.deferred_fetches.drain(..) {
             deferred_fetch.lock().unwrap().process();
