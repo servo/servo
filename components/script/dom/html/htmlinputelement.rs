@@ -1560,9 +1560,9 @@ impl HTMLInputElement {
             .width()
             .to_f64_px();
         let thumb_style = format!(
-            "left: calc({}% - {}px)",
+            "inset-inline-start: calc({}% - {}px)",
             percent,
-            thumb_rect_width / 2.0
+            thumb_rect_width * percent / 100.0
         );
         let progress_style = format!("width: {percent}%;");
         range_shadow_tree.range_thumb.set_string_attribute(

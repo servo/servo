@@ -139,7 +139,7 @@ input[type="color"] {
 
 input[type="range"] {
   width: 100px;
-  height: 16px;
+  min-height: 16px;
   position: relative;
   cursor: pointer;
   background: none;
@@ -155,6 +155,7 @@ input[type="range"]::-servo-range-track {
   border-radius: 5px;
   position: absolute;
   cursor: pointer;
+  z-index: 1;
 }
 
 input[type="range"]::-servo-range-progress {
@@ -164,6 +165,7 @@ input[type="range"]::-servo-range-progress {
   position: absolute;
   cursor: pointer;
   top: 50%;
+  z-index: 2;
   transform: translateY(-50%);
 }
 
@@ -175,8 +177,9 @@ input[type="range"]::-servo-range-thumb {
   border: 2px solid white;
   position: absolute;
   top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   cursor: pointer;
+  z-index: 3;
 }
 
 td[align="left"]    { text-align: left; }
