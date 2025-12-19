@@ -174,6 +174,22 @@ class CheckTidiness(unittest.TestCase):
         lst = list(file_list)
         self.assertEqual([os.path.join(file_path, "whee", "test.rs")], lst)
 
+    def test_feature_annotation(self):
+        errors = tidy.check_feature_annotation(
+            "prefs.rs",
+            [
+                b"// feature:",
+                b"// feature: a | #a | a |",
+                b"// feature: | 123 |",
+            ],
+        )
+        self.assertEqual("Feature annotation has too few | separators", next(errors)[1])
+        self.assertEqual("Feature annotation has too many | separators", next(errors)[1])
+        self.assertEqual("Feature annotation issue number is not a number", next(errors)[1])
+        self.assertEqual("Feature annotation name is missing", next(errors)[1])
+        self.assertEqual("Feature annotation issue number must start with #", next(errors)[1])
+        self.assertEqual("Feature annotation URL path is missing", next(errors)[1])
+
     def test_raw_url_in_rustdoc(self):
         def assert_has_a_single_rustdoc_error(errors: Iterable[tuple[int, str]]):
             self.assertEqual(tidy.ERROR_RAW_URL_IN_RUSTDOC, next(errors)[1])
