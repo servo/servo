@@ -103,8 +103,8 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
-    CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
-    is_valid_custom_element_name,
+    CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementRegistry,
+    CustomElementState, is_valid_custom_element_name,
 };
 use crate::dom::document::{Document, LayoutDocumentHelpers};
 use crate::dom::documentfragment::DocumentFragment;
@@ -1570,6 +1570,21 @@ impl Element {
 
     pub(crate) fn set_prefix(&self, prefix: Option<Prefix>) {
         *self.prefix.borrow_mut() = prefix;
+    }
+
+    pub(crate) fn set_custom_element_registry(
+        &self,
+        registry: Option<DomRoot<CustomElementRegistry>>,
+    ) {
+        self.ensure_rare_data().custom_element_registry = registry.as_deref().map(Dom::from_ref);
+    }
+
+    pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.rare_data()
+            .as_ref()?
+            .custom_element_registry
+            .as_deref()
+            .map(DomRoot::from_ref)
     }
 
     pub(crate) fn attrs(&self) -> Ref<'_, [Dom<Attr>]> {
@@ -3981,6 +3996,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 3. Return shadow.
         Some(shadow)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-element-customelementregistry>
+    fn GetCustomElementRegistry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        // The customElementRegistry getter steps are to return this’s custom element registry.
+        self.custom_element_registry()
     }
 
     fn GetRole(&self) -> Option<DOMString> {

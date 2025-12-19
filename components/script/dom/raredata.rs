@@ -10,7 +10,7 @@ use stylo_atoms::Atom;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
-    CustomElementDefinition, CustomElementReaction, CustomElementState,
+    CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
 };
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
@@ -70,6 +70,8 @@ pub(crate) struct ElementRareData {
     pub(crate) custom_element_definition: Option<Rc<CustomElementDefinition>>,
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     pub(crate) custom_element_state: CustomElementState,
+    /// <https://dom.spec.whatwg.org/#dom-element-customelementregistry>
+    pub(crate) custom_element_registry: Option<Dom<CustomElementRegistry>>,
     /// The "name" content attribute; not used as frequently as id, but used
     /// in named getter loops so it's worth looking up quickly when present
     #[no_trace]

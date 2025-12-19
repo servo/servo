@@ -86,6 +86,8 @@ interface Element : Node {
 
   [Throws] ShadowRoot attachShadow(ShadowRootInit init);
   readonly attribute ShadowRoot? shadowRoot;
+
+  readonly attribute CustomElementRegistry? customElementRegistry;
 };
 
 dictionary ShadowRootInit {

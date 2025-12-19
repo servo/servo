@@ -94,7 +94,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::codegen::UnionTypes::{
-    NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
+    BooleanOrImportNodeOptions, NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
 };
 use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, is_valid_element_local_name, namespace_from_domstring,
@@ -116,7 +116,9 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::fontfaceset::FontFaceSet;
 use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
-use crate::dom::customelementregistry::{CustomElementDefinition, CustomElementReactionStack};
+use crate::dom::customelementregistry::{
+    CustomElementDefinition, CustomElementReactionStack, CustomElementRegistry,
+};
 use crate::dom::customevent::CustomEvent;
 use crate::dom::document_embedder_controls::DocumentEmbedderControls;
 use crate::dom::document_event_handler::DocumentEventHandler;
@@ -155,9 +157,7 @@ use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::{Location, NavigationType};
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{
-    CloneChildrenFlag, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
-};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -2761,6 +2761,11 @@ impl Document {
         registry.lookup_definition(local_name, is)
     }
 
+    /// <https://dom.spec.whatwg.org/#document-custom-element-registry>
+    pub(crate) fn custom_element_registry(&self) -> DomRoot<CustomElementRegistry> {
+        self.window.CustomElements()
+    }
+
     pub(crate) fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
         let counter = self.throw_on_dynamic_markup_insertion_counter.get();
         self.throw_on_dynamic_markup_insertion_counter
@@ -5200,20 +5205,41 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-importnode>
-    fn ImportNode(&self, node: &Node, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        // Step 1.
+    fn ImportNode(
+        &self,
+        node: &Node,
+        options: BooleanOrImportNodeOptions,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Node>> {
+        // Step 1. If node is a document or shadow root, then throw a "NotSupportedError" DOMException.
         if node.is::<Document>() || node.is::<ShadowRoot>() {
             return Err(Error::NotSupported(None));
         }
-
-        // Step 2.
-        let clone_children = if deep {
-            CloneChildrenFlag::CloneChildren
-        } else {
-            CloneChildrenFlag::DoNotCloneChildren
+        // Step 2. Let subtree be false.
+        let (subtree, registry) = match options {
+            // Step 3. Let registry be null.
+            // Step 4. If options is a boolean, then set subtree to options.
+            BooleanOrImportNodeOptions::Boolean(boolean) => (boolean.into(), None),
+            // Step 5. Otherwise:
+            BooleanOrImportNodeOptions::ImportNodeOptions(options) => {
+                // Step 5.1. Set subtree to the negation of options["selfOnly"].
+                let subtree = (!options.selfOnly).into();
+                // Step 5.2. If options["customElementRegistry"] exists, then set registry to it.
+                let registry = options.customElementRegistry;
+                // Step 5.3. If registry’s is scoped is false and registry
+                // is not this’s custom element registry, then throw a "NotSupportedError" DOMException.
+                // TODO
+                (subtree, registry)
+            },
         };
+        // Step 6. If registry is null, then set registry to the
+        // result of looking up a custom element registry given this.
+        let registry = registry
+            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(self.upcast()));
 
-        Ok(Node::clone(node, Some(self), clone_children, can_gc))
+        // Step 7. Return the result of cloning a node given node with
+        // document set to this, subtree set to subtree, and fallbackRegistry set to registry.
+        Ok(Node::clone(node, Some(self), subtree, registry, can_gc))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-adoptnode>

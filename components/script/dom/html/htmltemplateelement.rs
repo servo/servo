@@ -147,6 +147,7 @@ impl VirtualMethods for HTMLTemplateElement {
                 &child,
                 Some(&copy_contents_doc),
                 CloneChildrenFlag::CloneChildren,
+                None,
                 CanGc::note(),
             );
             copy_contents.AppendChild(&copy_child, can_gc).unwrap();

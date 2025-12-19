@@ -89,7 +89,9 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
-use crate::dom::customelementregistry::{CallbackReaction, try_upgrade_element};
+use crate::dom::customelementregistry::{
+    CallbackReaction, CustomElementRegistry, try_upgrade_element,
+};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -2265,6 +2267,16 @@ pub(crate) enum CloneChildrenFlag {
     DoNotCloneChildren,
 }
 
+impl From<bool> for CloneChildrenFlag {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            CloneChildrenFlag::CloneChildren
+        } else {
+            CloneChildrenFlag::DoNotCloneChildren
+        }
+    }
+}
+
 fn as_uintptr<T>(t: &T) -> uintptr_t {
     t as *const T as uintptr_t
 }
@@ -2930,6 +2942,7 @@ impl Node {
         node: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        registry: Option<DomRoot<CustomElementRegistry>>,
         can_gc: CanGc,
     ) -> DomRoot<Node> {
         // Step 1. If document is not given, let document be node’s node document.
@@ -3008,8 +3021,23 @@ impl Node {
                 );
                 DomRoot::upcast::<Node>(document)
             },
+            // Step 2. If node is an element:
             NodeTypeId::Element(..) => {
                 let element = node.downcast::<Element>().unwrap();
+                // Step 2.1. Let registry be node’s custom element registry.
+                // Step 2.2. If registry is null, then set registry to fallbackRegistry.
+                let registry = element.custom_element_registry().or(registry);
+                // Step 2.3. If registry is a global custom element registry, then
+                // set registry to document’s effective global custom element registry.
+                let registry =
+                    if CustomElementRegistry::is_a_global_element_registry(registry.as_deref()) {
+                        Some(document.custom_element_registry())
+                    } else {
+                        registry
+                    };
+                // Step 2.4. Set copy to the result of creating an element,
+                // given document, node’s local name, node’s namespace,
+                // node’s namespace prefix, node’s is value, false, and registry.
                 let name = QualName {
                     prefix: element.prefix().as_ref().map(|p| Prefix::from(&**p)),
                     ns: element.namespace().clone(),
@@ -3024,6 +3052,8 @@ impl Node {
                     None,
                     can_gc,
                 );
+                // TODO: Move this into `Element::create`
+                element.set_custom_element_registry(registry);
                 DomRoot::upcast::<Node>(element)
             },
         };
@@ -3048,9 +3078,12 @@ impl Node {
                 let node_elem = node.downcast::<Element>().unwrap();
                 let copy_elem = copy.downcast::<Element>().unwrap();
 
+                // Step 2.5. For each attribute of node’s attribute list:
                 for attr in node_elem.attrs().iter() {
+                    // Step 2.5.1. Let copyAttribute be the result of cloning a single node given attribute, document, and null.
                     let new_value =
                         Node::compute_attribute_value_with_style_fast_path(attr, node_elem);
+                    // Step 2.5.2. Append copyAttribute to copy.
                     copy_elem.push_new_attribute(
                         attr.local_name().clone(),
                         new_value,
@@ -3073,7 +3106,7 @@ impl Node {
         // result of cloning child with document and the clone children flag set, to copy.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(&child, Some(&document), clone_children, can_gc);
+                let child_copy = Node::clone(&child, Some(&document), clone_children, None, can_gc);
                 let _inserted_node = Node::pre_insert(&child_copy, &copy, None, can_gc);
             }
         }
@@ -3113,6 +3146,7 @@ impl Node {
                         &child,
                         Some(&document),
                         CloneChildrenFlag::CloneChildren,
+                        None,
                         can_gc,
                     );
 
@@ -3764,6 +3798,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             } else {
                 CloneChildrenFlag::DoNotCloneChildren
             },
+            None,
             can_gc,
         );
         Ok(result)

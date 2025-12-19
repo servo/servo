@@ -6,10 +6,11 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::customelementregistry::{
-    CustomElementState, is_valid_custom_element_name, upgrade_element,
+    CustomElementRegistry, CustomElementState, is_valid_custom_element_name, upgrade_element,
 };
 use crate::dom::document::Document;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
@@ -130,6 +131,11 @@ fn create_html_element(
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
+    // Step 2. If registry is "default", then set registry
+    // to the result of looking up a custom element registry given document.
+    // TODO: We don't pass in any other value than "default" atm
+    let registry = CustomElementRegistry::lookup_a_custom_element_registry(document.upcast());
+
     // Step 3. Let definition be the result of looking up a custom element
     // definition given document, namespace, localName, and is.
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
@@ -145,6 +151,7 @@ fn create_html_element(
             let element = create_native_html_element(name, prefix, document, creator, proto);
             element.set_is(definition.name.clone());
             element.set_custom_element_state(CustomElementState::Undefined);
+            element.set_custom_element_registry(registry);
 
             match mode {
                 // Step 4.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
@@ -168,7 +175,12 @@ fn create_html_element(
                     let local_name = name.local.clone();
                     // TODO(jdm) Pass proto to create_element?
                     // Steps 4.1.1-4.1.11
-                    return match definition.create_element(document, prefix.clone(), can_gc) {
+                    return match definition.create_element(
+                        document,
+                        prefix.clone(),
+                        registry.clone(),
+                        can_gc,
+                    ) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
                             element
@@ -186,15 +198,13 @@ fn create_html_element(
                             throw_dom_exception(cx, &global, error, can_gc);
                             report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
 
-                            // Substep 2. Set result to a new element that implements the HTMLUnknownElement interface,
-                            // with no attributes, namespace set to the HTML namespace, namespace prefix set to prefix,
-                            // local name set to localName, custom element state set to "failed",
-                            // custom element definition set to null, is value set to null,
-                            // and node document set to document.
+                            // Substep 2. Set result to the result of creating an element internal given document,
+                            // HTMLUnknownElement, localName, the HTML namespace, prefix, "failed", null, and registry.
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
                                 local_name, prefix, document, proto, can_gc,
                             ));
                             element.set_custom_element_state(CustomElementState::Failed);
+                            element.set_custom_element_registry(registry);
                             element
                         },
                     };
@@ -214,6 +224,7 @@ fn create_html_element(
                         can_gc,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
+                    result.set_custom_element_registry(registry);
                     // Step 4.2.2. Enqueue a custom element upgrade reaction given result and definition.
                     ScriptThread::enqueue_upgrade_reaction(&result, definition);
                     return result;
@@ -235,10 +246,12 @@ fn create_html_element(
         Some(is) => {
             result.set_is(is);
             result.set_custom_element_state(CustomElementState::Undefined);
+            result.set_custom_element_registry(registry);
         },
         None => {
             if is_valid_custom_element_name(&name.local) {
                 result.set_custom_element_state(CustomElementState::Undefined);
+                result.set_custom_element_registry(registry);
             } else {
                 // Note: This is a performance optimization. See the doc comment of the method for
                 // more information.

@@ -31,7 +31,7 @@ use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavio
 use crate::dom::bindings::error::{
     Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
@@ -133,6 +133,37 @@ impl CustomElementRegistry {
             .values()
             .find(|definition| definition.constructor.callback() == constructor.get())
             .cloned()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-registry>
+    pub(crate) fn lookup_a_custom_element_registry(
+        node: &Node,
+    ) -> Option<DomRoot<CustomElementRegistry>> {
+        match node.type_id() {
+            // Step 1. If node is an Element object, then return node's custom element registry.
+            NodeTypeId::Element(_) => node
+                .downcast::<Element>()
+                .expect("Nodes with element type must be an element")
+                .custom_element_registry(),
+            // Step 2. If node is a ShadowRoot object, then return node's custom element registry.
+            // TODO
+            // Step 3. If node is a Document object, then return node's custom element registry.
+            NodeTypeId::Document(_) => Some(
+                node.downcast::<Document>()
+                    .expect("Nodes with document type must be a document")
+                    .custom_element_registry(),
+            ),
+            // Step 4. Return null.
+            _ => None,
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#is-a-global-custom-element-registry>
+    pub(crate) fn is_a_global_element_registry(registry: Option<&CustomElementRegistry>) -> bool {
+        // Null or a CustomElementRegistry object registry is a global custom element registry
+        // if registry is non-null and registry’s is scoped is false.
+        // TODO: Implement scoped
+        registry.is_some()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
@@ -746,6 +777,7 @@ impl CustomElementDefinition {
         &self,
         document: &Document,
         prefix: Option<Prefix>,
+        registry: Option<DomRoot<CustomElementRegistry>>,
         // This function can cause GC through AutoEntryScript::Drop, but we can't pass a CanGc there
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
@@ -779,18 +811,18 @@ impl CustomElementDefinition {
                 _ => return Err(Error::JSFailed),
             };
 
-        // Step 4.1.3. Assert: result’s custom element state and custom element definition are initialized.
-        // Step 4.1.4. Assert: result’s namespace is the HTML namespace.
+        // Step 5.1.3.2 Assert: result’s custom element state and custom element definition are initialized.
+        // Step 5.1.3.3 Assert: result’s namespace is the HTML namespace.
         // Note: IDL enforces that result is an HTMLElement object, which all use the HTML namespace.
         // Note: the custom element definition is initialized by the caller if
         // this method returns a success value.
         assert!(element.is::<HTMLElement>());
 
-        // Step 4.1.5. If result’s attribute list is not empty, then throw a "NotSupportedError" DOMException.
-        // Step 4.1.6. If result has children, then throw a "NotSupportedError" DOMException.
-        // Step 4.1.7. If result’s parent is not null, then throw a "NotSupportedError" DOMException.
-        // Step 4.1.8. If result’s node document is not document, then throw a "NotSupportedError" DOMException.
-        // Step 4.1.9. If result’s local name is not equal to localName then throw a "NotSupportedError" DOMException.
+        // Step 5.1.3.4. If result’s attribute list is not empty, then throw a "NotSupportedError" DOMException.
+        // Step 5.1.3.5. If result has children, then throw a "NotSupportedError" DOMException.
+        // Step 5.1.3.6. If result’s parent is not null, then throw a "NotSupportedError" DOMException.
+        // Step 5.1.3.7. If result’s node document is not document, then throw a "NotSupportedError" DOMException.
+        // Step 5.1.3.8. If result’s local name is not equal to localName then throw a "NotSupportedError" DOMException.
         if element.HasAttributes() ||
             element.upcast::<Node>().children_count() > 0 ||
             element.upcast::<Node>().has_parent() ||
@@ -801,11 +833,14 @@ impl CustomElementDefinition {
             return Err(Error::NotSupported(None));
         }
 
-        // Step 4.1.10. Set result’s namespace prefix to prefix.
+        // Step 5.1.3.9. Set result’s namespace prefix to prefix.
         element.set_prefix(prefix);
 
-        // Step 4.1.11. Set result’s is value to null.
+        // Step 5.1.3.10. Set result’s is value to null.
         // Element's `is` is None by default
+
+        // Step 5.1.3.11. Set result’s custom element registry to registry.
+        element.set_custom_element_registry(registry);
 
         Ok(element)
     }
