@@ -171,6 +171,8 @@ pub struct Preferences {
     pub dom_worklet_blockingsleep: bool,
     pub dom_worklet_testing_enabled: bool,
     pub dom_worklet_timeout_ms: i64,
+    /// <https://drafts.csswg.org/cssom-view/#visualViewport>
+    pub dom_visual_viewport_enabled: bool,
     /// True to compile all WebRender shaders when Servo initializes. This is mostly
     /// useful when modifying the shaders, to ensure they all compile after each change is
     /// made.
@@ -363,6 +365,7 @@ impl Preferences {
             dom_worklet_enabled: false,
             dom_worklet_testing_enabled: false,
             dom_worklet_timeout_ms: 10,
+            dom_visual_viewport_enabled: false,
             fonts_default: String::new(),
             fonts_default_monospace_size: 13,
             fonts_default_size: 16,

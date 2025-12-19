@@ -1,6 +1,7 @@
 {
   "dom_adoptedstylesheet_enabled": true,
   "dom_webxr_test": true,
+  "dom_visual_viewport_enabled": true,
   "gfx_text_antialiasing_enabled": false,
   "dom_testutils_enabled": true
 }

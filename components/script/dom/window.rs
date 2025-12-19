@@ -1572,10 +1572,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.screen.or_init(|| Screen::new(self, can_gc))
     }
 
-    /// <https://drafts.csswg.org/cssom-view/#visualviewport>
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
     fn GetVisualViewport(&self, can_gc: CanGc) -> Option<DomRoot<VisualViewport>> {
-        // Visual viewport is only relevant when the document is fully active.
-        if !self.document.get()?.is_fully_active() {
+        // > If the associated document is fully active, the visualViewport attribute must return the
+        // > VisualViewport object associated with the Window object’s associated document. Otherwise,
+        // > it must return null.
+        if !self.has_fully_active_document() {
             return None;
         }
 
@@ -1583,10 +1585,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         Some(self.visual_viewport.or_init(|| {
             VisualViewport::new_from_layout_viewport(
                 self,
-                Rect::new(
-                    self.scroll_offset().to_point().cast_unit(),
-                    self.viewport_details().size,
-                ),
+                Rect::from_size(self.viewport_details().size),
                 can_gc,
             )
         }))
@@ -2323,6 +2322,16 @@ impl Window {
 
     pub(crate) fn has_document(&self) -> bool {
         self.document.get().is_some()
+    }
+
+    pub(crate) fn has_fully_active_document(&self) -> bool {
+        if let Some(document) = self.document.get() &&
+            document.is_fully_active()
+        {
+            true
+        } else {
+            false
+        }
     }
 
     pub(crate) fn clear_js_runtime(&self) {

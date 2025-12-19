@@ -4,7 +4,7 @@
 
 // https://drafts.csswg.org/cssom-view/#the-visualviewport-interface
 
-[Exposed=Window]
+[Pref="dom_visual_viewport_enabled", Exposed=Window]
 interface VisualViewport : EventTarget {
   readonly attribute double offsetLeft;
   readonly attribute double offsetTop;
