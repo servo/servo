@@ -16,6 +16,7 @@ use mime::Mime;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use url::Position;
 use uuid::Uuid;
 
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
@@ -397,6 +398,18 @@ impl RequestBody {
 pub enum InsecureRequestsPolicy {
     DoNotUpgrade,
     Upgrade,
+}
+
+pub trait RequestHeadersSize {
+    fn total_size(&self) -> usize;
+}
+
+impl RequestHeadersSize for HeaderMap {
+    fn total_size(&self) -> usize {
+        self.iter().fold(0, |acc, (name, value)| {
+            acc + name.as_str().len() + value.len()
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -967,6 +980,29 @@ impl Request {
                     RequestPolicyContainer::PolicyContainer(PolicyContainer::default());
             }
         }
+    }
+
+    /// <https://fetch.spec.whatwg.org/#total-request-length>
+    pub fn total_request_length(&self) -> usize {
+        // Step 1. Let totalRequestLength be the length of request’s URL, serialized with exclude fragment set to true.
+        let mut total_request_length = self.url()[..Position::AfterQuery].len();
+        // Step 2. Increment totalRequestLength by the length of request’s referrer, serialized.
+        total_request_length += self
+            .referrer
+            .to_url()
+            .map(|url| url.as_str().len())
+            .unwrap_or_default();
+        // Step 3. For each (name, value) of request’s header list, increment totalRequestLength
+        // by name’s length + value’s length.
+        total_request_length += self.headers.total_size();
+        // Step 4. Increment totalRequestLength by request’s body’s length.
+        total_request_length += self
+            .body
+            .as_ref()
+            .and_then(|body| body.len())
+            .unwrap_or_default();
+        // Step 5. Return totalRequestLength.
+        total_request_length
     }
 }
 

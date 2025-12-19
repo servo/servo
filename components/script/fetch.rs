@@ -338,6 +338,7 @@ pub(crate) fn FetchLater(
     can_gc: CanGc,
 ) -> Fallible<DomRoot<FetchLaterResult>> {
     let global_scope = window.upcast();
+    let document = window.Document();
     // Step 1. Let requestObject be the result of invoking the initial value
     // of Request as constructor with input and init as arguments.
     let request_object = Request::constructor(global_scope, None, can_gc, input, &init.parent)?;
@@ -367,7 +368,7 @@ pub(crate) fn FetchLater(
         return Err(Error::Range("activateAfter must be at least 0".to_owned()));
     }
     // Step 7. If this’s relevant global object’s associated document is not fully active, then throw a TypeError.
-    if !window.Document().is_fully_active() {
+    if !document.is_fully_active() {
         return Err(Error::Type("Document is not fully active".to_owned()));
     }
     let url = request.url();
@@ -387,7 +388,14 @@ pub(crate) fn FetchLater(
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
     // origin is less than request’s total request length, then throw a "QuotaExceededError" DOMException.
-    // TODO
+    let quota = document.available_deferred_fetch_quota(request.url().origin());
+    let requested = request.total_request_length() as isize;
+    if quota < requested {
+        return Err(Error::QuotaExceeded {
+            quota: Some(Finite::wrap(quota as f64)),
+            requested: Some(Finite::wrap(requested as f64)),
+        });
+    }
     // Step 12. Let activated be false.
     // Step 13. Let deferredRecord be the result of calling queue a deferred fetch given request,
     // activateAfter, and the following step: set activated to true.
@@ -410,7 +418,7 @@ enum DeferredFetchRecordInvokeState {
 #[derive(MallocSizeOf)]
 pub(crate) struct DeferredFetchRecord {
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-request>
-    request: NetTraitsRequest,
+    pub(crate) request: NetTraitsRequest,
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
     invoke_state: Cell<DeferredFetchRecordInvokeState>,
     global: Trusted<GlobalScope>,

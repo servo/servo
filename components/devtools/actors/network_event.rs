@@ -14,7 +14,7 @@ use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as Devtoo
 use headers::{ContentLength, ContentType, Cookie, HeaderMapExt};
 use http::{HeaderMap, Method};
 use net::cookie::ServoCookie;
-use net_traits::request::Destination as RequestDestination;
+use net_traits::request::{Destination as RequestDestination, RequestHeadersSize};
 use net_traits::{CookieSource, TlsSecurityInfo, TlsSecurityState};
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -751,12 +751,9 @@ impl NetworkEventActor {
     }
 
     pub fn request_headers(request: &DevtoolsHttpRequest) -> RequestHeadersMsg {
-        let size = request.headers.iter().fold(0, |acc, (name, value)| {
-            acc + name.as_str().len() + value.len()
-        });
         RequestHeadersMsg {
             headers: request.headers.len(),
-            headers_size: size,
+            headers_size: request.headers.total_size(),
         }
     }
 
