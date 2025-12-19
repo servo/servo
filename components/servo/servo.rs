@@ -48,8 +48,7 @@ use fonts::SystemFontService;
     not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
-use ipc_channel::ipc::{self, IpcSender, channel};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::{self, IpcSender};
 use layout::LayoutFactoryImpl;
 use layout_api::ScriptThreadFactory;
 use log::{Log, Metadata, Record, debug, warn};
@@ -1213,21 +1212,17 @@ fn register_system_memory_reporter_for_event_loop(
     // Register the system memory reporter, which will run on its own thread. It never needs to
     // be unregistered, because as long as the memory profiler is running the system memory
     // reporter can make measurements.
-    let (system_reporter_sender, system_reporter_receiver) =
-        channel().expect("failed to create ipc channel");
-    ROUTER.add_typed_route(
-        system_reporter_receiver,
-        Box::new(|message| {
-            if let Ok(request) = message {
-                system_reporter::collect_reports(request);
-            }
-        }),
-    );
+    let callback = GenericCallback::new(|message| {
+        if let Ok(request) = message {
+            system_reporter::collect_reports(request);
+        }
+    })
+    .expect("Could not create memory reporter callback");
     new_event_loop_info
         .initial_script_state
         .memory_profiler_sender
         .send(ProfilerMsg::RegisterReporter(
             format!("system-content-{}", std::process::id()),
-            Reporter(system_reporter_sender),
+            Reporter(callback),
         ));
 }

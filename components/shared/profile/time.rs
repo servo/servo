@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericSender;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -17,7 +18,7 @@ pub struct TimerMetadata {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ProfilerChan(pub Option<IpcSender<ProfilerMsg>>);
+pub struct ProfilerChan(pub Option<GenericSender<ProfilerMsg>>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {

@@ -4,6 +4,7 @@
 
 use std::net::IpAddr;
 
+use base::generic_channel;
 use ipc_channel::ipc;
 use net::connector::CACertificates;
 use net::protocols::ProtocolRegistry;
@@ -21,8 +22,8 @@ fn ip(s: &str) -> IpAddr {
 
 #[test]
 fn test_exit() {
-    let (tx, _rx) = ipc::channel().unwrap();
-    let (mtx, _mrx) = ipc::channel().unwrap();
+    let (tx, _rx) = generic_channel::channel().unwrap();
+    let (mtx, _mrx) = generic_channel::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     let (resource_thread, _private_resource_thread) = new_core_resource_thread(
         None,

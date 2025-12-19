@@ -320,10 +320,12 @@ impl ProgressiveWebMetrics {
 
 #[cfg(test)]
 mod test {
+    use base::generic_channel;
+
     use super::*;
 
     fn test_metrics() -> ProgressiveWebMetrics {
-        let (sender, _) = ipc_channel::ipc::channel().unwrap();
+        let (sender, _) = generic_channel::channel().unwrap();
         let profiler_chan = ProfilerChan(Some(sender));
         let mut metrics = ProgressiveWebMetrics::new(
             profiler_chan,

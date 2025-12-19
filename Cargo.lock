@@ -5397,7 +5397,6 @@ version = "0.0.1"
 dependencies = [
  "base",
  "compositing_traits",
- "ipc-channel",
  "log",
  "malloc_size_of_derive",
  "profile_traits",
@@ -6942,7 +6941,6 @@ name = "profile"
 version = "0.0.1"
 dependencies = [
  "base",
- "ipc-channel",
  "libc",
  "log",
  "mach2 0.6.0",
