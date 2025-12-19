@@ -60,7 +60,7 @@ use crate::window::{
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 
-pub struct Window {
+pub struct HeadedWindow {
     /// The egui interface that is responsible for showing the user interface elements of
     /// this headed `Window`.
     gui: RefCell<Gui>,
@@ -103,7 +103,7 @@ pub struct Window {
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
 }
 
-impl Window {
+impl HeadedWindow {
     pub(crate) fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
@@ -143,7 +143,7 @@ impl Window {
         let window_handle = winit_window
             .window_handle()
             .expect("winit window did not have a window handle");
-        Window::force_srgb_color_space(window_handle.as_raw());
+        HeadedWindow::force_srgb_color_space(window_handle.as_raw());
 
         let monitor = winit_window
             .current_monitor()
@@ -192,7 +192,7 @@ impl Window {
         ));
 
         debug!("Created window {:?}", winit_window.id());
-        Rc::new(Window {
+        Rc::new(HeadedWindow {
             gui,
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
@@ -535,7 +535,7 @@ impl Window {
     }
 }
 
-impl PlatformWindow for Window {
+impl PlatformWindow for HeadedWindow {
     fn screen_geometry(&self) -> ScreenGeometry {
         let hidpi_factor = self.hidpi_scale_factor();
         let toolbar_size = Size2D::new(0.0, (self.toolbar_height() * self.hidpi_scale_factor()).0);
