@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use base::generic_channel::{GenericCallback, GenericSender};
+use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::EmbedderToConstellationMessage;
@@ -948,12 +948,12 @@ pub trait WebViewDelegate {
         _webview: WebView,
         _: usize,
         _: GamepadHapticEffectType,
-        _: GenericCallback<bool>,
+        _: Box<dyn Fn(bool)>,
     ) {
     }
     /// Request to stop a haptic effect on a connected gamepad.
     #[cfg(feature = "gamepad")]
-    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: GenericCallback<bool>) {}
+    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: Box<dyn Fn(bool)>) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling

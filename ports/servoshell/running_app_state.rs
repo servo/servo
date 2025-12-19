@@ -27,11 +27,11 @@ use servo::{
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
     DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GamepadHapticEffectType, GenericCallback, GenericSender, InputEvent, InputEventId,
-    InputEventResult, JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue,
-    ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, WebDriverCommandMsg,
-    WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
-    WebViewDelegate, WebViewId, pref,
+    GamepadHapticEffectType, GenericSender, InputEvent, InputEventId, InputEventResult, JSValue,
+    LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo,
+    ServoDelegate, ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
+    WebViewId, pref,
 };
 use url::Url;
 
@@ -749,14 +749,14 @@ impl WebViewDelegate for RunningAppState {
         _webview: WebView,
         index: usize,
         effect_type: GamepadHapticEffectType,
-        effect_complete_sender: GenericCallback<bool>,
+        effect_complete_callback: Box<dyn Fn(bool)>,
     ) {
         match self.gamepad_support.borrow_mut().as_mut() {
             Some(gamepad_support) => {
-                gamepad_support.play_haptic_effect(index, effect_type, effect_complete_sender);
+                gamepad_support.play_haptic_effect(index, effect_type, effect_complete_callback);
             },
             None => {
-                let _ = effect_complete_sender.send(false);
+                effect_complete_callback(false);
             },
         }
     }
@@ -766,13 +766,13 @@ impl WebViewDelegate for RunningAppState {
         &self,
         _webview: WebView,
         index: usize,
-        haptic_stop_sender: GenericCallback<bool>,
+        haptic_stop_callback: Box<dyn Fn(bool)>,
     ) {
         let stopped = match self.gamepad_support.borrow_mut().as_mut() {
             Some(gamepad_support) => gamepad_support.stop_haptic_effect(index),
             None => false,
         };
-        let _ = haptic_stop_sender.send(stopped);
+        haptic_stop_callback(stopped);
     }
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
