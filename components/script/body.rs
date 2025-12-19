@@ -444,17 +444,27 @@ impl ExtractedBody {
 
 /// <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
 pub(crate) trait Extractable {
-    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody>;
+    fn extract(
+        &self,
+        global: &GlobalScope,
+        keep_alive: bool,
+        can_gc: CanGc,
+    ) -> Fallible<ExtractedBody>;
 }
 
 impl Extractable for BodyInit {
     /// <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
-    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
+    fn extract(
+        &self,
+        global: &GlobalScope,
+        keep_alive: bool,
+        can_gc: CanGc,
+    ) -> Fallible<ExtractedBody> {
         match self {
-            BodyInit::String(s) => s.extract(global, can_gc),
-            BodyInit::URLSearchParams(usp) => usp.extract(global, can_gc),
-            BodyInit::Blob(b) => b.extract(global, can_gc),
-            BodyInit::FormData(formdata) => formdata.extract(global, can_gc),
+            BodyInit::String(s) => s.extract(global, keep_alive, can_gc),
+            BodyInit::URLSearchParams(usp) => usp.extract(global, keep_alive, can_gc),
+            BodyInit::Blob(b) => b.extract(global, keep_alive, can_gc),
+            BodyInit::FormData(formdata) => formdata.extract(global, keep_alive, can_gc),
             BodyInit::ArrayBuffer(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
@@ -478,9 +488,13 @@ impl Extractable for BodyInit {
                 })
             },
             BodyInit::ReadableStream(stream) => {
-                // TODO:
-                // 1. If the keepalive flag is set, then throw a TypeError.
-
+                // If keepalive is true, then throw a TypeError.
+                if keep_alive {
+                    return Err(Error::Type(
+                        "The body's stream is for a keepalive request".to_string(),
+                    ));
+                }
+                // If object is disturbed or locked, then throw a TypeError.
                 if stream.is_locked() || stream.is_disturbed() {
                     return Err(Error::Type(
                         "The body's stream is disturbed or locked".to_string(),
@@ -499,7 +513,12 @@ impl Extractable for BodyInit {
 }
 
 impl Extractable for Vec<u8> {
-    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
+    fn extract(
+        &self,
+        global: &GlobalScope,
+        _keep_alive: bool,
+        can_gc: CanGc,
+    ) -> Fallible<ExtractedBody> {
         let bytes = self.clone();
         let total_bytes = self.len();
         let stream = ReadableStream::new_from_bytes(global, bytes, can_gc)?;
@@ -514,7 +533,12 @@ impl Extractable for Vec<u8> {
 }
 
 impl Extractable for Blob {
-    fn extract(&self, _global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
+    fn extract(
+        &self,
+        _global: &GlobalScope,
+        _keep_alive: bool,
+        can_gc: CanGc,
+    ) -> Fallible<ExtractedBody> {
         let blob_type = self.Type();
         let content_type = if blob_type.is_empty() {
             None
@@ -533,7 +557,12 @@ impl Extractable for Blob {
 }
 
 impl Extractable for DOMString {
-    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
+    fn extract(
+        &self,
+        global: &GlobalScope,
+        _keep_alive: bool,
+        can_gc: CanGc,
+    ) -> Fallible<ExtractedBody> {
         let bytes = self.as_bytes().to_owned();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from("text/plain;charset=UTF-8"));
@@ -548,7 +577,12 @@ impl Extractable for DOMString {
 }
 
 impl Extractable for FormData {
-    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
+    fn extract(
+        &self,
+        global: &GlobalScope,
+        _keep_alive: bool,
+        can_gc: CanGc,
+    ) -> Fallible<ExtractedBody> {
         let boundary = generate_boundary();
         let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(), UTF_8);
         let total_bytes = bytes.len();
@@ -567,7 +601,12 @@ impl Extractable for FormData {
 }
 
 impl Extractable for URLSearchParams {
-    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
+    fn extract(
+        &self,
+        global: &GlobalScope,
+        _keep_alive: bool,
+        can_gc: CanGc,
+    ) -> Fallible<ExtractedBody> {
         let bytes = self.serialize_utf8().into_bytes();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from(

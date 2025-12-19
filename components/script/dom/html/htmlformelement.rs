@@ -995,7 +995,7 @@ impl HTMLFormElement {
         let global = self.global();
 
         let request_body = bytes
-            .extract(&global, can_gc)
+            .extract(&global, false, can_gc)
             .expect("Couldn't extract body.")
             .into_net_request_body()
             .0;

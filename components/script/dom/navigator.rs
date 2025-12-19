@@ -473,7 +473,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         if let Some(data) = data {
             // Step 6.1. Set transmittedData and contentType to the result of extracting data's byte stream
             // with the keepalive flag set.
-            let extracted_body = data.extract(&global, can_gc)?;
+            let extracted_body = data.extract(&global, true, can_gc)?;
             // Step 6.2. If the amount of data that can be queued to be sent by keepalive enabled requests
             // is exceeded by the size of transmittedData (as defined in HTTP-network-or-cache fetch),
             // set the return value to false and terminate these steps.
@@ -512,7 +512,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             .method(http::Method::POST)
             .body(request_body)
             .origin(origin)
-            // TODO: Set keep-alive flag
+            .keep_alive(true)
             .credentials_mode(CredentialsMode::Include)
             .headers(headers);
         // Step 7.2. Fetch req.

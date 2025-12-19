@@ -452,7 +452,8 @@ impl Request {
         // Step 37. If init["body"] exists and is non-null, then:
         if let Some(Some(ref input_init_body)) = init.body {
             // Step 37.1. Let bodyWithType be the result of extracting init["body"], with keepalive set to request’s keepalive.
-            let mut body_with_type = input_init_body.extract(global, can_gc)?;
+            let mut body_with_type =
+                input_init_body.extract(global, r.request.borrow().keep_alive, can_gc)?;
 
             // Step 37.3. Let type be bodyWithType’s type.
             if let Some(contents) = body_with_type.content_type.take() {

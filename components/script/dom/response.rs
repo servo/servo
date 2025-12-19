@@ -178,7 +178,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         // 3. Let bodyWithType be null.
         // 4. If body is non-null, then set bodyWithType to the result of extracting body.
         let body_with_type = match body_init {
-            Some(body) => Some(body.extract(global, can_gc)?),
+            Some(body) => Some(body.extract(global, false, can_gc)?),
             None => None,
         };
 
@@ -254,7 +254,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         // The spec's definition of JSON bytes is a UTF-8 encoding so using a DOMString here handles
         // the encoding part.
         let body_init = BodyInit::String(json_str);
-        let mut body = body_init.extract(global, can_gc)?;
+        let mut body = body_init.extract(global, false, can_gc)?;
 
         // 3. Let responseObject be the result of creating a Response object, given a new response,
         // "response", and the current realm.
