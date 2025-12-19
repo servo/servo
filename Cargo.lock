@@ -7757,7 +7757,7 @@ dependencies = [
  "webrender_api",
  "webxr-api",
  "wgpu-core",
- "wgpu-types",
+ "wgpu-types 28.0.0",
  "x25519-dalek",
  "xml5ever",
  "xpath",
@@ -10321,7 +10321,7 @@ dependencies = [
  "webgpu_traits",
  "webrender_api",
  "wgpu-core",
- "wgpu-types",
+ "wgpu-types 28.0.0",
 ]
 
 [[package]]
@@ -10336,7 +10336,7 @@ dependencies = [
  "servo_malloc_size_of",
  "webrender_api",
  "wgpu-core",
- "wgpu-types",
+ "wgpu-types 28.0.0",
 ]
 
 [[package]]
@@ -10481,7 +10481,7 @@ dependencies = [
  "web-sys",
  "wgpu-core",
  "wgpu-hal",
- "wgpu-types",
+ "wgpu-types 26.0.0",
 ]
 
 [[package]]
@@ -10513,7 +10513,7 @@ dependencies = [
  "wgpu-core-deps-emscripten",
  "wgpu-core-deps-windows-linux-android",
  "wgpu-hal",
- "wgpu-types",
+ "wgpu-types 26.0.0",
 ]
 
 [[package]]
@@ -10586,7 +10586,7 @@ dependencies = [
  "thiserror 2.0.17",
  "wasm-bindgen",
  "web-sys",
- "wgpu-types",
+ "wgpu-types 26.0.0",
  "windows 0.58.0",
  "windows-core 0.58.0",
 ]
@@ -10603,6 +10603,19 @@ dependencies = [
  "log",
  "serde",
  "thiserror 2.0.17",
+ "web-sys",
+]
+
+[[package]]
+name = "wgpu-types"
+version = "28.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e18308757e594ed2cd27dddbb16a139c42a683819d32a2e0b1b0167552f5840c"
+dependencies = [
+ "bitflags 2.10.0",
+ "bytemuck",
+ "js-sys",
+ "log",
  "web-sys",
 ]
 
