@@ -26,8 +26,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_RSA_OAEP, ALG_RSA_PSS, ALG_RSASSA_PKCS1_V1_5, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512,
-    ExportedKey, KeyAlgorithmAndDerivatives, SubtleRsaHashedKeyAlgorithm,
-    SubtleRsaHashedKeyGenParams,
+    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -469,12 +469,12 @@ pub(crate) fn export_key(
                     .ok_or(Error::Operation(Some(
                         "Failed to convert first CRT coefficient qi to BigUint".to_string(),
                     )))?;
-                jwk.d = Some(Base64UrlUnpadded::encode_string(&d.to_bytes_be()).into());
-                jwk.p = Some(Base64UrlUnpadded::encode_string(&p.to_bytes_be()).into());
-                jwk.q = Some(Base64UrlUnpadded::encode_string(&q.to_bytes_be()).into());
-                jwk.dp = Some(Base64UrlUnpadded::encode_string(&dp.to_bytes_be()).into());
-                jwk.dq = Some(Base64UrlUnpadded::encode_string(&dq.to_bytes_be()).into());
-                jwk.qi = Some(Base64UrlUnpadded::encode_string(&qi.to_bytes_be()).into());
+                jwk.encode_string_field(JwkStringField::D, &d.to_bytes_be());
+                jwk.encode_string_field(JwkStringField::P, &p.to_bytes_be());
+                jwk.encode_string_field(JwkStringField::Q, &q.to_bytes_be());
+                jwk.encode_string_field(JwkStringField::DP, &dp.to_bytes_be());
+                jwk.encode_string_field(JwkStringField::DQ, &dq.to_bytes_be());
+                jwk.encode_string_field(JwkStringField::QI, &qi.to_bytes_be());
 
                 // Step 3.6.2. If the underlying RSA private key represented by the [[handle]]
                 // internal slot of key is represented by more than two primes, set the attribute
@@ -517,12 +517,7 @@ pub(crate) fn export_key(
             }
 
             // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.key_ops = Some(
-                key.usages()
-                    .iter()
-                    .map(|usage| DOMString::from(usage.as_str()))
-                    .collect::<Vec<DOMString>>(),
-            );
+            jwk.set_key_ops(key.usages());
 
             // Step 3.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());

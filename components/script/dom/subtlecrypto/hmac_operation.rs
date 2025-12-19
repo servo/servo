@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aws_lc_rs::hmac;
-use base64ct::{Base64UrlUnpadded, Encoding};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
@@ -17,7 +16,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
+    JwkStringField, KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
     SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
@@ -199,8 +198,7 @@ pub(crate) fn import_key(
             // NOTE: Done by Step 2.4 and 2.6.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data(None))?.str())
-                .map_err(|_| Error::Data(None))?;
+            data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
             hash = normalized_algorithm.hash.as_ref();
@@ -330,10 +328,33 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             _ => Err(Error::Operation(None)),
         },
         KeyFormat::Jwk => {
+            // Step 1. Let jwk be a new JsonWebKey dictionary.
+            // Step 2. Set the kty attribute of jwk to the string "oct".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("oct")),
+                ..Default::default()
+            };
+
+            // Step 3. Set the k attribute of jwk to be a string containing data, encoded according
+            // to Section 6.4 of JSON Web Algorithms [JWA].
             let key_data = key.handle().as_bytes();
-            // Step 3. Set the k attribute of jwk to be a string containing data
-            let k = Base64UrlUnpadded::encode_string(key_data);
+            jwk.encode_string_field(JwkStringField::K, key_data);
+
+            // Step 4. Let algorithm be the [[algorithm]] internal slot of key.
+            // Step 5. Let hash be the hash attribute of algorithm.
             // Step 6.
+            // If the name attribute of hash is "SHA-1":
+            //     Set the alg attribute of jwk to the string "HS1".
+            // If the name attribute of hash is "SHA-256":
+            //     Set the alg attribute of jwk to the string "HS256".
+            // If the name attribute of hash is "SHA-384":
+            //     Set the alg attribute of jwk to the string "HS384".
+            // If the name attribute of hash is "SHA-512":
+            //     Set the alg attribute of jwk to the string "HS512".
+            // Otherwise, the name attribute of hash is defined in another applicable specification:
+            //     Perform any key export steps defined by other applicable specifications, passing
+            //     format and key and obtaining alg.
+            //     Set the alg attribute of jwk to alg.
             let hash_algorithm = match key.algorithm() {
                 KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(alg) => match &*alg.hash.name {
                     ALG_SHA1 => "HS1",
@@ -344,27 +365,15 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 },
                 _ => return Err(Error::NotSupported(None)),
             };
+            jwk.alg = Some(DOMString::from(hash_algorithm));
 
             // Step 7. Set the key_ops attribute of jwk to the usages attribute of key.
-            let key_ops = key
-                .usages()
-                .iter()
-                .map(|usage| DOMString::from(usage.as_str()))
-                .collect::<Vec<DOMString>>();
+            jwk.set_key_ops(key.usages());
 
-            // Step 1. Let jwk be a new JsonWebKey dictionary.
-            let jwk = JsonWebKey {
-                // Step 2. Set the kty attribute of jwk to the string "oct".
-                kty: Some(DOMString::from("oct")),
-                k: Some(DOMString::from(k)),
-                alg: Some(DOMString::from(hash_algorithm.to_string())),
-                // Step 7. Set the key_ops attribute of jwk to equal the usages attribute of key.
-                key_ops: Some(key_ops),
-                // Step 8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
-                ext: Some(key.Extractable()),
-                ..Default::default()
-            };
+            // Step 8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+            jwk.ext = Some(key.Extractable());
 
+            // Step 9. Let result be jwk.
             Ok(ExportedKey::Jwk(Box::new(jwk)))
         },
         // Otherwise:

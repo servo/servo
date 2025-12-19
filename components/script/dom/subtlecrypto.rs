@@ -20,10 +20,12 @@ mod sha3_operation;
 mod sha_operation;
 mod x25519_operation;
 
+use std::fmt::Display;
 use std::ptr;
 use std::rc::Rc;
 use std::str::FromStr;
 
+use base64ct::{Base64UrlUnpadded, Encoding};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{Heap, JSObject};
@@ -2426,11 +2428,51 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
     }
 }
 
+#[derive(Clone, Copy)]
+enum JwkStringField {
+    X,
+    Y,
+    D,
+    N,
+    E,
+    P,
+    Q,
+    DP,
+    DQ,
+    QI,
+    K,
+}
+
+impl Display for JwkStringField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let field_name = match self {
+            JwkStringField::X => "x",
+            JwkStringField::Y => "y",
+            JwkStringField::D => "d",
+            JwkStringField::N => "n",
+            JwkStringField::E => "e",
+            JwkStringField::P => "q",
+            JwkStringField::Q => "q",
+            JwkStringField::DP => "dp",
+            JwkStringField::DQ => "dq",
+            JwkStringField::QI => "qi",
+            JwkStringField::K => "k",
+        };
+        write!(f, "{}", field_name)
+    }
+}
+
 trait JsonWebKeyExt {
     fn parse(cx: JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
     fn stringify(&self, cx: JSContext) -> Result<DOMString, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
+    fn set_key_ops(&mut self, usages: Vec<KeyUsage>);
+    fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]);
+    fn decode_optional_string_field(&self, field: JwkStringField)
+    -> Result<Option<Vec<u8>>, Error>;
+    fn decode_required_string_field(&self, field: JwkStringField) -> Result<Vec<u8>, Error>;
+    fn decode_primes_from_oth_field(&self, primes: &mut Vec<Vec<u8>>) -> Result<(), Error>;
 }
 
 impl JsonWebKeyExt for JsonWebKey {
@@ -2527,6 +2569,145 @@ impl JsonWebKeyExt for JsonWebKey {
             {
                 return Err(Error::Data(None));
             }
+        }
+
+        Ok(())
+    }
+
+    // Set the key_ops attribute of jwk to equal the given usages.
+    fn set_key_ops(&mut self, usages: Vec<KeyUsage>) {
+        self.key_ops = Some(
+            usages
+                .into_iter()
+                .map(|usage| DOMString::from(usage.as_str()))
+                .collect(),
+        );
+    }
+
+    // Encode a byte sequence to a base64url-encoded string, and set the field to the encoded
+    // string.
+    fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]) {
+        let encoded_data = DOMString::from(Base64UrlUnpadded::encode_string(data));
+        match field {
+            JwkStringField::X => self.x = Some(encoded_data),
+            JwkStringField::Y => self.y = Some(encoded_data),
+            JwkStringField::D => self.d = Some(encoded_data),
+            JwkStringField::N => self.n = Some(encoded_data),
+            JwkStringField::E => self.e = Some(encoded_data),
+            JwkStringField::P => self.p = Some(encoded_data),
+            JwkStringField::Q => self.q = Some(encoded_data),
+            JwkStringField::DP => self.dp = Some(encoded_data),
+            JwkStringField::DQ => self.dq = Some(encoded_data),
+            JwkStringField::QI => self.qi = Some(encoded_data),
+            JwkStringField::K => self.k = Some(encoded_data),
+        }
+    }
+
+    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not a
+    // valid base64url-encoded string, then throw a DataError.
+    fn decode_optional_string_field(
+        &self,
+        field: JwkStringField,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        let field_string = match field {
+            JwkStringField::X => &self.x,
+            JwkStringField::Y => &self.y,
+            JwkStringField::D => &self.d,
+            JwkStringField::N => &self.n,
+            JwkStringField::E => &self.e,
+            JwkStringField::P => &self.p,
+            JwkStringField::Q => &self.q,
+            JwkStringField::DP => &self.dp,
+            JwkStringField::DQ => &self.dq,
+            JwkStringField::QI => &self.qi,
+            JwkStringField::K => &self.k,
+        };
+
+        field_string
+            .as_ref()
+            .map(|field_string| Base64UrlUnpadded::decode_vec(&field_string.str()))
+            .transpose()
+            .map_err(|_| Error::Data(Some(format!("Failed to decode {} field in jwk", field))))
+    }
+
+    // Decode a field from a base64url-encoded string to a byte sequence. If the field is not
+    // present or it is not a valid base64url-encoded string, then throw a DataError.
+    fn decode_required_string_field(&self, field: JwkStringField) -> Result<Vec<u8>, Error> {
+        self.decode_optional_string_field(field)?
+            .ok_or(Error::Data(Some(format!(
+                "The {} field is not present in jwk",
+                field
+            ))))
+    }
+
+    // Decode the "r", "d" and "t" field of each entry in the "oth" array, from a base64url-encoded
+    // string to a byte sequence, and append the decoded "r" field to the `primes` list, in the
+    // order of presence in the "oth" array.
+    //
+    // For each entry in the "oth" array, if any of the "r", "d" and "t" field is not present or it
+    // is not a valid base64url-encoded string, then throw a DataError.
+    fn decode_primes_from_oth_field(&self, primes: &mut Vec<Vec<u8>>) -> Result<(), Error> {
+        if self.oth.is_some() &&
+            (self.p.is_none() ||
+                self.q.is_none() ||
+                self.dp.is_none() ||
+                self.dq.is_none() ||
+                self.qi.is_none())
+        {
+            return Err(Error::Data(Some(
+                "The oth field is present while at least one of p, q, dp, dq, qi is missing, in jwk".to_string()
+            )));
+        }
+
+        for rsa_other_prime_info in self.oth.as_ref().unwrap_or(&Vec::new()) {
+            let r = Base64UrlUnpadded::decode_vec(
+                &rsa_other_prime_info
+                    .r
+                    .as_ref()
+                    .ok_or(Error::Data(Some(
+                        "The r field is not present in one of the entry of oth field in jwk"
+                            .to_string(),
+                    )))?
+                    .str(),
+            )
+            .map_err(|_| {
+                Error::Data(Some(
+                    "Fail to decode r field in one of the entry of oth field in jwk".to_string(),
+                ))
+            })?;
+            primes.push(r);
+
+            let _d = Base64UrlUnpadded::decode_vec(
+                &rsa_other_prime_info
+                    .d
+                    .as_ref()
+                    .ok_or(Error::Data(Some(
+                        "The d field is not present in one of the entry of oth field in jwk"
+                            .to_string(),
+                    )))?
+                    .str(),
+            )
+            .map_err(|_| {
+                Error::Data(Some(
+                    "Fail to decode d field in one of the entry of oth field in jwk".to_string(),
+                ))
+            })?;
+
+            let _t = Base64UrlUnpadded::decode_vec(
+                &rsa_other_prime_info
+                    .t
+                    .as_ref()
+                    .ok_or(Error::Data(Some(
+                        "The t field is not present in one of the entry of oth field in jwk"
+                            .to_string(),
+                    )))?
+                    .str(),
+            )
+            .map_err(|_| {
+                Error::Data(Some(
+                    "Fail to decode t field in one of the entry of oth field in jwk".to_string(),
+                ))
+            })?;
         }
 
         Ok(())
