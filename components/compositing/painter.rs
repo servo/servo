@@ -101,7 +101,7 @@ pub(crate) struct Painter {
     pub(crate) webrender_document: DocumentId,
 
     /// The webrender renderer.
-    pub(crate) webrender: Option<webrender::Renderer>,
+    pub(crate) webrender_renderer: Option<webrender::Renderer>,
 
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
@@ -134,8 +134,8 @@ impl Drop for Painter {
         self.webrender_api.stop_render_backend();
         self.webrender_api.shut_down(true);
 
-        if let Some(webrender) = self.webrender.take() {
-            webrender.deinit();
+        if let Some(renderer) = self.webrender_renderer.take() {
+            renderer.deinit();
         }
     }
 }
@@ -208,7 +208,7 @@ impl Painter {
         ));
 
         let painter_id = PainterId::next();
-        let (mut webrender, webrender_api_sender) = webrender::create_webrender_instance(
+        let (mut webrender_renderer, webrender_api_sender) = webrender::create_webrender_instance(
             webrender_gl.clone(),
             Box::new(RenderNotifier::new(painter_id, paint.paint_proxy.clone())),
             webrender::WebRenderOptions {
@@ -241,7 +241,7 @@ impl Painter {
         )
         .expect("Unable to initialize WebRender.");
 
-        webrender.set_external_image_handler(external_image_handlers);
+        webrender_renderer.set_external_image_handler(external_image_handlers);
 
         let webrender_api = webrender_api_sender.create_api_by_client(painter_id.into());
         let webrender_document = webrender_api.add_document(rendering_context.size2d().to_i32());
@@ -260,7 +260,7 @@ impl Painter {
             screenshot_taker: Default::default(),
             refresh_driver,
             animation_refresh_driver_observer,
-            webrender: Some(webrender),
+            webrender_renderer: Some(webrender_renderer),
             webrender_api,
             webrender_document,
             webrender_gl,
@@ -387,16 +387,16 @@ impl Painter {
             None,
             time_profiler_channel.clone(),
             || {
-                if let Some(webrender) = self.webrender.as_mut() {
-                    webrender.update();
+                if let Some(renderer) = self.webrender_renderer.as_mut() {
+                    renderer.update();
                 }
 
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
                 self.clear_background();
-                if let Some(webrender) = self.webrender.as_mut() {
+                if let Some(renderer) = self.webrender_renderer.as_mut() {
                     let size = self.rendering_context.size2d().to_i32();
-                    webrender.render(size, 0 /* buffer_age */).ok();
+                    renderer.render(size, 0 /* buffer_age */).ok();
                 }
             }
         );
@@ -437,7 +437,7 @@ impl Painter {
         for webview_renderer in self.webview_renderers.values() {
             for (pipeline_id, pipeline) in webview_renderer.pipelines.iter() {
                 let Some(current_epoch) = self
-                    .webrender
+                    .webrender_renderer
                     .as_ref()
                     .and_then(|wr| wr.current_epoch(self.webrender_document, pipeline_id.into()))
                 else {
@@ -714,10 +714,10 @@ impl Painter {
     }
 
     pub(crate) fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
-        let Some(webrender) = self.webrender.as_mut() else {
+        let Some(renderer) = self.webrender_renderer.as_mut() else {
             return;
         };
-        let mut flags = webrender.get_debug_flags();
+        let mut flags = renderer.get_debug_flags();
         let flag = match option {
             WebRenderDebugOption::Profiler => {
                 webrender::DebugFlags::PROFILER_DBG |
@@ -728,7 +728,7 @@ impl Painter {
             WebRenderDebugOption::RenderTargetDebug => webrender::DebugFlags::RENDER_TARGET_DBG,
         };
         flags.toggle(flag);
-        webrender.set_debug_flags(flags);
+        renderer.set_debug_flags(flags);
 
         let mut txn = Transaction::new();
         self.generate_frame(&mut txn, RenderReasons::TESTING);
