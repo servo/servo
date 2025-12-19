@@ -458,7 +458,7 @@ pub(crate) struct Window {
     has_pending_screenshot_readiness_request: Cell<bool>,
 
     /// Visual viewport interface that is associated to this [`Window`].
-    /// <https://drafts.csswg.org/cssom-view/#visualviewport>
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
     visual_viewport: MutNullableDom<VisualViewport>,
 }
 
