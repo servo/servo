@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::collections::VecDeque;
 use std::rc::Rc;
 
 use base::generic_channel::GenericSend;
@@ -10,9 +9,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use servo_url::origin::ImmutableOrigin;
-use storage_traits::indexeddb::{
-    BackendError, BackendResult, DataBaseInfo, IndexedDBThreadMsg, SyncOperation,
-};
+use storage_traits::indexeddb::{BackendResult, DataBaseInfo, IndexedDBThreadMsg, SyncOperation};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
@@ -20,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::import::base::SafeJSContext;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -42,11 +39,6 @@ pub struct IDBFactory {
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
     connections_pending_open: DomRefCell<HashMapTracedValues<DBName, Dom<IDBDatabase>>>,
-
-    /// Keeping track of pending promises resolving to database info.
-    /// Only necessary because of #41356
-    #[ignore_malloc_size_of = "rc"]
-    pending_db_info_promises: DomRefCell<VecDeque<Rc<Promise>>>,
 }
 
 impl IDBFactory {
@@ -54,7 +46,6 @@ impl IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
             connections_pending_open: Default::default(),
-            pending_db_info_promises: Default::default(),
         }
     }
 
@@ -73,27 +64,6 @@ impl IDBFactory {
             .borrow()
             .get(name)
             .map(|db| db.as_rooted())
-    }
-
-    fn resolve_pending_db_info_promise(&self, info: Vec<IDBDatabaseInfo>, can_gc: CanGc) {
-        let Some(promise) = self.pending_db_info_promises.borrow_mut().pop_front() else {
-            return error!("Pending promise db info not found.");
-        };
-        promise.resolve_native(&info, can_gc);
-    }
-
-    fn reject_pending_db_info_promise(&self, error: BackendError, can_gc: CanGc) {
-        let Some(promise) = self.pending_db_info_promises.borrow_mut().pop_front() else {
-            return error!("Pending promise db info not found.");
-        };
-
-        let error = map_backend_error_to_dom_error(error);
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        error
-            .clone()
-            .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
-        promise.reject_native(&rval.handle(), can_gc);
     }
 }
 
@@ -174,10 +144,10 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 3: Let p be a new promise.
         let p = Promise::new(&global, can_gc);
-        self.pending_db_info_promises
-            .borrow_mut()
-            .push_front(p.clone());
-        let trusted_factory = Trusted::new(self);
+
+        // Note: the option is required to pass the promise to a task from within the generic callback,
+        // see #41356
+        let mut trusted_promise: Option<TrustedPromise> = Some(TrustedPromise::new(p.clone()));
 
         // Step 4: Run these steps in parallel:
         // Note implementing by communicating with the backend.
@@ -187,14 +157,24 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             .to_sendable();
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
             let result: BackendResult<Vec<DataBaseInfo>> = message.unwrap();
-            let trusted_clone = trusted_factory.clone();
+            let Some(trusted_promise) = trusted_promise.take() else {
+                return error!("Callback for `DataBases` called twice.");
+            };
 
             // Step 3.5: Queue a database task to resolve p with result.
             task_source.queue(task!(set_request_result_to_database: move || {
                 let can_gc = CanGc::note();
-                let factory = trusted_clone.root();
+                let promise = trusted_promise.root();
                 match result {
-                    Err(err) => factory.reject_pending_db_info_promise(err, can_gc),
+                    Err(err) => {
+                        let error = map_backend_error_to_dom_error(err);
+                        let cx = GlobalScope::get_cx();
+                        rooted!(in(*cx) let mut rval = UndefinedValue());
+                        error
+                            .clone()
+                            .to_jsval(cx, &promise.global(), rval.handle_mut(), can_gc);
+                        promise.reject_native(&rval.handle(), can_gc);
+                    },
                     Ok(info_list) => {
                         let info_list: Vec<IDBDatabaseInfo> = info_list
                             .into_iter()
@@ -203,7 +183,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                                 version: Some(info.version),
                         })
                         .collect();
-                         factory.resolve_pending_db_info_promise(info_list, can_gc);
+                        promise.resolve_native(&info_list, can_gc);
                 },
             }
             }));
