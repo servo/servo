@@ -316,6 +316,32 @@ def check_modeline(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, st
             yield (idx + 1, "emacs file variables present")
 
 
+def check_feature_annotation(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
+    if not file_name.endswith("prefs.rs"):
+        return
+    for idx, raw_line in enumerate(lines):
+        line = raw_line.decode("utf8").strip()
+        if not line.startswith("// feature:"):
+            continue
+        parts = list(map(lambda part: part.strip(), line.removeprefix("// feature:").split("|")))
+        if len(parts) < 3:
+            yield (idx + 1, "Feature annotation has too few | separators")
+            continue
+        elif len(parts) > 3:
+            yield (idx + 1, "Feature annotation has too many | separators")
+
+        if not parts[0]:
+            yield (idx + 1, "Feature annotation name is missing")
+
+        if not parts[1].startswith("#"):
+            yield (idx + 1, "Feature annotation issue number must start with #")
+        elif not parts[1].removeprefix("#").isdigit():
+            yield (idx + 1, "Feature annotation issue number is not a number")
+
+        if not parts[2]:
+            yield (idx + 1, "Feature annotation URL path is missing")
+
+
 def contains_url(line: bytes) -> bool:
     return bool(URL_REGEX.search(line))
 
@@ -901,6 +927,7 @@ def scan(only_changed_files: bool = False, progress: bool = False, github_annota
         check_rust,
         check_spec,
         check_modeline,
+        check_feature_annotation,
     )
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
