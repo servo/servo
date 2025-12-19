@@ -59,7 +59,7 @@ use crate::network_listener::{
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
-/// RAII fetch canceller object. By default initialized to having a
+/// Fetch canceller object. By default initialized to having a
 /// request associated with it, which can be aborted or terminated.
 /// Calling `ignore` will sever the relationship with the request,
 /// meaning it cannot be cancelled through this canceller from that point on.
