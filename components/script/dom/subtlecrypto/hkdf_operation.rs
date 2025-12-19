@@ -46,7 +46,7 @@ pub(crate) fn derive_bits(
     //     * length divided by 8 as the value of L,
     // Step 4. If the key derivation operation fails, then throw an OperationError.
     let mut result = vec![0u8; length as usize / 8];
-    match normalized_algorithm.hash.name.as_str() {
+    match normalized_algorithm.hash.name() {
         ALG_SHA1 => Hkdf::<Sha1>::new(Some(&normalized_algorithm.salt), key_derivation_key)
             .expand(&normalized_algorithm.info, &mut result)
             .map_err(|_| Error::Operation(None))?,
