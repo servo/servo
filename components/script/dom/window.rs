@@ -1280,6 +1280,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
                         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
+                        // TODO: This should be removed once step 20 of `document.unload` is correctly
+                        // implemented.
                         window.discard_browsing_context();
 
                         window.send_to_constellation(ScriptToConstellationMessage::DiscardTopLevelBrowsingContext);
