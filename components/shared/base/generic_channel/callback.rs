@@ -71,7 +71,7 @@ use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
 
-use crate::generic_channel::{self, GenericReceiver, SendError, SendResult};
+use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, SendError, SendResult};
 
 /// The callback type of our messages.
 ///
@@ -147,14 +147,22 @@ where
 
     /// Produces a GenericCallback and a channel. You can block on this channel for the result.
     pub fn new_blocking() -> Result<(Self, GenericReceiver<T>), ipc_channel::Error> {
-        let (sender, receiver) = generic_channel::channel().unwrap();
-        let callback = GenericCallback::new(move |message| {
-            if let Err(e) = sender.send(message.unwrap()) {
-                log::error!("Could not send for generic callback ({e})");
-            }
-        })
-        .unwrap();
-        Ok((callback, receiver))
+        if opts::get().multiprocess || opts::get().force_ipc {
+            let (sender, receiver) = ipc_channel::ipc::channel()?;
+            let generic_callback = GenericCallback(GenericCallbackVariants::CrossProcess(sender));
+            let receiver = GenericReceiver(GenericReceiverVariants::Ipc(receiver));
+            Ok((generic_callback, receiver))
+        } else {
+            let (sender, receiver) = crossbeam_channel::bounded(1);
+            let callback = Arc::new(Mutex::new(move |msg| {
+                if let Err(_) = sender.send(msg) {
+                    log::error!("Error in callback");
+                }
+            }));
+            let generic_callback = GenericCallback(GenericCallbackVariants::InProcess(callback));
+            let receiver = GenericReceiver(GenericReceiverVariants::Crossbeam(receiver));
+            Ok((generic_callback, receiver))
+        }
     }
 
     /// Send `value` to the callback.
@@ -352,5 +360,15 @@ mod single_process_callback_test {
             });
         });
         assert_eq!(number.load(Ordering::SeqCst), 42);
+    }
+
+    #[test]
+    fn generic_callback_blocking() {
+        let (callback, receiver) = GenericCallback::new_blocking().unwrap();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            assert!(callback.send(42).is_ok());
+        });
+        assert_eq!(receiver.recv().unwrap(), 42);
     }
 }
