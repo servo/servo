@@ -10261,7 +10261,6 @@ dependencies = [
  "euclid",
  "http 0.2.12",
  "image",
- "ipc-channel",
  "keyboard-types",
  "log",
  "pixels",

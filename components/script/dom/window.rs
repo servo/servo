@@ -44,7 +44,6 @@ use embedder_traits::{
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, WebFontDocumentContext};
-use ipc_channel::ipc::IpcSender;
 use js::glue::DumpJSStack;
 use js::jsapi::{
     GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
@@ -344,7 +343,7 @@ pub(crate) struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[no_trace]
-    webdriver_script_chan: DomRefCell<Option<IpcSender<WebDriverJSResult>>>,
+    webdriver_script_chan: DomRefCell<Option<GenericSender<WebDriverJSResult>>>,
 
     /// A channel to notify webdriver if there is a navigation
     #[no_trace]
@@ -3207,7 +3206,7 @@ impl Window {
         }
     }
 
-    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<IpcSender<WebDriverJSResult>>) {
+    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
 
