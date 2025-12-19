@@ -5,10 +5,9 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use base::generic_channel::GenericCallback;
 use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg, GamepadSupportedHapticEffects};
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -217,20 +216,16 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         self.effect_sequence_id.set(self.sequence_id.get());
 
         let context = Trusted::new(self);
-        let (effect_complete_sender, effect_complete_receiver) =
-            ipc::channel().expect("ipc channel failure");
         let listener = HapticEffectListener {
             task_source: self.global().task_manager().gamepad_task_source().into(),
             context,
         };
 
-        ROUTER.add_typed_route(
-            effect_complete_receiver,
-            Box::new(move |message| match message {
-                Ok(msg) => listener.handle_completed(msg),
-                Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
-            }),
-        );
+        let callback = GenericCallback::new(move |message| match message {
+            Ok(msg) => listener.handle_completed(msg),
+            Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
+        })
+        .expect("Could not create generic callback");
 
         // Note: The spec says we SHOULD also pass a playEffectTimestamp for more precise playback timing
         // when start_delay is non-zero, but this is left more as a footnote without much elaboration.
@@ -246,7 +241,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             document.webview_id(),
             self.gamepad_index as usize,
             embedder_traits::GamepadHapticEffectType::DualRumble(params),
-            effect_complete_sender,
+            callback,
         );
         self.global().as_window().send_to_embedder(event);
 
@@ -281,25 +276,21 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         self.reset_sequence_id.set(self.sequence_id.get());
 
         let context = Trusted::new(self);
-        let (effect_stop_sender, effect_stop_receiver) =
-            ipc::channel().expect("ipc channel failure");
         let listener = HapticEffectListener {
             task_source: self.global().task_manager().gamepad_task_source().into(),
             context,
         };
 
-        ROUTER.add_typed_route(
-            effect_stop_receiver,
-            Box::new(move |message| match message {
-                Ok(msg) => listener.handle_stopped(msg),
-                Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
-            }),
-        );
+        let callback = GenericCallback::new(move |message| match message {
+            Ok(msg) => listener.handle_stopped(msg),
+            Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
+        })
+        .expect("Could not create callback");
 
         let event = EmbedderMsg::StopGamepadHapticEffect(
             document.webview_id(),
             self.gamepad_index as usize,
-            effect_stop_sender,
+            callback,
         );
         self.global().as_window().send_to_embedder(event);
 
@@ -370,13 +361,13 @@ impl GamepadHapticActuator {
             }),
         );
 
-        let (send, _rcv) = ipc::channel().expect("ipc channel failure");
+        let callback = GenericCallback::new(|_msg| ()).expect("Could not create callback");
 
         let document = self.global().as_window().Document();
         let event = EmbedderMsg::StopGamepadHapticEffect(
             document.webview_id(),
             self.gamepad_index as usize,
-            send,
+            callback,
         );
         self.global().as_window().send_to_embedder(event);
     }

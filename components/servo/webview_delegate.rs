@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericCallback, GenericSender};
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::EmbedderToConstellationMessage;
@@ -18,7 +18,6 @@ use embedder_traits::{
     SimpleDialogRequest, TraversalId, ViewportDetails, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
-use ipc_channel::ipc::IpcSender;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -946,11 +945,11 @@ pub trait WebViewDelegate {
         _webview: WebView,
         _: usize,
         _: GamepadHapticEffectType,
-        _: IpcSender<bool>,
+        _: GenericCallback<bool>,
     ) {
     }
     /// Request to stop a haptic effect on a connected gamepad.
-    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
+    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: GenericCallback<bool>) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling
