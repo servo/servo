@@ -11,22 +11,30 @@ use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server};
 use servo::{JSValue, SiteData, StorageTypes, WebViewBuilder};
-use servo_url::ImmutableOrigin;
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
-fn sites_equal_unordered(sites: &[SiteData], expected_origins: &[ImmutableOrigin]) -> bool {
-    let mut actual: Vec<String> = sites.iter().map(|s| s.name()).collect();
+fn sites_equal_unordered(actual: &[SiteData], expected: &[SiteData]) -> bool {
+    let mut actual = actual.to_vec();
+    let mut expected = expected.to_vec();
 
-    let mut expected: Vec<String> = expected_origins
-        .iter()
-        .map(|o| o.ascii_serialization())
-        .collect();
-
-    actual.sort();
-    expected.sort();
+    actual.sort_by(|a, b| a.name().cmp(&b.name()));
+    expected.sort_by(|a, b| a.name().cmp(&b.name()));
 
     actual == expected
+}
+
+macro_rules! site_data_vec {
+    ( $( ($url:expr, $storage:expr) ),+ $(,)? ) => {
+        &[
+            $(
+                SiteData::new(
+                    $url.origin().ascii_serialization(),
+                    $storage,
+                ),
+            )+
+        ]
+    };
 }
 
 #[test]
@@ -70,11 +78,17 @@ fn test_list_sites() {
     );
 
     let sites = site_data_manager.list_sites(StorageTypes::LOCAL_STORAGE);
-    assert!(sites_equal_unordered(&sites, &[url1.origin()]));
+    assert!(sites_equal_unordered(
+        &sites,
+        site_data_vec![(url1, StorageTypes::LOCAL_STORAGE),]
+    ));
     let sites = site_data_manager.list_sites(StorageTypes::SESSION_STORAGE);
     assert_eq!(sites.len(), 0);
     let sites = site_data_manager.list_sites(StorageTypes::ALL);
-    assert!(sites_equal_unordered(&sites, &[url1.origin()]));
+    assert!(sites_equal_unordered(
+        &sites,
+        site_data_vec![(url1, StorageTypes::LOCAL_STORAGE),]
+    ));
 
     let (server2, url2) = make_server(handler);
 
@@ -93,14 +107,26 @@ fn test_list_sites() {
     //     origin.
     assert!(sites_equal_unordered(
         &sites,
-        &[url1.origin(), url2.origin()]
+        site_data_vec![
+            (url1, StorageTypes::LOCAL_STORAGE),
+            (url2, StorageTypes::LOCAL_STORAGE),
+        ]
     ));
     let sites = site_data_manager.list_sites(StorageTypes::SESSION_STORAGE);
-    assert!(sites_equal_unordered(&sites, &[url2.origin()]));
+    assert!(sites_equal_unordered(
+        &sites,
+        site_data_vec![(url2, StorageTypes::SESSION_STORAGE),]
+    ));
     let sites = site_data_manager.list_sites(StorageTypes::ALL);
     assert!(sites_equal_unordered(
         &sites,
-        &[url1.origin(), url2.origin()]
+        site_data_vec![
+            (url1, StorageTypes::LOCAL_STORAGE),
+            (
+                url2,
+                StorageTypes::LOCAL_STORAGE | StorageTypes::SESSION_STORAGE
+            ),
+        ]
     ));
 
     let _ = server1.close();
