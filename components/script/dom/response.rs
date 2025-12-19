@@ -48,6 +48,9 @@ pub(crate) struct Response {
     url_list: DomRefCell<Vec<ServoUrl>>,
     /// The stream of <https://fetch.spec.whatwg.org/#body>.
     body_stream: MutNullableDom<ReadableStream>,
+    /// The stream that receives network delivered bytes for Fetch responses.
+    /// This must remain stable even if `body_stream` is replaced by `tee()` branches during `clone()`.
+    fetch_body_stream: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
     redirected: Cell<bool>,
@@ -70,6 +73,7 @@ impl Response {
             url: DomRefCell::new(None),
             url_list: DomRefCell::new(vec![]),
             body_stream: MutNullableDom::new(Some(&*stream)),
+            fetch_body_stream: MutNullableDom::new(Some(&*stream)),
             stream_consumer: DomRefCell::new(None),
             redirected: Cell::new(false),
             is_body_empty: Cell::new(true),
@@ -95,7 +99,7 @@ impl Response {
     }
 
     pub(crate) fn error_stream(&self, error: Error, can_gc: CanGc) {
-        if let Some(body) = self.body_stream.get() {
+        if let Some(body) = self.fetch_body_stream.get() {
             body.error_native(error, can_gc);
         }
     }
@@ -340,6 +344,8 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         // Step 3. Return the result of creating a Response object,
         // given clonedResponse, this’s headers’s guard, and this’s relevant realm.
         clone_body_stream_for_dom_body(&self.body_stream, &new_response.body_stream, can_gc)?;
+        // The cloned response must not receive network chunks directly; it is fed via the tee branch.
+        new_response.fetch_body_stream.set(None);
 
         Ok(new_response)
     }
@@ -433,6 +439,7 @@ fn initialize_response(
 
         // 6.2 Set response’s body to body’s body.
         response.body_stream.set(Some(&*body.stream));
+        response.fetch_body_stream.set(Some(&*body.stream));
         response.is_body_empty.set(false);
 
         // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
@@ -455,6 +462,7 @@ fn initialize_response(
         // fetch Response object.
         let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc)?;
         response.body_stream.set(Some(&*stream));
+        response.fetch_body_stream.set(Some(&*stream));
     }
 
     Ok(response)
@@ -505,11 +513,13 @@ impl Response {
                 *self.status.borrow_mut() = HttpStatus::new_error();
                 self.set_headers(None, can_gc);
                 self.body_stream.set(None);
+                self.fetch_body_stream.set(None);
             },
             DOMResponseType::Opaqueredirect => {
                 *self.status.borrow_mut() = HttpStatus::new_error();
                 self.set_headers(None, can_gc);
                 self.body_stream.set(None);
+                self.fetch_body_stream.set(None);
             },
             DOMResponseType::Default => {},
             DOMResponseType::Basic => {},
@@ -526,15 +536,19 @@ impl Response {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
-        } else if let Some(body) = self.body_stream.get() {
+        } else if let Some(body) = self.fetch_body_stream.get() {
             body.enqueue_native(chunk, can_gc);
         }
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn finish(&self, can_gc: CanGc) {
-        if let Some(body) = self.body_stream.get() {
+        if let Some(body) = self.fetch_body_stream.get() {
             body.controller_close_native(can_gc);
+        } else {
+            println!(
+                "[fetch][Response::finish] NOTE: fetch_body_stream is None; no controller_close_native()"
+            );
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {
