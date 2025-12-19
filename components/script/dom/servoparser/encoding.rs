@@ -195,10 +195,11 @@ impl NetworkDecoderState {
         }
     }
 
-    pub(super) fn finish(&mut self) -> StrTendril {
+    pub(super) fn finish(&mut self, document: &Document) -> StrTendril {
         match self {
             Self::Detecting(encoding_detector) => {
                 let encoding = encoding_detector.finish();
+                document.set_encoding(encoding);
                 let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                 let mut decoder = LossyDecoder::new_encoding_rs(encoding, NetworkSink::default());
                 decoder.process(ByteTendril::from(&*buffered_bytes));
