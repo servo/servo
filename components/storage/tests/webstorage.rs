@@ -237,7 +237,7 @@ fn origin_descriptors() {
             .unwrap();
         assert_eq!(receiver.recv().unwrap(), Ok((true, None)));
 
-        let descriptors = threads.list_webstorage_origins(storage_type);
+        let descriptors = threads.webstorage_origins(storage_type);
         assert_eq!(descriptors.len(), 1);
         assert_eq!(descriptors[0].name, "https://example.com");
     }
@@ -247,7 +247,7 @@ fn origin_descriptors() {
     let threads = init_with(&tmp_dir);
 
     for (storage_type, survives_restart) in cases {
-        let descriptors = threads.list_webstorage_origins(storage_type);
+        let descriptors = threads.webstorage_origins(storage_type);
 
         if survives_restart {
             assert_eq!(descriptors.len(), 1);

@@ -34,7 +34,7 @@ impl StorageThreads {
         }
     }
 
-    pub fn list_webstorage_origins(&self, storage_type: WebStorageType) -> Vec<OriginDescriptor> {
+    pub fn webstorage_origins(&self, storage_type: WebStorageType) -> Vec<OriginDescriptor> {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let _ = self
             .web_storage_thread

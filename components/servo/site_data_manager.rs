@@ -6,28 +6,36 @@ use bitflags::bitflags;
 use net_traits::ResourceThreads;
 use rustc_hash::FxHashMap;
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::{OriginDescriptor, StorageType};
+use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageType};
 
 bitflags! {
+    /// Identifies categories of site data associated with a site.
+    ///
+    /// This type is used by `SiteDataManager` to query, describe, and manage
+    /// different kinds of data stored by the user agent for a given site.
+    ///
+    /// Additional storage categories (e.g. network cache, cookies, IndexedDB)
+    /// may be added in the future.
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub struct StorageTypes: u32 {
-        const LOCAL_STORAGE   = 1 << 0;
-        const SESSION_STORAGE = 1 << 1;
+    pub struct StorageType: u8 {
+        /// Corresponds to the `localStorage` Web API:
+        /// <https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage>
+        const Local   = 1 << 0;
 
-        const ALL =
-                   Self::LOCAL_STORAGE.bits() |
-                   Self::SESSION_STORAGE.bits();
+        /// Corresponds to the `sessionStorage` Web API:
+        /// <https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage>
+        const Session = 1 << 1;
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SiteData {
     name: String,
-    storage_types: StorageTypes,
+    storage_types: StorageType,
 }
 
 impl SiteData {
-    pub fn new(name: String, storage_types: StorageTypes) -> SiteData {
+    pub fn new(name: String, storage_types: StorageType) -> SiteData {
         SiteData {
             name,
             storage_types,
@@ -38,7 +46,7 @@ impl SiteData {
         self.name.clone()
     }
 
-    pub fn storage_types(&self) -> StorageTypes {
+    pub fn storage_types(&self) -> StorageType {
         self.storage_types
     }
 }
@@ -65,34 +73,57 @@ impl SiteDataManager {
         }
     }
 
-    pub fn list_sites(&self, storage_types: StorageTypes) -> Vec<SiteData> {
-        let mut builder = SiteDataBuilder::new();
+    /// Return a list of sites that have associated site data.
+    ///
+    /// The returned list is filtered by the provided `storage_types` bitflags.
+    /// Each [`SiteData`] entry represents a site (currently equivalent to an
+    /// origin) and indicates which kinds of storage data are present for it
+    /// (e.g. localStorage, sessionStorage).
+    ///
+    /// Both public and private storage are included in the result.
+    ///
+    /// Note: At this stage, sites correspond directly to origins. Future work
+    /// may group data at a higher level (e.g. by eTLD+1).
+    pub fn site_data(&self, storage_types: StorageType) -> Vec<SiteData> {
+        let mut sites: FxHashMap<String, StorageType> = FxHashMap::default();
 
-        if storage_types.contains(StorageTypes::LOCAL_STORAGE) {
+        let mut add_origins = |origins: Vec<OriginDescriptor>, storage_type: StorageType| {
+            for origin in origins {
+                sites
+                    .entry(origin.name)
+                    .and_modify(|storage_types| *storage_types |= storage_type)
+                    .or_insert(storage_type);
+            }
+        };
+
+        if storage_types.contains(StorageType::Local) {
             let public_origins = self
                 .public_storage_threads
-                .list_webstorage_origins(StorageType::Local);
-            builder.add_origins(public_origins, StorageTypes::LOCAL_STORAGE);
+                .webstorage_origins(WebStorageType::Local);
+            add_origins(public_origins, StorageType::Local);
 
             let private_origins = self
                 .private_storage_threads
-                .list_webstorage_origins(StorageType::Local);
-            builder.add_origins(private_origins, StorageTypes::LOCAL_STORAGE);
+                .webstorage_origins(WebStorageType::Local);
+            add_origins(private_origins, StorageType::Local);
         }
 
-        if storage_types.contains(StorageTypes::SESSION_STORAGE) {
+        if storage_types.contains(StorageType::Session) {
             let public_origins = self
                 .public_storage_threads
-                .list_webstorage_origins(StorageType::Session);
-            builder.add_origins(public_origins, StorageTypes::SESSION_STORAGE);
+                .webstorage_origins(WebStorageType::Session);
+            add_origins(public_origins, StorageType::Session);
 
             let private_origins = self
                 .private_storage_threads
-                .list_webstorage_origins(StorageType::Session);
-            builder.add_origins(private_origins, StorageTypes::SESSION_STORAGE);
+                .webstorage_origins(WebStorageType::Session);
+            add_origins(private_origins, StorageType::Session);
         }
 
-        builder.build()
+        sites
+            .into_iter()
+            .map(|(name, storage_types)| SiteData::new(name, storage_types))
+            .collect()
     }
 
     pub fn clear_cookies(&self) {
@@ -103,33 +134,5 @@ impl SiteDataManager {
     pub fn clear_cache(&self) {
         self.public_resource_threads.clear_cache();
         self.private_resource_threads.clear_cache();
-    }
-}
-
-struct SiteDataBuilder {
-    sites: FxHashMap<String, StorageTypes>,
-}
-
-impl SiteDataBuilder {
-    fn new() -> Self {
-        SiteDataBuilder {
-            sites: FxHashMap::default(),
-        }
-    }
-
-    fn add_origins(&mut self, origins: Vec<OriginDescriptor>, storage_type: StorageTypes) {
-        for origin in origins {
-            self.sites
-                .entry(origin.name)
-                .and_modify(|types| *types |= storage_type)
-                .or_insert(storage_type);
-        }
-    }
-
-    fn build(self) -> Vec<SiteData> {
-        self.sites
-            .into_iter()
-            .map(|(name, storage_types)| SiteData::new(name, storage_types))
-            .collect()
     }
 }
