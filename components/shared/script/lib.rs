@@ -48,7 +48,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::StorageType;
+use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
@@ -251,7 +251,7 @@ pub enum ScriptThreadMessage {
     /// The strings are key, old value and new value.
     DispatchStorageEvent(
         PipelineId,
-        StorageType,
+        WebStorageType,
         ServoUrl,
         Option<String>,
         Option<String>,

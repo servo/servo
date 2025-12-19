@@ -36,7 +36,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::StorageType;
+use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
@@ -585,7 +585,7 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
-        StorageType,
+        WebStorageType,
         ServoUrl,
         Option<String>,
         Option<String>,

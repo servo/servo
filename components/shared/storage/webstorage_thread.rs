@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum StorageType {
+pub enum WebStorageType {
     Session,
     Local,
 }
@@ -30,24 +30,29 @@ impl OriginDescriptor {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebStorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(GenericSender<usize>, StorageType, WebViewId, ServoUrl),
+    Length(GenericSender<usize>, WebStorageType, WebViewId, ServoUrl),
 
     /// gets the name of the key at the specified index in the associated storage data
     Key(
         GenericSender<Option<String>>,
-        StorageType,
+        WebStorageType,
         WebViewId,
         ServoUrl,
         u32,
     ),
 
     /// Gets the available keys in the associated storage data
-    Keys(GenericSender<Vec<String>>, StorageType, WebViewId, ServoUrl),
+    Keys(
+        GenericSender<Vec<String>>,
+        WebStorageType,
+        WebViewId,
+        ServoUrl,
+    ),
 
     /// gets the value associated with the given key in the associated storage data
     GetItem(
         GenericSender<Option<String>>,
-        StorageType,
+        WebStorageType,
         WebViewId,
         ServoUrl,
         String,
@@ -56,7 +61,7 @@ pub enum WebStorageThreadMsg {
     /// sets the value of the given key in the associated storage data
     SetItem(
         GenericSender<Result<(bool, Option<String>), ()>>,
-        StorageType,
+        WebStorageType,
         WebViewId,
         ServoUrl,
         String,
@@ -66,14 +71,14 @@ pub enum WebStorageThreadMsg {
     /// removes the key/value pair for the given key in the associated storage data
     RemoveItem(
         GenericSender<Option<String>>,
-        StorageType,
+        WebStorageType,
         WebViewId,
         ServoUrl,
         String,
     ),
 
     /// clears the associated storage data by removing all the key/value pairs
-    Clear(GenericSender<bool>, StorageType, WebViewId, ServoUrl),
+    Clear(GenericSender<bool>, WebStorageType, WebViewId, ServoUrl),
 
     /// clones all storage data of the given top-level browsing context for a new browsing context.
     /// should only be used for sessionStorage.
@@ -84,7 +89,7 @@ pub enum WebStorageThreadMsg {
     },
 
     /// gets the list of origin descriptors for given storage type
-    ListOrigins(GenericSender<Vec<OriginDescriptor>>, StorageType),
+    ListOrigins(GenericSender<Vec<OriginDescriptor>>, WebStorageType),
 
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),

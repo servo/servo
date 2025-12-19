@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::client_storage::ClientStorageThreadMessage;
 use crate::indexeddb::IndexedDBThreadMsg;
-use crate::webstorage_thread::{OriginDescriptor, StorageType, WebStorageThreadMsg};
+use crate::webstorage_thread::{OriginDescriptor, WebStorageThreadMsg, WebStorageType};
 
 pub mod client_storage;
 pub mod indexeddb;
@@ -34,7 +34,7 @@ impl StorageThreads {
         }
     }
 
-    pub fn list_webstorage_origins(&self, storage_type: StorageType) -> Vec<OriginDescriptor> {
+    pub fn list_webstorage_origins(&self, storage_type: WebStorageType) -> Vec<OriginDescriptor> {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let _ = self
             .web_storage_thread

@@ -25,7 +25,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use storage_traits::webstorage_thread::{OriginDescriptor, StorageType, WebStorageThreadMsg};
+use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageThreadMsg, WebStorageType};
 use uuid::Uuid;
 
 use crate::webstorage::engines::WebStorageEngine;
@@ -342,16 +342,16 @@ impl WebStorageManager {
 
     fn select_data(
         &mut self,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         origin: ImmutableOrigin,
     ) -> Option<&OriginEntry> {
         match storage_type {
-            StorageType::Session => self
+            WebStorageType::Session => self
                 .session_data
                 .get(&webview_id)
                 .and_then(|origin_map| origin_map.get(&origin)),
-            StorageType::Local => {
+            WebStorageType::Local => {
                 // FIXME: Selecting data for read only operations should not
                 // create a new origin descriptor. However, this currently
                 // needs to happen because get_environment always creates an
@@ -366,16 +366,16 @@ impl WebStorageManager {
 
     fn select_data_mut(
         &mut self,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         origin: ImmutableOrigin,
     ) -> Option<&mut OriginEntry> {
         match storage_type {
-            StorageType::Session => self
+            WebStorageType::Session => self
                 .session_data
                 .get_mut(&webview_id)
                 .and_then(|origin_map| origin_map.get_mut(&origin)),
-            StorageType::Local => {
+            WebStorageType::Local => {
                 // FIXME: Selecting data for read only operations should not
                 // create a new origin descriptor. However, this currently
                 // needs to happen because get_environment always creates an
@@ -390,12 +390,12 @@ impl WebStorageManager {
 
     fn ensure_data_mut(
         &mut self,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         origin: ImmutableOrigin,
     ) -> &mut OriginEntry {
         match storage_type {
-            StorageType::Session => {
+            WebStorageType::Session => {
                 self.session_storage_origins
                     .ensure_origin_descriptor(&origin);
                 self.session_data
@@ -404,7 +404,7 @@ impl WebStorageManager {
                     .entry(origin)
                     .or_default()
             },
-            StorageType::Local => {
+            WebStorageType::Local => {
                 if self.local_storage_origins.ensure_origin_descriptor(&origin) {
                     self.save_local_storage_origins();
                 }
@@ -416,7 +416,7 @@ impl WebStorageManager {
     fn length(
         &mut self,
         sender: GenericSender<usize>,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         url: ServoUrl,
     ) {
@@ -429,7 +429,7 @@ impl WebStorageManager {
     fn key(
         &mut self,
         sender: GenericSender<Option<String>>,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         url: ServoUrl,
         index: u32,
@@ -444,7 +444,7 @@ impl WebStorageManager {
     fn keys(
         &mut self,
         sender: GenericSender<Vec<String>>,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         url: ServoUrl,
     ) {
@@ -461,20 +461,20 @@ impl WebStorageManager {
     fn set_item(
         &mut self,
         sender: GenericSender<Result<(bool, Option<String>), ()>>,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         url: ServoUrl,
         name: String,
         value: String,
     ) {
         let (this_storage_size, other_storage_size) = {
-            let local_data = self.select_data(StorageType::Local, webview_id, url.origin());
+            let local_data = self.select_data(WebStorageType::Local, webview_id, url.origin());
             let local_data_size = local_data.map_or(0, OriginEntry::size);
-            let session_data = self.select_data(StorageType::Session, webview_id, url.origin());
+            let session_data = self.select_data(WebStorageType::Session, webview_id, url.origin());
             let session_data_size = session_data.map_or(0, OriginEntry::size);
             match storage_type {
-                StorageType::Local => (local_data_size, session_data_size),
-                StorageType::Session => (session_data_size, local_data_size),
+                WebStorageType::Local => (local_data_size, session_data_size),
+                WebStorageType::Session => (session_data_size, local_data_size),
             }
         };
 
@@ -512,7 +512,7 @@ impl WebStorageManager {
     fn request_item(
         &mut self,
         sender: GenericSender<Option<String>>,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         url: ServoUrl,
         name: String,
@@ -527,7 +527,7 @@ impl WebStorageManager {
     fn remove_item(
         &mut self,
         sender: GenericSender<Option<String>>,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         url: ServoUrl,
         name: String,
@@ -542,7 +542,7 @@ impl WebStorageManager {
     fn clear(
         &mut self,
         sender: GenericSender<bool>,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         webview_id: WebViewId,
         url: ServoUrl,
     ) {
@@ -571,10 +571,10 @@ impl WebStorageManager {
             .insert(dest_webview_id, dest_origin_entries);
     }
 
-    fn origin_descriptors(&mut self, storage_type: StorageType) -> Vec<OriginDescriptor> {
+    fn origin_descriptors(&mut self, storage_type: WebStorageType) -> Vec<OriginDescriptor> {
         match storage_type {
-            StorageType::Session => self.session_storage_origins.origin_descriptors(),
-            StorageType::Local => self.local_storage_origins.origin_descriptors(),
+            WebStorageType::Session => self.session_storage_origins.origin_descriptors(),
+            WebStorageType::Local => self.local_storage_origins.origin_descriptors(),
         }
     }
 }

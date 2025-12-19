@@ -8,7 +8,7 @@ use base::id::TEST_WEBVIEW_ID;
 use profile::mem as profile_mem;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
+use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use tempfile::TempDir;
 
 fn init() -> (TempDir, StorageThreads) {
@@ -46,7 +46,7 @@ fn set_and_get_item() {
     threads
         .send(WebStorageThreadMsg::SetItem(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
             "foo".into(),
@@ -60,7 +60,7 @@ fn set_and_get_item() {
     threads
         .send(WebStorageThreadMsg::GetItem(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
             "foo".into(),
@@ -82,7 +82,7 @@ fn length_key_and_keys() {
         threads
             .send(WebStorageThreadMsg::SetItem(
                 sender,
-                StorageType::Local,
+                WebStorageType::Local,
                 TEST_WEBVIEW_ID,
                 url.clone(),
                 k.into(),
@@ -97,7 +97,7 @@ fn length_key_and_keys() {
     threads
         .send(WebStorageThreadMsg::Length(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
         ))
@@ -109,7 +109,7 @@ fn length_key_and_keys() {
     threads
         .send(WebStorageThreadMsg::Key(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
             0,
@@ -123,7 +123,7 @@ fn length_key_and_keys() {
     threads
         .send(WebStorageThreadMsg::Keys(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
         ))
@@ -147,7 +147,7 @@ fn remove_item_and_clear() {
         threads
             .send(WebStorageThreadMsg::SetItem(
                 sender,
-                StorageType::Local,
+                WebStorageType::Local,
                 TEST_WEBVIEW_ID,
                 url.clone(),
                 k.into(),
@@ -162,7 +162,7 @@ fn remove_item_and_clear() {
     threads
         .send(WebStorageThreadMsg::RemoveItem(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
             "foo".into(),
@@ -175,7 +175,7 @@ fn remove_item_and_clear() {
     threads
         .send(WebStorageThreadMsg::RemoveItem(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
             "foo".into(),
@@ -188,7 +188,7 @@ fn remove_item_and_clear() {
     threads
         .send(WebStorageThreadMsg::Clear(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
         ))
@@ -200,7 +200,7 @@ fn remove_item_and_clear() {
     threads
         .send(WebStorageThreadMsg::Length(
             sender,
-            StorageType::Local,
+            WebStorageType::Local,
             TEST_WEBVIEW_ID,
             url.clone(),
         ))
@@ -215,7 +215,10 @@ fn origin_descriptors() {
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // (storage_type, survives_restart)
-    let cases = [(StorageType::Session, false), (StorageType::Local, true)];
+    let cases = [
+        (WebStorageType::Session, false),
+        (WebStorageType::Local, true),
+    ];
 
     let (tmp_dir, threads) = init();
 

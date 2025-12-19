@@ -7,7 +7,7 @@ use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use profile_traits::generic_channel;
 use servo_url::ServoUrl;
-use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
+use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -25,11 +25,11 @@ use crate::script_runtime::CanGc;
 pub(crate) struct Storage {
     reflector_: Reflector,
     #[no_trace]
-    storage_type: StorageType,
+    storage_type: WebStorageType,
 }
 
 impl Storage {
-    fn new_inherited(storage_type: StorageType) -> Storage {
+    fn new_inherited(storage_type: WebStorageType) -> Storage {
         Storage {
             reflector_: Reflector::new(),
             storage_type,
@@ -38,7 +38,7 @@ impl Storage {
 
     pub(crate) fn new(
         global: &Window,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         can_gc: CanGc,
     ) -> DomRoot<Storage> {
         reflect_dom_object(
