@@ -20,8 +20,9 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 use winit::window::WindowId;
 
 use super::event_loop::AppEvent;
-use super::{headed_window, headless_window};
 use crate::desktop::event_loop::ServoShellEventLoop;
+use crate::desktop::headed_window::HeadedWindow;
+use crate::desktop::headless_window::HeadlessWindow;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
 use crate::parser::get_default_url;
@@ -138,10 +139,10 @@ impl App {
         );
 
         let Some(active_event_loop) = active_event_loop else {
-            return headless_window::Window::new(&self.servoshell_preferences);
+            return HeadlessWindow::new(&self.servoshell_preferences);
         };
 
-        headed_window::Window::new(
+        HeadedWindow::new(
             &self.servoshell_preferences,
             active_event_loop,
             self.event_loop_proxy

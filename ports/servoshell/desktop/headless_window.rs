@@ -23,7 +23,7 @@ use winit::dpi::PhysicalSize;
 use crate::prefs::ServoShellPreferences;
 use crate::window::{MIN_WINDOW_INNER_SIZE, PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
-pub struct Window {
+pub struct HeadlessWindow {
     id: ServoShellWindowId,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
@@ -34,7 +34,7 @@ pub struct Window {
     rendering_context: Rc<SoftwareRenderingContext>,
 }
 
-impl Window {
+impl HeadlessWindow {
     pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<Self> {
         let size = servoshell_preferences.initial_window_size;
 
@@ -55,7 +55,7 @@ impl Window {
             });
 
         static CURRENT_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
-        let window = Window {
+        let window = HeadlessWindow {
             id: CURRENT_WINDOW_ID
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
                 .into(),
@@ -71,7 +71,7 @@ impl Window {
     }
 }
 
-impl Drop for Window {
+impl Drop for HeadlessWindow {
     fn drop(&mut self) {
         if let Err(error) = self.rendering_context.make_current() {
             error!("Failed to make the rendering context current: {error:?}");
@@ -79,7 +79,7 @@ impl Drop for Window {
     }
 }
 
-impl PlatformWindow for Window {
+impl PlatformWindow for HeadlessWindow {
     fn id(&self) -> ServoShellWindowId {
         self.id
     }
