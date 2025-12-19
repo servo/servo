@@ -58,6 +58,7 @@ use embedder_traits::{
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
     ViewportDetails, WebDriverScriptCommand,
 };
+use encoding_rs::Encoding;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
@@ -146,7 +147,7 @@ use crate::messaging::{
     ScriptThreadReceivers, ScriptThreadSenders,
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
-use crate::mime::{APPLICATION, MimeExt, TEXT, XML};
+use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_realm;
@@ -3241,6 +3242,10 @@ impl ScriptThread {
             .content_type
             .map(Serde::into_inner)
             .map(Mime::from_ct);
+        let encoding_hint_from_content_type = content_type
+            .as_ref()
+            .and_then(|mime| mime.get_parameter(CHARSET))
+            .and_then(|charset| Encoding::for_label(charset.as_bytes()));
 
         let is_html_document = match content_type {
             Some(ref mime) if mime.type_ == APPLICATION && mime.has_suffix("xml") => {
@@ -3349,9 +3354,21 @@ impl ScriptThread {
         document.set_navigation_start(incomplete.navigation_start);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(&document, None, final_url, can_gc);
+            ServoParser::parse_xml_document(
+                &document,
+                None,
+                final_url,
+                encoding_hint_from_content_type,
+                can_gc,
+            );
         } else {
-            ServoParser::parse_html_document(&document, None, final_url, can_gc);
+            ServoParser::parse_html_document(
+                &document,
+                None,
+                final_url,
+                encoding_hint_from_content_type,
+                can_gc,
+            );
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {

@@ -76,3 +76,9 @@ pub mod textinput {
         UTF16CodeUnits,
     };
 }
+
+pub mod encoding_detection {
+    pub use crate::dom::servoparser::encoding::{
+        get_xml_encoding, prescan_the_byte_stream_to_determine_the_encoding,
+    };
+}

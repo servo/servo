@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[cfg(test)]
+mod encoding_detection;
+#[cfg(test)]
 mod htmlareaelement;
 #[cfg(test)]
 mod htmlimageelement;

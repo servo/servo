@@ -7805,6 +7805,7 @@ dependencies = [
 name = "script_tests"
 version = "0.0.1"
 dependencies = [
+ "encoding_rs",
  "euclid",
  "keyboard-types",
  "script",
