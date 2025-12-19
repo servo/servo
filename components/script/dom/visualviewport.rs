@@ -5,12 +5,13 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use euclid::Rect;
+use euclid::{Rect, Scale, Size2D};
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 use style_traits::CSSPixel;
+use webrender_api::units::DevicePixel;
 
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::eventtarget::EventTarget;
@@ -21,20 +22,25 @@ use crate::dom::window::Window;
 pub(crate) struct VisualViewport {
     eventtarget: EventTarget,
 
-    /// The associated [`Window`] for this visual viewport.
+    /// The associated [`Window`] for this [`VisualViewport`],
     window: Dom<Window>,
 
-    /// The rectangle bound of the visual viewport, relative to the layout viewport.
+    /// The rectangle bound of the [`VisualViewport`], relative to the layout viewport.
     #[no_trace]
     viewport_rect: Cell<Rect<f32, CSSPixel>>,
 
-    /// The scale factor of visual viewport, which is also commonly known as pinch-zoom.
+    /// The scale factor of [`VisualViewport`], which is also commonly known as pinch-zoom.
     /// <https://drafts.csswg.org/cssom-view/#scale-factor>
-    scale: Cell<f32>,
+    #[no_trace]
+    scale: Cell<Scale<f32, DevicePixel, DevicePixel>>,
 }
 
 impl VisualViewport {
-    fn new_inherited(window: &Window, viewport_rect: Rect<f32, CSSPixel>, scale: f32) -> Self {
+    fn new_inherited(
+        window: &Window,
+        viewport_rect: Rect<f32, CSSPixel>,
+        scale: Scale<f32, DevicePixel, DevicePixel>,
+    ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
             window: Dom::from_ref(window),
@@ -44,14 +50,18 @@ impl VisualViewport {
     }
 
     /// The initial visual viewport based on a layout viewport relative to the initial containing block, where
-    /// the dimension would be the same as layout viewport leaving the offset and the scale to it's default value.
+    /// the dimension would be the same as layout viewport leaving the offset and the scale to its default value.
     pub(crate) fn new_from_layout_viewport(
         window: &Window,
-        viewport_rect: Rect<f32, CSSPixel>,
+        viewport_size: Size2D<f32, CSSPixel>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(Self::new_inherited(window, viewport_rect, 1.)),
+            Box::new(Self::new_inherited(
+                window,
+                Rect::from_size(viewport_size),
+                Scale::identity(),
+            )),
             window,
             can_gc,
         )
@@ -146,7 +156,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
         // TODO(#41341): check for output device.
 
         // > 3. Otherwise, return the visual viewport’s scale factor.
-        Finite::wrap(self.scale.get() as f64)
+        Finite::wrap(self.scale.get().get() as f64)
     }
 
     // <https://drafts.csswg.org/cssom-view/#dom-visualviewport-onresize>

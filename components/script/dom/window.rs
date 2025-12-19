@@ -42,7 +42,7 @@ use embedder_traits::{
     WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
-use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, WebFontDocumentContext};
 use ipc_channel::ipc::IpcSender;
 use js::glue::DumpJSStack;
@@ -1583,11 +1583,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // TODO(#41341): we are only initializing the visual viewport here, but it is never updated.
         Some(self.visual_viewport.or_init(|| {
-            VisualViewport::new_from_layout_viewport(
-                self,
-                Rect::from_size(self.viewport_details().size),
-                can_gc,
-            )
+            VisualViewport::new_from_layout_viewport(self, self.viewport_details().size, can_gc)
         }))
     }
 
