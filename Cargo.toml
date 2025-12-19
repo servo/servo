@@ -191,7 +191,7 @@ unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
-urlpattern = "0.3"
+urlpattern = "0.4"
 utf-8 = "0.7"
 uuid = { version = "1.19.0", features = ["v4", "v5"] }
 vello = "0.6"
