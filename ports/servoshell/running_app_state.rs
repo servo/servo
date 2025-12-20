@@ -236,12 +236,14 @@ impl RunningAppState {
         platform_window: Rc<dyn PlatformWindow>,
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
+        let has_winit_window = platform_window.has_winit_window();
         let window = Rc::new(ServoShellWindow::new(platform_window));
 
-        // On Android and OHOS, newly created windows are automatically focused.
-        // On Desktop, it is up to the `winit::event::WindowEvent::Focused`.
-        #[cfg(any(target_env = "ohos", target_os = "android"))]
-        self.focus_window(window.clone());
+        // For [`HeadedWindow`], it is up to the `winit::event::WindowEvent::Focused`.
+        // Otherwise, newly created windows are automatically focused.
+        if !has_winit_window {
+            self.focus_window(window.clone());
+        }
         window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()

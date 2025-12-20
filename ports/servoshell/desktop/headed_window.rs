@@ -536,6 +536,9 @@ impl HeadedWindow {
 }
 
 impl PlatformWindow for HeadedWindow {
+    fn has_winit_window(&self) -> bool {
+        true
+    }
     fn screen_geometry(&self) -> ScreenGeometry {
         let hidpi_factor = self.hidpi_scale_factor();
         let toolbar_size = Size2D::new(0.0, (self.toolbar_height() * self.hidpi_scale_factor()).0);
