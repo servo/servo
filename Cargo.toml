@@ -281,11 +281,16 @@ codegen-units = 1
 #
 # For html5ever:
 #
-html5ever = { path = "../html5ever/html5ever" }
-markup5ever = { path = "../html5ever/markup5ever" }
-web_atoms = { path = "../html5ever/web_atoms" }
-xml5ever = { path = "../html5ever/xml5ever" }
-tendril = { path = "../html5ever/tendril" }
+# html5ever = { path = "../html5ever/html5ever" }
+# markup5ever = { path = "../html5ever/markup5ever" }
+# web_atoms = { path = "../html5ever/web_atoms" }
+# xml5ever = { path = "../html5ever/xml5ever" }
+# tendril = { path = "../html5ever/tendril" }
+html5ever = { git = "https://github.com/simonwuelker/html5ever", branch="encoding-hints" }
+markup5ever = { git = "https://github.com/simonwuelker/html5ever", branch="encoding-hints" }
+web_atoms = { git = "https://github.com/simonwuelker/html5ever", branch="encoding-hints" }
+xml5ever = { git = "https://github.com/simonwuelker/html5ever", branch="encoding-hints" }
+tendril = { git = "https://github.com/simonwuelker/html5ever", branch="encoding-hints" }
 #
 # Or for Stylo:
 #

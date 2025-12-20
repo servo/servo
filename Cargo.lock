@@ -3969,6 +3969,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.36.1"
+source = "git+https://github.com/simonwuelker/html5ever?branch=encoding-hints#e6f2cf2b381577e69d89f88fd00e4fc7d44efe21"
 dependencies = [
  "log",
  "markup5ever",
@@ -5352,6 +5353,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.36.1"
+source = "git+https://github.com/simonwuelker/html5ever?branch=encoding-hints#e6f2cf2b381577e69d89f88fd00e4fc7d44efe21"
 dependencies = [
  "log",
  "tendril",
@@ -9176,6 +9178,7 @@ dependencies = [
 [[package]]
 name = "tendril"
 version = "0.4.3"
+source = "git+https://github.com/simonwuelker/html5ever?branch=encoding-hints#e6f2cf2b381577e69d89f88fd00e4fc7d44efe21"
 dependencies = [
  "encoding_rs",
  "new_debug_unreachable",
@@ -10296,6 +10299,7 @@ dependencies = [
 [[package]]
 name = "web_atoms"
 version = "0.2.0"
+source = "git+https://github.com/simonwuelker/html5ever?branch=encoding-hints#e6f2cf2b381577e69d89f88fd00e4fc7d44efe21"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -11361,6 +11365,7 @@ checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
 [[package]]
 name = "xml5ever"
 version = "0.36.1"
+source = "git+https://github.com/simonwuelker/html5ever?branch=encoding-hints#e6f2cf2b381577e69d89f88fd00e4fc7d44efe21"
 dependencies = [
  "log",
  "markup5ever",
