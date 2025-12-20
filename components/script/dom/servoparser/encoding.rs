@@ -25,7 +25,7 @@ pub(super) struct DetectingState {
     encoding_of_container_document: Option<&'static Encoding>,
     start_timestamp: Instant,
     attempted_bom_sniffing: bool,
-    buffered_bytes: Vec<u8>,
+    pub(crate) buffered_bytes: Vec<u8>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -190,6 +190,25 @@ impl DetectingState {
         self.determine_the_character_encoding(document, false, AtEndOfFile::Yes)
             .expect("Should always return character encoding when we're not allowed to wait")
     }
+
+    /// Creates a new decoder instance from the buffered bytes.
+    ///
+    /// After calling this function, `self` should not be used anymore.
+    pub(super) fn create_decoder(
+        &mut self,
+        encoding: &'static Encoding,
+        confidence: EncodingConfidence,
+    ) -> DecodingState {
+        let buffered_bytes = mem::take(&mut self.buffered_bytes);
+        let mut decoder = LossyDecoder::new_encoding_rs(encoding, NetworkSink::default());
+        decoder.process(ByteTendril::from(&*buffered_bytes));
+
+        DecodingState {
+            decoder: Some(decoder),
+            confidence,
+            encoding,
+        }
+    }
 }
 
 impl NetworkDecoderState {
@@ -232,16 +251,8 @@ impl NetworkDecoderState {
                     encoding_detector.buffer(chunk, document, AtEndOfFile::No)
                 {
                     document.set_encoding(encoding);
-                    let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
-                    *self = Self::Decoding(DecodingState {
-                        decoder: Some(LossyDecoder::new_encoding_rs(
-                            encoding,
-                            NetworkSink::default(),
-                        )),
-                        confidence,
-                        encoding,
-                    });
-                    return self.push(&buffered_bytes, document);
+                    *self = Self::Decoding(encoding_detector.create_decoder(encoding, confidence));
+                    return self.push(&[], document);
                 }
 
                 None
@@ -290,10 +301,10 @@ impl NetworkDecoderState {
         }
     }
 
-    pub(super) fn decoder(&mut self) -> &mut DecodingState {
+    pub(super) fn decoder(&mut self) -> Option<&mut DecodingState> {
         match self {
-            Self::Detecting(_) => unreachable!("Cannot access decoder before decoding"),
-            Self::Decoding(decoder) => decoder,
+            Self::Detecting(_) => None,
+            Self::Decoding(decoder) => Some(decoder),
         }
     }
 }

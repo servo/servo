@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
 
@@ -702,18 +702,32 @@ impl ServoParser {
 
     /// <https://html.spec.whatwg.org/multipage/#change-the-encoding>
     fn change_the_encoding(&self, new_encoding: &'static Encoding) {
-        let mut network_decoder = RefMut::map(self.network_decoder.borrow_mut(), |decoder| {
-            decoder.decoder()
-        });
-        if network_decoder.confidence != EncodingConfidence::Tentative {
+        let mut network_decoder = self.network_decoder.borrow_mut();
+        let decoder_state = match &mut *network_decoder {
+            NetworkDecoderState::Decoding(decoder_state) => decoder_state,
+            NetworkDecoderState::Detecting(detecting_state) => {
+                // If the network decoder is still determining the decoding then we start
+                // decoding with the new encoding and confidence "certain". This can happen
+                // when a container document document-writes a "<meta charset>" tag into an iframe
+                // before that iframe has loaded its contents.
+                self.document.set_encoding(new_encoding);
+                *network_decoder = NetworkDecoderState::Decoding(
+                    detecting_state.create_decoder(new_encoding, EncodingConfidence::Certain),
+                );
+                return;
+            },
+        };
+
+        if decoder_state.confidence != EncodingConfidence::Tentative {
             return;
         };
 
         // Step 1. If the encoding that is already being used to interpret the input stream is UTF-16BE/LE,
         // then set the confidence to certain and return. The new encoding is ignored; if it was anything
         // but the same encoding, then it would be clearly incorrect.
-        if network_decoder.encoding == UTF_16LE || network_decoder.encoding == UTF_16BE {
-            network_decoder.confidence = EncodingConfidence::Certain;
+        if decoder_state.encoding == UTF_16LE || decoder_state.encoding == UTF_16BE {
+            decoder_state.confidence = EncodingConfidence::Certain;
+            return;
         }
 
         // Step 2. If the new encoding is UTF-16BE/LE, then change it to UTF-8.
@@ -732,8 +746,9 @@ impl ServoParser {
 
         // Step 4. If the new encoding is identical or equivalent to the encoding that
         // is already being used to interpret the input stream, then set the confidence to certain and return.
-        if new_encoding == network_decoder.encoding {
-            network_decoder.confidence = EncodingConfidence::Certain;
+        if new_encoding == decoder_state.encoding {
+            decoder_state.confidence = EncodingConfidence::Certain;
+            return;
         }
 
         // Step 5. If all the bytes up to the last byte converted by the current decoder have the same Unicode interpretations
@@ -742,7 +757,11 @@ impl ServoParser {
 
         // Step 6. Otherwise, restart the navigate algorithm, with historyHandling set to "replace"
         // and other inputs kept the same [...]
-        log::debug!("reloading with new encoding {new_encoding:?}");
+        log::debug!(
+            "Current encoding {} is incorrect, reloading with new encoding {}",
+            decoder_state.encoding.name(),
+            new_encoding.name()
+        );
         self.document.window().Location().navigate(
             self.document.url(),
             NavigationHistoryBehavior::Replace,
