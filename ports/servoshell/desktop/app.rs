@@ -194,7 +194,7 @@ impl ApplicationHandler<AppEvent> for App {
             if let Some(window) = state.window(window_id.into()) {
                 window.platform_window().handle_winit_window_event(
                     state.clone(),
-                    &window,
+                    window,
                     window_event,
                 );
             }

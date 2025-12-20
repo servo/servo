@@ -236,7 +236,14 @@ impl RunningAppState {
         platform_window: Rc<dyn PlatformWindow>,
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
+        let has_winit_window = platform_window.has_winit_window();
         let window = Rc::new(ServoShellWindow::new(platform_window));
+
+        // For [`HeadedWindow`], it is up to the `winit::event::WindowEvent::Focused`.
+        // Otherwise, newly created windows are automatically focused.
+        if !has_winit_window {
+            self.focus_window(window.clone());
+        }
         window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()
@@ -552,6 +559,10 @@ impl RunningAppState {
         if let Some(gamepad_support) = self.gamepad_support.borrow_mut().as_mut() {
             gamepad_support.handle_gamepad_events(active_webview);
         }
+    }
+
+    pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {
+        *self.focused_window.borrow_mut() = Some(window.clone());
     }
 
     /// Interrupt any ongoing WebDriver-based script evaluation.
