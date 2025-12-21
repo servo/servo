@@ -62,6 +62,7 @@ pub use webrender_api::units::{
 
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
+pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, ColorPicker, ConfirmDialog,

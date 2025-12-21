@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::cmp::max;
-use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
@@ -71,6 +70,7 @@ use servo_geometry::{
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use storage::new_storage_threads;
+use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
@@ -750,10 +750,12 @@ impl Servo {
                 protocols.clone(),
             );
 
+        let (private_storage_threads, public_storage_threads) =
+            new_storage_threads(mem_profiler_chan.clone(), opts.config_dir.clone());
+
         create_constellation(
             embedder_to_constellation_receiver,
             &paint.borrow(),
-            opts.config_dir.clone(),
             embedder_proxy,
             paint_proxy.clone(),
             time_profiler_chan,
@@ -764,6 +766,8 @@ impl Servo {
             public_resource_threads.clone(),
             private_resource_threads.clone(),
             async_runtime,
+            public_storage_threads.clone(),
+            private_storage_threads.clone(),
         );
 
         if opts::get().multiprocess {
@@ -780,6 +784,8 @@ impl Servo {
             site_data_manager: Rc::new(RefCell::new(SiteDataManager::new(
                 public_resource_threads,
                 private_resource_threads,
+                public_storage_threads,
+                private_storage_threads,
             ))),
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
@@ -925,7 +931,6 @@ fn create_paint_channel(
 fn create_constellation(
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
     paint: &Paint,
-    config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
     paint_proxy: PaintProxy,
     time_profiler_chan: time::ProfilerChan,
@@ -936,6 +941,8 @@ fn create_constellation(
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
     async_runtime: Box<dyn net_traits::AsyncRuntime>,
+    public_storage_threads: StorageThreads,
+    private_storage_threads: StorageThreads,
 ) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -945,9 +952,6 @@ fn create_constellation(
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let privileged_urls = protocols.privileged_urls();
-
-    let (private_storage_threads, public_storage_threads) =
-        new_storage_threads(mem_profiler_chan.clone(), config_dir);
 
     let system_font_service = Arc::new(
         SystemFontService::spawn(

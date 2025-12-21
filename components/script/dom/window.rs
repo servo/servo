@@ -84,7 +84,7 @@ use servo_config::pref;
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::StorageType;
+use storage_traits::webstorage_thread::WebStorageType;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
@@ -1345,13 +1345,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-sessionstorage>
     fn SessionStorage(&self) -> DomRoot<Storage> {
         self.session_storage
-            .or_init(|| Storage::new(self, StorageType::Session, CanGc::note()))
+            .or_init(|| Storage::new(self, WebStorageType::Session, CanGc::note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-localstorage>
     fn LocalStorage(&self) -> DomRoot<Storage> {
         self.local_storage
-            .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
+            .or_init(|| Storage::new(self, WebStorageType::Local, CanGc::note()))
     }
 
     /// <https://cookiestore.spec.whatwg.org/#Window>

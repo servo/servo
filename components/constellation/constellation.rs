@@ -169,7 +169,7 @@ use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
-use storage_traits::webstorage_thread::{StorageType, WebStorageThreadMsg};
+use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
@@ -2476,7 +2476,7 @@ where
     fn handle_broadcast_storage_event(
         &self,
         pipeline_id: PipelineId,
-        storage: StorageType,
+        storage: WebStorageType,
         url: ServoUrl,
         key: Option<String>,
         old_value: Option<String>,

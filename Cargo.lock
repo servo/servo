@@ -5112,6 +5112,7 @@ dependencies = [
  "background_hang_monitor",
  "base",
  "bincode",
+ "bitflags 2.10.0",
  "bluetooth",
  "bluetooth_traits",
  "canvas_traits",
