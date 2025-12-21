@@ -1319,16 +1319,15 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_request_from_background_hang_monitor(&mut self, message: HangMonitorAlert) {
+    fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
         match message {
             HangMonitorAlert::Profile(bytes) => {
                 self.embedder_proxy.send(EmbedderMsg::ReportProfile(bytes))
             },
             HangMonitorAlert::Hang(hang) => {
+                // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
+                // via the embedder?
                 warn!("Component hang alert: {:?}", hang);
-                if matches!(hang, background_hang_monitor_api::HangAlert::Permanent(..)) {
-                    self.handle_exit();
-                }
             },
         }
     }

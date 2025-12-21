@@ -12,7 +12,7 @@ use std::{fmt, mem};
 use base::id::ScriptEventLoopId;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 /// The equivalent of script::script_runtime::ScriptEventCategory
 pub enum ScriptHangAnnotation {
     SpawnPipeline,
@@ -48,13 +48,13 @@ pub enum ScriptHangAnnotation {
     WebGPUMsg,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum HangAnnotation {
     Script(ScriptHangAnnotation),
 }
 
 /// Hang-alerts are sent by the monitor to the constellation.
-#[derive(Deserialize, Serialize, PartialEq)]
+#[derive(Deserialize, Serialize)]
 pub enum HangMonitorAlert {
     /// A component hang has been detected.
     Hang(HangAlert),
@@ -72,7 +72,7 @@ impl fmt::Debug for HangMonitorAlert {
 }
 
 /// Hang-alerts are sent by the monitor to the constellation.
-#[derive(Deserialize, Serialize, PartialEq)]
+#[derive(Deserialize, Serialize)]
 pub enum HangAlert {
     /// Report a transient hang.
     Transient(MonitoredComponentId, HangAnnotation),
@@ -110,14 +110,14 @@ impl fmt::Debug for HangAlert {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct HangProfileSymbol {
     pub name: Option<String>,
     pub filename: Option<String>,
     pub lineno: Option<u32>,
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Deserialize, Serialize)]
 /// Info related to the activity of an hanging component.
 pub struct HangProfile {
     pub backtrace: Vec<HangProfileSymbol>,
