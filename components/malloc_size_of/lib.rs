@@ -51,7 +51,7 @@ use std::collections::BinaryHeap;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use resvg::usvg::fontdb::Source;
 use style::properties::ComputedValues;
@@ -573,6 +573,22 @@ impl<T: MallocSizeOf> MallocSizeOf for OnceCell<T> {
 }
 
 impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for OnceCell<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.get()
+            .map(|interior| interior.conditional_size_of(ops))
+            .unwrap_or_default()
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for OnceLock<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.get()
+            .map(|interior| interior.size_of(ops))
+            .unwrap_or_default()
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for OnceLock<T> {
     fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.get()
             .map(|interior| interior.conditional_size_of(ops))
