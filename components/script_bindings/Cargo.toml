@@ -53,6 +53,7 @@ serde_json = { workspace = true }
 
 [features]
 bluetooth = []
+gamepad = []
 testbinding = []
 tracing = ["dep:tracing"]
 webgpu = []

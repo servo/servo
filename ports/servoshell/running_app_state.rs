@@ -13,17 +13,19 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use log::{error, info, warn};
+#[cfg(feature = "gamepad")]
+use servo::GamepadHapticEffectType;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
     DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GamepadHapticEffectType, GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender,
-    JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError,
-    Servo, ServoDelegate, ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
-    WebViewId, pref,
+    GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus,
+    MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
+    ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate, WebViewId, pref,
 };
 use url::Url;
 
+#[cfg(feature = "gamepad")]
 use crate::GamepadSupport;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
@@ -146,6 +148,7 @@ pub(crate) enum UserInterfaceCommand {
 
 pub(crate) struct RunningAppState {
     /// Gamepad support, which may be `None` if it failed to initialize.
+    #[cfg(feature = "gamepad")]
     gamepad_support: RefCell<Option<GamepadSupport>>,
 
     /// The [`WebDriverSenders`] used to reply to pending WebDriver requests.
@@ -200,6 +203,7 @@ impl RunningAppState {
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
+        #[cfg(feature = "gamepad")]
         let gamepad_support = if pref!(dom_gamepad_enabled) {
             GamepadSupport::maybe_new()
         } else {
@@ -218,6 +222,7 @@ impl RunningAppState {
         Self {
             windows: Default::default(),
             focused_window: Default::default(),
+            #[cfg(feature = "gamepad")]
             gamepad_support: RefCell::new(gamepad_support),
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
@@ -345,6 +350,7 @@ impl RunningAppState {
 
         self.handle_webdriver_messages(create_platform_window);
 
+        #[cfg(feature = "gamepad")]
         if pref!(dom_gamepad_enabled) {
             self.handle_gamepad_events();
         }
@@ -549,6 +555,7 @@ impl RunningAppState {
         webview.load(url);
     }
 
+    #[cfg(feature = "gamepad")]
     pub(crate) fn handle_gamepad_events(&self) {
         let Some(active_webview) = self
             .focused_window()
@@ -721,6 +728,7 @@ impl WebViewDelegate for RunningAppState {
         self.window_for_webview_id(webview.id()).set_needs_repaint();
     }
 
+    #[cfg(feature = "gamepad")]
     fn play_gamepad_haptic_effect(
         &self,
         _webview: WebView,
@@ -738,6 +746,7 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
+    #[cfg(feature = "gamepad")]
     fn stop_gamepad_haptic_effect(
         &self,
         _webview: WebView,

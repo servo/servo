@@ -35,9 +35,10 @@ OriginalFilename = "servo.exe"
 ProductName = "Servo"
 
 [features]
-default = ["libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+default = ["gamepad", "libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
 crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
+gamepad = ["libservo/gamepad"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 js_jit = ["libservo/js_jit"]

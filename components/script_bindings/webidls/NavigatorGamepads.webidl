@@ -4,9 +4,7 @@
 
 // skip-unless CARGO_FEATURE_GAMEPAD
 
-// https://w3c.github.io/gamepad/#dom-gamepad-buttons
-[Exposed=Window, Pref="dom_gamepad_enabled"]
-interface GamepadButtonList {
-  getter GamepadButton? item(unsigned long index);
-  readonly attribute unsigned long length;
+// https://w3c.github.io/gamepad/#navigator-interface-extension
+partial interface Navigator {
+  [Pref="dom_gamepad_enabled"] sequence<Gamepad?> getGamepads();
 };
