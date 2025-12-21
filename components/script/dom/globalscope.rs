@@ -121,6 +121,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::ScriptId;
+use crate::dom::htmlscriptelement::ScriptOrigin;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -722,8 +723,8 @@ impl FileListener {
                 },
             },
             Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, target)) |
-                Some(FileListenerState::Empty(target)) => {
+                Some(FileListenerState::Receiving(_, target))
+                | Some(FileListenerState::Empty(target)) => {
                     let error = Err(Error::Network(None));
 
                     match target {
@@ -3155,8 +3156,8 @@ impl GlobalScope {
             None => {
                 // Workers and worklets don't have a top-level creation URL
                 assert!(
-                    self.downcast::<WorkerGlobalScope>().is_some() ||
-                        self.downcast::<WorkletGlobalScope>().is_some()
+                    self.downcast::<WorkerGlobalScope>().is_some()
+                        || self.downcast::<WorkletGlobalScope>().is_some()
                 );
                 true
             },
@@ -3165,8 +3166,8 @@ impl GlobalScope {
                 // Step 2. If the result of Is url potentially trustworthy?
                 // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
                 // Step 3. Return false.
-                if top_level_creation_url.scheme() == "blob" &&
-                    Some(true) == self.inherited_secure_context
+                if top_level_creation_url.scheme() == "blob"
+                    && Some(true) == self.inherited_secure_context
                 {
                     return true;
                 }
@@ -3660,6 +3661,64 @@ impl GlobalScope {
         })
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
+    pub(crate) fn run_a_module_script(
+        &self,
+        script_id: ScriptId,
+        script: &ScriptOrigin,
+        _rethrow_errors: bool,
+        can_gc: CanGc,
+    ) {
+        // 1. Let settings be the settings object of script.
+        // TODO
+
+        // 2. Check if we can run script with settings. If this returns "do not run", then return
+        //    NormalCompletion(empty).
+        if !self.can_run_script() {
+            return;
+        }
+
+        // Step 4
+        let _aes = AutoEntryScript::new(self);
+
+        let tree = if script.external {
+            self.get_module_map().borrow().get(&script.url).cloned()
+        } else {
+            self.get_inline_module_map()
+                .borrow()
+                .get(&script_id)
+                .cloned()
+        };
+
+        if let Some(module_tree) = tree {
+            // Step 6.
+            {
+                let module_error = module_tree.get_rethrow_error().borrow();
+                let network_error = module_tree.get_network_error().borrow();
+                if module_error.is_some() && network_error.is_none() {
+                    module_tree.report_error(self, can_gc);
+                    return;
+                }
+            }
+
+            let record = module_tree
+                .get_record()
+                .borrow()
+                .as_ref()
+                .map(|record| record.handle());
+
+            if let Some(record) = record {
+                rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+                let evaluated =
+                    module_tree.execute_module(self, record, rval.handle_mut().into(), can_gc);
+
+                if let Err(exception) = evaluated {
+                    module_tree.set_rethrow_error(exception);
+                    module_tree.report_error(self, can_gc);
+                }
+            }
+        }
+    }
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
     fn can_run_script(&self) -> bool {
         // Step 1 If the global object specified by settings is a Window object
@@ -3674,8 +3733,8 @@ impl GlobalScope {
         // does not have its sandboxed scripts browsing context flag set.
         if let Some(window) = self.downcast::<Window>() {
             let doc = window.Document();
-            doc.is_fully_active() ||
-                !doc.has_active_sandboxing_flag(
+            doc.is_fully_active()
+                || !doc.has_active_sandboxing_flag(
                     SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
                 )
         } else {
