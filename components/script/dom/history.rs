@@ -299,11 +299,11 @@ impl History {
     fn can_have_url_rewritten(document_url: &ServoUrl, target_url: &ServoUrl) -> bool {
         // Step 2. If targetURL and documentURL differ in their scheme, username,
         // password, host, or port components, then return false.
-        if target_url.scheme() != document_url.scheme()
-            || target_url.username() != document_url.username()
-            || target_url.password() != document_url.password()
-            || target_url.host() != document_url.host()
-            || target_url.port() != document_url.port()
+        if target_url.scheme() != document_url.scheme() ||
+            target_url.username() != document_url.username() ||
+            target_url.password() != document_url.password() ||
+            target_url.host() != document_url.host() ||
+            target_url.port() != document_url.port()
         {
             return false;
         }
