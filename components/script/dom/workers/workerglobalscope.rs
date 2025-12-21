@@ -105,7 +105,6 @@ pub(crate) fn prepare_workerscope_init(
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
-        creation_url: global.creation_url().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
         unminify_js: global.unminify_js(),
     }
@@ -179,19 +178,22 @@ impl FetchResponseListener for ScriptFetchContext {
         // The processResponseConsumeBody steps defined inside
         // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
 
-        // Step 1 Set worker global scope's url to response's url.
+        let global_scope = scope.upcast::<GlobalScope>();
+
+        // Step 1. Set worker global scope's url to response's url.
         scope.set_url(metadata.final_url.clone());
 
-        // Step 2 Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+        // Step 2. Set inside settings's creation URL to response's url.
+        global_scope.set_creation_url(metadata.final_url.clone());
+
+        // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
         scope
             .initialize_policy_container_for_worker_global_scope(&metadata, &self.policy_container);
         scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
             &metadata.final_url.clone(),
             &metadata.headers,
         ));
-        scope
-            .upcast::<GlobalScope>()
-            .set_https_state(metadata.https_state);
+        global_scope.set_https_state(metadata.https_state);
 
         // The processResponseConsumeBody steps defined inside
         // [fetch a classic worker script](https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script)
@@ -225,10 +227,10 @@ impl FetchResponseListener for ScriptFetchContext {
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
-        let script = scope.globalscope.create_a_classic_script(
+        let script = global_scope.create_a_classic_script(
             source,
             scope.worker_url.borrow().clone(),
-            ScriptFetchOptions::default_classic_script(&scope.globalscope),
+            ScriptFetchOptions::default_classic_script(global_scope),
             ErrorReporting::Unmuted,
             Some(IntroductionType::WORKER),
             1,
@@ -362,7 +364,7 @@ impl WorkerGlobalScope {
                 init.resource_threads,
                 init.storage_threads,
                 MutableOrigin::new(init.origin),
-                init.creation_url,
+                worker_url.clone(),
                 None,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,

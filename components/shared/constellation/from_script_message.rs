@@ -469,8 +469,6 @@ pub struct WorkerGlobalScopeInit {
     pub pipeline_id: PipelineId,
     /// The origin
     pub origin: ImmutableOrigin,
-    /// The creation URL
-    pub creation_url: ServoUrl,
     /// True if secure context
     pub inherited_secure_context: Option<bool>,
     /// Unminify Javascript.

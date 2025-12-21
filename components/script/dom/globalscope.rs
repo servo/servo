@@ -307,7 +307,7 @@ pub(crate) struct GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
     #[no_trace]
-    creation_url: ServoUrl,
+    creation_url: DomRefCell<ServoUrl>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-top-level-creation-url>
     #[no_trace]
@@ -806,7 +806,7 @@ impl GlobalScope {
             storage_threads,
             timers: OnceCell::default(),
             origin,
-            creation_url,
+            creation_url: DomRefCell::new(creation_url),
             top_level_creation_url,
             permission_state_invocation_results: Default::default(),
             list_auto_close_worker: Default::default(),
@@ -2558,8 +2558,12 @@ impl GlobalScope {
     }
 
     /// Get the creation_url for this global scope
-    pub(crate) fn creation_url(&self) -> &ServoUrl {
-        &self.creation_url
+    pub(crate) fn creation_url(&self) -> ServoUrl {
+        self.creation_url.borrow().clone()
+    }
+
+    pub(crate) fn set_creation_url(&self, creation_url: ServoUrl) {
+        *self.creation_url.borrow_mut() = creation_url;
     }
 
     /// Get the top_level_creation_url for this global scope
@@ -2632,7 +2636,7 @@ impl GlobalScope {
             return worklet.base_url();
         }
         if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
-            return self.creation_url.clone();
+            return self.creation_url();
         }
         unreachable!();
     }
@@ -2650,7 +2654,7 @@ impl GlobalScope {
             return worklet.base_url();
         }
         if let Some(_debugger_global) = self.downcast::<DebuggerGlobalScope>() {
-            return self.creation_url.clone();
+            return self.creation_url();
         }
         unreachable!();
     }
@@ -2670,23 +2674,23 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// Step 3."client" of <https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer>
     /// Determine the Referrer for a request whose Referrer is "client"
     pub(crate) fn get_referrer(&self) -> Referrer {
-        // Step 3 of https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+        // Substep 3."client".2. If environment’s global object is a Window object, then
         if let Some(window) = self.downcast::<Window>() {
-            // Substep 3.1
-
-            // Substep 3.1.1
+            // Substep 3."client".2.1. Let document be the associated Document of environment’s global object.
             let mut document = window.Document();
 
-            // Substep 3.1.2
+            // Substep 3."client".2.2. If document’s origin is an opaque origin, return no referrer.
             if let ImmutableOrigin::Opaque(_) = document.origin().immutable() {
                 return Referrer::NoReferrer;
             }
 
             let mut url = document.url();
 
-            // Substep 3.1.3
+            // Substep 3."client".2.3. While document is an iframe srcdoc document,
+            // let document be document’s browsing context’s browsing context container’s node document.
             while url.as_str() == "about:srcdoc" {
                 // Return early if we cannot get a parent document. This might happen if
                 // this iframe was already removed from the parent page.
@@ -2703,11 +2707,11 @@ impl GlobalScope {
                 url = document.url();
             }
 
-            // Substep 3.1.4
+            // Substep 3."client".2.4. Let referrerSource be document’s URL.
             Referrer::Client(url)
         } else {
-            // Substep 3.2
-            Referrer::Client(self.get_url())
+            // Substep 3."client".3. Otherwise, let referrerSource be environment’s creation URL.
+            Referrer::Client(self.creation_url())
         }
     }
 
