@@ -21,6 +21,7 @@ use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
 };
+use encoding_rs::Encoding;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
@@ -126,6 +127,9 @@ pub struct LoadData {
     /// The "creation sandboxing flag set" that this Pipeline should use when it is created.
     /// See <https://html.spec.whatwg.org/multipage/#determining-the-creation-sandboxing-flags>.
     pub creation_sandboxing_flag_set: SandboxingFlagSet,
+    /// If this is a load operation for an `<iframe>` whose origin is same-origin with its
+    /// container documents origin then this is the encoding of the container document.
+    pub container_document_encoding: Option<&'static Encoding>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -170,6 +174,7 @@ impl LoadData {
             has_trustworthy_ancestor_origin,
             destination: Destination::Document,
             creation_sandboxing_flag_set,
+            container_document_encoding: None,
         }
     }
 

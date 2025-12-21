@@ -22,6 +22,7 @@ compositing_traits = { workspace = true }
 content-security-policy = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
+encoding_rs = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
 http = { workspace = true }

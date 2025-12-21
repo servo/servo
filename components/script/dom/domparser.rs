@@ -114,6 +114,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     Some(compliant_string),
                     url,
                     None,
+                    None,
                     can_gc,
                 );
                 document

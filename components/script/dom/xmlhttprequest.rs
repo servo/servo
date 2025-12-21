@@ -1495,6 +1495,7 @@ impl XMLHttpRequest {
             Some(DOMString::from(decoded)),
             wr.get_url(),
             None,
+            None,
             can_gc,
         );
         document

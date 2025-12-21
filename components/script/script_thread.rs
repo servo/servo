@@ -3367,6 +3367,7 @@ impl ScriptThread {
                 None,
                 final_url,
                 encoding_hint_from_content_type,
+                incomplete.load_data.container_document_encoding,
                 can_gc,
             );
         }

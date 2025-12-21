@@ -366,6 +366,7 @@ impl HTMLIFrameElement {
             None
         };
 
+        let propagate_encoding_to_child_document = url.origin().same_origin(window.origin());
         let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
@@ -379,6 +380,9 @@ impl HTMLIFrameElement {
         );
         load_data.destination = Destination::IFrame;
         load_data.policy_container = Some(window.as_global_scope().policy_container());
+        if propagate_encoding_to_child_document {
+            load_data.container_document_encoding = Some(document.encoding());
+        }
 
         let pipeline_id = self.pipeline_id();
         // If the initial `about:blank` page is the current page, load with replacement enabled,
@@ -420,6 +424,7 @@ impl HTMLIFrameElement {
         );
         load_data.destination = Destination::IFrame;
         load_data.policy_container = Some(window.as_global_scope().policy_container());
+
         let browsing_context_id = BrowsingContextId::new();
         let webview_id = window.window_proxy().webview_id();
         self.pipeline_id.set(None);
