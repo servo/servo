@@ -768,6 +768,7 @@ fn test_fetch_with_hsts() {
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
         preloaded_resources: Default::default(),
+        in_flight_keep_alive_records: Default::default(),
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -833,6 +834,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
         preloaded_resources: Default::default(),
+        in_flight_keep_alive_records: Default::default(),
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -903,6 +905,7 @@ fn test_fetch_self_signed() {
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
         preloaded_resources: Default::default(),
+        in_flight_keep_alive_records: Default::default(),
     };
 
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
@@ -1555,6 +1558,7 @@ fn test_fetch_request_intercepted() {
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
         preloaded_resources: Default::default(),
+        in_flight_keep_alive_records: Default::default(),
     };
 
     let url = ServoUrl::parse("http://www.example.org").unwrap();

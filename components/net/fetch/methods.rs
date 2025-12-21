@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{io, mem, str};
 
+use base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy as csp;
@@ -17,6 +18,7 @@ use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
+use malloc_size_of_derive::MallocSizeOf;
 use mime::{self, Mime};
 use net_traits::fetch::headers::extract_mime_type_as_mime;
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
@@ -24,8 +26,8 @@ use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
-    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestMode,
-    ResponseTainting, is_cors_safelisted_method, is_cors_safelisted_request_header,
+    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestId,
+    RequestMode, ResponseTainting, is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -34,6 +36,7 @@ use net_traits::{
     set_default_accept_language,
 };
 use parking_lot::Mutex;
+use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -81,6 +84,17 @@ impl WebSocketChannel {
     }
 }
 
+/// Used to keep track of keep-alive requests
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct InFlightKeepAliveRecord {
+    pub(crate) request_id: RequestId,
+    /// Used to keep track of size of keep-alive requests.
+    pub(crate) keep_alive_body_length: u64,
+}
+
+pub type SharedInflightKeepAliveRecords =
+    Arc<Mutex<FxHashMap<PipelineId, Vec<InFlightKeepAliveRecord>>>>;
+
 #[derive(Clone)]
 pub struct FetchContext {
     pub state: Arc<HttpState>,
@@ -96,6 +110,7 @@ pub struct FetchContext {
     pub ca_certificates: CACertificates<'static>,
     pub ignore_certificate_errors: bool,
     pub preloaded_resources: SharedPreloadedResources,
+    pub in_flight_keep_alive_records: SharedInflightKeepAliveRecords,
 }
 
 #[derive(Default)]
@@ -191,16 +206,44 @@ pub async fn fetch_with_cors_cache(
     // internal priority to an implementation-defined object.
     // TODO: figure out what a Priority object is.
 
-    // Step 16: If request is a subresource request, then:
-    if request.is_subresource_request() {
-        // TODO: requires keepalive.
-    }
+    // Step 15. If request is a subresource request:
+    //
+    // We only check for keep-alive requests here, since that's currently the only usage
+    let should_track_in_flight_record = request.keep_alive && request.is_subresource_request();
+    let pipeline_id = request.pipeline_id;
+
+    if should_track_in_flight_record {
+        // Step 15.1. Let record be a new fetch record whose request is request
+        // and controller is fetchParams’s controller.
+        let record = InFlightKeepAliveRecord {
+            request_id: request.id,
+            keep_alive_body_length: request.keep_alive_body_length(),
+        };
+        // Step 15.2. Append record to request’s client’s fetch group’s fetch records.
+        let mut in_flight_records = context.in_flight_keep_alive_records.lock();
+        in_flight_records
+            .entry(pipeline_id.expect("Must always set a pipeline ID for keep-alive requests"))
+            .or_default()
+            .push(record);
+    };
+    let request_id = request.id;
 
     // Step 17: Run main fetch given fetchParams.
-    main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await
+    let response = main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await;
+
+    // Mimics <https://fetch.spec.whatwg.org/#done-flag>
+    if should_track_in_flight_record {
+        context
+            .in_flight_keep_alive_records
+            .lock()
+            .get_mut(&pipeline_id.expect("Must always set a pipeline ID for keep-alive requests"))
+            .expect("Must always have initialized tracked requests before starting fetch")
+            .retain(|record| record.request_id != request_id);
+    }
 
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec
+    response
 }
 
 pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::Request> {

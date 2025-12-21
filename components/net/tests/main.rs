@@ -146,6 +146,7 @@ fn new_fetch_context(
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
         preloaded_resources: Default::default(),
+        in_flight_keep_alive_records: Default::default(),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

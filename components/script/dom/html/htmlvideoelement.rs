@@ -260,7 +260,6 @@ impl HTMLVideoElement {
             poster_url,
             id,
             request.id,
-            request.keep_alive,
             self.global().core_resource_thread(),
         );
         self.owner_document().fetch_background(request, context);
@@ -494,7 +493,6 @@ impl PosterFrameFetchContext {
         url: ServoUrl,
         id: PendingImageId,
         request_id: RequestId,
-        keep_alive: bool,
         core_resource_thread: CoreResourceThread,
     ) -> PosterFrameFetchContext {
         let window = elem.owner_window();
@@ -504,7 +502,7 @@ impl PosterFrameFetchContext {
             id,
             cancelled: false,
             url,
-            fetch_canceller: FetchCanceller::new(request_id, keep_alive, core_resource_thread),
+            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread),
         }
     }
 }

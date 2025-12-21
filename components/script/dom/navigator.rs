@@ -492,7 +492,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // is exceeded by the size of transmittedData (as defined in HTTP-network-or-cache fetch),
             // set the return value to false and terminate these steps.
             if let Some(total_bytes) = extracted_body.total_bytes {
-                if total_bytes > 64 * 1024 {
+                let in_flight_keep_alive_bytes =
+                    global.total_size_of_in_flight_keep_alive_records();
+                if total_bytes as u64 + in_flight_keep_alive_bytes > 64 * 1024 {
                     return Ok(false);
                 }
             }
@@ -526,6 +528,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             .method(http::Method::POST)
             .body(request_body)
             .origin(origin)
+            .pipeline_id(Some(global.pipeline_id()))
+            .client(global.request_client())
             .keep_alive(true)
             .credentials_mode(CredentialsMode::Include)
             .headers(headers);

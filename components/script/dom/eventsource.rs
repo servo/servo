@@ -600,7 +600,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
 
         event_source.droppable.set_canceller(FetchCanceller::new(
             request.id,
-            request.keep_alive,
+            false,
             global.core_resource_thread(),
         ));
 

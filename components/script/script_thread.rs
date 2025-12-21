@@ -3616,7 +3616,7 @@ impl ScriptThread {
         let request_builder = incomplete.request_builder();
         incomplete.canceller = FetchCanceller::new(
             request_builder.id,
-            request_builder.keep_alive,
+            false,
             self.resource_threads.core_thread.clone(),
         );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
@@ -3753,7 +3753,7 @@ impl ScriptThread {
 
         incomplete_load.canceller = FetchCanceller::new(
             request_builder.id,
-            request_builder.keep_alive,
+            false,
             self.resource_threads.core_thread.clone(),
         );
         NavigationListener::new(request_builder, self.senders.self_sender.clone())
