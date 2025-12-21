@@ -1332,6 +1332,7 @@ impl FetchResponseListener for ParserContext {
                 NetworkError::ConnectionFailure |
                 NetworkError::RedirectError |
                 NetworkError::TooManyRedirects |
+                NetworkError::TooManyInFlightKeepAliveRequests |
                 NetworkError::InvalidMethod |
                 NetworkError::ContentSecurityPolicy |
                 NetworkError::Nosniff |

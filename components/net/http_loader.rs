@@ -1394,8 +1394,43 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 8.10 If contentLength is non-null and httpRequest’s keepalive is true, then:
-    if content_length.is_some() && http_request.keep_alive {
-        // TODO(#33616) Keepalive requires request's client object's fetch group
+    if http_request.keep_alive {
+        if let Some(content_length) = content_length {
+            // Step 8.10.1. Let inflightKeepaliveBytes be 0.
+            // Step 8.10.2. Let group be httpRequest’s client’s fetch group.
+            // Step 8.10.3. Let inflightRecords be the set of fetch records
+            // in group whose request’s keepalive is true and done flag is unset.
+            let in_flight_keep_alive_bytes: u64 = context
+                .in_flight_keep_alive_records
+                .lock()
+                .get(
+                    &http_request
+                        .pipeline_id
+                        .expect("Must always set a pipeline ID for keep-alive requests"),
+                )
+                .map(|records| {
+                    // Step 8.10.4. For each fetchRecord of inflightRecords:
+                    // Step 8.10.4.1. Let inflightRequest be fetchRecord’s request.
+                    // Step 8.10.4.2. Increment inflightKeepaliveBytes by inflightRequest’s body’s length.
+                    records
+                        .iter()
+                        .map(|record| {
+                            if record.request_id == http_request.id {
+                                // Don't double count for this request. We have already added it in
+                                // `fetch::methods::fetch_with_cors_cache`
+                                0
+                            } else {
+                                record.keep_alive_body_length
+                            }
+                        })
+                        .sum()
+                })
+                .unwrap_or_default();
+            // Step 8.10.5. If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
+            if content_length + in_flight_keep_alive_bytes > 64 * 1024 {
+                return Response::network_error(NetworkError::TooManyInFlightKeepAliveRequests);
+            }
+        }
     }
 
     // Step 8.11: If httpRequest’s referrer is a URL, then:

@@ -529,7 +529,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         DomRoot::from_ref(&*self.upload)
     }
 
-    /// <https://xhr.spec.whatwg.org/#the-send()-method>
+    /// <https://xhr.spec.whatwg.org/#dom-xmlhttprequest-send>
     fn Send(
         &self,
         cx: &mut js::context::JSContext,
@@ -1603,11 +1603,8 @@ impl XMLHttpRequest {
             )
         };
 
-        *self.canceller.borrow_mut() = FetchCanceller::new(
-            request_builder.id,
-            request_builder.keep_alive,
-            global.core_resource_thread(),
-        );
+        *self.canceller.borrow_mut() =
+            FetchCanceller::new(request_builder.id, false, global.core_resource_thread());
 
         global.fetch(request_builder, context, task_source);
 
