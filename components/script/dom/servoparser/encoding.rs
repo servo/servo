@@ -137,7 +137,7 @@ impl DetectingState {
             return Some(encoding);
         }
 
-        // TODO: Step 6. If the HTML parser for which this algorithm is being run is associated with a Document d
+        // Step 6. If the HTML parser for which this algorithm is being run is associated with a Document d
         // whose container document is non-null, then:
         // Step 6.1 Let parentDocument be d's container document.
         // Step 6.2 If parentDocument's origin is same origin with d's origin and parentDocument's character encoding
