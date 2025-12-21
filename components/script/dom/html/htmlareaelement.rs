@@ -368,6 +368,12 @@ impl VirtualMethods for HTMLAreaElement {
 }
 
 impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
+    // https://html.spec.whatwg.org/multipage/#dom-area-alt
+    make_getter!(Alt, "alt");
+
+    // https://html.spec.whatwg.org/multipage/#dom-area-alt
+    make_setter!(SetAlt, "alt");
+
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
     make_getter!(Target, "target");
 

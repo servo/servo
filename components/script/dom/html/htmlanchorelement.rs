@@ -176,6 +176,12 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-coords
     make_setter!(SetCoords, "coords");
 
+    // https://html.spec.whatwg.org/multipage/#dom-a-hreflang
+    make_getter!(Hreflang, "hreflang");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-hreflang
+    make_setter!(SetHreflang, "hreflang");
+
     // https://html.spec.whatwg.org/multipage/#dom-a-name
     make_getter!(Name, "name");
 
@@ -199,6 +205,12 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
     make_setter!(SetTarget, "target");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-type
+    make_getter!(Type, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-type
+    make_setter!(SetType, "type");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
     fn Href(&self) -> USVString {

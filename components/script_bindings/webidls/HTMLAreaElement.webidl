@@ -7,8 +7,8 @@
 interface HTMLAreaElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  // [CEReactions]
-  //         attribute DOMString alt;
+  [CEReactions]
+          attribute DOMString alt;
   // [CEReactions]
   //         attribute DOMString coords;
   // [CEReactions]
