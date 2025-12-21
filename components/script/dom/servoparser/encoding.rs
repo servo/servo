@@ -57,16 +57,23 @@ impl DetectingState {
     /// more bytes are required.
     ///
     /// [determine the character encoding]: https://html.spec.whatwg.org/multipage/#determining-the-character-encoding
-    fn buffer(&mut self, data: &[u8]) -> Option<&'static Encoding> {
+    fn buffer(
+        &mut self,
+        data: &[u8],
+        document: &Document,
+        is_at_end_of_file: AtEndOfFile,
+    ) -> Option<&'static Encoding> {
         self.buffered_bytes.extend_from_slice(data);
         let can_wait_longer = self.start_timestamp.elapsed() < Self::MAX_TIME_TO_BUFFER;
-        self.determine_the_character_encoding(can_wait_longer)
+        self.determine_the_character_encoding(document, can_wait_longer, is_at_end_of_file)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#determining-the-character-encoding>
     fn determine_the_character_encoding(
         &mut self,
+        document: &Document,
         potentially_wait_for_more_data: bool,
+        is_at_end_of_file: AtEndOfFile,
     ) -> Option<&'static Encoding> {
         // Step 1. If the result of BOM sniffing is an encoding, return that encoding with confidence certain.
         if !self.attempted_bom_sniffing && self.buffered_bytes.len() > 2 {
@@ -132,7 +139,19 @@ impl DetectingState {
 
         // Step 8. The user agent may attempt to autodetect the character encoding from applying frequency analysis
         // or other algorithms to the data stream.
-        // NOTE: We don't.
+        let mut encoding_detector = chardetng::EncodingDetector::new();
+        encoding_detector.feed(&self.buffered_bytes, is_at_end_of_file == AtEndOfFile::Yes);
+        let url = document.url();
+        let tld = url
+            .as_url()
+            .domain()
+            .and_then(|domain| domain.rsplit('.').next())
+            .map(|tld| tld.as_bytes());
+        let (guessed_encoding, is_probably_right) = encoding_detector.guess_assess(tld, true);
+        if is_probably_right {
+            log::debug!("chardetng determined that the document encoding is {guessed_encoding:?}");
+            return Some(guessed_encoding);
+        }
 
         // Step 9. Otherwise, return an implementation-defined or user-specified default character encoding,
         // with the confidence tentative.
@@ -142,8 +161,8 @@ impl DetectingState {
         Some(UTF_8)
     }
 
-    fn finish(&mut self) -> &'static Encoding {
-        self.determine_the_character_encoding(false)
+    fn finish(&mut self, document: &Document) -> &'static Encoding {
+        self.determine_the_character_encoding(document, false, AtEndOfFile::Yes)
             .expect("Should always return character encoding when we're not allowed to wait")
     }
 }
@@ -169,7 +188,7 @@ impl NetworkDecoderState {
     pub(super) fn push(&mut self, chunk: &[u8], document: &Document) -> Option<StrTendril> {
         match self {
             Self::Detecting(encoding_detector) => {
-                if let Some(encoding) = encoding_detector.buffer(chunk) {
+                if let Some(encoding) = encoding_detector.buffer(chunk, document, AtEndOfFile::No) {
                     document.set_encoding(encoding);
                     let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                     *self = Self::Decoding(DecodingState {
@@ -198,7 +217,7 @@ impl NetworkDecoderState {
     pub(super) fn finish(&mut self, document: &Document) -> StrTendril {
         match self {
             Self::Detecting(encoding_detector) => {
-                let encoding = encoding_detector.finish();
+                let encoding = encoding_detector.finish(document);
                 document.set_encoding(encoding);
                 let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                 let mut decoder = LossyDecoder::new_encoding_rs(encoding, NetworkSink::default());
@@ -776,4 +795,10 @@ pub fn get_xml_encoding(input: &[u8]) -> Option<&'static Encoding> {
     } else {
         Some(encoding)
     }
+}
+
+#[derive(PartialEq)]
+enum AtEndOfFile {
+    Yes,
+    No,
 }
