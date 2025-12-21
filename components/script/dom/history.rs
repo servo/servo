@@ -299,11 +299,11 @@ impl History {
     fn can_have_url_rewritten(document_url: &ServoUrl, target_url: &ServoUrl) -> bool {
         // Step 2. If targetURL and documentURL differ in their scheme, username,
         // password, host, or port components, then return false.
-        if target_url.scheme() != document_url.scheme() ||
-            target_url.username() != document_url.username() ||
-            target_url.password() != document_url.password() ||
-            target_url.host() != document_url.host() ||
-            target_url.port() != document_url.port()
+        if target_url.scheme() != document_url.scheme()
+            || target_url.username() != document_url.username()
+            || target_url.password() != document_url.password()
+            || target_url.host() != document_url.host()
+            || target_url.port() != document_url.port()
         {
             return false;
         }
@@ -346,15 +346,19 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security(None));
         }
+
         let (sender, recv) = channel(self.global().time_profiler_chan().clone())
-            .expect("Failed to create channel to send jsh length.");
+            .map_err(|_| Error::InvalidState(None))?;
+
         let msg = ScriptToConstellationMessage::JointSessionHistoryLength(sender);
-        let _ = self
-            .window
+
+        self.window
             .as_global_scope()
             .script_to_constellation_chan()
-            .send(msg);
-        Ok(recv.recv().unwrap())
+            .send(msg)
+            .map_err(|_| Error::InvalidState(None))?;
+
+        recv.recv().map_err(|_| Error::InvalidState(None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history-go>
