@@ -52,3 +52,6 @@ features:
 - name: font-variant-position
   files:
   - font-variant-position-*
+- name: font-feature-settings
+  files:
+  - font-feature-settings-*

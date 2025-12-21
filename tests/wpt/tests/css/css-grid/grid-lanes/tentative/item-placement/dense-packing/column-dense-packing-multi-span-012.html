@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-multi-span-012-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    item-tolerance: 0;
+    grid-template-columns: repeat(3, 50px);
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>When dense-packing, ensure that open tracks are split correctly.</p>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue; height: 30px; grid-column: 1;" >
+      1
+    </div>
+    <div style="background: blue; height: 15px; grid-column: 1 / span 2;">
+      2
+    </div>
+    <div style="background: lightskyblue; height: 30px; grid-column: 1;" >
+      3
+    </div>
+    <div style="background: blue; height: 15px; grid-column: 1 / span 2;">
+      4
+    </div>
+    <div style="background: yellow; height: 15px; grid-column: span 2;">
+      5
+    </div>
+    <div style="background: yellow; height: 15px; grid-column: span 2;">
+      6
+    </div>
+    <div style="background: lightskyblue; height: 90px; grid-column: 3;" >
+      7
+    </div>
+    <div style="background: blue; height: 10px; grid-column: 2 / span 2;">
+      8
+    </div>
+    <!-- Item that visually takes up 1 track, but span 2 tracks. -->
+    <div style="background: yellow; height: 15px; width: 50px; grid-column: span 2;">
+      9
+    </div>
+    <!-- Item that visually takes up 2 tracks, but only spans 1 track. -->
+    <div style="background: yellow; height: 30px; width: 100px;">
+      10
+    </div>
+    <div style="background: yellow; height: 10px;">
+      11
+    </div>
+    <div style="background: yellow; height: 15px;">
+      12
+    </div>
+  </div>
+</body>
+</html>

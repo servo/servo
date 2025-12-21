@@ -1,0 +1,91 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Grid Test: Definite column placement in a grid-lanes grid (double edge) with dense-packing enabled</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-template-masonry">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-placement-int">
+<link rel="match" href="grid-lanes-grid-placement-named-lines-dense-packing-001-ref.html">
+<style>
+body,html { color:black; background:white; font:15px/1 monospace; padding:0; margin:0; }
+
+.grid {
+  display: grid-lanes;
+  position: relative;
+  border: 1px solid;
+  grid-template-columns: [A-start] 60px 60px 60px;
+  /* This creates implicit B-start and B-end lines, and A-start and E-end lines. */
+  grid-template-areas: "B A";
+  grid-auto-flow: dense;
+  grid-auto-columns: 40px;
+  gap: 0 1px;
+}
+
+x {
+  background: grey;
+}
+
+y {
+  position: absolute;
+  border: 1px solid blue;
+  bottom:0;height:0;left:0;right:0;
+}
+</style>
+</head>
+<body>
+<pre>grid-column: / span A-start 2</pre>
+<div class="grid">
+<x style="grid-column:1">&nbsp;</x>
+<!-- This creates 1 extra grid-lines at the end of the container named A-start, which creates 2 implicit tracks. -->
+<x style="grid-column:-1/span A-start 2">-1</x>
+<x style="grid-column:4/span A-start 2">4</x>
+<x style="grid-column:-2/span A-start 2">-2</x>
+<x style="grid-column:-3/span A-start 2">-3</x>
+<x style="grid-column:-4/span A-start 2">-4</x>
+<!-- This creates an implicit track at the beginning of the container, and will span until it hits 2 lines named A-start. -->
+<x style="grid-column:-5/span A-start 2">-5</x>
+<!-- "A-start -1" implies we are looking for the first line to the left of -1 named A-start -->
+<x style="grid-column:A-start -1/span A-start 2">A -1</x>
+<!-- There are no lines named B, all implicit lines are named B, go left until we find the first implicit line named B, which turns out to be line -5.-->
+<x style="grid-column:B -1/span A-start 2">B -1</x>
+<x style="grid-column:A-start -2/span A-start 2">A -2</x>
+<x style="grid-column:A-start -3/span A-start 2">A -3</x>
+<x style="grid-column:A-start -4/span A-start 2">A -4</x>
+<x style="grid-column:A-start -5/span A-start 2">A -5</x>
+<x style="grid-column:A-start/span A-start 2">A</x>
+<!-- Starts at B, spans until the next B, but there is no next B, so all implicit lines are named B, so it ends at the first implicit line. -->
+<x style="grid-column:B/span B">B</x>
+<x style="grid-column:A-start 1/span A-start 2">A 1</x>
+<x style="grid-column:A-start 2/span A-start 2">A 2</x>
+<x style="grid-column:A-start 3/span A-start 2">A 3</x>
+<x style="grid-column:A-start 4/span A-start 2">A 4</x>
+<x style="grid-column:A-start 5/span A-start 2">A 5</x>
+<!-- These lines are explicitly placed to mark the top of where the gray boxes should go. -->
+<y style="grid-column:-1/span A-start 2; top:0em"></y>
+<y style="grid-column:4/span A-start 2; top:1em"></y>
+<y style="grid-column:-2/span A-start 2; top:2em"></y>
+<y style="grid-column:-3/span A-start 2; top:3em"></y>
+<y style="grid-column:-4/span A-start 2; top:4em"></y>
+<y style="grid-column:-5/span A-start 2; top:1em"></y>
+<y style="grid-column:A-start -1/span A-start 2; top:5em"></y>
+<y style="grid-column:B -1/span A-start 2; top:2em"></y>
+<y style="grid-column:A-start -2/span A-start 2; top:6em"></y>
+<y style="grid-column:A-start -3/span A-start 2; top:3em"></y>
+<y style="grid-column:A-start -4/span A-start 2; top:5em"></y>
+<y style="grid-column:A-start -5/span A-start 2; top:7em"></y>
+<y style="grid-column:A-start/span A-start 2; top:8em"></y>
+<y style="grid-column:B/span B; top:9em"></y>
+<y style="grid-column:A-start 1/span A-start 2; top:10em"></y>
+<y style="grid-column:A-start 2/span A-start 2; top:7em"></y>
+<y style="grid-column:A-start 3/span A-start 2; top:4em"></y>
+<y style="grid-column:A-start 4/span A-start 2; top:0em"></y>
+<y style="grid-column:A-start 5/span A-start 2; top:1em"></y>
+</div>
+</body>
+</html>

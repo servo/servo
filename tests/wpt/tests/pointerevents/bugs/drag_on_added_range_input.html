@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Mouse dragging on added range-input</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/testdriver.js'></script>
+<script src='/resources/testdriver-actions.js'></script>
+<script src='/resources/testdriver-vendor.js'></script>
+
+<body>Replaced body text</body>
+
+<script>
+"use strict";
+
+promise_test(async t => {
+  document.body.innerHTML = '<input type="range" min="0" max="10" value="5">';
+  const range = document.getElementsByTagName("input")[0];
+  assert_equals(parseInt(range.value), 5, "initial value");
+
+  const x = range.getBoundingClientRect().x;
+  const y = range.getBoundingClientRect().y;
+  const width = range.getBoundingClientRect().width;
+  const height = range.getBoundingClientRect().height;
+
+  await new test_driver.Actions()
+    .addPointer("pointer1", "mouse")
+    .pointerMove(x + width / 2, y + height / 2)
+    .pointerDown()
+    .pointerMove(x + width - 3, y + height / 2)
+    .pointerUp()
+    .send();
+
+  // TODO(crbug.com/469041917): Does Blink update the range input value?
+  assert_equals(parseInt(range.value), 10, "final value");
+}, 'Drag on an added range input element.');
+</script>

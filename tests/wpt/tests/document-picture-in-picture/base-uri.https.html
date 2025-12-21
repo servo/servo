@@ -9,14 +9,6 @@
 promise_test(async (t) => {
   await test_driver.bless('request PiP window from top window');
   const pipWindow = await documentPictureInPicture.requestWindow();
-
-  if (pipWindow.document.readyState != "complete") {
-    // about:blank should load synchronous, but Gecko is still working on that...
-    // The initial placeholder is in many ways not initialized, e.g. doesn't have the right base
-    assert_true(true, "Waiting for pip window to load");
-    await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
-  }
-
   assert_equals(pipWindow.document.baseURI, document.baseURI, "Base URIs match");
 });
 </script>

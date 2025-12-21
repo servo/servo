@@ -3,8 +3,6 @@
 <link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-
-<body>
 <script>
 "use strict";
 
@@ -25,11 +23,38 @@ function tamperMapPrototype() {
   Object.freeze(Map.prototype);
 }
 
+function restoreMapPrototype(originalDescriptors) {
+  // Create a new object with the original descriptors
+  const newProto = Object.create(Object.prototype);
+
+  for (const [key, descriptor] of Object.entries(originalDescriptors)) {
+    if (descriptor) {
+      Object.defineProperty(newProto, key, descriptor);
+    }
+  }
+  // Replace the frozen prototype with the restored one
+  Object.setPrototypeOf(Map, newProto);
+}
+
 test(() => {
+  const originalDescriptors = {
+    size: Object.getOwnPropertyDescriptor(Map.prototype, 'size'),
+    entries: Object.getOwnPropertyDescriptor(Map.prototype, 'entries'),
+    forEach: Object.getOwnPropertyDescriptor(Map.prototype, 'forEach'),
+    get: Object.getOwnPropertyDescriptor(Map.prototype, 'get'),
+    has: Object.getOwnPropertyDescriptor(Map.prototype, 'has'),
+    keys: Object.getOwnPropertyDescriptor(Map.prototype, 'keys'),
+    values: Object.getOwnPropertyDescriptor(Map.prototype, 'values'),
+    [Symbol.iterator]: Object.getOwnPropertyDescriptor(Map.prototype, Symbol.iterator),
+    clear: Object.getOwnPropertyDescriptor(Map.prototype, 'clear'),
+    delete: Object.getOwnPropertyDescriptor(Map.prototype, 'delete'),
+    set: Object.getOwnPropertyDescriptor(Map.prototype, 'set')
+  };
+
   tamperMapPrototype();
 
   const highlight = new Highlight(new StaticRange({startContainer: document.body, endContainer: document.body, startOffset: 0, endOffset: 0}));
-  const highlightRegistry = new HighlightRegistry();
+  const highlightRegistry = CSS.highlights;
 
   assert_equals(highlightRegistry.size, 0);
   highlightRegistry.set("foo", highlight);
@@ -57,5 +82,8 @@ test(() => {
   let callbackCalled = false;
   highlightRegistry.forEach(() => { callbackCalled = true; });
   assert_true(callbackCalled);
+
+  highlightRegistry.clear();
+  restoreMapPrototype(originalDescriptors);
 }, "HighlightRegistry is a maplike interface that works as expected even if Map.prototype is tampered.");
 </script>

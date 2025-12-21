@@ -3,3 +3,8 @@ features:
   files:
   - pushstate-base.html
   - replacestate-base.html
+- name: history
+  files:
+  - "*"
+  - "!pushstate-base.html"
+  - "!replacestate-base.html"

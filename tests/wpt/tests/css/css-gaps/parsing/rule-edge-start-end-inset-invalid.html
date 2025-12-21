@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing *-rule-edge-*-outset with invalid values</title>
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    // TODO(javiercon): Add shorthand support and test here.
+    const properties = ['column-rule-edge-inset-start', 'row-rule-edge-inset-start', 'column-rule-edge-inset-end', 'row-rule-edge-inset-end'];
+    for (const property of properties) {
+      test_invalid_value(property, 'auto');
+      test_invalid_value(property, 'none');
+      test_invalid_value(property, '10');
+      test_invalid_value(property, '10px 20px');
+    }
+  </script>
+</body>
+</html>

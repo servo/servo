@@ -3500,4 +3500,10 @@ var browserTests = [
     "abdef",
     [true],
     {}],
+
+["<p>abc<br> </p><p>{}<br></p>",
+    [["delete",""]],
+    "<p>abc</p>",
+    [true],
+    {}],
 ]

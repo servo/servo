@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: CSS Masking Module Level 1 (https://drafts.fxtf.org/css-masking-1/)
+// Source: CSS Masking Module Level 1 (https://drafts.csswg.org/css-masking-1/)
 
 [Exposed=Window]
 interface SVGClipPathElement : SVGElement {

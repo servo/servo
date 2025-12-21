@@ -220,6 +220,74 @@
         assertSequenceIn(events, ["start", "dataavailable", "stop"]);
     }, "MediaRecorder will fire only start and stop events in a basic recording flow.");
 
+    promise_test(async t => {
+        const {stream} = createFlowingAudioVideoStream(t);
+        const audioTrack = stream.getAudioTracks()[0];
+        const videoTrack = stream.getVideoTracks()[0];
+        t.add_cleanup(() => {
+            audioTrack.stop();
+            videoTrack.stop();
+        });
+        const recorder = new MediaRecorder(stream);
+
+        let resolve;
+        const promise = new Promise((resolve_, reject) => {
+            resolve = resolve_;
+            t.step_timeout(() => reject("stop event time out"), 2000);
+        });
+
+        let events = [];
+        recorder.onstart = () => events.push("start");
+        recorder.onstop = () => {
+            events.push("stop");
+            resolve();
+        }
+        recorder.onerror = () => events.push("error");
+        recorder.ondataavailable = ()=> events.push("data");
+
+        recorder.start();
+        await new Promise(resolve => t.step_timeout(resolve, 0));
+
+        stream.removeTrack(stream.getAudioTracks()[0]);
+        recorder.stop();
+        await promise;
+        assert_array_equals(events, ["start", "data", "stop"]);
+    }, "MediaRecorder will not fire an error event if a recorder is stopped synchronously after a track is removed");
+
+    promise_test(async t => {
+        const {stream} = createFlowingAudioVideoStream(t);
+        const audioTrack = stream.getAudioTracks()[0];
+        const videoTrack = stream.getVideoTracks()[0];
+        t.add_cleanup(() => {
+            audioTrack.stop();
+            videoTrack.stop();
+        });
+        const recorder = new MediaRecorder(stream);
+
+        let resolve;
+        const promise = new Promise((resolve_, reject) => {
+            resolve = resolve_;
+            t.step_timeout(() => reject("stop event time out"), 2000);
+        });
+
+        let events = [];
+        recorder.onstart = ()=> events.push("start");
+        recorder.onstop = () => {
+            events.push("stop");
+            resolve();
+        }
+        recorder.onerror = ()=> events.push("error");
+        recorder.ondataavailable = ()=> events.push("data");
+
+        recorder.start();
+        await new Promise(resolve => t.step_timeout(resolve, 0));
+
+        audioTrack.stop();
+        videoTrack.stop();
+        recorder.stop();
+        await promise;
+        assert_array_equals(events, ["start", "data", "stop"]);
+    }, "MediaRecorder will not fire an error event if a recorder is stopped synchronously after all tracks are ended");
 </script>
 </body>
 </html>

@@ -33,11 +33,6 @@ async function action(data) {
   if (data.type == 'request-pip') {
     pipWindow = await documentPictureInPicture.requestWindow();
 
-    if (pipWindow.document.readyState != "complete") {
-      // about:blank should load synchronous, but Gecko is still working on that...
-      await new Promise(res => pipWindow.addEventListener("load", res, { once: true }));
-    }
-
     const script = pipWindow.document.createElement('script');
     script.innerHTML = get_pip_code(data.channelName);
     pipWindow.document.body.append(script);

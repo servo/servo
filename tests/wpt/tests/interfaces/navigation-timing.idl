@@ -17,6 +17,7 @@ interface PerformanceNavigationTiming : PerformanceResourceTiming {
     readonly        attribute unsigned short       redirectCount;
     readonly        attribute DOMHighResTimeStamp  criticalCHRestart;
     readonly        attribute NotRestoredReasons?  notRestoredReasons;
+    readonly        attribute PerformanceTimingConfidence confidence;
     [Default] object toJSON();
 };
 
@@ -24,6 +25,18 @@ enum NavigationTimingType {
     "navigate",
     "reload",
     "back_forward"
+};
+
+[Exposed=Window]
+interface PerformanceTimingConfidence {
+    readonly attribute double randomizedTriggerRate;
+    readonly attribute PerformanceTimingConfidenceValue value;
+    object toJSON();
+};
+
+enum PerformanceTimingConfidenceValue {
+  "high",
+  "low"
 };
 
 [Exposed=Window]

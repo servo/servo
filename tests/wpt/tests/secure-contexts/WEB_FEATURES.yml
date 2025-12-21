@@ -1,0 +1,3 @@
+features:
+- name: is-secure-context
+  files: "**"

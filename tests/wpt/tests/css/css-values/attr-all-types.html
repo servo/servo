@@ -95,6 +95,24 @@
         elem.style.setProperty(property, null);
     }
 
+    function test_invalid_var(property, varName, varValue, varUse) {
+        var elem = document.getElementById("attr");
+        var expectedValue = window.getComputedStyle(elem).getPropertyValue(property);
+
+        elem.style.setProperty(varName, varValue);
+        elem.style.setProperty(property, varUse);
+
+        test(() => {
+            assert_equals(window.getComputedStyle(elem).getPropertyValue(property), expectedValue,
+                          "Setting property \'" + property + "\' to the value \'" + varUse +
+                          "\', where \'" + varName + ": " + varValue + "\' should not change it's value.");
+        }, "Invariant behaviour for var");
+        elem.style.setProperty(varName, null);
+        elem.style.setProperty(property, null);
+    }
+
+    test_invalid_var('background-color', '--foo', 'red', 'var(--foo type(*))');
+
     test_valid_attr('content', 'attr(data-foo)', 'abc', '"abc"');
     test_valid_attr('content', 'attr(data-foo)', 'var(--number)', '"var(--number)"');
     test_valid_attr('content', 'attr(data-foo raw-string)', 'abc', '"abc"');

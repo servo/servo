@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>text-justify: inter-character for cursive script</title>
+<link rel="author" href="mailto:tkent@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-text-justify-inter-character">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#justify-cursive">
+<link rel='match' href='text-justify-inter-character-cursive-ref.html'>
+<meta name="assert" content="text-justify:inter-character should not break connected characters.">
+<style>
+p {
+  font-size: 2em;
+  border: 1px solid black;
+  padding: 10px 0px;
+}
+.test {
+  text-align-last: justify;
+  text-justify: inter-character;
+}
+.test img {
+  width: 20px;
+  height: 20px;
+  vertical-align: top;
+}
+</style>
+</head>
+<body>
+<p class="test">مرحبا بالعالمfoo</p>
+<p class="test">مرحبا بالعالم<img src="/images/blue.png"></p>
+</body>
+</html>

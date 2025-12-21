@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="ink-overflow-on-target-ref.html">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    body { margin: 20px; }
+    #target {
+      width: 200px;
+      height: 100px;
+      border: 20px solid #acf;
+      outline: 10px solid #4ca;
+      padding: 20px;
+      font: 18pt monospace;
+      contain: layout;
+    }
+    ::view-transition-group(*) {
+      animation-duration: 2s;
+    }
+  </style>
+</head>
+<body>
+  <div id=target>Hello</div>
+</body>
+
+<script>
+  function createTriggeredPromise() {
+    let trigger;
+    const promise = new Promise(resolve => {
+      trigger = resolve;
+    });
+    promise.notify = trigger;
+    return promise;
+  }
+
+  window.onload = async () => {
+    const callback_promise = createTriggeredPromise();
+    target.startViewTransition(async () => {
+      target.innerText = "World";
+      callback_promise.notify();
+      await new Promise(resolve => {});
+    });
+    await callback_promise;
+    takeScreenshot();
+  };
+</script>
+</html>
