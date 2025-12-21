@@ -282,3 +282,43 @@ fn test_hang_monitoring_exit_signal_inner(op_order: fn(&mut dyn FnMut(), &mut dy
         .join()
         .expect("Failed to join on the BHM worker thread");
 }
+
+#[test]
+fn test_hang_monitoring_teardown() {
+    let _lock = SERIAL.lock().unwrap();
+
+    let (background_hang_monitor_ipc_sender, background_hang_monitor_receiver) =
+        generic_channel::channel().expect("ipc channel failure");
+    let (sampler_sender, sampler_receiver) =
+        generic_channel::channel().expect("ipc channel failure");
+
+    let (background_hang_monitor_register, join_handle) =
+        HangMonitorRegister::init(background_hang_monitor_ipc_sender, sampler_receiver, true);
+
+    struct BHMExitSignal;
+    impl BackgroundHangMonitorExitSignal for BHMExitSignal {
+        fn signal_to_exit(&self) {}
+    }
+
+    let background_hang_monitor = background_hang_monitor_register.register_component(
+        MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script),
+        Duration::from_millis(10),
+        Duration::from_millis(30),
+        Box::new(BHMExitSignal),
+    );
+
+    let hang_annotation = HangAnnotation::Script(ScriptHangAnnotation::SpawnPipeline);
+    background_hang_monitor.notify_activity(hang_annotation);
+
+    // Simulate teardown.
+    drop(background_hang_monitor_receiver);
+
+    let _ = sampler_sender.send(BackgroundHangMonitorControlMsg::Exit);
+
+    // Drop the channels and join on the worker thread.
+    drop(background_hang_monitor);
+    drop(background_hang_monitor_register);
+    join_handle
+        .join()
+        .expect("Failed to join on the BHM worker thread");
+}
