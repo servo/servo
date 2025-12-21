@@ -1,0 +1,6 @@
+features:
+- name: source
+  files:
+  - resource-selection-*source*.html
+  - resource-selection-currentSrc.html
+  - resource-selection-candidate-remove-*.html

@@ -5,3 +5,6 @@ features:
 - name: baseline-shift
   files:
   - baseline-shift-*
+- name: dominant-baseline
+  files:
+  - dominant-baseline-*

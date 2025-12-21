@@ -17,7 +17,7 @@ promise_test(async (t) => {
 
   await assert_throws_dom('NotAllowedError', pipWindow.DOMException, () =>
     pipWindow.resizeTo(pipWindow.outerWidth, pipWindow.outerHeight + 100)
-  , 'resizeTo requires user acivation');
+  , 'resizeTo requires user activation');
 
   await test_driver.bless('resize window');
   let resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));
@@ -38,7 +38,7 @@ promise_test(async (t) => {
 
   await assert_throws_dom('NotAllowedError', pipWindow.DOMException, () =>
     pipWindow.resizeBy(100, 0)
-  , 'resizeBy requires user acivation');
+  , 'resizeBy requires user activation');
 
   await test_driver.bless('resize window');
   let resized = new Promise(res => pipWindow.addEventListener("resize", res, { once: true }));

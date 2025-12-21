@@ -1,4 +1,5 @@
-import hashlib
+import importlib
+header_helpers = importlib.import_module("storage-access-api.resources.header-helpers")
 
 def main(request, response):
   if b'key' in request.GET:
@@ -8,7 +9,7 @@ def main(request, response):
     return (400, [], b'')
 
   # Convert the key from String to UUID valid String.
-  stash_key = hashlib.md5(key).hexdigest()
+  stash_key = header_helpers.make_stash_key(key, request.GET)
 
   # Handle the header retrieval request.
   headers = request.server.stash.take(stash_key)

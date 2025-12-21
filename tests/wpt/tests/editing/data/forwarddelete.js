@@ -3362,4 +3362,10 @@ var browserTests = [
     "abcef",
     [true],
     {}],
+
+["<p>abc{}<br> </p><p><br></p>",
+    [["forwarddelete",""]],
+    "<p>abc</p>",
+    [true],
+    {}],
 ]

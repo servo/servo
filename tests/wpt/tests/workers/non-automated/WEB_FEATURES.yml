@@ -1,0 +1,4 @@
+features:
+- name: online
+  files:
+  - navigator-onLine.html

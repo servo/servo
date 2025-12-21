@@ -1,0 +1,4 @@
+features:
+- name: open-pseudo
+  files:
+  - details-open-pseudo-*

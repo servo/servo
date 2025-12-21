@@ -1,4 +1,11 @@
 features:
+- name: online
+  files:
+  - 006.html
 - name: user-agent-sniffing
   files:
   - 005.html
+- name: dedicated-workers
+  files:
+  - "*"
+  - "!005.html"

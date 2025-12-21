@@ -14,30 +14,30 @@
     <script>
       test(() => {
         target.style.columnRuleStyle = 'solid';
-        target.style.columnRuleEdgeStartInset = '1px';
-        target.style.columnRuleEdgeEndInset = '1px';
-        target.style.columnRuleInteriorStartInset = '1px';
-        target.style.columnRuleInteriorEndInset = '1px';
+        target.style.columnRuleEdgeInsetStart = '1px';
+        target.style.columnRuleEdgeInsetEnd = '1px';
+        target.style.columnRuleInteriorInsetStart = '1px';
+        target.style.columnRuleInteriorInsetEnd = '1px';
 
-        var animation = target.animate([{}, {columnRuleEdgeStartInset: '11px'}], 1000);
+        var animation = target.animate([{}, {columnRuleEdgeInsetStart: '11px'}], 1000);
         animation.pause();
         animation.currentTime = 500;
-        assert_equals(getComputedStyle(target).columnRuleEdgeStartInset, '6px');
+        assert_equals(getComputedStyle(target).columnRuleEdgeInsetStart, '6px');
 
-        var animation2 = target.animate([{}, {columnRuleEdgeEndInset: '11px'}], 1000);
+        var animation2 = target.animate([{}, {columnRuleEdgeInsetEnd: '11px'}], 1000);
         animation2.pause();
         animation2.currentTime = 500;
-        assert_equals(getComputedStyle(target).columnRuleEdgeEndInset, '6px');
+        assert_equals(getComputedStyle(target).columnRuleEdgeInsetEnd, '6px');
 
-        var animation3 = target.animate([{}, {columnRuleInteriorStartInset: '11px'}], 1000);
+        var animation3 = target.animate([{}, {columnRuleInteriorInsetStart: '11px'}], 1000);
         animation3.pause();
         animation3.currentTime = 500;
-        assert_equals(getComputedStyle(target).columnRuleInteriorStartInset, '6px');
+        assert_equals(getComputedStyle(target).columnRuleInteriorInsetStart, '6px');
 
-        var animation4 = target.animate([{}, {columnRuleInteriorEndInset: '11px'}], 1000);
+        var animation4 = target.animate([{}, {columnRuleInteriorInsetEnd: '11px'}], 1000);
         animation4.pause();
         animation4.currentTime = 500;
-        assert_equals(getComputedStyle(target).columnRuleInteriorEndInset, '6px');
+        assert_equals(getComputedStyle(target).columnRuleInteriorInsetEnd, '6px');
       }, 'gap decorations column-rule-inset properties support neutral keyframe.');
     </script>
   </body>

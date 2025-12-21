@@ -22,3 +22,6 @@ features:
   - modal-dialog-backdrop-opacity.html
   - modal-dialog-display-contents.html
   - modal-dialog-generated-content.html
+- name: open-pseudo
+  files:
+  - dialog-open-pseudo-invalidation.html

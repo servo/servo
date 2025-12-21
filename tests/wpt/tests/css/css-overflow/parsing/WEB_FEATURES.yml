@@ -8,3 +8,7 @@ features:
 - name: scrollbar-gutter
   files:
   - scrollbar-gutter-*
+- name: line-clamp
+  files:
+  - line-clamp-*
+  - webkit-line-clamp-*

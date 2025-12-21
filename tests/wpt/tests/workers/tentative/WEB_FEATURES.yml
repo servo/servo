@@ -1,0 +1,4 @@
+features:
+- name: shared-workers
+  files:
+  - SharedWorker-*

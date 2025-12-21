@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>HTML partial updates - :has invalidation with streaming</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .container {
+    width: 200px;
+    height: 100px;
+    background: green;
+  }
+
+  .container:has(.red) {
+    background: red;
+  }
+
+  .container:has(.blue) {
+    background: blue;
+  }
+</style>
+<div class="container">
+  <div contentname="content"><span class="red">Has red</span></div>
+</div>
+
+<script>
+  const container = document.querySelector(".container");
+  async function update(html) {
+    const writer = container.streamAppendHTMLUnsafe().getWriter();
+    await writer.write(`
+      <template contentmethod="replace-children">
+        <div contentname="content">${html}</div>
+      </template>`);
+    await writer.close();
+  }
+  promise_test(async () => {
+    for (let i = 0; i < 20; ++i) {
+      await update('<span class="blue">Has blue</span>');
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await update("Green (no span)");
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      assert_equals(container.textContent.trim(), "Green (no span)");
+      assert_equals(
+        getComputedStyle(container).backgroundColor,
+        "rgb(0, 128, 0)"
+      );
+    }
+  }, "");
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 50px);
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that open tracks are used when dense-packing a multi-span item.</p>
+  <div class="grid">
+    <div style="background: lightskyblue; height: 60px;" >
+      1
+    </div>
+    <div style="background: darkblue; height: 20px; grid-column: 1 / span 2;">
+      2
+    </div>
+    <div style="background: yellow; height: 20px; grid-column: span 2;">
+      3
+    </div>
+    <div style="background: skyblue; height: 10px; grid-column: span 3; grid-row: 3;">
+      4
+    </div>
+    <div style="background: lightskyblue; height: 70px; grid-column: 3; grid-row: 4;" >
+      5
+    </div>
+    <div style="background: darkblue; height: 50px; grid-column: 2 / span 2;">
+      6
+    </div>
+    <div style="background: yellow; height: 50px; grid-column: span 2;">
+      7
+    </div>
+  </div>
+</body>
+</html>

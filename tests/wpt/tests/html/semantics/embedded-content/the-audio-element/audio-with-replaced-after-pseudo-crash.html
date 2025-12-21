@@ -17,7 +17,7 @@ audio::after {
 (async function() {
   const audio = document.querySelector("audio");
   audio.src = getAudioURI("/media/sound_5");
-  for (let i = 0; i < 100; ++i) {
+  for (let i = 0; i < 10; ++i) {
     await waitForAtLeastOneFrame();
     await audio.play();
     document.body.style.color = "cyan";

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/357649033">
+<link rel=match href="customizable-select-listbox-appearance-ref.html">
+
+<style>
+select {
+  appearance: base-select;
+}
+</style>
+
+<select multiple>
+  <option selected>select multiple</option>
+  <option>two</option>
+  <option>three</option>
+</select>
+
+<select size=4>
+  <option selected>select size=4</option>
+  <option>two</option>
+  <option>three</option>
+</select>
+
+<select size=4 disabled>
+  <option selected>select disabled</option>
+  <option>two</option>
+  <option>three</option>
+  <option disabled>disabled</option>
+</select>
+
+<!-- TODO(crbug.com/407801061): Fix padding and remove this div. -->
+<div style="position: absolute; top: 150px">
+
+<select size=4>
+  <option selected>with disabled option</option>
+  <option>two</option>
+  <option>three</option>
+  <option disabled>disabled</option>
+</select>
+
+<select size=4>
+  <optgroup>
+    <legend>optgroup</legend>
+    <option>option in optgroup</option>
+  </optgroup>
+  <option>option out of optgroup</option>
+</select>
+
+<select size=4>
+  <optgroup disabled>
+    <legend>disabled optgroup</legend>
+    <option>option in optgroup</option>
+  </optgroup>
+  <option>option out of optgroup</option>
+</select>

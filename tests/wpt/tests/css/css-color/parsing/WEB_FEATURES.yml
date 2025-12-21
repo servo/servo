@@ -13,3 +13,8 @@ features:
 - name: contrast-color
   files:
   - color-*-contrast-color-function.html
+- name: hsl
+  files:
+  - color-computed-hsl.html
+  - color-invalid-hsl.html
+  - color-valid-hsl.html
