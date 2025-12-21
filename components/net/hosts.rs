@@ -27,6 +27,7 @@ fn create_host_table() -> Option<HashMap<String, IpAddr>> {
     Some(parse_hostsfile(&lines))
 }
 
+#[cfg_attr(not(feature = "test-util"), expect(dead_code))]
 pub fn replace_host_table(table: HashMap<String, IpAddr>) {
     *HOST_TABLE.lock() = Some(table);
 }
