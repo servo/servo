@@ -503,9 +503,14 @@ pub enum EmbedderMsg {
     /// Ask the user to allow a devtools client to connect.
     RequestDevtoolsConnection(GenericSender<AllowOrDeny>),
     /// Request to play a haptic effect on a connected gamepad.
-    PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
+    PlayGamepadHapticEffect(
+        WebViewId,
+        usize,
+        GamepadHapticEffectType,
+        GenericCallback<bool>,
+    ),
     /// Request to stop a haptic effect on a connected gamepad.
-    StopGamepadHapticEffect(WebViewId, usize, IpcSender<bool>),
+    StopGamepadHapticEffect(WebViewId, usize, GenericCallback<bool>),
     /// Informs the embedder that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
