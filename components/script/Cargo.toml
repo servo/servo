@@ -16,6 +16,7 @@ path = "lib.rs"
 bluetooth = ['bluetooth_traits', 'script_bindings/bluetooth']
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
+gamepad = ["script_bindings/gamepad", "embedder_traits/gamepad"]
 jitspew = ['js/jitspew']
 js_backtrace = []
 js_jit = ["js/jit"]
@@ -25,7 +26,7 @@ testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
-webxr = ["webxr-api", "script_bindings/webxr"]
+webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }

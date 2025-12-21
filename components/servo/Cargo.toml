@@ -29,6 +29,11 @@ clipboard = ["dep:arboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
+gamepad = [
+    "script/gamepad",
+    "constellation/gamepad",
+    "embedder_traits/gamepad",
+]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]

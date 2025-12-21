@@ -681,7 +681,9 @@ macro_rules! window_event_handlers(
         event_handler!(unhandledrejection, GetOnunhandledrejection,
                        SetOnunhandledrejection);
         event_handler!(unload, GetOnunload, SetOnunload);
+        #[cfg(feature = "gamepad")]
         event_handler!(gamepadconnected, GetOngamepadconnected, SetOngamepadconnected);
+        #[cfg(feature = "gamepad")]
         event_handler!(gamepaddisconnected, GetOngamepaddisconnected, SetOngamepaddisconnected);
     );
     (ForwardToWindow) => (
@@ -711,7 +713,9 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(unhandledrejection, GetOnunhandledrejection,
                                     SetOnunhandledrejection);
         window_owned_event_handler!(unload, GetOnunload, SetOnunload);
+        #[cfg(feature = "gamepad")]
         window_owned_event_handler!(gamepadconnected, GetOngamepadconnected, SetOngamepadconnected);
+        #[cfg(feature = "gamepad")]
         window_owned_event_handler!(gamepaddisconnected, GetOngamepaddisconnected, SetOngamepaddisconnected);
     );
 );

@@ -41,6 +41,7 @@ bitflags! {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum InputEvent {
     EditingAction(EditingActionEvent),
+    #[cfg(feature = "gamepad")]
     Gamepad(GamepadEvent),
     Ime(ImeEvent),
     Keyboard(KeyboardEvent),
@@ -79,6 +80,7 @@ impl InputEvent {
     pub fn point(&self) -> Option<WebViewPoint> {
         match self {
             InputEvent::EditingAction(..) => None,
+            #[cfg(feature = "gamepad")]
             InputEvent::Gamepad(..) => None,
             InputEvent::Ime(..) => None,
             InputEvent::Keyboard(..) => None,
@@ -319,12 +321,14 @@ pub enum ImeEvent {
     Dismissed,
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 /// Index of gamepad in list of system's connected gamepads
 pub struct GamepadIndex(pub usize);
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The minimum and maximum values that can be reported for axis or button input from this gamepad
 pub struct GamepadInputBounds {
@@ -334,6 +338,7 @@ pub struct GamepadInputBounds {
     pub button_bounds: (f64, f64),
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The haptic effects supported by this gamepad
 pub struct GamepadSupportedHapticEffects {
@@ -343,6 +348,7 @@ pub struct GamepadSupportedHapticEffects {
     pub supports_trigger_rumble: bool,
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of Gamepad event
 pub enum GamepadEvent {
@@ -362,6 +368,7 @@ pub enum GamepadEvent {
     Updated(GamepadIndex, GamepadUpdateType),
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of Gamepad input being updated
 pub enum GamepadUpdateType {
