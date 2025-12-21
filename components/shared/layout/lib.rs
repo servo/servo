@@ -106,6 +106,7 @@ pub enum LayoutElementType {
     Element,
     HTMLBodyElement,
     HTMLBRElement,
+    HTMLButtonElement,
     HTMLCanvasElement,
     HTMLHtmlElement,
     HTMLIFrameElement,
