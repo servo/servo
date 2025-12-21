@@ -415,7 +415,9 @@ impl FetchResponseListener for ClassicContext {
         let elem = self.elem.root();
         let global = elem.global();
 
-        elem.substitute_with_local_script(&mut source_text, final_url.clone());
+        if let Some(window) = global.downcast::<Window>() {
+            substitute_with_local_script(window, &mut source_text, final_url.clone());
+        }
 
         // Step 5.6. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
         let muted_errors = self.response_was_cors_cross_origin;
@@ -967,33 +969,6 @@ impl HTMLScriptElement {
         }
     }
 
-    fn substitute_with_local_script(&self, script: &mut Cow<'_, str>, url: ServoUrl) {
-        if self
-            .parser_document
-            .window()
-            .local_script_source()
-            .is_none()
-        {
-            return;
-        }
-        let mut path = PathBuf::from(
-            self.parser_document
-                .window()
-                .local_script_source()
-                .clone()
-                .unwrap(),
-        );
-        path = path.join(&url[url::Position::BeforeHost..]);
-        debug!("Attempting to read script stored at: {:?}", path);
-        match read_to_string(path.clone()) {
-            Ok(local_script) => {
-                debug!("Found script stored at: {:?}", path);
-                *script = Cow::Owned(local_script);
-            },
-            Err(why) => warn!("Could not restore script from file {:?}", why),
-        }
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#execute-the-script-element>
     pub(crate) fn execute(&self, result: ScriptResult, can_gc: CanGc) {
         // Step 1. Let document be el's node document.
@@ -1497,6 +1472,26 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         // The type argument has to exactly match these values,
         // we do not perform an ASCII case-insensitive match.
         matches!(&*type_.str(), "classic" | "module" | "importmap")
+    }
+}
+
+pub(crate) fn substitute_with_local_script(
+    window: &Window,
+    script: &mut Cow<'_, str>,
+    url: ServoUrl,
+) {
+    if window.local_script_source().is_none() {
+        return;
+    }
+    let mut path = PathBuf::from(window.local_script_source().clone().unwrap());
+    path = path.join(&url[url::Position::BeforeHost..]);
+    debug!("Attempting to read script stored at: {:?}", path);
+    match read_to_string(path.clone()) {
+        Ok(local_script) => {
+            debug!("Found script stored at: {:?}", path);
+            *script = Cow::Owned(local_script);
+        },
+        Err(why) => warn!("Could not restore script from file {:?}", why),
     }
 }
 
