@@ -87,12 +87,16 @@ impl DisplayGeneratingBox {
             // If it's a widget, make sure the display-inside is flow-root.
             // <https://html.spec.whatwg.org/multipage/#form-controls>
             // TODO: Do we want flow-root, or just an independent formatting context?
-            if let DisplayGeneratingBox::OutsideInside { outside, .. } = self {
+            if let DisplayGeneratingBox::OutsideInside { outside, inside } = self {
+                let inside = match inside {
+                    DisplayInside::Flex => *inside,
+                    _ => DisplayInside::FlowRoot {
+                        is_list_item: false,
+                    }
+                };
                 DisplayGeneratingBox::OutsideInside {
                     outside: *outside,
-                    inside: DisplayInside::FlowRoot {
-                        is_list_item: false,
-                    },
+                    inside,
                 }
             } else {
                 *self
