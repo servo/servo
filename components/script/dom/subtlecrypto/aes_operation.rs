@@ -428,7 +428,9 @@ pub(crate) fn encrypt_aes_gcm(
             log::warn!(
                 "Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV"
             );
-            return Err(Error::NotSupported(Some(format!("AES-GCM encryption with {key_length}-byte key and {iv_length}-byte IV is unsupported").into())));
+            return Err(Error::NotSupported(Some(format!(
+                "AES-GCM encryption with {key_length}-byte key and {iv_length}-byte IV is unsupported"
+            ))));
         },
     };
 
@@ -548,7 +550,9 @@ pub(crate) fn decrypt_aes_gcm(
             log::warn!(
                 "Missing AES-GCM decryption implementation with {key_length}-byte key and {iv_length}-byte IV"
             );
-            return Err(Error::NotSupported(Some(format!("AES-GCM decryption with {key_length}-byte key and {iv_length}-byte IV is unsupported").into())));
+            return Err(Error::NotSupported(Some(format!(
+                "AES-GCM decryption with {key_length}-byte key and {iv_length}-byte IV is unsupported"
+            ))));
         },
     };
     if result.is_err() {
@@ -906,9 +910,7 @@ fn import_key_aes(
 
             // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
-                return Err(Error::Data(Some(
-                    "JWK has a missing or invalid key type field".into(),
-                )));
+                return Err(Error::Data(Some("JWK `kty` field is not \"oct\"".into())));
             }
 
             // Step 2.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
@@ -919,7 +921,7 @@ fn import_key_aes(
             data = Base64UrlUnpadded::decode_vec(
                 &jwk.k
                     .as_ref()
-                    .ok_or(Error::Data(Some("JWK has a missing key field".into())))?
+                    .ok_or(Error::Data(Some("JWK `k` field is missing".into())))?
                     .str(),
             )
             .map_err(|_| Error::Data(Some("JWK key could not be decoded from base64".into())))?;
