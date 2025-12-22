@@ -285,6 +285,23 @@ pub enum WheelMode {
     DeltaPage = 0x02,
 }
 
+/// Phase of a wheel/trackpad scroll gesture.
+///
+/// This is used to determine the beginning and end of a scroll gesture,
+/// which is useful for implementing momentum scrolling (fling) on platforms
+/// that don't provide native momentum events.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum WheelPhase {
+    /// The scroll gesture has started.
+    Started,
+    /// The scroll gesture is in progress.
+    Moved,
+    /// The scroll gesture has ended.
+    Ended,
+    /// The scroll gesture was cancelled.
+    Cancelled,
+}
+
 /// The Wheel event deltas in every direction
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WheelDelta {
@@ -302,11 +319,16 @@ pub struct WheelDelta {
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: WebViewPoint,
+    pub phase: WheelPhase,
 }
 
 impl WheelEvent {
-    pub fn new(delta: WheelDelta, point: WebViewPoint) -> Self {
-        WheelEvent { delta, point }
+    pub fn new(delta: WheelDelta, point: WebViewPoint, phase: WheelPhase) -> Self {
+        WheelEvent {
+            delta,
+            point,
+            phase,
+        }
     }
 }
 

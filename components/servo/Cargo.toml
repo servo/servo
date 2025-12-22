@@ -71,6 +71,10 @@ webxr = [
     "webgl/webxr",
     "script/webxr",
 ]
+# Enable software-based wheel fling/momentum scrolling.
+# This should be enabled on platforms that don't provide native momentum scroll
+# events (e.g., Linux). macOS provides native momentum events, so this is not needed there.
+wheel_fling = ["compositing/wheel_fling"]
 
 [dependencies]
 accesskit = { workspace = true }

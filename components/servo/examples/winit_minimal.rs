@@ -9,14 +9,14 @@ use std::rc::Rc;
 use euclid::{Scale, Size2D};
 use servo::{
     InputEvent, RenderingContext, Servo, ServoBuilder, WebView, WebViewBuilder, WheelDelta,
-    WheelEvent, WheelMode, WindowRenderingContext,
+    WheelEvent, WheelMode, WheelPhase, WindowRenderingContext,
 };
 use tracing::warn;
 use url::Url;
 use webrender_api::units::{DevicePixel, DevicePoint};
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
-use winit::event::{MouseScrollDelta, WindowEvent};
+use winit::event::{MouseScrollDelta, TouchPhase, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::window::Window;
@@ -129,7 +129,7 @@ impl ApplicationHandler<WakerEvent> for App {
                     state.rendering_context.present();
                 }
             },
-            WindowEvent::MouseWheel { delta, .. } => {
+            WindowEvent::MouseWheel { delta, phase, .. } => {
                 if let Self::Running(state) = self {
                     if let Some(webview) = state.webviews.borrow().last() {
                         let (delta_x, delta_y, mode) = match delta {
@@ -141,6 +141,7 @@ impl ApplicationHandler<WakerEvent> for App {
                             },
                         };
 
+                        let wheel_phase = winit_phase_to_wheel_phase(phase);
                         webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
                             WheelDelta {
                                 x: delta_x,
@@ -149,6 +150,7 @@ impl ApplicationHandler<WakerEvent> for App {
                                 mode,
                             },
                             DevicePoint::default().into(),
+                            wheel_phase,
                         )));
                     }
                 }
@@ -190,4 +192,13 @@ impl embedder_traits::EventLoopWaker for Waker {
 
 pub fn winit_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {
     Size2D::new(size.width, size.height)
+}
+
+fn winit_phase_to_wheel_phase(phase: TouchPhase) -> WheelPhase {
+    match phase {
+        TouchPhase::Started => WheelPhase::Started,
+        TouchPhase::Moved => WheelPhase::Moved,
+        TouchPhase::Ended => WheelPhase::Ended,
+        TouchPhase::Cancelled => WheelPhase::Cancelled,
+    }
 }

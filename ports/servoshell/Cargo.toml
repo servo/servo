@@ -54,6 +54,7 @@ vello = ["libservo/vello"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webgpu = ["libservo/webgpu"]
 webxr = ["libservo/webxr"]
+wheel_fling = ["libservo/wheel_fling"]
 
 [dependencies]
 accesskit = { workspace = true }
@@ -124,6 +125,10 @@ winit = { workspace = true }
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 sig = "1.0"
+
+# Enable wheel_fling on Linux since the OS doesn't provide native momentum scroll events
+[target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
+libservo = { path = "../../components/servo", features = ["wheel_fling"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 libservo = { path = "../../components/servo", features = ["no-wgl"] }
