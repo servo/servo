@@ -1495,11 +1495,10 @@ impl CanvasState {
 
         let font_style = self.font_style();
         let font_group = font_context.font_group(font_style.clone());
-        let mut font_group = font_group.write();
         let font = font_group.first(font_context).expect("couldn't find font");
         let ascent = font.metrics.ascent.to_f64_px();
         let descent = font.metrics.descent.to_f64_px();
-        let runs = self.build_unshaped_text_runs(font_context, &text, &mut font_group);
+        let runs = self.build_unshaped_text_runs(font_context, &text, &font_group);
 
         let mut total_advance = 0.0;
         let shaped_runs: Vec<_> = runs
@@ -2273,13 +2272,12 @@ impl CanvasState {
         // > attribute.
         let font_style = self.font_style();
         let font_group = font_context.font_group_with_size(font_style, Au::from_f64_px(size));
-        let mut font_group = font_group.write();
         let Some(first_font) = font_group.first(font_context) else {
             warn!("Could not render canvas text, because there was no first font.");
             return None;
         };
 
-        let runs = self.build_unshaped_text_runs(font_context, &text, &mut font_group);
+        let runs = self.build_unshaped_text_runs(font_context, &text, &font_group);
 
         // TODO: This doesn't do any kind of line layout at all. In particular, there needs
         // to be some alignment along a baseline and also support for bidi text.
@@ -2340,7 +2338,7 @@ impl CanvasState {
         &self,
         font_context: &FontContext,
         text: &'text str,
-        font_group: &mut FontGroup,
+        font_group: &FontGroup,
     ) -> Vec<UnshapedTextRun<'text>> {
         let mut runs = Vec::new();
         let mut current_text_run = UnshapedTextRun::default();

@@ -5,7 +5,6 @@
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -60,15 +59,7 @@ pub(crate) struct FontParameters {
     pub(crate) flags: FontInstanceFlags,
 }
 
-#[derive(MallocSizeOf)]
-struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
-
-impl Deref for FontGroupRef {
-    type Target = Arc<RwLock<FontGroup>>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+pub type FontGroupRef = Arc<FontGroup>;
 
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
@@ -91,6 +82,7 @@ pub struct FontContext {
     /// A caching map between the specification of a font in CSS style and
     /// resolved [`FontGroup`] which contains information about all fonts that
     /// can be selected with that style.
+    #[conditional_malloc_size_of]
     resolved_font_groups: RwLock<HashMap<FontGroupCacheKey, FontGroupRef>>,
 
     web_fonts: CrossThreadFontStore,
@@ -175,7 +167,7 @@ impl FontContext {
     /// Returns a `FontGroup` representing fonts which can be used for layout, given the `style`.
     /// Font groups are cached, so subsequent calls with the same `style` will return a reference
     /// to an existing `FontGroup`.
-    pub fn font_group(&self, style: ServoArc<FontStyleStruct>) -> Arc<RwLock<FontGroup>> {
+    pub fn font_group(&self, style: ServoArc<FontStyleStruct>) -> FontGroupRef {
         let font_size = style.font_size.computed_size().into();
         self.font_group_with_size(style, font_size)
     }
@@ -186,19 +178,19 @@ impl FontContext {
         &self,
         style: ServoArc<FontStyleStruct>,
         size: Au,
-    ) -> Arc<RwLock<FontGroup>> {
+    ) -> Arc<FontGroup> {
         let cache_key = FontGroupCacheKey { size, style };
         if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
-            return font_group.0.clone();
+            return font_group.clone();
         }
 
         let mut descriptor = FontDescriptor::from(&*cache_key.style);
         descriptor.pt_size = size;
 
-        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
+        let font_group = Arc::new(FontGroup::new(&cache_key.style, descriptor));
         self.resolved_font_groups
             .write()
-            .insert(cache_key, FontGroupRef(font_group.clone()));
+            .insert(cache_key, font_group.clone());
         font_group
     }
 
@@ -209,6 +201,13 @@ impl FontContext {
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
     ) -> Option<FontRef> {
+        let font_descriptor = if servo_config::pref!(layout_variable_fonts_enabled) {
+            let variation_settings = font_template.borrow().compute_variations(font_descriptor);
+            &font_descriptor.with_variation_settings(variation_settings)
+        } else {
+            font_descriptor
+        };
+
         self.get_font_maybe_synthesizing_small_caps(
             font_template,
             font_descriptor,

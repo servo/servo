@@ -51,7 +51,7 @@ use std::collections::BinaryHeap;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use resvg::usvg::fontdb::Source;
 use style::properties::ComputedValues;
@@ -580,6 +580,22 @@ impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for OnceCell<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for OnceLock<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.get()
+            .map(|interior| interior.size_of(ops))
+            .unwrap_or_default()
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for OnceLock<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.get()
+            .map(|interior| interior.conditional_size_of(ops))
+            .unwrap_or_default()
+    }
+}
+
 // See https://github.com/rust-lang/rust/issues/68318:
 // We don't want MallocSizeOf to be defined for Rc and Arc. If negative trait bounds are
 // ever allowed, this code should be uncommented.  Instead, there is a compile-fail test for
@@ -694,6 +710,12 @@ impl<T: MallocSizeOf> MallocSizeOf for parking_lot::Mutex<T> {
 impl<T: MallocSizeOf> MallocSizeOf for parking_lot::RwLock<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         (*self.read()).size_of(ops)
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for parking_lot::RwLock<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        (*self.read()).conditional_size_of(ops)
     }
 }
 

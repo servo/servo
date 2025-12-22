@@ -480,7 +480,7 @@ impl TextRun {
 
             let lang = parent_style.get_font()._x_lang.clone();
 
-            let Some(font) = font_group.write().find_by_codepoint(
+            let Some(font) = font_group.find_by_codepoint(
                 &layout_context.font_context,
                 character,
                 next_character,
@@ -516,12 +516,9 @@ impl TextRun {
         // Either we have a current segment or we only had control character and whitespace. In both
         // of those cases, just use the first font.
         if current.is_none() {
-            current = font_group
-                .write()
-                .first(&layout_context.font_context)
-                .map(|font| {
-                    TextRunSegment::new(font, Script::Common, Level::ltr(), self.text_range.start)
-                })
+            current = font_group.first(&layout_context.font_context).map(|font| {
+                TextRunSegment::new(font, Script::Common, Level::ltr(), self.text_range.start)
+            })
         }
 
         // Extend the last segment to the end of the string and add it to the results.
@@ -583,7 +580,6 @@ pub(super) fn get_font_for_first_font_for_style(
 ) -> Option<FontRef> {
     let font = font_context
         .font_group(style.clone_font())
-        .write()
         .first(font_context);
     if font.is_none() {
         warn!("Could not find font for style: {:?}", style.clone_font());
