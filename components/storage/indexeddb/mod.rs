@@ -20,7 +20,7 @@ use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
-    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DataBaseInfo, DbResult,
+    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DatabaseInfo, DbResult,
     IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
 };
 use uuid::Uuid;
@@ -576,7 +576,7 @@ impl IndexedDBManager {
                 // For now using `self.databases`, which track connections.
 
                 // Step 4.2: Let result be a new list.
-                let info_list: Vec<DataBaseInfo> = self
+                let info_list: Vec<DatabaseInfo> = self
                     .databases
                     .iter()
                     .filter_map(|(description, info)| {
@@ -591,7 +591,7 @@ impl IndexedDBManager {
                                 // Step 4.3.7: Set info’s version dictionary member to db’s version.
                                 // Step 4.3.8: Append info to result.
                                 if description.origin == origin {
-                                    Some(DataBaseInfo {
+                                    Some(DatabaseInfo {
                                         name: description.name.clone(),
                                         version,
                                     })

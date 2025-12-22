@@ -9,7 +9,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use servo_url::origin::ImmutableOrigin;
-use storage_traits::indexeddb::{BackendResult, DataBaseInfo, IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{BackendResult, DatabaseInfo, IndexedDBThreadMsg, SyncOperation};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
@@ -156,7 +156,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             .database_access_task_source()
             .to_sendable();
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-            let result: BackendResult<Vec<DataBaseInfo>> = message.unwrap();
+            let result: BackendResult<Vec<DatabaseInfo>> = message.unwrap();
             let Some(trusted_promise) = trusted_promise.take() else {
                 return error!("Callback for `DataBases` called twice.");
             };
