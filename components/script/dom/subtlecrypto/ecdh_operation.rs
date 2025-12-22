@@ -48,9 +48,6 @@ pub(crate) fn generate_key(
         return Err(Error::Syntax(Some(
             "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".to_string(),
         )));
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".to_string(),
-        )));
     }
 
     // Step 2.
