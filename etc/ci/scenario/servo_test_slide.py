@@ -21,12 +21,11 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    IMPLICIT_WAIT_TIME_FOR_POPUP = 6
-    IMPLICIT_WAIT_TIME_AFTER_REDIRECTION = 40
+    IMPLICIT_WAIT_TIME = 6
     driver = common_function_for_servo_test.create_driver()
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
-    driver.implicitly_wait(IMPLICIT_WAIT_TIME_FOR_POPUP)
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
     common_function_for_mossel.load_mossel(driver)
 
     # Step 2. Click to close the pop-up
@@ -44,7 +43,6 @@ def operator():
 
     try:
         print("Finding components ...")
-        driver.implicitly_wait(IMPLICIT_WAIT_TIME_AFTER_REDIRECTION)
         driver.find_element(By.CSS_SELECTOR, target_css_selector)
     except NoSuchElementException:
         raise NoSuchElementException("Components not found. Test failed.")

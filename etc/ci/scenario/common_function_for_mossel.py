@@ -57,6 +57,7 @@ def click_category(driver: webdriver.Remote):
         raise NoSuchElementException("Category element not found. Test failed.")
 
     category_element.click()
+    driver.implicitly_wait(40)
     post_click_category(driver)
 
 
