@@ -17,7 +17,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
+    JwkStringField, KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
     SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
@@ -199,8 +199,7 @@ pub(crate) fn import_key(
             // NOTE: Done by Step 2.4 and 2.6.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data(None))?.str())
-                .map_err(|_| Error::Data(None))?;
+            data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
             hash = normalized_algorithm.hash.as_ref();
