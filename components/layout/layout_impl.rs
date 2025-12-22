@@ -1534,7 +1534,6 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .font_group_with_size(ServoArc::new(font.clone()), base_size.into());
 
         let Some(first_font_metrics) = font_group
-            .write()
             .first(font_context)
             .map(|font| font.metrics.clone())
         else {
@@ -1551,7 +1550,6 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .zero_horizontal_advance
             .or_else(|| {
                 font_group
-                    .write()
                     .find_by_codepoint(font_context, '0', None, None, None)?
                     .metrics
                     .zero_horizontal_advance
@@ -1562,7 +1560,6 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .ic_horizontal_advance
             .or_else(|| {
                 font_group
-                    .write()
                     .find_by_codepoint(font_context, '\u{6C34}', None, None, None)?
                     .metrics
                     .ic_horizontal_advance
