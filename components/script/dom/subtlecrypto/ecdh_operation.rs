@@ -45,7 +45,9 @@ pub(crate) fn generate_key(
         .iter()
         .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
     {
-        return Err(Error::Syntax(None));
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".to_string(),
+        )));
     }
 
     // Step 2.
@@ -84,7 +86,12 @@ pub(crate) fn generate_key(
                 Handle::P521PublicKey(public_key),
             )
         },
-        _ => return Err(Error::NotSupported(None)),
+        _ => {
+            return Err(Error::NotSupported(Some(format!(
+                "Unsupported namedCurve: {}",
+                normalized_algorithm.named_curve
+            ))));
+        },
     };
 
     // Step 4. Let algorithm be a new EcKeyAlgorithm object.
@@ -152,7 +159,9 @@ pub(crate) fn derive_bits(
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"private\"".to_string(),
+        )));
     }
 
     // Step 2. Let publicKey be the public member of normalizedAlgorithm.
@@ -161,14 +170,19 @@ pub(crate) fn derive_bits(
     // Step 3. If the [[type]] internal slot of publicKey is not "public", then throw an
     // InvalidAccessError.
     if public_key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"public\"".to_string(),
+        )));
     }
 
     // Step 4. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
     // to the name property of the [[algorithm]] internal slot of key, then throw an
     // InvalidAccessError.
     if public_key.algorithm().name() != key.algorithm().name() {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some(
+            "public key [[algorithm]] internal slot name does not match that of private key"
+                .to_string(),
+        )));
     }
 
     // Step 5. If the namedCurve attribute of the [[algorithm]] internal slot of publicKey is not
@@ -179,10 +193,13 @@ pub(crate) fn derive_bits(
         KeyAlgorithmAndDerivatives::EcKeyAlgorithm(key_algorithm),
     ) = (public_key.algorithm(), key.algorithm())
     else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some("Public or private key's [[algorithm]] internal slot is not an elliptic curve algorithm".to_string())));
     };
     if public_key_algorithm.named_curve != key_algorithm.named_curve {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some(
+            "Public and private keys' [[algorithm]] internal slots namedCurves do not match"
+                .to_string(),
+        )));
     }
 
     // Step 6.
@@ -207,10 +224,14 @@ pub(crate) fn derive_bits(
     let secret = match key_algorithm.named_curve.as_str() {
         NAMED_CURVE_P256 => {
             let Handle::P256PrivateKey(private_key) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Private key is not a P-256 private key".to_string(),
+                )));
             };
             let Handle::P256PublicKey(public_key) = public_key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Public key is not a P-256 public key".to_string(),
+                )));
             };
             p256::ecdh::diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
                 .raw_secret_bytes()
@@ -218,10 +239,14 @@ pub(crate) fn derive_bits(
         },
         NAMED_CURVE_P384 => {
             let Handle::P384PrivateKey(private_key) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Private key is not a P-384 private key".to_string(),
+                )));
             };
             let Handle::P384PublicKey(public_key) = public_key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Public key is not a P384 public key".to_string(),
+                )));
             };
             p384::ecdh::diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
                 .raw_secret_bytes()
@@ -229,16 +254,25 @@ pub(crate) fn derive_bits(
         },
         NAMED_CURVE_P521 => {
             let Handle::P521PrivateKey(private_key) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Private key is not a P-521 private key".to_string(),
+                )));
             };
             let Handle::P521PublicKey(public_key) = public_key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Public key is not a P-521 public key".to_string(),
+                )));
             };
             p521::ecdh::diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
                 .raw_secret_bytes()
                 .to_vec()
         },
-        _ => return Err(Error::NotSupported(None)),
+        _ => {
+            return Err(Error::NotSupported(Some(format!(
+                "Unsupported namedCurve: {}",
+                key_algorithm.named_curve
+            ))));
+        },
     };
 
     // Step 8.
@@ -253,7 +287,9 @@ pub(crate) fn derive_bits(
         None => Ok(secret),
         Some(length) => {
             if secret.len() * 8 < length as usize {
-                Err(Error::Operation(None))
+                Err(Error::Operation(Some(
+                    "Derived secret is too short".to_string(),
+                )))
             } else {
                 let mut secret = secret[..length.div_ceil(8) as usize].to_vec();
                 if length % 8 != 0 {
@@ -286,20 +322,22 @@ pub(crate) fn import_key(
         KeyFormat::Spki => {
             // Step 2.1. If usages is not empty then throw a SyntaxError.
             if !usages.is_empty() {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some("Usages list is not empty".to_string())));
             }
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData
             // Step 2.3. If an error occurred while parsing, then throw a DataError.
             let spki = SubjectPublicKeyInfo::<_, BitString>::from_der(key_data)
-                .map_err(|_| Error::Data(None))?;
+                .map_err(|_| Error::Data(Some("Failed to parse SPKI".to_string())))?;
 
             // Step 2.4. If the algorithm object identifier field of the algorithm
             // AlgorithmIdentifier field of spki is not equal to the id-ecPublicKey object
             // identifier defined in [RFC5480], then throw a DataError.
             if spki.algorithm.oid != elliptic_curve::ALGORITHM_OID {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "algorithm OID does not match id-ecPublicKey OID".to_string(),
+                )));
             }
 
             // Step 2.5. If the parameters field of the algorithm AlgorithmIdentifier field of spki
@@ -309,7 +347,9 @@ pub(crate) fn import_key(
             // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
             let Some(params): Option<EcParameters> = spki.algorithm.parameters else {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "SPKI parameters field is not present".to_string(),
+                )));
             };
 
             // Step 2.8. Let namedCurve be a string whose initial value is undefined.
@@ -339,24 +379,35 @@ pub(crate) fn import_key(
                     // format and a compressed point is provided, throw a DataError.
                     // Step 2.10.4. If a decode error occurs or an identity point is found, throw a
                     // DataError.
-                    let sec1_bytes = spki
-                        .subject_public_key
-                        .as_bytes()
-                        .ok_or(Error::Data(None))?;
+                    let sec1_bytes = spki.subject_public_key.as_bytes().ok_or(Error::Data(
+                        Some("SPKI public key bitlength is not a multiple of 8".to_string()),
+                    ))?;
                     match curve {
                         NAMED_CURVE_P256 => {
-                            let public_key = p256::PublicKey::from_sec1_bytes(sec1_bytes)
-                                .map_err(|_| Error::Data(None))?;
+                            let public_key =
+                                p256::PublicKey::from_sec1_bytes(sec1_bytes).map_err(|_| {
+                                    Error::Data(Some(
+                                        "Failed to parse P-256 public key".to_string(),
+                                    ))
+                                })?;
                             Handle::P256PublicKey(public_key)
                         },
                         NAMED_CURVE_P384 => {
-                            let public_key = p384::PublicKey::from_sec1_bytes(sec1_bytes)
-                                .map_err(|_| Error::Data(None))?;
+                            let public_key =
+                                p384::PublicKey::from_sec1_bytes(sec1_bytes).map_err(|_| {
+                                    Error::Data(Some(
+                                        "Failed to parse P-384 public key".to_string(),
+                                    ))
+                                })?;
                             Handle::P384PublicKey(public_key)
                         },
                         NAMED_CURVE_P521 => {
-                            let public_key = p521::PublicKey::from_sec1_bytes(sec1_bytes)
-                                .map_err(|_| Error::Data(None))?;
+                            let public_key =
+                                p521::PublicKey::from_sec1_bytes(sec1_bytes).map_err(|_| {
+                                    Error::Data(Some(
+                                        "Failed to parse P-521 public key".to_string(),
+                                    ))
+                                })?;
                             Handle::P521PublicKey(public_key)
                         },
                         _ => unreachable!(),
@@ -372,14 +423,16 @@ pub(crate) fn import_key(
                     // Step 2.10.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support applicable specifications.
-                    return Err(Error::NotSupported(None));
+                    return Err(Error::NotSupported(Some(
+                        "Unsupported namedCurve".to_string(),
+                    )));
                 },
             };
 
             // Step 2.11. If namedCurve is defined, and not equal to the namedCurve member of
             // normalizedAlgorithm, throw a DataError.
             if named_curve.is_some_and(|curve| curve != normalized_algorithm.named_curve) {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some("namedCurve mismatch".to_string())));
             }
 
             // Step 2.12. If the key value is not a valid point on the Elliptic Curve identified by
@@ -414,20 +467,25 @@ pub(crate) fn import_key(
                 .iter()
                 .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
             {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\""
+                        .to_string(),
+                )));
             }
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
             // Step 2.3. If an error occurs while parsing, throw a DataError.
-            let private_key_info =
-                PrivateKeyInfo::from_der(key_data).map_err(|_| Error::Data(None))?;
+            let private_key_info = PrivateKeyInfo::from_der(key_data)
+                .map_err(|_| Error::Data(Some("Failed to parse PrivateKeyInfo".to_string())))?;
 
             // Step 2.4. If the algorithm object identifier field of the privateKeyAlgorithm
             // PrivateKeyAlgorithm field of privateKeyInfo is not equal to the id-ecPublicKey
             // object identifier defined in [RFC5480], throw a DataError.
             if private_key_info.algorithm.oid != elliptic_curve::ALGORITHM_OID {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "algorithm OID does not match id-ecPublicKey OID".to_string(),
+                )));
             }
 
             // Step 2.5. If the parameters field of the privateKeyAlgorithm
@@ -438,9 +496,13 @@ pub(crate) fn import_key(
             // Step 2.7. If params is not an instance of the ECParameters ASN.1 type defined in
             // [RFC5480] that specifies a namedCurve, then throw a DataError.
             let params: EcParameters = if let Some(params) = private_key_info.algorithm.parameters {
-                params.decode_as().map_err(|_| Error::Data(None))?
+                params
+                    .decode_as()
+                    .map_err(|_| Error::Data(Some("Failed to decode EC parameters".to_string())))?
             } else {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "privateKeyInfo parameters field is not present".to_string(),
+                )));
             };
 
             // Step 2.8. Let namedCurve be a string whose initial value is undefined.
@@ -468,7 +530,9 @@ pub(crate) fn import_key(
                     // [RFC5915], and exactData set to true.
                     // Step 2.10.2. If an error occurred while parsing, then throw a DataError.
                     let ec_private_key = EcPrivateKey::try_from(private_key_info.private_key)
-                        .map_err(|_| Error::Data(None))?;
+                        .map_err(|_| {
+                            Error::Data(Some("Failed to parse EC private key".to_string()))
+                        })?;
 
                     // Step 2.10.3. If the parameters field of ecPrivateKey is present, and is not
                     // an instance of the namedCurve ASN.1 type defined in [RFC5480], or does not
@@ -479,7 +543,9 @@ pub(crate) fn import_key(
                         .parameters
                         .is_some_and(|parameters| parameters != params)
                     {
-                        return Err(Error::Data(None));
+                        return Err(Error::Data(Some(
+                            "EC private key parameters do not match privateKeyInfo algorithm parameters".to_string(),
+                        )));
                     }
 
                     // Step 2.10.4. Let key be a new CryptoKey that represents the Elliptic Curve
@@ -488,18 +554,30 @@ pub(crate) fn import_key(
                     // NOTE: CryptoKey is created in Step 2.13 - 2.17.
                     match curve {
                         NAMED_CURVE_P256 => {
-                            let private_key = p256::SecretKey::try_from(ec_private_key)
-                                .map_err(|_| Error::Data(None))?;
+                            let private_key =
+                                p256::SecretKey::try_from(ec_private_key).map_err(|_| {
+                                    Error::Data(Some(
+                                        "Failed to parse P-256 private key".to_string(),
+                                    ))
+                                })?;
                             Handle::P256PrivateKey(private_key)
                         },
                         NAMED_CURVE_P384 => {
-                            let private_key = p384::SecretKey::try_from(ec_private_key)
-                                .map_err(|_| Error::Data(None))?;
+                            let private_key =
+                                p384::SecretKey::try_from(ec_private_key).map_err(|_| {
+                                    Error::Data(Some(
+                                        "Failed to parse P-384 private key".to_string(),
+                                    ))
+                                })?;
                             Handle::P384PrivateKey(private_key)
                         },
                         NAMED_CURVE_P521 => {
-                            let private_key = p521::SecretKey::try_from(ec_private_key)
-                                .map_err(|_| Error::Data(None))?;
+                            let private_key =
+                                p521::SecretKey::try_from(ec_private_key).map_err(|_| {
+                                    Error::Data(Some(
+                                        "Failed to parse P-521 private key".to_string(),
+                                    ))
+                                })?;
                             Handle::P521PrivateKey(private_key)
                         },
                         _ => unreachable!(),
@@ -513,14 +591,16 @@ pub(crate) fn import_key(
                     // Step 2.10.2. If an error occurred or there are no applicable specifications,
                     // throw a DataError.
                     // NOTE: We currently do not support applicable specifications.
-                    return Err(Error::NotSupported(None));
+                    return Err(Error::NotSupported(Some(
+                        "Unsupported namedCurve".to_string(),
+                    )));
                 },
             };
 
             // Step 2.11. If namedCurve is defined, and not equal to the namedCurve member of
             // normalizedAlgorithm, throw a DataError.
             if named_curve.is_some_and(|curve| curve != normalized_algorithm.named_curve) {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some("namedCurve mismatch".to_string())));
             }
 
             // Step 2.12. If the key value is not a valid point on the Elliptic Curve identified by
@@ -563,24 +643,33 @@ pub(crate) fn import_key(
                     .iter()
                     .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
             {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some(
+                    "JWK `d` field is present and usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".to_string(),
+                )));
             }
 
             // Step 2.3. If the d field is not present and if usages is not empty then throw a
             // SyntaxError.
             if jwk.d.as_ref().is_none() && !usages.is_empty() {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some(
+                    "JWK `d` field is not present and usages is not empty".to_string(),
+                )));
             }
 
             // Step 2.4. If the kty field of jwk is not "EC", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "EC") {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "JWK `kty` field is not \"EC\"".to_string(),
+                )));
             }
 
             // Step 2.5. If usages is non-empty and the use field of jwk is present and is not
             // equal to "enc" then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Usages is not empty, JWK `use` field is present, and it is not \"enc\""
+                        .to_string(),
+                )));
             }
 
             // Step 2.6. If the key_ops field of jwk is present, and is invalid according to the
@@ -591,7 +680,7 @@ pub(crate) fn import_key(
             // Step 2.7. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some("JWK is not extractable".into())));
             }
 
             // Step 2.8. Let namedCurve be a string whose value is equal to the crv field of jwk.
@@ -601,7 +690,9 @@ pub(crate) fn import_key(
                 .crv
                 .filter(|crv| *crv == normalized_algorithm.named_curve)
                 .map(|crv| crv.to_string())
-                .ok_or(Error::Data(None))?;
+                .ok_or(Error::Data(Some(
+                    "JWK named curve does not match algorithm named curve".to_string(),
+                )))?;
 
             // Step 2.10.
             // If namedCurve is "P-256", "P-384" or "P-521":
@@ -615,17 +706,28 @@ pub(crate) fn import_key(
                         // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.2 of
                         // JSON Web Algorithms [JWA], then throw a DataError.
                         let x = match jwk.x {
-                            Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
-                                .map_err(|_| Error::Data(None))?,
-                            None => return Err(Error::Data(None)),
+                            Some(x) => Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| {
+                                Error::Data(Some("JWK `x` field could not be decoded".to_string()))
+                            })?,
+                            None => {
+                                return Err(Error::Data(Some(
+                                    "JWK `x` field is missing".to_string(),
+                                )));
+                            },
                         };
                         let y = match jwk.y {
-                            Some(y) => Base64UrlUnpadded::decode_vec(&y.str())
-                                .map_err(|_| Error::Data(None))?,
-                            None => return Err(Error::Data(None)),
+                            Some(y) => Base64UrlUnpadded::decode_vec(&y.str()).map_err(|_| {
+                                Error::Data(Some("JWK `y` field could not be decoded".to_string()))
+                            })?,
+                            None => {
+                                return Err(Error::Data(Some(
+                                    "JWK `y` field is missing".to_string(),
+                                )));
+                            },
                         };
-                        let d = Base64UrlUnpadded::decode_vec(&d.str())
-                            .map_err(|_| Error::Data(None))?;
+                        let d = Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| {
+                            Error::Data(Some("JWK `d` field could not be decoded".to_string()))
+                        })?;
 
                         // Step 2.10.2. Let key be a new CryptoKey object that represents the
                         // Elliptic Curve private key identified by interpreting jwk according to
@@ -633,39 +735,75 @@ pub(crate) fn import_key(
                         // NOTE: CryptoKey is created in Step 2.12 - 2.15.
                         let handle = match named_curve.as_str() {
                             NAMED_CURVE_P256 => {
-                                let private_key = p256::SecretKey::from_slice(&d)
-                                    .map_err(|_| Error::Data(None))?;
+                                let private_key =
+                                    p256::SecretKey::from_slice(&d).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to parse P-256 private key".to_string(),
+                                        ))
+                                    })?;
                                 let mut sec1_bytes = vec![4u8];
                                 sec1_bytes.extend_from_slice(&x);
                                 sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data(None))?;
+                                let encoded_point =
+                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to encode curve point".to_string(),
+                                        ))
+                                    })?;
                                 NistP256::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| Error::Data(None))?;
+                                    .map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to validate P-256 public key".to_string(),
+                                        ))
+                                    })?;
                                 Handle::P256PrivateKey(private_key)
                             },
                             NAMED_CURVE_P384 => {
-                                let private_key = p384::SecretKey::from_slice(&d)
-                                    .map_err(|_| Error::Data(None))?;
+                                let private_key =
+                                    p384::SecretKey::from_slice(&d).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to parse P-384 private key".to_string(),
+                                        ))
+                                    })?;
                                 let mut sec1_bytes = vec![4u8];
                                 sec1_bytes.extend_from_slice(&x);
                                 sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data(None))?;
+                                let encoded_point =
+                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to encode curve point".to_string(),
+                                        ))
+                                    })?;
                                 NistP384::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| Error::Data(None))?;
+                                    .map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to validate P-384 public key".to_string(),
+                                        ))
+                                    })?;
                                 Handle::P384PrivateKey(private_key)
                             },
                             NAMED_CURVE_P521 => {
-                                let private_key = p521::SecretKey::from_slice(&d)
-                                    .map_err(|_| Error::Data(None))?;
+                                let private_key =
+                                    p521::SecretKey::from_slice(&d).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to parse P-521 private key".to_string(),
+                                        ))
+                                    })?;
                                 let mut sec1_bytes = vec![4u8];
                                 sec1_bytes.extend_from_slice(&x);
                                 sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data(None))?;
+                                let encoded_point =
+                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to encode curve point".to_string(),
+                                        ))
+                                    })?;
                                 NistP521::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| Error::Data(None))?;
+                                    .map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to validate P-521 public key".to_string(),
+                                        ))
+                                    })?;
                                 Handle::P521PrivateKey(private_key)
                             },
                             _ => unreachable!(),
@@ -681,14 +819,24 @@ pub(crate) fn import_key(
                         // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.1 of
                         // JSON Web Algorithms [JWA], then throw a DataError.
                         let x = match jwk.x {
-                            Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
-                                .map_err(|_| Error::Data(None))?,
-                            None => return Err(Error::Data(None)),
+                            Some(x) => Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| {
+                                Error::Data(Some("JWK `x` field could not be decoded".to_string()))
+                            })?,
+                            None => {
+                                return Err(Error::Data(Some(
+                                    "JWK `x` field is missing".to_string(),
+                                )));
+                            },
                         };
                         let y = match jwk.y {
-                            Some(y) => Base64UrlUnpadded::decode_vec(&y.str())
-                                .map_err(|_| Error::Data(None))?,
-                            None => return Err(Error::Data(None)),
+                            Some(y) => Base64UrlUnpadded::decode_vec(&y.str()).map_err(|_| {
+                                Error::Data(Some("JWK `y` field could not be decoded".to_string()))
+                            })?,
+                            None => {
+                                return Err(Error::Data(Some(
+                                    "JWK `y` field is missing".to_string(),
+                                )));
+                            },
                         };
 
                         // Step 2.10.2. Let key be a new CryptoKey object that represents the
@@ -700,36 +848,54 @@ pub(crate) fn import_key(
                                 let mut sec1_bytes = vec![4u8];
                                 sec1_bytes.extend_from_slice(&x);
                                 sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data(None))?;
+                                let encoded_point =
+                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to encode curve point".to_string(),
+                                        ))
+                                    })?;
                                 let public_key =
                                     p256::PublicKey::from_encoded_point(&encoded_point)
                                         .into_option()
-                                        .ok_or(Error::Data(None))?;
+                                        .ok_or(Error::Data(Some(
+                                            "Failed to decode P-256 public key".to_string(),
+                                        )))?;
                                 Handle::P256PublicKey(public_key)
                             },
                             NAMED_CURVE_P384 => {
                                 let mut sec1_bytes = vec![4u8];
                                 sec1_bytes.extend_from_slice(&x);
                                 sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data(None))?;
+                                let encoded_point =
+                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to encode curve point".to_string(),
+                                        ))
+                                    })?;
                                 let public_key =
                                     p384::PublicKey::from_encoded_point(&encoded_point)
                                         .into_option()
-                                        .ok_or(Error::Data(None))?;
+                                        .ok_or(Error::Data(Some(
+                                            "Failed to decode P-384 public key".to_string(),
+                                        )))?;
                                 Handle::P384PublicKey(public_key)
                             },
                             NAMED_CURVE_P521 => {
                                 let mut sec1_bytes = vec![4u8];
                                 sec1_bytes.extend_from_slice(&x);
                                 sec1_bytes.extend_from_slice(&y);
-                                let encoded_point = EncodedPoint::from_bytes(&sec1_bytes)
-                                    .map_err(|_| Error::Data(None))?;
+                                let encoded_point =
+                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                        Error::Data(Some(
+                                            "Failed to encode curve point".to_string(),
+                                        ))
+                                    })?;
                                 let public_key =
                                     p521::PublicKey::from_encoded_point(&encoded_point)
                                         .into_option()
-                                        .ok_or(Error::Data(None))?;
+                                        .ok_or(Error::Data(Some(
+                                            "Failed to decode P-521 public key".to_string(),
+                                        )))?;
                                 Handle::P521PublicKey(public_key)
                             },
                             _ => unreachable!(),
@@ -749,7 +915,9 @@ pub(crate) fn import_key(
                 // Step 2.10.2. If an error occurred or there are no applicable specifications,
                 // throw a DataError.
                 // NOTE: We currently do not support applicable specifications.
-                return Err(Error::NotSupported(None));
+                return Err(Error::NotSupported(Some(
+                    "Unsupported namedCurve".to_string(),
+                )));
             };
 
             // Step 2.11. If the key value is not a valid point on the Elliptic Curve identified by
@@ -781,12 +949,12 @@ pub(crate) fn import_key(
                 .iter()
                 .any(|&supported_curve| supported_curve == normalized_algorithm.named_curve)
             {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some("Unsupported namedCurve".to_string())));
             }
 
             // Step 2.2. If usages is not the empty list, then throw a SyntaxError.
             if !usages.is_empty() {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some("Usages list is not empty".to_string())));
             }
 
             // Step 2.3.
@@ -805,18 +973,21 @@ pub(crate) fn import_key(
                 // DataError.
                 match normalized_algorithm.named_curve.as_str() {
                     NAMED_CURVE_P256 => {
-                        let q = p256::PublicKey::from_sec1_bytes(key_data)
-                            .map_err(|_| Error::Data(None))?;
+                        let q = p256::PublicKey::from_sec1_bytes(key_data).map_err(|_| {
+                            Error::Data(Some("Failed to decode P-256 public key".to_string()))
+                        })?;
                         Handle::P256PublicKey(q)
                     },
                     NAMED_CURVE_P384 => {
-                        let q = p384::PublicKey::from_sec1_bytes(key_data)
-                            .map_err(|_| Error::Data(None))?;
+                        let q = p384::PublicKey::from_sec1_bytes(key_data).map_err(|_| {
+                            Error::Data(Some("Failed to decode P-384 public key".to_string()))
+                        })?;
                         Handle::P384PublicKey(q)
                     },
                     NAMED_CURVE_P521 => {
-                        let q = p521::PublicKey::from_sec1_bytes(key_data)
-                            .map_err(|_| Error::Data(None))?;
+                        let q = p521::PublicKey::from_sec1_bytes(key_data).map_err(|_| {
+                            Error::Data(Some("Failed to decode P-521 public key".to_string()))
+                        })?;
                         Handle::P521PublicKey(q)
                     },
                     _ => unreachable!(),
@@ -832,7 +1003,9 @@ pub(crate) fn import_key(
                 // Step. 2.3.2. If an error occurred or there are no applicable specifications,
                 // throw a DataError.
                 // NOTE: We currently do not support applicable specifications.
-                return Err(Error::NotSupported(None));
+                return Err(Error::NotSupported(Some(
+                    "Unsupported namedCurve".to_string(),
+                )));
             };
 
             // Step 2.4. Let algorithm be a new EcKeyAlgorithm object.
@@ -859,7 +1032,9 @@ pub(crate) fn import_key(
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Unsupported key format".to_string(),
+            )));
         },
     };
 
@@ -881,7 +1056,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not public".to_string(),
+                )));
             }
 
             // Step 3.2.
@@ -924,7 +1101,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 Handle::P521PublicKey(public_key) => public_key.to_public_key_der(),
                 _ => return Err(Error::Operation(None)),
             }
-            .map_err(|_| Error::Operation(None))?;
+            .map_err(|_| Error::Operation(Some("Failed to export public key".to_string())))?;
 
             ExportedKey::Bytes(data.to_vec())
         },
@@ -932,7 +1109,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not private".to_string(),
+                )));
             }
 
             // Step 3.2.
@@ -982,7 +1161,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 Handle::P521PrivateKey(private_key) => private_key.to_pkcs8_der(),
                 _ => return Err(Error::Operation(None)),
             }
-            .map_err(|_| Error::Operation(None))?;
+            .map_err(|_| Error::Operation(Some("Failed to export private key".to_string())))?;
 
             ExportedKey::Bytes(data.as_bytes().to_vec())
         },
@@ -999,7 +1178,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 if let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() {
                     algorithm.named_curve.as_str()
                 } else {
-                    return Err(Error::Operation(None));
+                    return Err(Error::Operation(Some(
+                        "key is not an elliptic curve algorithm key".to_string(),
+                    )));
                 };
             // If the namedCurve attribute of the [[algorithm]] internal slot of key is "P-256",
             // "P-384" or "P-521":
@@ -1023,53 +1204,61 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 // 6.2.1.2 of JSON Web Algorithms [JWA].
                 // Step 3.3.3. Set the y attribute of jwk according to the definition in Section
                 // 6.2.1.3 of JSON Web Algorithms [JWA].
+                let public_key_err =
+                    Error::Operation(Some("Failed to export public key".to_string()));
+                let private_key_err =
+                    Error::Operation(Some("Failed to export private key".to_string()));
                 let (x, y) = match key.handle() {
                     Handle::P256PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.x().ok_or(public_key_err.clone())?.to_vec(),
+                            encoded_point.y().ok_or(public_key_err)?.to_vec(),
                         )
                     },
                     Handle::P384PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.x().ok_or(public_key_err.clone())?.to_vec(),
+                            encoded_point.y().ok_or(public_key_err)?.to_vec(),
                         )
                     },
                     Handle::P521PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.x().ok_or(public_key_err.clone())?.to_vec(),
+                            encoded_point.y().ok_or(public_key_err)?.to_vec(),
                         )
                     },
                     Handle::P256PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.x().ok_or(private_key_err.clone())?.to_vec(),
+                            encoded_point.y().ok_or(private_key_err)?.to_vec(),
                         )
                     },
                     Handle::P384PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.x().ok_or(private_key_err.clone())?.to_vec(),
+                            encoded_point.y().ok_or(private_key_err)?.to_vec(),
                         )
                     },
                     Handle::P521PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(Error::Operation(None))?.to_vec(),
-                            encoded_point.y().ok_or(Error::Operation(None))?.to_vec(),
+                            encoded_point.x().ok_or(private_key_err.clone())?.to_vec(),
+                            encoded_point.y().ok_or(private_key_err)?.to_vec(),
                         )
                     },
-                    _ => return Err(Error::Operation(None)),
+                    _ => {
+                        return Err(Error::NotSupported(Some(
+                            "Unsupported key type".to_string(),
+                        )));
+                    },
                 };
                 jwk.x = Some(Base64UrlUnpadded::encode_string(&x).into());
                 jwk.y = Some(Base64UrlUnpadded::encode_string(&y).into());
@@ -1083,7 +1272,11 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                         Handle::P256PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         Handle::P384PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         Handle::P521PrivateKey(private_key) => private_key.to_bytes().to_vec(),
-                        _ => return Err(Error::NotSupported(None)),
+                        _ => {
+                            return Err(Error::NotSupported(Some(
+                                "Unsupported key type".to_string(),
+                            )));
+                        },
                     };
                     jwk.d = Some(Base64UrlUnpadded::encode_string(&d).into());
                 }
@@ -1115,7 +1308,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not public".to_string(),
+                )));
             }
 
             // Step 3.2.
@@ -1133,7 +1328,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 if let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() {
                     algorithm.named_curve.as_str()
                 } else {
-                    return Err(Error::Operation(None));
+                    return Err(Error::Operation(Some(
+                        "key is not an elliptic curve algorithm key".to_string(),
+                    )));
                 };
             let data = if matches!(
                 named_curve,
@@ -1143,10 +1340,16 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     Handle::P256PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
                     Handle::P384PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
                     Handle::P521PublicKey(public_key) => public_key.to_sec1_bytes().to_vec(),
-                    _ => return Err(Error::Operation(None)),
+                    _ => {
+                        return Err(Error::Operation(Some(
+                            "Failed to export public key".to_string(),
+                        )));
+                    },
                 }
             } else {
-                return Err(Error::NotSupported(None));
+                return Err(Error::NotSupported(Some(
+                    "Unsupported namedCurve".to_string(),
+                )));
             };
 
             // Step 3.3. Let result be data.
@@ -1155,7 +1358,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Unsupported key format".to_string(),
+            )));
         },
     };
 
