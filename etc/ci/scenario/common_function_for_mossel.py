@@ -12,6 +12,7 @@
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium import webdriver
+from time import sleep
 
 
 def load_mossel(driver: webdriver.Remote):
@@ -42,6 +43,7 @@ def close_popup(driver: webdriver.Remote):
         birthday_element = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
         birthday_element.click()
         print("Closed the popup")
+        sleep(1)
     except NoSuchElementException:
         print(f"Failed to find pop_up element with selector `{popup_css_selector}`. Skip it.")
 
@@ -55,3 +57,14 @@ def click_category(driver: webdriver.Remote):
         raise NoSuchElementException("Category element not found. Test failed.")
 
     category_element.click()
+    post_click_category(driver)
+
+
+def post_click_category(driver: webdriver.Remote):
+    try:
+        driver.find_element(By.CSS_SELECTOR, ".uni-async-error")
+        print("\033[31mMossel timeout JS triggered for category page, reloading...\033[0m")
+        driver.refresh()
+        post_click_category(driver)
+    except NoSuchElementException:
+        print("\033[32mCategory page loaded.\033[0m")
