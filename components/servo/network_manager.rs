@@ -4,20 +4,36 @@
 
 use net_traits::ResourceThreads;
 
+/// Provides APIs for managing network-related state.
+///
+/// `NetworkManager` is responsible for data owned by the networking layer,
+/// such as the HTTP cache. This data is not considered site data and is
+/// therefore intentionally separate from `SiteDataManager`.
 pub struct NetworkManager {
-    _public_resource_threads: ResourceThreads,
-    _private_resource_threads: ResourceThreads,
+    public_resource_threads: ResourceThreads,
+    private_resource_threads: ResourceThreads,
 }
 
-// Placeholder for protocol handlers and related networking functionality.
 impl NetworkManager {
     pub(crate) fn new(
         public_resource_threads: ResourceThreads,
         private_resource_threads: ResourceThreads,
     ) -> Self {
         Self {
-            _public_resource_threads: public_resource_threads,
-            _private_resource_threads: private_resource_threads,
+            public_resource_threads,
+            private_resource_threads,
         }
+    }
+
+    /// Clears the network (HTTP) cache.
+    ///
+    /// This removes all cached network responses maintained by the networking
+    /// layer for both public and private browsing contexts.
+    ///
+    /// Note: The networking layer currently only implements an in-memory HTTP
+    /// cache. Support for an on-disk cache is under development.
+    pub fn clear_cache(&self) {
+        self.public_resource_threads.clear_cache();
+        self.private_resource_threads.clear_cache();
     }
 }
