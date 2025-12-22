@@ -17,13 +17,19 @@ from time import sleep
 
 def load_mossel(driver: webdriver.Remote):
     PAGE_URL = "https://m.huaweimossel.com"
+    driver.set_page_load_timeout(30)
     while True:
-        driver.get(PAGE_URL)
         try:
-            driver.find_element(By.CSS_SELECTOR, ".uni-async-error")
-            print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
-        except NoSuchElementException:
-            break
+            driver.get(PAGE_URL)
+            try:
+                driver.find_element(By.CSS_SELECTOR, ".uni-async-error")
+                print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
+            except NoSuchElementException:
+                break
+        except Exception:
+            print("\033[31mPage load failed, retrying...\033[0m")
+            continue
+
     print("\033[32mPage loaded.\033[0m")
 
 
@@ -73,5 +79,10 @@ def identify_element_in_category(driver: webdriver.Remote):
             break
         except NoSuchElementException:
             # We hit the timeout JS, reload and try again.
-            driver.refresh()
-    print("\033[31mComponents found!\033[0m")
+            print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
+            try:
+                driver.refresh()
+            except Exception:
+                print("\033[31mPage refresh failed, retrying...\033[0m")
+                continue
+    print("\033[32mComponents found!\033[0m")

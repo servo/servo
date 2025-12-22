@@ -23,6 +23,7 @@ def operator():
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
     driver.implicitly_wait(IMPLICIT_WAIT_TIME_FOR_POPUP)
+    driver.set_page_load_timeout(30)
     common_function_for_mossel.load_mossel(driver)
 
     # Step 2. Click to close the pop-up
