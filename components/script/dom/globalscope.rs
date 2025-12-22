@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::{Cell, OnceCell, Ref};
+use std::cell::{Cell, OnceCell, Ref, RefCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
@@ -142,7 +142,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::dom::writablestream::CrossRealmTransformWritable;
-use crate::fetch::QueuedDeferredFetchRecord;
+use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
@@ -420,6 +420,10 @@ pub(crate) struct GlobalScope {
     #[conditional_malloc_size_of]
     #[no_trace]
     font_context: Option<Arc<FontContext>>,
+
+    /// <https://fetch.spec.whatwg.org/#environment-settings-object-fetch-group>
+    #[no_trace]
+    fetch_group: RefCell<FetchGroup>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -831,6 +835,7 @@ impl GlobalScope {
             import_map: Default::default(),
             resolved_module_set: Default::default(),
             font_context,
+            fetch_group: Default::default(),
         }
     }
 
@@ -3456,11 +3461,46 @@ impl GlobalScope {
         unreachable!();
     }
 
-    pub(crate) fn append_deferred_fetch(&self, deferred_fetch: QueuedDeferredFetchRecord) {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.Document().append_deferred_fetch(deferred_fetch);
+    pub(crate) fn append_deferred_fetch(
+        &self,
+        deferred_fetch: QueuedDeferredFetchRecord,
+    ) -> DeferredFetchRecordId {
+        let deferred_record_id = DeferredFetchRecordId::default();
+        self.fetch_group
+            .borrow_mut()
+            .deferred_fetch_records
+            .insert(deferred_record_id, deferred_fetch);
+        deferred_record_id
+    }
+
+    pub(crate) fn deferred_fetches(&self) -> Vec<QueuedDeferredFetchRecord> {
+        self.fetch_group
+            .borrow()
+            .deferred_fetch_records
+            .values()
+            .cloned()
+            .collect()
+    }
+
+    pub(crate) fn deferred_fetch_record_for_id(
+        &self,
+        deferred_fetch_record_id: &DeferredFetchRecordId,
+    ) -> QueuedDeferredFetchRecord {
+        self.fetch_group
+            .borrow()
+            .deferred_fetch_records
+            .get(deferred_fetch_record_id)
+            .expect("Should always use a generated fetch_record_id instead of passing your own")
+            .clone()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#process-deferred-fetches>
+    pub(crate) fn process_deferred_fetches(&self) {
+        // Step 1. For each deferred fetch record deferredRecord of fetchGroup’s
+        // deferred fetch records, process a deferred fetch deferredRecord.
+        for deferred_fetch in self.deferred_fetches() {
+            deferred_fetch.process(self);
         }
-        unreachable!("Deferred fetches (e.g. `fetchLater`) are only available on window");
     }
 
     pub(crate) fn import_map(&self) -> Ref<'_, ImportMap> {

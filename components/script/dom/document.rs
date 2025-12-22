@@ -186,7 +186,7 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::dom::xpathexpression::XPathExpression;
-use crate::fetch::{FetchCanceller, QueuedDeferredFetchRecord};
+use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
@@ -1960,10 +1960,6 @@ impl Document {
         }
     }
 
-    pub(crate) fn append_deferred_fetch(&self, request: QueuedDeferredFetchRecord) {
-        self.loader_mut().append_deferred_fetch(request);
-    }
-
     /// <https://fetch.spec.whatwg.org/#available-deferred-fetch-quota>
     pub(crate) fn available_deferred_fetch_quota(&self, origin: ImmutableOrigin) -> isize {
         // Step 1. Let controlDocument be document’s deferred-fetch control document.
@@ -2010,8 +2006,7 @@ impl Document {
         // TODO
         // Step 8.2. For each deferred fetch record deferredRecord of navigable’s active document’s
         // relevant settings object’s fetch group’s deferred fetch records:
-        for deferred_fetch in control_document.loader().deferred_fetches() {
-            let deferred_fetch = deferred_fetch.lock().unwrap();
+        for deferred_fetch in navigable.as_global_scope().deferred_fetches() {
             // Step 8.2.1. Let requestLength be the total request length of deferredRecord’s request.
             let request_length = deferred_fetch.request.total_request_length();
             // Step 8.2.2. Decrement quota by requestLength.
@@ -2633,6 +2628,24 @@ impl Document {
         // TODO
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
+    fn terminate_fetch_group(&self) -> bool {
+        let mut load_cancellers = self.loader.borrow_mut().cancel_all_loads();
+
+        // Step 1. For each fetch record record of fetchGroup’s fetch records,
+        // if record’s controller is non-null and record’s request’s done flag
+        // is unset and keepalive is false, terminate record’s controller.
+        for canceller in &mut load_cancellers {
+            if !canceller.keep_alive() {
+                canceller.terminate();
+            }
+        }
+        // Step 2. Process deferred fetches for fetchGroup.
+        self.owner_global().process_deferred_fetches();
+
+        !load_cancellers.is_empty()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
     pub(crate) fn abort(&self, can_gc: CanGc) {
         // We need to inhibit the loader before anything else.
@@ -2655,7 +2668,7 @@ impl Document {
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
         self.deferred_scripts.clear();
-        let loads_cancelled = self.loader.borrow_mut().cancel_all_loads();
+        let loads_cancelled = self.terminate_fetch_group();
         let event_sources_canceled = self.window.as_global_scope().close_event_sources();
         if loads_cancelled || event_sources_canceled {
             // If any loads were canceled.
