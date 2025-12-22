@@ -27,7 +27,8 @@ def load_mossel(driver: webdriver.Remote):
             except NoSuchElementException:
                 break
         except Exception as e:
-            print(f"\033[31mPage load failed: {e}, retrying...\033[0m")
+            print(f"\033[31mPage load failed: {e}\033[0m")
+            print("Retrying...")
             continue
 
     print("\033[32mPage loaded.\033[0m")
@@ -83,6 +84,7 @@ def identify_element_in_category(driver: webdriver.Remote):
             try:
                 driver.refresh()
             except Exception as e:
-                print(f"\033[31mPage refresh failed: {e}, retrying...\033[0m")
+                print(f"\033[31mPage refresh failed: {e}\033[0m")
+                print("Retrying...")
                 continue
     print("\033[32mComponents found!\033[0m")
