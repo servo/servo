@@ -80,6 +80,11 @@ impl ConstellationWebView {
         self.theme
     }
 
+    /// Whether or not the WebView is hidden.
+    pub(crate) fn hidden(&self) -> bool {
+        self.hidden
+    }
+
     /// Set whether or not this [`ConstellationWebView`] is hidden, returning true if the value changed.
     pub(crate) fn set_hidden(&mut self, hidden: bool) -> bool {
         let old_hidden = std::mem::replace(&mut self.hidden, hidden);

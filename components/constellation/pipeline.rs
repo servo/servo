@@ -82,7 +82,7 @@ impl Pipeline {
         new_pipeline_info: NewPipelineInfo,
         event_loop: Rc<EventLoop>,
         constellation: &Constellation<STF, SWF>,
-        throttled: bool,
+        webview_hidden: bool,
     ) -> Result<Self, Error> {
         if let Err(error) = event_loop.send(ScriptThreadMessage::SpawnPipeline(
             new_pipeline_info.clone(),
@@ -98,7 +98,7 @@ impl Pipeline {
             new_pipeline_info.opener,
             event_loop,
             constellation.paint_proxy.clone(),
-            throttled,
+            webview_hidden,
             new_pipeline_info.load_data,
         ))
     }
@@ -112,7 +112,7 @@ impl Pipeline {
         opener: Option<BrowsingContextId>,
         event_loop: Rc<EventLoop>,
         paint_proxy: PaintProxy,
-        throttled: bool,
+        webview_hidden: bool,
         load_data: LoadData,
     ) -> Self {
         let pipeline = Self {
@@ -134,7 +134,11 @@ impl Pipeline {
             // Assume that every new Pipeline has an active document until told otherwise.
             has_active_document: true,
         };
-        pipeline.send_throttle_messages(throttled);
+
+        if webview_hidden {
+            pipeline.send_throttle_messages(true);
+        }
+
         pipeline
     }
 

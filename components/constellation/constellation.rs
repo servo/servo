@@ -1030,20 +1030,18 @@ where
         // https://github.com/servo/ipc-channel/issues/138
         load_data: LoadData,
         is_private: bool,
-        throttled: bool,
     ) {
         if self.shutting_down {
             return;
         }
 
         debug!("Creating new pipeline ({new_pipeline_id:?}) in {browsing_context_id}");
-        let Some(theme) = self
-            .webviews
-            .get(&webview_id)
-            .map(ConstellationWebView::theme)
-        else {
-            warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
-            return;
+        let (webview_hidden, theme) = {
+            let Some(webview) = self.webviews.get(&webview_id) else {
+                warn!("Tried to create Pipeline for uknown WebViewId: {webview_id:?}");
+                return;
+            };
+            (webview.hidden(), webview.theme())
         };
 
         let event_loop = match self.get_or_create_event_loop_for_new_pipeline(
@@ -1073,7 +1071,7 @@ where
             user_content_manager_id,
             theme,
         };
-        let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, throttled) {
+        let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, webview_hidden) {
             Ok(pipeline) => pipeline,
             Err(error) => return self.handle_send_error(new_pipeline_id, error),
         };
@@ -1163,7 +1161,6 @@ where
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
-        throttled: bool,
     ) {
         debug!("{}: Creating new browsing context", browsing_context_id);
         let bc_group_id = match self
@@ -1202,7 +1199,6 @@ where
             viewport_details,
             is_private,
             inherited_secure_context,
-            throttled,
         );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
@@ -2855,7 +2851,6 @@ where
         };
         let viewport_details = browsing_context.viewport_details;
         let pipeline_id = browsing_context.pipeline_id;
-        let throttled = browsing_context.throttled;
 
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             return warn!("failed pipeline is missing");
@@ -2900,7 +2895,6 @@ where
             viewport_details,
             new_load_data,
             is_private,
-            throttled,
         );
         self.add_pending_change(SessionHistoryChange {
             webview_id,
@@ -3062,7 +3056,6 @@ where
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let load_data = LoadData::new_for_new_unrelated_webview(url);
         let is_private = false;
-        let throttled = false;
 
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
@@ -3089,7 +3082,6 @@ where
             viewport_details,
             load_data,
             is_private,
-            throttled,
         );
         self.add_pending_change(SessionHistoryChange {
             webview_id,
@@ -3100,7 +3092,6 @@ where
                 parent_pipeline_id: None,
                 is_private,
                 inherited_secure_context: None,
-                throttled,
             }),
             viewport_details,
         });
@@ -3290,7 +3281,6 @@ where
         };
 
         let browsing_context_size = browsing_context.viewport_details;
-        let browsing_context_throttled = browsing_context.throttled;
         // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
         #[cfg(debug_assertions)]
         if !(browsing_context_size == load_info.viewport_details) {
@@ -3309,7 +3299,6 @@ where
             browsing_context_size,
             load_info.load_data,
             is_private,
-            browsing_context_throttled,
         );
         self.add_pending_change(SessionHistoryChange {
             webview_id,
@@ -3343,9 +3332,9 @@ where
                     );
                 },
             };
-        let (is_parent_private, is_parent_throttled, is_parent_secure) =
+        let (is_parent_private, is_parent_secure) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.throttled, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "{}: New iframe {} loaded in closed parent browsing context",
@@ -3353,6 +3342,11 @@ where
                     );
                 },
             };
+
+        let webview_hidden = self
+            .webviews
+            .get(&webview_id)
+            .is_none_or(|webview| webview.hidden());
         let is_private = is_private || is_parent_private;
         let pipeline = Pipeline::new_already_spawned(
             new_pipeline_id,
@@ -3361,7 +3355,7 @@ where
             None,
             script_sender,
             self.paint_proxy.clone(),
-            is_parent_throttled,
+            webview_hidden,
             load_info.load_data,
         );
 
@@ -3377,7 +3371,6 @@ where
                 parent_pipeline_id: Some(parent_pipeline_id),
                 is_private,
                 inherited_secure_context: is_parent_secure,
-                throttled: is_parent_throttled,
             }),
             viewport_details: load_info.viewport_details,
         });
@@ -3424,9 +3417,9 @@ where
                     );
                 },
             };
-        let (is_opener_private, is_opener_throttled, is_opener_secure) =
+        let (is_opener_private, is_opener_secure) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.throttled, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "{}: New auxiliary {} loaded in closed opener browsing context",
@@ -3442,7 +3435,9 @@ where
             Some(opener_browsing_context_id),
             script_sender,
             self.paint_proxy.clone(),
-            is_opener_throttled,
+            // This means that the WebView isn't hidden. If it does become hidden
+            // at a later time, a followup message will arrive to the Constellation.
+            false,
             load_data,
         );
         let _ = response_sender.send(Some(AuxiliaryWebViewCreationResponse {
@@ -3483,7 +3478,6 @@ where
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
                 inherited_secure_context: is_opener_secure,
-                throttled: is_opener_throttled,
             }),
             viewport_details,
         });
@@ -3622,14 +3616,13 @@ where
                 return None;
             },
         };
-        let (viewport_details, pipeline_id, parent_pipeline_id, is_private, is_throttled) =
+        let (viewport_details, pipeline_id, parent_pipeline_id, is_private) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
                     ctx.viewport_details,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
                     ctx.is_private,
-                    ctx.throttled,
                 ),
                 None => {
                     // This should technically never happen (since `load_url` is
@@ -3716,7 +3709,6 @@ where
                     viewport_details,
                     load_data,
                     is_private,
-                    is_throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     webview_id,
@@ -3962,24 +3954,17 @@ where
                     browsing_context_id, pipeline_id,
                 );
 
-                let (
-                    webview_id,
-                    old_pipeline_id,
-                    parent_pipeline_id,
-                    viewport_details,
-                    is_private,
-                    throttled,
-                ) = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(ctx) => (
-                        ctx.webview_id,
-                        ctx.pipeline_id,
-                        ctx.parent_pipeline_id,
-                        ctx.viewport_details,
-                        ctx.is_private,
-                        ctx.throttled,
-                    ),
-                    None => return warn!("No browsing context to traverse!"),
-                };
+                let (webview_id, old_pipeline_id, parent_pipeline_id, viewport_details, is_private) =
+                    match self.browsing_contexts.get(&browsing_context_id) {
+                        Some(ctx) => (
+                            ctx.webview_id,
+                            ctx.pipeline_id,
+                            ctx.parent_pipeline_id,
+                            ctx.viewport_details,
+                            ctx.is_private,
+                        ),
+                        None => return warn!("No browsing context to traverse!"),
+                    };
                 let opener = match self.pipelines.get(&old_pipeline_id) {
                     Some(pipeline) => pipeline.opener,
                     None => None,
@@ -3994,7 +3979,6 @@ where
                     viewport_details,
                     load_data.clone(),
                     is_private,
-                    throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     webview_id,
@@ -4753,7 +4737,6 @@ where
                     change.viewport_details,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
-                    new_context_info.throttled,
                 );
                 self.update_activity(change.new_pipeline_id);
             },
