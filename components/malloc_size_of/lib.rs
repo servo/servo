@@ -54,6 +54,7 @@ use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
 
 use resvg::usvg::fontdb::Source;
+use resvg::usvg::{self, tiny_skia_path};
 use style::properties::ComputedValues;
 use style::values::generics::length::GenericLengthPercentageOrAuto;
 pub use stylo_malloc_size_of::MallocSizeOfOps;
@@ -825,6 +826,183 @@ impl<Static: string_cache::StaticAtomSet> MallocSizeOf for string_cache::Atom<St
     }
 }
 
+impl MallocSizeOf for usvg::Tree {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let root = self.root();
+        let linear_gradients = self.linear_gradients();
+        let radial_gradients = self.radial_gradients();
+        let patterns = self.patterns();
+        let clip_paths = self.clip_paths();
+        let masks = self.masks();
+        let filters = self.filters();
+        let fontdb = self.fontdb();
+
+        let mut sum = 0;
+        sum += root.size_of(ops);
+        sum += linear_gradients
+            .iter()
+            .map(|x| x.size_of(ops))
+            .sum::<usize>();
+        sum += radial_gradients
+            .iter()
+            .map(|x| x.size_of(ops))
+            .sum::<usize>();
+        sum += patterns.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        sum += clip_paths.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        sum += masks.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        sum += filters.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        sum += fontdb.size_of(ops);
+
+        if ops.has_malloc_enclosing_size_of() {
+            unsafe {
+                sum += ops.malloc_enclosing_size_of(root);
+                if !linear_gradients.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(linear_gradients.as_ptr());
+                }
+                if !radial_gradients.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(radial_gradients.as_ptr());
+                }
+                if !patterns.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(patterns.as_ptr());
+                }
+                if !clip_paths.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(clip_paths.as_ptr());
+                }
+                if !masks.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(masks.as_ptr());
+                }
+                if !filters.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(filters.as_ptr());
+                }
+                sum += ops.malloc_enclosing_size_of(fontdb);
+            }
+        }
+        sum
+    }
+}
+
+impl MallocSizeOf for usvg::Group {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let id = self.id();
+        let children = self.children();
+        let filters = self.filters();
+        let clip_path = self.clip_path();
+
+        let mut sum = 0;
+        sum += id.size_of(ops);
+        sum += children.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        sum += filters.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        sum += clip_path.size_of(ops);
+
+        if ops.has_malloc_enclosing_size_of() {
+            unsafe {
+                if !id.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(id.as_ptr());
+                }
+                if let Some(c) = clip_path {
+                    sum += ops.malloc_enclosing_size_of(c)
+                }
+                if !children.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(children.as_ptr());
+                }
+                if !filters.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(filters.as_ptr());
+                }
+            }
+        }
+        sum
+    }
+}
+
+impl MallocSizeOf for usvg::Node {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let id = self.id();
+
+        let mut sum = 0;
+        sum += id.size_of(ops);
+        if ops.has_malloc_enclosing_size_of() {
+            unsafe {
+                if !id.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(id.as_ptr())
+                }
+            }
+        }
+        match self {
+            usvg::Node::Group(group) => {
+                sum += group.size_of(ops);
+                if ops.has_malloc_enclosing_size_of() {
+                    unsafe { sum += ops.malloc_enclosing_size_of(group) }
+                }
+            },
+            usvg::Node::Path(path) => {
+                sum += path.size_of(ops);
+                if ops.has_malloc_enclosing_size_of() {
+                    unsafe { sum += ops.malloc_enclosing_size_of(path) }
+                }
+            },
+            usvg::Node::Image(image) => {
+                sum += image.size_of(ops);
+            },
+            usvg::Node::Text(text) => {
+                sum += text.size_of(ops);
+            },
+        };
+        sum
+    }
+}
+
+impl MallocSizeOf for usvg::Path {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let id = self.id();
+        let data = self.data();
+        let fill = self.fill();
+        let stroke = self.stroke();
+
+        let mut sum = 0;
+        sum += id.size_of(ops);
+        sum += data.size_of(ops);
+        sum += fill.size_of(ops);
+        sum += stroke.size_of(ops);
+        if ops.has_malloc_enclosing_size_of() {
+            unsafe {
+                if !id.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(id.as_ptr());
+                }
+                sum += ops.malloc_enclosing_size_of(data);
+                if let Some(f) = fill {
+                    sum += ops.malloc_enclosing_size_of(f)
+                }
+                if let Some(s) = stroke {
+                    sum += ops.malloc_enclosing_size_of(s)
+                }
+            }
+        }
+        sum
+    }
+}
+impl MallocSizeOf for tiny_skia_path::Path {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let verbs = self.verbs();
+        let points = self.points();
+
+        let mut sum = 0;
+        sum += verbs.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        sum += points.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        if ops.has_malloc_enclosing_size_of() {
+            unsafe {
+                if !points.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(points.as_ptr());
+                }
+                if !verbs.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(verbs.as_ptr());
+                }
+            }
+        }
+
+        sum
+    }
+}
+
 // Placeholder for unique case where internals of Sender cannot be measured.
 // malloc size of is 0 macro complains about type supplied!
 impl<T> MallocSizeOf for crossbeam_channel::Sender<T> {
@@ -887,7 +1065,6 @@ malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFl
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
 malloc_size_of_is_0!(mime::Mime);
-malloc_size_of_is_0!(resvg::usvg::Tree);
 malloc_size_of_is_0!(resvg::usvg::fontdb::ID);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Style);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
