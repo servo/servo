@@ -21,17 +21,13 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    IMPLICIT_WAIT_TIME_FOR_POPUP = 15
-    PAGE_URL = "https://m.huaweimossel.com"
-    # Based on experience, it could take up to seconds to load the page after click.
-    IMPLICIT_WAIT_TIME_AFTER_REDIRECTION = 60
+    IMPLICIT_WAIT_TIME_FOR_POPUP = 10
+    IMPLICIT_WAIT_TIME_AFTER_REDIRECTION = 40
     driver = common_function_for_servo_test.create_driver()
-    driver.get(PAGE_URL)
-
-    print("Page loaded.")
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
     driver.implicitly_wait(IMPLICIT_WAIT_TIME_FOR_POPUP)
+    common_function_for_mossel.load_mossel(driver)
 
     # Step 2. Click to close the pop-up
     common_function_for_mossel.close_popup(driver)
