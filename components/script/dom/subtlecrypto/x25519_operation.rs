@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64ct::{Base64UrlUnpadded, Encoding};
 use pkcs8::PrivateKeyInfo;
 use pkcs8::der::asn1::{BitStringRef, OctetString, OctetStringRef};
 use pkcs8::der::{AnyRef, Decode, Encode};
@@ -562,16 +561,16 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
             // Step 3.4. Set the x attribute of jwk according to the definition in Section 2 of
             // [RFC8037].
-            jwk.x = match key.handle() {
+            match key.handle() {
                 Handle::X25519PrivateKey(private_key) => {
                     let public_key = PublicKey::from(private_key);
-                    Some(Base64UrlUnpadded::encode_string(public_key.as_bytes()).into())
+                    jwk.encode_string_field(JwkStringField::X, public_key.as_bytes());
                 },
                 Handle::X25519PublicKey(public_key) => {
-                    Some(Base64UrlUnpadded::encode_string(public_key.as_bytes()).into())
+                    jwk.encode_string_field(JwkStringField::X, public_key.as_bytes());
                 },
                 _ => return Err(Error::Operation(None)),
-            };
+            }
 
             // Step 3.5.
             // If the [[type]] internal slot of key is "private"
@@ -579,7 +578,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     [RFC8037].
             if key.Type() == KeyType::Private {
                 if let Handle::X25519PrivateKey(private_key) = key.handle() {
-                    jwk.d = Some(Base64UrlUnpadded::encode_string(private_key.as_bytes()).into());
+                    jwk.encode_string_field(JwkStringField::D, private_key.as_bytes());
                 } else {
                     return Err(Error::Operation(None));
                 }

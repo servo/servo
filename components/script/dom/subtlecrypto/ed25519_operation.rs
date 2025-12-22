@@ -4,7 +4,6 @@
 
 use aws_lc_rs::encoding::{AsBigEndian, AsDer};
 use aws_lc_rs::signature::{ED25519, Ed25519KeyPair, KeyPair, ParsedPublicKey, UnparsedPublicKey};
-use base64ct::{Base64UrlUnpadded, Encoding};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 
@@ -477,56 +476,48 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
+            // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 3.2. Set the kty attribute of jwk to "OKP".
+            // Step 3.3. Set the alg attribute of jwk to "Ed25519".
+            // Step 3.4. Set the crv attribute of jwk to "Ed25519".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("OKP")),
+                alg: Some(DOMString::from(ALG_ED25519)),
+                crv: Some(DOMString::from(ALG_ED25519)),
+                ..Default::default()
+            };
+
             // Step 3.5. Set the x attribute of jwk according to the definition in Section 2 of [RFC8037].
             // Step 3.6.
             // If the [[type]] internal slot of key is "private"
             //     Set the d attribute of jwk according to the definition in Section 2 of [RFC8037].
-            let (x, d) = match key.Type() {
+            match key.Type() {
                 KeyType::Public => {
-                    let public_key = Base64UrlUnpadded::encode_string(key_data);
-                    (Some(DOMString::from(public_key)), None)
+                    jwk.encode_string_field(JwkStringField::X, key_data);
                 },
                 KeyType::Private => {
                     let key_pair = Ed25519KeyPair::from_seed_unchecked(key_data)
                         .map_err(|_| Error::Data(None))?;
-                    let public_key =
-                        Base64UrlUnpadded::encode_string(key_pair.public_key().as_ref());
-                    let private_key = Base64UrlUnpadded::encode_string(key_data);
-                    (
-                        Some(DOMString::from(public_key)),
-                        Some(DOMString::from(private_key)),
-                    )
+                    jwk.encode_string_field(JwkStringField::X, key_pair.public_key().as_ref());
+                    jwk.encode_string_field(JwkStringField::D, key_data);
                 },
                 KeyType::Secret => {
                     return Err(Error::Data(None));
                 },
-            };
+            }
 
             // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            let key_ops = Some(
+            jwk.key_ops = Some(
                 key.usages()
                     .iter()
                     .map(|usage| DOMString::from(usage.as_str()))
                     .collect::<Vec<DOMString>>(),
             );
 
-            // Step 3.1. Let jwk be a new JsonWebKey dictionary.
-            // Step 3.2. Set the kty attribute of jwk to "OKP".
-            // Step 3.3. Set the alg attribute of jwk to "Ed25519".
-            // Step 3.4. Set the crv attribute of jwk to "Ed25519".
             // Step 3.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
-            let jwk = JsonWebKey {
-                kty: Some(DOMString::from("OKP")),
-                alg: Some(DOMString::from(ALG_ED25519)),
-                crv: Some(DOMString::from(ALG_ED25519)),
-                x,
-                d,
-                key_ops,
-                ext: Some(key.Extractable()),
-                ..Default::default()
-            };
+            jwk.ext = Some(key.Extractable());
 
-            // Step 9. Let result be jwk.
+            // Step 3.9. Let result be jwk.
             ExportedKey::Jwk(Box::new(jwk))
         },
         // If format is "raw":
