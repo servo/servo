@@ -15,7 +15,7 @@ use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -162,7 +162,7 @@ impl OpenRequestListener {
                 );
                 event.upcast::<Event>().fire(open_request.upcast(), can_gc);
             },
-            Err(_error) => {
+            Err(err) => {
                 // Step 4.3.1:
                 // If result is an error,
                 // set request’s error to result,
@@ -171,6 +171,12 @@ impl OpenRequestListener {
                 // with its bubbles and cancelable attributes initialized to true.
 
                 // TODO: transform backend error into jsval.
+                let error = map_backend_error_to_dom_error(err);
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                error
+                    .clone()
+                    .to_jsval(cx, &global, rval.handle_mut(), can_gc);
                 open_request.set_result(rval.handle());
                 let event = Event::new(
                     &global,
