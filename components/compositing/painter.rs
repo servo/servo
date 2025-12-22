@@ -437,9 +437,8 @@ impl Painter {
         for webview_renderer in self.webview_renderers.values() {
             for (pipeline_id, pipeline) in webview_renderer.pipelines.iter() {
                 let Some(current_epoch) = self
-                    .webrender_renderer
-                    .as_ref()
-                    .and_then(|wr| wr.current_epoch(self.webrender_document, pipeline_id.into()))
+                    .webrender_api
+                    .current_epoch(self.webrender_document, pipeline_id.into())
                 else {
                     continue;
                 };
