@@ -366,10 +366,6 @@ impl LineItemLayout<'_, '_> {
         let inline_box = self.layout.ifc.inline_boxes.get(&identifier);
         let inline_box = &*(inline_box.borrow());
 
-        let mut padding = inline_box_state.pbm.padding;
-        let mut border = inline_box_state.pbm.border;
-        let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
-
         let mut had_start = inner_state
             .flags
             .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);
@@ -384,6 +380,9 @@ impl LineItemLayout<'_, '_> {
             std::mem::swap(&mut had_start, &mut had_end)
         }
 
+        let mut padding = inline_box_state.pbm.padding;
+        let mut border = inline_box_state.pbm.border;
+        let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
         if !had_start {
             padding.inline_start = Au::zero();
             border.inline_start = Au::zero();
@@ -394,27 +393,7 @@ impl LineItemLayout<'_, '_> {
             border.inline_end = Au::zero();
             margin.inline_end = Au::zero();
         }
-        // If the inline box didn't have any content at all and it isn't the first fragment for
-        // an element (needed for layout queries currently) and it didn't have any padding, border,
-        // or margin do not make a fragment for it.
-        //
-        // Note: This is an optimization, but also has side effects. Any fragments on a line will
-        // force the baseline to advance in the parent IFC.
-        //
-        // Note: We don't need to check the inline-start padding, border and margin because they
-        // must have been set to zero in the code above. But checking whether `pbm_sums.inline_end`
-        // is zero doesn't suffice, because it could be nullified by a negative margin.
-        //
-        // TODO: Once we implement `box-decoration-break: clone`, it may happen that `had_start` is
-        // true even if this isn't the first fragment.
         let pbm_sums = padding + border + margin;
-        if inner_state.fragments.is_empty() &&
-            !had_start &&
-            pbm_sums.inline_end.is_zero() &&
-            margin.inline_end.is_zero()
-        {
-            return;
-        }
 
         // Make `content_rect` relative to the parent Fragment.
         let mut content_rect = LogicalRect {
