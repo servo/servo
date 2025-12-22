@@ -21,7 +21,7 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    IMPLICIT_WAIT_TIME_FOR_POPUP = 10
+    IMPLICIT_WAIT_TIME_FOR_POPUP = 6
     IMPLICIT_WAIT_TIME_AFTER_REDIRECTION = 40
     driver = common_function_for_servo_test.create_driver()
     # This is used to wait for element retrieval if not found
