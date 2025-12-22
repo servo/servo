@@ -916,7 +916,7 @@ impl BlockLevelBox {
 /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
 /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
 #[allow(clippy::too_many_arguments)]
-fn layout_in_flow_non_replaced_block_level_same_formatting_context(
+pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
