@@ -78,10 +78,15 @@ impl WebStorageEngine for SqliteEngine {
 
     fn set(&mut self, key: &str, value: &str) -> Result<(), Self::Error> {
         // update or insert
-        self.connection.execute(
-            "INSERT INTO data (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value;",
-            [key, value],
-        )?;
+        //
+        // TODO: Replace this with an UPSERT once the schema guarantees a
+        // UNIQUE/PRIMARY KEY constraint on `key`.
+        let tx = self.connection.transaction()?;
+        let rows = tx.execute("UPDATE data SET value = ? WHERE key = ?", [value, key])?;
+        if rows == 0 {
+            tx.execute("INSERT INTO data (key, value) VALUES (?, ?)", [key, value])?;
+        }
+        tx.commit()?;
         Ok(())
     }
 
