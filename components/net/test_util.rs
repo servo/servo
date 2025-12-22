@@ -29,6 +29,7 @@ use tokio_rustls::{self, TlsAcceptor};
 use crate::async_runtime::{
     async_runtime_initialized, init_async_runtime, spawn_blocking_task, spawn_task,
 };
+pub use crate::hosts::replace_host_table;
 
 static ASYNC_RUNTIME: LazyLock<Arc<Mutex<Box<dyn AsyncRuntime>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(init_async_runtime())));

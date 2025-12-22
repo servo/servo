@@ -36,7 +36,7 @@ use net::cookie_storage::CookieStorage;
 use net::fetch::methods::{self};
 use net::http_loader::{determine_requests_referrer, serialize_origin};
 use net::resource_thread::AuthCacheEntry;
-use net::test::{DECODER_BUFFER_SIZE, replace_host_table};
+use net::test::DECODER_BUFFER_SIZE;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CredentialsMode, Destination, Referrer, Request, RequestBuilder, RequestMode,
@@ -51,7 +51,7 @@ use url::Url;
 use crate::{
     create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_body, make_server,
     make_ssl_server, mock_origin, new_fetch_context, receive_credential_prompt_msgs,
-    spawn_blocking_task,
+    replace_host_table, spawn_blocking_task,
 };
 
 fn assert_cookie_for_domain(

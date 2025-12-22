@@ -35,6 +35,6 @@ pub mod fetch {
 /// A module for re-exports of items used in unit tests.
 pub mod test {
     pub use crate::decoder::DECODER_BUFFER_SIZE;
-    pub use crate::hosts::{parse_hostsfile, replace_host_table};
+    pub use crate::hosts::parse_hostsfile;
     pub use crate::http_loader::HttpState;
 }
