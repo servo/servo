@@ -6,6 +6,7 @@
 mod common;
 
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
@@ -13,7 +14,7 @@ use euclid::{Point2D, Size2D};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
-use net::test_util::{make_body, make_server};
+use net::test_util::{make_body, make_server, replace_host_table};
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
@@ -22,6 +23,7 @@ use servo::{
     Theme, WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
+use servo_url::ServoUrl;
 use url::Url;
 use webrender_api::units::{DeviceIntSize, DevicePoint};
 
@@ -141,6 +143,47 @@ fn test_create_webview_http() {
     let host = url.host_str();
     assert!(host.is_some());
     assert_eq!(host.unwrap(), "localhost");
+}
+
+#[test]
+fn test_create_webview_http_custom_host() {
+    let servo_test = ServoTest::new();
+
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\n<title>Hello</title>";
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let port = url.port().unwrap();
+
+    let ip = "127.0.0.1".parse().unwrap();
+    let mut host_table = HashMap::new();
+    host_table.insert("www.example.com".to_owned(), ip);
+
+    replace_host_table(host_table);
+
+    let custom_url = ServoUrl::parse(&format!("http://www.example.com:{}", port)).unwrap();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(custom_url.clone().into_url())
+        .build();
+
+    servo_test.spin(move || !delegate.load_status_changed.get());
+
+    let _ = server.close();
+
+    let page_title = webview.page_title();
+    assert!(page_title.is_some());
+    assert_eq!(page_title.unwrap(), "Hello");
+
+    let url = webview.url();
+    assert!(url.is_some());
+    assert_eq!(url.unwrap(), custom_url.into_url());
 }
 
 #[test]
