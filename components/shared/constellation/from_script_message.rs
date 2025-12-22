@@ -767,8 +767,6 @@ pub enum ScriptToConstellationMessage {
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
     RemoveIFrame(BrowsingContextId, GenericSender<Vec<PipelineId>>),
-    /// Successful response to [crate::ConstellationControlMsg::SetThrottled].
-    SetThrottledComplete(bool),
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of the initial `about:blank` has been completed in an IFrame.

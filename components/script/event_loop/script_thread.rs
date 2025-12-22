@@ -1149,21 +1149,24 @@ impl ScriptThread {
             let mut realm = enter_auto_realm(cx, &*document);
             let cx = &mut realm.current_realm();
 
-            // > 11. For each doc of docs, update animations and send events for doc, passing
-            // > in relative high resolution time given frameTimestamp and doc's relevant
-            // > global object as the timestamp [WEBANIMATIONS]
-            document.update_animations_and_send_events(cx);
+            // Do not update animations or run rAFs if a Document is throttled.
+            if !document.window().throttled() {
+                // > 11. For each doc of docs, update animations and send events for doc, passing
+                // > in relative high resolution time given frameTimestamp and doc's relevant
+                // > global object as the timestamp [WEBANIMATIONS]
+                document.update_animations_and_send_events(cx);
 
-            // TODO(#31866): Implement "run the fullscreen steps" from
-            // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
+                // TODO(#31866): Implement "run the fullscreen steps" from
+                // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
 
-            // TODO(#31868): Implement the "context lost steps" from
-            // https://html.spec.whatwg.org/multipage/#context-lost-steps.
+                // TODO(#31868): Implement the "context lost steps" from
+                // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
-            // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
-            // > in the relative high resolution time given frameTimestamp and doc's
-            // > relevant global object as the timestamp.
-            document.run_the_animation_frame_callbacks(cx);
+                // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
+                // > in the relative high resolution time given frameTimestamp and doc's
+                // > relevant global object as the timestamp.
+                document.run_the_animation_frame_callbacks(cx);
+            }
 
             // Run the resize observer steps.
             let mut depth = Default::default();
@@ -1734,19 +1737,9 @@ impl ScriptThread {
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
                 self.handle_set_document_activity_msg(cx, pipeline_id, activity)
             },
-            ScriptThreadMessage::SetThrottled(webview_id, pipeline_id, throttled) => {
-                self.handle_set_throttled_msg(webview_id, pipeline_id, throttled)
+            ScriptThreadMessage::SetThrottled(pipeline_id, throttled) => {
+                self.handle_set_throttled_msg(pipeline_id, throttled)
             },
-            ScriptThreadMessage::SetThrottledInContainingIframe(
-                _,
-                parent_pipeline_id,
-                browsing_context_id,
-                throttled,
-            ) => self.handle_set_throttled_in_containing_iframe_msg(
-                parent_pipeline_id,
-                browsing_context_id,
-                throttled,
-            ),
             ScriptThreadMessage::PostMessage {
                 target: target_pipeline_id,
                 source_webview,
@@ -2753,39 +2746,7 @@ impl ScriptThread {
         reports_chan.send(ProcessReports::new(reports));
     }
 
-    /// Updates iframe element after a change in visibility
-    fn handle_set_throttled_in_containing_iframe_msg(
-        &self,
-        parent_pipeline_id: PipelineId,
-        browsing_context_id: BrowsingContextId,
-        throttled: bool,
-    ) {
-        let iframe = self
-            .documents
-            .borrow()
-            .find_iframe(parent_pipeline_id, browsing_context_id);
-        if let Some(iframe) = iframe {
-            iframe.set_throttled(throttled);
-        }
-    }
-
-    fn handle_set_throttled_msg(
-        &self,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        throttled: bool,
-    ) {
-        // Separate message sent since parent script thread could be different (Iframe of different
-        // domain)
-        self.senders
-            .pipeline_to_constellation_sender
-            .send((
-                webview_id,
-                pipeline_id,
-                ScriptToConstellationMessage::SetThrottledComplete(throttled),
-            ))
-            .unwrap();
-
+    fn handle_set_throttled_msg(&self, pipeline_id: PipelineId, throttled: bool) {
         let window = self.documents.borrow().find_window(pipeline_id);
         match window {
             Some(window) => {
