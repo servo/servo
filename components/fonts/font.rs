@@ -616,7 +616,7 @@ impl FontGroup {
     /// (which will cause a "glyph not found" character to be rendered). If no font at all can be
     /// found, returns None.
     pub fn find_by_codepoint(
-        &mut self,
+        &self,
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
@@ -688,7 +688,7 @@ impl FontGroup {
     }
 
     /// Find the first available font in the group, or the first available fallback font.
-    pub fn first(&mut self, font_context: &FontContext) -> Option<FontRef> {
+    pub fn first(&self, font_context: &FontContext) -> Option<FontRef> {
         // From https://drafts.csswg.org/css-fonts/#first-available-font:
         // > The first available font, used for example in the definition of font-relative lengths
         // > such as ex or in the definition of the line-height property, is defined to be the first
@@ -713,7 +713,7 @@ impl FontGroup {
     /// This method mutates because we may need to load new font data in the process of finding
     /// a suitable font.
     fn find(
-        &mut self,
+        &self,
         font_context: &FontContext,
         template_predicate: &impl Fn(FontTemplateRef) -> bool,
         font_predicate: &impl Fn(&FontRef) -> bool,
@@ -736,7 +736,7 @@ impl FontGroup {
     /// platform-specific family names. If a `codepoint` is provided, then its Unicode block may be
     /// used to refine the list of family names which will be tried.
     fn find_fallback(
-        &mut self,
+        &self,
         font_context: &FontContext,
         options: FallbackFontSelectionOptions,
         template_predicate: &impl Fn(FontTemplateRef) -> bool,

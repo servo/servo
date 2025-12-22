@@ -713,6 +713,12 @@ impl<T: MallocSizeOf> MallocSizeOf for parking_lot::RwLock<T> {
     }
 }
 
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for parking_lot::RwLock<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        (*self.read()).conditional_size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, Unit> MallocSizeOf for euclid::Length<T, Unit> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
