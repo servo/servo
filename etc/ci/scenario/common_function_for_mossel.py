@@ -19,7 +19,7 @@ def load_mossel(driver: webdriver.Remote):
     while True:
         driver.get(PAGE_URL)
         try:
-            driver.find_elements(By.CSS_SELECTOR, ".uni-async-error")
+            driver.find_element(By.CSS_SELECTOR, ".uni-async-error")
             print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
         except NoSuchElementException:
             break
