@@ -1503,8 +1503,8 @@ where
             EmbedderToConstellationMessage::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            EmbedderToConstellationMessage::SetWebViewThrottled(webview_id, throttled) => {
-                self.set_webview_throttled(webview_id, throttled);
+            EmbedderToConstellationMessage::SetWebViewHidden(webview_id, hidden) => {
+                self.set_webview_hidden(webview_id, hidden);
             },
             EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
@@ -4027,7 +4027,7 @@ where
 
         self.unload_document(old_pipeline_id);
 
-        if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
+        if let Some(new_pipeline) = self.pipelines.get_mut(&new_pipeline_id) {
             if let Some(ref chan) = self.devtools_sender {
                 let state = NavigationState::Start(new_pipeline.url.clone());
                 let _ = chan.send(DevtoolsControlMsg::FromScript(
@@ -4044,7 +4044,7 @@ where
                 ));
             }
 
-            new_pipeline.set_throttled(false);
+            new_pipeline.set_has_active_document(true);
             self.notify_focus_state(new_pipeline_id);
         }
 
@@ -4572,19 +4572,29 @@ where
         }
     }
 
-    #[servo_tracing::instrument(skip_all)]
-    fn set_webview_throttled(&mut self, webview_id: WebViewId, throttled: bool) {
+    fn root_pipeline_for_webview(&mut self, webview_id: WebViewId) -> Option<&Pipeline> {
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => {
-                return warn!("{browsing_context_id}: Tried to SetWebViewThrottled after closure");
-            },
-        };
-        match self.pipelines.get(&pipeline_id) {
-            None => warn!("{pipeline_id}: Tried to SetWebViewThrottled after closure"),
-            Some(pipeline) => pipeline.set_throttled(throttled),
+        let browsing_context = self.browsing_contexts.get(&browsing_context_id)?;
+        self.pipelines.get(&browsing_context.pipeline_id)
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn set_webview_hidden(&mut self, webview_id: WebViewId, hidden: bool) {
+        if self
+            .webviews
+            .get_mut(&webview_id)
+            .is_none_or(|webview| !webview.set_hidden(hidden))
+        {
+            return;
         }
+
+        let Some(root_pipeline) = self.root_pipeline_for_webview(webview_id) else {
+            warn!("Tried to send SetThrottled to WebView ({webview_id:?} after closure");
+            return;
+        };
+
+        // Throttle the root pipeline, recursively throttling descendant pipelines as well.
+        root_pipeline.send_throttle_messages(hidden);
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -5396,11 +5406,12 @@ where
 
     /// Send a message to script requesting the document associated with this pipeline runs the 'unload' algorithm.
     #[servo_tracing::instrument(skip_all)]
-    fn unload_document(&self, pipeline_id: PipelineId) {
-        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            pipeline.set_throttled(true);
-            let msg = ScriptThreadMessage::UnloadDocument(pipeline_id);
-            let _ = pipeline.event_loop.send(msg);
+    fn unload_document(&mut self, pipeline_id: PipelineId) {
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.set_has_active_document(false);
+            let _ = pipeline
+                .event_loop
+                .send(ScriptThreadMessage::UnloadDocument(pipeline_id));
         }
     }
 
