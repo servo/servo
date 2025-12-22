@@ -11,11 +11,9 @@
 
 import time
 
-from selenium.common import NoSuchElementException
 
 import common_function_for_servo_test
 import common_function_for_mossel
-from selenium.webdriver.common.by import By
 
 
 def operator():
@@ -35,19 +33,7 @@ def operator():
     common_function_for_mossel.click_category(driver)
 
     # Step 4. Find components
-    target_css_selector = (
-        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
-        "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
-        "> uni-view.item.active"
-    )
-
-    try:
-        print("Finding components ...")
-        driver.find_element(By.CSS_SELECTOR, target_css_selector)
-    except NoSuchElementException:
-        raise NoSuchElementException("Components not found. Test failed.")
-
-    print("Find components successful!")
+    common_function_for_mossel.identify_element_in_category(driver)
 
 
 if __name__ == "__main__":

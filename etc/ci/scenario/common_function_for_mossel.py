@@ -57,15 +57,21 @@ def click_category(driver: webdriver.Remote):
         raise NoSuchElementException("Category element not found. Test failed.")
 
     category_element.click()
+
+
+def identify_element_in_category(driver: webdriver.Remote):
     driver.implicitly_wait(40)
-    post_click_category(driver)
-
-
-def post_click_category(driver: webdriver.Remote):
-    try:
-        driver.find_element(By.CSS_SELECTOR, ".uni-async-error")
-        print("\033[31mMossel timeout JS triggered for category page, reloading...\033[0m")
-        driver.refresh()
-        post_click_category(driver)
-    except NoSuchElementException:
-        print("\033[32mCategory page loaded.\033[0m")
+    target_css_selector = (
+        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
+        "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
+        "> uni-view.item.active"
+    )
+    while True:
+        try:
+            print("Finding components ...")
+            driver.find_element(By.CSS_SELECTOR, target_css_selector)
+            break
+        except NoSuchElementException:
+            # We hit the timeout JS, reload and try again.
+            driver.refresh()
+    print("\033[31mComponents found!\033[0m")
