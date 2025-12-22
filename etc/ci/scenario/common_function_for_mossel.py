@@ -26,8 +26,8 @@ def load_mossel(driver: webdriver.Remote):
                 print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
             except NoSuchElementException:
                 break
-        except Exception:
-            print("\033[31mPage load failed, retrying...\033[0m")
+        except Exception as e:
+            print(f"\033[31mPage load failed: {e}, retrying...\033[0m")
             continue
 
     print("\033[32mPage loaded.\033[0m")
@@ -82,7 +82,7 @@ def identify_element_in_category(driver: webdriver.Remote):
             print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
             try:
                 driver.refresh()
-            except Exception:
-                print("\033[31mPage refresh failed, retrying...\033[0m")
+            except Exception as e:
+                print(f"\033[31mPage refresh failed: {e}, retrying...\033[0m")
                 continue
     print("\033[32mComponents found!\033[0m")
