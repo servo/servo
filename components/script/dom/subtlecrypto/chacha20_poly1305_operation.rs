@@ -16,7 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_CHACHA20_POLY1305, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives,
+    ALG_CHACHA20_POLY1305, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleAeadParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
@@ -256,18 +256,8 @@ pub(crate) fn import_key(
 
             // Step 3.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
             // Algorithms [JWA], then throw a DataError.
-            let Some(k) = jwk.k.as_ref() else {
-                return Err(Error::Data(Some(
-                    "jwk does not meet the requirements of JWA".to_string(),
-                )));
-            };
-
             // Step 3.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = Base64UrlUnpadded::decode_vec(&k.str()).map_err(|_| {
-                Error::Data(Some(
-                    "Fail to obtain byte sequence by decoding the k field of jwk".to_string(),
-                ))
-            })?;
+            data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             // Step 3.5. If the alg field of jwk is present, and is not "C20P", then throw a
             // DataError.

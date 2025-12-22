@@ -23,7 +23,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt,
+    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesDerivedKeyParams,
     SubtleAesGcmParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
 };
@@ -918,13 +918,7 @@ fn import_key_aes(
             // NOTE: Done by Step 2.4 and 2.5.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = Base64UrlUnpadded::decode_vec(
-                &jwk.k
-                    .as_ref()
-                    .ok_or(Error::Data(Some("JWK `k` field is missing".into())))?
-                    .str(),
-            )
-            .map_err(|_| Error::Data(Some("JWK key could not be decoded from base64".into())))?;
+            data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             // NOTE: This function is shared by AES-CBC, AES-CTR, AES-GCM and AES-KW.
             // Different static texts are used in different AES types, in the following step.

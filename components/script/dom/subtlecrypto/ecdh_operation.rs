@@ -25,8 +25,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ECDH, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256,
-    NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
+    ALG_ECDH, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
     SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdhKeyDeriveParams,
 };
 use crate::script_runtime::CanGc;
@@ -688,7 +688,8 @@ pub(crate) fn import_key(
             // normalizedAlgorithm, throw a DataError.
             let named_curve = jwk
                 .crv
-                .filter(|crv| *crv == normalized_algorithm.named_curve)
+                .as_ref()
+                .filter(|crv| **crv == normalized_algorithm.named_curve)
                 .map(|crv| crv.to_string())
                 .ok_or(Error::Data(Some(
                     "JWK named curve does not match algorithm named curve".to_string(),
@@ -700,34 +701,13 @@ pub(crate) fn import_key(
                 named_curve.as_str(),
                 NAMED_CURVE_P256 | NAMED_CURVE_P384 | NAMED_CURVE_P521
             ) {
-                match jwk.d {
-                    // If the d field is present:
-                    Some(d) => {
-                        // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.2 of
-                        // JSON Web Algorithms [JWA], then throw a DataError.
-                        let x = match jwk.x {
-                            Some(x) => Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| {
-                                Error::Data(Some("JWK `x` field could not be decoded".to_string()))
-                            })?,
-                            None => {
-                                return Err(Error::Data(Some(
-                                    "JWK `x` field is missing".to_string(),
-                                )));
-                            },
-                        };
-                        let y = match jwk.y {
-                            Some(y) => Base64UrlUnpadded::decode_vec(&y.str()).map_err(|_| {
-                                Error::Data(Some("JWK `y` field could not be decoded".to_string()))
-                            })?,
-                            None => {
-                                return Err(Error::Data(Some(
-                                    "JWK `y` field is missing".to_string(),
-                                )));
-                            },
-                        };
-                        let d = Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| {
-                            Error::Data(Some("JWK `d` field could not be decoded".to_string()))
-                        })?;
+                // If the d field is present:
+                if jwk.d.is_some() {
+                    // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.2 of
+                    // JSON Web Algorithms [JWA], then throw a DataError.
+                    let x = jwk.decode_required_string_field(JwkStringField::X)?;
+                    let y = jwk.decode_required_string_field(JwkStringField::Y)?;
+                    let d = jwk.decode_required_string_field(JwkStringField::D)?;
 
                         // Step 2.10.2. Let key be a new CryptoKey object that represents the
                         // Elliptic Curve private key identified by interpreting jwk according to
@@ -809,35 +789,18 @@ pub(crate) fn import_key(
                             _ => unreachable!(),
                         };
 
-                        // Step 2.10.3. Set the [[type]] internal slot of Key to "private".
-                        let key_type = KeyType::Private;
+                    // Step 2.10.3. Set the [[type]] internal slot of Key to "private".
+                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    let key_type = KeyType::Private;
 
-                        (handle, key_type)
-                    },
-                    // Otherwise:
-                    None => {
-                        // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.1 of
-                        // JSON Web Algorithms [JWA], then throw a DataError.
-                        let x = match jwk.x {
-                            Some(x) => Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| {
-                                Error::Data(Some("JWK `x` field could not be decoded".to_string()))
-                            })?,
-                            None => {
-                                return Err(Error::Data(Some(
-                                    "JWK `x` field is missing".to_string(),
-                                )));
-                            },
-                        };
-                        let y = match jwk.y {
-                            Some(y) => Base64UrlUnpadded::decode_vec(&y.str()).map_err(|_| {
-                                Error::Data(Some("JWK `y` field could not be decoded".to_string()))
-                            })?,
-                            None => {
-                                return Err(Error::Data(Some(
-                                    "JWK `y` field is missing".to_string(),
-                                )));
-                            },
-                        };
+                    (handle, key_type)
+                }
+                // Otherwise:
+                else {
+                    // Step 2.10.1. If jwk does not meet the requirements of Section 6.2.1 of
+                    // JSON Web Algorithms [JWA], then throw a DataError.
+                    let x = jwk.decode_required_string_field(JwkStringField::X)?;
+                    let y = jwk.decode_required_string_field(JwkStringField::Y)?;
 
                         // Step 2.10.2. Let key be a new CryptoKey object that represents the
                         // Elliptic Curve public key identified by interpreting jwk according to
@@ -901,11 +864,11 @@ pub(crate) fn import_key(
                             _ => unreachable!(),
                         };
 
-                        // Step 2.10.3. Set the [[type]] internal slot of Key to "public".
-                        let key_type = KeyType::Public;
+                    // Step 2.10.3. Set the [[type]] internal slot of Key to "public".
+                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    let key_type = KeyType::Public;
 
-                        (handle, key_type)
-                    },
+                    (handle, key_type)
                 }
             }
             // Otherwise
