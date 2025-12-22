@@ -4,13 +4,14 @@
 
 mod common;
 
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
-use net::test_util::{make_body, make_server};
-use servo::{JSValue, SiteData, StorageType, WebViewBuilder};
+use net::test_util::{make_body, make_server, replace_host_table};
+use servo::{JSValue, ServoUrl, SiteData, StorageType, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
@@ -34,6 +35,13 @@ fn test_site_data() {
     let sites = site_data_manager.site_data(StorageType::all());
     assert_eq!(sites.len(), 0);
 
+    let ip = "127.0.0.1".parse().unwrap();
+    let mut host_table = HashMap::new();
+    host_table.insert("www.site-data-1.test".to_owned(), ip);
+    host_table.insert("www.site-data-2.test".to_owned(), ip);
+
+    replace_host_table(host_table);
+
     static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
     let handler =
         move |_: HyperRequest<Incoming>,
@@ -53,8 +61,11 @@ fn test_site_data() {
     let port1 = url1.port().unwrap();
     let port2 = url2.port().unwrap();
 
+    let custom_url1 = ServoUrl::parse(&format!("http://www.site-data-1.test:{}", port1)).unwrap();
+    let custom_url2 = ServoUrl::parse(&format!("http://www.site-data-2.test:{}", port2)).unwrap();
+
     delegate.reset();
-    webview.load(url1.clone().into_url());
+    webview.load(custom_url1.clone().into_url());
     let delegate_clone = delegate.clone();
     servo_test.spin(move || !delegate_clone.url_changed.get());
 
@@ -70,7 +81,7 @@ fn test_site_data() {
     assert_eq!(
         &sites,
         &[SiteData::new(
-            format!("http://localhost:{}", port1),
+            format!("http://www.site-data-1.test:{}", port1),
             StorageType::Local
         ),]
     );
@@ -80,13 +91,13 @@ fn test_site_data() {
     assert_eq!(
         &sites,
         &[SiteData::new(
-            format!("http://localhost:{}", port1),
+            format!("http://www.site-data-1.test:{}", port1),
             StorageType::Local
         ),]
     );
 
     delegate.reset();
-    webview.load(url2.clone().into_url());
+    webview.load(custom_url2.clone().into_url());
     servo_test.spin(move || !delegate.url_changed.get());
 
     let _ = server2.close();
@@ -103,15 +114,21 @@ fn test_site_data() {
     assert_eq!(
         &sites,
         &[
-            SiteData::new(format!("http://localhost:{}", port1), StorageType::Local),
-            SiteData::new(format!("http://localhost:{}", port2), StorageType::Local),
+            SiteData::new(
+                format!("http://www.site-data-1.test:{}", port1),
+                StorageType::Local
+            ),
+            SiteData::new(
+                format!("http://www.site-data-2.test:{}", port2),
+                StorageType::Local
+            ),
         ]
     );
     let sites = site_data_manager.site_data(StorageType::Session);
     assert_eq!(
         &sites,
         &[SiteData::new(
-            format!("http://localhost:{}", port2),
+            format!("http://www.site-data-2.test:{}", port2),
             StorageType::Session
         ),]
     );
@@ -119,9 +136,12 @@ fn test_site_data() {
     assert_eq!(
         &sites,
         &[
-            SiteData::new(format!("http://localhost:{}", port1), StorageType::Local),
             SiteData::new(
-                format!("http://localhost:{}", port2),
+                format!("http://www.site-data-1.test:{}", port1),
+                StorageType::Local
+            ),
+            SiteData::new(
+                format!("http://www.site-data-2.test:{}", port2),
                 StorageType::Local | StorageType::Session
             ),
         ]
