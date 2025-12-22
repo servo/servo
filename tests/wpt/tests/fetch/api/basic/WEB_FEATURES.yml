@@ -2,3 +2,7 @@ features:
 - name: fetch-request-streams
   files:
   - request-upload*
+- name: early-data
+  files:
+  # Note: Test coverage for this feature is very incomplete
+  - http-response-code.any.js

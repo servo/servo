@@ -558,12 +558,10 @@ impl Font {
             }
         }
 
-        // TODO: Need a fallback strategy.
-        let new_width = match self.handle.glyph_h_advance(glyph_id) {
-            Some(adv) => adv,
-            None => LAST_RESORT_GLYPH_ADVANCE as FractionalPixel,
-        };
-
+        let new_width = self
+            .handle
+            .glyph_h_advance(glyph_id)
+            .unwrap_or(LAST_RESORT_GLYPH_ADVANCE as FractionalPixel);
         let mut cache = self.cached_shape_data.write();
         cache.glyph_advances.insert(glyph_id, new_width);
         new_width

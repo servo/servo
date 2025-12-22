@@ -2,3 +2,7 @@ features:
 - name: base
   files:
   - use-base-url.html
+- name: dedicated-workers
+  files:
+  - "*"
+  - "!use-base-url.html"

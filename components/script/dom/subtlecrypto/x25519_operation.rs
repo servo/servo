@@ -20,8 +20,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_X25519, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleEcdhKeyDeriveParams,
-    SubtleKeyAlgorithm,
+    ALG_X25519, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    SubtleEcdhKeyDeriveParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -366,62 +366,50 @@ pub(crate) fn import_key(
             }
 
             // Step 2.9.
-            let (handle, key_type) = match jwk.d {
-                Some(d) => {
-                    // Step 2.9.1. If jwk does not meet the requirements of the JWK private key
-                    // format described in Section 2 of [RFC8037], then throw a DataError.
-                    let x = match jwk.x {
-                        Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
-                            .map_err(|_| Error::Data(None))?,
-                        None => return Err(Error::Data(None)),
-                    };
-                    let d =
-                        Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data(None))?;
-                    let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                        x.try_into().map_err(|_| Error::Data(None))?;
-                    let private_key_bytes: [u8; PRIVATE_KEY_LENGTH] =
-                        d.try_into().map_err(|_| Error::Data(None))?;
-                    let public_key = PublicKey::from(public_key_bytes);
-                    let private_key = StaticSecret::from(private_key_bytes);
-                    if PublicKey::from(&private_key) != public_key {
-                        return Err(Error::Data(None));
-                    }
+            // If the d field is present:
+            let (handle, key_type) = if jwk.d.is_some() {
+                // Step 2.9.1. If jwk does not meet the requirements of the JWK private key format
+                // described in Section 2 of [RFC8037], then throw a DataError.
+                let x = jwk.decode_required_string_field(JwkStringField::X)?;
+                let d = jwk.decode_required_string_field(JwkStringField::D)?;
+                let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
+                    x.try_into().map_err(|_| Error::Data(None))?;
+                let private_key_bytes: [u8; PRIVATE_KEY_LENGTH] =
+                    d.try_into().map_err(|_| Error::Data(None))?;
+                let public_key = PublicKey::from(public_key_bytes);
+                let private_key = StaticSecret::from(private_key_bytes);
+                if PublicKey::from(&private_key) != public_key {
+                    return Err(Error::Data(None));
+                }
 
-                    // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519
-                    // private key identified by interpreting jwk according to Section 2 of
-                    // [RFC8037].
-                    // NOTE: CryptoKey is created in Step 2.10 - 2.12.
-                    let handle = Handle::X25519PrivateKey(private_key);
+                // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519 private
+                // key identified by interpreting jwk according to Section 2 of [RFC8037].
+                // NOTE: CryptoKey is created in Step 2.10 - 2.12.
+                let handle = Handle::X25519PrivateKey(private_key);
 
-                    // Step 2.9.1. Set the [[type]] internal slot of Key to "private".
-                    let key_type = KeyType::Private;
+                // Step 2.9.1. Set the [[type]] internal slot of Key to "private".
+                let key_type = KeyType::Private;
 
-                    (handle, key_type)
-                },
-                // Otherwise:
-                None => {
-                    // Step 2.9.1. If jwk does not meet the requirements of the JWK public key
-                    // format described in Section 2 of [RFC8037], then throw a DataError.
-                    let x = match jwk.x {
-                        Some(x) => Base64UrlUnpadded::decode_vec(&x.str())
-                            .map_err(|_| Error::Data(None))?,
-                        None => return Err(Error::Data(None)),
-                    };
-                    let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                        x.try_into().map_err(|_| Error::Data(None))?;
-                    let public_key = PublicKey::from(public_key_bytes);
+                (handle, key_type)
+            }
+            // Otherwise:
+            else {
+                // Step 2.9.1. If jwk does not meet the requirements of the JWK public key format
+                // described in Section 2 of [RFC8037], then throw a DataError.
+                let x = jwk.decode_required_string_field(JwkStringField::X)?;
+                let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
+                    x.try_into().map_err(|_| Error::Data(None))?;
+                let public_key = PublicKey::from(public_key_bytes);
 
-                    // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519
-                    // public key identified by interpreting jwk according to Section 2 of
-                    // [RFC8037].
-                    // NOTE: CryptoKey is created in Step 2.10 - 2.12.
-                    let handle = Handle::X25519PublicKey(public_key);
+                // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519 public
+                // key identified by interpreting jwk according to Section 2 of [RFC8037].
+                // NOTE: CryptoKey is created in Step 2.10 - 2.12.
+                let handle = Handle::X25519PublicKey(public_key);
 
-                    // Step 2.9.1. Set the [[type]] internal slot of Key to "public".
-                    let key_type = KeyType::Public;
+                // Step 2.9.1. Set the [[type]] internal slot of Key to "public".
+                let key_type = KeyType::Public;
 
-                    (handle, key_type)
-                },
+                (handle, key_type)
             };
 
             // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.

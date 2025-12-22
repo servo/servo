@@ -31,7 +31,7 @@ promise_test(async testCase => {
   await inboxCache.put(cacheKey, new Response('bread x 2'))
 
   const estimate2 = await bucket.estimate();
-  assert_equals(estimate.quota, estimate2.quota);
+  assert_greater_than(estimate2.quota, 0);
   assert_less_than(estimate.usage, estimate2.usage);
 }, 'estimate() should retrieve quota usage');
 

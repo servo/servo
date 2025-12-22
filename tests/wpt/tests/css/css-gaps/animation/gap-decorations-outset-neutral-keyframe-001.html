@@ -14,29 +14,29 @@
     <script>
       test(() => {
         target.style.rowRuleStyle = 'solid';
-        target.style.rowRuleEdgeStartInset = '1px';
-        target.style.rowRuleEdgeEndInset = '1px';
-        target.style.rowRuleInteriorStartInset = '1px';
-        target.style.rowRuleInteriorEndInset = '1px';
-        var animation = target.animate([{}, {rowRuleEdgeStartInset: '11px'}], 1000);
+        target.style.rowRuleEdgeInsetStart = '1px';
+        target.style.rowRuleEdgeInsetEnd = '1px';
+        target.style.rowRuleInteriorInsetStart = '1px';
+        target.style.rowRuleInteriorInsetEnd = '1px';
+        var animation = target.animate([{}, {rowRuleEdgeInsetStart: '11px'}], 1000);
         animation.pause();
         animation.currentTime = 500;
-        assert_equals(getComputedStyle(target).rowRuleEdgeStartInset, '6px');
+        assert_equals(getComputedStyle(target).rowRuleEdgeInsetStart, '6px');
 
-        var animation2 = target.animate([{}, {rowRuleEdgeEndInset: '11px'}], 1000);
+        var animation2 = target.animate([{}, {rowRuleEdgeInsetEnd: '11px'}], 1000);
         animation2.pause();
         animation2.currentTime = 500;
-        assert_equals(getComputedStyle(target).rowRuleEdgeEndInset, '6px');
+        assert_equals(getComputedStyle(target).rowRuleEdgeInsetEnd, '6px');
 
-        var animation3 = target.animate([{}, {rowRuleInteriorStartInset: '11px'}], 1000);
+        var animation3 = target.animate([{}, {rowRuleInteriorInsetStart: '11px'}], 1000);
         animation3.pause();
         animation3.currentTime = 500;
-        assert_equals(getComputedStyle(target).rowRuleInteriorStartInset, '6px');
+        assert_equals(getComputedStyle(target).rowRuleInteriorInsetStart, '6px');
 
-        var animation4 = target.animate([{}, {rowRuleInteriorEndInset: '11px'}], 1000);
+        var animation4 = target.animate([{}, {rowRuleInteriorInsetEnd: '11px'}], 1000);
         animation4.pause();
         animation4.currentTime = 500;
-        assert_equals(getComputedStyle(target).rowRuleInteriorEndInset, '6px');
+        assert_equals(getComputedStyle(target).rowRuleInteriorInsetEnd, '6px');
       }, 'gap decorations row-rule-inset properties support neutral keyframe.');
     </script>
   </body>

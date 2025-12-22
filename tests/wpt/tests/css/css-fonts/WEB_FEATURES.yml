@@ -64,6 +64,21 @@ features:
 - name: font-family-ui
   files:
   - standard-font-family-*
+- name: font-face
+  files:
+  - font-face-*
+  - downloadable-font-*
+  - idlharness.html
+  - font-family-src-quoted.html
+  - crash-font-face-invalid-descriptor.html
+  - web-font-no-longer-accessible-when-stylesheet-removed.html
+  - test_datafont_same_origin.html
+- name: font-feature-settings
+  files:
+  - font-feature-settings-*
+  - font-default-03.html
+  - font-default-04.html
+  - variable-in-feature-crash.html
 - name: font-weight
   files:
   - font-weight-*

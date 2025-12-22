@@ -14,5 +14,6 @@ function waitUntilLoadedAndAutofocused() {
           if (loaded)
               resolve();
       }, false);
+      test_driver.click(document.documentElement);
     });
 }

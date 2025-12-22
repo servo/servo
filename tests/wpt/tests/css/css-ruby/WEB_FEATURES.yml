@@ -1,7 +1,17 @@
 features:
+- name: ruby
+  files:
+  - "!ruby-align-*"
+  - "!ruby-position*"
+  - "!ruby-overhang*"
+  - "*"
 - name: ruby-align
   files:
   - ruby-align-*
 - name: ruby-position
   files:
   - ruby-position*
+- name: ruby-overhang
+  files:
+  - ruby-overhang*
+# Make sure to add an exclusion to the "ruby" match when adding a new feature

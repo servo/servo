@@ -307,7 +307,9 @@ pub(crate) mod filereadersync;
 pub(crate) mod focusevent;
 pub(crate) mod formdata;
 pub(crate) mod formdataevent;
+#[cfg(feature = "gamepad")]
 pub(crate) mod gamepad;
+#[cfg(feature = "gamepad")]
 pub(crate) use self::gamepad::*;
 pub(crate) mod geolocation;
 pub(crate) use self::geolocation::*;

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    item-tolerance: 0;
+    grid-template-columns: repeat(4, 50px);
+    padding: 10px;
+}
+</style>
+<body>
+  <p>Ensure that the auto-placement cursor does not move after dense-packing an item.</p>
+  <div class="grid">
+    <div style="background: lightskyblue; height: 40px; grid-column: 1;" >
+      1
+    </div>
+    <div style="background: lightcoral; height: 15px; grid-column: 1 / span 3;  transform: translateY(-15px);" >
+      2
+    </div>
+    <div style="background: lightgreen; height: 15px; grid-column: 1 / span 2;  transform: translateY(-15px);">
+      3
+    </div>
+    <div style="background: yellow; height: 55px; grid-row: 1; grid-column: 4;">
+      4
+    </div>
+    <div style="background:orchid; height: 10px; grid-row: 1; grid-column: 3;">
+      5
+    </div>
+    <div style="background:orchid; height: 60px; transform: translateY(-15px);">
+      6
+    </div>
+  </div>
+</body>
+</html>

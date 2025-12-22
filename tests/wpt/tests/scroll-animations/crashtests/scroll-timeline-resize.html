@@ -24,6 +24,10 @@
 <script>
 async function run() {
   let anims = document.getAnimations();
+  if (anims.length == 0) {
+    // Make this timeout.
+    return;
+  }
   await anims[0].ready;
   // Wait for some frames to wait for the setup of compositor animations.
   await waitForAnimationFrames(2);

@@ -66,6 +66,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{
     HTMLScriptElement, SCRIPT_JS_MIMES, Script, ScriptId, ScriptOrigin, ScriptType,
 };
+use crate::dom::htmlscriptelement::substitute_with_local_script;
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -1310,7 +1311,10 @@ impl FetchResponseListener for ModuleContext {
             }
 
             // Step 10.
-            let (source_text, _, _) = UTF_8.decode(&self.data);
+            let (mut source_text, _, _) = UTF_8.decode(&self.data);
+            if let Some(window) = global.downcast::<Window>() {
+                substitute_with_local_script(window, &mut source_text, meta.final_url.clone());
+            }
             Ok(ScriptOrigin::external(
                 Rc::new(DOMString::from(source_text)),
                 meta.final_url,

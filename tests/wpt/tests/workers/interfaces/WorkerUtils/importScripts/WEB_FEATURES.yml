@@ -1,0 +1,5 @@
+features:
+- name: dedicated-workers
+  files:
+  - "*"
+  - "!*.any.js"

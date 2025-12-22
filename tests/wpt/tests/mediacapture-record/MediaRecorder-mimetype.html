@@ -13,6 +13,8 @@ const AUDIO_ONLY_MIME_TYPES = [
   'audio/mp4',
   'audio/ogg',
   'audio/webm',
+  'audio/matroska',
+  'audio/x-matroska',
 ];
 
 const AUDIO_CODECS_MIME_TYPES = [
@@ -22,12 +24,17 @@ const AUDIO_CODECS_MIME_TYPES = [
   'audio/webm; codecs="opus"',
   'audio/mp4; codecs="mp4a.40.2"',
   'audio/mp4; codecs="opus"',
+  'audio/matroska; codecs="opus"',
+  'audio/matroska; codecs="pcm"',
+  'audio/x-matroska; codecs="opus"',
+  'audio/x-matroska; codecs="pcm"',
 ];
 
 const VIDEO_ONLY_MIME_TYPES = [
   'video/mp4',
   'video/webm',
-  'video/x-matroska'
+  'video/x-matroska',
+  'video/matroska'
 ];
 
 const VIDEO_CODECS_MIME_TYPES = [
@@ -41,6 +48,16 @@ const VIDEO_CODECS_MIME_TYPES = [
   'video/mp4; codecs="hev1.1.6.L186.B0"',
   'video/x-matroska; codecs="hvc1.1.6.L186.B0"',
   'video/x-matroska; codecs="hev1.1.6.L186.B0"',
+  'video/matroska; codecs="vp8"',
+  'video/matroska; codecs="vp9"',
+  'video/matroska; codecs="av1"',
+  'video/matroska; codecs="hvc1.1.6.L186.B0"',
+  'video/matroska; codecs="hev1.1.6.L186.B0"',
+  'video/matroska; codecs="avc1.64003E"',
+  'video/x-matroska; codecs="vp8"',
+  'video/x-matroska; codecs="vp9"',
+  'video/x-matroska; codecs="av1"',
+  'video/x-matroska; codecs="avc1.64003E"',
 ];
 
 const AUDIO_VIDEO_MIME_TYPES = [
@@ -58,6 +75,14 @@ const AUDIO_VIDEO_MIME_TYPES = [
   'video/mp4; codecs="hev1.1.6.L186.B0, opus"',
   'video/x-matroska; codecs="hvc1.1.6.L186.B0, opus"',
   'video/x-matroska; codecs="hev1.1.6.L186.B0, opus"',
+  'video/matroska; codecs="vp9, opus"',
+  'video/matroska; codecs="av1, opus"',
+  'video/matroska; codecs="hvc1.1.6.L186.B0, opus"',
+  'video/matroska; codecs="hev1.1.6.L186.B0, opus"',
+  'video/matroska; codecs="avc1.64003E, opus"',
+  'video/x-matroska; codecs="vp9, opus"',
+  'video/x-matroska; codecs="av1, opus"',
+  'video/x-matroska; codecs="avc1.64003E, opus"',
 ];
 
 const AUDIO_MIME_TYPES = [

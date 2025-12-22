@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-008-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    item-tolerance: 0;
+    grid-template-columns: repeat(4, 50px);
+    padding: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+  <p>Ensure that the auto-placement cursor does not move after dense-packing an item.</p>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue; height: 40px; grid-column: 1;" >
+      1
+    </div>
+    <div style="background: lightcoral; height: 15px; grid-column: 1 / span 3;" >
+      2
+    </div>
+    <div style="background: lightgreen; height: 15px; grid-column: 1 / span 2;">
+      3
+    </div>
+    <div style="background: yellow; height: 55px; grid-column: 4;">
+      4
+    </div>
+    <div style="background:orchid; height: 10px; grid-column: 3;">
+      5
+    </div>
+    <!--Auto-placement cursor should be at the last line after placing item 4, and wrap around when we place item 6.-->
+    <div style="background:orchid; height: 60px;">
+      6
+    </div>
+  </div>
+</body>
+</html>

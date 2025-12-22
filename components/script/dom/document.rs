@@ -83,6 +83,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ScrollLogicalPositi
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
+#[cfg(any(feature = "webxr", feature = "gamepad"))]
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
@@ -4688,6 +4689,7 @@ impl Document {
         // state and document. Any other specs' visibility steps will go here.
 
         // <https://www.w3.org/TR/gamepad/#handling-visibility-change>
+        #[cfg(feature = "gamepad")]
         if visibility_state == DocumentVisibilityState::Hidden {
             self.window
                 .Navigator()
@@ -4860,7 +4862,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             can_gc,
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, can_gc);
+        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, can_gc);
         // Step 5. Return document.
         document.set_ready_state(DocumentReadyState::Complete, can_gc);
         Ok(document)

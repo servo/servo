@@ -209,7 +209,7 @@ jobs:
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ inputs.profile }}
+          name: ${{ inputs.profile }}-binary-linux
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
       - name: Upload nightly
         if: ${{ inputs.upload }}
@@ -221,13 +221,6 @@ jobs:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
-      - name: Build package for target
-        run: tar -czf target.tar.gz target/${{ inputs.profile }}/servo resources
-      - name: Upload artifact for target
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.profile }}-binary-linux
-          path: target.tar.gz
 
   wpt-2020:
     if: ${{ inputs.wpt }}
@@ -239,6 +232,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       number-of-wpt-chunks: ${{ inputs. number-of-wpt-chunks }}
+      binary-path: servo/servo
     secrets: inherit
 
   bencher:
@@ -248,8 +242,8 @@ jobs:
     with:
       target: 'linux'
       profile: ${{ inputs.profile }}
-      compressed-file-path: ${{ inputs.profile }}-binary-linux/target.tar.gz
-      binary-path: target/${{ inputs.profile }}/servo
+      compressed-file-path: ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
+      binary-path: servo/servo
       file-size: true
       # We only evaluate speedometer and dromaeo score in release
       speedometer: ${{ inputs.profile == 'release' }}

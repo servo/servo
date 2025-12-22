@@ -31,7 +31,7 @@ cookie_test(async testCase => {
   const tomorrow = Date.now() + oneDay ;
 
   await promise_rejects_js(testCase, TypeError,
-    cookieStore.set('cookie-name', {
+    cookieStore.set({
       name: 'cookie-name',
       value: 'cookie-value',
       expires: tomorrow,

@@ -18,7 +18,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ED25519, ExportedKey, JsonWebKeyExt, KeyAlgorithmAndDerivatives, SubtleKeyAlgorithm,
+    ALG_ED25519, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -322,58 +323,47 @@ pub(crate) fn import_key(
             };
 
             // Step 2.9
-            match jwk.d {
-                // If the d field is present:
-                Some(d) => {
-                    // Step 2.9.1. If jwk does not meet the requirements of the JWK private key
-                    // format described in Section 2 of [RFC8037], then throw a DataError.
-                    let x = jwk.x.ok_or(Error::Data(None))?;
-
-                    // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519
-                    // private key identified by interpreting jwk according to Section
-                    // 2 of [RFC8037]
-                    // Step 2.9.3. Set the [[type]] internal slot of Key to "private".
-                    let public_key_bytes =
-                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data(None))?;
-                    let private_key_bytes =
-                        Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| Error::Data(None))?;
-                    let _ = Ed25519KeyPair::from_seed_and_public_key(
-                        &private_key_bytes,
-                        &public_key_bytes,
-                    )
+            // If the d field is present:
+            if jwk.d.is_some() {
+                // Step 2.9.1. If jwk does not meet the requirements of the JWK private key format
+                // described in Section 2 of [RFC8037], then throw a DataError.
+                let d = jwk.decode_required_string_field(JwkStringField::D)?;
+                let x = jwk.decode_required_string_field(JwkStringField::X)?;
+                let _ = Ed25519KeyPair::from_seed_and_public_key(&d, &x)
                     .map_err(|_| Error::Data(None))?;
-                    CryptoKey::new(
-                        global,
-                        KeyType::Private,
-                        extractable,
-                        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                        usages,
-                        Handle::Ed25519(private_key_bytes),
-                        can_gc,
-                    )
-                },
-                // Otherwise:
-                None => {
-                    // Step 2.9.1. If jwk does not meet the requirements of the JWK public key
-                    // format described in Section 2 of [RFC8037], then throw a DataError.
-                    let x = jwk.x.ok_or(Error::Data(None))?;
 
-                    // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519
-                    // public key identified by interpreting jwk according to Section 2 of
-                    // [RFC8037].
-                    // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
-                    let public_key_bytes =
-                        Base64UrlUnpadded::decode_vec(&x.str()).map_err(|_| Error::Data(None))?;
-                    CryptoKey::new(
-                        global,
-                        KeyType::Public,
-                        extractable,
-                        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                        usages,
-                        Handle::Ed25519(public_key_bytes),
-                        can_gc,
-                    )
-                },
+                // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519
+                // private key identified by interpreting jwk according to Section
+                // 2 of [RFC8037]
+                // Step 2.9.3. Set the [[type]] internal slot of Key to "private".
+                CryptoKey::new(
+                    global,
+                    KeyType::Private,
+                    extractable,
+                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+                    usages,
+                    Handle::Ed25519(d),
+                    can_gc,
+                )
+            }
+            // Otherwise:
+            else {
+                // Step 2.9.1. If jwk does not meet the requirements of the JWK public key format
+                // described in Section 2 of [RFC8037], then throw a DataError.
+                let x = jwk.decode_required_string_field(JwkStringField::X)?;
+
+                // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519 public
+                // key identified by interpreting jwk according to Section 2 of [RFC8037].
+                // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
+                CryptoKey::new(
+                    global,
+                    KeyType::Public,
+                    extractable,
+                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+                    usages,
+                    Handle::Ed25519(x),
+                    can_gc,
+                )
             }
 
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.

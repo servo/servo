@@ -9,6 +9,7 @@ pub(crate) mod app;
 pub(crate) mod cli;
 pub(crate) mod dialog;
 pub(crate) mod event_loop;
+#[cfg(feature = "gamepad")]
 pub(crate) mod gamepad;
 pub mod geometry;
 mod gui;

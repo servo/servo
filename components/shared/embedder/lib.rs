@@ -503,8 +503,10 @@ pub enum EmbedderMsg {
     /// Ask the user to allow a devtools client to connect.
     RequestDevtoolsConnection(GenericSender<AllowOrDeny>),
     /// Request to play a haptic effect on a connected gamepad.
+    #[cfg(feature = "gamepad")]
     PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
+    #[cfg(feature = "gamepad")]
     StopGamepadHapticEffect(WebViewId, usize, IpcSender<bool>),
     /// Informs the embedder that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
@@ -635,6 +637,7 @@ pub enum InputMethodType {
     Week,
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// <https://w3.org/TR/gamepad/#dom-gamepadhapticeffecttype-dual-rumble>
 pub struct DualRumbleEffectParams {
@@ -644,6 +647,7 @@ pub struct DualRumbleEffectParams {
     pub weak_magnitude: f64,
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// <https://w3.org/TR/gamepad/#dom-gamepadhapticeffecttype>
 pub enum GamepadHapticEffectType {

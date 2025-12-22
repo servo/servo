@@ -130,3 +130,16 @@ class Emulation(BidiModule):
             "contexts": contexts,
             "userContexts": user_contexts,
         }
+
+    @command
+    def set_touch_override(
+            self,
+            max_touch_points: Nullable[int],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
+    ) -> Mapping[str, Any]:
+        return {
+            "maxTouchPoints": max_touch_points,
+            "contexts": contexts,
+            "userContexts": user_contexts,
+        }

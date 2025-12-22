@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="column-dense-packing-007-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    item-tolerance: 0;
+    grid-template-columns: repeat(4, 50px);
+    gap: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+<p>Test that we always prioritize the highest position in "open" tracks even if there is a track opening available that is lower.</p>
+<div class="grid-lanes">
+  <div style="background: lavender; height: 60px; grid-column: 3;">
+    1
+  </div>
+  <div style="background: lightpink; grid-column: 2 / span 3; height: 10px;">
+    2
+  </div>
+  <div style="background: lightgreen; height: 15px;">
+    3
+  </div>
+  <div style="background: yellow; height: 20px; grid-column: 4;">
+    4
+  </div>
+  <div style="background: yellow; height: 20px;">
+    5
+  </div>
+  <div style="background: lightblue; height: 15px;">
+    6
+  </div>
+  <div style="background: lightcoral; height: 15px;">
+    7
+  </div>
+</div>
+</body>
+</html>

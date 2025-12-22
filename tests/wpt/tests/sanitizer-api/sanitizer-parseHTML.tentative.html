@@ -40,6 +40,12 @@ text
 #document
 | <html>
 
+#data
+<html onload="3 + 3"><div>a
+#config
+{ "replaceWithChildrenElements": ["html"], "elements": ["head", "body", "div"] }
+#document
+
 </script>
 <script id="safe" type="html5lib-testcases">
 #data
@@ -80,6 +86,17 @@ text
 |     <div>
 |       "a"
 |       "b"
+
+#data
+<html onload="2 + 2"><div>a
+#config
+{ "replaceWithChildrenElements": ["html"], "removeElements": [] }
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       "a"
 
 </script>
 <script id="unsafe" type="html5lib-testcases">
@@ -127,6 +144,18 @@ text
 |       "a"
 |       <!-- xx -->
 |       "b"
+
+#data
+<html onload="2 + 2"><div>a
+#config
+{ "replaceWithChildrenElements": ["html"], "removeElements": [] }
+#document
+| <html>
+|   onload="2 + 2"
+|   <head>
+|   <body>
+|     <div>
+|       "a"
 </script>
 <script id="document" type="html5lib-testcases">
 #data

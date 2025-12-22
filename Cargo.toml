@@ -54,6 +54,7 @@ canvas_traits = { path = "components/shared/canvas" }
 cbc = "0.1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
+chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
 compositing_traits = { path = "components/shared/compositing" }
@@ -71,7 +72,7 @@ dwrote = "0.11.5"
 ecdsa = "0.16"
 elliptic-curve = "0.13"
 embedder_traits = { path = "components/shared/embedder" }
-encoding_rs = "0.8"
+encoding_rs = { version = "0.8", features = ["serde"] }
 env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"

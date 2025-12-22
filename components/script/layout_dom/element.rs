@@ -611,7 +611,15 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             if new_box.position.is_absolutely_positioned() &&
                 old_box.original_display != new_box.original_display
             {
-                return true;
+                // The original display only affects the static position, which is only used
+                // when both insets in some axis are auto.
+                // <https://drafts.csswg.org/css-position/#resolving-insets>
+                let position = new.get_position();
+                if (position.top.is_auto() && position.bottom.is_auto()) ||
+                    (position.left.is_auto() && position.right.is_auto())
+                {
+                    return true;
+                }
             }
 
             if old.get_font() != new.get_font() {

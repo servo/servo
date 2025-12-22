@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -19,7 +21,11 @@ function testFocus(element, expectFocus) {
     assert_equals(focusedElement === theElement, expectFocus, element.id);
 }
 
-test(function() {
+promise_setup(async function() {
+    await test_driver.click(document.documentElement);
+})
+
+promise_test(async function() {
     var dialog = document.querySelector('dialog');
     dialog.showModal();
 

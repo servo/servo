@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="support/support.js"></script>
+</head>
+
+<body>
+  <style>
+    @keyframes anim {
+      from {
+        width: 100px;
+      }
+      to {
+        width: 100px;
+      }
+    }
+    #scroller {
+      width: 400px;
+      height: 400px;
+      overflow: scroll;
+    }
+    .pad {
+      height: 200px;
+    }
+
+    #source {
+      width: 50px;
+      height: 50px;
+      timeline-trigger: --trigger view() contain;
+    }
+
+    #target {
+      width: 10px;
+      animation: anim 1s linear;
+      animation-trigger: --trigger play-forwards;
+      background-color: tomato;
+    }
+  </style>
+  <div id=target>
+    Target
+  </div>
+  <div id=scroller>
+    <div id=source>Source</div>
+    <div class=pad></div>
+    <div class=pad></div>
+    <div class=pad></div>
+  </div>
+  <script>
+    promise_test(async (test) => {
+      await waitForAnimationFrames(3);
+      assert_equals(getComputedStyle(target).width, "100px");
+    }, "Already in-view source triggers animation");
+  </script>
+
+</html>

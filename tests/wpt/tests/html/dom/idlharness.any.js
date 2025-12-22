@@ -20,6 +20,7 @@ idl_test(
       Worker: [],
       MessageEvent: ['new MessageEvent("message", { data: 5 })'],
       DedicatedWorkerGlobalScope: ['self'],
+      Origin: ['new Origin()'],
     });
   }
 );

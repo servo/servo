@@ -21,6 +21,7 @@ use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
 };
+use encoding_rs::Encoding;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
@@ -35,7 +36,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::StorageType;
+use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
@@ -126,6 +127,9 @@ pub struct LoadData {
     /// The "creation sandboxing flag set" that this Pipeline should use when it is created.
     /// See <https://html.spec.whatwg.org/multipage/#determining-the-creation-sandboxing-flags>.
     pub creation_sandboxing_flag_set: SandboxingFlagSet,
+    /// If this is a load operation for an `<iframe>` whose origin is same-origin with its
+    /// container documents origin then this is the encoding of the container document.
+    pub container_document_encoding: Option<&'static Encoding>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -170,6 +174,7 @@ impl LoadData {
             has_trustworthy_ancestor_origin,
             destination: Destination::Document,
             creation_sandboxing_flag_set,
+            container_document_encoding: None,
         }
     }
 
@@ -580,7 +585,7 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
-        StorageType,
+        WebStorageType,
         ServoUrl,
         Option<String>,
         Option<String>,

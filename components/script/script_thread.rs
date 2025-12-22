@@ -93,7 +93,7 @@ use script_traits::{
 use servo_config::{opts, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::StorageType;
+use storage_traits::webstorage_thread::WebStorageType;
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
@@ -3041,7 +3041,7 @@ impl ScriptThread {
     fn handle_storage_event(
         &self,
         pipeline_id: PipelineId,
-        storage_type: StorageType,
+        storage_type: WebStorageType,
         url: ServoUrl,
         key: Option<String>,
         old_value: Option<String>,
@@ -3052,8 +3052,8 @@ impl ScriptThread {
         };
 
         let storage = match storage_type {
-            StorageType::Local => window.LocalStorage(),
-            StorageType::Session => window.SessionStorage(),
+            WebStorageType::Local => window.LocalStorage(),
+            WebStorageType::Session => window.SessionStorage(),
         };
 
         storage.queue_storage_event(url, key, old_value, new_value);
@@ -3367,6 +3367,7 @@ impl ScriptThread {
                 None,
                 final_url,
                 encoding_hint_from_content_type,
+                incomplete.load_data.container_document_encoding,
                 can_gc,
             );
         }

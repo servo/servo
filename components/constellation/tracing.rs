@@ -94,6 +94,7 @@ mod from_embedder {
             }
             match self.event {
                 InputEvent::EditingAction(..) => target_variant!("EditingAction"),
+                #[cfg(feature = "gamepad")]
                 InputEvent::Gamepad(..) => target_variant!("Gamepad"),
                 InputEvent::Ime(..) => target_variant!("Ime"),
                 InputEvent::Keyboard(..) => target_variant!("Keyboard"),

@@ -3,7 +3,8 @@
 // (https://github.com/w3c/webref)
 // Source: CSS Fonts Module Level 4 (https://drafts.csswg.org/css-fonts-4/)
 
-partial interface CSSRule {  const unsigned short FONT_FEATURE_VALUES_RULE = 14;
+partial interface CSSRule {
+  const unsigned short FONT_FEATURE_VALUES_RULE = 14;
 };
 [Exposed=Window]
 interface CSSFontFeatureValuesRule : CSSRule {
@@ -24,7 +25,8 @@ interface CSSFontFeatureValuesMap {
          (unsigned long or sequence<unsigned long>) values);
 };
 
-[Exposed=Window]interface CSSFontPaletteValuesRule : CSSRule {
+[Exposed=Window]
+interface CSSFontPaletteValuesRule : CSSRule {
   readonly attribute CSSOMString name;
   readonly attribute CSSOMString fontFamily;
   readonly attribute CSSOMString basePalette;
