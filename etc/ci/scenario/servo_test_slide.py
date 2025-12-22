@@ -16,22 +16,14 @@ import subprocess
 import common_function_for_servo_test
 import common_function_for_mossel
 
-from selenium.common import NoSuchElementException
-from selenium.webdriver.common.by import By
-
 
 def operator():
-    IMPLICIT_WAIT_TIME_FOR_POPUP = 15
-    PAGE_URL = "https://m.huaweimossel.com"
-    # Based on experience, it could take up to seconds to load the page after click.
-    IMPLICIT_WAIT_TIME_AFTER_REDIRECTION = 60
+    IMPLICIT_WAIT_TIME = 6
     driver = common_function_for_servo_test.create_driver()
-    driver.get(PAGE_URL)
-
-    print("Page loaded.")
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
-    driver.implicitly_wait(IMPLICIT_WAIT_TIME_FOR_POPUP)
+    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
+    common_function_for_mossel.load_mossel(driver)
 
     # Step 2. Click to close the pop-up
     common_function_for_mossel.close_popup(driver)
@@ -40,20 +32,9 @@ def operator():
     common_function_for_mossel.click_category(driver)
 
     # Step 4. Find components which indicates the page has loaded, before sliding.
-    target_css_selector = (
-        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
-        "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
-        "> uni-view.item.active"
-    )
+    common_function_for_mossel.identify_element_in_category(driver)
 
-    try:
-        print("Finding components ...")
-        driver.implicitly_wait(IMPLICIT_WAIT_TIME_AFTER_REDIRECTION)
-        driver.find_element(By.CSS_SELECTOR, target_css_selector)
-    except NoSuchElementException:
-        raise NoSuchElementException("Components not found. Test failed.")
-
-    print("Find components successful! Ready to swipe.")
+    print("Ready to swipe.")
     # Step 4. Slide and check if it actually happened.
     print("Screenshot before swiping.")
     before = driver.get_screenshot_as_base64()
