@@ -16,7 +16,7 @@ from selenium.webdriver.common.by import By
 
 
 def operator():
-    IMPLICIT_WAIT_TIME = 10
+    IMPLICIT_WAIT_TIME = 6
     PAGE_URL = "https://servo.org"
     driver = common_function_for_servo_test.create_driver()
     driver.get(PAGE_URL)
