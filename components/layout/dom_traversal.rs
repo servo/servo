@@ -17,7 +17,9 @@ use servo_arc::Arc as ServoArc;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style::values::generics::counters::{Content, ContentItem};
+use style::values::generics::counters::{
+    Content, ContentItem, GenericContentItem, GenericContentItems,
+};
 use style::values::specified::Quotes;
 
 use crate::context::LayoutContext;
@@ -197,7 +199,24 @@ fn traverse_element<'dom>(
             }
         },
         Display::GeneratingBox(display) => {
-            let contents = Contents::for_element(element, context);
+            // If `content` is a single image URL, the box gets replaced with a
+            // replaced image.
+            let contents = match info.style.clone_content() {
+                Content::Items(GenericContentItems { items, .. }) if items.len() == 1 => {
+                    if let GenericContentItem::Image(img) = &items[0] {
+                        match ReplacedContents::from_image(element, context, img) {
+                            Some(replaced) => Contents::Replaced(replaced),
+                            // Invalid images are treated as zero-sized.
+                            None => Contents::Replaced(ReplacedContents::zero_sized_invalid_image(
+                                element,
+                            )),
+                        }
+                    } else {
+                        Contents::for_element(element, context)
+                    }
+                },
+                _ => Contents::for_element(element, context),
+            };
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.box_slot();
             handler.handle_element(&info, display, contents, box_slot);
