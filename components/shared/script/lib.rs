@@ -9,7 +9,6 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-use std::collections::HashMap;
 use std::fmt;
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -386,7 +385,7 @@ pub struct InitialScriptState {
     /// A list of URLs that can access privileged internal APIs.
     pub privileged_urls: Vec<ServoUrl>,
     /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
-    pub user_contents_for_manager_id: HashMap<UserContentManagerId, UserContents>,
+    pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
 }
 
 /// Errors from executing a paint worklet

@@ -510,7 +510,7 @@ pub struct Constellation<STF, SWF> {
     /// Multiple `WebView`s can share the same `UserContentManager` and any mutations
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
     /// the relevant `WebView`.
-    pub(crate) user_contents_for_manager_id: HashMap<UserContentManagerId, UserContents>,
+    pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
 }
 
 /// State needed to construct a constellation.

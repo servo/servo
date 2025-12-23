@@ -941,12 +941,12 @@ impl ScriptThread {
 
         debugger_global.execute(CanGc::note());
 
-        let mut user_contents_for_manager_id = FxHashMap::default();
-        for (user_content_manager_id, user_contents) in
-            state.user_contents_for_manager_id.into_iter()
-        {
-            user_contents_for_manager_id.insert(user_content_manager_id, Rc::new(user_contents));
-        }
+        let user_contents_for_manager_id =
+            FxHashMap::from_iter(state.user_contents_for_manager_id.into_iter().map(
+                |(user_content_manager_id, user_contents)| {
+                    (user_content_manager_id, Rc::new(user_contents))
+                },
+            ));
 
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
