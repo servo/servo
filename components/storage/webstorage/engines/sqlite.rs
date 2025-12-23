@@ -22,7 +22,7 @@ impl SqliteEngine {
         let connection = match db_dir {
             Some(path) => {
                 let path = path.join("webstorage.sqlite");
-                Self::init_db(Some(path))?
+                Self::init_db(Some(&path))?
             },
             None => Self::init_db(None)?,
         };
@@ -33,8 +33,8 @@ impl SqliteEngine {
         Ok(SqliteEngine { connection })
     }
 
-    pub fn init_db(path_opt: Option<PathBuf>) -> rusqlite::Result<Connection> {
-        let connection = if let Some(path) = path_opt {
+    pub fn init_db(db_path: Option<&PathBuf>) -> rusqlite::Result<Connection> {
+        let connection = if let Some(path) = db_path {
             if let Some(parent) = path.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
