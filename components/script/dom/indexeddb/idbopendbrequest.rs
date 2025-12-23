@@ -280,7 +280,7 @@ impl IDBOpenDBRequest {
             .storage_threads()
             .send(IndexedDBThreadMsg::OpenTransactionInactive {
                 name: connection.get_name().to_string(),
-                transaction: transaction.get_serial_number(),
+                origin: global.origin().immutable().clone(),
             })
             .is_err()
         {

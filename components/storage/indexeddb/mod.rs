@@ -204,11 +204,34 @@ fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
     }
 }
 
-/// Keeping track of pending upgrade transactions.
-/// TODO: move into general transaction lifecycle.
-struct PendingUpgrade {
+/// <https://w3c.github.io/IndexedDB/#connection-queue>
+/// The key used to match a request to a name and origin.
+/// TODO: use a storage key instead of the origin.
+#[derive(Clone, Eq, Hash, PartialEq)]
+struct ConnectionQueueKey {
+    name: String,
+    origin: ImmutableOrigin,
+}
+
+/// <https://w3c.github.io/IndexedDB/#request-open-request>
+/// Used here to implement the
+/// <https://w3c.github.io/IndexedDB/#connection-queue>
+struct OpenRequest {
+    /// The callback used to send a result to script.
     sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
-    db_version: u64,
+
+    /// The origin of the request.
+    /// TODO: storage key.
+    origin: ImmutableOrigin,
+
+    // The name of the database.
+    db_name: String,
+
+    /// Optionnaly, a requested db version.
+    version: Option<u64>,
+
+    /// Optionnaly, a version pending ugrade.
+    pending_upgrade: Option<u64>,
 }
 
 struct IndexedDBManager {
@@ -216,14 +239,15 @@ struct IndexedDBManager {
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
     thread_pool: Arc<ThreadPool>,
-    /// Tracking pending upgrade transactions.
-    /// TODO: move into general transaction lifecyle.
-    pending_upgrades: HashMap<(String, u64), PendingUpgrade>,
+
     /// A global counter to produce unique transaction ids.
     /// TODO: remove once db connections lifecyle is managed.
     /// A global counter is only necessary because of how deleting a db currently
     /// does not wait for connection to close and transactions to finish.
     serial_number_counter: u64,
+
+    /// <https://w3c.github.io/IndexedDB/#connection-queue>
+    connection_queues: HashMap<ConnectionQueueKey, VecDeque<OpenRequest>>,
 }
 
 impl IndexedDBManager {
@@ -243,8 +267,8 @@ impl IndexedDBManager {
             idb_base_dir,
             databases: HashMap::new(),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
-            pending_upgrades: Default::default(),
             serial_number_counter: 0,
+            connection_queues: Default::default(),
         }
     }
 }
@@ -283,30 +307,91 @@ impl IndexedDBManager {
                         db.start_transaction(txn, None);
                     }
                 },
-                IndexedDBThreadMsg::OpenTransactionInactive { name, transaction } => {
-                    self.handle_open_transaction_inactive(name, transaction);
+                IndexedDBThreadMsg::OpenTransactionInactive { name, origin } => {
+                    self.handle_open_transaction_inactive(name, origin);
                 },
             }
         }
     }
 
     /// Handle when an open transaction becomes inactive.
-    /// TODO: transaction lifecyle.
-    fn handle_open_transaction_inactive(&mut self, name: String, transaction: u64) {
-        let Some(pending_upgrade) = self.pending_upgrades.remove(&(name, transaction)) else {
-            error!("OpenTransactionInactive received for non-existent pending upgrade.");
-            return;
+    fn handle_open_transaction_inactive(&mut self, name: String, origin: ImmutableOrigin) {
+        let key = ConnectionQueueKey { name, origin };
+        let Some(queue) = self.connection_queues.get_mut(&key) else {
+            return debug_assert!(false, "A connection queue should exist.");
         };
-        if pending_upgrade
+        let Some(open_request) = queue.pop_front() else {
+            return debug_assert!(false, "A pending open request should exist.");
+        };
+        let Some(version) = open_request.pending_upgrade else {
+            return debug_assert!(false, "A pending version upgrade should exist.");
+        };
+        if open_request
             .sender
             .send(Ok(OpenDatabaseResult::Connection {
-                version: pending_upgrade.db_version,
+                version,
                 upgraded: true,
             }))
             .is_err()
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
         };
+
+        // Handle the next open request in the queue.
+        if !queue.is_empty() {
+            self.open_database(key);
+        }
+    }
+
+    /// Only keeping requests in the queue if they have a pending upgrade.
+    fn prune_connection_queue(&mut self, key: &ConnectionQueueKey) {
+        let is_empty = {
+            let Some(queue) = self.connection_queues.get_mut(key) else {
+                return debug_assert!(false, "A connection queue should exist.");
+            };
+            queue.retain(|request| request.pending_upgrade.is_none());
+            queue.is_empty()
+        };
+        if is_empty {
+            self.connection_queues.remove(key);
+        }
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+    fn open_a_database_connection(
+        &mut self,
+        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
+        origin: ImmutableOrigin,
+        db_name: String,
+        version: Option<u64>,
+    ) {
+        let key = ConnectionQueueKey {
+            name: db_name.clone(),
+            origin: origin.clone(),
+        };
+        let open_request = OpenRequest {
+            sender,
+            origin,
+            db_name,
+            version,
+            pending_upgrade: None,
+        };
+        let should_continue = {
+            // Step 1: Let queue be the connection queue for storageKey and name.
+            let queue = self
+                .connection_queues
+                .entry(key.clone())
+                .or_insert_with(Default::default);
+
+            // Step 2: Add request to queue.
+            queue.push_back(open_request);
+            queue.len() == 1
+        };
+
+        // Step 3: Wait until all previous requests in queue have been processed.
+        if should_continue {
+            self.open_database(key.clone());
+        }
     }
 
     fn get_database(
@@ -342,10 +427,23 @@ impl IndexedDBManager {
     fn upgrade_database(
         &mut self,
         idb_description: IndexedDBDescription,
+        key: ConnectionQueueKey,
         new_version: u64,
-        db_name: String,
-        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
     ) {
+        let Some(queue) = self.connection_queues.get_mut(&key) else {
+            return debug_assert!(false, "A connection queue should exist.");
+        };
+        let Some(open_request) = queue.front_mut() else {
+            return debug_assert!(false, "An open request should be in the queue.");
+        };
+        let OpenRequest {
+            sender,
+            origin: _,
+            db_name: _,
+            version: _,
+            pending_upgrade,
+        } = open_request;
+
         // Step 1: Let db be connection’s database.
         // TODO: connection.
         let db = self
@@ -389,31 +487,28 @@ impl IndexedDBManager {
         }
 
         // Step 11: Wait for transaction to finish.
-        self.pending_upgrades.insert(
-            (db_name, transaction_id),
-            PendingUpgrade {
-                sender,
-                db_version: new_version,
-            },
-        );
+        let _ = pending_upgrade.insert(new_version.clone());
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
-    fn open_database(
-        &mut self,
-        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
-        origin: ImmutableOrigin,
-        db_name: String,
-        version: Option<u64>,
-    ) {
-        // Step 1: Let queue be the connection queue for storageKey and name.
-        // Step 2: Add request to queue.
-        // Step 3: Wait until all previous requests in queue have been processed.
-        // TODO: implement #request-connection-queue
-        // TODO: use a storage key.
+    /// The part where the open request is ready for processing.
+    fn open_database(&mut self, key: ConnectionQueueKey) {
+        let Some(queue) = self.connection_queues.get_mut(&key) else {
+            return debug_assert!(false, "A connection queue should exist.");
+        };
+        let Some(open_request) = queue.front_mut() else {
+            return debug_assert!(false, "An open request should be in the queue.");
+        };
+        let OpenRequest {
+            sender,
+            origin,
+            db_name,
+            version,
+            pending_upgrade: _,
+        } = open_request;
 
         let idb_description = IndexedDBDescription {
-            origin,
+            origin: origin.clone(),
             name: db_name.clone(),
         };
 
@@ -511,7 +606,7 @@ impl IndexedDBManager {
             // TODO: implement connections.
 
             // Step 10.6: Run upgrade a database using connection, version and request.
-            self.upgrade_database(idb_description, version, db_name, sender);
+            self.upgrade_database(idb_description, key, version);
             return;
         }
 
@@ -525,6 +620,8 @@ impl IndexedDBManager {
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
         };
+
+        self.prune_connection_queue(&key);
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#delete-a-database>
@@ -633,7 +730,7 @@ impl IndexedDBManager {
                 let _ = sender.send(Ok(()));
             },
             SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
-                self.open_database(sender, origin, db_name, version);
+                self.open_a_database_connection(sender, origin, db_name, version);
             },
             SyncOperation::DeleteDatabase(callback, origin, db_name) => {
                 let idb_description = IndexedDBDescription {

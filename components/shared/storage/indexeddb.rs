@@ -490,7 +490,7 @@ pub enum IndexedDBThreadMsg {
     ),
     OpenTransactionInactive {
         name: String,
-        transaction: u64,
+        origin: ImmutableOrigin,
     },
 }
 
