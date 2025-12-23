@@ -17,8 +17,8 @@ use devtools_traits::EvaluateJSReply::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
 use devtools_traits::{
-    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleLog, ConsoleMessage,
-    DevtoolScriptControlMsg, PageError,
+    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleClearMessage, ConsoleLog,
+    ConsoleMessage, DevtoolScriptControlMsg, PageError,
 };
 use log::debug;
 use serde::Serialize;
@@ -288,6 +288,26 @@ impl ConsoleActor {
             if let Root::BrowsingContext(bc) = &self.root {
                 registry.find::<BrowsingContextActor>(bc).resource_array(
                     log_message,
+                    "console-message".into(),
+                    ResourceArrayType::Available,
+                    stream,
+                )
+            };
+        }
+    }
+
+    pub(crate) fn send_clear_message(
+        &self,
+        id: UniqueId,
+        registry: &ActorRegistry,
+        stream: &mut TcpStream,
+    ) {
+        if id == self.current_unique_id(registry) {
+            if let Root::BrowsingContext(bc) = &self.root {
+                registry.find::<BrowsingContextActor>(bc).resource_array(
+                    ConsoleClearMessage {
+                        level: "clear".to_owned(),
+                    },
                     "console-message".into(),
                     ResourceArrayType::Available,
                     stream,
