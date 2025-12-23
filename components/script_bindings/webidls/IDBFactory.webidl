@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://w3c.github.io/IndexedDB/#idbfactory
+ * https://www.w3.org/TR/IndexedDB/#idbfactory
  *
  */
 
@@ -19,7 +19,7 @@ interface IDBFactory {
                                     optional [EnforceRange] unsigned long long version);
   [NewObject, Throws] IDBOpenDBRequest deleteDatabase(DOMString name);
 
-  // Promise<sequence<IDBDatabaseInfo>> databases();
+  Promise<sequence<IDBDatabaseInfo>> databases();
 
   [Throws] short cmp(any first, any second);
 };

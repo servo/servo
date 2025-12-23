@@ -20,8 +20,8 @@ use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
-    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DbResult, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
+    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DatabaseInfo, DbResult,
+    IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
 };
 use uuid::Uuid;
 
@@ -53,6 +53,8 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
     }
 }
 
+/// A key used to track databases.
+/// TODO: use a storage key.
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct IndexedDBDescription {
     pub origin: ImmutableOrigin,
@@ -176,13 +178,11 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         result.map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_database(self, sender: GenericCallback<BackendResult<()>>) {
+    fn delete_database(self) -> BackendResult<()> {
         let result = self.engine.delete_database();
-        let _ = sender.send(
-            result
-                .map_err(|err| format!("{err:?}"))
-                .map_err(BackendError::from),
-        );
+        result
+            .map_err(|err| format!("{err:?}"))
+            .map_err(BackendError::from)
     }
 
     fn version(&self) -> Result<u64, E::Error> {
@@ -527,11 +527,102 @@ impl IndexedDBManager {
         };
     }
 
+    /// <https://www.w3.org/TR/IndexedDB/#delete-a-database>
+    fn delete_database(&mut self, idb_description: IndexedDBDescription) -> BackendResult<u64> {
+        // Step 1: Let queue be the connection queue for storageKey and name.
+        // Step 2: Add request to queue.
+        // Step 3: Wait until all previous requests in queue have been processed.
+        // TODO: implement connection queue.
+
+        // Step4: Let db be the database named name in storageKey, if one exists. Otherwise, return 0 (zero).
+        let version = if let Some(db) = self.databases.remove(&idb_description) {
+            // Step 5: Let openConnections be the set of all connections associated with db.
+            // Step6: For each entry of openConnections that does not have its close pending flag set to true,
+            // queue a database task to fire a version change event named versionchange
+            // at entry with db’s version and null.
+            // Step 7: Wait for all of the events to be fired.
+            // Step 8: If any of the connections in openConnections are still not closed,
+            // queue a database task to fire a version change event
+            // named blocked at request with db’s version and null.
+            // Step 9: Wait until all connections in openConnections are closed.
+            // TODO: implement connections.
+
+            // Step 10: Let version be db’s version.
+            let version = db.version().map_err(backend_error_from_sqlite_error)?;
+
+            // Step 11: Delete db.
+            // If this fails for any reason,
+            // return an appropriate error (e.g. a QuotaExceededError, or an "UnknownError" DOMException).
+            db.delete_database()?;
+            version
+        } else {
+            0
+        };
+
+        // step 12: Return version.
+        BackendResult::Ok(version)
+    }
+
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
+            SyncOperation::GetDatabases(sender, origin) => {
+                // The in-parallel steps of https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases
+
+                // Step 4.1 Let databases be the set of databases in storageKey.
+                // If this cannot be determined for any reason,
+                // then queue a database task to reject p with an appropriate error
+                // (e.g. an "UnknownError" DOMException) and terminate these steps.
+                // TODO: separate database and connection concepts.
+                // For now using `self.databases`, which track connections.
+
+                // Step 4.2: Let result be a new list.
+                let info_list: Vec<DatabaseInfo> = self
+                    .databases
+                    .iter()
+                    .filter_map(|(description, info)| {
+                        // Step 4.3: For each db of databases:
+                        if let Ok(version) = info.version() {
+                            // Step 4.3.4: If db’s version is 0, then continue.
+                            if version == 0 {
+                                None
+                            } else {
+                                // Step 4.3.5: Let info be a new IDBDatabaseInfo dictionary.
+                                // Step 4.3.6: Set info’s name dictionary member to db’s name.
+                                // Step 4.3.7: Set info’s version dictionary member to db’s version.
+                                // Step 4.3.8: Append info to result.
+                                if description.origin == origin {
+                                    Some(DatabaseInfo {
+                                        name: description.name.clone(),
+                                        version,
+                                    })
+                                } else {
+                                    None
+                                }
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                // Note: if anything went wrong, we reply with an error.
+                let result = if info_list.len() == self.databases.len() {
+                    Ok(info_list)
+                } else {
+                    Err(BackendError::DbErr(
+                        "Unknown error getting database info.".to_string(),
+                    ))
+                };
+
+                // Step 4.4: Queue a database task to resolve p with result.
+                if sender.send(result).is_err() {
+                    debug!("Couldn't send SyncOperation::GetDatabases reply.");
+                }
+            },
             SyncOperation::CloseDatabase(sender, origin, db_name) => {
                 // TODO: Wait for all transactions created using connection to complete.
                 // Note: current behavior is as if the `forced` flag is always set.
+                // TODO: do not delete the database, only the connection.
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
@@ -545,17 +636,16 @@ impl IndexedDBManager {
                 self.open_database(sender, origin, db_name, version);
             },
             SyncOperation::DeleteDatabase(callback, origin, db_name) => {
-                // https://w3c.github.io/IndexedDB/#delete-a-database
-                // Step 4. Let db be the database named name in storageKey,
-                // if one exists. Otherwise, return 0 (zero).
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
                 };
-                if let Some(db) = self.databases.remove(&idb_description) {
-                    db.delete_database(callback);
-                } else {
-                    let _ = callback.send(Ok(()));
+                // https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase
+                // Step 4.1: Let result be the result of deleting a database,
+                // with storageKey, name, and request.
+                let result = self.delete_database(idb_description);
+                if callback.send(result).is_err() {
+                    error!("Failed to send delete database result to script");
                 }
             },
             SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
