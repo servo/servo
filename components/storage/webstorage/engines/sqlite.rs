@@ -22,9 +22,9 @@ impl SqliteEngine {
         let connection = match db_dir {
             Some(path) => {
                 let path = path.join("webstorage.sqlite");
-                Self::init_db(&path)?
+                Self::init_db(Some(path))?
             },
-            None => Connection::open_in_memory()?,
+            None => Self::init_db(None)?,
         };
         // Initialize the database with necessary pragmas
         for pragma in DB_PRAGMAS.iter() {
@@ -33,11 +33,15 @@ impl SqliteEngine {
         Ok(SqliteEngine { connection })
     }
 
-    pub fn init_db(path: &PathBuf) -> rusqlite::Result<Connection> {
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let connection = Connection::open(path)?;
+    pub fn init_db(path_opt: Option<PathBuf>) -> rusqlite::Result<Connection> {
+        let connection = if let Some(path) = path_opt {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            Connection::open(path)?
+        } else {
+            Connection::open_in_memory()?
+        };
         for pragma in DB_INIT_PRAGMAS.iter() {
             let _ = connection.execute(pragma, []);
         }
