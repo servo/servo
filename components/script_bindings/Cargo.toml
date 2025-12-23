@@ -41,7 +41,7 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
-tendril = { version = "0.4.1", features = ["encoding_rs"] }
+tendril = { workspace = true }
 tracing = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }
 xml5ever = { workspace = true }

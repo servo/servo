@@ -894,10 +894,8 @@ malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(urlpattern::UrlPattern);
 malloc_size_of_is_0!(utf8::Incomplete);
 
-impl<
-    S: markup5ever::tendril::TendrilSink<markup5ever::tendril::fmt::UTF8, A>,
-    A: markup5ever::tendril::Atomicity,
-> MallocSizeOf for markup5ever::tendril::stream::LossyDecoder<S, A>
+impl<S: tendril::TendrilSink<tendril::fmt::UTF8, A>, A: tendril::Atomicity> MallocSizeOf
+    for tendril::stream::LossyDecoder<S, A>
 {
     fn size_of(&self, _: &mut MallocSizeOfOps) -> usize {
         0
