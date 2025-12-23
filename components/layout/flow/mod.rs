@@ -340,20 +340,19 @@ impl OutsideMarker {
             &containing_block_for_children,
         );
 
-        let max_inline_size =
-            flow_layout
-                .fragments
-                .iter()
-                .fold(Au::zero(), |current_max, fragment| {
-                    current_max.max(
-                        fragment
-                            .base()
-                            .map(|base| base.rect)
-                            .unwrap_or_default()
-                            .to_logical(&containing_block_for_children)
-                            .max_inline_position(),
-                    )
-                });
+        let max_inline_size = flow_layout
+            .fragments
+            .iter()
+            .map(|fragment| {
+                fragment
+                    .base()
+                    .map(|base| base.rect)
+                    .unwrap_or_default()
+                    .to_logical(&containing_block_for_children)
+                    .max_inline_position()
+            })
+            .max()
+            .unwrap_or_default();
 
         // Position the marker beyond the inline start of the border box list item. This needs to
         // take into account the border and padding of the item.

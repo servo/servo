@@ -1217,9 +1217,13 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// The length of the content in Unicode code points.
     pub(crate) fn char_count(&self) -> usize {
-        self.lines.iter().fold(0, |m, l| {
-            m + l.str().chars().count() + 1 // + 1 for the '\n'
-        }) - 1
+        self.lines
+            .iter()
+            .map(|line| {
+                line.str().chars().count() + 1 // + 1 for the '\n'
+            })
+            .sum::<usize>() -
+            1
     }
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.

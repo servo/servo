@@ -406,9 +406,9 @@ pub trait RequestHeadersSize {
 
 impl RequestHeadersSize for HeaderMap {
     fn total_size(&self) -> usize {
-        self.iter().fold(0, |acc, (name, value)| {
-            acc + name.as_str().len() + value.len()
-        })
+        self.iter()
+            .map(|(name, value)| name.as_str().len() + value.len())
+            .sum()
     }
 }
 

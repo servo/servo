@@ -827,11 +827,7 @@ impl<'a> TableLayout<'a> {
         // > Otherwise, the used widths of the columns are the result of starting from the max-content
         // > sizing-guess and distributing the excess width to the columns of the table according to
         // > the rules for distributing excess width to columns (for used width).
-        fn sum(guesses: &[Au]) -> Au {
-            guesses.iter().fold(Au::zero(), |sum, guess| sum + *guess)
-        }
-
-        let max_content_sizing_sum = sum(&max_content_sizing_guesses);
+        let max_content_sizing_sum = max_content_sizing_guesses.iter().sum();
         if target_inline_size >= max_content_sizing_sum {
             Self::distribute_extra_width_to_columns(
                 columns,
@@ -841,15 +837,15 @@ impl<'a> TableLayout<'a> {
             );
             return max_content_sizing_guesses;
         }
-        let min_content_specified_sizing_sum = sum(&min_content_specified_sizing_guesses);
+        let min_content_specified_sizing_sum = min_content_specified_sizing_guesses.iter().sum();
         if target_inline_size == min_content_specified_sizing_sum {
             return min_content_specified_sizing_guesses;
         }
-        let min_content_percentage_sizing_sum = sum(&min_content_percentage_sizing_guesses);
+        let min_content_percentage_sizing_sum = min_content_percentage_sizing_guesses.iter().sum();
         if target_inline_size == min_content_percentage_sizing_sum {
             return min_content_percentage_sizing_guesses;
         }
-        let min_content_sizes_sum = sum(&min_content_sizing_guesses);
+        let min_content_sizes_sum = min_content_sizing_guesses.iter().sum();
         if target_inline_size <= min_content_sizes_sum {
             return min_content_sizing_guesses;
         }
@@ -968,10 +964,10 @@ impl<'a> TableLayout<'a> {
             .filter(has_originating_cells)
             .filter(has_percent_zero)
             .filter(has_max_content);
-        let total_max_content_width = unconstrained_max_content_columns
+        let total_max_content_width: Au = unconstrained_max_content_columns
             .clone()
             .map(max_content_sum)
-            .fold(Au::zero(), |a, b| a + b);
+            .sum();
         if !total_max_content_width.is_zero() {
             for column_index in unconstrained_max_content_columns {
                 column_sizes[column_index] += extra_inline_size.scale_by(
@@ -1013,10 +1009,10 @@ impl<'a> TableLayout<'a> {
             .filter(has_originating_cells)
             .filter(has_percent_zero)
             .filter(has_max_content);
-        let total_max_content_width = constrained_max_content_columns
+        let total_max_content_width: Au = constrained_max_content_columns
             .clone()
             .map(max_content_sum)
-            .fold(Au::zero(), |a, b| a + b);
+            .sum();
         if !total_max_content_width.is_zero() {
             for column_index in constrained_max_content_columns {
                 column_sizes[column_index] += extra_inline_size.scale_by(
