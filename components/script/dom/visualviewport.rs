@@ -7,6 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use euclid::{Rect, Scale, Size2D};
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
@@ -72,7 +73,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-offsetleft>
     fn OffsetLeft(&self) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
-        if !self.window.has_fully_active_document() {
+        if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
         }
 
@@ -84,7 +85,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-offsettop>
     fn OffsetTop(&self) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
-        if !self.window.has_fully_active_document() {
+        if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
         }
 
@@ -96,7 +97,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-pageleft>
     fn PageLeft(&self) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
-        if !self.window.has_fully_active_document() {
+        if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
         }
 
@@ -109,7 +110,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-pagetop>
     fn PageTop(&self) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
-        if !self.window.has_fully_active_document() {
+        if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
         }
 
@@ -122,7 +123,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-width>
     fn Width(&self) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
-        if !self.window.has_fully_active_document() {
+        if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
         }
 
@@ -135,7 +136,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-height>
     fn Height(&self) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
-        if !self.window.has_fully_active_document() {
+        if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
         }
 
@@ -148,7 +149,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#dom-visualviewport-scale>
     fn Scale(&self) -> Finite<f64> {
         // > 1. If the visual viewport’s associated document is not fully active, return 0.
-        if !self.window.has_fully_active_document() {
+        if !self.window.Document().is_fully_active() {
             return Finite::wrap(0.);
         }
 
@@ -160,7 +161,7 @@ impl VisualViewportMethods<crate::DomTypeHolder> for VisualViewport {
     }
 
     // <https://drafts.csswg.org/cssom-view/#dom-visualviewport-onresize>
-    event_handler!(change, GetOnresize, SetOnresize);
+    event_handler!(resize, GetOnresize, SetOnresize);
 
     // <https://drafts.csswg.org/cssom-view/#dom-visualviewport-onscroll>
     event_handler!(scroll, GetOnscroll, SetOnscroll);

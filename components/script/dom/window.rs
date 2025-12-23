@@ -1577,7 +1577,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // > If the associated document is fully active, the visualViewport attribute must return the
         // > VisualViewport object associated with the Window object’s associated document. Otherwise,
         // > it must return null.
-        if !self.has_fully_active_document() {
+        if !self.Document().is_fully_active() {
             return None;
         }
 
@@ -2318,16 +2318,6 @@ impl Window {
 
     pub(crate) fn has_document(&self) -> bool {
         self.document.get().is_some()
-    }
-
-    pub(crate) fn has_fully_active_document(&self) -> bool {
-        if let Some(document) = self.document.get() &&
-            document.is_fully_active()
-        {
-            true
-        } else {
-            false
-        }
     }
 
     pub(crate) fn clear_js_runtime(&self) {
