@@ -9,7 +9,7 @@ use base::threadpool::ThreadPool;
 use log::error;
 use rusqlite::Connection;
 
-use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
+use crate::shared::{DB_IN_MEMORY_INIT_PRAGMAS, DB_IN_MEMORY_PRAGMAS, DB_INIT_PRAGMAS, DB_PRAGMAS};
 use crate::webstorage::OriginEntry;
 use crate::webstorage::engines::WebStorageEngine;
 
@@ -26,10 +26,6 @@ impl SqliteEngine {
             },
             None => Self::init_db(None)?,
         };
-        // Initialize the database with necessary pragmas
-        for pragma in DB_PRAGMAS.iter() {
-            let _ = connection.execute(pragma, []);
-        }
         Ok(SqliteEngine { connection })
     }
 
@@ -42,8 +38,20 @@ impl SqliteEngine {
         } else {
             Connection::open_in_memory()?
         };
-        for pragma in DB_INIT_PRAGMAS.iter() {
-            let _ = connection.execute(pragma, []);
+        if db_path.is_some() {
+            for pragma in DB_INIT_PRAGMAS.iter() {
+                let _ = connection.execute(pragma, []);
+            }
+            for pragma in DB_PRAGMAS.iter() {
+                let _ = connection.execute(pragma, []);
+            }
+        } else {
+            for pragma in DB_IN_MEMORY_INIT_PRAGMAS.iter() {
+                let _ = connection.execute(pragma, []);
+            }
+            for pragma in DB_IN_MEMORY_PRAGMAS.iter() {
+                let _ = connection.execute(pragma, []);
+            }
         }
         connection.execute("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);", [])?;
         Ok(connection)

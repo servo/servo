@@ -11,6 +11,9 @@ use rusqlite::{Error as RusqliteError, ffi};
 pub const DB_INIT_PRAGMAS: [&str; 2] =
     ["PRAGMA journal_mode = WAL;", "PRAGMA encoding = 'UTF-16';"];
 
+// These pragmas need to be set once for in memory databases
+pub const DB_IN_MEMORY_INIT_PRAGMAS: [&str; 1] = ["PRAGMA encoding = 'UTF-16';"];
+
 // These pragmas need to be run once per connection.
 pub const DB_PRAGMAS: [&str; 4] = [
     "PRAGMA synchronous = NORMAL;",
@@ -18,6 +21,9 @@ pub const DB_PRAGMAS: [&str; 4] = [
     "PRAGMA mmap_size = 67108864 -- 64 megabytes;",
     "PRAGMA cache_size = 2000;",
 ];
+
+// These pragmas need to be run once per connection for in memory databases.
+pub const DB_IN_MEMORY_PRAGMAS: [&str; 1] = ["PRAGMA cache_size = 2000;"];
 
 pub(crate) fn is_sqlite_disk_full_error(error: &RusqliteError) -> bool {
     fn has_enospc(mut source: Option<&(dyn StdError + 'static)>) -> bool {
