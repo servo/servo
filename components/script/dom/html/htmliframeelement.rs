@@ -224,6 +224,7 @@ impl HTMLIFrameElement {
                     opener: None,
                     load_data,
                     viewport_details,
+                    user_content_manager_id: None,
                     theme: window.theme(),
                 };
 

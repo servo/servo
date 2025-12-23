@@ -34,7 +34,6 @@ use constellation::{
 };
 use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use fonts::SystemFontService;
@@ -764,7 +763,6 @@ impl Servo {
             mem_profiler_chan,
             devtools_sender,
             protocols,
-            builder.user_content_manager,
             public_resource_threads.clone(),
             private_resource_threads.clone(),
             async_runtime,
@@ -939,7 +937,6 @@ fn create_constellation(
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     protocols: Arc<ProtocolRegistry>,
-    user_content_manager: UserContentManager,
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
     async_runtime: Box<dyn net_traits::AsyncRuntime>,
@@ -984,7 +981,6 @@ fn create_constellation(
         webrender_external_image_id_manager: paint.webrender_external_image_id_manager(),
         #[cfg(feature = "webgpu")]
         wgpu_image_map: paint.webgpu_image_map(),
-        user_content_manager,
         async_runtime,
         privileged_urls,
     };
@@ -1155,7 +1151,6 @@ pub struct ServoBuilder {
     opts: Option<Box<Opts>>,
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
-    user_content_manager: UserContentManager,
     protocol_registry: ProtocolRegistry,
     #[cfg(feature = "webxr")]
     webxr_registry: Box<dyn webxr::WebXrRegistry>,
@@ -1167,7 +1162,6 @@ impl Default for ServoBuilder {
             opts: Default::default(),
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
-            user_content_manager: Default::default(),
             protocol_registry: Default::default(),
             #[cfg(feature = "webxr")]
             webxr_registry: Box::new(DefaultWebXrRegistry),
@@ -1192,11 +1186,6 @@ impl ServoBuilder {
 
     pub fn event_loop_waker(mut self, event_loop_waker: Box<dyn EventLoopWaker>) -> Self {
         self.event_loop_waker = event_loop_waker;
-        self
-    }
-
-    pub fn user_content_manager(mut self, user_content_manager: UserContentManager) -> Self {
-        self.user_content_manager = user_content_manager;
         self
     }
 

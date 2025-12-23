@@ -17,6 +17,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use compositing_traits::CrossProcessPaintApi;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
@@ -412,6 +413,8 @@ pub struct AuxiliaryWebViewCreationResponse {
     pub new_webview_id: WebViewId,
     /// The new pipeline ID.
     pub new_pipeline_id: PipelineId,
+    /// The [`UserContentManagerId`] for this new auxiliary browsing context.
+    pub user_content_manager_id: Option<UserContentManagerId>,
 }
 
 /// Specifies the information required to load an iframe.

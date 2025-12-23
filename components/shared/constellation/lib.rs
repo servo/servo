@@ -18,10 +18,11 @@ use std::time::Duration;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
+use embedder_traits::user_contents::{UserContentManagerId, UserScript};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
-    MediaSessionActionType, PaintHitTestResult, Theme, TraversalId, ViewportDetails,
-    WebDriverCommandMsg,
+    MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId,
+    ViewportDetails, WebDriverCommandMsg,
 };
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
@@ -66,7 +67,7 @@ pub enum EmbedderToConstellationMessage {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<ScriptEventLoopId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewWebView(ServoUrl, WebViewId, ViewportDetails),
+    NewWebView(ServoUrl, NewWebViewDetails),
     /// Close a top level browsing context.
     CloseWebView(WebViewId),
     /// Panic a top level browsing context.
@@ -109,6 +110,13 @@ pub enum EmbedderToConstellationMessage {
     RequestScreenshotReadiness(WebViewId),
     /// A response to a request to show an embedder user interface control.
     EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
+    /// An action to perform on the given `UserContentManagerId`.
+    UserContentManagerAction(UserContentManagerId, UserContentManagerAction),
+}
+
+pub enum UserContentManagerAction {
+    AddUserScript(UserScript),
+    DestroyUserContentManager,
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the

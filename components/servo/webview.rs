@@ -16,8 +16,8 @@ use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
     InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId,
-    ViewportDetails, WebViewPoint, WebViewRect,
+    MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
+    Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -32,7 +32,7 @@ use crate::responders::IpcResponder;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
-    WebRenderDebugOption,
+    UserContentManager, WebRenderDebugOption,
 };
 
 pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1, 1);
@@ -86,6 +86,7 @@ pub(crate) struct WebViewInner {
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
 
     rendering_context: Rc<dyn RenderingContext>,
+    user_content_manager: Option<Rc<UserContentManager>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
     status_text: Option<String>,
@@ -135,6 +136,7 @@ impl WebView {
             cursor: Cursor::Pointer,
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
+            user_content_manager: builder.user_content_manager.clone(),
         })));
 
         let viewport_details = webview.viewport_details();
@@ -150,6 +152,17 @@ impl WebView {
             .webviews_mut()
             .insert(webview.id(), webview.weak_handle());
 
+        let user_content_manager_id = builder
+            .user_content_manager
+            .as_ref()
+            .map(|user_content_manager| user_content_manager.id());
+
+        let new_webview_details = NewWebViewDetails {
+            webview_id: webview.id(),
+            viewport_details,
+            user_content_manager_id,
+        };
+
         // There are two possibilities here. Either the WebView is a new toplevel
         // WebView in which case `Self::create_new_webview_responder` is `None` or this
         // is the response to a `WebViewDelegate::request_create_new` method in which
@@ -157,7 +170,7 @@ impl WebView {
         // the `ScriptThread`.
         match builder.create_new_webview_responder.as_mut() {
             Some(responder) => {
-                let _ = responder.send(Some((webview.id(), viewport_details)));
+                let _ = responder.send(Some(new_webview_details));
             },
             None => {
                 let url = builder.url.unwrap_or(
@@ -169,8 +182,7 @@ impl WebView {
                     .constellation_proxy()
                     .send(EmbedderToConstellationMessage::NewWebView(
                         url.into(),
-                        webview.id(),
-                        viewport_details,
+                        new_webview_details,
                     ));
             },
         }
@@ -188,7 +200,7 @@ impl WebView {
 
     pub(crate) fn request_create_new(
         &self,
-        response_sender: GenericSender<Option<(WebViewId, ViewportDetails)>>,
+        response_sender: GenericSender<Option<NewWebViewDetails>>,
     ) {
         let request = CreateNewWebViewRequest {
             servo: self.inner().servo.clone(),
@@ -423,6 +435,7 @@ impl WebView {
     }
 
     pub fn reload(&self) {
+        self.inner_mut().load_status = LoadStatus::Started;
         self.inner()
             .servo
             .constellation_proxy()
@@ -587,6 +600,11 @@ impl WebView {
     /// Paint the contents of this [`WebView`] into its `RenderingContext`.
     pub fn paint(&self) {
         self.inner().servo.paint().render(self.id());
+    }
+
+    /// Get the [`UserContentManager`] associated with this [`WebView`].
+    pub fn user_content_manager(&self) -> Option<Rc<UserContentManager>> {
+        self.inner().user_content_manager.clone()
     }
 
     /// Evaluate the specified string of JavaScript code. Once execution is complete or an error
@@ -756,7 +774,8 @@ pub struct WebViewBuilder {
     delegate: Rc<dyn WebViewDelegate>,
     url: Option<Url>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    create_new_webview_responder: Option<IpcResponder<Option<(WebViewId, ViewportDetails)>>>,
+    create_new_webview_responder: Option<IpcResponder<Option<NewWebViewDetails>>>,
+    user_content_manager: Option<Rc<UserContentManager>>,
 }
 
 impl WebViewBuilder {
@@ -768,13 +787,14 @@ impl WebViewBuilder {
             hidpi_scale_factor: Scale::new(1.0),
             delegate: Rc::new(DefaultWebViewDelegate),
             create_new_webview_responder: None,
+            user_content_manager: None,
         }
     }
 
     pub(crate) fn new_for_create_request(
         servo: &Servo,
         rendering_context: Rc<dyn RenderingContext>,
-        responder: IpcResponder<Option<(WebViewId, ViewportDetails)>>,
+        responder: IpcResponder<Option<NewWebViewDetails>>,
     ) -> Self {
         let mut builder = Self::new(servo, rendering_context);
         builder.create_new_webview_responder = Some(responder);
@@ -796,6 +816,14 @@ impl WebViewBuilder {
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     ) -> Self {
         self.hidpi_scale_factor = hidpi_scale_factor;
+        self
+    }
+
+    /// Set the [`UserContentManager`] for the `WebView` being created. The same
+    /// `UserContentManager` can be shared among multiple `WebView`s. Any updates
+    /// to the `UserContentManager` will take effect only after the document is reloaded>
+    pub fn user_content_manager(mut self, user_content_manager: Rc<UserContentManager>) -> Self {
+        self.user_content_manager = Some(user_content_manager);
         self
     }
 

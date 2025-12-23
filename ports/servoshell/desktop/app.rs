@@ -78,13 +78,6 @@ impl App {
 
     /// Initialize Application once event loop start running.
     pub fn init(&mut self, active_event_loop: Option<&ActiveEventLoop>) {
-        let mut user_content_manager = UserContentManager::new();
-        for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
-            .expect("Loading userscripts failed")
-        {
-            user_content_manager.add_script(script);
-        }
-
         let mut protocol_registry = ProtocolRegistry::default();
         let _ = protocol_registry.register(
             "urlinfo",
@@ -100,7 +93,6 @@ impl App {
         let servo_builder = ServoBuilder::default()
             .opts(self.opts.clone())
             .preferences(self.preferences.clone())
-            .user_content_manager(user_content_manager)
             .protocol_registry(protocol_registry)
             .event_loop_waker(self.waker.clone());
 
@@ -118,10 +110,18 @@ impl App {
         let servo = servo_builder.build();
         servo.setup_logging();
 
+        let user_content_manager = Rc::new(UserContentManager::new(&servo));
+        for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
+            .expect("Loading userscripts failed")
+        {
+            user_content_manager.add_script(script);
+        }
+
         let running_state = Rc::new(RunningAppState::new(
             servo,
             self.servoshell_preferences.clone(),
             self.waker.clone(),
+            user_content_manager,
         ));
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 

@@ -3,27 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
-pub struct UserContentManager {
-    user_scripts: Vec<UserScript>,
+static USER_CONTENT_MANAGER_ID: AtomicU32 = AtomicU32::new(1);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct UserContentManagerId(u32);
+
+impl UserContentManagerId {
+    pub fn next() -> Self {
+        Self(USER_CONTENT_MANAGER_ID.fetch_add(1, Ordering::Relaxed))
+    }
 }
 
-impl UserContentManager {
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct UserContents {
+    pub scripts: Vec<UserScript>,
+}
+
+impl UserContents {
     pub fn new() -> Self {
-        UserContentManager::default()
-    }
-
-    pub fn add_script(&mut self, script: impl Into<UserScript>) {
-        self.user_scripts.push(script.into());
-    }
-
-    pub fn scripts(&self) -> &[UserScript] {
-        &self.user_scripts
+        UserContents::default()
     }
 }
 

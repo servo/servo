@@ -28,7 +28,7 @@ use constellation_traits::{
 };
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
-use embedder_traits::user_content_manager::UserContentManager;
+use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber, InputEventAndId,
     JavaScriptEvaluationId, MediaSessionActionType, PaintHitTestResult, ScriptToEmbedderChan,
@@ -75,6 +75,8 @@ pub struct NewPipelineInfo {
     pub load_data: LoadData,
     /// Initial [`ViewportDetails`] for this layout.
     pub viewport_details: ViewportDetails,
+    /// The ID of the `UserContentManager` associated with this new pipeline's `WebView`.
+    pub user_content_manager_id: Option<UserContentManagerId>,
     /// The [`Theme`] of the new layout.
     pub theme: Theme,
 }
@@ -295,6 +297,14 @@ pub enum ScriptThreadMessage {
     RequestScreenshotReadiness(WebViewId, PipelineId),
     /// A response to a request to show an embedder user interface control.
     EmbedderControlResponse(EmbedderControlId, EmbedderControlResponse),
+    /// Set the `UserContents` for the given `UserContentManagerId`. A `ScriptThread` can host many
+    /// `WebView`s which share the same `UserContentManager`. Only documents loaded after
+    /// the processing of this message will observe the new `UserContents` of the specified
+    /// `UserContentManagerId`.
+    SetUserContents(UserContentManagerId, UserContents),
+    /// Release all data for the given `UserContentManagerId` from the `ScriptThread`'s
+    /// `user_contents_for_manager_id` map.
+    DestroyUserContentManager(UserContentManagerId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -372,10 +382,10 @@ pub struct InitialScriptState {
     pub cross_process_paint_api: CrossProcessPaintApi,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
-    /// User content manager
-    pub user_content_manager: UserContentManager,
     /// A list of URLs that can access privileged internal APIs.
     pub privileged_urls: Vec<ServoUrl>,
+    /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
+    pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
 }
 
 /// Errors from executing a paint worklet

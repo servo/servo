@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
@@ -36,6 +37,11 @@ pub(crate) struct ConstellationWebView {
     /// The joint session history for this webview.
     pub session_history: JointSessionHistory,
 
+    /// The [`UserContentManagerId`] for all pipelines in this `WebView`. This is `Some`
+    /// if the embedder has set a `UserContentManager` using the WebViewBuilder API and
+    /// it is `None` otherwise.
+    pub user_content_manager_id: Option<UserContentManagerId>,
+
     /// The [`Theme`] that this [`ConstellationWebView`] uses. This is communicated to all
     /// `ScriptThread`s so that they know how to render the contents of a particular `WebView.
     theme: Theme,
@@ -45,9 +51,11 @@ impl ConstellationWebView {
     pub(crate) fn new(
         webview_id: WebViewId,
         focused_browsing_context_id: BrowsingContextId,
+        user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
         Self {
             webview_id,
+            user_content_manager_id,
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),

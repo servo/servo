@@ -11,7 +11,7 @@
 pub mod embedder_controls;
 pub mod input_events;
 pub mod resources;
-pub mod user_content_manager;
+pub mod user_contents;
 pub mod webdriver;
 
 use std::collections::HashMap;
@@ -48,6 +48,7 @@ use webrender_api::units::{
 
 pub use crate::embedder_controls::*;
 pub use crate::input_events::*;
+use crate::user_contents::UserContentManagerId;
 pub use crate::webdriver::*;
 
 /// A point in a `WebView`, either expressed in device pixels or page pixels.
@@ -441,10 +442,7 @@ pub enum EmbedderMsg {
         GenericSender<AllowOrDeny>,
     ),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(
-        WebViewId,
-        GenericSender<Option<(WebViewId, ViewportDetails)>>,
-    ),
+    AllowOpeningWebView(WebViewId, GenericSender<Option<NewWebViewDetails>>),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview potentially gained focus for keyboard events.
@@ -1122,4 +1120,13 @@ impl ScriptToEmbedderChan {
     pub fn send(&self, msg: EmbedderMsg) -> SendResult {
         self.0.send(msg)
     }
+}
+
+/// Used for communicating the details of a new `WebView` created by the embedder
+/// back to the constellation.
+#[derive(Deserialize, Serialize)]
+pub struct NewWebViewDetails {
+    pub webview_id: WebViewId,
+    pub viewport_details: ViewportDetails,
+    pub user_content_manager_id: Option<UserContentManagerId>,
 }

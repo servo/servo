@@ -346,6 +346,7 @@ impl WindowProxy {
             opener: Some(self.browsing_context_id),
             load_data,
             viewport_details: window.viewport_details(),
+            user_content_manager_id: response.user_content_manager_id,
             // Use the current `WebView`'s theme initially, but the embedder may
             // change this later.
             theme: window.theme(),

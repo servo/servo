@@ -88,6 +88,7 @@ impl ServoShellWindow {
         let webview = WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
             .url(url)
             .hidpi_scale_factor(self.platform_window.hidpi_scale_factor())
+            .user_content_manager(state.user_content_manager.clone())
             .delegate(state.clone())
             .build();
 

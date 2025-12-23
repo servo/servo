@@ -122,7 +122,7 @@ use constellation_traits::{
     LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
     PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
     ScriptToConstellationMessage, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, TraversalDirection, WindowSizeType,
+    StructuredSerializedData, TraversalDirection, UserContentManagerAction, WindowSizeType,
 };
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
@@ -131,12 +131,12 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::resources::{self, Resource};
-use embedder_traits::user_content_manager::UserContentManager;
+use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
     AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy,
     FocusSequenceNumber, InputEvent, InputEventAndId, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
-    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, NewWebViewDetails,
     PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
     WebDriverScriptCommand,
 };
@@ -479,9 +479,6 @@ pub struct Constellation<STF, SWF> {
     /// on an as-needed basis, rather than retrieving it every time.
     pub(crate) broken_image_icon_data: Vec<u8>,
 
-    /// User content manager
-    pub(crate) user_content_manager: UserContentManager,
-
     /// The process manager.
     pub(crate) process_manager: ProcessManager,
 
@@ -508,6 +505,12 @@ pub struct Constellation<STF, SWF> {
     /// ready to take place, at which point the Constellation informs the renderer that it
     /// can start the process of taking the screenshot.
     screenshot_readiness_requests: Vec<ScreenshotReadinessRequest>,
+
+    /// A map from `UserContentManagerId` to the `UserContents` for that manager.
+    /// Multiple `WebView`s can share the same `UserContentManager` and any mutations
+    /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
+    /// the relevant `WebView`.
+    pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
 }
 
 /// State needed to construct a constellation.
@@ -557,9 +560,6 @@ pub struct InitialConstellationState {
 
     #[cfg(feature = "webgpu")]
     pub wgpu_image_map: WebGpuExternalImageMap,
-
-    /// User content manager
-    pub user_content_manager: UserContentManager,
 
     /// A list of URLs that can access privileged internal APIs.
     pub privileged_urls: Vec<ServoUrl>,
@@ -736,7 +736,6 @@ where
                     hard_fail,
                     active_media_session: None,
                     broken_image_icon_data: broken_image_icon_data.clone(),
-                    user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
                     event_loop_join_handles: Default::default(),
@@ -746,6 +745,7 @@ where
                     )),
                     pending_viewport_changes: Default::default(),
                     screenshot_readiness_requests: Vec::new(),
+                    user_contents_for_manager_id: Default::default(),
                 };
 
                 constellation.run();
@@ -1057,6 +1057,11 @@ where
             Err(error) => return self.handle_send_error(new_pipeline_id, error),
         };
 
+        let user_content_manager_id = self
+            .webviews
+            .get(&webview_id)
+            .and_then(|webview| webview.user_content_manager_id);
+
         let new_pipeline_info = NewPipelineInfo {
             parent_info: parent_pipeline_id,
             new_pipeline_id,
@@ -1065,6 +1070,7 @@ where
             opener,
             load_data,
             viewport_details: initial_viewport_details,
+            user_content_manager_id,
             theme,
         };
         let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, throttled) {
@@ -1417,8 +1423,8 @@ where
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            EmbedderToConstellationMessage::NewWebView(url, webview_id, viewport_details) => {
-                self.handle_new_top_level_browsing_context(url, webview_id, viewport_details);
+            EmbedderToConstellationMessage::NewWebView(url, new_webview_details) => {
+                self.handle_new_top_level_browsing_context(url, new_webview_details);
             },
             // Close a top level browsing context.
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
@@ -1555,6 +1561,47 @@ where
             },
             EmbedderToConstellationMessage::EmbedderControlResponse(id, response) => {
                 self.handle_embedder_control_response(id, response);
+            },
+            EmbedderToConstellationMessage::UserContentManagerAction(
+                user_content_manager_id,
+                action,
+            ) => {
+                self.handle_user_content_manager_action(user_content_manager_id, action);
+            },
+        }
+    }
+
+    fn handle_user_content_manager_action(
+        &mut self,
+        user_content_manager_id: UserContentManagerId,
+        action: UserContentManagerAction,
+    ) {
+        match action {
+            UserContentManagerAction::AddUserScript(user_script) => {
+                let event_loops = self.event_loops();
+                let user_contents = self
+                    .user_contents_for_manager_id
+                    .entry(user_content_manager_id)
+                    .or_default();
+
+                user_contents.scripts.push(user_script);
+
+                for event_loop in event_loops {
+                    let _ = event_loop.send(ScriptThreadMessage::SetUserContents(
+                        user_content_manager_id,
+                        user_contents.clone(),
+                    ));
+                }
+            },
+            UserContentManagerAction::DestroyUserContentManager => {
+                self.user_contents_for_manager_id
+                    .remove(&user_content_manager_id);
+
+                for event_loop in self.event_loops() {
+                    let _ = event_loop.send(ScriptThreadMessage::DestroyUserContentManager(
+                        user_content_manager_id,
+                    ));
+                }
             },
         }
     }
@@ -3005,8 +3052,11 @@ where
     fn handle_new_top_level_browsing_context(
         &mut self,
         url: ServoUrl,
-        webview_id: WebViewId,
-        viewport_details: ViewportDetails,
+        NewWebViewDetails {
+            webview_id,
+            viewport_details,
+            user_content_manager_id,
+        }: NewWebViewDetails,
     ) {
         let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(webview_id);
@@ -3018,7 +3068,7 @@ where
         // its focused browsing context to be itself.
         self.webviews.insert(
             webview_id,
-            ConstellationWebView::new(webview_id, browsing_context_id),
+            ConstellationWebView::new(webview_id, browsing_context_id, user_content_manager_id),
         );
 
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
@@ -3351,8 +3401,12 @@ where
             opener_webview_id,
             webview_id_sender,
         ));
-        let (new_webview_id, viewport_details) = match webview_id_receiver.recv() {
-            Ok(Some((webview_id, viewport_details))) => (webview_id, viewport_details),
+        let NewWebViewDetails {
+            webview_id: new_webview_id,
+            viewport_details,
+            user_content_manager_id,
+        } = match webview_id_receiver.recv() {
+            Ok(Some(new_webview_details)) => new_webview_details,
             Ok(None) | Err(_) => {
                 let _ = response_sender.send(None);
                 return;
@@ -3394,13 +3448,18 @@ where
         let _ = response_sender.send(Some(AuxiliaryWebViewCreationResponse {
             new_webview_id,
             new_pipeline_id,
+            user_content_manager_id,
         }));
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
         self.webviews.insert(
             new_webview_id,
-            ConstellationWebView::new(new_webview_id, new_browsing_context_id),
+            ConstellationWebView::new(
+                new_webview_id,
+                new_browsing_context_id,
+                user_content_manager_id,
+            ),
         );
 
         // https://html.spec.whatwg.org/multipage/#bcg-append
