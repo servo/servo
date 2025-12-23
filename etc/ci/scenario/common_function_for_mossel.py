@@ -67,12 +67,8 @@ def click_category(driver: webdriver.Remote):
 
 
 def identify_element_in_category(driver: webdriver.Remote):
-    driver.implicitly_wait(40)
-    target_css_selector = (
-        "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
-        "> uni-view.sort-main.m-flex.m-bgWhite > uni-scroll-view > div > div > div "
-        "> uni-view.item.active"
-    )
+    driver.implicitly_wait(30)
+    target_css_selector = "#goodsGroup"
     while True:
         try:
             print("Finding components ...")
