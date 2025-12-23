@@ -4663,7 +4663,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
- "hashbrown 0.15.5",
+ "hashbrown 0.16.0",
 ]
 
 [[package]]
@@ -7902,9 +7902,9 @@ dependencies = [
 
 [[package]]
 name = "sea-query-rusqlite"
-version = "0.8.0-rc.12"
+version = "0.8.0-rc.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b4af1244465be5419823f40c78b1bcdf380a4bb55e98dfb6f4ff78676430aeb"
+checksum = "235ec9a4f534a32cf4ec1dfea7f3cf36b8a686da956b6e146d64aed932d184c1"
 dependencies = [
  "rusqlite",
  "sea-query",
