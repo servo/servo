@@ -26,6 +26,12 @@ fn init_with(dir: &tempfile::TempDir) -> StorageThreads {
     threads.0
 }
 
+fn init_in_memory() -> StorageThreads {
+    let mem_profiler_chan = profile_mem::Profiler::create();
+    let threads = storage::new_storage_threads(mem_profiler_chan, None);
+    threads.0
+}
+
 /// Gracefully shut down the webstorage thread to avoid dangling threads in tests.
 fn shutdown(threads: &StorageThreads) {
     let (sender, receiver) = base_channel::channel().unwrap();
@@ -39,6 +45,41 @@ fn shutdown(threads: &StorageThreads) {
 #[test]
 fn set_and_get_item() {
     let (_tmp_dir, threads) = init();
+    let url = ServoUrl::parse("https://example.com").unwrap();
+
+    // Set a value.
+    let (sender, receiver) = base_channel::channel().unwrap();
+    threads
+        .send(WebStorageThreadMsg::SetItem(
+            sender,
+            WebStorageType::Local,
+            TEST_WEBVIEW_ID,
+            url.clone(),
+            "foo".into(),
+            "bar".into(),
+        ))
+        .unwrap();
+    assert_eq!(receiver.recv().unwrap(), Ok((true, None)));
+
+    // Retrieve the value.
+    let (sender, receiver) = base_channel::channel().unwrap();
+    threads
+        .send(WebStorageThreadMsg::GetItem(
+            sender,
+            WebStorageType::Local,
+            TEST_WEBVIEW_ID,
+            url.clone(),
+            "foo".into(),
+        ))
+        .unwrap();
+    assert_eq!(receiver.recv().unwrap(), Some("bar".into()));
+
+    shutdown(&threads);
+}
+
+#[test]
+fn set_and_get_item_in_memory() {
+    let threads = init_in_memory();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
