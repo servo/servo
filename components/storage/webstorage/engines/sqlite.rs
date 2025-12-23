@@ -34,25 +34,27 @@ impl SqliteEngine {
             if let Some(parent) = path.parent() {
                 let _ = std::fs::create_dir_all(parent);
             }
-            Connection::open(path)?
-        } else {
-            Connection::open_in_memory()?
-        };
-        if db_path.is_some() {
+            let conn = Connection::open(path)?;
             for pragma in DB_INIT_PRAGMAS.iter() {
-                let _ = connection.execute(pragma, []);
+                let _ = conn.execute(pragma, []);
             }
             for pragma in DB_PRAGMAS.iter() {
-                let _ = connection.execute(pragma, []);
+                let _ = conn.execute(pragma, []);
             }
+            conn
         } else {
+            // TODO We probably don't need an in memory implementation at all.
+            // WebStorageEnvironment already keeps all key value pairs in memory via its data field.
+            // A future refactoring could avoid creating a WebStorageEngine entirely when config_dir is None.
+            let conn = Connection::open_in_memory()?;
             for pragma in DB_IN_MEMORY_INIT_PRAGMAS.iter() {
-                let _ = connection.execute(pragma, []);
+                let _ = conn.execute(pragma, []);
             }
             for pragma in DB_IN_MEMORY_PRAGMAS.iter() {
-                let _ = connection.execute(pragma, []);
+                let _ = conn.execute(pragma, []);
             }
-        }
+            conn
+        };
         connection.execute("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);", [])?;
         Ok(connection)
     }
