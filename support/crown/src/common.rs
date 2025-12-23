@@ -48,7 +48,10 @@ pub fn in_derive_expn(span: Span) -> bool {
 macro_rules! symbols {
     ($($s: ident)+) => {
         #[derive(Clone)]
-        #[expect(non_snake_case)]
+        // We are using `allow` and not `expect` here because this depends on the arguments passed
+        // to the macro and there is no way to tell what they are here. Please do not change the
+        // following line to `expect`.
+        #[allow(non_snake_case)]
         pub(crate) struct Symbols {
             $( $s: Symbol, )+
         }
