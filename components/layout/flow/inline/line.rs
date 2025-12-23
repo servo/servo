@@ -231,7 +231,7 @@ impl LineItemLayout<'_, '_> {
                         // position it's fragment has in the order of line items.
                         last_level
                     },
-                    LineItem::AnonymousBlockBox(..) => last_level,
+                    LineItem::BlockLevel(..) => last_level,
                 };
                 last_level = level;
                 level
@@ -280,7 +280,7 @@ impl LineItemLayout<'_, '_> {
                 LineItem::Atomic(_, atomic) => self.layout_atomic(atomic),
                 LineItem::AbsolutelyPositioned(_, absolute) => self.layout_absolute(absolute),
                 LineItem::Float(_, float) => self.layout_float(float),
-                LineItem::AnonymousBlockBox(_, block_box) => self.layout_block(block_box),
+                LineItem::BlockLevel(_, block_level) => self.layout_block_level(block_level),
             }
         }
 
@@ -735,13 +735,16 @@ impl LineItemLayout<'_, '_> {
             .push((Fragment::Float(float.fragment), LogicalRect::zero()));
     }
 
-    fn layout_block(&mut self, block: ArcRefCell<BoxFragment>) {
+    fn layout_block_level(&mut self, block_level: ArcRefCell<BoxFragment>) {
         let containing_block = self.containing_block();
-        let mut content_rect = block.borrow().content_rect().to_logical(containing_block);
-        // Anonymous blocks are always placed at the logical origin of the line.
+        let mut content_rect = block_level
+            .borrow()
+            .content_rect()
+            .to_logical(containing_block);
+        // Block-level boxes are always placed at the logical origin of the line.
         content_rect.start_corner.inline -= self.current_state.parent_offset.inline;
         content_rect.start_corner.block -= self.line_metrics.block_offset;
-        let fragment_and_rect = (Fragment::Box(block), content_rect);
+        let fragment_and_rect = (Fragment::Box(block_level), content_rect);
         self.current_state.fragments.push(fragment_and_rect);
     }
 
@@ -758,7 +761,7 @@ pub(super) enum LineItem {
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
     Float(Option<InlineBoxIdentifier>, FloatLineItem),
-    AnonymousBlockBox(Option<InlineBoxIdentifier>, ArcRefCell<BoxFragment>),
+    BlockLevel(Option<InlineBoxIdentifier>, ArcRefCell<BoxFragment>),
 }
 
 impl LineItem {
@@ -770,7 +773,7 @@ impl LineItem {
             LineItem::Atomic(identifier, _) => *identifier,
             LineItem::AbsolutelyPositioned(identifier, _) => *identifier,
             LineItem::Float(identifier, _) => *identifier,
-            LineItem::AnonymousBlockBox(identifier, _) => *identifier,
+            LineItem::BlockLevel(identifier, _) => *identifier,
         }
     }
 
@@ -782,7 +785,7 @@ impl LineItem {
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,
-            LineItem::AnonymousBlockBox(..) => true,
+            LineItem::BlockLevel(..) => true,
         }
     }
 
@@ -794,7 +797,7 @@ impl LineItem {
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,
-            LineItem::AnonymousBlockBox(..) => true,
+            LineItem::BlockLevel(..) => true,
         }
     }
 }

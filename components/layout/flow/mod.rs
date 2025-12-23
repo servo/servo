@@ -731,7 +731,6 @@ fn layout_block_level_children(
             layout_context,
             positioning_context,
             child_boxes,
-            containing_block,
             sequential_layout_state,
             &mut placement_state,
             ignore_block_margins_for_stretch,
@@ -740,7 +739,6 @@ fn layout_block_level_children(
             layout_context,
             positioning_context,
             child_boxes,
-            containing_block,
             &mut placement_state,
             ignore_block_margins_for_stretch,
         ),
@@ -770,7 +768,6 @@ fn layout_block_level_children_in_parallel(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
-    containing_block: &ContainingBlock,
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> Vec<Fragment> {
@@ -784,7 +781,7 @@ fn layout_block_level_children_in_parallel(
             let fragment = child_box.borrow().layout(
                 layout_context,
                 &mut child_positioning_context,
-                containing_block,
+                placement_state.containing_block,
                 /* sequential_layout_state = */ None,
                 /* collapsible_with_parent_start_margin = */ None,
                 ignore_block_margins_for_stretch,
@@ -811,7 +808,6 @@ fn layout_block_level_children_sequentially(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
-    containing_block: &ContainingBlock,
     sequential_layout_state: &mut SequentialLayoutState,
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
@@ -822,28 +818,45 @@ fn layout_block_level_children_sequentially(
     child_boxes
         .iter()
         .map(|child_box| {
-            let positioning_context_length_before_layout = positioning_context.len();
-            let mut fragment = child_box.borrow().layout(
+            layout_block_level_child(
                 layout_context,
                 positioning_context,
-                containing_block,
-                Some(&mut *sequential_layout_state),
-                Some(CollapsibleWithParentStartMargin(
-                    placement_state.next_in_flow_margin_collapses_with_parent_start_margin,
-                )),
+                &child_box.borrow(),
+                Some(sequential_layout_state),
+                placement_state,
                 ignore_block_margins_for_stretch,
-            );
-
-            placement_state
-                .place_fragment_and_update_baseline(&mut fragment, Some(sequential_layout_state));
-            positioning_context.adjust_static_position_of_hoisted_fragments(
-                &fragment,
-                positioning_context_length_before_layout,
-            );
-
-            fragment
+            )
         })
         .collect()
+}
+
+fn layout_block_level_child(
+    layout_context: &LayoutContext,
+    positioning_context: &mut PositioningContext,
+    child_box: &BlockLevelBox,
+    mut sequential_layout_state: Option<&mut SequentialLayoutState>,
+    placement_state: &mut PlacementState,
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
+) -> Fragment {
+    let positioning_context_length_before_layout = positioning_context.len();
+    let mut fragment = child_box.layout(
+        layout_context,
+        positioning_context,
+        placement_state.containing_block,
+        sequential_layout_state.as_deref_mut(),
+        Some(CollapsibleWithParentStartMargin(
+            placement_state.next_in_flow_margin_collapses_with_parent_start_margin,
+        )),
+        ignore_block_margins_for_stretch,
+    );
+
+    placement_state.place_fragment_and_update_baseline(&mut fragment, sequential_layout_state);
+    positioning_context.adjust_static_position_of_hoisted_fragments(
+        &fragment,
+        positioning_context_length_before_layout,
+    );
+
+    fragment
 }
 
 impl BlockLevelBox {
@@ -949,7 +962,7 @@ impl BlockLevelBox {
 /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
 /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
+fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
