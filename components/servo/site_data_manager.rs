@@ -14,8 +14,8 @@ bitflags! {
     /// This type is used by `SiteDataManager` to query, describe, and manage
     /// different kinds of data stored by the user agent for a given site.
     ///
-    /// Additional storage categories (e.g. network cache, cookies, IndexedDB)
-    /// may be added in the future.
+    /// Additional storage categories (e.g. cookies, IndexedDB) may be added in
+    /// the future.
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub struct StorageType: u8 {
         /// Corresponds to the `localStorage` Web API:
@@ -28,6 +28,21 @@ bitflags! {
     }
 }
 
+/// Provides APIs for inspecting and managing site data.
+///
+/// `SiteDataManager` exposes information about data that is conceptually
+/// associated with a site (currently equivalent to an origin), such as
+/// web exposed storage mechanisms like `localStorage` and `sessionStorage`.
+///
+/// The manager can be used by embedders to list sites with stored data.
+/// Support for site scoped management operations (e.g. clearing data for a
+/// specific site) will be added in the future.
+///
+/// At this stage, sites correspond directly to origins. Future work may group
+/// data at a higher level (e.g. by eTLD+1).
+///
+/// Note: Network layer state (such as the HTTP cache) is intentionally not
+/// handled by `SiteDataManager`. That functionality lives in `NetworkManager`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SiteData {
     name: String,
@@ -129,10 +144,5 @@ impl SiteDataManager {
     pub fn clear_cookies(&self) {
         self.public_resource_threads.clear_cookies();
         self.private_resource_threads.clear_cookies();
-    }
-
-    pub fn clear_cache(&self) {
-        self.public_resource_threads.clear_cache();
-        self.private_resource_threads.clear_cache();
     }
 }

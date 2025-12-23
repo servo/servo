@@ -158,6 +158,9 @@ tracing = { workspace = true }
 winit = { workspace = true }
 
 [[test]]
+name = "network_manager"
+
+[[test]]
 name = "webview"
 
 [[test]]
