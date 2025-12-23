@@ -174,6 +174,7 @@ use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{ImageBitmap, UIEvent};
+use crate::dom::visualviewport::VisualViewport;
 use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -455,6 +456,10 @@ pub(crate) struct Window {
 
     /// Whether or not this [`Window`] has a pending screenshot readiness request.
     has_pending_screenshot_readiness_request: Cell<bool>,
+
+    /// Visual viewport interface that is associated to this [`Window`].
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
+    visual_viewport: MutNullableDom<VisualViewport>,
 }
 
 impl Window {
@@ -1584,8 +1589,23 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     window_event_handlers!();
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Window/screen>
-    fn Screen(&self) -> DomRoot<Screen> {
-        self.screen.or_init(|| Screen::new(self, CanGc::note()))
+    fn Screen(&self, can_gc: CanGc) -> DomRoot<Screen> {
+        self.screen.or_init(|| Screen::new(self, can_gc))
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
+    fn GetVisualViewport(&self, can_gc: CanGc) -> Option<DomRoot<VisualViewport>> {
+        // > If the associated document is fully active, the visualViewport attribute must return the
+        // > VisualViewport object associated with the Window object’s associated document. Otherwise,
+        // > it must return null.
+        if !self.Document().is_fully_active() {
+            return None;
+        }
+
+        // TODO(#41341): we are only initializing the visual viewport here, but it is never updated.
+        Some(self.visual_viewport.or_init(|| {
+            VisualViewport::new_from_layout_viewport(self, self.viewport_details().size, can_gc)
+        }))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
@@ -3577,6 +3597,7 @@ impl Window {
             endpoints_list: Default::default(),
             script_window_proxies: ScriptThread::window_proxies(),
             has_pending_screenshot_readiness_request: Default::default(),
+            visual_viewport: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)

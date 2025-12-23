@@ -445,6 +445,7 @@ pub(crate) mod videotrack;
 pub(crate) mod videotracklist;
 pub(crate) mod virtualmethods;
 pub(crate) mod visibilitystateentry;
+pub(crate) mod visualviewport;
 pub(crate) mod vttcue;
 pub(crate) mod vttregion;
 pub(crate) mod webgl;
