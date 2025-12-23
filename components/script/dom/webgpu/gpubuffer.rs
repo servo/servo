@@ -29,7 +29,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::realms::InRealm;
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -271,13 +271,13 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             },
         };
 
-        let sender = route_promise(
+        let callback = callback_promise(
             &promise,
             self,
             self.global().task_manager().dom_manipulation_task_source(),
         );
         if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
-            sender,
+            callback,
             buffer_id: self.buffer.0,
             device_id: self.device.id().0,
             host_map,

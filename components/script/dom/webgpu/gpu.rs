@@ -22,7 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
 use crate::realms::InRealm;
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -57,7 +57,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         let global = &self.global();
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let task_source = global.task_manager().dom_manipulation_task_source();
-        let sender = route_promise(&promise, self, task_source);
+        let callback = callback_promise(&promise, self, task_source);
 
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
@@ -69,7 +69,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
             .send(ScriptToConstellationMessage::RequestAdapter(
-                sender,
+                callback,
                 wgpu_core::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,

@@ -9,6 +9,7 @@ use std::mem;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
+use base::generic_channel::GenericCallback;
 use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventAndId,
@@ -21,7 +22,6 @@ use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
-use ipc_channel::ipc;
 use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
@@ -1417,10 +1417,11 @@ impl DocumentEventHandler {
                 drag_data_store.set_mode(Mode::ReadWrite);
             },
             ClipboardEventType::Paste => {
-                let (sender, receiver) = ipc::channel().unwrap();
+                let (callback, receiver) =
+                    GenericCallback::new_blocking().expect("Could not create callback");
                 self.window.send_to_embedder(EmbedderMsg::GetClipboardText(
                     self.window.webview_id(),
-                    sender,
+                    callback,
                 ));
                 let text_contents = receiver
                     .recv()

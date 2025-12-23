@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericCallback;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use webgpu_traits::{
     WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPUComputePipelineResponse,
     WebGPURequest,
@@ -79,7 +79,7 @@ impl GPUComputePipeline {
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUComputePipelineDescriptor,
-        async_sender: Option<IpcSender<WebGPUComputePipelineResponse>>,
+        async_sender: Option<GenericCallback<WebGPUComputePipelineResponse>>,
     ) -> WebGPUComputePipeline {
         let compute_pipeline_id = device.global().wgpu_id_hub().create_compute_pipeline_id();
 

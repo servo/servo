@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::IpcSender;
+use base::generic_channel::GenericCallback;
 
 use crate::WebView;
 
 pub struct StringRequest {
-    pub(crate) result_sender: IpcSender<Result<String, String>>,
+    pub(crate) result_sender: GenericCallback<Result<String, String>>,
     response_sent: bool,
 }
 
@@ -23,8 +23,8 @@ impl StringRequest {
     }
 }
 
-impl From<IpcSender<Result<String, String>>> for StringRequest {
-    fn from(result_sender: IpcSender<Result<String, String>>) -> Self {
+impl From<GenericCallback<Result<String, String>>> for StringRequest {
+    fn from(result_sender: GenericCallback<Result<String, String>>) -> Self {
         Self {
             result_sender,
             response_sent: false,
