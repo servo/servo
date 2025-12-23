@@ -8322,6 +8322,7 @@ dependencies = [
  "stylo_dom",
  "stylo_malloc_size_of",
  "taffy",
+ "tendril",
  "tokio",
  "unicode-bidi",
  "unicode-script",

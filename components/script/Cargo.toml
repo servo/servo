@@ -145,7 +145,7 @@ stylo_malloc_size_of = { workspace = true }
 stylo_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"
-tendril = { version = "0.4.1", features = ["encoding_rs"] }
+tendril = { workspace = true }
 time = { workspace = true }
 timers = { path = "../timers" }
 tracing = { workspace = true, optional = true }
