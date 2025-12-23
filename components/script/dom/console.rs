@@ -361,8 +361,16 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/clear>
     fn Clear(global: &GlobalScope) {
-        let message = Console::build_message(ConsoleLogLevel::Clear).finish();
-        Console::send_to_devtools(global, message);
+        if let Some(chan) = global.devtools_chan() {
+            let worker_id = global
+                .downcast::<WorkerGlobalScope>()
+                .map(|worker| worker.worker_id());
+            let devtools_message =
+                ScriptToDevtoolsControlMsg::ClearConsole(global.pipeline_id(), worker_id);
+            if let Err(error) = chan.send(devtools_message) {
+                log::warn!("Error sending clear message to devtools: {error:?}");
+            }
+        }
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>

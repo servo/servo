@@ -393,7 +393,6 @@ pub enum ConsoleLogLevel {
     Info,
     Warn,
     Error,
-    Clear,
     Trace,
 }
 
@@ -401,7 +400,6 @@ impl From<ConsoleLogLevel> for log::Level {
     fn from(value: ConsoleLogLevel) -> Self {
         match value {
             ConsoleLogLevel::Log => log::Level::Info,
-            ConsoleLogLevel::Clear => log::Level::Info,
             ConsoleLogLevel::Debug => log::Level::Debug,
             ConsoleLogLevel::Info => log::Level::Info,
             ConsoleLogLevel::Warn => log::Level::Warn,
