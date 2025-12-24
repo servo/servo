@@ -28,21 +28,6 @@ bitflags! {
     }
 }
 
-/// Provides APIs for inspecting and managing site data.
-///
-/// `SiteDataManager` exposes information about data that is conceptually
-/// associated with a site (currently equivalent to an origin), such as
-/// web exposed storage mechanisms like `localStorage` and `sessionStorage`.
-///
-/// The manager can be used by embedders to list sites with stored data.
-/// Support for site scoped management operations (e.g. clearing data for a
-/// specific site) will be added in the future.
-///
-/// At this stage, sites correspond directly to origins. Future work may group
-/// data at a higher level (e.g. by eTLD+1).
-///
-/// Note: Network layer state (such as the HTTP cache) is intentionally not
-/// handled by `SiteDataManager`. That functionality lives in `NetworkManager`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SiteData {
     name: String,
@@ -66,6 +51,21 @@ impl SiteData {
     }
 }
 
+/// Provides APIs for inspecting and managing site data.
+///
+/// `SiteDataManager` exposes information about data that is conceptually
+/// associated with a site (currently equivalent to an origin), such as
+/// web exposed storage mechanisms like `localStorage` and `sessionStorage`.
+///
+/// The manager can be used by embedders to list sites with stored data.
+/// Support for site scoped management operations (e.g. clearing data for a
+/// specific site) will be added in the future.
+///
+/// At this stage, sites correspond directly to origins. Future work may group
+/// data at a higher level (e.g. by eTLD+1).
+///
+/// Note: Network layer state (such as the HTTP cache) is intentionally not
+/// handled by `SiteDataManager`. That functionality lives in `NetworkManager`.
 pub struct SiteDataManager {
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
