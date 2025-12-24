@@ -199,24 +199,7 @@ fn traverse_element<'dom>(
             }
         },
         Display::GeneratingBox(display) => {
-            // If `content` is a single image URL, the box gets replaced with a
-            // replaced image.
-            let contents = match info.style.clone_content() {
-                Content::Items(GenericContentItems { items, .. }) if items.len() == 1 => {
-                    if let GenericContentItem::Image(img) = &items[0] {
-                        match ReplacedContents::from_image(element, context, img) {
-                            Some(replaced) => Contents::Replaced(replaced),
-                            // Invalid images are treated as zero-sized.
-                            None => Contents::Replaced(ReplacedContents::zero_sized_invalid_image(
-                                element,
-                            )),
-                        }
-                    } else {
-                        Contents::for_element(element, context)
-                    }
-                },
-                _ => Contents::for_element(element, context),
-            };
+            let contents = Contents::for_element(element, context);
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.box_slot();
             handler.handle_element(&info, display, contents, box_slot);
@@ -310,6 +293,22 @@ impl Contents {
         node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
     ) -> Self {
+        // If `content` is a single image URL, the box gets replaced with a
+        // replaced image.
+        if let Content::Items(GenericContentItems { items, .. }) =
+            node.style(&context.style_context).clone_content()
+        {
+            if let [GenericContentItem::Image(img)] = items.as_slice() {
+                match ReplacedContents::from_image(node, context, img) {
+                    Some(replaced) => return Self::Replaced(replaced),
+                    // Invalid images are treated as zero-sized.
+                    None => {
+                        return Self::Replaced(ReplacedContents::zero_sized_invalid_image(node));
+                    },
+                }
+            }
+        }
+
         if let Some(replaced) = ReplacedContents::for_element(node, context) {
             return Self::Replaced(replaced);
         }
