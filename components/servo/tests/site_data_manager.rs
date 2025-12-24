@@ -17,7 +17,7 @@ use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 fn sites_equal_unordered(actual: &[SiteData], expected: &[(&ServoUrl, StorageType)]) -> bool {
     let mut actual = actual.to_vec();
 
-    let mut expected: Vec<SiteData> = expected
+    let expected: Vec<SiteData> = expected
         .iter()
         .map(|(url, storage_types)| {
             SiteData::new(url.origin().ascii_serialization(), *storage_types)
@@ -25,7 +25,6 @@ fn sites_equal_unordered(actual: &[SiteData], expected: &[(&ServoUrl, StorageTyp
         .collect();
 
     actual.sort_by(|a, b| a.name().cmp(&b.name()));
-    expected.sort_by(|a, b| a.name().cmp(&b.name()));
 
     actual == expected
 }
@@ -57,12 +56,22 @@ fn test_site_data() {
             *response.body_mut() = make_body(MESSAGE.to_vec());
         };
 
-    let (server1, url1) = make_server(handler);
+    let mut servers = Vec::new();
+    for _ in 0..2 {
+        let (server, url) = make_server(handler);
+        servers.push((server, url));
+    }
+
+    servers.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+    let [(server1, url1), (server2, url2)] = servers.try_into().unwrap();
 
     delegate.reset();
     webview.load(url1.clone().into_url());
     let delegate_clone = delegate.clone();
     servo_test.spin(move || !delegate_clone.url_changed.get());
+
+    let _ = server1.close();
 
     let _ = evaluate_javascript(
         &servo_test,
@@ -83,11 +92,11 @@ fn test_site_data() {
         &[(&url1, StorageType::Local),]
     ));
 
-    let (server2, url2) = make_server(handler);
-
     delegate.reset();
     webview.load(url2.clone().into_url());
     servo_test.spin(move || !delegate.url_changed.get());
+
+    let _ = server2.close();
 
     let _ = evaluate_javascript(
         &servo_test,
@@ -115,9 +124,6 @@ fn test_site_data() {
             (&url2, StorageType::Local | StorageType::Session),
         ]
     ));
-
-    let _ = server1.close();
-    let _ = server2.close();
 }
 
 #[test]
