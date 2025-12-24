@@ -665,13 +665,14 @@ impl GlyphStore {
         extra_word_spacing: Au,
     ) -> Au {
         self.iter_glyphs_for_byte_range(range)
-            .fold(Au::zero(), |advance, glyph| {
+            .map(|glyph| {
                 if glyph.char_is_word_separator() {
-                    advance + glyph.advance() + extra_word_spacing
+                    glyph.advance() + extra_word_spacing
                 } else {
-                    advance + glyph.advance()
+                    glyph.advance()
                 }
             })
+            .sum()
     }
 
     pub(crate) fn char_is_word_separator(&self, i: ByteIndex) -> bool {
