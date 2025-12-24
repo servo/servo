@@ -12,6 +12,7 @@ use num_traits::ToPrimitive;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
@@ -115,6 +116,9 @@ impl VirtualMethods for HTMLAnchorElement {
             .attribute_mutated(attr, mutation, can_gc);
 
         match *attr.local_name() {
+            local_name!("href") => self
+                .upcast::<Element>()
+                .set_state(ElementState::UNVISITED, !mutation.is_removal()),
             local_name!("rel") | local_name!("rev") => {
                 self.relations
                     .set(LinkRelations::for_element(self.upcast()));
