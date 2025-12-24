@@ -679,6 +679,30 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
                 return true;
             }
 
+            // If we're not a pseudo, `content` can still cause layout damage if its value is
+            // <content-replacement> (a.k.a. a single <image>).
+            {
+                use style::values::generics::counters::{
+                    Content, ContentItem, GenericContentItems,
+                };
+                fn replacement<Image>(content: &Content<Image>) -> Option<&Image> {
+                    match content {
+                        Content::Items(GenericContentItems { items, .. }) => match items.as_slice()
+                        {
+                            [ContentItem::Image(image)] => Some(image),
+                            _ => None,
+                        },
+                        _ => None,
+                    }
+                }
+
+                if replacement(&old.get_counters().content) !=
+                    replacement(&new.get_counters().content)
+                {
+                    return true;
+                }
+            }
+
             false
         };
 
