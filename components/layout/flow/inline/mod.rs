@@ -116,14 +116,14 @@ use super::{CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
-use crate::flow::CollapsibleWithParentStartMargin;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
+use crate::flow::{CollapsibleWithParentStartMargin, FloatSide};
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
     PositioningFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
+use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -2318,6 +2318,10 @@ struct ContentSizesComputation<'layout_data> {
     current_line: ContentSizes,
     /// Size for whitespace pending to be added to this line.
     pending_whitespace: ContentSizes,
+    /// The size of the not yet cleared floats in the inline axis of the containing block.
+    uncleared_floats: LogicalSides1D<ContentSizes>,
+    /// The size of the already cleared floats in the inline axis of the containing block.
+    cleared_floats: LogicalSides1D<ContentSizes>,
     /// Whether or not the current line has seen any content (excluding collapsed whitespace),
     /// when sizing under a min-content constraint.
     had_content_yet_for_min_content: bool,
@@ -2342,9 +2346,12 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             self.process_item(&inline_item.borrow(), inline_formatting_context);
         }
         self.forced_line_break();
+        self.clear_floats(Clear::Both);
 
         InlineContentSizesResult {
-            sizes: self.paragraph,
+            sizes: self
+                .paragraph
+                .union(&self.cleared_floats.start.union(&self.cleared_floats.end)),
             depends_on_block_constraints: self.depends_on_block_constraints,
         }
     }
@@ -2453,17 +2460,6 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
             },
             InlineItem::Atomic(atomic, offset_in_text, _level) => {
-                let InlineContentSizesResult {
-                    sizes: outer,
-                    depends_on_block_constraints,
-                } = atomic.borrow().outer_inline_content_sizes(
-                    self.layout_context,
-                    &self.constraint_space.into(),
-                    &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
-                );
-                self.depends_on_block_constraints |= depends_on_block_constraints;
-
                 // TODO: need to handle TextWrapMode::Nowrap.
                 if self.had_content_yet_for_min_content &&
                     !inline_formatting_context
@@ -2473,6 +2469,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 }
 
                 self.commit_pending_whitespace();
+                let outer = self.outer_inline_content_sizes_of_float_or_atomic(&atomic.borrow());
                 self.current_line += outer;
 
                 // TODO: need to handle TextWrapMode::Nowrap.
@@ -2482,7 +2479,22 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     self.line_break_opportunity();
                 }
             },
-            _ => {},
+            InlineItem::OutOfFlowFloatBox(float_box) => {
+                let float_box = float_box.borrow();
+                let sizes = self.outer_inline_content_sizes_of_float_or_atomic(&float_box.contents);
+                let style = &float_box.contents.style();
+                let container_writing_mode = self.constraint_space.style.writing_mode;
+                let clear =
+                    Clear::from_style_and_container_writing_mode(style, container_writing_mode);
+                self.clear_floats(clear);
+                let float_side =
+                    FloatSide::from_style_and_container_writing_mode(style, container_writing_mode);
+                match float_side.expect("A float box needs to float to some side") {
+                    FloatSide::InlineStart => self.uncleared_floats.start.union_assign(&sizes),
+                    FloatSide::InlineEnd => self.uncleared_floats.end.union_assign(&sizes),
+                }
+            },
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => {},
         }
     }
 
@@ -2518,6 +2530,40 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         self.had_content_yet_for_max_content = true;
     }
 
+    fn outer_inline_content_sizes_of_float_or_atomic(
+        &mut self,
+        context: &IndependentFormattingContext,
+    ) -> ContentSizes {
+        let result = context.outer_inline_content_sizes(
+            self.layout_context,
+            &self.constraint_space.into(),
+            &LogicalVec2::zero(),
+            false, /* auto_block_size_stretches_to_containing_block */
+        );
+        self.depends_on_block_constraints |= result.depends_on_block_constraints;
+        result.sizes
+    }
+
+    fn clear_floats(&mut self, clear: Clear) {
+        match clear {
+            Clear::InlineStart => {
+                let start_floats = mem::take(&mut self.uncleared_floats.start);
+                self.cleared_floats.start.max_assign(start_floats);
+            },
+            Clear::InlineEnd => {
+                let end_floats = mem::take(&mut self.uncleared_floats.end);
+                self.cleared_floats.end.max_assign(end_floats);
+            },
+            Clear::Both => {
+                let start_floats = mem::take(&mut self.uncleared_floats.start);
+                let end_floats = mem::take(&mut self.uncleared_floats.end);
+                self.cleared_floats.start.max_assign(start_floats);
+                self.cleared_floats.end.max_assign(end_floats);
+            },
+            Clear::None => {},
+        }
+    }
+
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].
     fn compute(
         inline_formatting_context: &InlineFormattingContext,
@@ -2530,6 +2576,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: ContentSizes::zero(),
+            uncleared_floats: LogicalSides1D::default(),
+            cleared_floats: LogicalSides1D::default(),
             had_content_yet_for_min_content: false,
             had_content_yet_for_max_content: false,
             ending_inline_pbm_stack: Vec::new(),
