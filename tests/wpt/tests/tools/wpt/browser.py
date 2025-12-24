@@ -2321,13 +2321,10 @@ class Servo(Browser):
         return path
 
     def find_binary(self, venv_path=None, channel=None):
-        path = which("servo", path=os.path.join(venv_path, "servo"))
-        if path is None:
-            path = which("servo")
-        return path
+        return which("servo")
 
     def find_webdriver(self, venv_path=None, channel=None):
-        return None
+        return which("servodriver")
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
         raise NotImplementedError
