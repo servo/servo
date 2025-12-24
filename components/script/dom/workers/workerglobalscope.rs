@@ -1029,6 +1029,9 @@ impl WorkerGlobalScope {
         self.upcast::<GlobalScope>()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
+        if let Some(factory) = self.indexeddb.get() {
+            factory.abort_pending_upgrades();
+        }
     }
 }
 

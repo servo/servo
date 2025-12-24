@@ -65,6 +65,26 @@ impl IDBFactory {
             .get(name)
             .map(|db| db.as_rooted())
     }
+
+    pub(crate) fn abort_pending_upgrades(&self) {
+        let global = self.global();
+        let names = self
+            .connections_pending_open
+            .borrow_mut()
+            .drain()
+            .map(|(k, _)| k.0)
+            .collect();
+        let origin = global.origin().immutable().clone();
+        if global
+            .storage_threads()
+            .send(IndexedDBThreadMsg::Sync(
+                SyncOperation::AbortPendingUpgrade { names, origin },
+            ))
+            .is_err()
+        {
+            error!("Failed to send SyncOperation::AbortPendingUpgrade");
+        }
+    }
 }
 
 impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {

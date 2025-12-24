@@ -55,7 +55,7 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
 
 /// A key used to track databases.
 /// TODO: use a storage key.
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct IndexedDBDescription {
     pub origin: ImmutableOrigin,
     pub name: String,
@@ -330,7 +330,8 @@ impl IndexedDBManager {
 
         // Handle the next open request in the queue.
         if !queue.is_empty() {
-            self.open_database(key);
+            self.open_database(key.clone());
+            self.prune_connection_queue(&key);
         }
     }
 
@@ -345,6 +346,28 @@ impl IndexedDBManager {
         };
         if is_empty {
             self.connection_queues.remove(key);
+        }
+    }
+
+    /// Abort pending database upgrades.
+    fn abort_pending_upgrades(&mut self, names: Vec<String>, origin: ImmutableOrigin) {
+        for name in names.into_iter() {
+            let key = IndexedDBDescription {
+                name,
+                origin: origin.clone(),
+            };
+            let Some(mut queue) = self.connection_queues.remove(&key) else {
+                return debug_assert!(false, "A connection queue should exist.");
+            };
+            for open_request in queue.drain(0..) {
+                if open_request
+                    .sender
+                    .send(Ok(OpenDatabaseResult::AbortError))
+                    .is_err()
+                {
+                    error!("Failed to send OpenDatabaseResult::Connection to script.");
+                };
+            }
         }
     }
 
@@ -379,6 +402,7 @@ impl IndexedDBManager {
         // Step 3: Wait until all previous requests in queue have been processed.
         if should_continue {
             self.open_database(key.clone());
+            self.prune_connection_queue(&key);
         }
     }
 
@@ -608,8 +632,6 @@ impl IndexedDBManager {
         {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
         };
-
-        self.prune_connection_queue(&key);
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#delete-a-database>
@@ -719,6 +741,9 @@ impl IndexedDBManager {
             },
             SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
                 self.open_a_database_connection(sender, origin, db_name, version);
+            },
+            SyncOperation::AbortPendingUpgrade { names, origin } => {
+                self.abort_pending_upgrades(names, origin);
             },
             SyncOperation::DeleteDatabase(callback, origin, db_name) => {
                 let idb_description = IndexedDBDescription {

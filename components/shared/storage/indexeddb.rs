@@ -473,6 +473,12 @@ pub enum SyncOperation {
         String, // Database
     ),
 
+    /// Abort pending database upgrades
+    AbortPendingUpgrade {
+        names: Vec<String>,
+        origin: ImmutableOrigin,
+    },
+
     /// Send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),
 }
