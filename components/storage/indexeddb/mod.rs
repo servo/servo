@@ -369,10 +369,7 @@ impl IndexedDBManager {
         };
         let should_continue = {
             // Step 1: Let queue be the connection queue for storageKey and name.
-            let queue = self
-                .connection_queues
-                .entry(key.clone())
-                .or_insert_with(Default::default);
+            let queue = self.connection_queues.entry(key.clone()).or_default();
 
             // Step 2: Add request to queue.
             queue.push_back(open_request);
@@ -478,7 +475,7 @@ impl IndexedDBManager {
         }
 
         // Step 11: Wait for transaction to finish.
-        let _ = pending_upgrade.insert(new_version.clone());
+        let _ = pending_upgrade.insert(new_version);
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
