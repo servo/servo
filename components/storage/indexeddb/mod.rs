@@ -204,15 +204,6 @@ fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
     }
 }
 
-/// <https://w3c.github.io/IndexedDB/#connection-queue>
-/// The key used to match a request to a name and origin.
-/// TODO: use a storage key instead of the origin.
-#[derive(Clone, Eq, Hash, PartialEq)]
-struct ConnectionQueueKey {
-    name: String,
-    origin: ImmutableOrigin,
-}
-
 /// <https://w3c.github.io/IndexedDB/#request-open-request>
 /// Used here to implement the
 /// <https://w3c.github.io/IndexedDB/#connection-queue>
@@ -247,7 +238,7 @@ struct IndexedDBManager {
     serial_number_counter: u64,
 
     /// <https://w3c.github.io/IndexedDB/#connection-queue>
-    connection_queues: HashMap<ConnectionQueueKey, VecDeque<OpenRequest>>,
+    connection_queues: HashMap<IndexedDBDescription, VecDeque<OpenRequest>>,
 }
 
 impl IndexedDBManager {
@@ -316,7 +307,7 @@ impl IndexedDBManager {
 
     /// Handle when an open transaction becomes inactive.
     fn handle_open_transaction_inactive(&mut self, name: String, origin: ImmutableOrigin) {
-        let key = ConnectionQueueKey { name, origin };
+        let key = IndexedDBDescription { name, origin };
         let Some(queue) = self.connection_queues.get_mut(&key) else {
             return debug_assert!(false, "A connection queue should exist.");
         };
@@ -344,7 +335,7 @@ impl IndexedDBManager {
     }
 
     /// Only keeping requests in the queue if they have a pending upgrade.
-    fn prune_connection_queue(&mut self, key: &ConnectionQueueKey) {
+    fn prune_connection_queue(&mut self, key: &IndexedDBDescription) {
         let is_empty = {
             let Some(queue) = self.connection_queues.get_mut(key) else {
                 return debug_assert!(false, "A connection queue should exist.");
@@ -365,7 +356,7 @@ impl IndexedDBManager {
         db_name: String,
         version: Option<u64>,
     ) {
-        let key = ConnectionQueueKey {
+        let key = IndexedDBDescription {
             name: db_name.clone(),
             origin: origin.clone(),
         };
@@ -427,7 +418,7 @@ impl IndexedDBManager {
     fn upgrade_database(
         &mut self,
         idb_description: IndexedDBDescription,
-        key: ConnectionQueueKey,
+        key: IndexedDBDescription,
         new_version: u64,
     ) {
         let Some(queue) = self.connection_queues.get_mut(&key) else {
@@ -492,7 +483,7 @@ impl IndexedDBManager {
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     /// The part where the open request is ready for processing.
-    fn open_database(&mut self, key: ConnectionQueueKey) {
+    fn open_database(&mut self, key: IndexedDBDescription) {
         let Some(queue) = self.connection_queues.get_mut(&key) else {
             return debug_assert!(false, "A connection queue should exist.");
         };
