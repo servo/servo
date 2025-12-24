@@ -22,8 +22,8 @@ log = { workspace = true }
 profile_traits = { workspace = true }
 rusqlite = { version = "0.37", features = ["bundled"] }
 rustc-hash = { workspace = true }
-sea-query = { version = "1.0.0-rc.9", default-features = false, features = ["backend-sqlite", "derive"] }
-sea-query-rusqlite = { version = "0.8.0-rc.8" }
+sea-query = { version = "1.0.0-rc.23", default-features = false, features = ["backend-sqlite", "derive"] }
+sea-query-rusqlite = { version = "0.8.0-rc.14" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
