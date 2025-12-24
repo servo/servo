@@ -95,6 +95,8 @@ impl SiteDataManager {
     /// origin) and indicates which kinds of storage data are present for it
     /// (e.g. localStorage, sessionStorage).
     ///
+    /// The returned list is sorted by site name.
+    ///
     /// Both public and private storage are included in the result.
     ///
     /// Note: At this stage, sites correspond directly to origins. Future work
@@ -135,10 +137,14 @@ impl SiteDataManager {
             add_origins(private_origins, StorageType::Session);
         }
 
-        sites
+        let mut result: Vec<SiteData> = sites
             .into_iter()
             .map(|(name, storage_types)| SiteData::new(name, storage_types))
-            .collect()
+            .collect();
+
+        result.sort_by_key(|a| a.name());
+
+        result
     }
 
     pub fn clear_cookies(&self) {
