@@ -80,20 +80,14 @@ fn test_site_data() {
     let sites = site_data_manager.site_data(StorageType::Local);
     assert_eq!(
         &sites,
-        &[SiteData::new(
-            format!("http://www.site-data-1.test:{}", port1),
-            StorageType::Local
-        ),]
+        &[SiteData::new("site-data-1.test", StorageType::Local),]
     );
     let sites = site_data_manager.site_data(StorageType::Session);
     assert_eq!(sites.len(), 0);
     let sites = site_data_manager.site_data(StorageType::all());
     assert_eq!(
         &sites,
-        &[SiteData::new(
-            format!("http://www.site-data-1.test:{}", port1),
-            StorageType::Local
-        ),]
+        &[SiteData::new("site-data-1.test", StorageType::Local),]
     );
 
     delegate.reset();
@@ -114,34 +108,22 @@ fn test_site_data() {
     assert_eq!(
         &sites,
         &[
-            SiteData::new(
-                format!("http://www.site-data-1.test:{}", port1),
-                StorageType::Local
-            ),
-            SiteData::new(
-                format!("http://www.site-data-2.test:{}", port2),
-                StorageType::Local
-            ),
+            SiteData::new("site-data-1.test", StorageType::Local),
+            SiteData::new("site-data-2.test", StorageType::Local),
         ]
     );
     let sites = site_data_manager.site_data(StorageType::Session);
     assert_eq!(
         &sites,
-        &[SiteData::new(
-            format!("http://www.site-data-2.test:{}", port2),
-            StorageType::Session
-        ),]
+        &[SiteData::new("site-data-2.test", StorageType::Session),]
     );
     let sites = site_data_manager.site_data(StorageType::all());
     assert_eq!(
         &sites,
         &[
+            SiteData::new("site-data-1.test", StorageType::Local),
             SiteData::new(
-                format!("http://www.site-data-1.test:{}", port1),
-                StorageType::Local
-            ),
-            SiteData::new(
-                format!("http://www.site-data-2.test:{}", port2),
+                "site-data-2.test",
                 StorageType::Local | StorageType::Session
             ),
         ]

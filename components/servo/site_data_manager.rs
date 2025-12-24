@@ -4,7 +4,9 @@
 
 use bitflags::bitflags;
 use net_traits::ResourceThreads;
+use net_traits::pub_domains::registered_domain_name;
 use rustc_hash::FxHashMap;
+use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageType};
 
@@ -35,9 +37,9 @@ pub struct SiteData {
 }
 
 impl SiteData {
-    pub fn new(name: String, storage_types: StorageType) -> SiteData {
+    pub fn new<N: Into<String>>(name: N, storage_types: StorageType) -> SiteData {
         SiteData {
-            name,
+            name: name.into(),
             storage_types,
         }
     }
@@ -54,15 +56,12 @@ impl SiteData {
 /// Provides APIs for inspecting and managing site data.
 ///
 /// `SiteDataManager` exposes information about data that is conceptually
-/// associated with a site (currently equivalent to an origin), such as
-/// web exposed storage mechanisms like `localStorage` and `sessionStorage`.
+/// associated with a site (equivalent to an eTLD+1), such as web exposed
+/// storage mechanisms like `localStorage` and `sessionStorage`.
 ///
 /// The manager can be used by embedders to list sites with stored data.
 /// Support for site scoped management operations (e.g. clearing data for a
 /// specific site) will be added in the future.
-///
-/// At this stage, sites correspond directly to origins. Future work may group
-/// data at a higher level (e.g. by eTLD+1).
 ///
 /// Note: Network layer state (such as the HTTP cache) is intentionally not
 /// handled by `SiteDataManager`. That functionality lives in `NetworkManager`.
@@ -91,23 +90,23 @@ impl SiteDataManager {
     /// Return a list of sites that have associated site data.
     ///
     /// The returned list is filtered by the provided `storage_types` bitflags.
-    /// Each [`SiteData`] entry represents a site (currently equivalent to an
-    /// origin) and indicates which kinds of storage data are present for it
-    /// (e.g. localStorage, sessionStorage).
+    /// Each [`SiteData`] entry represents a site (equivalent to an eTLD+1)
+    /// and indicates which kinds of storage data are present for it (e.g.
+    /// localStorage, sessionStorage).
     ///
     /// The returned list is sorted by site name.
     ///
     /// Both public and private storage are included in the result.
-    ///
-    /// Note: At this stage, sites correspond directly to origins. Future work
-    /// may group data at a higher level (e.g. by eTLD+1).
     pub fn site_data(&self, storage_types: StorageType) -> Vec<SiteData> {
         let mut sites: FxHashMap<String, StorageType> = FxHashMap::default();
 
         let mut add_origins = |origins: Vec<OriginDescriptor>, storage_type: StorageType| {
             for origin in origins {
+                let url = ServoUrl::parse(&origin.name).unwrap();
+                let domain = registered_domain_name(&url).unwrap().to_string();
+
                 sites
-                    .entry(origin.name)
+                    .entry(domain)
                     .and_modify(|storage_types| *storage_types |= storage_type)
                     .or_insert(storage_type);
             }
