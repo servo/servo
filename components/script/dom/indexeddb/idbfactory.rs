@@ -19,7 +19,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::globalscope::GlobalScope;
@@ -38,7 +38,7 @@ pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
-    connections_pending_open: DomRefCell<HashMapTracedValues<DBName, Dom<IDBDatabase>>>,
+    connections_pending_open: DomRefCell<HashMapTracedValues<DBName, MutNullableDom<IDBDatabase>>>,
 }
 
 impl IDBFactory {
@@ -53,17 +53,26 @@ impl IDBFactory {
         reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
     }
 
-    pub(crate) fn note_connection(&self, name: DBName, connection: &IDBDatabase) {
+    fn note_start_of_open(&self, name: DBName) {
         self.connections_pending_open
             .borrow_mut()
-            .insert(name, Dom::from_ref(connection));
+            .insert(name, Default::default());
+    }
+
+    pub(crate) fn note_connection(&self, name: DBName, connection: &IDBDatabase) {
+        if let Some(conn) = self.connections_pending_open.borrow_mut().get_mut(&name) {
+            conn.set(Some(connection));
+        } else {
+            debug_assert!(false, "Start of open should have added entry.");
+        };
     }
 
     pub(crate) fn get_connection(&self, name: &DBName) -> Option<DomRoot<IDBDatabase>> {
         self.connections_pending_open
             .borrow()
             .get(name)
-            .map(|db| db.as_rooted())
+            .map(|db| db.get())
+            .flatten()
     }
 
     pub(crate) fn abort_pending_upgrades(&self) {
@@ -116,9 +125,11 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 5: Runs in parallel
-        if request.open_database(name, version).is_err() {
+        if request.open_database(name.clone(), version).is_err() {
             return Err(Error::Operation(None));
         }
+
+        self.note_start_of_open(DBName(name.to_string()));
 
         // Step 6: Return a new IDBOpenDBRequest object for request.
         Ok(request)

@@ -222,7 +222,12 @@ struct OpenRequest {
     version: Option<u64>,
 
     /// Optionnaly, a version pending ugrade.
-    pending_upgrade: Option<u64>,
+    pending_upgrade: Option<VersionUpgrade>,
+}
+
+struct VersionUpgrade {
+    old: u64,
+    new: u64,
 }
 
 struct IndexedDBManager {
@@ -314,13 +319,13 @@ impl IndexedDBManager {
         let Some(open_request) = queue.pop_front() else {
             return debug_assert!(false, "A pending open request should exist.");
         };
-        let Some(version) = open_request.pending_upgrade else {
+        let Some(VersionUpgrade { old: _, new }) = open_request.pending_upgrade else {
             return debug_assert!(false, "A pending version upgrade should exist.");
         };
         if open_request
             .sender
             .send(Ok(OpenDatabaseResult::Connection {
-                version,
+                version: new,
                 upgraded: true,
             }))
             .is_err()
@@ -341,7 +346,7 @@ impl IndexedDBManager {
             let Some(queue) = self.connection_queues.get_mut(key) else {
                 return debug_assert!(false, "A connection queue should exist.");
             };
-            queue.retain(|request| request.pending_upgrade.is_none());
+            queue.retain(|request| request.pending_upgrade.is_some());
             queue.is_empty()
         };
         if is_empty {
@@ -349,24 +354,47 @@ impl IndexedDBManager {
         }
     }
 
-    /// Abort pending database upgrades.
+    /// https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+    /// Note: this only reverts the version at this point.
     fn abort_pending_upgrades(&mut self, names: Vec<String>, origin: ImmutableOrigin) {
         for name in names.into_iter() {
+            let mut version_to_revert: Option<u64> = None;
             let key = IndexedDBDescription {
                 name,
                 origin: origin.clone(),
             };
-            let Some(mut queue) = self.connection_queues.remove(&key) else {
-                return debug_assert!(false, "A connection queue should exist.");
-            };
-            for open_request in queue.drain(0..) {
-                if open_request
-                    .sender
-                    .send(Ok(OpenDatabaseResult::AbortError))
-                    .is_err()
-                {
-                    error!("Failed to send OpenDatabaseResult::Connection to script.");
+            {
+                let Some(mut queue) = self.connection_queues.remove(&key) else {
+                    continue;
                 };
+                for open_request in queue.drain(0..) {
+                    if version_to_revert.is_none() {
+                        let Some(VersionUpgrade { old, new: _ }) = open_request.pending_upgrade
+                        else {
+                            return debug_assert!(
+                                false,
+                                "A pending open request should have a pending upgrade."
+                            );
+                        };
+                        version_to_revert = Some(old);
+                    }
+                    if open_request
+                        .sender
+                        .send(Ok(OpenDatabaseResult::AbortError))
+                        .is_err()
+                    {
+                        error!("Failed to send OpenDatabaseResult::Connection to script.");
+                    };
+                }
+            }
+            if let Some(version) = version_to_revert {
+                let Some(db) = self.databases.get_mut(&key) else {
+                    return debug_assert!(false, "Db should have been created");
+                };
+                // Step 3: Set connection’s version to database’s version if database previously existed
+                //  or 0 (zero) if database was newly created.
+                let res = db.set_version(version);
+                debug_assert!(res.is_ok(), "Setting a db version should not fail.");
             }
         }
     }
@@ -499,7 +527,10 @@ impl IndexedDBManager {
         }
 
         // Step 11: Wait for transaction to finish.
-        let _ = pending_upgrade.insert(new_version);
+        let _ = pending_upgrade.insert(VersionUpgrade {
+            old: old_version,
+            new: new_version,
+        });
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
