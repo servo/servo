@@ -14,13 +14,9 @@ use servo::{JSValue, SiteData, StorageType, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
-fn sites_equal_unordered(actual: &[SiteData], expected: &[(&str, StorageType)]) -> bool {
+fn sites_equal_unordered(actual: &[SiteData], expected: &[SiteData]) -> bool {
     let mut actual = actual.to_vec();
-
-    let expected: Vec<SiteData> = expected
-        .iter()
-        .map(|(name, storage_types)| SiteData::new((*name).to_string(), *storage_types))
-        .collect();
+    let expected = expected.to_vec();
 
     actual.sort_by(|a, b| a.name().cmp(&b.name()));
 
@@ -82,14 +78,20 @@ fn test_site_data() {
     let sites = site_data_manager.site_data(StorageType::Local);
     assert!(sites_equal_unordered(
         &sites,
-        &[(&format!("http://localhost:{}", port1), StorageType::Local),]
+        &[SiteData::new(
+            format!("http://localhost:{}", port1),
+            StorageType::Local
+        ),]
     ));
     let sites = site_data_manager.site_data(StorageType::Session);
     assert_eq!(sites.len(), 0);
     let sites = site_data_manager.site_data(StorageType::all());
     assert!(sites_equal_unordered(
         &sites,
-        &[(&format!("http://localhost:{}", port1), StorageType::Local),]
+        &[SiteData::new(
+            format!("http://localhost:{}", port1),
+            StorageType::Local
+        ),]
     ));
 
     delegate.reset();
@@ -110,22 +112,25 @@ fn test_site_data() {
     assert!(sites_equal_unordered(
         &sites,
         &[
-            (&format!("http://localhost:{}", port1), StorageType::Local),
-            (&format!("http://localhost:{}", port2), StorageType::Local),
+            SiteData::new(format!("http://localhost:{}", port1), StorageType::Local),
+            SiteData::new(format!("http://localhost:{}", port2), StorageType::Local),
         ]
     ));
     let sites = site_data_manager.site_data(StorageType::Session);
     assert!(sites_equal_unordered(
         &sites,
-        &[(&format!("http://localhost:{}", port2), StorageType::Session),]
+        &[SiteData::new(
+            format!("http://localhost:{}", port2),
+            StorageType::Session
+        ),]
     ));
     let sites = site_data_manager.site_data(StorageType::all());
     assert!(sites_equal_unordered(
         &sites,
         &[
-            (&format!("http://localhost:{}", port1), StorageType::Local),
-            (
-                &format!("http://localhost:{}", port2),
+            SiteData::new(format!("http://localhost:{}", port1), StorageType::Local),
+            SiteData::new(
+                format!("http://localhost:{}", port2),
                 StorageType::Local | StorageType::Session
             ),
         ]
