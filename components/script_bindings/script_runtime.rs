@@ -8,6 +8,7 @@ use std::ops::Deref;
 
 use js::context::JSContext as SafeJSContext;
 use js::jsapi::JSContext as RawJSContext;
+use js::realm::CurrentRealm;
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
@@ -15,6 +16,12 @@ pub struct JSContext(*mut RawJSContext);
 
 impl From<&mut SafeJSContext> for JSContext {
     fn from(safe_cx: &mut SafeJSContext) -> Self {
+        unsafe { JSContext(safe_cx.raw_cx()) }
+    }
+}
+
+impl<'a> From<&mut CurrentRealm<'a>> for JSContext {
+    fn from(safe_cx: &mut CurrentRealm<'a>) -> Self {
         unsafe { JSContext(safe_cx.raw_cx()) }
     }
 }
