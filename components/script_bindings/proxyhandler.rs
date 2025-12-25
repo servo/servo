@@ -17,9 +17,9 @@ use js::glue::{
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
     HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue,
-    JS_AtomizeAndPinString, JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById,
-    JS_IsExceptionPending, JSContext, JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec,
-    MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
+    JS_AtomizeAndPinString, JS_DefinePropertyById, JS_IsExceptionPending, JSContext, JSErrNum,
+    JSFunctionSpec, JSObject, JSPropertySpec, MutableHandle as RawMutableHandle,
+    MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
@@ -391,23 +391,23 @@ pub(crate) unsafe fn cross_origin_has_own(
 ///
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
 pub(crate) fn cross_origin_get_own_property_helper(
-    cx: SafeJSContext,
+    cx: &mut CurrentRealm,
     proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     id: RawHandleId,
     desc: RawMutableHandle<PropertyDescriptor>,
     is_none: &mut bool,
 ) -> bool {
-    rooted!(in(*cx) let mut holder = ptr::null_mut::<JSObject>());
+    rooted!(&in(cx) let mut holder = ptr::null_mut::<JSObject>());
+    let id = unsafe { Handle::from_raw(id) };
+    let proxy = unsafe { Handle::from_raw(proxy) };
+    let desc = unsafe { MutableHandle::from_raw(desc) };
 
-    ensure_cross_origin_property_holder(
-        cx,
-        proxy,
-        cross_origin_properties,
-        holder.handle_mut().into(),
-    );
+    ensure_cross_origin_property_holder(cx, proxy, cross_origin_properties, holder.handle_mut());
 
-    unsafe { JS_GetOwnPropertyDescriptorById(*cx, holder.handle().into(), id, desc, is_none) }
+    unsafe {
+        js::rust::wrappers2::JS_GetOwnPropertyDescriptorById(cx, holder.handle(), id, desc, is_none)
+    }
 }
 
 const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
@@ -465,10 +465,10 @@ fn append_cross_origin_allowlisted_prop_keys(cx: SafeJSContext, props: RawMutabl
 ///
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
 fn ensure_cross_origin_property_holder(
-    cx: SafeJSContext,
-    _proxy: RawHandleObject,
+    cx: &mut CurrentRealm,
+    _proxy: HandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
-    out_holder: RawMutableHandleObject,
+    mut out_holder: MutableHandleObject,
 ) -> bool {
     // TODO: We don't have the slot to store the holder yet. For now,
     //       the holder is constructed every time this function is called,
@@ -477,20 +477,20 @@ fn ensure_cross_origin_property_holder(
 
     // Create a holder for the current Realm
     unsafe {
-        out_holder.set(jsapi::JS_NewObjectWithGivenProto(
-            *cx,
+        out_holder.set(js::rust::wrappers2::JS_NewObjectWithGivenProto(
+            cx,
             ptr::null_mut(),
-            RawHandleObject::null(),
+            HandleObject::null(),
         ));
 
         if out_holder.get().is_null() ||
-            !jsapi::JS_DefineProperties(
-                *cx,
+            !js::rust::wrappers2::JS_DefineProperties(
+                cx,
                 out_holder.handle(),
                 cross_origin_properties.attributes.as_ptr(),
             ) ||
-            !jsapi::JS_DefineFunctions(
-                *cx,
+            !js::rust::wrappers2::JS_DefineFunctions(
+                cx,
                 out_holder.handle(),
                 cross_origin_properties.methods.as_ptr(),
             )
