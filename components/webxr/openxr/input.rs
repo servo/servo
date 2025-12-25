@@ -157,7 +157,7 @@ impl OpenXRInput {
             )
             .unwrap();
         let action_aim_space = action_aim_pose
-            .create_space(session.clone(), Path::NULL, IDENTITY_POSE)
+            .create_space(session, Path::NULL, IDENTITY_POSE)
             .unwrap();
         let action_grip_pose: Action<Posef> = action_set
             .create_action(
@@ -167,7 +167,7 @@ impl OpenXRInput {
             )
             .unwrap();
         let action_grip_space = action_grip_pose
-            .create_space(session.clone(), Path::NULL, IDENTITY_POSE)
+            .create_space(session, Path::NULL, IDENTITY_POSE)
             .unwrap();
         let action_click: Action<bool> = action_set
             .create_action(
