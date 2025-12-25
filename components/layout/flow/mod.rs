@@ -500,14 +500,16 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                 ))
             },
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
+                let is_anonymous_block =
+                    matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox));
                 let inline_content_sizes_result = sizing::outer_inline(
                     base,
                     &contents.layout_style(base),
                     containing_block,
                     &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
-                    false, /* is_replaced */
-                    !matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox)),
+                    false,               /* auto_block_size_stretches_to_containing_block */
+                    false,               /* is_replaced */
+                    !is_anonymous_block, /* establishes_containing_block */
                     |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
                     |constraint_space| {
                         base.inline_content_sizes(layout_context, constraint_space, contents)
@@ -516,8 +518,18 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                 );
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
-                // Instead, we treat it like an independent block with 'clear: both'.
-                Some((inline_content_sizes_result, None, Clear::Both))
+                // Instead, we treat it like an independent block with 'clear: both',
+                // except if it's an anonymous block.
+                // Presumably, the exception is because an anonymous block will always have
+                // inline-level contents, which don't overlap floats. However, the same might
+                // also happen with a non-anonymous block, so the logic is a bit arbitrary,
+                // but matches other browsers (see #41280).
+                let clear = if is_anonymous_block {
+                    Clear::None
+                } else {
+                    Clear::Both
+                };
+                Some((inline_content_sizes_result, None, clear))
             },
             BlockLevelBox::Independent(independent) => {
                 let inline_content_sizes_result = independent.outer_inline_content_sizes(
