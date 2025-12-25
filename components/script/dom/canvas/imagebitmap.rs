@@ -9,10 +9,10 @@ use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
+use js::realm::CurrentRealm;
 use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::realms::{AlreadyInRealm, InRealm};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
@@ -284,10 +284,10 @@ impl ImageBitmap {
         sw: Option<i32>,
         sh: Option<i32>,
         options: &ImageBitmapOptions,
-        can_gc: CanGc,
+        realm: &mut CurrentRealm,
     ) -> Rc<Promise> {
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+        let can_gc = CanGc::from_cx(realm);
+        let p = Promise::new_in_realm(realm);
 
         // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
         if sw.is_some_and(|w| w == 0) {

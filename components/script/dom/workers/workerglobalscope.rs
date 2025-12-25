@@ -21,6 +21,7 @@ use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::jsapi::JS_AddInterruptCallback;
+use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
@@ -903,23 +904,23 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap(
         &self,
+        realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, can_gc)
+        ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap_(
         &self,
+        realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
         options: &ImageBitmapOptions,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         ImageBitmap::create_image_bitmap(
             self.upcast(),
@@ -929,7 +930,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             Some(sw),
             Some(sh),
             options,
-            can_gc,
+            realm,
         )
     }
 
