@@ -558,32 +558,28 @@ fn compute_inline_content_sizes_for_block_level_boxes(
         depends_on_block_constraints: bool,
         /// The maximum size seen so far, not including trailing uncleared floats.
         max_size: ContentSizes,
-        /// The size of the trailing uncleared floats on the inline-start side
-        /// of the containing block.
-        start_floats: ContentSizes,
-        /// The size of the trailing uncleared floats on the inline-end side
-        /// of the containing block.
-        end_floats: ContentSizes,
+        /// The size of the trailing uncleared floats on the inline-start and
+        /// inline-end sides of the containing block.
+        floats: LogicalSides1D<ContentSizes>,
     }
 
     impl AccumulatedData {
         fn max_size_including_uncleared_floats(&self) -> ContentSizes {
-            self.max_size.max(self.start_floats.union(&self.end_floats))
+            self.max_size.max(self.floats.start.union(&self.floats.end))
         }
         fn clear_floats(&mut self, clear: Clear) {
             match clear {
                 Clear::InlineStart => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.start_floats = ContentSizes::zero();
+                    self.floats.start = ContentSizes::default();
                 },
                 Clear::InlineEnd => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.end_floats = ContentSizes::zero();
+                    self.floats.end = ContentSizes::default();
                 },
                 Clear::Both => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.start_floats = ContentSizes::zero();
-                    self.end_floats = ContentSizes::zero();
+                    self.floats = LogicalSides1D::default();
                 },
                 Clear::None => {},
             };
@@ -599,13 +595,12 @@ fn compute_inline_content_sizes_for_block_level_boxes(
             data.depends_on_block_constraints |= depends_on_block_constraints;
             data.clear_floats(clear);
             match float {
-                Some(FloatSide::InlineStart) => data.start_floats.union_assign(&size),
-                Some(FloatSide::InlineEnd) => data.end_floats.union_assign(&size),
+                Some(FloatSide::InlineStart) => data.floats.start.union_assign(&size),
+                Some(FloatSide::InlineEnd) => data.floats.end.union_assign(&size),
                 None => {
                     data.max_size
-                        .max_assign(data.start_floats.union(&data.end_floats).union(&size));
-                    data.start_floats = ContentSizes::zero();
-                    data.end_floats = ContentSizes::zero();
+                        .max_assign(data.floats.start.union(&data.floats.end).union(&size));
+                    data.floats = LogicalSides1D::default();
                 },
             }
             data
