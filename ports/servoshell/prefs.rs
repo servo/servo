@@ -606,13 +606,17 @@ fn update_preferences_from_command_line_arguemnts(
     }
 }
 
-pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsingResult {
-    // Remove the binary name from the list of arguments.
-    let args_without_binary = args
-        .split_first()
-        .expect("Expected executable name and arguments")
-        .1;
-    let cmd_args = cmd_args().run_inner(Args::from(args_without_binary));
+/// Parse Commandline arguments
+///
+/// Please note that e.g. `env::args` traditionally includes the binary name as the first
+///  argument; However, the binary name must not be included in `args_without_binary`.
+pub(crate) fn parse_command_line_arguments<'a>(
+    args_without_binary: impl Into<Args<'a>>,
+) -> ArgumentParsingResult {
+    parse_arguments_helper(args_without_binary.into())
+}
+fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
+    let cmd_args = cmd_args().run_inner(args_without_binary);
     let cmd_args = match cmd_args {
         Ok(cmd_args) => cmd_args,
         Err(error) => {
@@ -744,8 +748,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
 #[cfg(test)]
 fn test_parse_pref(arg: &str) -> Preferences {
-    let args = vec!["servo".to_string(), "--pref".to_string(), arg.to_string()];
-    match parse_command_line_arguments(args) {
+    let args = ["--pref", arg];
+    match parse_command_line_arguments(args.as_slice()) {
         ArgumentParsingResult::ContentProcess(..) => {
             unreachable!("No preferences for content process")
         },
@@ -807,11 +811,9 @@ fn test_create_prefs_map() {
 
 #[cfg(test)]
 fn test_parse(arg: &str) -> (Opts, Preferences, ServoShellPreferences) {
-    let mut args = vec!["servo".to_string()];
     // bpaf requires the arguments that are separated by whitespace to be different elements of the vector.
-    let mut args_split = arg.split_whitespace().map(|s| s.to_owned()).collect();
-    args.append(&mut args_split);
-    match parse_command_line_arguments(args) {
+    let args_split: Vec<&str> = arg.split_whitespace().collect();
+    match parse_command_line_arguments(args_split.as_slice()) {
         ArgumentParsingResult::ContentProcess(..) => {
             unreachable!("No preferences for content process")
         },

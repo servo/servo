@@ -156,15 +156,10 @@ fn init_app(
     debug!("Resources are located at: {:?}", resource_dir);
     servo::resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
 
-    // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
-    // Then again, this code could and maybe even should be disabled in production builds.
-    let mut args = vec!["servoshell".to_string()];
-    args.extend(
-        options
-            .commandline_args
-            .split("\u{1f}")
-            .map(|arg| arg.to_string()),
-    );
+    let args = options
+        .commandline_args
+        .split("\u{1f}")
+        .collect::<Vec<&str>>();
     debug!("Servo commandline args: {:?}", args);
 
     let config_dir = PathBuf::from(&native_values.cache_dir).join("servo");
@@ -199,16 +194,17 @@ fn init_app(
         });
     }
 
-    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
-        ArgumentParsingResult::ContentProcess(..) => {
-            unreachable!("OHOS does not have support for multiprocess yet.")
-        },
-        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
-            (opts, preferences, servoshell_preferences)
-        },
-        ArgumentParsingResult::Exit => std::process::exit(0),
-        ArgumentParsingResult::ErrorParsing => std::process::exit(1),
-    };
+    let (opts, mut preferences, servoshell_preferences) =
+        match parse_command_line_arguments(args.as_slice()) {
+            ArgumentParsingResult::ContentProcess(..) => {
+                unreachable!("OHOS does not have support for multiprocess yet.")
+            },
+            ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+                (opts, preferences, servoshell_preferences)
+            },
+            ArgumentParsingResult::Exit => std::process::exit(0),
+            ArgumentParsingResult::ErrorParsing => std::process::exit(1),
+        };
 
     if native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone {
         preferences.set_value("viewport_meta_enabled", PrefValue::Bool(true));
