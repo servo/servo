@@ -17,7 +17,7 @@ use openxr::{
     self, ActionSet, ActiveActionSet, ApplicationInfo, CompositionLayerBase, CompositionLayerFlags,
     CompositionLayerProjection, Entry, EnvironmentBlendMode, ExtensionSet, Extent2Di, FormFactor,
     Fovf, FrameState, FrameStream, FrameWaiter, Graphics, Instance, Passthrough,
-    PassthroughFlagsFB, PassthroughLayer, PassthroughLayerPurposeFB, Posef, Quaternionf,
+    PassthroughFlagsFB, PassthroughLayerFB, PassthroughLayerPurposeFB, Posef, Quaternionf,
     ReferenceSpaceType, SecondaryEndInfo, Session, Space, Swapchain, SwapchainCreateFlags,
     SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
 };
@@ -385,7 +385,7 @@ struct OpenXrLayerManager {
     openxr_layers: HashMap<LayerId, OpenXrLayer>,
     clearer: GlClearer,
     _passthrough: Option<Passthrough>,
-    passthrough_layer: Option<PassthroughLayer>,
+    passthrough_layer: Option<PassthroughLayerFB>,
 }
 
 struct OpenXrLayer {
@@ -404,7 +404,7 @@ impl OpenXrLayerManager {
         frame_stream: FrameStream<Backend>,
         should_reverse_winding: bool,
         _passthrough: Option<Passthrough>,
-        passthrough_layer: Option<PassthroughLayer>,
+        passthrough_layer: Option<PassthroughLayerFB>,
     ) -> OpenXrLayerManager {
         let layers = Vec::new();
         let openxr_layers = HashMap::new();
@@ -649,7 +649,7 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
                 ty: CompositionLayerPassthroughFB::TYPE,
                 next: std::ptr::null(),
                 flags: CompositionLayerFlags::BLEND_TEXTURE_SOURCE_ALPHA,
-                space: openxr::sys::Space::from_raw(0),
+                space: openxr::sys::Space::default(),
                 layer_handle: *passthrough_layer.inner(),
             };
             let passthrough_base = &clp as *const _ as *const CompositionLayerBase<Backend>;
