@@ -63,6 +63,11 @@ impl ContentSizes {
         }
     }
 
+    pub fn union_assign(&mut self, other: &Self) {
+        self.min_content.max_assign(other.min_content);
+        self.max_content += other.max_content;
+    }
+
     pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
         Self {
             min_content: f(self.min_content),

@@ -599,12 +599,11 @@ fn compute_inline_content_sizes_for_block_level_boxes(
             data.depends_on_block_constraints |= depends_on_block_constraints;
             data.clear_floats(clear);
             match float {
-                Some(FloatSide::InlineStart) => data.start_floats = data.start_floats.union(&size),
-                Some(FloatSide::InlineEnd) => data.end_floats = data.end_floats.union(&size),
+                Some(FloatSide::InlineStart) => data.start_floats.union_assign(&size),
+                Some(FloatSide::InlineEnd) => data.end_floats.union_assign(&size),
                 None => {
-                    data.max_size = data
-                        .max_size
-                        .max(data.start_floats.union(&data.end_floats).union(&size));
+                    data.max_size
+                        .max_assign(data.start_floats.union(&data.end_floats).union(&size));
                     data.start_floats = ContentSizes::zero();
                     data.end_floats = ContentSizes::zero();
                 },
