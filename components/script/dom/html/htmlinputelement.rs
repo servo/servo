@@ -12,6 +12,7 @@ use std::str::FromStr;
 use std::{f64, ptr};
 
 use base::generic_channel::GenericSender;
+use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
@@ -91,7 +92,6 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::textinput::Lines::Single;
 use crate::textinput::{
     ClipboardEventFlags, Direction, IsComposing, KeyReaction, SelectionDirection, TextInput,
-    UTF8Bytes, UTF16CodeUnits,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -1135,7 +1135,7 @@ impl HTMLInputElement {
         }
 
         let mut failed_flags = ValidationFlags::empty();
-        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let Utf16CodeUnitLength(value_len) = textinput.utf16_len();
         let min_length = self.MinLength();
         let max_length = self.MaxLength();
 
@@ -1486,7 +1486,7 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         self.unsafe_get().input_type.get()
     }
 
-    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+    fn textinput_sorted_selection_offsets_range(self) -> Range<Utf8CodeUnitLength> {
         unsafe {
             self.unsafe_get()
                 .textinput
@@ -1569,7 +1569,7 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         match self.input_type() {
             InputType::Password => {
                 let text = self.get_raw_textinput_value();
-                let sel = UTF8Bytes::unwrap_range(sorted_selection_offsets_range);
+                let sel = Utf8CodeUnitLength::unwrap_range(sorted_selection_offsets_range);
 
                 // Translate indices from the raw value to indices in the replacement value.
                 let char_start = text.str()[..sel.start].chars().count();
@@ -1578,9 +1578,9 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char..char_end * bytes_per_char)
             },
-            input_type if input_type.is_textual() => {
-                Some(UTF8Bytes::unwrap_range(sorted_selection_offsets_range))
-            },
+            input_type if input_type.is_textual() => Some(Utf8CodeUnitLength::unwrap_range(
+                sorted_selection_offsets_range,
+            )),
             _ => None,
         }
     }
@@ -3097,7 +3097,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_max_length(Some(Utf16CodeUnitLength(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -3109,7 +3109,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_min_length(Some(Utf16CodeUnitLength(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),

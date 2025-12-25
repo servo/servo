@@ -7783,6 +7783,7 @@ dependencies = [
 name = "script_bindings"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.10.0",
  "crossbeam-channel",
  "cssparser",
@@ -7821,6 +7822,7 @@ dependencies = [
 name = "script_tests"
 version = "0.0.1"
 dependencies = [
+ "base",
  "encoding_rs",
  "euclid",
  "keyboard-types",

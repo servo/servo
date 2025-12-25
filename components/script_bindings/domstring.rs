@@ -12,6 +12,7 @@ use std::str::{Chars, FromStr};
 use std::sync::LazyLock;
 use std::{fmt, slice, str};
 
+use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use html5ever::{LocalName, Namespace};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::MutableHandleValue;
@@ -415,9 +416,30 @@ impl DOMString {
         self.view().is_empty()
     }
 
-    /// This length (as rust spec) is in bytes if the string would be utf8 not chars.
+    /// The length of this string in UTF-8 code units, each one being one byte in size.
+    ///
+    /// Note: This is different than the number of Unicode characters (or code points). A
+    /// character may require multiple UTF-8 code units.
     pub fn len(&self) -> usize {
         self.view().len()
+    }
+
+    /// The length of this string in UTF-8 code units, each one being one byte in size.
+    /// This method is the same as [`DOMString::len`], but the result is wrapped in a
+    /// `Utf8CodeUnitLength` to be used in code that mixes different kinds of offsets.
+    ///
+    /// Note: This is different than the number of Unicode characters (or code points). A
+    /// character may require multiple UTF-8 code units.
+    pub fn len_utf8(&self) -> Utf8CodeUnitLength {
+        Utf8CodeUnitLength(self.len())
+    }
+
+    /// The length of this string in UTF-16 code units, each one being one two bytes in size.
+    ///
+    /// Note: This is different than the number of Unicode characters (or code points). A
+    /// character may require multiple UTF-16 code units.
+    pub fn len_utf16(&self) -> Utf16CodeUnitLength {
+        Utf16CodeUnitLength(self.str().chars().map(char::len_utf16).sum())
     }
 
     pub fn make_ascii_lowercase(&mut self) {
