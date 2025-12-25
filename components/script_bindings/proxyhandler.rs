@@ -551,53 +551,57 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
     receiver: RawHandleValue,
     result: *mut ObjectOpResult,
 ) -> bool {
-    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
-    let mut realm = js::realm::CurrentRealm::assert(&mut cx);
-    let proxy_handle = unsafe { HandleObject::from_raw(proxy) };
+    unsafe {
+        let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+        let mut realm = js::realm::CurrentRealm::assert(&mut cx);
+        let proxy = HandleObject::from_raw(proxy);
+        let id = Handle::from_raw(id);
+        let v = Handle::from_raw(v);
+        let receiver = Handle::from_raw(receiver);
 
-    if !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, proxy) {
-        return cross_origin_set::<D>(
-            SafeJSContext::from_ptr(realm.raw_cx()),
+        if !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, proxy.into_handle()) {
+            return cross_origin_set::<D>(
+                SafeJSContext::from_ptr(realm.raw_cx()),
+                proxy.into_handle(),
+                id.into_handle(),
+                v.into_handle(),
+                receiver.into_handle(),
+                result,
+            );
+        }
+
+        // Safe to enter the Realm of proxy now.
+        let mut realm = js::realm::AutoRealm::new_from_handle(&mut realm, proxy);
+
+        // OrdinarySet
+        // <https://tc39.es/ecma262/#sec-ordinaryset>
+        rooted!(&in(&mut realm) let mut own_desc = PropertyDescriptor::default());
+        let mut is_none = false;
+        if !js::rust::wrappers2::InvokeGetOwnPropertyDescriptor(
+            GetProxyHandler(*proxy),
+            &mut realm,
+            proxy,
+            id,
+            own_desc.handle_mut(),
+            &mut is_none,
+        ) {
+            return false;
+        }
+
+        js::rust::wrappers2::SetPropertyIgnoringNamedGetter(
+            &mut realm,
             proxy,
             id,
             v,
             receiver,
+            if is_none {
+                None
+            } else {
+                Some(own_desc.handle())
+            },
             result,
-        );
+        )
     }
-
-    // Safe to enter the Realm of proxy now.
-    let mut realm = js::realm::AutoRealm::new_from_handle(&mut realm, proxy_handle);
-
-    // OrdinarySet
-    // <https://tc39.es/ecma262/#sec-ordinaryset>
-    rooted!(&in(&mut realm) let mut own_desc = PropertyDescriptor::default());
-    let mut is_none = false;
-    if !js::glue::InvokeGetOwnPropertyDescriptor(
-        GetProxyHandler(*proxy),
-        realm.raw_cx(),
-        proxy,
-        id,
-        own_desc.handle_mut().into(),
-        &mut is_none,
-    ) {
-        return false;
-    }
-
-    let own_desc_handle = own_desc.handle().into();
-    js::jsapi::SetPropertyIgnoringNamedGetter(
-        realm.raw_cx(),
-        proxy,
-        id,
-        v,
-        receiver,
-        if is_none {
-            ptr::null()
-        } else {
-            &own_desc_handle
-        },
-        result,
-    )
 }
 
 /// Implementation of `[[GetPrototypeOf]]` for [`Location`].
