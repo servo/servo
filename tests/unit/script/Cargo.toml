@@ -12,6 +12,7 @@ name = "script_tests"
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 keyboard-types = { workspace = true }

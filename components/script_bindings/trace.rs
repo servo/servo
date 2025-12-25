@@ -9,6 +9,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 
+use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use crossbeam_channel::Sender;
 use html5ever::interface::{Tracer as HtmlTracer, TreeSink};
 use html5ever::tokenizer::{TokenSink, Tokenizer};
@@ -416,5 +417,24 @@ unsafe impl<T> JSTraceable for NoTrace<T> {
 impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.0.size_of(ops)
+    }
+}
+
+unsafe impl CustomTraceable for Utf8CodeUnitLength {
+    #[inline]
+    unsafe fn trace(&self, _: *mut JSTracer) {}
+}
+
+unsafe impl CustomTraceable for Utf16CodeUnitLength {
+    #[inline]
+    unsafe fn trace(&self, _: *mut JSTracer) {}
+}
+
+unsafe impl<T: CustomTraceable> CustomTraceable for Option<T> {
+    #[inline]
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        unsafe {
+            self.as_ref().inspect(|value| value.trace(tracer));
+        }
     }
 }

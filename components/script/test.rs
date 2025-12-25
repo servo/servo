@@ -72,8 +72,7 @@ pub mod timeranges {
 pub mod textinput {
     pub use crate::clipboard_provider::ClipboardProvider;
     pub use crate::textinput::{
-        Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF8Bytes,
-        UTF16CodeUnits,
+        Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint,
     };
 }
 

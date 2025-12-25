@@ -7,6 +7,8 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
+use base::text::Utf8CodeUnitLength;
+
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
@@ -16,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
-use crate::textinput::{SelectionDirection, SelectionState, TextInput, UTF8Bytes};
+use crate::textinput::{SelectionDirection, SelectionState, TextInput};
 
 pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;
@@ -185,7 +187,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // change the selection state in order to replace the text in the range.
         let original_selection_state = self.textinput.borrow().selection_state();
 
-        let UTF8Bytes(content_length) = self.textinput.borrow().len_utf8();
+        let Utf8CodeUnitLength(content_length) = self.textinput.borrow().len_utf8();
         let content_length = content_length as u32;
 
         // Step 5
@@ -271,12 +273,12 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     fn start(&self) -> u32 {
-        let UTF8Bytes(offset) = self.textinput.borrow().selection_start_offset();
+        let Utf8CodeUnitLength(offset) = self.textinput.borrow().selection_start_offset();
         offset as u32
     }
 
     fn end(&self) -> u32 {
-        let UTF8Bytes(offset) = self.textinput.borrow().selection_end_offset();
+        let Utf8CodeUnitLength(offset) = self.textinput.borrow().selection_end_offset();
         offset as u32
     }
 
