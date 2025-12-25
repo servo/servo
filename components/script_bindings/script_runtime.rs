@@ -6,11 +6,18 @@ use std::cell::Cell;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
+use js::context::JSContext as SafeJSContext;
 use js::jsapi::JSContext as RawJSContext;
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct JSContext(*mut RawJSContext);
+
+impl From<&mut SafeJSContext> for JSContext {
+    fn from(safe_cx: &mut SafeJSContext) -> Self {
+        unsafe { JSContext(safe_cx.raw_cx()) }
+    }
+}
 
 #[expect(unsafe_code)]
 impl JSContext {
@@ -67,5 +74,10 @@ impl CanGc {
     /// current stack frame.
     pub fn note() -> CanGc {
         CanGc(PhantomData)
+    }
+
+    /// &mut SafeJSContext is always an indication that GC is possible.
+    pub fn from_cx(_cx: &mut SafeJSContext) -> CanGc {
+        CanGc::note()
     }
 }
