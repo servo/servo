@@ -11,7 +11,7 @@ use std::ptr::NonNull;
 
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::glue::{
-    GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, InvokeGetOwnPropertyDescriptor,
+    GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate,
     SetProxyPrivate,
 };
 use js::jsapi::{
@@ -564,11 +564,11 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
 
         if !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, proxy.into_handle()) {
             return cross_origin_set::<D>(
-                SafeJSContext::from_ptr(realm.raw_cx()),
-                proxy.into_handle(),
-                id.into_handle(),
+                realm,
+                proxy,
+                id,
                 v.into_handle(),
-                receiver.into_handle(),
+                receiver,
                 result,
             );
         }
@@ -720,22 +720,22 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
 ///
 /// [`CrossOriginSet`]: https://html.spec.whatwg.org/multipage/#crossoriginset-(-o,-p,-v,-receiver-)
 pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
-    cx: SafeJSContext,
-    proxy: RawHandleObject,
-    id: RawHandleId,
+    cx: &mut CurrentRealm,
+    proxy: HandleObject,
+    id: HandleId,
     v: RawHandleValue,
-    receiver: RawHandleValue,
+    receiver: HandleValue,
     result: *mut ObjectOpResult,
 ) -> bool {
     // > 1. Let desc be ? O.[[GetOwnProperty]](P).
-    rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
+    rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
     let mut is_none = false;
-    if !InvokeGetOwnPropertyDescriptor(
+    if !js::rust::wrappers2::InvokeGetOwnPropertyDescriptor(
         GetProxyHandler(*proxy),
-        *cx,
+        cx,
         proxy,
         id,
-        descriptor.handle_mut().into(),
+        descriptor.handle_mut(),
         &mut is_none,
     ) {
         return false;
@@ -750,31 +750,33 @@ pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
 
     // > 3. If desc.[[Set]] is present and its value is not undefined,
     // >    then: [...]
-    rooted!(in(*cx) let mut setter = ptr::null_mut::<JSObject>());
+    rooted!(&in(cx) let mut setter = ptr::null_mut::<JSObject>());
     get_setter_object(&descriptor, setter.handle_mut().into());
     if setter.get().is_null() {
         // > 4. Throw a "SecurityError" DOMException.
-        return report_cross_origin_denial::<D>(cx, id, "set");
+        return report_cross_origin_denial::<D>(cx.into(), id.into_handle(), "set");
     }
 
-    rooted!(in(*cx) let mut setter_jsval = UndefinedValue());
-    setter.get().to_jsval(*cx, setter_jsval.handle_mut());
+    rooted!(&in(cx) let mut setter_jsval = UndefinedValue());
+    setter
+        .get()
+        .to_jsval(cx.raw_cx(), setter_jsval.handle_mut());
 
     // > 3.1. Perform ? Call(setter, Receiver, «V»).
     // >
     // > 3.2. Return true.
-    rooted!(in(*cx) let mut ignored = UndefinedValue());
-    if !jsapi::Call(
-        *cx,
+    rooted!(&in(cx) let mut ignored = UndefinedValue());
+    if !js::rust::wrappers2::Call(
+        cx,
         receiver,
-        setter_jsval.handle().into(),
+        setter_jsval.handle(),
         // FIXME: Our binding lacks `HandleValueArray(Handle<Value>)`
         // <https://searchfox.org/mozilla-central/rev/072710086ddfe25aa2962c8399fefb2304e8193b/js/public/ValueArray.h#54-55>
         &jsapi::HandleValueArray {
             length_: 1,
             elements_: v.ptr,
         },
-        ignored.handle_mut().into(),
+        ignored.handle_mut(),
     ) {
         return false;
     }
