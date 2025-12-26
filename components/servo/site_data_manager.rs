@@ -4,8 +4,8 @@
 
 use bitflags::bitflags;
 use log::warn;
-use net_traits::ResourceThreads;
 use net_traits::pub_domains::registered_domain_name;
+use net_traits::{ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
@@ -17,17 +17,21 @@ bitflags! {
     /// This type is used by `SiteDataManager` to query, describe, and manage
     /// different kinds of data stored by the user agent for a given site.
     ///
-    /// Additional storage categories (e.g. cookies, IndexedDB) may be added in
-    /// the future.
+    /// Additional storage categories (e.g. IndexedDB) may be added in the
+    /// future.
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub struct StorageType: u8 {
+        /// Corresponds to the HTTP cookies:
+        /// <https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies>
+        const Cookies = 1 << 0;
+
         /// Corresponds to the `localStorage` Web API:
         /// <https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage>
-        const Local   = 1 << 0;
+        const Local   = 1 << 1;
 
         /// Corresponds to the `sessionStorage` Web API:
         /// <https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage>
-        const Session = 1 << 1;
+        const Session = 1 << 2;
     }
 }
 
@@ -99,7 +103,24 @@ impl SiteDataManager {
     ///
     /// Both public and private storage are included in the result.
     pub fn site_data(&self, storage_types: StorageType) -> Vec<SiteData> {
-        let mut sites: FxHashMap<String, StorageType> = FxHashMap::default();
+        let mut all_sites: FxHashMap<String, StorageType> = FxHashMap::default();
+
+        let mut add_sites = |sites: Vec<SiteDescriptor>, storage_type: StorageType| {
+            for site in sites {
+                all_sites
+                    .entry(site.name)
+                    .and_modify(|storage_types| *storage_types |= storage_type)
+                    .or_insert(storage_type);
+            }
+        };
+
+        if storage_types.contains(StorageType::Cookies) {
+            let public_cookies = self.public_resource_threads.cookies();
+            add_sites(public_cookies, StorageType::Cookies);
+
+            let private_cookies = self.private_resource_threads.cookies();
+            add_sites(private_cookies, StorageType::Cookies);
+        }
 
         let mut add_origins = |origins: Vec<OriginDescriptor>, storage_type: StorageType| {
             for origin in origins {
@@ -112,7 +133,7 @@ impl SiteDataManager {
                 };
                 let domain = domain.to_string();
 
-                sites
+                all_sites
                     .entry(domain)
                     .and_modify(|storage_types| *storage_types |= storage_type)
                     .or_insert(storage_type);
@@ -143,7 +164,7 @@ impl SiteDataManager {
             add_origins(private_origins, StorageType::Session);
         }
 
-        let mut result: Vec<SiteData> = sites
+        let mut result: Vec<SiteData> = all_sites
             .into_iter()
             .map(|(name, storage_types)| SiteData::new(name, storage_types))
             .collect();

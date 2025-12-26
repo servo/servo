@@ -13,8 +13,8 @@ use std::time::SystemTime;
 use cookie::Cookie;
 use itertools::Itertools;
 use log::info;
-use net_traits::CookieSource;
 use net_traits::pub_domains::reg_suffix;
+use net_traits::{CookieSource, SiteDescriptor};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
@@ -179,6 +179,13 @@ impl CookieStorage {
         }
     }
 
+    pub fn remove_all_expired_cookies(&mut self) {
+        self.cookies_map.retain(|_, cookies| {
+            cookies.retain(|c| !is_cookie_expired(c));
+            !cookies.is_empty()
+        });
+    }
+
     // http://tools.ietf.org/html/rfc6265#section-5.4
     pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
         // Let cookie-list be the set of cookies from the cookie store
@@ -250,6 +257,14 @@ impl CookieStorage {
                 c.touch();
                 c.cookie.clone()
             })
+    }
+
+    pub fn cookie_site_descriptors(&self) -> Vec<SiteDescriptor> {
+        self.cookies_map
+            .keys()
+            .cloned()
+            .map(SiteDescriptor::new)
+            .collect()
     }
 }
 
