@@ -62,6 +62,7 @@ pub fn create_embedder_proxy() -> EmbedderProxy {
     }
 }
 
+#[derive(Debug)]
 pub struct Server {
     pub close_channel: tokio::sync::oneshot::Sender<()>,
     pub certificates: Option<Vec<CertificateDer<'static>>>,

@@ -4,31 +4,16 @@
 
 mod common;
 
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
-use net::test_util::{make_body, make_server};
+use net::test_util::{make_body, make_server, replace_host_table};
 use servo::{JSValue, ServoUrl, SiteData, StorageType, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
-
-fn sites_equal_unordered(actual: &[SiteData], expected: &[(&ServoUrl, StorageType)]) -> bool {
-    let mut actual = actual.to_vec();
-
-    let mut expected: Vec<SiteData> = expected
-        .iter()
-        .map(|(url, storage_types)| {
-            SiteData::new(url.origin().ascii_serialization(), *storage_types)
-        })
-        .collect();
-
-    actual.sort_by(|a, b| a.name().cmp(&b.name()));
-    expected.sort_by(|a, b| a.name().cmp(&b.name()));
-
-    actual == expected
-}
 
 #[test]
 fn test_site_data() {
@@ -50,6 +35,13 @@ fn test_site_data() {
     let sites = site_data_manager.site_data(StorageType::all());
     assert_eq!(sites.len(), 0);
 
+    let ip = "127.0.0.1".parse().unwrap();
+    let mut host_table = HashMap::new();
+    host_table.insert("www.site-data-1.test".to_owned(), ip);
+    host_table.insert("www.site-data-2.test".to_owned(), ip);
+
+    replace_host_table(host_table);
+
     static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
     let handler =
         move |_: HyperRequest<Incoming>,
@@ -57,12 +49,27 @@ fn test_site_data() {
             *response.body_mut() = make_body(MESSAGE.to_vec());
         };
 
-    let (server1, url1) = make_server(handler);
+    let mut servers = Vec::new();
+    for _ in 0..2 {
+        let (server, url) = make_server(handler);
+        servers.push((server, url));
+    }
+
+    servers.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+    let [(server1, url1), (server2, url2)] = servers.try_into().unwrap();
+    let port1 = url1.port().unwrap();
+    let port2 = url2.port().unwrap();
+
+    let custom_url1 = ServoUrl::parse(&format!("http://www.site-data-1.test:{}", port1)).unwrap();
+    let custom_url2 = ServoUrl::parse(&format!("http://www.site-data-2.test:{}", port2)).unwrap();
 
     delegate.reset();
-    webview.load(url1.clone().into_url());
+    webview.load(custom_url1.clone().into_url());
     let delegate_clone = delegate.clone();
     servo_test.spin(move || !delegate_clone.url_changed.get());
+
+    let _ = server1.close();
 
     let _ = evaluate_javascript(
         &servo_test,
@@ -71,23 +78,23 @@ fn test_site_data() {
     );
 
     let sites = site_data_manager.site_data(StorageType::Local);
-    assert!(sites_equal_unordered(
+    assert_eq!(
         &sites,
-        &[(&url1, StorageType::Local),]
-    ));
+        &[SiteData::new("site-data-1.test", StorageType::Local),]
+    );
     let sites = site_data_manager.site_data(StorageType::Session);
     assert_eq!(sites.len(), 0);
     let sites = site_data_manager.site_data(StorageType::all());
-    assert!(sites_equal_unordered(
+    assert_eq!(
         &sites,
-        &[(&url1, StorageType::Local),]
-    ));
-
-    let (server2, url2) = make_server(handler);
+        &[SiteData::new("site-data-1.test", StorageType::Local),]
+    );
 
     delegate.reset();
-    webview.load(url2.clone().into_url());
+    webview.load(custom_url2.clone().into_url());
     servo_test.spin(move || !delegate.url_changed.get());
+
+    let _ = server2.close();
 
     let _ = evaluate_javascript(
         &servo_test,
@@ -98,26 +105,29 @@ fn test_site_data() {
     let sites = site_data_manager.site_data(StorageType::Local);
     // TODO: File an issue for this, there should be only one site with
     // localStorage origin.
-    assert!(sites_equal_unordered(
-        &sites,
-        &[(&url1, StorageType::Local), (&url2, StorageType::Local),]
-    ));
-    let sites = site_data_manager.site_data(StorageType::Session);
-    assert!(sites_equal_unordered(
-        &sites,
-        &[(&url2, StorageType::Session),]
-    ));
-    let sites = site_data_manager.site_data(StorageType::all());
-    assert!(sites_equal_unordered(
+    assert_eq!(
         &sites,
         &[
-            (&url1, StorageType::Local),
-            (&url2, StorageType::Local | StorageType::Session),
+            SiteData::new("site-data-1.test", StorageType::Local),
+            SiteData::new("site-data-2.test", StorageType::Local),
         ]
-    ));
-
-    let _ = server1.close();
-    let _ = server2.close();
+    );
+    let sites = site_data_manager.site_data(StorageType::Session);
+    assert_eq!(
+        &sites,
+        &[SiteData::new("site-data-2.test", StorageType::Session),]
+    );
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-1.test", StorageType::Local),
+            SiteData::new(
+                "site-data-2.test",
+                StorageType::Local | StorageType::Session
+            ),
+        ]
+    );
 }
 
 #[test]
