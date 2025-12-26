@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
+use log::warn;
 use net_traits::ResourceThreads;
 use net_traits::pub_domains::registered_domain_name;
 use rustc_hash::FxHashMap;
@@ -37,7 +38,7 @@ pub struct SiteData {
 }
 
 impl SiteData {
-    pub fn new<N: Into<String>>(name: N, storage_types: StorageType) -> SiteData {
+    pub fn new(name: impl Into<String>, storage_types: StorageType) -> SiteData {
         SiteData {
             name: name.into(),
             storage_types,
@@ -102,8 +103,14 @@ impl SiteDataManager {
 
         let mut add_origins = |origins: Vec<OriginDescriptor>, storage_type: StorageType| {
             for origin in origins {
-                let url = ServoUrl::parse(&origin.name).unwrap();
-                let domain = registered_domain_name(&url).unwrap().to_string();
+                let url =
+                    ServoUrl::parse(&origin.name).expect("Should always be able to parse origins.");
+
+                let Some(domain) = registered_domain_name(&url) else {
+                    warn!("Failed to get a registered domain name for: {url}.");
+                    continue;
+                };
+                let domain = domain.to_string();
 
                 sites
                     .entry(domain)
@@ -141,7 +148,7 @@ impl SiteDataManager {
             .map(|(name, storage_types)| SiteData::new(name, storage_types))
             .collect();
 
-        result.sort_by_key(|a| a.name());
+        result.sort_by_key(SiteData::name);
 
         result
     }
