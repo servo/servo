@@ -355,6 +355,21 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
         self.active.set(false);
 
+        if self.mode == IDBTransactionMode::Versionchange {
+            let name = self.db.get_name().to_string();
+            let global = self.global();
+            let origin = global.origin().immutable().clone();
+            if global
+                .storage_threads()
+                .send(IndexedDBThreadMsg::Sync(
+                    SyncOperation::AbortPendingUpgrade { name, origin },
+                ))
+                .is_err()
+            {
+                error!("Failed to send SyncOperation::AbortPendingUpgrade");
+            }
+        }
+
         Ok(())
     }
 

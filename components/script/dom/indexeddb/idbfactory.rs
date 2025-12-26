@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use base::generic_channel::GenericSend;
@@ -38,14 +39,16 @@ pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
-    connections_pending_open: DomRefCell<HashMapTracedValues<DBName, MutNullableDom<IDBDatabase>>>,
+    /// TODO: remove names when connections close.
+    #[no_trace]
+    db_with_connections: DomRefCell<HashSet<DBName>>,
 }
 
 impl IDBFactory {
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
-            connections_pending_open: Default::default(),
+            db_with_connections: Default::default(),
         }
     }
 
@@ -54,40 +57,22 @@ impl IDBFactory {
     }
 
     fn note_start_of_open(&self, name: DBName) {
-        self.connections_pending_open
-            .borrow_mut()
-            .insert(name, Default::default());
-    }
-
-    pub(crate) fn note_connection(&self, name: DBName, connection: &IDBDatabase) {
-        if let Some(conn) = self.connections_pending_open.borrow_mut().get_mut(&name) {
-            conn.set(Some(connection));
-        } else {
-            debug_assert!(false, "Start of open should have added entry.");
-        };
-    }
-
-    pub(crate) fn get_connection(&self, name: &DBName) -> Option<DomRoot<IDBDatabase>> {
-        self.connections_pending_open
-            .borrow()
-            .get(name)
-            .map(|db| db.get())
-            .flatten()
+        self.db_with_connections.borrow_mut().insert(name);
     }
 
     pub(crate) fn abort_pending_upgrades(&self) {
         let global = self.global();
         let names = self
-            .connections_pending_open
+            .db_with_connections
             .borrow_mut()
             .drain()
-            .map(|(k, _)| k.0)
+            .map(|name| name.0)
             .collect();
         let origin = global.origin().immutable().clone();
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::Sync(
-                SyncOperation::AbortPendingUpgrade { names, origin },
+                SyncOperation::AbortPendingUpgrades { names, origin },
             ))
             .is_err()
         {

@@ -474,8 +474,14 @@ pub enum SyncOperation {
     ),
 
     /// Abort pending database upgrades
-    AbortPendingUpgrade {
+    AbortPendingUpgrades {
         names: Vec<String>,
+        origin: ImmutableOrigin,
+    },
+
+    /// Abort the current pending upgrade.
+    AbortPendingUpgrade {
+        name: String,
         origin: ImmutableOrigin,
     },
 

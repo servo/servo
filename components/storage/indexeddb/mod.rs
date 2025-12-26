@@ -354,7 +354,59 @@ impl IndexedDBManager {
         }
     }
 
-    /// https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+    /// Aborting the current upgrade for an origin.
+    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+    /// Note: this only reverts the version at this point.
+    fn abort_pending_upgrade(&mut self, name: String, origin: ImmutableOrigin) {
+        let key = IndexedDBDescription {
+            name,
+            origin: origin.clone(),
+        };
+        let old = {
+            let Some(queue) = self.connection_queues.get_mut(&key) else {
+                return debug_assert!(
+                    false,
+                    "There should be a connection queue for the aborted upgrade."
+                );
+            };
+            let Some(open_request) = queue.pop_front() else {
+                return debug_assert!(false, "There should be an open request to upgrade.");
+            };
+            let Some(VersionUpgrade { old, new: _ }) = open_request.pending_upgrade else {
+                return debug_assert!(
+                    false,
+                    "A pending open request should have a pending upgrade."
+                );
+            };
+            if open_request
+                .sender
+                .send(Ok(OpenDatabaseResult::AbortError))
+                .is_err()
+            {
+                error!("Failed to send OpenDatabaseResult::Connection to script.");
+            };
+            old
+        };
+        {
+            let Some(db) = self.databases.get_mut(&key) else {
+                return debug_assert!(false, "Db should have been created");
+            };
+            // Step 3: Set connection’s version to database’s version if database previously existed
+            //  or 0 (zero) if database was newly created.
+            let res = db.set_version(old);
+            debug_assert!(res.is_ok(), "Setting a db version should not fail.");
+        }
+        let Some(queue) = self.connection_queues.get_mut(&key) else {
+            return;
+        };
+        if !queue.is_empty() {
+            self.open_database(key.clone());
+            self.prune_connection_queue(&key);
+        }
+    }
+
+    /// Aborting all upgrades for an origin
+    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
     fn abort_pending_upgrades(&mut self, names: Vec<String>, origin: ImmutableOrigin) {
         for name in names.into_iter() {
@@ -773,8 +825,11 @@ impl IndexedDBManager {
             SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
                 self.open_a_database_connection(sender, origin, db_name, version);
             },
-            SyncOperation::AbortPendingUpgrade { names, origin } => {
+            SyncOperation::AbortPendingUpgrades { names, origin } => {
                 self.abort_pending_upgrades(names, origin);
+            },
+            SyncOperation::AbortPendingUpgrade { name, origin } => {
+                self.abort_pending_upgrade(name, origin);
             },
             SyncOperation::DeleteDatabase(callback, origin, db_name) => {
                 let idb_description = IndexedDBDescription {
