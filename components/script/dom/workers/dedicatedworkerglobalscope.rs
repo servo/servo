@@ -520,7 +520,7 @@ impl DedicatedWorkerGlobalScope {
                         // destination, the value of the credentials member of options, inside
                         // settings, and with onComplete and performFetch as defined below.
                         fetch_external_module_script(
-                            ModuleOwner::Worker(Trusted::new(scope)),
+                            ModuleOwner::Worker(worker.clone(), Trusted::new(scope)),
                             request.url.clone(),
                             Destination::Worker,
                             options,

@@ -586,7 +586,7 @@ impl WorkerGlobalScope {
 
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[expect(unsafe_code)]
-    fn on_complete(&self, script: Option<Script>, worker: TrustedWorkerAddress, can_gc: CanGc) {
+    pub fn on_complete(&self, script: Option<Script>, worker: TrustedWorkerAddress, can_gc: CanGc) {
         let dedicated_worker_scope = self
             .downcast::<DedicatedWorkerGlobalScope>()
             .expect("Only DedicatedWorkerGlobalScope is supported for now");
