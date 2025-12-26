@@ -6348,7 +6348,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             set += dedent(
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::report_cross_origin_denial::<D>(SafeJSContext::from_ptr(cx.raw_cx()), id, "define");
+                    return proxyhandler::report_cross_origin_denial::<D>(cx, id, "define");
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6410,7 +6410,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
             set += dedent(
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::report_cross_origin_denial::<D>(SafeJSContext::from_ptr(cx.raw_cx()), id, "delete");
+                    return proxyhandler::report_cross_origin_denial::<D>(cx, id, "delete");
                 }
 
                 // Safe to enter the Realm of proxy now.

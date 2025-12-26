@@ -10,14 +10,11 @@ use std::ptr;
 use std::ptr::NonNull;
 
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
-use js::glue::{
-    GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate,
-    SetProxyPrivate,
-};
+use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxyPrivate};
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
     HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue,
-    JS_AtomizeAndPinString, JS_DefinePropertyById, JS_IsExceptionPending, JSContext, JSErrNum,
+    JS_AtomizeAndPinString, JS_DefinePropertyById, JSContext, JSErrNum,
     JSFunctionSpec, JSObject, JSPropertySpec, MutableHandle as RawMutableHandle,
     MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
@@ -37,7 +34,6 @@ use crate::DomTypes;
 use crate::conversions::{is_dom_proxy, jsid_to_string};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
-use crate::realms::{AlreadyInRealm, InRealm};
 use crate::reflector::DomObject;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
@@ -514,26 +510,25 @@ fn ensure_cross_origin_property_holder(
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
 pub(crate) fn report_cross_origin_denial<D: DomTypes>(
-    cx: SafeJSContext,
+    cx: &mut CurrentRealm,
     id: RawHandleId,
     access: &str,
 ) -> bool {
     debug!(
         "permission denied to {} property {} on cross-origin object",
         access,
-        id_to_source(cx, id)
+        id_to_source(cx.into(), id)
             .as_ref()
             .map(|source| source.str())
             .as_deref()
             .unwrap_or("< error >"),
     );
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     unsafe {
-        if !JS_IsExceptionPending(*cx) {
-            let global = D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+        if !js::rust::wrappers2::JS_IsExceptionPending(cx) {
+            let global = D::GlobalScope::from_current_realm(cx);
             // TODO: include `id` and `access` in the exception message
             <D as DomHelpers<D>>::throw_dom_exception(
-                cx,
+                cx.into(),
                 &global,
                 Error::Security(None),
                 CanGc::note(),
@@ -691,7 +686,7 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     rooted!(&in(cx) let mut getter = ptr::null_mut::<JSObject>());
     get_getter_object(&descriptor, getter.handle_mut().into());
     if getter.get().is_null() {
-        return report_cross_origin_denial::<D>(cx.into(), id.into_handle(), "get");
+        return report_cross_origin_denial::<D>(cx, id.into_handle(), "get");
     }
 
     rooted!(&in(cx) let mut getter_jsval = UndefinedValue());
@@ -754,7 +749,7 @@ pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
     get_setter_object(&descriptor, setter.handle_mut().into());
     if setter.get().is_null() {
         // > 4. Throw a "SecurityError" DOMException.
-        return report_cross_origin_denial::<D>(cx.into(), id.into_handle(), "set");
+        return report_cross_origin_denial::<D>(cx, id.into_handle(), "set");
     }
 
     rooted!(&in(cx) let mut setter_jsval = UndefinedValue());
@@ -815,5 +810,5 @@ pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
     }
 
     // > 2. Throw a `SecurityError` `DOMException`.
-    report_cross_origin_denial::<D>(cx.into(), id, "access")
+    report_cross_origin_denial::<D>(cx, id, "access")
 }
