@@ -57,6 +57,7 @@ use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutN
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[repr(transparent)]
 pub struct ServoLayoutElement<'dom> {
     /// The wrapped private DOM Element.
     element: LayoutDom<'dom, Element>,
@@ -75,6 +76,11 @@ impl fmt::Debug for ServoLayoutElement<'_> {
 impl<'dom> ServoLayoutElement<'dom> {
     pub(super) fn from_layout_js(el: LayoutDom<'dom, Element>) -> Self {
         ServoLayoutElement { element: el }
+    }
+
+    /// Returns the interior of this element as a `LayoutDom`.
+    pub(crate) fn to_layout_js(self) -> LayoutDom<'dom, Element> {
+        self.element
     }
 
     pub(super) fn is_html_element(&self) -> bool {

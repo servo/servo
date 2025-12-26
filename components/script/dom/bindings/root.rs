@@ -101,6 +101,15 @@ where
         assert_in_layout();
         self.value.is::<U>()
     }
+
+    /// Get a reference to the internal value.
+    ///
+    /// ## SAFETY
+    /// This function effectively circumvents all the safety provided by `LayoutDom` as it allows
+    /// performing arbitrary (potentially mutating) operations on the value. Use with caution!
+    pub(crate) unsafe fn as_ref(self) -> &'dom T {
+        self.value
+    }
 }
 
 impl<T> LayoutDom<'_, T>
