@@ -67,8 +67,8 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         realm: &mut CurrentRealm,
         script_url: USVString,
         options: &RegistrationOptions,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
+        let can_gc = CanGc::from_cx(realm);
         // A: Step 2.
         let global = self.client.global();
 

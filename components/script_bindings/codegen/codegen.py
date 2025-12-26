@@ -4155,8 +4155,8 @@ class CGCallGenerator(CGThing):
                 args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
             if nativeMethodName in descriptor.inRealmMethods:
                 args.append(CGGeneric("InRealm::already(&AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx())))"))
-        if nativeMethodName in descriptor.canGcMethods:
-            args.append(CGGeneric("CanGc::note()"))
+            if nativeMethodName in descriptor.canGcMethods:
+                args.append(CGGeneric("CanGc::note()"))
         if rootType:
             args.append(CGGeneric("retval.handle_mut()"))
 
@@ -6961,7 +6961,7 @@ class CGInterfaceTrait(CGThing):
             if inRealm and not safe_cx:
                 yield "_comp", "InRealm"
 
-            if canGc:
+            if canGc and not safe_cx:
                 yield "_can_gc", "CanGc"
 
             if retval and returnTypeNeedsOutparam(attribute_type):
@@ -8315,7 +8315,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
     if inRealm and not safe_cx:
         yield "_comp", "InRealm"
 
-    if canGc:
+    if canGc and not safe_cx:
         yield "_can_gc", "CanGc"
 
     if returnTypeNeedsOutparam(returnType):
