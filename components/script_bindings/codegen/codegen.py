@@ -6658,7 +6658,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
             maybeCrossOriginGet = dedent(
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_get::<D>(SafeJSContext::from_ptr(cx.raw_cx()), proxy, receiver, id, vp);
+                    return proxyhandler::cross_origin_get::<D>(cx, proxy, receiver, id, vp);
                 }
 
                 // Safe to enter the Realm of proxy now.

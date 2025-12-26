@@ -642,22 +642,26 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
 ///
 /// [`CrossOriginGet`]: https://html.spec.whatwg.org/multipage/#crossoriginget-(-o,-p,-receiver-)
 pub(crate) fn cross_origin_get<D: DomTypes>(
-    cx: SafeJSContext,
+    cx: &mut CurrentRealm,
     proxy: RawHandleObject,
     receiver: RawHandleValue,
     id: RawHandleId,
     vp: RawMutableHandleValue,
 ) -> bool {
     // > 1. Let `desc` be `? O.[[GetOwnProperty]](P)`.
-    rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
+    rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
+    let proxy = unsafe { Handle::from_raw(proxy) };
+    let receiver = unsafe { Handle::from_raw(receiver) };
+    let id = unsafe { Handle::from_raw(id) };
+    let mut vp = unsafe { MutableHandle::from_raw(vp) };
     let mut is_none = false;
     if !unsafe {
-        InvokeGetOwnPropertyDescriptor(
+        js::rust::wrappers2::InvokeGetOwnPropertyDescriptor(
             GetProxyHandler(*proxy),
-            *cx,
+            cx,
             proxy,
             id,
-            descriptor.handle_mut().into(),
+            descriptor.handle_mut(),
             &mut is_none,
         )
     } {
@@ -684,23 +688,25 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     // >
     // > 6. If `getter` is `undefined`, then throw a `SecurityError`
     // >    `DOMException`.
-    rooted!(in(*cx) let mut getter = ptr::null_mut::<JSObject>());
+    rooted!(&in(cx) let mut getter = ptr::null_mut::<JSObject>());
     get_getter_object(&descriptor, getter.handle_mut().into());
     if getter.get().is_null() {
-        return report_cross_origin_denial::<D>(cx, id, "get");
+        return report_cross_origin_denial::<D>(cx.into(), id.into_handle(), "get");
     }
 
-    rooted!(in(*cx) let mut getter_jsval = UndefinedValue());
+    rooted!(&in(cx) let mut getter_jsval = UndefinedValue());
     unsafe {
-        getter.get().to_jsval(*cx, getter_jsval.handle_mut());
+        getter
+            .get()
+            .to_jsval(cx.raw_cx(), getter_jsval.handle_mut());
     }
 
     // > 7. Return `? Call(getter, Receiver)`.
     unsafe {
-        jsapi::Call(
-            *cx,
+        js::rust::wrappers2::Call(
+            cx,
             receiver,
-            getter_jsval.handle().into(),
+            getter_jsval.handle(),
             &jsapi::HandleValueArray::empty(),
             vp,
         )
