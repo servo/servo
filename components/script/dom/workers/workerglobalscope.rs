@@ -61,8 +61,8 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
-use crate::dom::globalscope::{ClassicScript, ErrorReporting, GlobalScope, RethrowErrors};
-use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
+use crate::dom::globalscope::{ErrorReporting, GlobalScope, RethrowErrors};
+use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -236,7 +236,11 @@ impl FetchResponseListener for ScriptFetchContext {
         );
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(Some(script), self.worker.clone(), CanGc::note());
+        scope.on_complete(
+            Some(Script::Classic(script)),
+            self.worker.clone(),
+            CanGc::note(),
+        );
 
         if let Ok(response) = response {
             submit_timing(&self, &response, CanGc::note());
@@ -581,19 +585,14 @@ impl WorkerGlobalScope {
 
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[expect(unsafe_code)]
-    fn on_complete(
-        &self,
-        script: Option<ClassicScript>,
-        worker: TrustedWorkerAddress,
-        can_gc: CanGc,
-    ) {
+    fn on_complete(&self, script: Option<Script>, worker: TrustedWorkerAddress, can_gc: CanGc) {
         let dedicated_worker_scope = self
             .downcast::<DedicatedWorkerGlobalScope>()
             .expect("Only DedicatedWorkerGlobalScope is supported for now");
 
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
-            Some(script) if script.record.is_ok() => script,
+            Some(Script::Classic(script)) if script.record.is_ok() => script,
             _ => {
                 // Step 1.1 Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
