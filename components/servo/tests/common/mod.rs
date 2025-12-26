@@ -88,6 +88,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) number_of_controls_hidden: Cell<usize>,
 }
 
+#[allow(dead_code)]
 impl WebViewDelegateImpl {
     pub(crate) fn reset(&self) {
         self.url_changed.set(false);
@@ -139,6 +140,7 @@ impl WebViewDelegate for WebViewDelegateImpl {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn evaluate_javascript(
     servo_test: &ServoTest,
     webview: WebView,
