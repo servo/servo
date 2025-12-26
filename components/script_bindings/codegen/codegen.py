@@ -6228,7 +6228,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                         return false;
                     }
                     if *is_none {
-                        return proxyhandler::cross_origin_property_fallback::<D>(SafeJSContext::from_ptr(cx.raw_cx()), proxy, id, desc, &mut *is_none);
+                        return proxyhandler::cross_origin_property_fallback::<D>(cx, proxy, id, desc, &mut *is_none);
                     }
                     return true;
                 }

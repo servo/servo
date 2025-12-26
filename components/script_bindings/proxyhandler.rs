@@ -416,15 +416,18 @@ const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
     SymbolCode::isConcatSpreadable,
 ];
 
-pub(crate) fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -> bool {
+pub(crate) fn is_cross_origin_allowlisted_prop(
+    cx: &mut js::context::JSContext,
+    id: RawHandleId,
+) -> bool {
     unsafe {
-        if jsid_to_string(*cx, Handle::from_raw(id)).is_some_and(|st| st == "then") {
+        if jsid_to_string(cx.raw_cx(), Handle::from_raw(id)).is_some_and(|st| st == "then") {
             return true;
         }
 
-        rooted!(in(*cx) let mut allowed_id: jsid);
+        rooted!(&in(cx) let mut allowed_id: jsid);
         ALLOWLISTED_SYMBOL_CODES.iter().any(|&allowed_code| {
-            allowed_id.set(SymbolId(GetWellKnownSymbol(*cx, allowed_code)));
+            allowed_id.set(SymbolId(GetWellKnownSymbol(cx.raw_cx(), allowed_code)));
             // `jsid`s containing `JS::Symbol *` can be compared by
             // referential equality
             allowed_id.get().asBits_ == id.asBits_
@@ -781,7 +784,7 @@ pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
 ///
 /// [`CrossOriginPropertyFallback`]: https://html.spec.whatwg.org/multipage/#crossoriginpropertyfallback-(-p-)
 pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
-    cx: SafeJSContext,
+    cx: &mut CurrentRealm,
     _proxy: RawHandleObject,
     id: RawHandleId,
     desc: RawMutableHandle<PropertyDescriptor>,
@@ -804,5 +807,5 @@ pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
     }
 
     // > 2. Throw a `SecurityError` `DOMException`.
-    report_cross_origin_denial::<D>(cx, id, "access")
+    report_cross_origin_denial::<D>(cx.into(), id, "access")
 }
