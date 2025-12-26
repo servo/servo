@@ -154,14 +154,9 @@ fn test_site_data() {
         &[SiteData::new("site-data-0.test", StorageType::Cookies),]
     );
     let sites = site_data_manager.site_data(StorageType::Local);
-    // TODO: File an issue for this, there should be only one site with
-    // localStorage origin.
     assert_eq!(
         &sites,
-        &[
-            SiteData::new("site-data-1.test", StorageType::Local),
-            SiteData::new("site-data-2.test", StorageType::Local),
-        ]
+        &[SiteData::new("site-data-1.test", StorageType::Local),]
     );
     let sites = site_data_manager.site_data(StorageType::Session);
     assert_eq!(
@@ -174,10 +169,7 @@ fn test_site_data() {
         &[
             SiteData::new("site-data-0.test", StorageType::Cookies),
             SiteData::new("site-data-1.test", StorageType::Local),
-            SiteData::new(
-                "site-data-2.test",
-                StorageType::Local | StorageType::Session
-            ),
+            SiteData::new("site-data-2.test", StorageType::Session),
         ]
     );
 
@@ -204,13 +196,10 @@ fn test_site_data() {
         ]
     );
     let sites = site_data_manager.site_data(StorageType::Local);
-    // TODO: File an issue for this, there should be only two sites with
-    // localStorage origin.
     assert_eq!(
         &sites,
         &[
             SiteData::new("site-data-1.test", StorageType::Local),
-            SiteData::new("site-data-2.test", StorageType::Local),
             SiteData::new("site-data-3.test", StorageType::Local),
         ]
     );
@@ -228,10 +217,7 @@ fn test_site_data() {
         &[
             SiteData::new("site-data-0.test", StorageType::Cookies),
             SiteData::new("site-data-1.test", StorageType::Local),
-            SiteData::new(
-                "site-data-2.test",
-                StorageType::Local | StorageType::Session
-            ),
+            SiteData::new("site-data-2.test", StorageType::Session),
             SiteData::new(
                 "site-data-3.test",
                 StorageType::Cookies | StorageType::Local | StorageType::Session

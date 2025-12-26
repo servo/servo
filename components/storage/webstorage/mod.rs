@@ -466,30 +466,17 @@ impl WebStorageManager {
         name: String,
         value: String,
     ) {
-        // TODO: localStorage and sessionStorage shouldn't share usage and
-        // quota. This has a side effect that origin descriptor is created also
-        // for localStorage when set_item is called for sessionStorage.
-        let (this_storage_size, other_storage_size) = {
-            let local_data = self.select_data(WebStorageType::Local, webview_id, url.origin());
-            let local_data_size = local_data.map_or(0, OriginEntry::size);
-            let session_data = self.select_data(WebStorageType::Session, webview_id, url.origin());
-            let session_data_size = session_data.map_or(0, OriginEntry::size);
-            match storage_type {
-                WebStorageType::Local => (local_data_size, session_data_size),
-                WebStorageType::Session => (session_data_size, local_data_size),
-            }
-        };
-
         let entry = self.ensure_data_mut(storage_type, webview_id, url.origin());
+        let total_size = entry.size();
 
-        let mut new_total_size = this_storage_size + value.len();
+        let mut new_total_size = total_size + value.len();
         if let Some(old_value) = entry.inner().get(&name) {
             new_total_size -= old_value.len();
         } else {
             new_total_size += name.len();
         }
 
-        let message = if (new_total_size + other_storage_size) > QUOTA_SIZE_LIMIT {
+        let message = if new_total_size > QUOTA_SIZE_LIMIT {
             Err(())
         } else {
             let result =
