@@ -2674,7 +2674,7 @@ impl HTMLInputElement {
         .into();
     }
 
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
+    /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
     fn implicit_submission(&self, can_gc: CanGc) {
         let doc = self.owner_document();
         let node = doc.upcast::<Node>();
@@ -2688,9 +2688,9 @@ impl HTMLInputElement {
             return;
         }
         let submit_button = node
-            .query_selector_iter(DOMString::from("input[type=submit]"))
-            .unwrap()
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLInputElement>)
+            .filter(|input| input.input_type() == InputType::Submit)
             .find(|r| r.form_owner() == owner);
         match submit_button {
             Some(ref button) => {
@@ -2704,8 +2704,7 @@ impl HTMLInputElement {
             },
             None => {
                 let mut inputs = node
-                    .query_selector_iter(DOMString::from("input"))
-                    .unwrap()
+                    .traverse_preorder(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner &&
