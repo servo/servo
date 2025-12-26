@@ -14,8 +14,8 @@ use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxy
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
     HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue,
-    JS_AtomizeAndPinString, JS_DefinePropertyById, JSContext, JSErrNum,
-    JSFunctionSpec, JSObject, JSPropertySpec, MutableHandle as RawMutableHandle,
+    JS_AtomizeAndPinString, JS_DefinePropertyById, JSContext, JSErrNum, JSFunctionSpec, JSObject,
+    JSPropertySpec, MutableHandle as RawMutableHandle,
     MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
