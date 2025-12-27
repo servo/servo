@@ -1008,7 +1008,7 @@ fn test_user_content_manager_for_auxiliary_webviews() {
         servo: Servo,
         rendering_context: Rc<dyn RenderingContext>,
         auxiliary_webview: RefCell<Option<WebView>>,
-    };
+    }
 
     impl WebViewDelegate for WebViewAuxiliaryTestDelegate {
         fn request_create_new(&self, _parent_webview: WebView, request: CreateNewWebViewRequest) {
