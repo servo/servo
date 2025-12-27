@@ -986,6 +986,28 @@ impl MallocSizeOf for tiny_skia_path::Path {
     }
 }
 
+impl MallocSizeOf for usvg::ClipPath {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let id = self.id();
+        let clip_path = self.clip_path();
+        let root = self.root();
+
+        let mut sum = id.size_of(ops) + clip_path.size_of(ops) + root.size_of(ops);
+        if ops.has_malloc_enclosing_size_of() {
+            unsafe {
+                sum += ops.malloc_enclosing_size_of(root);
+                if !id.is_empty() {
+                    sum += ops.malloc_enclosing_size_of(id.as_ptr());
+                }
+                if let Some(c) = clip_path {
+                    sum += c.size_of(ops)
+                }
+            }
+        }
+        sum
+    }
+}
+
 // Placeholder for unique case where internals of Sender cannot be measured.
 // malloc size of is 0 macro complains about type supplied!
 impl<T> MallocSizeOf for crossbeam_channel::Sender<T> {
