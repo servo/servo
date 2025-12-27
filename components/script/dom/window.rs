@@ -49,6 +49,7 @@ use js::jsapi::{
     GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
 };
 use js::jsval::{NullValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
@@ -1489,9 +1490,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap(
         &self,
+        realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
@@ -1501,20 +1502,20 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             None,
             None,
             options,
-            can_gc,
+            realm,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap_(
         &self,
+        realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
         options: &ImageBitmapOptions,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         ImageBitmap::create_image_bitmap(
             self.as_global_scope(),
@@ -1524,7 +1525,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(sw),
             Some(sh),
             options,
-            can_gc,
+            realm,
         )
     }
 

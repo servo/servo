@@ -12,6 +12,7 @@
 //! (ie. address equality for the native objects is meaningless).
 
 use std::cell::{Cell, RefCell};
+use std::ops::DerefMut;
 use std::ptr;
 use std::rc::Rc;
 
@@ -24,6 +25,7 @@ use js::jsapi::{
     SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
     AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject, RejectPromise,
@@ -104,6 +106,22 @@ impl Promise {
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut(), can_gc);
         Promise::new_with_js_promise(obj.handle(), cx)
+    }
+
+    pub(crate) fn new2(cx: &mut js::context::JSContext, global: &GlobalScope) -> Rc<Promise> {
+        let mut realm = AutoRealm::new(
+            cx,
+            std::ptr::NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+        );
+        let mut current_realm = realm.current_realm();
+        Promise::new_in_realm(&mut current_realm)
+    }
+
+    pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise> {
+        let cx = current_realm.deref_mut();
+        rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
+        Promise::create_js_promise(cx.into(), obj.handle_mut(), CanGc::from_cx(cx));
+        Promise::new_with_js_promise(obj.handle(), cx.into())
     }
 
     pub(crate) fn duplicate(&self) -> Rc<Promise> {
