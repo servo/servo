@@ -837,21 +837,14 @@ impl MallocSizeOf for usvg::Tree {
         let filters = self.filters();
         let fontdb = self.fontdb();
 
-        let mut sum = 0;
-        sum += root.size_of(ops);
-        sum += linear_gradients
-            .iter()
-            .map(|x| x.size_of(ops))
-            .sum::<usize>();
-        sum += radial_gradients
-            .iter()
-            .map(|x| x.size_of(ops))
-            .sum::<usize>();
-        sum += patterns.iter().map(|x| x.size_of(ops)).sum::<usize>();
-        sum += clip_paths.iter().map(|x| x.size_of(ops)).sum::<usize>();
-        sum += masks.iter().map(|x| x.size_of(ops)).sum::<usize>();
-        sum += filters.iter().map(|x| x.size_of(ops)).sum::<usize>();
-        sum += fontdb.size_of(ops);
+        let mut sum = root.size_of(ops) +
+            linear_gradients.size_of(ops) +
+            radial_gradients.size_of(ops) +
+            patterns.size_of(ops) +
+            clip_paths.size_of(ops) +
+            masks.size_of(ops) +
+            filters.size_of(ops) +
+            fontdb.size_of(ops);
 
         if ops.has_malloc_enclosing_size_of() {
             unsafe {
@@ -888,11 +881,8 @@ impl MallocSizeOf for usvg::Group {
         let filters = self.filters();
         let clip_path = self.clip_path();
 
-        let mut sum = 0;
-        sum += id.size_of(ops);
-        sum += children.iter().map(|x| x.size_of(ops)).sum::<usize>();
-        sum += filters.iter().map(|x| x.size_of(ops)).sum::<usize>();
-        sum += clip_path.size_of(ops);
+        let mut sum =
+            id.size_of(ops) + children.size_of(ops) + filters.size_of(ops) + clip_path.size_of(ops);
 
         if ops.has_malloc_enclosing_size_of() {
             unsafe {
@@ -918,8 +908,7 @@ impl MallocSizeOf for usvg::Node {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let id = self.id();
 
-        let mut sum = 0;
-        sum += id.size_of(ops);
+        let mut sum = id.size_of(ops);
         if ops.has_malloc_enclosing_size_of() {
             unsafe {
                 if !id.is_empty() {
@@ -958,11 +947,7 @@ impl MallocSizeOf for usvg::Path {
         let fill = self.fill();
         let stroke = self.stroke();
 
-        let mut sum = 0;
-        sum += id.size_of(ops);
-        sum += data.size_of(ops);
-        sum += fill.size_of(ops);
-        sum += stroke.size_of(ops);
+        let mut sum = id.size_of(ops) + data.size_of(ops) + fill.size_of(ops) + stroke.size_of(ops);
         if ops.has_malloc_enclosing_size_of() {
             unsafe {
                 if !id.is_empty() {
@@ -985,9 +970,7 @@ impl MallocSizeOf for tiny_skia_path::Path {
         let verbs = self.verbs();
         let points = self.points();
 
-        let mut sum = 0;
-        sum += verbs.iter().map(|x| x.size_of(ops)).sum::<usize>();
-        sum += points.iter().map(|x| x.size_of(ops)).sum::<usize>();
+        let mut sum = verbs.size_of(ops) + points.size_of(ops);
         if ops.has_malloc_enclosing_size_of() {
             unsafe {
                 if !points.is_empty() {
