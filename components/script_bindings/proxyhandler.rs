@@ -27,7 +27,9 @@ use js::rust::wrappers::{
     AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
     RUST_INTERNED_STRING_TO_JSID, SetDataPropertyDescriptor,
 };
-use js::rust::{Handle, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject};
+use js::rust::{
+    Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
+};
 use js::{jsapi, rooted};
 
 use crate::DomTypes;
@@ -558,7 +560,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
         let receiver = Handle::from_raw(receiver);
 
         if !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, proxy.into_handle()) {
-            return cross_origin_set::<D>(realm, proxy, id, v.into_handle(), receiver, result);
+            return cross_origin_set::<D>(&mut realm, proxy, id, v.into_handle(), receiver, result);
         }
 
         // Safe to enter the Realm of proxy now.
