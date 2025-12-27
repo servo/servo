@@ -843,8 +843,9 @@ impl MallocSizeOf for usvg::Tree {
             patterns.size_of(ops) +
             clip_paths.size_of(ops) +
             masks.size_of(ops) +
-            filters.size_of(ops) +
-            fontdb.size_of(ops);
+            filters.size_of(ops);
+
+        sum += fontdb.conditional_size_of(ops);
 
         if ops.has_malloc_enclosing_size_of() {
             unsafe {
@@ -867,7 +868,6 @@ impl MallocSizeOf for usvg::Tree {
                 if !filters.is_empty() {
                     sum += ops.malloc_enclosing_size_of(filters.as_ptr());
                 }
-                sum += ops.malloc_enclosing_size_of(fontdb);
             }
         }
         sum
