@@ -216,7 +216,8 @@ impl Callback for PipeTo {
     #[expect(unsafe_code)]
     fn callback(&self, cx: &mut CurrentRealm, result: SafeHandleValue) {
         let can_gc = CanGc::from_cx(cx);
-        let realm = InRealm::Already(&cx.into());
+        let in_realm_proof = cx.into();
+        let realm = InRealm::Already(&in_realm_proof);
         let cx = cx.into();
         let global = self.reader.global();
 
