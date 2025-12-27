@@ -13,6 +13,7 @@ use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
+use js::realm::CurrentRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, HeapUint8ClampedArray};
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -1043,8 +1044,9 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             }
         }
         impl Callback for SimpleHandler {
-            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, can_gc: CanGc) {
-                let global = GlobalScope::from_safe_context(cx, realm);
+            fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
+                let can_gc = CanGc::from_cx(cx);
+                let global = GlobalScope::from_current_realm(cx);
                 let _ = self
                     .handler
                     .Call_(&*global, v, ExceptionHandling::Report, can_gc);

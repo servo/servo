@@ -10,6 +10,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::Uint8;
@@ -45,7 +46,8 @@ struct PullAlgorithmFulfillmentHandler {
 impl Callback for PullAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon fulfillment of pullPromise
-    fn callback(&self, _cx: SafeJSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // Set controller.[[pulling]] to false.
         self.controller.pulling.set(false);
 
@@ -71,7 +73,8 @@ struct PullAlgorithmRejectionHandler {
 impl Callback for PullAlgorithmRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon rejection of pullPromise with reason e.
-    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // Perform ! ReadableStreamDefaultControllerError(controller, e).
         self.controller.error(v, can_gc);
     }
@@ -88,7 +91,8 @@ struct StartAlgorithmFulfillmentHandler {
 impl Callback for StartAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     /// Upon fulfillment of startPromise,
-    fn callback(&self, _cx: SafeJSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // Set controller.[[started]] to true.
         self.controller.started.set(true);
 
@@ -108,7 +112,8 @@ struct StartAlgorithmRejectionHandler {
 impl Callback for StartAlgorithmRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     /// Upon rejection of startPromise with reason r,
-    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // Perform ! ReadableStreamDefaultControllerError(controller, r).
         self.controller.error(v, can_gc);
     }

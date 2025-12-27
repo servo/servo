@@ -11,6 +11,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JS_ClearPendingException, JSObject, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use js::rust::wrappers::{JS_GetPendingException, JS_ParseJSON};
 use js::typedarray::{ArrayBufferU8, Uint8};
@@ -308,7 +309,10 @@ impl js::gc::Rootable for TransmitBodyPromiseHandler {}
 
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let _realm = InRealm::Already(&cx.into());
+        let cx = cx.into();
         let is_done = match get_read_promise_done(cx, &v, can_gc) {
             Ok(is_done) => is_done,
             Err(_) => {
@@ -364,10 +368,10 @@ impl js::gc::Rootable for TransmitBodyPromiseRejectionHandler {}
 
 impl Callback for TransmitBodyPromiseRejectionHandler {
     /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
-        self.stream.stop_reading(can_gc);
+        self.stream.stop_reading(CanGc::from_cx(cx));
     }
 }
 

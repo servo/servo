@@ -17,10 +17,11 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_ClearPendingException,
-    JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext, JSObject,
+    JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext as RawJSContext, JSObject,
     NewFunctionWithReserved, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
     SetFunctionNativeReserved,
 };
@@ -330,7 +331,7 @@ impl Promise {
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn do_nothing_promise_executor(
-    _cx: *mut JSContext,
+    _cx: *mut RawJSContext,
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
@@ -350,46 +351,39 @@ enum NativeHandlerTask {
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn native_handler_callback(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
-    let cx = unsafe { SafeJSContext::from_ptr(cx) };
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    // Safety: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut cx = CurrentRealm::assert(&mut cx);
+    let cx = &mut cx;
 
     let args = unsafe { CallArgs::from_vp(vp, argc) };
     let native_handler_value =
         unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER) };
-    rooted!(in(*cx) let native_handler_value = native_handler_value);
+    rooted!(&in(cx) let native_handler_value = native_handler_value);
     assert!(native_handler_value.get().is_object());
 
-    let handler =
-        unsafe { root_from_object::<PromiseNativeHandler>(native_handler_value.to_object(), *cx) }
-            .expect("unexpected value for native handler in promise native handler callback");
+    let handler = unsafe {
+        root_from_object::<PromiseNativeHandler>(native_handler_value.to_object(), cx.raw_cx())
+    }
+    .expect("unexpected value for native handler in promise native handler callback");
 
     let native_handler_task_value =
         unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK) };
-    rooted!(in(*cx) let native_handler_task_value = native_handler_task_value);
+    rooted!(&in(cx) let native_handler_task_value = native_handler_task_value);
     match native_handler_task_value.to_int32() {
         native_handler_task_value
             if native_handler_task_value == NativeHandlerTask::Resolve as i32 =>
         {
-            handler.resolved_callback(
-                *cx,
-                unsafe { HandleValue::from_raw(args.get(0)) },
-                InRealm::Already(&in_realm_proof),
-                CanGc::note(),
-            )
+            handler.resolved_callback(cx, unsafe { HandleValue::from_raw(args.get(0)) })
         },
         native_handler_task_value
             if native_handler_task_value == NativeHandlerTask::Reject as i32 =>
         {
-            handler.rejected_callback(
-                *cx,
-                unsafe { HandleValue::from_raw(args.get(0)) },
-                InRealm::Already(&in_realm_proof),
-                CanGc::note(),
-            )
+            handler.rejected_callback(cx, unsafe { HandleValue::from_raw(args.get(0)) })
         },
         _ => panic!("unexpected native handler task value"),
     };
@@ -401,7 +395,7 @@ unsafe extern "C" fn native_handler_callback(
 // The apparently-unused CanGc argument reflects the fact that the JS API calls
 // like NewFunctionWithReserved can trigger a GC.
 fn create_native_handler_function(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     holder: HandleObject,
     task: NativeHandlerTask,
     _can_gc: CanGc,
@@ -421,7 +415,7 @@ fn create_native_handler_function(
 impl FromJSValConvertibleRc for Promise {
     #[expect(unsafe_code)]
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        cx: *mut RawJSContext,
         value: HandleValue,
     ) -> Result<ConversionResult<Rc<Promise>>, ()> {
         if value.get().is_null() {
@@ -468,7 +462,7 @@ struct WaitForAllFulfillmentHandler {
 }
 
 impl Callback for WaitForAllFulfillmentHandler {
-    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: &mut CurrentRealm, v: HandleValue) {
         // Let fulfillmentHandler be the following steps given arg:
 
         let equals_total = {
@@ -508,7 +502,7 @@ struct WaitForAllRejectionHandler {
 }
 
 impl Callback for WaitForAllRejectionHandler {
-    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: &mut CurrentRealm, v: HandleValue) {
         // Let rejectionHandlerSteps be the following steps given arg:
 
         if self.rejected.replace(true) {

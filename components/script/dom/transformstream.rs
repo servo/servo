@@ -11,6 +11,7 @@ use constellation_traits::TransformStreamData;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
@@ -66,7 +67,9 @@ struct TransformBackPressureChangePromiseFulfillment {
 
 impl Callback for TransformBackPressureChangePromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // Let writable be stream.[[writable]].
         // Let state be writable.[[state]].
         // If state is "erroring", throw writable.[[storedError]].
@@ -122,7 +125,8 @@ struct PerformTransformFulfillment {
 }
 
 impl Callback for PerformTransformFulfillment {
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // Fulfilled: resolve the outer promise
         self.result_promise.resolve_native(&(), can_gc);
     }
@@ -138,9 +142,10 @@ struct PerformTransformRejection {
 }
 
 impl Callback for PerformTransformRejection {
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // Stream already errored in perform_transform, just reject result_promise
-        self.result_promise.reject(cx, v, can_gc);
+        self.result_promise.reject(cx.into(), v, can_gc);
     }
 }
 
@@ -154,8 +159,9 @@ struct BackpressureChangeRejection {
 }
 
 impl Callback for BackpressureChangeRejection {
-    fn callback(&self, cx: SafeJSContext, reason: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
-        self.result_promise.reject(cx, reason, can_gc);
+    fn callback(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        self.result_promise.reject(cx.into(), reason, can_gc);
     }
 }
 
@@ -174,7 +180,9 @@ struct CancelPromiseFulfillment {
 
 impl Callback for CancelPromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // If readable.[[state]] is "errored", reject controller.[[finishPromise]] with readable.[[storedError]].
         if self.readable.is_errored() {
             rooted!(in(*cx) let mut error = UndefinedValue());
@@ -214,7 +222,9 @@ struct CancelPromiseRejection {
 
 impl Callback for CancelPromiseRejection {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
         self.readable.get_default_controller().error(v, can_gc);
 
@@ -242,7 +252,9 @@ struct SourceCancelPromiseFulfillment {
 
 impl Callback for SourceCancelPromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // If cancelPromise was fulfilled, then:
         let finish_promise = self
             .controller
@@ -290,7 +302,9 @@ struct SourceCancelPromiseRejection {
 
 impl Callback for SourceCancelPromiseRejection {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // Perform ! WritableStreamDefaultControllerErrorIfNeeded(writable.[[controller]], r).
         let global = &self.writeable.global();
 
@@ -322,7 +336,9 @@ struct FlushPromiseFulfillment {
 
 impl Callback for FlushPromiseFulfillment {
     /// Reacting to flushpromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // If flushPromise was fulfilled, then:
         let finish_promise = self
             .controller
@@ -358,7 +374,9 @@ struct FlushPromiseRejection {
 
 impl Callback for FlushPromiseRejection {
     /// Reacting to flushpromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // If flushPromise was rejected with reason r, then:
         // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
         self.readable.get_default_controller().error(v, can_gc);
