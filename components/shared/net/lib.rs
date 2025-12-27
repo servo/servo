@@ -518,6 +518,12 @@ impl ResourceThreads {
         let _ = receiver.recv();
     }
 
+    pub fn cookies(&self) -> Vec<SiteDescriptor> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self.core_thread.send(CoreResourceMsg::ListCookies(sender));
+        receiver.recv().unwrap()
+    }
+
     pub fn clear_cookies(&self) {
         let (sender, receiver) = ipc::channel().unwrap();
         let _ = self
@@ -611,6 +617,7 @@ pub enum CoreResourceMsg {
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
     RemoveCookieListener(CookieStoreId),
+    ListCookies(GenericSender<Vec<SiteDescriptor>>),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
@@ -626,6 +633,17 @@ pub enum CoreResourceMsg {
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
     Exit(IpcSender<()>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SiteDescriptor {
+    pub name: String,
+}
+
+impl SiteDescriptor {
+    pub fn new(name: String) -> Self {
+        SiteDescriptor { name }
+    }
 }
 
 // FIXME: https://github.com/servo/servo/issues/34591

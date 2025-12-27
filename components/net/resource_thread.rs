@@ -505,6 +505,11 @@ impl ResourceChannelManager {
                     .collect();
                 consumer.send(cookies).unwrap();
             },
+            CoreResourceMsg::ListCookies(sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_all_expired_cookies();
+                let _ = sender.send(cookie_jar.cookie_site_descriptors());
+            },
             CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
                 let history_states = http_state.history_states.read();
                 consumer

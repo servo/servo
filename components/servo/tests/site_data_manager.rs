@@ -28,6 +28,8 @@ fn test_site_data() {
 
     let site_data_manager = servo.site_data_manager();
 
+    let sites = site_data_manager.site_data(StorageType::Cookies);
+    assert_eq!(sites.len(), 0);
     let sites = site_data_manager.site_data(StorageType::Local);
     assert_eq!(sites.len(), 0);
     let sites = site_data_manager.site_data(StorageType::Session);
@@ -37,8 +39,10 @@ fn test_site_data() {
 
     let ip = "127.0.0.1".parse().unwrap();
     let mut host_table = HashMap::new();
+    host_table.insert("www.site-data-0.test".to_owned(), ip);
     host_table.insert("www.site-data-1.test".to_owned(), ip);
     host_table.insert("www.site-data-2.test".to_owned(), ip);
+    host_table.insert("www.site-data-3.test".to_owned(), ip);
 
     replace_host_table(host_table);
 
@@ -50,19 +54,52 @@ fn test_site_data() {
         };
 
     let mut servers = Vec::new();
-    for _ in 0..2 {
+    for _ in 0..4 {
         let (server, url) = make_server(handler);
         servers.push((server, url));
     }
 
     servers.sort_by(|(_, a), (_, b)| a.cmp(b));
 
-    let [(server1, url1), (server2, url2)] = servers.try_into().unwrap();
+    let [
+        (server0, url0),
+        (server1, url1),
+        (server2, url2),
+        (server3, url3),
+    ] = servers.try_into().unwrap();
+    let port0 = url0.port().unwrap();
     let port1 = url1.port().unwrap();
     let port2 = url2.port().unwrap();
+    let port3 = url3.port().unwrap();
 
+    let custom_url0 = ServoUrl::parse(&format!("http://www.site-data-0.test:{}", port0)).unwrap();
     let custom_url1 = ServoUrl::parse(&format!("http://www.site-data-1.test:{}", port1)).unwrap();
     let custom_url2 = ServoUrl::parse(&format!("http://www.site-data-2.test:{}", port2)).unwrap();
+    let custom_url3 = ServoUrl::parse(&format!("http://www.site-data-3.test:{}", port3)).unwrap();
+
+    delegate.reset();
+    webview.load(custom_url0.clone().into_url());
+    let delegate_clone = delegate.clone();
+    servo_test.spin(move || !delegate_clone.url_changed.get());
+
+    let _ = server0.close();
+
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "document.cookie = 'foo=bar';");
+
+    let sites = site_data_manager.site_data(StorageType::Cookies);
+    assert_eq!(
+        &sites,
+        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+    );
+    let sites = site_data_manager.site_data(StorageType::Local);
+    assert_eq!(sites.len(), 0);
+    let sites = site_data_manager.site_data(StorageType::Session);
+    assert_eq!(sites.len(), 0);
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(
+        &sites,
+        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+    );
 
     delegate.reset();
     webview.load(custom_url1.clone().into_url());
@@ -77,6 +114,11 @@ fn test_site_data() {
         "localStorage.setItem('foo', 'bar');",
     );
 
+    let sites = site_data_manager.site_data(StorageType::Cookies);
+    assert_eq!(
+        &sites,
+        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+    );
     let sites = site_data_manager.site_data(StorageType::Local);
     assert_eq!(
         &sites,
@@ -87,12 +129,16 @@ fn test_site_data() {
     let sites = site_data_manager.site_data(StorageType::all());
     assert_eq!(
         &sites,
-        &[SiteData::new("site-data-1.test", StorageType::Local),]
+        &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            SiteData::new("site-data-1.test", StorageType::Local),
+        ]
     );
 
     delegate.reset();
     webview.load(custom_url2.clone().into_url());
-    servo_test.spin(move || !delegate.url_changed.get());
+    let delegate_clone = delegate.clone();
+    servo_test.spin(move || !delegate_clone.url_changed.get());
 
     let _ = server2.close();
 
@@ -102,6 +148,11 @@ fn test_site_data() {
         "sessionStorage.setItem('foo', 'bar');",
     );
 
+    let sites = site_data_manager.site_data(StorageType::Cookies);
+    assert_eq!(
+        &sites,
+        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+    );
     let sites = site_data_manager.site_data(StorageType::Local);
     // TODO: File an issue for this, there should be only one site with
     // localStorage origin.
@@ -121,10 +172,69 @@ fn test_site_data() {
     assert_eq!(
         &sites,
         &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
             SiteData::new("site-data-1.test", StorageType::Local),
             SiteData::new(
                 "site-data-2.test",
                 StorageType::Local | StorageType::Session
+            ),
+        ]
+    );
+
+    delegate.reset();
+    webview.load(custom_url3.clone().into_url());
+    servo_test.spin(move || !delegate.url_changed.get());
+
+    let _ = server3.close();
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.cookie = 'foo=bar';\
+        localStorage.setItem('foo', 'bar');\
+        sessionStorage.setItem('foo', 'bar');",
+    );
+
+    let sites = site_data_manager.site_data(StorageType::Cookies);
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            SiteData::new("site-data-3.test", StorageType::Cookies),
+        ]
+    );
+    let sites = site_data_manager.site_data(StorageType::Local);
+    // TODO: File an issue for this, there should be only two sites with
+    // localStorage origin.
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-1.test", StorageType::Local),
+            SiteData::new("site-data-2.test", StorageType::Local),
+            SiteData::new("site-data-3.test", StorageType::Local),
+        ]
+    );
+    let sites = site_data_manager.site_data(StorageType::Session);
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-2.test", StorageType::Session),
+            SiteData::new("site-data-3.test", StorageType::Session),
+        ]
+    );
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            SiteData::new("site-data-1.test", StorageType::Local),
+            SiteData::new(
+                "site-data-2.test",
+                StorageType::Local | StorageType::Session
+            ),
+            SiteData::new(
+                "site-data-3.test",
+                StorageType::Cookies | StorageType::Local | StorageType::Session
             ),
         ]
     );
