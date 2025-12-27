@@ -28,6 +28,7 @@ use js::jsapi::{
     ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers::{JS_GetModulePrivate, JS_GetPendingException, JS_SetPendingException};
 use js::rust::{
     CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
@@ -1029,7 +1030,7 @@ impl ModuleHandler {
 }
 
 impl Callback for ModuleHandler {
-    fn callback(&self, _cx: SafeJSContext, _v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: &mut CurrentRealm, _v: HandleValue) {
         let task = self.task.borrow_mut().take().unwrap();
         task.run_box();
     }
