@@ -3,6 +3,7 @@ import hilog from '@ohos.hilog';
 import UIAbility from '@ohos.app.ability.UIAbility';
 import Want from '@ohos.app.ability.Want';
 import window from '@ohos.window';
+import servoshell, { InitOpts } from 'libservoshell.so';
 
 const WRONG_COMMAND_ARRAY = ["tracing", "devtools", "force_ipc", "multiprocess", "webdriver"];
 
@@ -29,11 +30,11 @@ export default class EntryAbility extends UIAbility {
         // See the aa tool documentation for more details:
         // https://docs.openharmony.cn/pages/v5.0/en/application-dev/tools/aa-tool.md
         if (key.startsWith("--")) {
-            let value = entry[1].toString()
-            params.push(key)
-            if (value) {
-                params.push(value)
-            }
+          let value = entry[1].toString()
+          params.push(key)
+          if (value) {
+            params.push(value)
+          }
         } else if (WRONG_COMMAND_ARRAY.some(value => key.startsWith(value))) {
           hilog.error(0xE0C3, "Servo EntryAbility", "-------------------------------------------------------------------------------------------------");
           hilog.error(0xE0C3, "Servo EntryAbility", "\n\nYou probably meant to add -- infront of your argument, i.e., --psn=--tracing vs --psn=tracing. You used " + entry);
@@ -44,8 +45,15 @@ export default class EntryAbility extends UIAbility {
     }
     let servoshell_params = params.join("\u{001f}")
     hilog.debug(0x0000, 'Servo EntryAbility', 'Servoshell parameters: %{public}s', servoshell_params);
-    this.init_params.setOrCreate('InitialURI', uri)
-    this.init_params.setOrCreate('CommandlineArgs', servoshell_params)
+
+    let resource_dir: string = this.context.resourceDir;
+    console.debug("resourceDir: ", resource_dir);
+    let init_options: InitOpts = {
+      url: uri,
+      resourceDir: resource_dir,
+      commandlineArgs: servoshell_params,
+    }
+    servoshell.initServo(init_options)
   }
 
   onDestroy() {

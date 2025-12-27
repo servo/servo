@@ -11,14 +11,14 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
-use std::thread::sleep;
 use std::time::Duration;
 use std::{fs, thread};
 
 use dpi::PhysicalSize;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Scale, Size2D};
 use keyboard_types::{Key, NamedKey};
 use log::{LevelFilter, debug, error, info, trace, warn};
 use napi_derive_ohos::napi;
@@ -50,7 +50,7 @@ use xcomponent_sys::{
     OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
 };
 
-use super::app::{App, AppInitOptions, VsyncRefreshDriver};
+use super::app::{App, AppInitOptions, EmbeddedPlatformWindow, VsyncRefreshDriver};
 use super::host_trait::HostTrait;
 use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
@@ -103,6 +103,21 @@ struct NativeValues {
     os_full_name: String,
 }
 
+fn get_display_density() -> f32 {
+    let mut density: f32 = 0_f32;
+    unsafe {
+        if let Err(error_code) =
+            display_manager::OH_NativeDisplayManager_GetDefaultDisplayDensityPixels(&mut density)
+        {
+            warn!(
+                "Could not get default display density due to display manager error: {error_code:?}"
+            );
+            return 1.0;
+        }
+    }
+    density
+}
+
 /// Gets the resource and cache directory from the native c methods.
 fn get_native_values() -> NativeValues {
     let cache_dir = {
@@ -120,29 +135,19 @@ fn get_native_values() -> NativeValues {
             String::from_utf8(buffer).expect("UTF-8")
         }
     };
-    let display_density = unsafe {
-        let mut density: f32 = 0_f32;
-        display_manager::OH_NativeDisplayManager_GetDefaultDisplayDensityPixels(&mut density)
-            .expect("Could not get displaydensity");
-        density
-    };
 
     NativeValues {
         cache_dir,
-        display_density,
+        display_density: get_display_density(),
         device_type: ohos_deviceinfo::get_device_type(),
         os_full_name: String::from(ohos_deviceinfo::get_os_full_name().unwrap_or("Undefined")),
     }
 }
 
-/// Initialize the servoshell [`App`]. At that point, we need a valid GL context. In the
-/// future, this will be done in multiple steps.
+/// Initialize the servoshell [`App`].
 fn init_app(
     options: InitOpts,
-    native_window: *mut c_void,
-    xcomponent: *mut OH_NativeXComponent,
     event_loop_waker: Box<dyn EventLoopWaker>,
-    host: Box<dyn HostTrait>,
 ) -> Result<Rc<App>, &'static str> {
     info!("Entered servoshell init function");
     crate::init_crypto();
@@ -222,29 +227,9 @@ fn init_app(
     #[cfg(target_env = "ohos")]
     crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
-    let (window_handle, viewport_rect) = get_raw_window_handle(xcomponent, native_window);
-    let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
-    let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
-    let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
-
-    let viewport_size = viewport_rect.size;
-    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
-    let rendering_context = Rc::new(
-        WindowRenderingContext::new_with_refresh_driver(
-            display_handle,
-            window_handle,
-            PhysicalSize::new(viewport_size.width as u32, viewport_size.height as u32),
-            refresh_driver.clone(),
-        )
-        .expect("Could not create RenderingContext"),
-    );
     Ok(App::new(AppInitOptions {
-        host,
+        host: Rc::new(HostCallbacks::new()),
         event_loop_waker,
-        viewport_rect,
-        hidpi_scale_factor: native_values.display_density as f32,
-        rendering_context,
-        refresh_driver,
         initial_url: Some(options.url),
         opts,
         preferences,
@@ -312,13 +297,13 @@ pub(super) enum ServoAction {
     ImeDeleteForward(usize),
     ImeDeleteBackward(usize),
     ImeSendEnter,
-    Initialize(Box<InitOpts>),
     Vsync,
     Resize {
         width: i32,
         height: i32,
     },
     FocusWebview(u32),
+    CreatePlatformWindow(XComponentWrapper, WindowWrapper),
     NewWebview(XComponentWrapper, WindowWrapper),
 }
 
@@ -378,9 +363,6 @@ impl ServoAction {
                 servo.key_down(Key::Named(NamedKey::Enter));
                 servo.key_up(Key::Named(NamedKey::Enter));
             },
-            Initialize(_init_opts) => {
-                panic!("Received Initialize event, even though servo is already initialized")
-            },
             Vsync => {
                 servo.notify_vsync();
             },
@@ -413,6 +395,32 @@ impl ServoAction {
                 } else {
                     error!("Could not find webview to activate");
                 }
+            },
+            CreatePlatformWindow(xcomponent, native_window) => {
+                let (window_handle, viewport_rect) =
+                    get_raw_window_handle(xcomponent.0, native_window.0);
+                let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
+                let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
+                let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
+
+                let hidpi_factor = Scale::new(get_display_density());
+                servo.initialize_platform_window(
+                    display_handle,
+                    window_handle,
+                    viewport_rect,
+                    hidpi_factor,
+                );
+                // TODO: creating the window and creating the webview should be separate.
+                let webview = servo.create_and_activate_toplevel_webview(servo.initial_url());
+                let id = webview.id();
+                NATIVE_WEBVIEWS
+                    .lock()
+                    .unwrap()
+                    .push(NativeWebViewComponents {
+                        id,
+                        xcomponent: xcomponent.clone(),
+                        window: native_window.clone(),
+                    });
             },
             NewWebview(xcomponent, window) => {
                 servo.pause_painting();
@@ -465,47 +473,18 @@ unsafe extern "C" fn on_vsync_cb(
     }
 }
 
-fn main_thread(xc: XComponentWrapper, window: WindowWrapper) {
+fn main_thread(init_opts: InitOpts) {
     let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
 
     SERVO_CHANNEL
         .set(tx.clone())
         .expect("Servo channel already initialized");
 
+    log::info!("Servo main-thread channel initialized");
+
     let wakeup = Box::new(WakeupCallback::new(tx));
-    let callbacks = Box::new(HostCallbacks::new());
 
-    let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
-        init_opts
-    } else {
-        panic!("Servos GL thread received another event before it was initialized")
-    };
-    let servo = init_app(*init_opts, window.0, xc.0, wakeup, callbacks)
-        .expect("Servo initialization failed");
-    let id = servo
-        .active_or_newest_webview()
-        .expect("Should always start with at least one WebView")
-        .id();
-    NATIVE_WEBVIEWS
-        .lock()
-        .unwrap()
-        .push(NativeWebViewComponents {
-            id,
-            xcomponent: xc,
-            window,
-        });
-
-    info!("Surface created!");
-    let native_vsync =
-        ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
-    // get_period() returns an error - perhaps we need to wait until the first callback?
-    // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
-    unsafe {
-        native_vsync
-            .request_raw_callback_with_self(Some(on_vsync_cb))
-            .expect("Failed to request vsync callback")
-    }
-    info!("Enabled Vsync!");
+    let servo = init_app(init_opts, wakeup).expect("Servo initialization failed");
 
     while let Ok(action) = rx.recv() {
         trace!("Wakeup message received!");
@@ -517,6 +496,7 @@ fn main_thread(xc: XComponentWrapper, window: WindowWrapper) {
 
 #[unsafe(no_mangle)]
 extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
+    static FIRST_WINDOW: AtomicBool = AtomicBool::new(true);
     info!("on_surface_created_cb");
     #[cfg(feature = "tracing-hitrace")]
     let _ = hitrace::ScopedTrace::start_trace(&c"on_surface_created_cb");
@@ -524,17 +504,31 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
     let xc_wrapper = XComponentWrapper(xcomponent);
     let window_wrapper = WindowWrapper(window);
 
-    if SERVO_CHANNEL.get().is_none() {
-        // Todo: Perhaps it would be better to move this thread into the vsync signal thread.
-        // This would allow us to save one thread and the IPC for the vsync signal.
-        //
-        // Each thread will send its id via the channel
-        let _main_surface_thread = thread::spawn(move || {
-            main_thread(xc_wrapper, window_wrapper);
-        });
+    // Todo: This if will be removed once we add multi-window support in a follow-up PR.
+    // This function will always be invoked on the UI thread, so there is no concurrency.
+    if FIRST_WINDOW.load(Ordering::Relaxed) {
+        FIRST_WINDOW.store(false, Ordering::Relaxed);
+        // The servo event loop is initialized before the native window / xcomponent is created,
+        // so if this fails, servo has crashed and we don't have a way to recover.
+        call(ServoAction::CreatePlatformWindow(
+            xc_wrapper,
+            window_wrapper,
+        ))
+        .expect("Servo main thread channel not initialized");
+
+        let native_vsync =
+            ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
+        // get_period() returns an error - perhaps we need to wait until the first callback?
+        // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
+        unsafe {
+            native_vsync
+                .request_raw_callback_with_self(Some(on_vsync_cb))
+                .expect("Failed to request vsync callback")
+        }
+        info!("Enabled Vsync!");
     } else {
         call(ServoAction::NewWebview(xc_wrapper, window_wrapper))
-            .expect("Could not create new webview");
+            .expect("Servo main thread channel not initialized");
     }
     info!("Returning from on_surface_created_cb");
 }
@@ -832,6 +826,7 @@ fn init(exports: Object, env: Env) -> napi_ohos::Result<()> {
     info!("servoshell init function called");
     if let Ok(xcomponent) = exports.get_named_property::<Object>("__NATIVE_XCOMPONENT_OBJ__") {
         register_xcomponent_callbacks(&env, &xcomponent)?;
+        info!("Registered Xcomponent callbacks!");
     }
 
     info!("Finished init");
@@ -891,29 +886,10 @@ pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_oh
 
 #[napi]
 pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
-    info!("Servo is being initialised with the following Options: ");
-    info!("Initial URL: {}", init_opts.url);
-    let channel = if let Some(channel) = SERVO_CHANNEL.get() {
-        channel
-    } else {
-        warn!("Servo GL thread has not initialized yet. Retrying.....");
-        let mut iter_count = 0;
-        loop {
-            if let Some(channel) = SERVO_CHANNEL.get() {
-                break channel;
-            } else {
-                iter_count += 1;
-                if iter_count > 10 {
-                    error!("Servo GL thread not reachable");
-                    panic!("Servo GL thread not reachable");
-                }
-                sleep(Duration::from_millis(100));
-            }
-        }
-    };
-    channel
-        .send(ServoAction::Initialize(Box::new(init_opts)))
-        .expect("Failed to connect to servo GL thread");
+    info!("Servo is being initialised with the following Options: {init_opts:?}");
+    let _main_surface_thread = thread::spawn(move || {
+        main_thread(init_opts);
+    });
     Ok(())
 }
 
