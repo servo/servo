@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64ct::{Base64UrlUnpadded, Encoding};
 use chacha20poly1305::aead::{AeadMutInPlace, KeyInit, OsRng};
 use chacha20poly1305::{ChaCha20Poly1305, Key};
 
@@ -352,26 +351,30 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Jwk => {
             // Step 2.1. Let jwk be a new JsonWebKey dictionary.
             // Step 2.2. Set the kty attribute of jwk to the string "oct".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("oct")),
+                ..Default::default()
+            };
+
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
             // key represented by [[handle]] internal slot of key, encoded according to Section 6.4
             // of JSON Web Algorithms [JWA].
+            jwk.encode_string_field(JwkStringField::K, key_handle.as_slice());
+
             // Step 2.4. Set the alg attribute of jwk to the string "C20P".
+            jwk.alg = Some(DOMString::from("C20P"));
+
             // Step 2.5. Set the key_ops attribute of jwk to equal the usages attribute of key.
+            jwk.key_ops = Some(
+                key.usages()
+                    .iter()
+                    .map(|usage| DOMString::from(usage.as_str()))
+                    .collect::<Vec<DOMString>>(),
+            );
+
             // Step 2.6. Set the ext attribute of jwk to equal the [[extractable]] internal slot of
             // key.
-            let jwk = JsonWebKey {
-                kty: Some(DOMString::from("oct")),
-                k: Some(Base64UrlUnpadded::encode_string(key_handle.as_slice()).into()),
-                alg: Some(DOMString::from("C20P")),
-                key_ops: Some(
-                    key.usages()
-                        .iter()
-                        .map(|usage| DOMString::from(usage.as_str()))
-                        .collect::<Vec<DOMString>>(),
-                ),
-                ext: Some(key.Extractable()),
-                ..Default::default()
-            };
+            jwk.ext = Some(key.Extractable());
 
             // Step 2.7. Let result be jwk.
             ExportedKey::Jwk(Box::new(jwk))

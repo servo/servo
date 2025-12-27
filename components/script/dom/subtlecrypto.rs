@@ -2467,6 +2467,7 @@ trait JsonWebKeyExt {
     fn stringify(&self, cx: JSContext) -> Result<DOMString, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
+    fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]);
     fn decode_optional_string_field(&self, field: JwkStringField)
     -> Result<Option<Vec<u8>>, Error>;
     fn decode_required_string_field(&self, field: JwkStringField) -> Result<Vec<u8>, Error>;
@@ -2572,6 +2573,25 @@ impl JsonWebKeyExt for JsonWebKey {
         Ok(())
     }
 
+    // Encode a byte sequence to a base64url-encoded string, and set the field to the encoded
+    // string.
+    fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]) {
+        let encoded_data = DOMString::from(Base64UrlUnpadded::encode_string(data));
+        match field {
+            JwkStringField::X => self.x = Some(encoded_data),
+            JwkStringField::Y => self.y = Some(encoded_data),
+            JwkStringField::D => self.d = Some(encoded_data),
+            JwkStringField::N => self.n = Some(encoded_data),
+            JwkStringField::E => self.e = Some(encoded_data),
+            JwkStringField::P => self.p = Some(encoded_data),
+            JwkStringField::Q => self.q = Some(encoded_data),
+            JwkStringField::DP => self.dp = Some(encoded_data),
+            JwkStringField::DQ => self.dq = Some(encoded_data),
+            JwkStringField::QI => self.qi = Some(encoded_data),
+            JwkStringField::K => self.k = Some(encoded_data),
+        }
+    }
+
     // Decode a field from a base64url-encoded string to a byte sequence. If the field is not a
     // valid base64url-encoded string, then throw a DataError.
     fn decode_optional_string_field(
@@ -2613,8 +2633,10 @@ impl JsonWebKeyExt for JsonWebKey {
     // string to a byte sequence, and append the decoded "r" field to the `primes` list, in the
     // order of presence in the "oth" array.
     //
-    // For each entry in the "oth" array, if any of the "r", "d" and "t" field is not present or it
-    // is not a valid base64url-encoded string, then throw a DataError.
+    // If the "oth" field is present and any of the "p", "q", "dp", "dq" or "qi" field is not
+    // present, then throw a DataError. For each entry in the "oth" array, if any of the "r", "d"
+    // and "t" field is not present or it is not a valid base64url-encoded string, then throw a
+    // DataError.
     fn decode_primes_from_oth_field(&self, primes: &mut Vec<Vec<u8>>) -> Result<(), Error> {
         if self.oth.is_some() &&
             (self.p.is_none() ||

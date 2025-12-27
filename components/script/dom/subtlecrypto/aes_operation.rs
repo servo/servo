@@ -8,7 +8,6 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
-use base64ct::{Base64UrlUnpadded, Encoding};
 use cipher::consts::{U12, U16, U32};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
@@ -1072,13 +1071,20 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
+            // Step 2.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 2.2. Set the kty attribute of jwk to the string "oct".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("oct")),
+                ..Default::default()
+            };
+
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of
             // the key represented by the [[handle]] internal slot of key, encoded according to
             // Section 6.4 of JSON Web Algorithms [JWA].
-            let k = match key.handle() {
-                Handle::Aes128(key) => Base64UrlUnpadded::encode_string(key),
-                Handle::Aes192(key) => Base64UrlUnpadded::encode_string(key),
-                Handle::Aes256(key) => Base64UrlUnpadded::encode_string(key),
+            match key.handle() {
+                Handle::Aes128(key) => jwk.encode_string_field(JwkStringField::K, key),
+                Handle::Aes192(key) => jwk.encode_string_field(JwkStringField::K, key),
+                Handle::Aes256(key) => jwk.encode_string_field(JwkStringField::K, key),
                 _ => unreachable!(),
             };
 
@@ -1100,40 +1106,35 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
             //
             // NOTE: Check key length via key.handle()
-            let alg = match (key.handle(), key.algorithm().name()) {
-                (Handle::Aes128(_), ALG_AES_CTR) => "A128CTR",
-                (Handle::Aes192(_), ALG_AES_CTR) => "A192CTR",
-                (Handle::Aes256(_), ALG_AES_CTR) => "A256CTR",
-                (Handle::Aes128(_), ALG_AES_CBC) => "A128CBC",
-                (Handle::Aes192(_), ALG_AES_CBC) => "A192CBC",
-                (Handle::Aes256(_), ALG_AES_CBC) => "A256CBC",
-                (Handle::Aes128(_), ALG_AES_GCM) => "A128GCM",
-                (Handle::Aes192(_), ALG_AES_GCM) => "A192GCM",
-                (Handle::Aes256(_), ALG_AES_GCM) => "A256GCM",
-                (Handle::Aes128(_), ALG_AES_KW) => "A128KW",
-                (Handle::Aes192(_), ALG_AES_KW) => "A192KW",
-                (Handle::Aes256(_), ALG_AES_KW) => "A256KW",
-                _ => unreachable!(),
-            };
+            jwk.alg = Some(
+                match (key.handle(), key.algorithm().name()) {
+                    (Handle::Aes128(_), ALG_AES_CTR) => "A128CTR",
+                    (Handle::Aes192(_), ALG_AES_CTR) => "A192CTR",
+                    (Handle::Aes256(_), ALG_AES_CTR) => "A256CTR",
+                    (Handle::Aes128(_), ALG_AES_CBC) => "A128CBC",
+                    (Handle::Aes192(_), ALG_AES_CBC) => "A192CBC",
+                    (Handle::Aes256(_), ALG_AES_CBC) => "A256CBC",
+                    (Handle::Aes128(_), ALG_AES_GCM) => "A128GCM",
+                    (Handle::Aes192(_), ALG_AES_GCM) => "A192GCM",
+                    (Handle::Aes256(_), ALG_AES_GCM) => "A256GCM",
+                    (Handle::Aes128(_), ALG_AES_KW) => "A128KW",
+                    (Handle::Aes192(_), ALG_AES_KW) => "A192KW",
+                    (Handle::Aes256(_), ALG_AES_KW) => "A256KW",
+                    _ => unreachable!(),
+                }
+                .into(),
+            );
 
             // Step 2.5. Set the key_ops attribute of jwk to equal the [[usages]] internal slot of key.
-            let key_ops = key
-                .usages()
-                .iter()
-                .map(|usage| DOMString::from(usage.as_str()))
-                .collect::<Vec<DOMString>>();
+            jwk.key_ops = Some(
+                key.usages()
+                    .iter()
+                    .map(|usage| DOMString::from(usage.as_str()))
+                    .collect::<Vec<DOMString>>(),
+            );
 
-            // Step 2.1. Let jwk be a new JsonWebKey dictionary.
-            // Step 2.2. Set the kty attribute of jwk to the string "oct".
             // Step 2.6. Set the ext attribute of jwk to equal the [[extractable]] internal slot of key.
-            let jwk = JsonWebKey {
-                kty: Some(DOMString::from("oct")),
-                k: Some(DOMString::from(k)),
-                alg: Some(DOMString::from(alg)),
-                key_ops: Some(key_ops),
-                ext: Some(key.Extractable()),
-                ..Default::default()
-            };
+            jwk.ext = Some(key.Extractable());
 
             // Step 2.7. Let result be jwk.
             result = ExportedKey::Jwk(Box::new(jwk));

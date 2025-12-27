@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64ct::{Base64UrlUnpadded, Encoding};
 use digest::Digest;
 use ecdsa::signature::hazmat::{PrehashVerifier, RandomizedPrehashSigner};
 use ecdsa::{Signature, SigningKey, VerifyingKey};
@@ -1179,8 +1178,8 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     },
                     _ => return Err(Error::Operation(None)),
                 };
-                jwk.x = Some(Base64UrlUnpadded::encode_string(&x).into());
-                jwk.y = Some(Base64UrlUnpadded::encode_string(&y).into());
+                jwk.encode_string_field(JwkStringField::X, &x);
+                jwk.encode_string_field(JwkStringField::Y, &y);
 
                 // Step 3.3.4.
                 // If the [[type]] internal slot of key is "private"
@@ -1193,7 +1192,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                         Handle::P521PrivateKey(private_key) => private_key.to_bytes().to_vec(),
                         _ => return Err(Error::NotSupported(None)),
                     };
-                    jwk.d = Some(Base64UrlUnpadded::encode_string(&d).into());
+                    jwk.encode_string_field(JwkStringField::D, &d);
                 }
             }
             // Otherwise:
