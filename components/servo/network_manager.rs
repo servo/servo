@@ -59,7 +59,7 @@ impl NetworkManager {
         let unique_keys: HashSet<String> = public_entries
             .into_iter()
             .chain(private_entries)
-            .map(|e| e.key)
+            .map(|entry| entry.key)
             .collect();
 
         unique_keys.into_iter().map(CacheEntry::new).collect()
