@@ -1126,12 +1126,7 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             );
 
             // Step 2.5. Set the key_ops attribute of jwk to equal the [[usages]] internal slot of key.
-            jwk.key_ops = Some(
-                key.usages()
-                    .iter()
-                    .map(|usage| DOMString::from(usage.as_str()))
-                    .collect::<Vec<DOMString>>(),
-            );
+            jwk.set_key_ops(key.usages());
 
             // Step 2.6. Set the ext attribute of jwk to equal the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());
