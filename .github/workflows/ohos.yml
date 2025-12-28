@@ -271,6 +271,13 @@ jobs:
         run: |
           ls -la
           /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - name: Install
+        id: install_servo
+        run: |
+          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
+          # to make sure we don't use a previous version if installation failed for some reason.
+          hdc uninstall org.servo.servo
+          hdc install -r servoshell-hos-signed.hap
       - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
         with:
@@ -289,13 +296,6 @@ jobs:
         # awk is used to remove trailing spaces
         run: |
           echo "MODEL_NAME=$(hdc shell param get const.product.name | awk '{$1=$1;print}' )" >> $GITHUB_OUTPUT
-      - name: Install
-        id: install_servo
-        run: |
-          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
-          # to make sure we don't use a previous version if installation failed for some reason.
-          hdc uninstall org.servo.servo
-          hdc install -r servoshell-hos-signed.hap
       - name: Getting hitrace-bench version
         run: echo "INSTALLED_HITRACE_BENCH_VERSION=$(hitrace-bench --version | awk '{print $2}')" >> $GITHUB_ENV
       - name: Install hitrace-bench
