@@ -159,6 +159,8 @@ jobs:
     runs-on: hos-builder
     if: github.repository == 'servo/servo'
     outputs:
+      # We need to save the job status as an output, since our usage of `continue-on-error`
+      # will make `needs.build-harmonyos-aarch64.result` evaluate to `success` even if the job failed.
       job_status: ${{ steps.result.outputs.JOB_STATUS }}
     steps:
       - if: ${{ github.event_name != 'pull_request_target' }}
