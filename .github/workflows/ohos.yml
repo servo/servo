@@ -184,7 +184,7 @@ jobs:
     # so in the beginning we will just do a best effort approach but ignore errors.
     continue-on-error: true
     runs-on: hos-runner
-    if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.result == 'success'
     needs: build-harmonyos-aarch64
     steps:
       - uses: actions/download-artifact@v4
@@ -249,7 +249,7 @@ jobs:
     continue-on-error: true
     runs-on: hos-runner
     needs: test-harmonyos-aarch64
-    if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.result == 'success'
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -362,7 +362,7 @@ jobs:
     name: Mossel Scenario test
     continue-on-error: true
     runs-on: hos-runner
-    if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.result == 'success'
     needs: build-harmonyos-aarch64
     env:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
