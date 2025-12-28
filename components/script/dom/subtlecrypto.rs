@@ -2871,295 +2871,132 @@ impl SupportedAlgorithm {
     /// IDL dictionary types to the algorithm.
     /// <https://w3c.github.io/webcrypto/#concept-define-an-algorithm>
     fn support(&self, op: Operation) -> Result<ParameterType, Error> {
-        let desired_type = match self {
+        let desired_type = match (self, &op) {
             // <https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
-            SupportedAlgorithm::RsassaPkcs1V1_5 => match op {
-                Operation::Sign => ParameterType::None,
-                Operation::Verify => ParameterType::None,
-                Operation::GenerateKey => ParameterType::RsaHashedKeyGenParams,
-                Operation::ImportKey => ParameterType::RsaHashedImportParams,
-                Operation::ExportKey => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::RsassaPkcs1V1_5, Operation::Sign) => ParameterType::None,
+            (Self::RsassaPkcs1V1_5, Operation::Verify) => ParameterType::None,
+            (Self::RsassaPkcs1V1_5, Operation::GenerateKey) => ParameterType::RsaHashedKeyGenParams,
+            (Self::RsassaPkcs1V1_5, Operation::ImportKey) => ParameterType::RsaHashedImportParams,
+            (Self::RsassaPkcs1V1_5, Operation::ExportKey) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
-            SupportedAlgorithm::RsaPss => match op {
-                Operation::Sign => ParameterType::RsaPssParams,
-                Operation::Verify => ParameterType::RsaPssParams,
-                Operation::GenerateKey => ParameterType::RsaHashedKeyGenParams,
-                Operation::ImportKey => ParameterType::RsaHashedImportParams,
-                Operation::ExportKey => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::RsaPss, Operation::Sign) => ParameterType::RsaPssParams,
+            (Self::RsaPss, Operation::Verify) => ParameterType::RsaPssParams,
+            (Self::RsaPss, Operation::GenerateKey) => ParameterType::RsaHashedKeyGenParams,
+            (Self::RsaPss, Operation::ImportKey) => ParameterType::RsaHashedImportParams,
+            (Self::RsaPss, Operation::ExportKey) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
-            SupportedAlgorithm::RsaOaep => match op {
-                Operation::Encrypt => ParameterType::RsaOaepParams,
-                Operation::Decrypt => ParameterType::RsaOaepParams,
-                Operation::GenerateKey => ParameterType::RsaHashedKeyGenParams,
-                Operation::ImportKey => ParameterType::RsaHashedImportParams,
-                Operation::ExportKey => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::RsaOaep, Operation::Encrypt) => ParameterType::RsaOaepParams,
+            (Self::RsaOaep, Operation::Decrypt) => ParameterType::RsaOaepParams,
+            (Self::RsaOaep, Operation::GenerateKey) => ParameterType::RsaHashedKeyGenParams,
+            (Self::RsaOaep, Operation::ImportKey) => ParameterType::RsaHashedImportParams,
+            (Self::RsaOaep, Operation::ExportKey) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#ecdsa-registration>
-            SupportedAlgorithm::Ecdsa => match op {
-                Operation::Sign => ParameterType::EcdsaParams,
-                Operation::Verify => ParameterType::EcdsaParams,
-                Operation::GenerateKey => ParameterType::EcKeyGenParams,
-                Operation::ImportKey => ParameterType::EcKeyImportParams,
-                Operation::ExportKey => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Ecdsa, Operation::Sign) => ParameterType::EcdsaParams,
+            (Self::Ecdsa, Operation::Verify) => ParameterType::EcdsaParams,
+            (Self::Ecdsa, Operation::GenerateKey) => ParameterType::EcKeyGenParams,
+            (Self::Ecdsa, Operation::ImportKey) => ParameterType::EcKeyImportParams,
+            (Self::Ecdsa, Operation::ExportKey) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#ecdh-registration>
-            SupportedAlgorithm::Ecdh => match op {
-                Operation::GenerateKey => ParameterType::EcKeyGenParams,
-                Operation::DeriveBits => ParameterType::EcdhKeyDeriveParams,
-                Operation::ImportKey => ParameterType::EcKeyImportParams,
-                Operation::ExportKey => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Ecdh, Operation::GenerateKey) => ParameterType::EcKeyGenParams,
+            (Self::Ecdh, Operation::DeriveBits) => ParameterType::EcdhKeyDeriveParams,
+            (Self::Ecdh, Operation::ImportKey) => ParameterType::EcKeyImportParams,
+            (Self::Ecdh, Operation::ExportKey) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#ed25519-registration>
-            SupportedAlgorithm::Ed25519 => match op {
-                Operation::Sign => ParameterType::None,
-                Operation::Verify => ParameterType::None,
-                Operation::GenerateKey => ParameterType::None,
-                Operation::ImportKey => ParameterType::None,
-                Operation::ExportKey => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Ed25519, Operation::Sign) => ParameterType::None,
+            (Self::Ed25519, Operation::Verify) => ParameterType::None,
+            (Self::Ed25519, Operation::GenerateKey) => ParameterType::None,
+            (Self::Ed25519, Operation::ImportKey) => ParameterType::None,
+            (Self::Ed25519, Operation::ExportKey) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#x25519-registration>
-            SupportedAlgorithm::X25519 => match op {
-                Operation::DeriveBits => ParameterType::EcdhKeyDeriveParams,
-                Operation::GenerateKey => ParameterType::None,
-                Operation::ImportKey => ParameterType::None,
-                Operation::ExportKey => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::X25519, Operation::DeriveBits) => ParameterType::EcdhKeyDeriveParams,
+            (Self::X25519, Operation::GenerateKey) => ParameterType::None,
+            (Self::X25519, Operation::ImportKey) => ParameterType::None,
+            (Self::X25519, Operation::ExportKey) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
-            SupportedAlgorithm::AesCtr => match op {
-                Operation::Encrypt => ParameterType::AesCtrParams,
-                Operation::Decrypt => ParameterType::AesCtrParams,
-                Operation::GenerateKey => ParameterType::AesKeyGenParams,
-                Operation::ImportKey => ParameterType::None,
-                Operation::ExportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::AesDerivedKeyParams,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::AesCtr, Operation::Encrypt) => ParameterType::AesCtrParams,
+            (Self::AesCtr, Operation::Decrypt) => ParameterType::AesCtrParams,
+            (Self::AesCtr, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
+            (Self::AesCtr, Operation::ImportKey) => ParameterType::None,
+            (Self::AesCtr, Operation::ExportKey) => ParameterType::None,
+            (Self::AesCtr, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
 
             // <https://w3c.github.io/webcrypto/#aes-cbc-registration>
-            SupportedAlgorithm::AesCbc => match op {
-                Operation::Encrypt => ParameterType::AesCbcParams,
-                Operation::Decrypt => ParameterType::AesCbcParams,
-                Operation::GenerateKey => ParameterType::AesKeyGenParams,
-                Operation::ImportKey => ParameterType::None,
-                Operation::ExportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::AesDerivedKeyParams,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::AesCbc, Operation::Encrypt) => ParameterType::AesCbcParams,
+            (Self::AesCbc, Operation::Decrypt) => ParameterType::AesCbcParams,
+            (Self::AesCbc, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
+            (Self::AesCbc, Operation::ImportKey) => ParameterType::None,
+            (Self::AesCbc, Operation::ExportKey) => ParameterType::None,
+            (Self::AesCbc, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
 
             // <https://w3c.github.io/webcrypto/#aes-gcm-registration>
-            SupportedAlgorithm::AesGcm => match op {
-                Operation::Encrypt => ParameterType::AesGcmParams,
-                Operation::Decrypt => ParameterType::AesGcmParams,
-                Operation::GenerateKey => ParameterType::AesKeyGenParams,
-                Operation::ImportKey => ParameterType::None,
-                Operation::ExportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::AesDerivedKeyParams,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::AesGcm, Operation::Encrypt) => ParameterType::AesGcmParams,
+            (Self::AesGcm, Operation::Decrypt) => ParameterType::AesGcmParams,
+            (Self::AesGcm, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
+            (Self::AesGcm, Operation::ImportKey) => ParameterType::None,
+            (Self::AesGcm, Operation::ExportKey) => ParameterType::None,
+            (Self::AesGcm, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
 
             // <https://w3c.github.io/webcrypto/#aes-kw-registration>
-            SupportedAlgorithm::AesKw => match op {
-                Operation::WrapKey => ParameterType::None,
-                Operation::UnwrapKey => ParameterType::None,
-                Operation::GenerateKey => ParameterType::AesKeyGenParams,
-                Operation::ImportKey => ParameterType::None,
-                Operation::ExportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::AesDerivedKeyParams,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::AesKw, Operation::WrapKey) => ParameterType::None,
+            (Self::AesKw, Operation::UnwrapKey) => ParameterType::None,
+            (Self::AesKw, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
+            (Self::AesKw, Operation::ImportKey) => ParameterType::None,
+            (Self::AesKw, Operation::ExportKey) => ParameterType::None,
+            (Self::AesKw, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
 
             // <https://w3c.github.io/webcrypto/#hmac-registration>
-            SupportedAlgorithm::Hmac => match op {
-                Operation::Sign => ParameterType::None,
-                Operation::Verify => ParameterType::None,
-                Operation::GenerateKey => ParameterType::HmacKeyGenParams,
-                Operation::ImportKey => ParameterType::HmacImportParams,
-                Operation::ExportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::HmacImportParams,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Hmac, Operation::Sign) => ParameterType::None,
+            (Self::Hmac, Operation::Verify) => ParameterType::None,
+            (Self::Hmac, Operation::GenerateKey) => ParameterType::HmacKeyGenParams,
+            (Self::Hmac, Operation::ImportKey) => ParameterType::HmacImportParams,
+            (Self::Hmac, Operation::ExportKey) => ParameterType::None,
+            (Self::Hmac, Operation::GetKeyLength) => ParameterType::HmacImportParams,
 
             // <https://w3c.github.io/webcrypto/#sha-registration>
-            SupportedAlgorithm::Sha(_) => match op {
-                Operation::Digest => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Sha(_), Operation::Digest) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#hkdf-registration>
-            SupportedAlgorithm::Hkdf => match op {
-                Operation::DeriveBits => ParameterType::HkdfParams,
-                Operation::ImportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Hkdf, Operation::DeriveBits) => ParameterType::HkdfParams,
+            (Self::Hkdf, Operation::ImportKey) => ParameterType::None,
+            (Self::Hkdf, Operation::GetKeyLength) => ParameterType::None,
 
             // <https://w3c.github.io/webcrypto/#pbkdf2-registration>
-            SupportedAlgorithm::Pbkdf2 => match op {
-                Operation::DeriveBits => ParameterType::Pbkdf2Params,
-                Operation::ImportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Pbkdf2, Operation::DeriveBits) => ParameterType::Pbkdf2Params,
+            (Self::Pbkdf2, Operation::ImportKey) => ParameterType::None,
+            (Self::Pbkdf2, Operation::GetKeyLength) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
-            SupportedAlgorithm::ChaCha20Poly1305 => match op {
-                Operation::Encrypt => ParameterType::AeadParams,
-                Operation::Decrypt => ParameterType::AeadParams,
-                Operation::GenerateKey => ParameterType::None,
-                Operation::ImportKey => ParameterType::None,
-                Operation::ExportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::ChaCha20Poly1305, Operation::Encrypt) => ParameterType::AeadParams,
+            (Self::ChaCha20Poly1305, Operation::Decrypt) => ParameterType::AeadParams,
+            (Self::ChaCha20Poly1305, Operation::GenerateKey) => ParameterType::None,
+            (Self::ChaCha20Poly1305, Operation::ImportKey) => ParameterType::None,
+            (Self::ChaCha20Poly1305, Operation::ExportKey) => ParameterType::None,
+            (Self::ChaCha20Poly1305, Operation::GetKeyLength) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#sha3-registration>
-            SupportedAlgorithm::Sha3(_) => match op {
-                Operation::Digest => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::Sha3(_), Operation::Digest) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#cshake-registration>
-            SupportedAlgorithm::CShake(_) => match op {
-                Operation::Digest => ParameterType::CShakeParams,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
-            },
+            (Self::CShake(_), Operation::Digest) => ParameterType::CShakeParams,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#argon2-registration>
-            SupportedAlgorithm::Argon2(_) => match op {
-                Operation::DeriveBits => ParameterType::Argon2Params,
-                Operation::ImportKey => ParameterType::None,
-                Operation::GetKeyLength => ParameterType::None,
-                _ => {
-                    return Err(Error::NotSupported(Some(format!(
-                        "{} does not support {} operation",
-                        self.as_str(),
-                        op.as_str()
-                    ))));
-                },
+            (Self::Argon2(_), Operation::DeriveBits) => ParameterType::Argon2Params,
+            (Self::Argon2(_), Operation::ImportKey) => ParameterType::None,
+            (Self::Argon2(_), Operation::GetKeyLength) => ParameterType::None,
+
+            _ => {
+                return Err(Error::NotSupported(Some(format!(
+                    "{} does not support {} operation",
+                    self.as_str(),
+                    op.as_str()
+                ))));
             },
         };
 
