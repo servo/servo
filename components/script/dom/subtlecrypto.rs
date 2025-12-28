@@ -2467,6 +2467,7 @@ trait JsonWebKeyExt {
     fn stringify(&self, cx: JSContext) -> Result<DOMString, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
+    fn set_key_ops(&mut self, usages: Vec<KeyUsage>);
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]);
     fn decode_optional_string_field(&self, field: JwkStringField)
     -> Result<Option<Vec<u8>>, Error>;
@@ -2571,6 +2572,16 @@ impl JsonWebKeyExt for JsonWebKey {
         }
 
         Ok(())
+    }
+
+    // Set the key_ops attribute of jwk to equal the given usages.
+    fn set_key_ops(&mut self, usages: Vec<KeyUsage>) {
+        self.key_ops = Some(
+            usages
+                .into_iter()
+                .map(|usage| DOMString::from(usage.as_str()))
+                .collect(),
+        );
     }
 
     // Encode a byte sequence to a base64url-encoded string, and set the field to the encoded

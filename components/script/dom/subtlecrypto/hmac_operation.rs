@@ -369,12 +369,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.alg = Some(DOMString::from(hash_algorithm));
 
             // Step 4.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.key_ops = Some(
-                key.usages()
-                    .iter()
-                    .map(|usage| DOMString::from(usage.as_str()))
-                    .collect::<Vec<DOMString>>(),
-            );
+            jwk.set_key_ops(key.usages());
 
             // Step 4.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());

@@ -517,12 +517,7 @@ pub(crate) fn export_key(
             }
 
             // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.key_ops = Some(
-                key.usages()
-                    .iter()
-                    .map(|usage| DOMString::from(usage.as_str()))
-                    .collect::<Vec<DOMString>>(),
-            );
+            jwk.set_key_ops(key.usages());
 
             // Step 3.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());
