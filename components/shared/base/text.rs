@@ -55,7 +55,7 @@ macro_rules! unicode_length_type {
         /// is a length in UTF-8 code units (one byte each). `Utf16CodeUnitLength` is a length in
         /// UTF-16 code units (two bytes each). This type is used to more reliable work with
         /// lengths in different encodings.
-        #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+        #[derive(Clone, Copy, Debug, Default, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
         pub struct $type_name(pub usize);
 
         impl $type_name {
@@ -73,6 +73,18 @@ macro_rules! unicode_length_type {
 
             pub fn saturating_sub(self, value: Self) -> Self {
                 Self(self.0.saturating_sub(value.0))
+            }
+        }
+
+        impl From<u32> for $type_name {
+            fn from(value: u32) -> Self {
+                Self(value as usize)
+            }
+        }
+
+        impl From<isize> for $type_name {
+            fn from(value: isize) -> Self {
+                Self(value as usize)
             }
         }
 

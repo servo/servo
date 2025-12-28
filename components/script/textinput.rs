@@ -64,7 +64,7 @@ impl From<SelectionDirection> for DOMString {
     }
 }
 
-#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
@@ -73,6 +73,10 @@ pub struct TextPoint {
 }
 
 impl TextPoint {
+    pub fn new(line: usize, index: Utf8CodeUnitLength) -> Self {
+        Self { line, index }
+    }
+
     /// Returns a TextPoint constrained to be a valid location within lines
     fn constrain_to(&self, lines: &[DOMString]) -> TextPoint {
         let line = min(self.line, lines.len() - 1);
@@ -212,15 +216,6 @@ impl ClipboardEventReaction {
     }
 }
 
-impl Default for TextPoint {
-    fn default() -> TextPoint {
-        TextPoint {
-            line: 0,
-            index: Utf8CodeUnitLength::zero(),
-        }
-    }
-}
-
 /// Control whether this control should allow multiple lines.
 #[derive(Eq, PartialEq)]
 pub enum Lines {
@@ -268,6 +263,43 @@ fn len_of_first_n_code_units(text: &DOMString, n: Utf16CodeUnitLength) -> Utf8Co
     utf8_len
 }
 
+/// A `Chars`-like iterator for [`TextInput`].
+pub(crate) struct TextInputChars<'a, T: ClipboardProvider> {
+    /// The underlying [`TextInput`] of this iteration.
+    text_input: &'a TextInput<T>,
+    /// The `TextPoint` of the next character to be produced.
+    current_point: TextPoint,
+}
+
+impl<'a, T: ClipboardProvider> Iterator for TextInputChars<'a, T> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let num_lines = self.text_input.lines.len();
+        if self.current_point.line >= num_lines {
+            return None;
+        }
+
+        let line = &self.text_input.lines[self.current_point.line];
+
+        // Return a `\n` at the end of every line except the last one.
+        if self.current_point.index == line.len_utf8() && self.current_point.line + 1 < num_lines {
+            self.current_point.index += Utf8CodeUnitLength(1);
+            return Some('\n');
+        }
+        if self.current_point.index >= line.len_utf8() {
+            self.current_point.line += 1;
+            self.current_point.index = Utf8CodeUnitLength::zero();
+            return self.next();
+        }
+
+        assert!(self.current_point.line < self.text_input.lines.len());
+        let character = line.str()[self.current_point.index.0..].chars().nth(0);
+        self.current_point.index += Utf8CodeUnitLength(character.map(char::len_utf8).unwrap_or(1));
+        character
+    }
+}
+
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
     pub fn new(
@@ -278,7 +310,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         min_length: Option<Utf16CodeUnitLength>,
         selection_direction: SelectionDirection,
     ) -> TextInput<T> {
-        let mut i = TextInput {
+        let mut text_input = Self {
             lines: vec![],
             edit_point: Default::default(),
             selection_origin: None,
@@ -289,8 +321,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             selection_direction,
             was_last_change_by_set_content: true,
         };
-        i.set_content(initial);
-        i
+        text_input.set_content(initial);
+        text_input
     }
 
     pub fn edit_point(&self) -> TextPoint {
@@ -334,7 +366,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.selection_start() == self.selection_end() {
             false
         } else {
-            self.replace_selection(DOMString::new());
+            self.replace_selection(&DOMString::new());
             true
         }
     }
@@ -350,7 +382,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.selection_origin.is_none() {
             self.selection_origin = Some(self.edit_point);
         }
-        self.replace_selection(DOMString::from(s.into()));
+        self.replace_selection(&DOMString::from(s.into()));
     }
 
     /// The start of the selection (or the edit point, if there is no selection). Always less than
@@ -366,7 +398,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// The byte offset of the selection_start()
     pub fn selection_start_offset(&self) -> Utf8CodeUnitLength {
-        self.text_point_to_offset(&self.selection_start())
+        self.text_point_to_utf8_offset(self.selection_start())
     }
 
     /// The end of the selection (or the edit point, if there is no selection). Always greater
@@ -380,7 +412,14 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// The byte offset of the selection_end()
     pub fn selection_end_offset(&self) -> Utf8CodeUnitLength {
-        self.text_point_to_offset(&self.selection_end())
+        self.text_point_to_utf8_offset(self.selection_end())
+    }
+
+    pub(crate) fn chars<'a>(&'a self) -> TextInputChars<'a, T> {
+        TextInputChars {
+            text_input: self,
+            current_point: TextPoint::default(),
+        }
     }
 
     /// Whether or not there is an active selection (the selection may be zero-length)
@@ -477,21 +516,21 @@ impl<T: ClipboardProvider> TextInput<T> {
         acc
     }
 
-    pub fn replace_selection(&mut self, insert: DOMString) {
+    pub fn replace_selection(&mut self, insert: &DOMString) {
         if !self.has_selection() {
             return;
         }
 
         let allowed_to_insert_count = if let Some(max_length) = self.max_length {
             let len_after_selection_replaced =
-                self.utf16_len().saturating_sub(self.selection_utf16_len());
+                self.len_utf16().saturating_sub(self.selection_utf16_len());
             max_length.saturating_sub(len_after_selection_replaced)
         } else {
             Utf16CodeUnitLength(usize::MAX)
         };
 
         let Utf8CodeUnitLength(last_char_index) =
-            len_of_first_n_code_units(&insert, allowed_to_insert_count);
+            len_of_first_n_code_units(insert, allowed_to_insert_count);
         let to_insert = &insert.str()[..last_char_index];
 
         let (start, end) = self.sorted_selection_bounds();
@@ -1088,16 +1127,16 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     pub(crate) fn handle_compositionupdate(&mut self, event: &CompositionEvent) -> KeyReaction {
-        let ch = event.data().str();
-        let start = self.selection_start_offset().0;
-        self.insert_string(ch.as_ref());
-        self.set_selection_range(
-            start as u32,
-            (start + event.data().len_utf8().0) as u32,
+        let insertion = event.data().str();
+        let start = self.selection_start_offset();
+        self.insert_string(insertion.as_ref());
+        self.set_selection_range_utf8(
+            start,
+            start + event.data().len_utf8(),
             SelectionDirection::Forward,
         );
         KeyReaction::DispatchInput(
-            Some(ch.to_string()),
+            Some(insertion.to_string()),
             IsComposing::Composing,
             InputType::InsertCompositionText,
         )
@@ -1108,35 +1147,9 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.lines.len() <= 1 && self.lines.first().is_none_or(|line| line.is_empty())
     }
 
-    /// The length of the content in bytes.
-    pub(crate) fn len_utf8(&self) -> Utf8CodeUnitLength {
-        self.lines
-            .iter()
-            .fold(Utf8CodeUnitLength::zero(), |m, l| {
-                m + l.len_utf8() + Utf8CodeUnitLength::one() // + 1 for the '\n'
-            })
-            .saturating_sub(Utf8CodeUnitLength::one())
-    }
-
     /// The total number of code units required to encode the content in utf16.
-    pub(crate) fn utf16_len(&self) -> Utf16CodeUnitLength {
-        // Add a newline character (always one UTF-16 code unit) for every line except the last.
-        self.lines
-            .iter()
-            .map(DOMString::len_utf16)
-            .sum::<Utf16CodeUnitLength>() +
-            (Utf16CodeUnitLength(self.lines.len() - 1))
-    }
-
-    /// The length of the content in Unicode code points.
-    pub(crate) fn char_count(&self) -> usize {
-        self.lines
-            .iter()
-            .map(|line| {
-                line.str().chars().count() + 1 // + 1 for the '\n'
-            })
-            .sum::<usize>() -
-            1
+    pub(crate) fn len_utf16(&self) -> Utf16CodeUnitLength {
+        Utf16CodeUnitLength(self.chars().map(char::len_utf16).sum())
     }
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
@@ -1181,23 +1194,73 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.assert_ok_selection();
     }
 
+    /// Given a [`TextPoint`] normalize it, meaning that its indices are all bounded
+    /// by the actual size of the value stored in this [`TextInput`].
+    fn normalize_text_point(&self, text_point: TextPoint) -> TextPoint {
+        let line = match self.lines.len() {
+            0 => return Default::default(),
+            num_lines => text_point.line.min(num_lines - 1),
+        };
+
+        // This may appear a bit odd as we are adding an index to the end of the line,
+        // but `TextPoint` isn't just an offset to a UTF-8 code point, but also can
+        // serve as the end of an exclusive range so there is one more index at the end
+        // that is still valid.
+        let mut line_length_utf8 = self.lines[line].len_utf8();
+        if line != self.lines.len() - 1 {
+            line_length_utf8 += Utf8CodeUnitLength(1); // Add a character for the '\n'.
+        }
+
+        TextPoint {
+            line,
+            index: text_point.index.min(line_length_utf8),
+        }
+    }
+
     /// Convert a TextPoint into a byte offset from the start of the content.
-    fn text_point_to_offset(&self, text_point: &TextPoint) -> Utf8CodeUnitLength {
+    pub fn text_point_to_utf8_offset(&self, text_point: TextPoint) -> Utf8CodeUnitLength {
+        let text_point = self.normalize_text_point(text_point);
         self.lines
             .iter()
-            .enumerate()
-            .fold(Utf8CodeUnitLength::zero(), |acc, (i, val)| {
-                if i < text_point.line {
-                    acc + val.len_utf8() + Utf8CodeUnitLength::one() // +1 for the \n
-                } else {
-                    acc
-                }
-            }) +
+            .take(text_point.line)
+            .map(
+                |line| line.len_utf8() + Utf8CodeUnitLength::one(), // +1 for the \n
+            )
+            .sum::<Utf8CodeUnitLength>() +
             text_point.index
     }
 
+    pub fn text_point_to_utf16_offset(&self, text_point: TextPoint) -> Utf16CodeUnitLength {
+        let text_point = self.normalize_text_point(text_point);
+        let final_line = self.lines[text_point.line].str();
+
+        // The offset might be past the end of the line due to being an exclusive offset and
+        // also the fact that every line has a virtual newline at the end (apart from the last).
+        let (slice_length, extra_offset) = if text_point.index.0 > final_line.len() {
+            (final_line.len(), Utf16CodeUnitLength(1))
+        } else {
+            (text_point.index.0, Utf16CodeUnitLength::zero())
+        };
+        let final_line_offset = extra_offset +
+            Utf16CodeUnitLength(
+                final_line[0..slice_length]
+                    .chars()
+                    .map(char::len_utf16)
+                    .sum(),
+            );
+
+        self.lines
+            .iter()
+            .take(text_point.line)
+            .map(
+                |line| line.len_utf16() + Utf16CodeUnitLength::one(), // +1 for the \n
+            )
+            .sum::<Utf16CodeUnitLength>() +
+            final_line_offset
+    }
+
     /// Convert a byte offset from the start of the content into a TextPoint.
-    fn offset_to_text_point(&self, abs_point: Utf8CodeUnitLength) -> TextPoint {
+    fn utf8_offset_to_text_point(&self, abs_point: Utf8CodeUnitLength) -> TextPoint {
         let mut index = abs_point;
         let mut line = 0;
         let last_line_idx = self.lines.len() - 1;
@@ -1221,11 +1284,44 @@ impl<T: ClipboardProvider> TextInput<T> {
         TextPoint { line, index }
     }
 
-    pub fn set_selection_range(&mut self, start: u32, end: u32, direction: SelectionDirection) {
-        let mut start = Utf8CodeUnitLength(start as usize);
-        let mut end = Utf8CodeUnitLength(end as usize);
-        let text_end = self.get_content().len_utf8();
+    pub fn utf16_offset_to_utf8_offset(
+        &self,
+        utf16_offset: Utf16CodeUnitLength,
+    ) -> Utf8CodeUnitLength {
+        let mut current_utf16_offset = Utf16CodeUnitLength::zero();
+        let mut current_utf8_offset = Utf8CodeUnitLength::zero();
 
+        for character in self.chars() {
+            let utf16_length = character.len_utf16();
+            if current_utf16_offset + Utf16CodeUnitLength(utf16_length) > utf16_offset {
+                return current_utf8_offset;
+            }
+            current_utf8_offset += Utf8CodeUnitLength(character.len_utf8());
+            current_utf16_offset += Utf16CodeUnitLength(utf16_length);
+        }
+        current_utf8_offset
+    }
+
+    pub fn set_selection_range_utf16(
+        &mut self,
+        start: Utf16CodeUnitLength,
+        end: Utf16CodeUnitLength,
+        direction: SelectionDirection,
+    ) {
+        self.set_selection_range_utf8(
+            self.utf16_offset_to_utf8_offset(start),
+            self.utf16_offset_to_utf8_offset(end),
+            direction,
+        );
+    }
+
+    pub fn set_selection_range_utf8(
+        &mut self,
+        mut start: Utf8CodeUnitLength,
+        mut end: Utf8CodeUnitLength,
+        direction: SelectionDirection,
+    ) {
+        let text_end = self.get_content().len_utf8();
         if end > text_end {
             end = text_end;
         }
@@ -1237,12 +1333,12 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         match direction {
             SelectionDirection::None | SelectionDirection::Forward => {
-                self.selection_origin = Some(self.offset_to_text_point(start));
-                self.edit_point = self.offset_to_text_point(end);
+                self.selection_origin = Some(self.utf8_offset_to_text_point(start));
+                self.edit_point = self.utf8_offset_to_text_point(end);
             },
             SelectionDirection::Backward => {
-                self.selection_origin = Some(self.offset_to_text_point(end));
-                self.edit_point = self.offset_to_text_point(start);
+                self.selection_origin = Some(self.utf8_offset_to_text_point(end));
+                self.edit_point = self.utf8_offset_to_text_point(start);
             },
         }
         self.assert_ok_selection();

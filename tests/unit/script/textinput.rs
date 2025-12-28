@@ -171,7 +171,7 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
     // Selection is now "abcde"
     //                    ---
 
-    textinput.replace_selection(DOMString::from("too long"));
+    textinput.replace_selection(&DOMString::from("too long"));
 
     assert_eq!(textinput.get_content(), "atooe");
 }
@@ -201,7 +201,7 @@ fn test_single_line_textinput_with_max_length_allows_deletion_when_replacing_a_s
     // Selection is now "abcde"
     //                    --
 
-    textinput.replace_selection(DOMString::from("only deletion should be applied"));
+    textinput.replace_selection(&DOMString::from("only deletion should be applied"));
 
     assert_eq!(textinput.get_content(), "ade");
 }
@@ -307,7 +307,11 @@ fn test_textinput_delete_char() {
     assert_eq!(textinput.get_content(), "ab");
 
     let mut textinput = text_input(Lines::Single, "abcdefg");
-    textinput.set_selection_range(2, 2, SelectionDirection::None);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(2),
+        Utf8CodeUnitLength(2),
+        SelectionDirection::None,
+    );
     textinput.delete_char(Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
 }
@@ -383,7 +387,7 @@ fn test_textinput_replace_selection() {
         Selection::Selected,
     );
 
-    textinput.replace_selection(DOMString::from("xyz"));
+    textinput.replace_selection(&DOMString::from("xyz"));
     assert_eq!(textinput.get_content(), "abxyzefg");
 }
 
@@ -392,7 +396,7 @@ fn test_textinput_replace_selection_multibyte_char() {
     let mut textinput = text_input(Lines::Single, "é");
     textinput.adjust_horizontal_by_one(Direction::Forward, Selection::Selected);
 
-    textinput.replace_selection(DOMString::from("e"));
+    textinput.replace_selection(&DOMString::from("e"));
     assert_eq!(textinput.get_content(), "e");
 }
 
@@ -820,7 +824,11 @@ fn test_textinput_cursor_position_correct_after_clearing_selection() {
 #[test]
 fn test_textinput_set_selection_with_direction() {
     let mut textinput = text_input(Lines::Single, "abcdef");
-    textinput.set_selection_range(2, 6, SelectionDirection::Forward);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(2),
+        Utf8CodeUnitLength(6),
+        SelectionDirection::Forward,
+    );
     assert_eq!(textinput.edit_point().line, 0);
     assert_eq!(textinput.edit_point().index, Utf8CodeUnitLength(6));
     assert_eq!(textinput.selection_direction(), SelectionDirection::Forward);
@@ -832,7 +840,11 @@ fn test_textinput_set_selection_with_direction() {
         Utf8CodeUnitLength(2)
     );
 
-    textinput.set_selection_range(2, 6, SelectionDirection::Backward);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(2),
+        Utf8CodeUnitLength(6),
+        SelectionDirection::Backward,
+    );
     assert_eq!(textinput.edit_point().line, 0);
     assert_eq!(textinput.edit_point().index, Utf8CodeUnitLength(2));
     assert_eq!(
@@ -848,7 +860,11 @@ fn test_textinput_set_selection_with_direction() {
     );
 
     textinput = text_input(Lines::Multiple, "\n\n");
-    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(0),
+        Utf8CodeUnitLength(1),
+        SelectionDirection::Forward,
+    );
     assert_eq!(textinput.edit_point().line, 1);
     assert_eq!(textinput.edit_point().index, Utf8CodeUnitLength::zero());
     assert_eq!(textinput.selection_direction(), SelectionDirection::Forward);
@@ -861,7 +877,11 @@ fn test_textinput_set_selection_with_direction() {
     );
 
     textinput = text_input(Lines::Multiple, "\n");
-    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(0),
+        Utf8CodeUnitLength(1),
+        SelectionDirection::Forward,
+    );
     assert_eq!(textinput.edit_point().line, 1);
     assert_eq!(textinput.edit_point().index, Utf8CodeUnitLength::zero());
     assert_eq!(textinput.selection_direction(), SelectionDirection::Forward);
@@ -910,7 +930,11 @@ fn test_selection_bounds() {
         textinput.selection_end()
     );
 
-    textinput.set_selection_range(2, 5, SelectionDirection::Forward);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(2),
+        Utf8CodeUnitLength(5),
+        SelectionDirection::Forward,
+    );
     assert_eq!(
         TextPoint {
             line: 0,
@@ -932,10 +956,18 @@ fn test_selection_bounds() {
         },
         textinput.selection_end()
     );
-    assert_eq!(Utf8CodeUnitLength(2), textinput.selection_start_offset());
-    assert_eq!(Utf8CodeUnitLength(5), textinput.selection_end_offset());
 
-    textinput.set_selection_range(3, 6, SelectionDirection::Backward);
+    let selection_start_offset = textinput.text_point_to_utf8_offset(textinput.selection_start());
+    assert_eq!(Utf8CodeUnitLength(2), selection_start_offset);
+
+    let selection_end_offset = textinput.text_point_to_utf8_offset(textinput.selection_end());
+    assert_eq!(Utf8CodeUnitLength(5), selection_end_offset);
+
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(3),
+        Utf8CodeUnitLength(6),
+        SelectionDirection::Backward,
+    );
     assert_eq!(
         TextPoint {
             line: 0,
@@ -957,11 +989,19 @@ fn test_selection_bounds() {
         },
         textinput.selection_end()
     );
-    assert_eq!(Utf8CodeUnitLength(3), textinput.selection_start_offset());
-    assert_eq!(Utf8CodeUnitLength(6), textinput.selection_end_offset());
+
+    let selection_start_offset = textinput.text_point_to_utf8_offset(textinput.selection_start());
+    assert_eq!(Utf8CodeUnitLength(3), selection_start_offset);
+
+    let selection_end_offset = textinput.text_point_to_utf8_offset(textinput.selection_end());
+    assert_eq!(Utf8CodeUnitLength(6), selection_end_offset);
 
     textinput = text_input(Lines::Multiple, "\n\n");
-    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(0),
+        Utf8CodeUnitLength(1),
+        SelectionDirection::Forward,
+    );
     assert_eq!(
         TextPoint {
             line: 0,
@@ -988,7 +1028,11 @@ fn test_selection_bounds() {
 #[test]
 fn test_select_all() {
     let mut textinput = text_input(Lines::Single, "abc");
-    textinput.set_selection_range(2, 3, SelectionDirection::Backward);
+    textinput.set_selection_range_utf8(
+        Utf8CodeUnitLength(2),
+        Utf8CodeUnitLength(3),
+        SelectionDirection::Backward,
+    );
     textinput.select_all();
     assert_eq!(textinput.selection_direction(), SelectionDirection::Forward);
     assert_eq!(
@@ -1013,4 +1057,121 @@ fn test_backspace_in_textarea_at_beginning_of_line() {
     textinput.handle_keydown_aux(Key::Named(NamedKey::ArrowDown), Modifiers::empty(), false);
     textinput.handle_keydown_aux(Key::Named(NamedKey::Backspace), Modifiers::empty(), false);
     assert_eq!(textinput.get_content(), DOMString::from("first line"));
+}
+
+#[test]
+fn test_text_point_conversion_to_utf8_offset() {
+    let textinput = text_input(Lines::Multiple, "A\nBB\nCCC\nDDDD");
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(0, Utf8CodeUnitLength(0))),
+        Utf8CodeUnitLength(0),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(0, Utf8CodeUnitLength(1))),
+        Utf8CodeUnitLength(1),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(0, Utf8CodeUnitLength(10))),
+        Utf8CodeUnitLength(2),
+        "TextPoint with offset past the end of the line should return final offset in line",
+    );
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(1, Utf8CodeUnitLength(0))),
+        Utf8CodeUnitLength(2),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(1, Utf8CodeUnitLength(2))),
+        Utf8CodeUnitLength(4),
+    );
+
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(3, Utf8CodeUnitLength(0))),
+        Utf8CodeUnitLength(9),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(3, Utf8CodeUnitLength(3))),
+        Utf8CodeUnitLength(12),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(3, Utf8CodeUnitLength(4))),
+        Utf8CodeUnitLength(13),
+        "There should be no newline at the end of the TextInput",
+    );
+    assert_eq!(
+        textinput.text_point_to_utf8_offset(TextPoint::new(3, Utf8CodeUnitLength(40))),
+        Utf8CodeUnitLength(13),
+        "There should be no newline at the end of the TextInput",
+    );
+}
+
+#[test]
+fn test_text_point_conversion_to_utf16_offset() {
+    let textinput = text_input(Lines::Multiple, "A\nBB\nCCC\n家家");
+    assert_eq!(
+        textinput.text_point_to_utf16_offset(TextPoint::new(0, Utf8CodeUnitLength(0))),
+        Utf16CodeUnitLength(0),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf16_offset(TextPoint::new(0, Utf8CodeUnitLength(1))),
+        Utf16CodeUnitLength(1),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf16_offset(TextPoint::new(0, Utf8CodeUnitLength(10))),
+        Utf16CodeUnitLength(2),
+        "TextPoint with offset past the end of the line should return final offset in line",
+    );
+    assert_eq!(
+        textinput.text_point_to_utf16_offset(TextPoint::new(3, Utf8CodeUnitLength(0))),
+        Utf16CodeUnitLength(9),
+    );
+
+    assert_eq!(
+        textinput.text_point_to_utf16_offset(TextPoint::new(3, Utf8CodeUnitLength(3))),
+        Utf16CodeUnitLength(10),
+        "3 code unit UTF-8 encodede character"
+    );
+    assert_eq!(
+        textinput.text_point_to_utf16_offset(TextPoint::new(3, Utf8CodeUnitLength(6))),
+        Utf16CodeUnitLength(11),
+    );
+    assert_eq!(
+        textinput.text_point_to_utf16_offset(TextPoint::new(3, Utf8CodeUnitLength(20))),
+        Utf16CodeUnitLength(11),
+    );
+}
+
+#[test]
+fn test_utf16_offset_to_utf8_offset() {
+    let textinput = text_input(Lines::Multiple, "A\nBB\nCCC\n家家");
+    assert_eq!(
+        textinput.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(0)),
+        Utf8CodeUnitLength(0),
+    );
+    assert_eq!(
+        textinput.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(1)),
+        Utf8CodeUnitLength(1),
+    );
+    assert_eq!(
+        textinput.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(2)),
+        Utf8CodeUnitLength(2),
+        "Offset past the end of the line",
+    );
+    assert_eq!(
+        textinput.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(9)),
+        Utf8CodeUnitLength(9),
+    );
+
+    assert_eq!(
+        textinput.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(10)),
+        Utf8CodeUnitLength(12),
+        "3 code unit UTF-8 encodede character"
+    );
+    assert_eq!(
+        textinput.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(11)),
+        Utf8CodeUnitLength(15),
+    );
+    assert_eq!(
+        textinput.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(300)),
+        Utf8CodeUnitLength(15),
+    );
 }

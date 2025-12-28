@@ -1135,7 +1135,7 @@ impl HTMLInputElement {
         }
 
         let mut failed_flags = ValidationFlags::empty();
-        let Utf16CodeUnitLength(value_len) = textinput.utf16_len();
+        let Utf16CodeUnitLength(value_len) = textinput.len_utf16();
         let min_length = self.MinLength();
         let max_length = self.MaxLength();
 
@@ -2019,22 +2019,24 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start()
+        self.selection().dom_start().map(|start| start.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_start(start)
+        self.selection()
+            .set_dom_start(start.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end()
+        self.selection().dom_end().map(|end| end.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_end(end)
+        self.selection()
+            .set_dom_end(end.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
@@ -2049,7 +2051,11 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_range(start, end, direction)
+        self.selection().set_dom_range(
+            Utf16CodeUnitLength::from(start),
+            Utf16CodeUnitLength::from(end),
+            direction,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
@@ -2066,8 +2072,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+        self.selection().set_dom_range_text(
+            replacement,
+            Some(Utf16CodeUnitLength::from(start)),
+            Some(Utf16CodeUnitLength::from(end)),
+            selection_mode,
+        )
     }
 
     /// Select the files based on filepaths passed in, enabled by
@@ -3255,7 +3265,7 @@ impl VirtualMethods for HTMLInputElement {
                         // Position the caret at the click position or at the end of the current value.
                         let edit_point_index = window
                             .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped())
-                            .unwrap_or_else(|| self.textinput.borrow().char_count());
+                            .unwrap_or_else(|| self.textinput.borrow().chars().count());
                         self.textinput.borrow_mut().clear_selection();
                         self.textinput
                             .borrow_mut()
