@@ -403,7 +403,7 @@ impl ServoAction {
                 let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
 
                 let hidpi_factor = Scale::new(get_display_density());
-                // todo: once per app should be sufficient.
+                // TODO: once per app should be sufficient.
                 let host_trait = Box::new(HostCallbacks::new());
                 servo.initialize_platform_window(
                     host_trait,
@@ -412,7 +412,7 @@ impl ServoAction {
                     viewport_rect,
                     hidpi_factor,
                 );
-                // todo: creating the window and creating the webview should be separate.
+                // TODO: creating the window and creating the webview should be separate.
                 let webview = servo.create_and_activate_toplevel_webview(servo.initial_url());
                 let id = webview.id();
                 NATIVE_WEBVIEWS
@@ -423,13 +423,6 @@ impl ServoAction {
                         xcomponent: xcomponent.clone(),
                         window: native_window.clone(),
                     });
-                // let url = webview
-                //     .url()
-                //     .map(|u| u.to_string())
-                //     .unwrap_or(String::from("about:blank"));
-                // SET_URL_BAR_CB
-                //     .get()
-                //     .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
             },
             NewWebview(xcomponent, window) => {
                 servo.pause_painting();
