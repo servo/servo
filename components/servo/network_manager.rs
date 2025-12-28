@@ -12,12 +12,12 @@ pub struct CacheEntry {
 }
 
 impl CacheEntry {
-    pub fn new(key: String) -> CacheEntry {
-        CacheEntry { key }
+    pub fn new(key: String) -> Self {
+        Self { key }
     }
 
-    pub fn key(&self) -> String {
-        self.key.clone()
+    pub fn key(&self) -> &str {
+        &self.key
     }
 }
 
@@ -53,19 +53,16 @@ impl NetworkManager {
     /// Note: The networking layer currently only implements an in-memory HTTP
     /// cache. Support for an on-disk cache is under development.
     pub fn cache_entries(&self) -> Vec<CacheEntry> {
-        let mut entries: HashSet<String> = HashSet::default();
-
         let public_entries = self.public_resource_threads.cache_entries();
-        for public_entry in public_entries {
-            entries.insert(public_entry.key);
-        }
-
         let private_entries = self.private_resource_threads.cache_entries();
-        for private_entry in private_entries {
-            entries.insert(private_entry.key);
-        }
 
-        entries.into_iter().map(CacheEntry::new).collect()
+        let unique_keys: HashSet<String> = public_entries
+            .into_iter()
+            .chain(private_entries)
+            .map(|e| e.key)
+            .collect();
+
+        unique_keys.into_iter().map(CacheEntry::new).collect()
     }
 
     /// Clears the network (HTTP) cache.

@@ -508,7 +508,7 @@ impl ResourceThreads {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let _ = self
             .core_thread
-            .send(CoreResourceMsg::ListCacheEntries(sender));
+            .send(CoreResourceMsg::GetCacheEntries(sender));
         receiver.recv().unwrap()
     }
 
@@ -633,7 +633,7 @@ pub enum CoreResourceMsg {
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
     /// Gets a list of origin descriptors derived from entries in the cache
-    ListCacheEntries(GenericSender<Vec<CacheEntryDescriptor>>),
+    GetCacheEntries(GenericSender<Vec<CacheEntryDescriptor>>),
     /// Clear the network cache.
     ClearCache(Option<GenericSender<()>>),
     /// Send the service worker network mediator for an origin to CoreResourceThread
@@ -663,7 +663,7 @@ pub struct CacheEntryDescriptor {
 
 impl CacheEntryDescriptor {
     pub fn new(key: String) -> Self {
-        CacheEntryDescriptor { key }
+        Self { key }
     }
 }
 

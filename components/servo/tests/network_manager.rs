@@ -55,7 +55,7 @@ fn test_cache_entries() {
     let cache_entries = network_manager.cache_entries();
     assert_eq!(
         &cache_entries,
-        &[CacheEntry::new(format!("http://localhost:{}/", port)),]
+        &[CacheEntry::new(format!("http://localhost:{port}/")),]
     );
 }
 
