@@ -158,6 +158,10 @@ jobs:
     continue-on-error: true
     runs-on: hos-builder
     if: github.repository == 'servo/servo'
+    outputs:
+      # We need to save the job status as an output, since our usage of `continue-on-error`
+      # will make `needs.build-harmonyos-aarch64.result` evaluate to `success` even if the job failed.
+      job_status: ${{ steps.result.outputs.JOB_STATUS }}
     steps:
       - if: ${{ github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
@@ -176,6 +180,10 @@ jobs:
           # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
           name: servoshell-hos-${{ inputs.profile }}.hap
           path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
+      - name: Save result as job output
+        id: result
+        if: always()
+        run: echo "JOB_STATUS=${{ job.status }}" | tee $GITHUB_OUTPUT
 
   test-harmonyos-aarch64:
     name: Test HarmonyOS aarch64
@@ -184,7 +192,7 @@ jobs:
     # so in the beginning we will just do a best effort approach but ignore errors.
     continue-on-error: true
     runs-on: hos-runner
-    if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     needs: build-harmonyos-aarch64
     steps:
       - uses: actions/download-artifact@v4
@@ -249,7 +257,7 @@ jobs:
     continue-on-error: true
     runs-on: hos-runner
     needs: test-harmonyos-aarch64
-    if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -362,7 +370,7 @@ jobs:
     name: Mossel Scenario test
     continue-on-error: true
     runs-on: hos-runner
-    if: github.repository == 'servo/servo'
+    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     needs: build-harmonyos-aarch64
     env:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
