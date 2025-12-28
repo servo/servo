@@ -44,7 +44,7 @@ async def test_pointer_down_closes_browsing_context(
         actions.add_pointer(pointer_type="pen")
         .pointer_move(0, 0, origin=origin)
         .pointer_down(button=0)
-        .pause(250 * configuration["timeout_multiplier"])
+        .pause(100 * configuration["timeout_multiplier"])
         .pointer_up(button=0)
     )
 

@@ -47,7 +47,7 @@ async def test_key_down_closes_browsing_context(
     (
         actions.add_key()
         .key_down("w")
-        .pause(250 * configuration["timeout_multiplier"])
+        .pause(100 * configuration["timeout_multiplier"])
         .key_up("w")
     )
 

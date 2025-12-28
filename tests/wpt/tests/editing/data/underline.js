@@ -760,4 +760,12 @@ var browserTests = [
      "abc<span style=\"text-decoration-line:line-through\">[def]</span>ghi"],
     [true,true],
     {}],
+
+// Should not change the style of the non-editable nodes so that only the
+// visible and editable nodes are wrapped into the <u> elements.
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["underline",""]],
+    ' <span contenteditable="false">A</span><u> ; </u><span contenteditable="false">B</span><u> ; </u><span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

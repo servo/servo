@@ -59,12 +59,12 @@
       anim.currentTime = 1000 * data.at;
       const actual = getComputedStyle(target).backgroundColor;
       const expected = data.value;
-      assert_equals(actual, expected, `Background color at ${100*data.at}% animation progress`);
+      assert_oklab_color(actual, expected, `Background color at ${100*data.at}% animation progress`);
     });
   }
 
   const bg_color_legacy_rgb_to_oklch = [
-    { at: 0, value: 'rgb(255, 0, 0)' },
+    { at: 0, value: 'oklab(0.627955 0.224863 0.125846)' },
     { at: 0.25, value: 'oklab(0.583475 0.163433 0.0446685)' },
     { at: 0.5, value: 'oklab(0.538983 0.101987 -0.0365225)' },
     { at: 0.75, value: 'oklab(0.494492 0.0405407 -0.117713)' },

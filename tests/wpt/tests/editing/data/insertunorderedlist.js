@@ -856,4 +856,12 @@ var browserTests = [
      "<ul><li title=\"a\">abc</li><li title=\"b\">def</li></ul>"],
     [true],
     {}],
+
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["insertunorderedlist",""]],
+    ['<ul><li> <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> </li></ul>',
+     // It's fine to delete the invisible whitespaces.
+     '<ul><li><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></li></ul>'],
+    [true],
+    {}],
 ]

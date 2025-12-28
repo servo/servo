@@ -5,6 +5,9 @@ features:
 - name: font-feature-settings
   files:
   - font-feature-settings.html
+- name: font-kerning
+  files:
+  - font-kerning.html
 - name: font-variant
   files:
   - font-variant.html
@@ -23,3 +26,6 @@ features:
 - name: dominant-baseline
   files:
   - dominant-baseline.html
+- name: filter
+  files:
+  - filter.html

@@ -56,3 +56,8 @@ features:
   - at-charset-space-*
   - at-charset-utf16-*
   - charset-attr-*
+- name: counters
+  files:
+  - case-sensitive-005.xht
+  - characters-0080-009F-001.xht
+  - counters-*

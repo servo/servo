@@ -862,4 +862,12 @@ var browserTests = [
    "<p><font size=\"5\"><span style=\"background-color:rgb(0, 128, 128)\">[abc</span></font></p><p><font size=\"5\"><span style=\"background-color:rgb(128, 128, 0)\">def]</span></font></p>"],
   [true,true],
   {}],
+
+// Should not change the style of the non-editable nodes so that only the
+// visible and editable nodes are wrapped into the <font> elements.
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["fontsize","5"]],
+    ' <span contenteditable="false">A</span><font size="5"> ; </font><span contenteditable="false">B</span><font size="5"> ; </font><span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

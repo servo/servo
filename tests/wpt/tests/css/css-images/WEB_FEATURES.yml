@@ -10,3 +10,6 @@ features:
   - object-fit-*-png*
   - "!object-fit-containcontainintrinsicsize-png-*"
   - "!object-fit-containsize-png-*"
+- name: cross-fade
+  files:
+  - cross-fade-*

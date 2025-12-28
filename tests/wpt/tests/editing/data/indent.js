@@ -816,4 +816,27 @@ var browserTests = [
      "<div contenteditable=\"false\"><div contenteditable=\"\"><blockquote style=\"margin:0 0 0 40px; border:none; padding:0px\">abc</blockquote></div></div>"],
     [true,true],
     {"indent":[false,false,"",false,false,""]}],
+
+// Firefox and Chrome put the new <div> or <blockquote> at start of the selection first.
+// Then, Firefox moves all editable nodes in the range into the new block.  However,
+// Chrome does not move anything.  Safari just deletes editable nodes in the range.
+// For here, these test expects that browsers wrap all selected things into the new
+// block since non-editable nodes are removable, so, they should be movable too and
+// Firefox and Chrome behave so for "insertOrderedList" and "insertUnorderedList".
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","true"],["indent",""]],
+    ['<div style=\"margin-left:40px\"> <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> </div>',
+     '<div style=\"margin-left:40px\"><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div>',
+     '<blockquote style="margin:0 0 0 40px; border:none; padding:0px"> <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> </blockquote>',
+     '<blockquote style="margin:0 0 0 40px; border:none; padding:0px"><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></blockquote>'],
+    [true,true],
+    {}],
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["indent",""]],
+    ['<blockquote> <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> </blockquote>',
+     '<blockquote><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></blockquote>',
+     '<blockquote style="margin:0 0 0 40px; border:none; padding:0px"> <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> </blockquote>',
+     '<blockquote style="margin:0 0 0 40px; border:none; padding:0px"><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></blockquote>'],
+    [true,true],
+    {}],
 ]
