@@ -32,7 +32,7 @@ struct Index {
 
   aboutToAppear(): void {
     console.info("aboutToAppear - registering callbacks!")
-    servoshell.registerURLcallback((new_url) => {
+    servoshell.registerURLcallback((new_url: string) => {
       console.info('New URL from native: ', new_url)
       this.urlToLoad = new_url
     })
