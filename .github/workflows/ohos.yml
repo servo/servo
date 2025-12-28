@@ -343,7 +343,7 @@ jobs:
         timeout-minutes: 10
         if: ${{ !cancelled() && steps.setup_complete.outcome == 'success' }}
       - name: Handle failed speedometer
-        if: ${{ steps.speedometer.outcome == 'failure' }}
+        if: ${{ !cancelled() && steps.speedometer.outcome == 'failure' }}
         run: |
           touch speedometer.json # Create an empty file for bencher.
           mkdir speedometer_error_logs
@@ -352,7 +352,7 @@ jobs:
           # Todo: Upload logs. This is currently not possible since the test-speedometer-ohos command
           # sets a log filter, which filters everything except JS console output.
       - uses: actions/upload-artifact@v4
-        if: ${{ steps.speedometer.outcome == 'failure' }}
+        if: ${{ !cancelled() && steps.speedometer.outcome == 'failure' }}
         with:
           name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
           path: speedometer_error_logs
