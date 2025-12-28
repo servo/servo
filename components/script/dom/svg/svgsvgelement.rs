@@ -11,7 +11,7 @@ use layout_api::SVGElementData;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::Origin;
 use style::values::specified::Length;
 use style_traits::ParsingMode;
 use xml5ever::serialize::TraversalScope;
@@ -218,7 +218,7 @@ impl VirtualMethods for SVGSVGElement {
                 let context = ParserContext::new(
                     Origin::Author,
                     &url,
-                    Some(CssRuleType::Style),
+                    None,
                     ParsingMode::ALLOW_UNITLESS_LENGTH,
                     doc.quirks_mode(),
                     /* namespaces = */ Default::default(),
