@@ -2,3 +2,6 @@ features:
 - name: backdrop-filter
   files:
   - backdrop-filter-*
+- name: filter
+  files:
+  - filter-*

@@ -411,5 +411,13 @@ var browserTests = [
     [["stylewithcss","false"],["hilitecolor","#00FFFF"]],
     "<span style=\"background-color:rgb(0, 255, 255)\">[foo<span style=\"font-size:xx-large\">bar</span>baz]</span>",
     [true,true],
-    {"stylewithcss":[false,true,"",false,false,""],"hilitecolor":[false,false,"rgba(0, 0, 0, 0)",false,false,"rgb(0, 255, 255)"]}]
+    {"stylewithcss":[false,true,"",false,false,""],"hilitecolor":[false,false,"rgba(0, 0, 0, 0)",false,false,"rgb(0, 255, 255)"]}],
+
+// Should not change the style of the non-editable nodes so that only the
+// visible and editable nodes are wrapped into the <span> elements.
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["hilitecolor","#00FFFF"]],
+    ' <span contenteditable="false">A</span><span style="background-color:rgb(0, 255, 255)"> ; </span><span contenteditable="false">B</span><span style="background-color:rgb(0, 255, 255)"> ; </span><span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

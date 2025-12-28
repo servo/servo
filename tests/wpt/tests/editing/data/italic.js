@@ -676,5 +676,13 @@ var browserTests = [
     [["stylewithcss","false"],["italic",""]],
     "<i>fo</i>[o<address><span style=\"font-style:normal\">b]</span>ar</address>",
     [true,true],
-    {"stylewithcss":[false,true,"",false,false,""],"italic":[false,true,"",false,false,""]}]
+    {"stylewithcss":[false,true,"",false,false,""],"italic":[false,true,"",false,false,""]}],
+
+// Should not change the style of the non-editable nodes so that only the
+// visible and editable nodes are wrapped into the <i> elements.
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["italic",""]],
+    ' <span contenteditable="false">A</span><i> ; </i><span contenteditable="false">B</span><i> ; </i><span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

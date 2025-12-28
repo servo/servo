@@ -2703,4 +2703,24 @@ var browserTests = [
     "<div style=\"display:inline-grid\"><span>abc</span><span><br></span></div>",
     [true,true],
     {}],
+
+// The following tests are ported by Mozilla from their old test and the
+// expectations are based on Chrome's behavior unless the behavior does not
+// make sense.
+[' <span contenteditable="false">A</span>[] ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> ',
+    [["defaultparagraphseparator","div"],["insertparagraph",""]],
+    [' <div><span contenteditable="false">A</span></div><div>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> ',
+     ' <span contenteditable="false">A</span><div>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> '],
+    [true,true],
+    {}],
+[' <div><span contenteditable="false">A</span></div><div>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> ',
+    [["insertparagraph",""]],
+    ' <div><span contenteditable="false">A</span></div><div><br></div><div>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> ',
+    [true],
+    {}],
+[' <span contenteditable="false">A</span><div>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> ',
+    [["insertparagraph",""]],
+    ' <span contenteditable="false">A</span><div><br></div><div>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> ',
+    [true],
+    {}],
 ]

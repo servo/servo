@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selector Invalidation: :has(> :is()) with child combinator</title>
+<link rel="author" title="Nipun Shukla" href="mailto:nipun_shukla@apple.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<style>
+div, main { color: grey }
+#subject:has(> :is(.parent > .child)) { color: green }
+#subject:has(> :is(.parent .descendant)) { color: blue }
+#subject:has(:is(.deep-parent > .deep-child)) { color: red }
+</style>
+
+<main id=main>
+    <div id=subject>
+        <div id=direct_child>
+            <div id=grandchild></div>
+        </div>
+    </div>
+</main>
+
+<script>
+const grey = 'rgb(128, 128, 128)';
+const green = 'rgb(0, 128, 0)';
+const blue = 'rgb(0, 0, 255)';
+const red = 'rgb(255, 0, 0)';
+
+function testColor(test_name, color) {
+    test(function() {
+        assert_equals(getComputedStyle(subject).color, color);
+    }, test_name);
+}
+
+testColor('Initial color', grey);
+
+// :has(> :is(.parent > .child))
+subject.classList.add('parent');
+testColor('add .parent to subject', grey);
+direct_child.classList.add('child');
+testColor('add .child to direct_child', green);
+direct_child.classList.remove('child');
+testColor('remove .child from direct_child', grey);
+subject.classList.remove('parent');
+
+// :has(> :is(.parent .descendant))
+subject.classList.add('parent');
+testColor('add .parent to subject for .descendant test', grey);
+direct_child.classList.add('descendant');
+testColor('add .descendant to direct_child', blue);
+direct_child.classList.remove('descendant');
+testColor('remove .descendant from direct_child', grey);
+subject.classList.remove('parent');
+
+// :has(:is(.deep-parent > .deep-child))
+grandchild.classList.add('deep-child');
+testColor('add .deep-child to grandchild', grey);
+direct_child.classList.add('deep-parent');
+testColor('add .deep-parent to direct_child', red);
+direct_child.classList.remove('deep-parent');
+testColor('remove .deep-parent from direct_child', grey);
+grandchild.classList.remove('deep-child');
+
+</script>

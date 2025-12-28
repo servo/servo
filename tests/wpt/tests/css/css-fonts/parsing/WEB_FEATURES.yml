@@ -6,6 +6,11 @@ features:
   files:
   - font-palette-*
   - font-palette-values-*
+- name: font-size
+  files:
+  - font-size-computed.html
+  - font-size-invalid.html
+  - font-size-valid.html
 - name: font-size-adjust
   files:
   - font-size-adjust-*
@@ -55,3 +60,6 @@ features:
 - name: font-feature-settings
   files:
   - font-feature-settings-*
+- name: font-kerning
+  files:
+  - font-kerning-*

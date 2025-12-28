@@ -1892,4 +1892,19 @@ var browserTests = [
     "<span style=\"display:block\">abc</span><div><span style=\"display:block\">def</span></div><span style=\"display:block\">ghi</span>",
     [true],
     {"formatblock":[false,false,"",false,false,"div"]}],
+
+// Chrome put the new <p> at start of the selection first. Then, does not move
+// anything.  Safari just deletes editable nodes in the range.
+// For here, the following test expects that browsers wrap all selected things
+// into the new <p> since non-editable nodes are removable, so, they should be
+// movable too and Firefox and Chrome behave so for "insertOrderedList" and
+// "insertUnorderedList".
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["formatblock","p"]],
+    ['<p> <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> </p>',
+     // It's fine to ignore or delete the invisible whitespaces.
+     ' <p><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></p> ',
+     '<p><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></p>'],
+    [true],
+    {}],
 ]

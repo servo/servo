@@ -768,4 +768,12 @@ var browserTests = [
      "abc<span style=\"text-decoration-line:underline\">[def]</span>ghi"],
     [true,true],
     {}],
+
+// Should not change the style of the non-editable nodes so that only the
+// visible and editable nodes are wrapped into the <strike> elements.
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["strikethrough",""]],
+    ' <span contenteditable="false">A</span><strike> ; </strike><span contenteditable="false">B</span><strike> ; </strike><span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

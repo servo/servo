@@ -763,4 +763,10 @@ var browserTests = [
      "justifycenter":[false,false,"left",false,false,"left"],
      "justifyfull":[false,false,"left",false,false,"left"],
      "justifyright":[false,false,"left",false,false,"left"]}],
+
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","true"],["justifyleft",""]],
+    ' <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

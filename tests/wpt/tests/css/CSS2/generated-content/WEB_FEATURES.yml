@@ -90,3 +90,42 @@ features:
   - content-attr-case-001.html
   - content-attr-case-002.xht
   - other-attribute-001.xht
+- name: counters
+  files:
+  - content-005.xht
+  - content-006.xht
+  - content-007.xht
+  - content-008.xht
+  - content-009.xht
+  - content-010.xht
+  - content-011.xht
+  - content-012.xht
+  - content-013.xht
+  - content-014.xht
+  - content-015.xht
+  - content-016.xht
+  - content-017.xht
+  - content-018.xht
+  - content-019.xht
+  - content-020.xht
+  - content-021.xht
+  - content-022.xht
+  - content-023.xht
+  - content-024.xht
+  - content-025.xht
+  - content-026.xht
+  - content-027.xht
+  - content-028.xht
+  - content-029.xht
+  - content-030.xht
+  - content-031.xht
+  - content-032.xht
+  - content-033.xht
+  - content-034.xht
+  - content-035.xht
+  - content-036.xht
+  - content-auto-reset-001.xht
+  - content-counter-*
+  - content-counters-*
+  - counter-*
+  - counters-*
