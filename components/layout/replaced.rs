@@ -18,7 +18,6 @@ use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::computed_values::object_fit::T as ObjectFit;
-use style::context::QuirksMode;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::{ComputedValues, StyleBuilder};
 use style::rule_cache::RuleCacheConditions;
@@ -223,7 +222,7 @@ impl ReplacedContents {
 
                 let to_computed_context = Context::new(
                     style_builder,
-                    QuirksMode::Quirks,
+                    context.style_context.quirks_mode(),
                     rule_cache_conditions,
                     ContainerSizeQuery::none(),
                 );
