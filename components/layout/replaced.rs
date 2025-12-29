@@ -252,6 +252,7 @@ impl ReplacedContents {
             node.style(&context.style_context).clone_content()
         {
             if let [GenericContentItem::Image(image)] = items.as_slice() {
+                // Invalid images are treated as zero-sized.
                 return Some(
                     Self::from_image(node, context, image)
                         .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
