@@ -17,9 +17,7 @@ use servo_arc::Arc as ServoArc;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style::values::generics::counters::{
-    Content, ContentItem, GenericContentItem, GenericContentItems,
-};
+use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
 
 use crate::context::LayoutContext;
@@ -293,22 +291,6 @@ impl Contents {
         node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
     ) -> Self {
-        // If `content` is a single image URL, the box gets replaced with a
-        // replaced image.
-        if let Content::Items(GenericContentItems { items, .. }) =
-            node.style(&context.style_context).clone_content()
-        {
-            if let [GenericContentItem::Image(image)] = items.as_slice() {
-                match ReplacedContents::from_image(node, context, image) {
-                    Some(replaced) => return Self::Replaced(replaced),
-                    // Invalid images are treated as zero-sized.
-                    None => {
-                        return Self::Replaced(ReplacedContents::zero_sized_invalid_image(node));
-                    },
-                }
-            }
-        }
-
         if let Some(replaced) = ReplacedContents::for_element(node, context) {
             return Self::Replaced(replaced);
         }

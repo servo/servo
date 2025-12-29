@@ -22,6 +22,7 @@ use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
+use style::values::generics::counters::{Content, GenericContentItem, GenericContentItems};
 use url::Url;
 use webrender_api::ImageKey;
 
@@ -150,6 +151,9 @@ impl ReplacedContents {
 
         let (kind, natural_size) = {
             if let Some((image, natural_size_in_dots)) = node.as_image() {
+                if let Some(content_image) = Self::from_content_property(node, context) {
+                    return Some(content_image);
+                }
                 (
                     ReplacedContentKind::Image(image, node.showing_broken_image_icon()),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
@@ -212,7 +216,7 @@ impl ReplacedContents {
             } else {
                 let element = node.as_html_element()?;
                 if !element.has_local_name(&local_name!("audio")) {
-                    return None;
+                    return Self::from_content_property(node, context);
                 }
                 let natural_size = NaturalSizes {
                     width: None,
@@ -236,6 +240,25 @@ impl ReplacedContents {
             natural_size,
             base_fragment_info: node.into(),
         })
+    }
+
+    fn from_content_property(
+        node: ServoThreadSafeLayoutNode<'_>,
+        context: &LayoutContext,
+    ) -> Option<Self> {
+        // If the `content` property is a single image URL, non-replaced boxes
+        // and images get replaced with the given image.
+        if let Content::Items(GenericContentItems { items, .. }) =
+            node.style(&context.style_context).clone_content()
+        {
+            if let [GenericContentItem::Image(image)] = items.as_slice() {
+                return Some(
+                    Self::from_image(node, context, image)
+                        .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
+                );
+            }
+        }
+        None
     }
 
     pub fn from_image_url(
