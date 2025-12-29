@@ -3048,9 +3048,13 @@ impl GlobalScope {
     /// Process a single event as if it were the next event
     /// in the queue for the event-loop where this global scope is running on.
     /// Returns a boolean indicating whether further events should be processed.
-    pub(crate) fn process_event(&self, msg: CommonScriptMsg, can_gc: CanGc) -> bool {
+    pub(crate) fn process_event(
+        &self,
+        msg: CommonScriptMsg,
+        cx: &mut js::context::JSContext,
+    ) -> bool {
         if self.is::<Window>() {
-            return ScriptThread::process_event(msg, can_gc);
+            return ScriptThread::process_event(msg, cx);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg);
