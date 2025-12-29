@@ -1340,11 +1340,6 @@ impl ScriptThread {
                 .borrow_mut()
                 .dispatch_completed_timers();
 
-            let _realm = event.pipeline_id().map(|id| {
-                let global = self.documents.borrow().find_global(id);
-                global.map(|global| enter_realm(&*global))
-            });
-
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7
             match event {
                 // This has to be handled before the ResizeMsg below,
