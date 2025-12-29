@@ -50,7 +50,7 @@ unsafe extern "C" fn enclosing_size_impl(ptr: *const c_void) -> usize {
 pub static enclosing_size: Option<EnclosingSizeFn> = Some(crate::enclosing_size_impl);
 
 #[expect(non_upper_case_globals)]
-#[cfg(not(feature = "allocation-tracking"))]
+[cfg(not(feature = "allocation-tracking"))]
 pub static enclosing_size: Option<EnclosingSizeFn> = None;
 
 #[cfg(not(any(windows, feature = "use-system-allocator", target_env = "ohos")))]

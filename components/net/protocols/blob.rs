@@ -33,7 +33,13 @@ impl ProtocolHandler for BlobProtocolHander {
 
         // Step 2.
         if request.method != Method::GET {
+<<<<<<< HEAD
             return Box::pin(ready(Response::network_error(NetworkError::InvalidMethod)));
+=======
+            return Box::pin(ready(Response::network_error(NetworkError::Internal(
+                "Unexpected method for blob".into(),
+            ))));
+>>>>>>> 9a860baef0 (script: Use correct creation_url for workers (#41458))
         }
 
         let range_header = request.headers.typed_get::<Range>();
@@ -42,9 +48,15 @@ impl ProtocolHandler for BlobProtocolHander {
         let (id, origin) = match parse_blob_url(&url) {
             Ok((id, origin)) => (id, origin),
             Err(error) => {
+<<<<<<< HEAD
                 return Box::pin(ready(Response::network_error(
                     NetworkError::ResourceLoadError(format!("Invalid blob URL ({error})")),
                 )));
+=======
+                return Box::pin(ready(Response::network_error(NetworkError::Internal(
+                    format!("Invalid blob URL ({error})"),
+                ))));
+>>>>>>> 9a860baef0 (script: Use correct creation_url for workers (#41458))
             },
         };
 

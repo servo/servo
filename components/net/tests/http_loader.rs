@@ -1222,7 +1222,11 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     assert_eq!(
         response.get_network_error(),
+<<<<<<< HEAD
         Some(&NetworkError::TooManyRedirects)
+=======
+        Some(&NetworkError::Internal("Too many redirects".to_owned()))
+>>>>>>> 9a860baef0 (script: Use correct creation_url for workers (#41458))
     );
 }
 

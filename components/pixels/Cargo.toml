@@ -12,9 +12,15 @@ name = "pixels"
 path = "lib.rs"
 
 [dependencies]
+<<<<<<< HEAD
 base = { workspace = true }
 euclid = { workspace = true }
 image = { workspace = true }
+=======
+euclid = { workspace = true }
+image = { workspace = true }
+ipc-channel = { workspace = true }
+>>>>>>> 9a860baef0 (script: Use correct creation_url for workers (#41458))
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
