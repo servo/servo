@@ -52,13 +52,12 @@ impl OpenRequestListener {
                 // and fire an event named success at request.
                 let connection = request.pending_connection.or_init(|| {
                     debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
-                    let connection = IDBDatabase::new(
+                    IDBDatabase::new(
                         &global,
                         DOMString::from_string(name.0.clone()),
                         version,
                         can_gc,
-                    );
-                    connection
+                    )
                 });
                 request.dispatch_success(&connection);
             },
@@ -380,7 +379,7 @@ impl IDBOpenDBRequest {
         let global = self.global();
         let cx = GlobalScope::get_cx();
 
-        let _ac = enter_realm(&*result);
+        let _ac = enter_realm(result);
         rooted!(in(*cx) let mut result_val = UndefinedValue());
         result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::note());
         self.set_result(result_val.handle());

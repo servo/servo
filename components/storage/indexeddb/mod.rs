@@ -207,22 +207,115 @@ fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
 /// <https://w3c.github.io/IndexedDB/#request-open-request>
 /// Used here to implement the
 /// <https://w3c.github.io/IndexedDB/#connection-queue>
-struct OpenRequest {
-    /// The callback used to send a result to script.
-    sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
+enum OpenRequest {
+    Open {
+        /// The callback used to send a result to script.
+        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
 
-    /// The origin of the request.
-    /// TODO: storage key.
-    origin: ImmutableOrigin,
+        /// The origin of the request.
+        /// TODO: storage key.
+        origin: ImmutableOrigin,
 
-    // The name of the database.
-    db_name: String,
+        /// The name of the database.
+        db_name: String,
 
-    /// Optionnaly, a requested db version.
-    version: Option<u64>,
+        /// Optionnaly, a requested db version.
+        version: Option<u64>,
 
-    /// Optionnaly, a version pending ugrade.
-    pending_upgrade: Option<VersionUpgrade>,
+        /// Optionnaly, a version pending ugrade.
+        /// Used as <https://w3c.github.io/IndexedDB/#request-processed-flag>
+        pending_upgrade: Option<VersionUpgrade>,
+    },
+    Delete {
+        /// The callback used to send a result to script.
+        sender: GenericCallback<BackendResult<u64>>,
+
+        /// The origin of the request.
+        /// TODO: storage key.
+        /// Note: will be used when the full spec is implemented.
+        _origin: ImmutableOrigin,
+
+        /// The name of the database.
+        /// Note: will be used when the full spec is implemented.
+        _db_name: String,
+
+        /// <https://w3c.github.io/IndexedDB/#request-processed-flag>
+        processed: bool,
+    },
+}
+
+impl OpenRequest {
+    fn is_open(&self) -> bool {
+        match self {
+            OpenRequest::Open {
+                sender: _,
+                origin: _,
+                db_name: _,
+                version: _,
+                pending_upgrade: _,
+            } => true,
+            OpenRequest::Delete {
+                sender: _,
+                _origin: _,
+                _db_name: _,
+                processed: _,
+            } => false,
+        }
+    }
+    fn is_pending(&self) -> bool {
+        match self {
+            OpenRequest::Open {
+                sender: _,
+                origin: _,
+                db_name: _,
+                version: _,
+                pending_upgrade,
+            } => pending_upgrade.is_some(),
+            OpenRequest::Delete {
+                sender: _,
+                _origin: _,
+                _db_name: _,
+                processed,
+            } => !processed,
+        }
+    }
+
+    /// Abort the open request,
+    /// optionally returning a version to revert to.
+    fn abort(&self) -> Option<u64> {
+        match self {
+            OpenRequest::Open {
+                sender,
+                origin: _,
+                db_name: _,
+                version: _,
+                pending_upgrade,
+            } => {
+                let Some(VersionUpgrade { old, new: _ }) = pending_upgrade else {
+                    debug_assert!(
+                        false,
+                        "A pending open request should have a pending upgrade."
+                    );
+                    return None;
+                };
+                if sender.send(Ok(OpenDatabaseResult::AbortError)).is_err() {
+                    error!("Failed to send OpenDatabaseResult::Connection to script.");
+                };
+                Some(*old)
+            },
+            OpenRequest::Delete {
+                sender,
+                _origin: _,
+                _db_name: _,
+                processed: _,
+            } => {
+                if sender.send(Err(BackendError::DbNotFound)).is_err() {
+                    error!("Failed to send result of database delete to script.");
+                };
+                None
+            },
+        }
+    }
 }
 
 struct VersionUpgrade {
@@ -319,11 +412,20 @@ impl IndexedDBManager {
         let Some(open_request) = queue.pop_front() else {
             return debug_assert!(false, "A pending open request should exist.");
         };
-        let Some(VersionUpgrade { old: _, new }) = open_request.pending_upgrade else {
+        let OpenRequest::Open {
+            sender,
+            origin: _,
+            db_name: _,
+            version: _,
+            pending_upgrade,
+        } = open_request
+        else {
+            return;
+        };
+        let Some(VersionUpgrade { old: _, new }) = pending_upgrade else {
             return debug_assert!(false, "A pending version upgrade should exist.");
         };
-        if open_request
-            .sender
+        if sender
             .send(Ok(OpenDatabaseResult::Connection {
                 version: new,
                 upgraded: true,
@@ -333,25 +435,61 @@ impl IndexedDBManager {
             error!("Failed to send OpenDatabaseResult::Connection to script.");
         };
 
-        // Handle the next open request in the queue.
-        if !queue.is_empty() {
-            self.open_database(key.clone());
-            self.prune_connection_queue(&key);
+        self.advance_connection_queue(key);
+    }
+
+    /// Run the next open request in the queue.
+    fn advance_connection_queue(&mut self, key: IndexedDBDescription) {
+        loop {
+            let is_open = {
+                let Some(queue) = self.connection_queues.get_mut(&key) else {
+                    return;
+                };
+                if queue.is_empty() {
+                    return;
+                }
+                queue.front().expect("Queue is not empty.").is_open()
+            };
+
+            if is_open {
+                self.open_database(key.clone());
+            } else {
+                self.delete_database(key.clone());
+            }
+
+            let was_pruned = self.maybe_remove_front_from_queue(&key);
+
+            if !was_pruned {
+                // Note: requests to delete a database are, at this point in the implementation,
+                // done in one step; so we can continue on to the next request.
+                // Request to open a connection consists of multiple async steps, so we must break if
+                // it is still pending.
+                break;
+            }
         }
     }
 
-    /// Only keeping requests in the queue if they have a pending upgrade.
-    fn prune_connection_queue(&mut self, key: &IndexedDBDescription) {
-        let is_empty = {
+    /// Remove the record at the front if it is not pending.
+    fn maybe_remove_front_from_queue(&mut self, key: &IndexedDBDescription) -> bool {
+        let (is_empty, was_pruned) = {
             let Some(queue) = self.connection_queues.get_mut(key) else {
-                return debug_assert!(false, "A connection queue should exist.");
+                debug_assert!(false, "A connection queue should exist.");
+                return false;
             };
-            queue.retain(|request| request.pending_upgrade.is_some());
-            queue.is_empty()
+            let mut pruned = false;
+            let front_is_pending = queue.front().map(|record| record.is_pending());
+            if let Some(is_pending) = front_is_pending {
+                if !is_pending {
+                    queue.pop_front().expect("Queue has a non-pending item.");
+                    pruned = true
+                }
+            }
+            (queue.is_empty(), pruned)
         };
         if is_empty {
             self.connection_queues.remove(key);
         }
+        was_pruned
     }
 
     /// Aborting the current upgrade for an origin.
@@ -372,37 +510,19 @@ impl IndexedDBManager {
             let Some(open_request) = queue.pop_front() else {
                 return debug_assert!(false, "There should be an open request to upgrade.");
             };
-            let Some(VersionUpgrade { old, new: _ }) = open_request.pending_upgrade else {
-                return debug_assert!(
-                    false,
-                    "A pending open request should have a pending upgrade."
-                );
-            };
-            if open_request
-                .sender
-                .send(Ok(OpenDatabaseResult::AbortError))
-                .is_err()
-            {
-                error!("Failed to send OpenDatabaseResult::Connection to script.");
-            };
-            old
+            open_request.abort()
         };
-        {
+        if let Some(old_version) = old {
             let Some(db) = self.databases.get_mut(&key) else {
                 return debug_assert!(false, "Db should have been created");
             };
             // Step 3: Set connection’s version to database’s version if database previously existed
             //  or 0 (zero) if database was newly created.
-            let res = db.set_version(old);
+            let res = db.set_version(old_version);
             debug_assert!(res.is_ok(), "Setting a db version should not fail.");
         }
-        let Some(queue) = self.connection_queues.get_mut(&key) else {
-            return;
-        };
-        if !queue.is_empty() {
-            self.open_database(key.clone());
-            self.prune_connection_queue(&key);
-        }
+
+        self.advance_connection_queue(key);
     }
 
     /// Aborting all upgrades for an origin
@@ -420,23 +540,12 @@ impl IndexedDBManager {
                     continue;
                 };
                 for open_request in queue.drain(0..) {
+                    let old = open_request.abort();
                     if version_to_revert.is_none() {
-                        let Some(VersionUpgrade { old, new: _ }) = open_request.pending_upgrade
-                        else {
-                            return debug_assert!(
-                                false,
-                                "A pending open request should have a pending upgrade."
-                            );
-                        };
-                        version_to_revert = Some(old);
+                        if let Some(old) = old {
+                            version_to_revert = Some(old);
+                        }
                     }
-                    if open_request
-                        .sender
-                        .send(Ok(OpenDatabaseResult::AbortError))
-                        .is_err()
-                    {
-                        error!("Failed to send OpenDatabaseResult::Connection to script.");
-                    };
                 }
             }
             if let Some(version) = version_to_revert {
@@ -463,7 +572,7 @@ impl IndexedDBManager {
             name: db_name.clone(),
             origin: origin.clone(),
         };
-        let open_request = OpenRequest {
+        let open_request = OpenRequest::Open {
             sender,
             origin,
             db_name,
@@ -482,7 +591,7 @@ impl IndexedDBManager {
         // Step 3: Wait until all previous requests in queue have been processed.
         if should_continue {
             self.open_database(key.clone());
-            self.prune_connection_queue(&key);
+            self.maybe_remove_front_from_queue(&key);
         }
     }
 
@@ -528,13 +637,16 @@ impl IndexedDBManager {
         let Some(open_request) = queue.front_mut() else {
             return debug_assert!(false, "An open request should be in the queue.");
         };
-        let OpenRequest {
+        let OpenRequest::Open {
             sender,
             origin: _,
             db_name: _,
             version: _,
             pending_upgrade,
-        } = open_request;
+        } = open_request
+        else {
+            return;
+        };
 
         // Step 1: Let db be connection’s database.
         // TODO: connection.
@@ -594,13 +706,19 @@ impl IndexedDBManager {
         let Some(open_request) = queue.front_mut() else {
             return debug_assert!(false, "An open request should be in the queue.");
         };
-        let OpenRequest {
+        let OpenRequest::Open {
             sender,
             origin,
             db_name,
             version,
             pending_upgrade: _,
-        } = open_request;
+        } = open_request
+        else {
+            return debug_assert!(
+                false,
+                "An request to open a connection should be in the queue."
+            );
+        };
 
         let idb_description = IndexedDBDescription {
             origin: origin.clone(),
@@ -718,14 +836,58 @@ impl IndexedDBManager {
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#delete-a-database>
-    fn delete_database(&mut self, idb_description: IndexedDBDescription) -> BackendResult<u64> {
-        // Step 1: Let queue be the connection queue for storageKey and name.
-        // Step 2: Add request to queue.
+    /// The part adding the request to the connection queue.
+    fn start_delete_database(
+        &mut self,
+        key: IndexedDBDescription,
+        sender: GenericCallback<BackendResult<u64>>,
+    ) {
+        let open_request = OpenRequest::Delete {
+            sender,
+            _origin: key.origin.clone(),
+            _db_name: key.name.clone(),
+            processed: false,
+        };
+
+        let should_continue = {
+            // Step 1: Let queue be the connection queue for storageKey and name.
+            let queue = self.connection_queues.entry(key.clone()).or_default();
+
+            // Step 2: Add request to queue.
+            queue.push_back(open_request);
+            queue.len() == 1
+        };
+
         // Step 3: Wait until all previous requests in queue have been processed.
-        // TODO: implement connection queue.
+        if should_continue {
+            self.delete_database(key.clone());
+            self.maybe_remove_front_from_queue(&key);
+        }
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#delete-a-database>
+    fn delete_database(&mut self, key: IndexedDBDescription) {
+        let Some(queue) = self.connection_queues.get_mut(&key) else {
+            return debug_assert!(false, "A connection queue should exist.");
+        };
+        let Some(open_request) = queue.front_mut() else {
+            return debug_assert!(false, "An open request should be in the queue.");
+        };
+        let OpenRequest::Delete {
+            sender,
+            _origin: _,
+            _db_name: _,
+            processed,
+        } = open_request
+        else {
+            return debug_assert!(
+                false,
+                "An request to open a connection should be in the queue."
+            );
+        };
 
         // Step4: Let db be the database named name in storageKey, if one exists. Otherwise, return 0 (zero).
-        let version = if let Some(db) = self.databases.remove(&idb_description) {
+        let version = if let Some(db) = self.databases.remove(&key) {
             // Step 5: Let openConnections be the set of all connections associated with db.
             // Step6: For each entry of openConnections that does not have its close pending flag set to true,
             // queue a database task to fire a version change event named versionchange
@@ -738,19 +900,43 @@ impl IndexedDBManager {
             // TODO: implement connections.
 
             // Step 10: Let version be db’s version.
-            let version = db.version().map_err(backend_error_from_sqlite_error)?;
+            let res = db.version();
+            let Ok(version) = res else {
+                if sender
+                    .send(BackendResult::Err(BackendError::DbErr(
+                        res.unwrap_err().to_string(),
+                    )))
+                    .is_err()
+                {
+                    debug!("Script went away during pending database delete.");
+                }
+                return;
+            };
 
             // Step 11: Delete db.
             // If this fails for any reason,
             // return an appropriate error (e.g. a QuotaExceededError, or an "UnknownError" DOMException).
-            db.delete_database()?;
+            if let Err(err) = db.delete_database() {
+                if sender
+                    .send(BackendResult::Err(BackendError::DbErr(err.to_string())))
+                    .is_err()
+                {
+                    debug!("Script went away during pending database delete.");
+                }
+                return;
+            };
+
             version
         } else {
             0
         };
 
         // step 12: Return version.
-        BackendResult::Ok(version)
+        if sender.send(BackendResult::Ok(version)).is_err() {
+            debug!("Script went away during pending database delete.");
+        }
+
+        *processed = true;
     }
 
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
@@ -836,13 +1022,7 @@ impl IndexedDBManager {
                     origin,
                     name: db_name,
                 };
-                // https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase
-                // Step 4.1: Let result be the result of deleting a database,
-                // with storageKey, name, and request.
-                let result = self.delete_database(idb_description);
-                if callback.send(result).is_err() {
-                    error!("Failed to send delete database result to script");
-                }
+                self.start_delete_database(idb_description, callback);
             },
             SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
                 let result = self
