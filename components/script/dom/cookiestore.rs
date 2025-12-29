@@ -245,7 +245,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             if let Some(_window) = DomRoot::downcast::<Window>(self.global()) {
                 if parsed_url
                     .as_ref()
-                    .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(creation_url))
+                    .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(&creation_url))
                 {
                     p.reject_error(
                         Error::Type("URL does not match context".to_string()),
@@ -359,7 +359,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             if let Some(_window) = DomRoot::downcast::<Window>(self.global()) {
                 if parsed_url
                     .as_ref()
-                    .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(creation_url))
+                    .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(&creation_url))
                 {
                     p.reject_error(
                         Error::Type("URL does not match context".to_string()),

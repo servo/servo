@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let finalURL = "/content-security-policy/reporting-api/support/dedicatedworker-report-url.sub.js";
+  promise_test(async () => {
+    await fetch_tests_from_worker(new Worker(finalURL));
+  });
+
+  promise_test(async () => {
+    let redirectedURL = "/fetch/api/resources/redirect.py?location=" +
+                  encodeURIComponent(finalURL) + "&test-name=' (with redirect)'";
+    await fetch_tests_from_worker(new Worker(redirectedURL));
+  });
+</script>
