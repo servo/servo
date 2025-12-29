@@ -13,7 +13,7 @@ use servo_url::ServoUrl;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
-use crate::fetch::{FetchCanceller, QueuedDeferredFetchRecord};
+use crate::fetch::FetchCanceller;
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -81,10 +81,6 @@ pub(crate) struct DocumentLoader {
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
     cancellers: Vec<FetchCanceller>,
-    /// <https://fetch.spec.whatwg.org/#fetch-group-deferred-fetch-records>
-    #[no_trace]
-    #[conditional_malloc_size_of]
-    deferred_fetches: Vec<QueuedDeferredFetchRecord>,
 }
 
 impl DocumentLoader {
@@ -104,27 +100,12 @@ impl DocumentLoader {
             blocking_loads: initial_loads,
             events_inhibited: false,
             cancellers: Vec::new(),
-            deferred_fetches: Vec::new(),
         }
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
-    pub(crate) fn cancel_all_loads(&mut self) -> bool {
-        let canceled_any = !self.cancellers.is_empty();
-        // Step 1. For each fetch record record of fetchGroup’s fetch records,
-        // if record’s controller is non-null and record’s request’s done flag
-        // is unset and keepalive is false, terminate record’s controller.
-        for mut canceller in self.cancellers.drain(..) {
-            if !canceller.keep_alive() {
-                canceller.terminate();
-            }
-        }
-        // Step 2. Process deferred fetches for fetchGroup.
-        for deferred_fetch in self.deferred_fetches.drain(..) {
-            deferred_fetch.lock().unwrap().process();
-        }
-
-        canceled_any
+    pub(crate) fn cancel_all_loads(&mut self) -> Vec<FetchCanceller> {
+        self.cancellers.drain(..).collect()
     }
 
     /// Add a load to the list of blocking loads.
@@ -135,14 +116,6 @@ impl DocumentLoader {
             self.blocking_loads.len()
         );
         self.blocking_loads.push(load);
-    }
-
-    pub(crate) fn append_deferred_fetch(&mut self, deferred_fetch: QueuedDeferredFetchRecord) {
-        self.deferred_fetches.push(deferred_fetch);
-    }
-
-    pub(crate) fn deferred_fetches(&self) -> Vec<QueuedDeferredFetchRecord> {
-        self.deferred_fetches.clone()
     }
 
     /// Initiate a new fetch given a response callback.

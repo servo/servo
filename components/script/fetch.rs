@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base::id::WebViewId;
@@ -23,8 +22,11 @@ use net_traits::{
     FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
     cancel_async_fetch,
 };
+use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
+use uuid::Uuid;
 
 use crate::body::BodyMixin;
 use crate::dom::abortsignal::AbortAlgorithm;
@@ -119,6 +121,26 @@ impl FetchCanceller {
     pub(crate) fn terminate(&mut self) {
         self.cancel();
     }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+/// An id to differentiate one deferred fetch record from another.
+pub(crate) struct DeferredFetchRecordId(Uuid);
+
+impl Default for DeferredFetchRecordId {
+    fn default() -> Self {
+        Self(Uuid::new_v4())
+    }
+}
+
+pub(crate) type QueuedDeferredFetchRecord = Rc<DeferredFetchRecord>;
+
+/// <https://fetch.spec.whatwg.org/#concept-fetch-group>
+#[derive(Default, MallocSizeOf)]
+pub(crate) struct FetchGroup {
+    /// <https://fetch.spec.whatwg.org/#fetch-group-deferred-fetch-records>
+    #[conditional_malloc_size_of]
+    pub(crate) deferred_fetch_records: FxHashMap<DeferredFetchRecordId, QueuedDeferredFetchRecord>,
 }
 
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
@@ -276,14 +298,12 @@ pub(crate) fn Fetch(
     promise
 }
 
-pub(crate) type QueuedDeferredFetchRecord = Arc<Mutex<DeferredFetchRecord>>;
-
 /// <https://fetch.spec.whatwg.org/#queue-a-deferred-fetch>
 fn queue_deferred_fetch(
     request: NetTraitsRequest,
     activate_after: Finite<f64>,
     global: &GlobalScope,
-) -> QueuedDeferredFetchRecord {
+) -> DeferredFetchRecordId {
     let trusted_global = Trusted::new(global);
     let mut request = request;
     // Step 1. Populate request from client given request.
@@ -294,39 +314,36 @@ fn queue_deferred_fetch(
     // Step 3. Set request’s keepalive to true.
     request.keep_alive = true;
     // Step 4. Let deferredRecord be a new deferred fetch record whose request is request, and whose notify invoked is onActivatedWithoutTermination.
-    let deferred_record = Arc::new(Mutex::new(DeferredFetchRecord {
+    let deferred_record = Rc::new(DeferredFetchRecord {
         request,
-        global: trusted_global.clone(),
         invoke_state: Cell::new(DeferredFetchRecordInvokeState::Pending),
         activated: Cell::new(false),
-    }));
+    });
     // Step 5. Append deferredRecord to request’s client’s fetch group’s deferred fetch records.
-    global.append_deferred_fetch(deferred_record.clone());
+    let deferred_fetch_record_id = global.append_deferred_fetch(deferred_record);
     // Step 6. If activateAfter is non-null, then run the following steps in parallel:
-    let deferred_record_clone = deferred_record.clone();
     global.schedule_timer(TimerEventRequest {
         callback: Box::new(move || {
             // Step 6.2. Process deferredRecord.
-            deferred_record_clone.lock().unwrap().process();
+            let global = trusted_global.root();
+            global.deferred_fetch_record_for_id(&deferred_fetch_record_id).process(&global);
 
             // Last step of https://fetch.spec.whatwg.org/#process-a-deferred-fetch
             //
             // Step 4. Queue a global task on the deferred fetch task source with
             // deferredRecord’s request’s client’s global object to run deferredRecord’s notify invoked.
-            let deferred_record_clone = deferred_record_clone.clone();
-            trusted_global
-                .root()
-                .task_manager()
-                .deferred_fetch_task_source()
-                .queue(task!(notify_deferred_record: move || {
-                    deferred_record_clone.lock().unwrap().activate();
-                }));
+            let trusted_global = trusted_global.clone();
+            global.task_manager().deferred_fetch_task_source().queue(
+                task!(notify_deferred_record: move || {
+                    trusted_global.root().deferred_fetch_record_for_id(&deferred_fetch_record_id).activate();
+                }),
+            );
         }),
         // Step 6.1. The user agent should wait until any of the following conditions is met:
         duration: Duration::from_millis(*activate_after as u64),
     });
     // Step 7. Return deferredRecord.
-    deferred_record
+    deferred_fetch_record_id
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
@@ -399,11 +416,11 @@ pub(crate) fn FetchLater(
     // Step 12. Let activated be false.
     // Step 13. Let deferredRecord be the result of calling queue a deferred fetch given request,
     // activateAfter, and the following step: set activated to true.
-    let deferred_record = queue_deferred_fetch(request, activate_after, global_scope);
+    let deferred_record_id = queue_deferred_fetch(request, activate_after, global_scope);
     // Step 14. Add the following abort steps to requestObject’s signal: Set deferredRecord’s invoke state to "aborted".
-    signal.add(&AbortAlgorithm::FetchLater(deferred_record.clone()));
+    signal.add(&AbortAlgorithm::FetchLater(deferred_record_id));
     // Step 15. Return a new FetchLaterResult whose activated getter steps are to return activated.
-    Ok(FetchLaterResult::new(window, deferred_record, can_gc))
+    Ok(FetchLaterResult::new(window, deferred_record_id, can_gc))
 }
 
 /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
@@ -421,7 +438,6 @@ pub(crate) struct DeferredFetchRecord {
     pub(crate) request: NetTraitsRequest,
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
     invoke_state: Cell<DeferredFetchRecordInvokeState>,
-    global: Trusted<GlobalScope>,
     activated: Cell<bool>,
 }
 
@@ -443,7 +459,7 @@ impl DeferredFetchRecord {
         self.activated.get()
     }
     /// <https://fetch.spec.whatwg.org/#process-a-deferred-fetch>
-    pub(crate) fn process(&self) {
+    pub(crate) fn process(&self, global: &GlobalScope) {
         // Step 1. If deferredRecord’s invoke state is not "pending", then return.
         if self.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
             return;
@@ -454,10 +470,9 @@ impl DeferredFetchRecord {
         let url = self.request.url().clone();
         let fetch_later_listener = FetchLaterListener {
             url,
-            global: self.global.clone(),
+            global: Trusted::new(global),
         };
-        let global = self.global.root();
-        let request_init = request_init_from_request(self.request.clone(), &global);
+        let request_init = request_init_from_request(self.request.clone(), global);
         global.fetch(
             request_init,
             fetch_later_listener,
