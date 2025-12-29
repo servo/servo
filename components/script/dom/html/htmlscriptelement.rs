@@ -303,7 +303,7 @@ pub(crate) type ScriptResult = Result<Script, NoTrace<NetworkError>>;
 pub(crate) enum Script {
     Classic(ClassicScript),
     Module(#[conditional_malloc_size_of] Rc<ModuleTree>),
-    Other(ScriptOrigin),
+    ImportMap(ScriptOrigin),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -954,7 +954,7 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         can_gc,
                     );
-                    let script = Script::Other(ScriptOrigin::internal(
+                    let script = Script::ImportMap(ScriptOrigin::internal(
                         text_rc,
                         base_url,
                         options,
@@ -992,17 +992,11 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        let script_type = match script {
-            Script::Classic(_) => ScriptType::Classic,
-            Script::Module(_) => ScriptType::Module,
-            Script::Other(ref script) => script.type_,
-        };
-
         // Step 5.
         // If el's from an external file is true, or el's type is "module", then increment document's
         // ignore-destructive-writes counter.
         let neutralized_doc =
-            if self.from_an_external_file.get() || script_type == ScriptType::Module {
+            if self.from_an_external_file.get() || matches!(script, Script::Module(_)) {
                 let doc = self.owner_document();
                 doc.incr_ignore_destructive_writes_counter();
                 Some(doc)
@@ -1042,11 +1036,9 @@ impl HTMLScriptElement {
                 // Step 6."module".2. Run the module script given by el's result.
                 self.run_a_module_script(module_tree, false, can_gc);
             },
-            Script::Other(script) => {
-                if let ScriptType::ImportMap = script_type {
-                    // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
-                    register_import_map(&self.owner_global(), script.import_map, can_gc);
-                }
+            Script::ImportMap(script) => {
+                // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
+                register_import_map(&self.owner_global(), script.import_map, can_gc);
             },
         }
 
