@@ -405,7 +405,7 @@ pub(crate) fn import_key(
                 // set to hash and op set to digest.
                 let normalized_hash = normalize_algorithm(
                     cx,
-                    &Operation::Digest,
+                    Operation::Digest,
                     &AlgorithmIdentifier::String(DOMString::from(hash)),
                     can_gc,
                 )?;
