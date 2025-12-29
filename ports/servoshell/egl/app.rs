@@ -22,6 +22,8 @@ use url::Url;
 
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::ServoShellPreferences;
+#[cfg(feature = "gamepad")]
+use crate::running_app_state::ServoshellGamepadProvider;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
@@ -264,10 +266,17 @@ pub struct App {
 #[allow(unused)]
 impl App {
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
-        let mut servo_builder = ServoBuilder::default()
+        #[cfg(feature = "gamepad")]
+        let gamepad_provider = Rc::new(ServoshellGamepadProvider::new());
+
+        let servo_builder = ServoBuilder::default()
             .opts(init.opts)
             .preferences(init.preferences)
             .event_loop_waker(init.event_loop_waker.clone());
+
+        #[cfg(feature = "gamepad")]
+        let servo_builder = servo_builder.gamepad_provider(gamepad_provider.clone());
+
         #[cfg(feature = "webxr")]
         let servo_builder = servo_builder
             .webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(init.xr_discovery)));
@@ -285,6 +294,8 @@ impl App {
             init.servoshell_preferences,
             init.event_loop_waker,
             user_content_manager,
+            #[cfg(feature = "gamepad")]
+            gamepad_provider.gamepad_support(),
         ));
 
         let platform_window = Rc::new(EmbeddedPlatformWindow {

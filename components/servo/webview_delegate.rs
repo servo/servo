@@ -9,8 +9,6 @@ use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::EmbedderToConstellationMessage;
-#[cfg(feature = "gamepad")]
-use embedder_traits::GamepadHapticEffectType;
 use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ConsoleLogLevel,
     ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, Cursor, EmbedderControlId,
@@ -20,7 +18,6 @@ use embedder_traits::{
     SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
-use ipc_channel::ipc::IpcSender;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -941,20 +938,6 @@ pub trait WebViewDelegate {
     ///
     /// After this point, any further responses to that request will be ignored.
     fn hide_embedder_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
-
-    /// Request to play a haptic effect on a connected gamepad.
-    #[cfg(feature = "gamepad")]
-    fn play_gamepad_haptic_effect(
-        &self,
-        _webview: WebView,
-        _: usize,
-        _: GamepadHapticEffectType,
-        _: IpcSender<bool>,
-    ) {
-    }
-    /// Request to stop a haptic effect on a connected gamepad.
-    #[cfg(feature = "gamepad")]
-    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling

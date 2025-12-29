@@ -4,10 +4,14 @@
 
 use base::generic_channel::{GenericSender, SendError, SendResult};
 use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
+#[cfg(feature = "gamepad")]
+use embedder_traits::GamepadHapticEffectType;
 use log::warn;
 use serde::Serialize;
 
 use crate::ServoError;
+#[cfg(feature = "gamepad")]
+use crate::WebView;
 
 /// Sender for errors raised by delegate request objects.
 ///
@@ -58,7 +62,7 @@ impl ServoErrorChannel {
 }
 
 /// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
-pub(crate) struct IpcResponder<T: Serialize> {
+pub struct IpcResponder<T: Serialize> {
     response_sender: GenericSender<T>,
     response_sent: bool,
     /// Always present, except when taken by [`Drop`].
@@ -66,7 +70,7 @@ pub(crate) struct IpcResponder<T: Serialize> {
 }
 
 impl<T: Serialize> IpcResponder<T> {
-    pub(crate) fn new(response_sender: GenericSender<T>, default_response: T) -> Self {
+    pub fn new(response_sender: GenericSender<T>, default_response: T) -> Self {
         Self {
             response_sender,
             response_sent: false,
@@ -74,13 +78,13 @@ impl<T: Serialize> IpcResponder<T> {
         }
     }
 
-    pub(crate) fn send(&mut self, response: T) -> SendResult {
+    pub fn send(&mut self, response: T) -> SendResult {
         let result = self.response_sender.send(response);
         self.response_sent = true;
         result
     }
 
-    pub(crate) fn into_inner(self) -> GenericSender<T> {
+    pub fn into_inner(self) -> GenericSender<T> {
         self.response_sender.clone()
     }
 }
@@ -98,3 +102,32 @@ impl<T: Serialize> Drop for IpcResponder<T> {
         }
     }
 }
+
+/// A provider responsible for managing all interactions with gamepads.
+#[cfg(feature = "gamepad")]
+pub trait GamepadProvider {
+    /// Request to play a haptic effect on a connected gamepad.
+    fn play_haptic_effect(
+        &self,
+        _webview: WebView,
+        _gamepad_index: usize,
+        _effect_type: GamepadHapticEffectType,
+        _responder: IpcResponder<bool>,
+    ) {
+    }
+
+    /// Request to stop a haptic effect on a connected gamepad.
+    fn stop_haptic_effect(
+        &self,
+        _webview: WebView,
+        _gamepad_index: usize,
+        _responder: IpcResponder<bool>,
+    ) {
+    }
+}
+
+#[cfg(feature = "gamepad")]
+pub(crate) struct DefaultGamepadProvider;
+
+#[cfg(feature = "gamepad")]
+impl GamepadProvider for DefaultGamepadProvider {}
