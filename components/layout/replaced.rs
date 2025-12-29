@@ -285,7 +285,7 @@ impl ReplacedContents {
         }
     }
 
-    pub fn zero_sized_invalid_image(node: ServoThreadSafeLayoutNode<'_>) -> Self {
+    pub(crate) fn zero_sized_invalid_image(node: ServoThreadSafeLayoutNode<'_>) -> Self {
         Self {
             kind: ReplacedContentKind::Image(None, false /* showing_broken_image_icon */),
             natural_size: NaturalSizes::from_width_and_height(0., 0.),
