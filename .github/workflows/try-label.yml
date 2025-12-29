@@ -139,6 +139,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() && needs.parse-comment.outputs.try_string }}
     steps:
+      - name: Optional results
+        run: |
+          echo "ohos try status: ${{ needs.run-try.outputs.ohos_optional_job_status }}"
+          ${{ contains(needs.run-try.outputs.ohos_optional_job_status.*, 'failure') && 'echo "::error optional jobs failed."' }}
       - name: Success
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         uses: actions/github-script@v7

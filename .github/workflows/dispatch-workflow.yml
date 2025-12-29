@@ -32,6 +32,10 @@ on:
       coverage:
         required: true
         type: boolean
+    outputs:
+      ohos_optional_job_status:
+        description: "The status of the optional jobs in the ohos workflow"
+        value: ${{ jobs.ohos.outputs.optional_job_status }}
 
 jobs:
   win:
@@ -113,3 +117,14 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       bencher: ${{ inputs.bencher }}
+
+#  collect_optional_job_status:
+#    # Currently only the ohos workflow has optional jobs, where we want to report failure.
+#    # We actually just want to pass the results up to the caller workflow, but we need a dummy job to do that,
+#    # since reusable workflows can't re-export outputs.
+#    if: ${{ inputs.workflow == 'ohos' }}
+#    name: Collect optional job results
+#    needs: [ohos]
+#    runs-on: ubuntu-latest
+#    steps:
+#      -
