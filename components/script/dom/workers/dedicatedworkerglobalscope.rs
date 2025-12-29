@@ -16,6 +16,7 @@ use fonts::FontContext;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use net_traits::ReferrerPolicy;
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
@@ -54,6 +55,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::script_module::{ModuleOwner, ScriptFetchOptions, fetch_external_module_script};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -385,6 +387,7 @@ impl DedicatedWorkerGlobalScope {
 
                 let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
+                // https://html.spec.whatwg.org/multipage/webappapis.html#set-up-the-classic-script-request
                 let request = RequestBuilder::new(Some(webview_id), worker_url.clone(), referrer)
                     .destination(Destination::Worker)
                     .mode(RequestMode::SameOrigin)
@@ -484,13 +487,48 @@ impl DedicatedWorkerGlobalScope {
                     name: TaskSourceName::Networking,
                     canceller: Default::default(),
                 };
-                let context = ScriptFetchContext::new(
-                    Trusted::new(scope),
-                    request.url.clone(),
-                    worker.clone(),
-                    policy_container,
-                );
-                global_scope.fetch(request, context, task_source);
+
+                // TODO(pylbrecht)
+                // https://html.spec.whatwg.org/multipage/workers.html#worker-processing-model
+                // 12. Obtain script by switching on options["type"]:
+                match worker_type {
+                    WorkerType::Classic => {
+                        let context = ScriptFetchContext::new(
+                            Trusted::new(scope),
+                            request.url.clone(),
+                            worker.clone(),
+                            policy_container,
+                        );
+                        global_scope.fetch(request, context, task_source);
+                    },
+                    WorkerType::Module => {
+                        // https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-module-worker-script-tree
+                        // https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-worklet/module-worker-script-graph
+                        // Let options be a script fetch options whose cryptographic nonce is the
+                        // empty string, integrity metadata is the empty string, parser metadata is
+                        // "not-parser-inserted", credentials mode is credentialsMode, referrer
+                        // policy is the empty string, and fetch priority is "auto".
+                        let options = ScriptFetchOptions {
+                            referrer: request.referrer,
+                            integrity_metadata: "".to_string(),
+                            credentials_mode: request.credentials_mode,
+                            cryptographic_nonce: "".to_string(),
+                            parser_metadata: ParserMetadata::NotParserInserted,
+                            referrer_policy: ReferrerPolicy::EmptyString,
+                        };
+                        // Fetch a module worker script graph given url, outside settings,
+                        // destination, the value of the credentials member of options, inside
+                        // settings, and with onComplete and performFetch as defined below.
+                        fetch_external_module_script(
+                            ModuleOwner::Worker(worker.clone(), Trusted::new(scope)),
+                            request.url.clone(),
+                            Destination::Worker,
+                            options,
+                            CanGc::note(),
+                            task_source,
+                        );
+                    },
+                };
 
                 let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
                 scope

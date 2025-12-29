@@ -72,7 +72,7 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::Console;
+use crate::dom::types::{Console, WorkerGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{
@@ -81,6 +81,7 @@ use crate::network_listener::{
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::TaskBox;
+use crate::task_source::SendableTaskSource;
 
 fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
@@ -941,6 +942,7 @@ impl ModuleTree {
                         // TODO: is this correct?
                         Some(IntroductionType::IMPORTED_MODULE),
                         can_gc,
+                        global.task_manager().networking_task_source().to_sendable(),
                     );
                 }
             },
@@ -1040,8 +1042,7 @@ impl Callback for ModuleHandler {
 /// It can be `worker` or `script` element
 #[derive(Clone)]
 pub(crate) enum ModuleOwner {
-    #[expect(dead_code)]
-    Worker(TrustedWorkerAddress),
+    Worker(TrustedWorkerAddress, Trusted<WorkerGlobalScope>),
     Window(Trusted<HTMLScriptElement>),
     DynamicModule(Trusted<DynamicModuleOwner>),
 }
@@ -1049,7 +1050,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(_, scope) => (*scope.root().clone()).global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -1062,7 +1063,35 @@ impl ModuleOwner {
         can_gc: CanGc,
     ) {
         match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::Worker(_, global) => {
+                // execute the script here
+                let global = global.root();
+                let global = global.upcast::<GlobalScope>();
+                let module_tree = module_identity.get_module_tree(global);
+                match module_identity {
+                    ModuleIdentity::ScriptId(id) => {
+                        let script = ScriptOrigin::internal(
+                            Rc::clone(&module_tree.get_text().borrow()),
+                            global.get_url(),
+                            fetch_options,
+                            ScriptType::Module,
+                            global.unminified_js_dir(),
+                            Err(Error::NotFound(None)),
+                        );
+                        global.run_a_module_script(Some(id), &script, false, can_gc);
+                    },
+                    ModuleIdentity::ModuleUrl(url) => {
+                        let script = ScriptOrigin::external(
+                            Rc::clone(&module_tree.get_text().borrow()),
+                            url,
+                            fetch_options,
+                            ScriptType::Module,
+                            global.unminified_js_dir(),
+                        );
+                        global.run_a_module_script(None, &script, false, can_gc);
+                    },
+                };
+            },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
                 let global = self.global();
@@ -1278,6 +1307,8 @@ impl FetchResponseListener for ModuleContext {
             // Step 9-3.
             let meta = self.metadata.take().unwrap();
 
+            // Step 13.2: Let mimeType be the result of extracting a MIME type from response's
+            // header list.
             if let Some(content_type) = meta.content_type.map(Serde::into_inner) {
                 if let Ok(content_type) = Mime::from_str(&content_type.to_string()) {
                     let essence_mime = content_type.essence_str();
@@ -1339,7 +1370,7 @@ impl FetchResponseListener for ModuleContext {
                 module_tree.set_network_error(err);
                 module_tree.advance_finished_and_link(&global, CanGc::note());
             },
-            Ok(ref resp_mod_script) => {
+            Ok(resp_mod_script) => {
                 module_tree.set_text(resp_mod_script.text());
 
                 let cx = GlobalScope::get_cx();
@@ -1373,6 +1404,12 @@ impl FetchResponseListener for ModuleContext {
                             CanGc::note(),
                         );
                     },
+                }
+
+                if let ModuleOwner::Worker(ref worker, ref scope) = self.owner {
+                    let scope = scope.root();
+                    let script = Script::Other(resp_mod_script);
+                    scope.on_complete(Some(script), worker.clone(), CanGc::note());
                 }
             },
         }
@@ -1581,6 +1618,7 @@ fn fetch_an_import_module_script_graph(
         Some(dynamic_module),
         Some(IntroductionType::IMPORTED_MODULE),
         can_gc,
+        global.task_manager().networking_task_source().to_sendable(),
     );
     Ok(())
 }
@@ -1677,6 +1715,7 @@ pub(crate) fn fetch_external_module_script(
     destination: Destination,
     options: ScriptFetchOptions,
     can_gc: CanGc,
+    task_source: SendableTaskSource,
 ) {
     let mut visited_urls = HashSet::new();
     visited_urls.insert(url.clone());
@@ -1693,6 +1732,7 @@ pub(crate) fn fetch_external_module_script(
         None,
         Some(IntroductionType::SRC_SCRIPT),
         can_gc,
+        task_source,
     )
 }
 
@@ -1757,6 +1797,7 @@ fn fetch_single_module_script(
     dynamic_module: Option<RootedTraceableBox<DynamicModule>>,
     introduction_type: Option<&'static CStr>,
     can_gc: CanGc,
+    task_source: SendableTaskSource,
 ) {
     {
         // Step 1.
@@ -1847,7 +1888,7 @@ fn fetch_single_module_script(
     };
 
     let document: Option<DomRoot<Document>> = match &owner {
-        ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
+        ModuleOwner::Worker(_, _) | ModuleOwner::DynamicModule(_) => None,
         ModuleOwner::Window(script) => Some(script.root().owner_document()),
     };
     let webview_id = document.as_ref().map(|document| document.webview_id());
@@ -1877,10 +1918,7 @@ fn fetch_single_module_script(
         introduction_type,
     };
 
-    let network_listener = NetworkListener::new(
-        context,
-        global.task_manager().networking_task_source().to_sendable(),
-    );
+    let network_listener = NetworkListener::new(context, task_source);
     match document {
         Some(document) => {
             let request = document.prepare_request(request);
