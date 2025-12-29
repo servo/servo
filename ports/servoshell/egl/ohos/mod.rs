@@ -228,6 +228,7 @@ fn init_app(
     crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
     Ok(App::new(AppInitOptions {
+        host: Rc::new(HostCallbacks::new()),
         event_loop_waker,
         initial_url: Some(options.url),
         opts,
@@ -403,10 +404,7 @@ impl ServoAction {
                 let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
 
                 let hidpi_factor = Scale::new(get_display_density());
-                // TODO: once per app should be sufficient.
-                let host_trait = Box::new(HostCallbacks::new());
                 servo.initialize_platform_window(
-                    host_trait,
                     display_handle,
                     window_handle,
                     viewport_rect,
