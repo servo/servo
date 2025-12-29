@@ -149,7 +149,7 @@ impl ModuleScript {
 /// module identity so that we can get module tree
 /// from a descendant no matter the parent is an
 /// inline script or a external script
-#[derive(Clone, Debug, Eq, Hash, JSTraceable, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, JSTraceable, PartialEq, MallocSizeOf)]
 pub(crate) enum ModuleIdentity {
     ScriptId(ScriptId),
     ModuleUrl(#[no_trace] ServoUrl),
@@ -170,11 +170,13 @@ impl ModuleIdentity {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ModuleTree {
     #[no_trace]
     url: ServoUrl,
+    #[conditional_malloc_size_of]
     text: DomRefCell<Rc<DOMString>>,
+    #[ignore_malloc_size_of = "mozjs"]
     record: DomRefCell<Option<ModuleObject>>,
     status: DomRefCell<ModuleStatus>,
     // The spec maintains load order for descendants, so we use an indexset for descendants and
@@ -194,11 +196,13 @@ pub(crate) struct ModuleTree {
     incomplete_fetch_urls: DomRefCell<IndexSet<ServoUrl>>,
     #[no_trace]
     visited_urls: DomRefCell<HashSet<ServoUrl>>,
+    #[ignore_malloc_size_of = "mozjs"]
     rethrow_error: DomRefCell<Option<RethrowError>>,
     #[no_trace]
     network_error: DomRefCell<Option<NetworkError>>,
     // A promise for owners to execute when the module tree
     // is finished
+    #[conditional_malloc_size_of]
     promise: DomRefCell<Option<Rc<Promise>>>,
     external: bool,
 }
@@ -346,22 +350,15 @@ impl ModuleTree {
 
     // We just leverage the power of Promise to run the task for `finish` the owner.
     // Thus, we will always `resolve` it and no need to register a callback for `reject`
-    fn append_handler(
-        &self,
-        owner: ModuleOwner,
-        module_identity: ModuleIdentity,
-        fetch_options: ScriptFetchOptions,
-        can_gc: CanGc,
-    ) {
+    fn append_handler(&self, owner: ModuleOwner, module_identity: ModuleIdentity, can_gc: CanGc) {
         let this = owner.clone();
         let identity = module_identity.clone();
-        let options = fetch_options.clone();
 
         let handler = PromiseNativeHandler::new(
             &owner.global(),
             Some(ModuleHandler::new_boxed(Box::new(
                 task!(fetched_resolve: move || {
-                    this.notify_owner_to_finish(identity, options, CanGc::note());
+                    this.notify_owner_to_finish(identity, CanGc::note());
                 }),
             ))),
             None,
@@ -420,7 +417,7 @@ impl ModuleTree {
     }
 }
 
-#[derive(Clone, Copy, Debug, JSTraceable, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 pub(crate) enum ModuleStatus {
     Initial,
     Fetching,
@@ -1055,12 +1052,7 @@ impl ModuleOwner {
         }
     }
 
-    pub(crate) fn notify_owner_to_finish(
-        &self,
-        module_identity: ModuleIdentity,
-        fetch_options: ScriptFetchOptions,
-        can_gc: CanGc,
-    ) {
+    fn notify_owner_to_finish(&self, module_identity: ModuleIdentity, can_gc: CanGc) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
             ModuleOwner::DynamicModule(_) => unimplemented!(),
@@ -1071,30 +1063,10 @@ impl ModuleOwner {
                 let load = {
                     let module_tree = module_identity.get_module_tree(&global);
 
-                    let network_error = module_tree.get_network_error().borrow();
-                    match network_error.as_ref() {
-                        Some(network_error) => Err(network_error.clone().into()),
-                        None => match module_identity {
-                            ModuleIdentity::ModuleUrl(script_src) => {
-                                Ok(Script::Other(ScriptOrigin::external(
-                                    Rc::clone(&module_tree.get_text().borrow()),
-                                    script_src.clone(),
-                                    fetch_options,
-                                    ScriptType::Module,
-                                    global.unminified_js_dir(),
-                                )))
-                            },
-                            ModuleIdentity::ScriptId(_) => {
-                                Ok(Script::Other(ScriptOrigin::internal(
-                                    Rc::clone(&module_tree.get_text().borrow()),
-                                    document.base_url().clone(),
-                                    fetch_options,
-                                    ScriptType::Module,
-                                    global.unminified_js_dir(),
-                                    Err(Error::NotFound(None)),
-                                )))
-                            },
-                        },
+                    let network_error = module_tree.get_network_error().borrow().clone();
+                    match network_error {
+                        Some(network_error) => Err(network_error.into()),
+                        None => Ok(Script::Module(module_tree)),
                     }
                 };
 
@@ -1780,7 +1752,6 @@ fn fetch_single_module_script(
                 None if top_level_module_fetch => module_tree.append_handler(
                     owner.clone(),
                     ModuleIdentity::ModuleUrl(url.clone()),
-                    options,
                     can_gc,
                 ),
                 // do nothing if it's neither a dynamic module nor a top level module
@@ -1822,7 +1793,6 @@ fn fetch_single_module_script(
         None if top_level_module_fetch => module_tree.append_handler(
             owner.clone(),
             ModuleIdentity::ModuleUrl(url.clone()),
-            options.clone(),
             can_gc,
         ),
         // do nothing if it's neither a dynamic module nor a top level module
@@ -1925,12 +1895,7 @@ pub(crate) fn fetch_inline_module_script(
 
     match compiled_module_result {
         Ok(_) => {
-            module_tree.append_handler(
-                owner.clone(),
-                ModuleIdentity::ScriptId(script_id),
-                options.clone(),
-                can_gc,
-            );
+            module_tree.append_handler(owner.clone(), ModuleIdentity::ScriptId(script_id), can_gc);
             module_tree.set_record(ModuleObject::new(compiled_module.handle()));
 
             // We need to set `module_tree` into inline module map in case
@@ -1956,7 +1921,7 @@ pub(crate) fn fetch_inline_module_script(
             module_tree.set_rethrow_error(exception);
             module_tree.set_status(ModuleStatus::Finished);
             global.set_inline_module_map(script_id, module_tree);
-            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options, can_gc);
+            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), can_gc);
         },
     }
 }

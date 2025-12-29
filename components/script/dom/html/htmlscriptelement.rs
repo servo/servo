@@ -64,13 +64,13 @@ use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_module::{
-    ImportMap, ModuleOwner, ScriptFetchOptions, fetch_external_module_script,
+    ImportMap, ModuleOwner, ModuleTree, ScriptFetchOptions, fetch_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
 
 /// An unique id for script element.
-#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq, MallocSizeOf)]
 pub(crate) struct ScriptId(#[no_trace] Uuid);
 
 #[dom_struct]
@@ -302,7 +302,8 @@ pub(crate) type ScriptResult = Result<Script, NoTrace<NetworkError>>;
 #[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
     Classic(ClassicScript),
-    Other(ScriptOrigin),
+    Module(#[conditional_malloc_size_of] Rc<ModuleTree>),
+    ImportMap(ScriptOrigin),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -953,7 +954,7 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         can_gc,
                     );
-                    let script = Script::Other(ScriptOrigin::internal(
+                    let script = Script::ImportMap(ScriptOrigin::internal(
                         text_rc,
                         base_url,
                         options,
@@ -991,16 +992,11 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        let script_type = match script {
-            Script::Classic(_) => ScriptType::Classic,
-            Script::Other(ref script) => script.type_,
-        };
-
         // Step 5.
         // If el's from an external file is true, or el's type is "module", then increment document's
         // ignore-destructive-writes counter.
         let neutralized_doc =
-            if self.from_an_external_file.get() || script_type == ScriptType::Module {
+            if self.from_an_external_file.get() || matches!(script, Script::Module(_)) {
                 let doc = self.owner_document();
                 doc.incr_ignore_destructive_writes_counter();
                 Some(doc)
@@ -1033,17 +1029,16 @@ impl HTMLScriptElement {
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());
             },
-            Script::Other(script) => {
-                if let ScriptType::Module = script_type {
-                    // TODO Step 6."module".1. Assert: document's currentScript attribute is null.
-                    document.set_current_script(None);
+            Script::Module(module_tree) => {
+                // TODO Step 6."module".1. Assert: document's currentScript attribute is null.
+                document.set_current_script(None);
 
-                    // Step 6."module".2. Run the module script given by el's result.
-                    self.run_a_module_script(&script, false, can_gc);
-                } else if let ScriptType::ImportMap = script_type {
-                    // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
-                    register_import_map(&self.owner_global(), script.import_map, can_gc);
-                }
+                // Step 6."module".2. Run the module script given by el's result.
+                self.run_a_module_script(module_tree, false, can_gc);
+            },
+            Script::ImportMap(script) => {
+                // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
+                register_import_map(&self.owner_global(), script.import_map, can_gc);
             },
         }
 
@@ -1062,7 +1057,7 @@ impl HTMLScriptElement {
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
     pub(crate) fn run_a_module_script(
         &self,
-        script: &ScriptOrigin,
+        module_tree: Rc<ModuleTree>,
         _rethrow_errors: bool,
         can_gc: CanGc,
     ) {
@@ -1078,42 +1073,30 @@ impl HTMLScriptElement {
         let global = window.as_global_scope();
         let _aes = AutoEntryScript::new(global);
 
-        let tree = if script.external {
-            global.get_module_map().borrow().get(&script.url).cloned()
-        } else {
-            global
-                .get_inline_module_map()
-                .borrow()
-                .get(&self.id.clone())
-                .cloned()
-        };
-
-        if let Some(module_tree) = tree {
-            // Step 6.
-            {
-                let module_error = module_tree.get_rethrow_error().borrow();
-                let network_error = module_tree.get_network_error().borrow();
-                if module_error.is_some() && network_error.is_none() {
-                    module_tree.report_error(global, can_gc);
-                    return;
-                }
+        // Step 6.
+        {
+            let module_error = module_tree.get_rethrow_error().borrow();
+            let network_error = module_tree.get_network_error().borrow();
+            if module_error.is_some() && network_error.is_none() {
+                module_tree.report_error(global, can_gc);
+                return;
             }
+        }
 
-            let record = module_tree
-                .get_record()
-                .borrow()
-                .as_ref()
-                .map(|record| record.handle());
+        let record = module_tree
+            .get_record()
+            .borrow()
+            .as_ref()
+            .map(|record| record.handle());
 
-            if let Some(record) = record {
-                rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-                let evaluated =
-                    module_tree.execute_module(global, record, rval.handle_mut().into(), can_gc);
+        if let Some(record) = record {
+            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+            let evaluated =
+                module_tree.execute_module(global, record, rval.handle_mut().into(), can_gc);
 
-                if let Err(exception) = evaluated {
-                    module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(global, can_gc);
-                }
+            if let Err(exception) = evaluated {
+                module_tree.set_rethrow_error(exception);
+                module_tree.report_error(global, can_gc);
             }
         }
     }
