@@ -6333,9 +6333,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-ime"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c28c803dbc0fa52e888c62c0a3573ea7559e5283ac10d1d3a75f064dba032575"
+checksum = "ae9cc8a2e61a650628e2a84381df464a7529286ba186ba659a8c550b51125e01"
 dependencies = [
  "log",
  "ohos-ime-sys",
