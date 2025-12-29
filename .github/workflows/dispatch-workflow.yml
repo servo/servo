@@ -32,6 +32,10 @@ on:
       coverage:
         required: true
         type: boolean
+    outputs:
+      ohos_optional_job_status:
+        description: "The status of the optional jobs in the ohos workflow"
+        value: ${{ jobs.ohos.outputs.optional_job_status }}
 
 jobs:
   win:

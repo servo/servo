@@ -17,7 +17,10 @@ on:
         required: false
         default: false
         type: boolean
-
+    outputs:
+      optional_job_status:
+        description: "Status of optional jobs (as an object)"
+        value: ${{ jobs.collect-job-results.outputs.collected_job_status }}
   workflow_dispatch:
     inputs:
       profile:
@@ -194,6 +197,8 @@ jobs:
     runs-on: hos-runner
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     needs: build-harmonyos-aarch64
+    outputs:
+      job_status: ${{ steps.result.outputs.JOB_STATUS }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -248,6 +253,10 @@ jobs:
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+      - name: Save result as job output
+        id: result
+        if: always()
+        run: echo "JOB_STATUS=${{ job.status }}" | tee $GITHUB_OUTPUT
 
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64
@@ -257,6 +266,8 @@ jobs:
     continue-on-error: true
     runs-on: hos-runner
     needs: test-harmonyos-aarch64
+    outputs:
+      job_status: ${{ steps.result.outputs.JOB_STATUS }}
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     steps:
       - uses: actions/download-artifact@v4
@@ -376,6 +387,10 @@ jobs:
                       --github-actions '${{ secrets.GITHUB_TOKEN }}' \
                       --testbed="${{steps.hdc_product_name.outputs.MODEL_NAME}}" \
                       $RUN_BENCHER_OPTIONS
+      - name: Save result as job output
+        id: result
+        if: always()
+        run: echo "JOB_STATUS=${{ job.status }}" | tee $GITHUB_OUTPUT
 
 
   scenario-test-harmonyos:
@@ -384,6 +399,8 @@ jobs:
     runs-on: hos-runner
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     needs: build-harmonyos-aarch64
+    outputs:
+      job_status: ${{ steps.result.outputs.JOB_STATUS }}
     env:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
       UV_PROJECT: "etc/ci/scenario"
@@ -429,3 +446,28 @@ jobs:
         with:
           name: hos-${{ inputs.profile }}-scenario-failures-screenshots
           path: "servo_scenario_*_error.jpg"
+      - name: Save result as job output
+        id: result
+        if: always()
+        run: echo "JOB_STATUS=${{ job.status }}" | tee $GITHUB_OUTPUT
+
+  # This job is used to collect the result (success/failure) of all jobs in the workflow that use
+  # `continue-on-error: true`. This allows us to pass throw information about failed "optional" jobs,
+  # to the try-label parser, so it can include the information in the try-label comment.
+  collect-job-results:
+    name: Collect Job Results
+    runs-on: ubuntu-latest
+    needs: [build-harmonyos-aarch64, bench-harmonyos-aarch64, test-harmonyos-aarch64, scenario-test-harmonyos]
+    outputs:
+      collected_job_status: ${{ steps.result.outputs.JOB_RESULTS_JSON }}
+    steps:
+      - name: Save result as job output
+        id: result
+        run: |
+          JSON_FMT='{"build-harmonyos-aarch64":{"result":"%s"},"bench-harmonyos-aarch64":{"result":"%s"},"test-harmonyos-aarch64":{"result":"%s"},"scenario-test-harmonyos":{"result":"%s"}}'
+          printf "JOB_RESULTS_JSON=$JSON_FMT" \
+                  "${{ needs.build-harmonyos-aarch64.outputs.job_status }}" \
+                  "${{ needs.bench-harmonyos-aarch64.outputs.job_status }}" \
+                  "${{ needs.test-harmonyos-aarch64.outputs.job_status }}" \
+                  "${{ needs.scenario-test-harmonyos.outputs.job_status }}" \
+            >> $GITHUB_OUTPUT
