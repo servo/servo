@@ -2864,11 +2864,11 @@ impl SupportedAlgorithm {
     }
 
     /// Check whether the cryptographic algorithm supports the specified operation. If the
-    /// algorithm supports the operation, then returns the desired IDL dictionary type for the
+    /// algorithm supports the operation, then return the desired IDL dictionary type for the
     /// operation of the algorithm. Otherwise, throw a NotSupportedError.
     ///
-    /// This function is also used to "define an algorithm", by registering operations and desired
-    /// IDL dictionary types to the algorithm.
+    /// This function is also used as the "define an algorithm" algorithm, by adding algorithms,
+    /// operations and desired IDL dictionary types, to the `match` block.
     /// <https://w3c.github.io/webcrypto/#concept-define-an-algorithm>
     fn support(&self, op: Operation) -> Result<ParameterType, Error> {
         let desired_type = match (self, &op) {
@@ -3170,6 +3170,9 @@ fn normalize_algorithm(
             //                 to the result of normalizing an algorithm, with the alg set to
             //                 idlValue and the op set to the operation defined by the
             //                 specification that defines the algorithm identified by algName.
+            //
+            // NOTE: We do Step 7 first, by setting algName to the name attribute of the JS object
+            // before IDL dictionary conversion, in order to simplify our implementation.
             rooted!(in(*cx) let mut alg_name_ptr = UndefinedValue());
             alg_name
                 .as_str()
@@ -3186,10 +3189,15 @@ fn normalize_algorithm(
 }
 
 impl NormalizedAlgorithm {
-    /// Step 6 to Step 10 of
-    /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>, which
-    /// converts the ECMAScript object represented by the AlgorithmIdentifier to a normalized
-    /// algorithm of the IDL dictionary type desiredType.
+    /// Step 6, 8-10 of the "normalize an algorithm" algorithm
+    /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>. This
+    /// function converts the ECMAScript object represented to a normalized algorithm of the IDL
+    /// dictionary type desiredType.
+    ///
+    /// Step 6 and Step 8 is done by `dictionary_from_jsval`.
+    ///
+    /// Step 9 and Step 10 is done by the `From` and `TryFrom` trait implementations of the inner
+    /// types (the structs with prefix "Subtle" in their name) of NormalizedAlgorithm.
     fn from_object_value(
         cx: JSContext,
         value: HandleValue,
