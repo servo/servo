@@ -272,6 +272,7 @@ jobs:
           ls -la
           /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
       - name: Install
+        id: install_servo
         run: |
           # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
           # to make sure we don't use a previous version if installation failed for some reason.
@@ -290,39 +291,16 @@ jobs:
           fetch-depth: 0
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Get model name
+        id: hdc_product_name
+        # awk is used to remove trailing spaces
+        run: |
+          echo "MODEL_NAME=$(hdc shell param get const.product.name | awk '{$1=$1;print}' )" >> $GITHUB_OUTPUT
       - name: Getting hitrace-bench version
         run: echo "INSTALLED_HITRACE_BENCH_VERSION=$(hitrace-bench --version | awk '{print $2}')" >> $GITHUB_ENV
       - name: Install hitrace-bench
         run: cargo install --locked hitrace-bench --version $HITRACE_BENCH_VERSION
         if: ${{ env.INSTALLED_HITRACE_BENCH_VERSION != env.HITRACE_BENCH_VERSION }}
-      - name: "Run benchmark"
-        run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
-        continue-on-error: true
-      - name: Run speedometer
-        id: BencherRun
-        run: uv run ./etc/ci/scenario/servo_speedometer.py ${{ inputs.profile }}
-        timeout-minutes: 10
-        continue-on-error: true
-      - name: Handle failed speedometer
-        if: ${{ steps.BencherRun.outcome == 'failure' }}
-        run: |
-          touch speedometer.json # Create an empty file for bencher.
-          mkdir speedometer_error_logs
-          hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
-          hdc file recv /data/local/tmp/servo.jpeg speedometer_error_logs/servo_hos_screenshot.jpeg
-          # Todo: Upload logs. This is currently not possible since the test-speedometer-ohos command
-          # sets a log filter, which filters everything except JS console output.
-      - uses: actions/upload-artifact@v4
-        if: ${{ steps.BencherRun.outcome == 'failure' }}
-        with:
-          name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
-          path: speedometer_error_logs
-      - name: Getting model name
-        # awk is used to remove trailing spaces
-        run: |
-          echo "MODEL_NAME=$(hdc shell param get const.product.name | awk '{$1=$1;print}' )" >> $GITHUB_ENV
-      - name: Combining bencher files
-        run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
       - uses: bencherdev/bencher@main
         # set options
       - name: Set bencher opts for PRs (label try run)
@@ -348,7 +326,46 @@ jobs:
           --start-point-hash $(git merge-base upstream/main HEAD) \
           --start-point-clone-thresholds \
           --start-point-reset" >> "$GITHUB_ENV"
+      # Up until this point everything is setup. Since we run multiple benchmarks in one job,
+      # and they can fail independently, we perform all setup before this point.
+      # This allows reducing the amount of `if` statements below, which allow steps to run
+      # even if a previous step (for an unrelated benchmark) failed.
+      # We add a dummy step here, so that we can check if we completed the setup successfully.
+      - name: Setup complete
+        id: setup_complete
+        run: echo "Setup complete"
+      - name: "Run benchmark"
+        id: hitrace_bench
+        run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
+      - name: Run speedometer
+        id: speedometer
+        run: uv run ./etc/ci/scenario/servo_speedometer.py ${{ inputs.profile }}
+        timeout-minutes: 10
+        if: ${{ !cancelled() && steps.setup_complete.outcome == 'success' }}
+      - name: Handle failed speedometer
+        if: ${{ !cancelled() && steps.speedometer.outcome == 'failure' }}
+        run: |
+          touch speedometer.json # Create an empty file for bencher.
+          mkdir speedometer_error_logs
+          hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
+          hdc file recv /data/local/tmp/servo.jpeg speedometer_error_logs/servo_hos_screenshot.jpeg
+          # Todo: Upload logs. This is currently not possible since the test-speedometer-ohos command
+          # sets a log filter, which filters everything except JS console output.
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.speedometer.outcome == 'failure' }}
+        with:
+          name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
+          path: speedometer_error_logs
+      - name: Combining bencher files
+        if: ${{ !cancelled() && steps.setup_complete.outcome == 'success' }}
+        run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
       - name: Uploading to bencher.dev
+        # Post to bencher if at least one of the benchmarks succeeded.
+        if: | 
+          ${{ !cancelled() && steps.setup_complete.outcome == 'success' 
+                && (steps.hitrace_bench.outcome == 'success' 
+                      || steps.speedometer.outcome == 'success')
+          }}
         # Note: That e.g. `--start-point` is ignored if it is an empty string,
         # which should be the case on e.g. normal push workflows on main.
         run: |
@@ -357,14 +374,9 @@ jobs:
                       --project '${{ env.BENCHER_PROJECT }}' \
                       --token '${{ secrets.BENCHER_API_TOKEN }}' \
                       --github-actions '${{ secrets.GITHUB_TOKEN }}' \
-                      --testbed="$MODEL_NAME" \
+                      --testbed="${{steps.hdc_product_name.outputs.MODEL_NAME}}" \
                       $RUN_BENCHER_OPTIONS
-      - name: Success
-        if: ${{ !contains(steps.*.outcome, 'failure') && !contains(steps.*.outcome, 'cancelled') }}
-        run: exit 0
-      - name: Failure
-        if: contains(steps.*.outcome, 'failure') || contains(steps.*.outcome, 'cancelled')
-        run: exit 1
+
 
   scenario-test-harmonyos:
     name: Mossel Scenario test
