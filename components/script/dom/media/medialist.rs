@@ -13,6 +13,7 @@ use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::{CssRuleType, CustomMediaEvaluator, Origin, UrlExtraData};
 use style_traits::{ParseError, ParsingMode, ToCss};
 
+use crate::css::parser_context_for_document;
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
@@ -20,6 +21,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
+use crate::dom::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -70,20 +72,16 @@ impl MediaList {
         }
         let mut input = ParserInput::new(value);
         let mut parser = Parser::new(&mut input);
-        let url_data = UrlExtraData(window.get_url().get_arc());
-        let quirks_mode = window.Document().quirks_mode();
+        let document = window.Document();
+        let url_data = UrlExtraData(document.owner_global().api_base_url().get_arc());
         // FIXME(emilio): This looks somewhat fishy, since we use the context
         // only to parse the media query list, CssRuleType::Media doesn't make
         // much sense.
-        let context = ParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Media),
+        let context = parser_context_for_document(
+            &document,
+            CssRuleType::Media,
             ParsingMode::DEFAULT,
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            Some(window.css_error_reporter()),
-            None,
+            &url_data,
         );
         StyleMediaList::parse(&context, &mut parser)
     }
@@ -95,17 +93,13 @@ impl MediaList {
     ) -> Result<MediaQuery, ParseError<'i>> {
         let mut input = ParserInput::new(value);
         let mut parser = Parser::new(&mut input);
-        let url_data = UrlExtraData(window.get_url().get_arc());
-        let quirks_mode = window.Document().quirks_mode();
-        let context = ParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Media),
+        let document = window.Document();
+        let url_data = UrlExtraData(document.owner_global().api_base_url().get_arc());
+        let context = parser_context_for_document(
+            &document,
+            CssRuleType::Media,
             ParsingMode::DEFAULT,
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            Some(window.css_error_reporter()),
-            None,
+            &url_data,
         );
         MediaQuery::parse(&context, &mut parser)
     }
@@ -122,7 +116,7 @@ impl MediaList {
     /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
     pub(crate) fn matches_environment(document: &Document, media_query: &str) -> bool {
         let quirks_mode = document.quirks_mode();
-        let document_url_data = UrlExtraData(document.url().get_arc());
+        let url_data = UrlExtraData(document.owner_global().api_base_url().get_arc());
         // FIXME(emilio): This should do the same that we do for other media
         // lists regarding the rule type and such, though it doesn't really
         // matter right now...
@@ -130,7 +124,7 @@ impl MediaList {
         // Also, ParsingMode::all() is wrong, and should be DEFAULT.
         let context = ParserContext::new(
             Origin::Author,
-            &document_url_data,
+            &url_data,
             Some(CssRuleType::Style),
             ParsingMode::all(),
             quirks_mode,
