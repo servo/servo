@@ -8,13 +8,13 @@ use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Repla
 use gilrs::{EventType, Gilrs};
 use log::{debug, warn};
 use servo::{
-    GamepadEvent, GamepadHapticEffectType, GamepadIndex, GamepadInputBounds,
-    GamepadSupportedHapticEffects, GamepadUpdateType, InputEvent, WebView,
+    GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectType, GamepadIndex,
+    GamepadInputBounds, GamepadSupportedHapticEffects, GamepadUpdateType, InputEvent, WebView,
 };
 
 pub struct HapticEffect {
     pub effect: Effect,
-    pub callback: Option<Box<dyn FnOnce(bool)>>,
+    pub request: GamepadHapticEffectRequest,
 }
 
 pub(crate) struct GamepadSupport {
@@ -113,14 +113,11 @@ impl GamepadSupport {
                     gamepad_event = Some(GamepadEvent::Disconnected(index));
                 },
                 EventType::ForceFeedbackEffectCompleted => {
-                    let Some(effect) = self.haptic_effects.get_mut(&event.id.into()) else {
+                    if let Some(haptic_effect) = self.haptic_effects.remove(&event.id.into()) {
+                        haptic_effect.request.succeeded();
+                    } else {
                         warn!("Failed to find haptic effect for id {}", event.id);
-                        return;
-                    };
-                    if let Some(callback) = effect.callback.take() {
-                        callback(true);
                     }
-                    self.haptic_effects.remove(&event.id.into());
                 },
                 _ => {},
             }
@@ -156,62 +153,70 @@ impl GamepadSupport {
         }
     }
 
-    pub(crate) fn play_haptic_effect(
-        &mut self,
-        index: usize,
-        effect_type: GamepadHapticEffectType,
-        callback: Box<dyn FnOnce(bool)>,
-    ) {
+    pub(crate) fn play_haptic_effect(&mut self, request: GamepadHapticEffectRequest) {
+        let index = request.gamepad_index();
+        let Some(effect_type) = request.effect_type() else {
+            request.failed();
+            return;
+        };
         let GamepadHapticEffectType::DualRumble(params) = effect_type;
-        if let Some(connected_gamepad) = self
+
+        let Some(connected_gamepad) = self
             .handle
             .gamepads()
             .find(|gamepad| usize::from(gamepad.0) == index)
-        {
-            let start_delay = Ticks::from_ms(params.start_delay as u32);
-            let duration = Ticks::from_ms(params.duration as u32);
-            let strong_magnitude = (params.strong_magnitude * u16::MAX as f64).round() as u16;
-            let weak_magnitude = (params.weak_magnitude * u16::MAX as f64).round() as u16;
-
-            let scheduling = Replay {
-                after: start_delay,
-                play_for: duration,
-                with_delay: Ticks::from_ms(0),
-            };
-            let effect = EffectBuilder::new()
-                .add_effect(BaseEffect {
-                    kind: BaseEffectType::Strong { magnitude: strong_magnitude },
-                    scheduling,
-                    envelope: Default::default(),
-                })
-                .add_effect(BaseEffect {
-                    kind: BaseEffectType::Weak { magnitude: weak_magnitude },
-                    scheduling,
-                    envelope: Default::default(),
-                })
-                .repeat(Repeat::For(start_delay + duration))
-                .add_gamepad(&connected_gamepad.1)
-                .finish(&mut self.handle)
-                .expect("Failed to create haptic effect, ensure connected gamepad supports force feedback.");
-            self.haptic_effects.insert(
-                index,
-                HapticEffect {
-                    effect,
-                    callback: Some(callback),
-                },
-            );
-            self.haptic_effects[&index]
-                .effect
-                .play()
-                .expect("Failed to play haptic effect.");
-        } else {
+        else {
             debug!("Couldn't find connected gamepad to play haptic effect on");
-        }
+            request.failed();
+            return;
+        };
+
+        let start_delay = Ticks::from_ms(params.start_delay as u32);
+        let duration = Ticks::from_ms(params.duration as u32);
+        let strong_magnitude = (params.strong_magnitude * u16::MAX as f64).round() as u16;
+        let weak_magnitude = (params.weak_magnitude * u16::MAX as f64).round() as u16;
+
+        let scheduling = Replay {
+            after: start_delay,
+            play_for: duration,
+            with_delay: Ticks::from_ms(0),
+        };
+        let effect = EffectBuilder::new()
+            .add_effect(BaseEffect {
+                kind: BaseEffectType::Strong {
+                    magnitude: strong_magnitude,
+                },
+                scheduling,
+                envelope: Default::default(),
+            })
+            .add_effect(BaseEffect {
+                kind: BaseEffectType::Weak {
+                    magnitude: weak_magnitude,
+                },
+                scheduling,
+                envelope: Default::default(),
+            })
+            .repeat(Repeat::For(start_delay + duration))
+            .add_gamepad(&connected_gamepad.1)
+            .finish(&mut self.handle)
+            .expect(
+                "Failed to create haptic effect, ensure connected gamepad supports force feedback.",
+            );
+
+        self.haptic_effects
+            .insert(index, HapticEffect { effect, request });
+        self.haptic_effects[&index]
+            .effect
+            .play()
+            .expect("Failed to play haptic effect.");
     }
 
-    pub(crate) fn stop_haptic_effect(&mut self, index: usize) -> bool {
+    pub(crate) fn stop_haptic_effect(&mut self, request: GamepadHapticEffectRequest) {
+        let index = request.gamepad_index();
+
         let Some(haptic_effect) = self.haptic_effects.get(&index) else {
-            return false;
+            request.failed();
+            return;
         };
 
         let stopped_successfully = match haptic_effect.effect.stop() {
@@ -223,6 +228,10 @@ impl GamepadSupport {
         };
         self.haptic_effects.remove(&index);
 
-        stopped_successfully
+        if stopped_successfully {
+            request.succeeded();
+        } else {
+            request.failed();
+        }
     }
 }
