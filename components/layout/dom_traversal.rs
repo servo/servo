@@ -298,8 +298,8 @@ impl Contents {
         if let Content::Items(GenericContentItems { items, .. }) =
             node.style(&context.style_context).clone_content()
         {
-            if let [GenericContentItem::Image(img)] = items.as_slice() {
-                match ReplacedContents::from_image(node, context, img) {
+            if let [GenericContentItem::Image(image)] = items.as_slice() {
+                match ReplacedContents::from_image(node, context, image) {
                     Some(replaced) => return Self::Replaced(replaced),
                     // Invalid images are treated as zero-sized.
                     None => {
