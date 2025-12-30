@@ -451,7 +451,7 @@ version = "0.38.0+1.3.281"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bb44936d800fea8f016d7f2311c6a4f97aebd5dc86f09906139ec848cf3a46f"
 dependencies = [
- "libloading",
+ "libloading 0.8.9",
 ]
 
 [[package]]
@@ -1376,7 +1376,7 @@ checksum = "0b023947811758c97c59bf9d1c188fd619ad4718dcaa767947df1cadb14f39f4"
 dependencies = [
  "glob",
  "libc",
- "libloading",
+ "libloading 0.8.9",
 ]
 
 [[package]]
@@ -1677,9 +1677,9 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.8.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
+checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -2246,7 +2246,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading",
+ "libloading 0.8.9",
 ]
 
 [[package]]
@@ -4913,7 +4913,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6aae1df220ece3c0ada96b8153459b67eebe9ae9212258bb0134ae60416fdf76"
 dependencies = [
  "libc",
- "libloading",
+ "libloading 0.8.9",
  "pkg-config",
 ]
 
@@ -5085,6 +5085,16 @@ name = "libloading"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
+dependencies = [
+ "cfg-if",
+ "windows-link 0.2.1",
+]
+
+[[package]]
+name = "libloading"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60"
 dependencies = [
  "cfg-if",
  "windows-link 0.2.1",
@@ -5545,15 +5555,15 @@ dependencies = [
 
 [[package]]
 name = "napi-build-ohos"
-version = "1.1.4"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c26abeb82d299258244202546ce4b8098e9991b0a8d5514abe5f56d4fb1d48c"
+checksum = "ef6dd17c07ec87e01862688b0e2f14bc052e7f55cef2ac25002a85773b4d4700"
 
 [[package]]
 name = "napi-derive-backend-ohos"
-version = "1.1.4"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d86f96f92eb3dba447ebc023ac5e16b0a92406d6df938bf3be566b604ea6646a"
+checksum = "ca7d4fb6b8d47af586495031a373cec4047f3ab2618aaa9f4e117326a62ae012"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -5564,9 +5574,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-ohos"
-version = "1.1.4"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b2ebc6e95ff9cb26e669693315116913fcfdbd1cf4dd50463f046ef8c440937"
+checksum = "1d543de2165ff521c753b97ae7f155c66cefeb399f2ee3eeb722990cada1ad78"
 dependencies = [
  "convert_case",
  "ctor",
@@ -5578,12 +5588,13 @@ dependencies = [
 
 [[package]]
 name = "napi-ohos"
-version = "1.1.4"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c507895644c3334483daeb9612cfe3fd2d433408edcb9f3449bccd7c3e357db0"
+checksum = "3cf07b1e86c3c1064708ce2b7f633d21d0541bbace0c5cf4f6f4efbe77c8d5bf"
 dependencies = [
  "bitflags 2.10.0",
  "ctor",
+ "futures 0.3.31",
  "napi-build-ohos",
  "napi-sys-ohos",
  "nohash-hasher",
@@ -5592,11 +5603,11 @@ dependencies = [
 
 [[package]]
 name = "napi-sys-ohos"
-version = "1.1.4"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b96d2ad26866a761c5cf9432200bb3e5190e222a12c2e4494a0c23f7c45c6964"
+checksum = "93ebf413b230ae4865c00d269a3d264f928a5e92c6320bfa79bf53033da55875"
 dependencies = [
- "libloading",
+ "libloading 0.9.0",
 ]
 
 [[package]]
@@ -6414,7 +6425,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40adeaa3219baa4412a522742eeee152656763008a39c68a50fd3027fe37625e"
 dependencies = [
  "libc",
- "libloading",
+ "libloading 0.8.9",
  "ndk-context",
  "openxr-sys",
 ]
@@ -10588,7 +10599,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading",
+ "libloading 0.8.9",
  "log",
  "metal",
  "naga",
@@ -11215,7 +11226,7 @@ dependencies = [
  "as-raw-xcb-connection",
  "gethostname",
  "libc",
- "libloading",
+ "libloading 0.8.9",
  "once_cell",
  "rustix 1.1.2",
  "x11rb-protocol",
