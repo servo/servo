@@ -19,7 +19,7 @@ use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
-    RequestBuilder, RequestId,
+    RequestBuilder, RequestClient, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -520,6 +520,7 @@ pub(crate) fn script_fetch_request(
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
     policy_container: PolicyContainer,
+    client: RequestClient,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -533,6 +534,7 @@ pub(crate) fn script_fetch_request(
         insecure_requests_policy,
         has_trustworthy_ancestor_origin,
         policy_container,
+        client,
     )
     .origin(origin)
     .pipeline_id(Some(pipeline_id))
@@ -564,6 +566,7 @@ fn fetch_a_classic_script(
         doc.insecure_requests_policy(),
         doc.has_trustworthy_ancestor_origin(),
         global.policy_container(),
+        global.request_client(),
     );
     let request = doc.prepare_request(request);
 

@@ -206,6 +206,7 @@ impl SendReportsToEndpoints for GlobalScope {
             self.insecure_requests_policy(),
             self.has_trustworthy_ancestor_or_current_origin(),
             self.policy_container(),
+            self.request_client(),
         )
         .method(http::Method::POST)
         .body(request_body)

@@ -1433,6 +1433,7 @@ impl HTMLMediaElement {
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
             global.policy_container(),
+            global.request_client(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())

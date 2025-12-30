@@ -18,6 +18,7 @@ use markup5ever::TokenizerResult;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer,
+    RequestClient,
 };
 use net_traits::{CoreResourceMsg, FetchChannels, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -79,6 +80,7 @@ impl Tokenizer {
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
             policy_container: global.policy_container(),
+            request_client: global.request_client(),
         };
         let options = Default::default();
         let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
@@ -114,6 +116,8 @@ struct PrefetchSink {
     has_trustworthy_ancestor_origin: bool,
     #[no_trace]
     policy_container: PolicyContainer,
+    #[no_trace]
+    request_client: RequestClient,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -157,6 +161,7 @@ impl TokenSink for PrefetchSink {
                         self.insecure_requests_policy,
                         self.has_trustworthy_ancestor_origin,
                         self.policy_container.clone(),
+                        self.request_client.clone(),
                     );
                     let _ = self
                         .resource_threads
@@ -177,6 +182,7 @@ impl TokenSink for PrefetchSink {
                         self.insecure_requests_policy,
                         self.has_trustworthy_ancestor_origin,
                         self.policy_container.clone(),
+                        self.request_client.clone(),
                     )
                     .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
@@ -213,6 +219,7 @@ impl TokenSink for PrefetchSink {
                                 self.insecure_requests_policy,
                                 self.has_trustworthy_ancestor_origin,
                                 self.policy_container.clone(),
+                                self.request_client.clone(),
                             )
                             .origin(self.origin.clone())
                             .pipeline_id(Some(self.pipeline_id))

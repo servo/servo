@@ -1082,6 +1082,9 @@ impl ParserContext {
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-text>
     fn load_text_document(&mut self, parser: &ServoParser) {
+        // Step 1. Let document be the result of creating and initializing a Document
+        // object given "html", type, and navigationParams.
+        self.initialize_document_object(&parser.document);
         // Step 4. Create an HTML parser and associate it with the document.
         // Act as if the tokenizer had emitted a start tag token with the tag name "pre" followed by
         // a single U+000A LINE FEED (LF) character, and switch the HTML parser's tokenizer to the PLAINTEXT state.
@@ -1105,6 +1108,9 @@ impl ParserContext {
         media_type: MediaType,
         mime_type: &Mime,
     ) {
+        // Step 1. Let document be the result of creating and initializing a Document
+        // object given "html", type, and navigationParams.
+        self.initialize_document_object(&parser.document);
         // Step 8. Act as if the user agent had stopped parsing document.
         self.is_synthesized_document = true;
         // Step 3. Populate with html/head/body given document.

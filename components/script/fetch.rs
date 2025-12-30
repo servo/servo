@@ -15,7 +15,8 @@ use js::rust::wrappers::JS_SetPendingException;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
-    Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
+    Request as NetTraitsRequest, RequestBuilder, RequestClient, RequestId, RequestMode,
+    ServiceWorkersMode,
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
@@ -779,6 +780,7 @@ pub(crate) fn create_a_potential_cors_request(
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
     policy_container: PolicyContainer,
+    client: RequestClient,
 ) -> RequestBuilder {
     RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -800,4 +802,5 @@ pub(crate) fn create_a_potential_cors_request(
         .insecure_requests_policy(insecure_requests_policy)
         .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
         .policy_container(policy_container)
+        .client(client)
 }
