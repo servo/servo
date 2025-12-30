@@ -148,6 +148,8 @@ rustls = { version = "0.23", default-features = false, features = ["logging", "s
 rustls-pki-types = "1.13"
 rustls-platform-verifier = "0.6.2"
 script_traits = { path = "components/shared/script" }
+sea-query = { version = "1.0.0-rc.29", default-features = false, features = ["backend-sqlite", "derive"] }
+sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 serde = "1.0.228"

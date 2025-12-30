@@ -7894,9 +7894,9 @@ dependencies = [
 
 [[package]]
 name = "sea-query"
-version = "1.0.0-rc.26"
+version = "1.0.0-rc.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57e54859a85b278c00edfd617649bd12850a2d820b181603127d4b011f97b946"
+checksum = "93948054fb2d208555a96d03d2c887591deb42ffe3210eedbd8a3234c6fb6d34"
 dependencies = [
  "inherent",
  "sea-query-derive",
@@ -7918,9 +7918,9 @@ dependencies = [
 
 [[package]]
 name = "sea-query-rusqlite"
-version = "0.8.0-rc.14"
+version = "0.8.0-rc.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "235ec9a4f534a32cf4ec1dfea7f3cf36b8a686da956b6e146d64aed932d184c1"
+checksum = "9d42855d86ace6f5d9e425b65a8035d45c64e001db87a254ecfd87f226b4b0f7"
 dependencies = [
  "rusqlite",
  "sea-query",
