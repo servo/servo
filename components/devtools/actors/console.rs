@@ -31,7 +31,7 @@ use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{StreamId, UniqueId};
+use crate::{EmptyReplyMsg, StreamId, UniqueId};
 
 trait EncodableConsoleMessage {
     fn encode(&self) -> serde_json::Result<String>;
@@ -476,6 +476,14 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     updated: vec![],
                 };
+                request.reply_final(&msg)?
+            },
+
+            "clearMessagesCacheAsync" => {
+                self.cached_events
+                    .borrow_mut()
+                    .remove(&self.current_unique_id(registry));
+                let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
             },
 
