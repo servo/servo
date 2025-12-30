@@ -581,6 +581,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             global.insecure_requests_policy(),
             global.has_trustworthy_ancestor_or_current_origin(),
             global.policy_container(),
+            global.request_client(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));

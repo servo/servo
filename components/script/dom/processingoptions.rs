@@ -14,7 +14,7 @@ use net_traits::mime_classifier::{MediaType, MimeClassifier};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, Destination, Initiator, InsecureRequestsPolicy, PreloadEntry, PreloadKey,
-    Referrer, RequestBuilder, RequestId,
+    Referrer, RequestBuilder, RequestClient, RequestId,
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{FetchMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
@@ -32,6 +32,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::medialist::MediaList;
+use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::types::HTMLLinkElement;
 use crate::fetch::create_a_potential_cors_request;
@@ -86,8 +87,9 @@ pub(crate) struct LinkProcessingOptions {
     pub(crate) origin: ImmutableOrigin,
     pub(crate) insecure_requests_policy: InsecureRequestsPolicy,
     pub(crate) has_trustworthy_ancestor_origin: bool,
+    pub(crate) referrer: Referrer,
     // https://html.spec.whatwg.org/multipage/#link-options-environment
-    // TODO
+    pub(crate) request_client: RequestClient,
     // https://html.spec.whatwg.org/multipage/#link-options-document
     // TODO
     // https://html.spec.whatwg.org/multipage/#link-options-on-document-ready
@@ -196,19 +198,19 @@ impl LinkProcessingOptions {
         // Step 7. Set request's integrity metadata to options's integrity.
         // Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
         // Step 9. Set request's referrer policy to options's referrer policy.
-        // FIXME: Step 10. Set request's client to options's environment.
+        // Step 10. Set request's client to options's environment.
         // FIXME: Step 11. Set request's priority to options's fetch priority.
-        // FIXME: Use correct referrer
         let builder = create_a_potential_cors_request(
             Some(webview_id),
             url,
             self.destination,
             self.cross_origin,
             None,
-            Referrer::NoReferrer,
+            self.referrer,
             self.insecure_requests_policy,
             self.has_trustworthy_ancestor_origin,
             self.policy_container,
+            self.request_client,
         )
         .initiator(Initiator::Link)
         .origin(self.origin)
@@ -361,6 +363,7 @@ pub(crate) fn process_link_headers(
     document: &Document,
     phase: LinkProcessingPhase,
 ) {
+    let global = document.owner_global();
     // Step 1. Let links be the result of extracting links from response's header list.
     //
     // Already performed once when parsing headers by caller
@@ -408,6 +411,8 @@ pub(crate) fn process_link_headers(
             base_url: document.base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
+            request_client: global.request_client(),
+            referrer: global.get_referrer(),
         };
         // Step 2.7. Apply link options from parsed header attributes to options given attribs and rel.
         // If that returned false, then return.

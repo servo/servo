@@ -691,6 +691,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .referrer_policy(self.referrer_policy)
         .insecure_requests_policy(global.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .client(global.request_client())
         .policy_container(global.policy_container())
         .pipeline_id(Some(global.pipeline_id()));
 
