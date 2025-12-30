@@ -7900,7 +7900,7 @@ class CGRegisterProxyHandlers(CGThing):
         )
         self.root = CGList([
             CGGeneric(
-                "#[allow(non_upper_case_globals)]\n"
+                "#[expect(non_upper_case_globals)]\n"
                 "pub(crate) mod proxy_handlers {\n"
                 f"{body}}}\n"
             ),

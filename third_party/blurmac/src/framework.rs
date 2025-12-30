@@ -9,7 +9,7 @@ use std::os::raw::{c_char, c_int, c_uint};
 
 use objc2::runtime::{BOOL, Class, Object};
 
-#[allow(non_upper_case_globals)]
+#[expect(non_upper_case_globals)]
 pub const nil: *mut Object = 0 as *mut Object;
 
 pub mod ns {
