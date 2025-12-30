@@ -213,11 +213,10 @@ impl ReplacedContents {
                     ratio: svg_data.ratio,
                 };
                 (ReplacedContentKind::SVGElement(vector_image), natural_size)
-            } else {
-                let element = node.as_html_element()?;
-                if !element.has_local_name(&local_name!("audio")) {
-                    return Self::from_content_property(node, context);
-                }
+            } else if node
+                .as_html_element()
+                .is_some_and(|element| element.has_local_name(&local_name!("audio")))
+            {
                 let natural_size = NaturalSizes {
                     width: None,
                     // 40px is the height of the controls.
@@ -226,6 +225,8 @@ impl ReplacedContents {
                     ratio: None,
                 };
                 (ReplacedContentKind::Audio, natural_size)
+            } else {
+                return Self::from_content_property(node, context);
             }
         };
 
@@ -275,6 +276,11 @@ impl ReplacedContents {
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
+                        if let Image::Raster(image) = &image {
+                            context
+                                .image_resolver
+                                .handle_animated_image(node.opaque(), image.clone());
+                        }
                         let metadata = image.metadata();
                         (
                             Some(image.clone()),
