@@ -3,22 +3,25 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use der::asn1::{BitString, OctetString};
-use der::{AnyRef, Choice, Decode, Sequence};
+use der::{AnyRef, Choice, Decode, Encode, Sequence};
 use ml_kem::kem::EncapsulationKey;
 use ml_kem::{
     B32, Encoded, EncodedSizeUser, KemCore, MlKem512, MlKem512Params, MlKem768, MlKem768Params,
     MlKem1024, MlKem1024Params,
 };
+use pkcs8::spki::AlgorithmIdentifier;
 use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ML_KEM_512, ALG_ML_KEM_768, ALG_ML_KEM_1024, JsonWebKeyExt, JwkStringField,
+    ALG_ML_KEM_512, ALG_ML_KEM_768, ALG_ML_KEM_1024, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
@@ -624,6 +627,300 @@ pub(crate) fn import_key(
     Ok(key)
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-export-key>
+///
+/// The exportKey() method does not involve AlgorithmIdentifier and algorithm normalization, so
+/// there should not be normalizedAlgorithm in the export key operation. It could be a mistake in
+/// the specification (Related issue: <https://github.com/WICG/webcrypto-modern-algos/issues/47>).
+///
+/// In our implementation, we use the name attribute of the [[algorithhm]] internal slot of key to
+/// determine the security category.
+pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    // Step 1. If the underlying cryptographic key material represented by the [[handle]] internal
+    // slot of key cannot be accessed, then throw an OperationError.
+
+    // Step 2.
+    let result = match format {
+        // If format is "spki":
+        KeyFormat::Spki => {
+            // Step 2.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"public\"".to_string(),
+                )));
+            }
+
+            // Step 2.2.
+            // Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure defined in
+            // [RFC5280] with the following properties:
+            //
+            //     Set the algorithm field to an AlgorithmIdentifier ASN.1 type with the following
+            //     properties:
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-512":
+            //             Set the algorithm object identifier to the id-alg-ml-kem-512
+            //             (2.16.840.1.101.3.4.4.1) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-768":
+            //             Set the algorithm object identifier to the id-alg-ml-kem-768
+            //             (2.16.840.1.101.3.4.4.2) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-1024":
+            //             Set the algorithm object identifier to the id-alg-ml-kem-1024
+            //             (2.16.840.1.101.3.4.4.3) OID.
+            //
+            //         Otherwise:
+            //             throw a NotSupportedError.
+            //
+            //     Set the subjectPublicKey field to keyData.
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+            let oid = match key_algorithm.name.as_str() {
+                ALG_ML_KEM_512 => ID_ALG_ML_KEM_512,
+                ALG_ML_KEM_768 => ID_ALG_ML_KEM_768,
+                ALG_ML_KEM_1024 => ID_ALG_ML_KEM_1024,
+                _ => {
+                    return Err(Error::Operation(Some(format!(
+                        "{} is not an ML-KEM algorithm",
+                        key_algorithm.name.as_str()
+                    ))));
+                },
+            };
+            let key_bytes = convert_handle_to_public_key(key.handle())?;
+            let subject_public_key = BitString::from_bytes(&key_bytes).map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode BitString for subjectPublicKey field of SubjectPublicKeyInfo"
+                        .to_string(),
+                ))
+            })?;
+            let data = SubjectPublicKeyInfo {
+                algorithm: AlgorithmIdentifier::<AnyRef> {
+                    oid: ObjectIdentifier::new_unwrap(oid),
+                    parameters: None,
+                },
+                subject_public_key,
+            };
+
+            // Step 2.3. Let result be the result of DER-encoding data.
+            ExportedKey::Bytes(data.to_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode SubjectPublicKeyInfo in DER format".to_string(),
+                ))
+            })?)
+        },
+        // If format is "pkcs8":
+        KeyFormat::Pkcs8 => {
+            // Step 2.1. If the [[type]] internal slot of key is not "private", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Private {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"private\"".to_string(),
+                )));
+            }
+
+            // Step 2.2.
+            // Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in [RFC5208]
+            // with the following properties:
+            //
+            //     Set the version field to 0.
+            //
+            //     Set the privateKeyAlgorithm field to a PrivateKeyAlgorithmIdentifier ASN.1 type
+            //     with the following properties:
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-512":
+            //             Set the algorithm object identifier to the id-alg-ml-kem-512
+            //             (2.16.840.1.101.3.4.4.1) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-768":
+            //             Set the algorithm object identifier to the id-alg-ml-kem-768
+            //             (2.16.840.1.101.3.4.4.2) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-1024":
+            //             Set the algorithm object identifier to the id-alg-ml-kem-1024
+            //             (2.16.840.1.101.3.4.4.3) OID.
+            //
+            //         Otherwise:
+            //             throw a NotSupportedError.
+            //
+            //     Set the privateKey field as follows:
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-512":
+            //             Set the privateKey field to the result of DER-encoding a
+            //             ML-KEM-512-PrivateKey ASN.1 type that represents the ML-KEM private key
+            //             seed represented by the [[handle]] internal slot of key using the
+            //             seed-only format (using a context-specific [0] primitive tag with an
+            //             implicit encoding of OCTET STRING).
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-768":
+            //             Set the privateKey field to the result of DER-encoding a
+            //             ML-KEM-768-PrivateKey ASN.1 type that represents the ML-KEM private key
+            //             seed represented by the [[handle]] internal slot of key using the
+            //             seed-only format (using a context-specific [0] primitive tag with an
+            //             implicit encoding of OCTET STRING).
+            //
+            //         If the name member of normalizedAlgorithm is "ML-KEM-1024":
+            //             Set the privateKey field to the result of DER-encoding a
+            //             ML-KEM-1024-PrivateKey ASN.1 type that represents the ML-KEM private key
+            //             seed represented by the [[handle]] internal slot of key using the
+            //             seed-only format (using a context-specific [0] primitive tag with an
+            //             implicit encoding of OCTET STRING).
+            //
+            //         Otherwise:
+            //             throw a NotSupportedError.
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+            let oid = match key_algorithm.name.as_str() {
+                ALG_ML_KEM_512 => ID_ALG_ML_KEM_512,
+                ALG_ML_KEM_768 => ID_ALG_ML_KEM_768,
+                ALG_ML_KEM_1024 => ID_ALG_ML_KEM_1024,
+                _ => {
+                    return Err(Error::Operation(Some(format!(
+                        "{} is not an ML-KEM algorithm",
+                        key_algorithm.name.as_str()
+                    ))));
+                },
+            };
+            let (seed_bytes, _) = convert_handle_to_seed_and_public_key(key.handle())?;
+            let private_key =
+                MlKemPrivateKeyStructure::Seed(OctetString::new(seed_bytes).map_err(|_| {
+                    Error::Operation(Some(
+                        "Failed to encode OctetString for privateKey field of \
+                ASN.1 ML-KEM private key structure"
+                            .to_string(),
+                    ))
+                })?);
+            let encoded_private_key = private_key.to_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode ASN.1 ML-KEM private key structure in DER format".to_string(),
+                ))
+            })?;
+            let private_key_info = PrivateKeyInfo {
+                algorithm: AlgorithmIdentifier {
+                    oid: ObjectIdentifier::new_unwrap(oid),
+                    parameters: None,
+                },
+                private_key: &encoded_private_key,
+                public_key: None,
+            };
+
+            // Step 2.3. Let result be the result of DER-encoding data.
+            ExportedKey::Bytes(private_key_info.to_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode PrivateKeyInfo in DER format".to_string(),
+                ))
+            })?)
+        },
+        // If format is "raw-public":
+        KeyFormat::Raw_public => {
+            // Step 2.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"public\"".to_string(),
+                )));
+            }
+
+            // Step 2.2. Let data be a byte sequence containing the raw octets of the key
+            // represented by the [[handle]] internal slot of key.
+            let data = convert_handle_to_public_key(key.handle())?;
+
+            // Step 2.3. Let result be data.
+            ExportedKey::Bytes(data)
+        },
+        // If format is "raw-seed":
+        KeyFormat::Raw_seed => {
+            // Step 2.1. If the [[type]] internal slot of key is not "private", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Private {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"private\"".to_string(),
+                )));
+            }
+
+            // Step 2.2. Let data be a byte sequence containing the concatenation of the d and z
+            // seed variables of the key represented by the [[handle]] internal slot of key.
+            let (data, _) = convert_handle_to_seed_and_public_key(key.handle())?;
+
+            // Step 2.3. Let result be data.
+            ExportedKey::Bytes(data)
+        },
+        // If format is "jwk":
+        KeyFormat::Jwk => {
+            // The JWK format for ML-KEM is not standardized yet and thus subject to change.
+
+            // Step 2.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 2.2. Set the kty attribute of jwk to "AKP".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("AKP")),
+                ..Default::default()
+            };
+
+            // Step 2.3. Set the alg attribute of jwk to the alg value corresponding to the name
+            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-01]
+            // (Figure 1).
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+            let alg = match key_algorithm.name.as_str() {
+                ALG_ML_KEM_512 => ID_ALG_ML_KEM_512,
+                ALG_ML_KEM_768 => ID_ALG_ML_KEM_768,
+                ALG_ML_KEM_1024 => ID_ALG_ML_KEM_1024,
+                _ => {
+                    return Err(Error::Operation(Some(format!(
+                        "{} is not an ML-KEM algorithm",
+                        key_algorithm.name.as_str()
+                    ))));
+                },
+            };
+            jwk.alg = Some(DOMString::from(alg));
+
+            // Step 2.4. Set the pub attribute of jwk to the base64url encoded public key
+            // corresponding to the [[handle]] internal slot of key.
+            // Step 2.5.
+            // If the [[type]] internal slot of key is "private":
+            //     Set the priv attribute of jwk to the base64url encoded seed represented by the
+            //     [[handle]] internal slot of key.
+            if key.Type() == KeyType::Private {
+                let (seed_bytes, public_key_bytes) =
+                    convert_handle_to_seed_and_public_key(key.handle())?;
+                jwk.encode_string_field(JwkStringField::Pub, &public_key_bytes);
+                jwk.encode_string_field(JwkStringField::Priv, &seed_bytes);
+            } else {
+                let public_key_bytes = convert_handle_to_public_key(key.handle())?;
+                jwk.encode_string_field(JwkStringField::Pub, &public_key_bytes);
+            }
+
+            // Step 2.6. Set the key_ops attribute of jwk to the usages attribute of key.
+            jwk.set_key_ops(key.usages());
+
+            // Step 2.7. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+            jwk.ext = Some(key.Extractable());
+
+            // Step 2.8. Let result be jwk.
+            ExportedKey::Jwk(Box::new(jwk))
+        },
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(Some(
+                "Unsupported export key format for ML-KEM key".to_string(),
+            )));
+        },
+    };
+
+    // Step 3. Return result.
+    Ok(result)
+}
+
 /// Convert seed bytes to an ML-KEM private key handle and an ML-KEM public key handle. If private
 /// key bytes and/or public key bytes are provided, it runs a consistency check against the seed.
 /// If the length in bits of seed bytes is not 512, the conversion fails, or the consistency check
@@ -762,4 +1059,53 @@ fn convert_public_key_to_handle(algo_name: &str, public_key_bytes: &[u8]) -> Res
     };
 
     Ok(public_key_handle)
+}
+
+/// Convert an ML-KEM private key handle to seed bytes and public key bytes. If the handle is not
+/// representing a ML-KEM private key, throw an OperationError.
+fn convert_handle_to_seed_and_public_key(handle: &Handle) -> Result<(Vec<u8>, Vec<u8>), Error> {
+    let result = match handle {
+        Handle::MlKem512PrivateKey((d, z)) => {
+            let mut seed = d.to_vec();
+            seed.extend_from_slice(z);
+            let (_private_key, public_key) = MlKem512::generate_deterministic(d, z);
+            (seed, public_key.as_bytes().to_vec())
+        },
+        Handle::MlKem768PrivateKey((d, z)) => {
+            let mut seed = d.to_vec();
+            seed.extend_from_slice(z);
+            let (_private_key, public_key) = MlKem768::generate_deterministic(d, z);
+            (seed, public_key.as_bytes().to_vec())
+        },
+        Handle::MlKem1024PrivateKey((d, z)) => {
+            let mut seed = d.to_vec();
+            seed.extend_from_slice(z);
+            let (_private_key, public_key) = MlKem1024::generate_deterministic(d, z);
+            (seed, public_key.as_bytes().to_vec())
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an ML-KEM private key".to_string(),
+            )));
+        },
+    };
+
+    Ok(result)
+}
+
+/// Convert an ML-KEM public key handle to public key bytes. If the handle is not representing a
+/// ML-KEM public key, throw an OperationError.
+fn convert_handle_to_public_key(handle: &Handle) -> Result<Vec<u8>, Error> {
+    let result = match handle {
+        Handle::MlKem512PublicKey(public_key) => public_key.to_vec(),
+        Handle::MlKem768PublicKey(public_key) => public_key.to_vec(),
+        Handle::MlKem1024PublicKey(public_key) => public_key.to_vec(),
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an ML-KEM public key".to_string(),
+            )));
+        },
+    };
+
+    Ok(result)
 }
