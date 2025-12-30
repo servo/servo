@@ -74,10 +74,10 @@ impl FallbackFontSelectionOptions {
             // of the emoji presentation selectors above).
             _ if matches!(
                 character.emoji_status(),
-                EmojiStatus::EmojiPresentation
-                    | EmojiStatus::EmojiPresentationAndModifierBase
-                    | EmojiStatus::EmojiPresentationAndEmojiComponent
-                    | EmojiStatus::EmojiPresentationAndModifierAndEmojiComponent
+                EmojiStatus::EmojiPresentation |
+                    EmojiStatus::EmojiPresentationAndModifierBase |
+                    EmojiStatus::EmojiPresentationAndEmojiComponent |
+                    EmojiStatus::EmojiPresentationAndModifierAndEmojiComponent
             ) =>
             {
                 EmojiPresentationPreference::Emoji

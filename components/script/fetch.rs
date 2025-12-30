@@ -759,8 +759,8 @@ pub(crate) fn load_whole_resource(
                 }
                 return Ok((metadata, buf, muted_errors));
             },
-            FetchResponseMsg::ProcessResponse(_, Err(e))
-            | FetchResponseMsg::ProcessResponseEOF(_, Err(e)) => return Err(e),
+            FetchResponseMsg::ProcessResponse(_, Err(e)) |
+            FetchResponseMsg::ProcessResponseEOF(_, Err(e)) => return Err(e),
             FetchResponseMsg::ProcessCspViolations(_, violations) => {
                 csp_violations_processor.process_csp_violations(violations);
             },
