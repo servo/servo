@@ -1389,15 +1389,17 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 // Step 11. If the algorithm identified by the [[algorithm]] internal slot of key
                 // does not support the export key operation, then throw a NotSupportedError.
-
-                if matches!(
-                    key.algorithm().name(),
-                    ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
-                ) {
+                let registered_algorithm = match SupportedAlgorithm::try_from(key.algorithm().name()) {
+                    Ok(registered_algorithm) => registered_algorithm,
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
+                        return;
+                    },
+                };
+                if registered_algorithm.support(Operation::ExportKey).is_err() {
                     subtle.reject_promise_with_error(promise, Error::NotSupported(None));
                     return;
                 }
-
 
                 // Step 12. If the [[extractable]] internal slot of key is false, then throw an
                 // InvalidAccessError.
