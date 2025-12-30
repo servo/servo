@@ -42,7 +42,7 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "layout_variable_fonts_enabled",
 ];
 
-#[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
+#[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 #[derive(Clone)]
 pub(crate) struct ServoShellPreferences {
     /// A URL to load when starting servoshell.
@@ -213,7 +213,7 @@ pub fn read_prefs_map(txt: &str) -> HashMap<String, PrefValue> {
 }
 
 #[expect(clippy::large_enum_variant)]
-#[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
+#[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) enum ArgumentParsingResult {
     ChromeProcess(Opts, Preferences, ServoShellPreferences),
     ContentProcess(String),

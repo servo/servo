@@ -7472,7 +7472,7 @@ class CGNonNamespacedEnum(CGThing):
         entries = [f"{names[0]} = {first}"] + names[1:]
 
         # Append a Last.
-        entries.append(f'#[allow(dead_code)] Last = {first + len(entries)}')
+        entries.append(f'#[expect(dead_code)] Last = {first + len(entries)}')
 
         # Indent.
         entries = [f'    {e}' for e in entries]
@@ -9159,7 +9159,7 @@ class GlobalGenRoots():
             if base in topTypes:
                 typeIdCode.append(CGGeneric(f"""
 impl {base} {{
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn type_id(&self) -> &'static {base}TypeId {{
         unsafe {{
             &get_dom_class(self.reflector().get_jsobject().get())

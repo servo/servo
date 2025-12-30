@@ -44,7 +44,7 @@ impl CommandEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub(crate) fn new(
         window: &Window,
         type_: Atom,

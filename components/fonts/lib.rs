@@ -45,7 +45,7 @@ pub(crate) enum EmojiPresentationPreference {
 pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
-    #[cfg_attr(any(target_os = "android", target_os = "windows"), allow(dead_code))]
+    #[cfg_attr(any(target_os = "android", target_os = "windows"), expect(dead_code))]
     pub(crate) lang: Option<String>,
 }
 
@@ -74,10 +74,10 @@ impl FallbackFontSelectionOptions {
             // of the emoji presentation selectors above).
             _ if matches!(
                 character.emoji_status(),
-                EmojiStatus::EmojiPresentation |
-                    EmojiStatus::EmojiPresentationAndModifierBase |
-                    EmojiStatus::EmojiPresentationAndEmojiComponent |
-                    EmojiStatus::EmojiPresentationAndModifierAndEmojiComponent
+                EmojiStatus::EmojiPresentation
+                    | EmojiStatus::EmojiPresentationAndModifierBase
+                    | EmojiStatus::EmojiPresentationAndEmojiComponent
+                    | EmojiStatus::EmojiPresentationAndModifierAndEmojiComponent
             ) =>
             {
                 EmojiPresentationPreference::Emoji
