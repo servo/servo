@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::ScriptEventLoopId;
 use crossbeam_channel::{Receiver, select};
 use devtools_traits::DevtoolScriptControlMsg;
 use rustc_hash::FxHashSet;
+use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::reflector::DomObject;
@@ -96,6 +98,11 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
             None => None,
         };
         scope.perform_a_microtask_checkpoint(can_gc);
+        if let Some(event_loop_id) = ScriptEventLoopId::installed() {
+            scope
+                .upcast::<GlobalScope>()
+                .cleanup_indexeddb_transactions_for_event_loop(event_loop_id);
+        }
     }
     worker_scope
         .upcast::<GlobalScope>()

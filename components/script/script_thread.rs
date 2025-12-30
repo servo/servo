@@ -1443,6 +1443,16 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
             // TODO(#32003): A microtask checkpoint is only supposed to be performed after running a task.
             self.perform_a_microtask_checkpoint(can_gc);
+
+            if let Some(event_loop_id) = ScriptEventLoopId::installed() {
+                let documents = self.documents.borrow();
+                for (_, document) in documents.iter() {
+                    document
+                        .window()
+                        .upcast::<GlobalScope>()
+                        .cleanup_indexeddb_transactions_for_event_loop(event_loop_id);
+                }
+            }
         }
 
         for (_, doc) in self.documents.borrow().iter() {

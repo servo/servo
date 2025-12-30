@@ -70,6 +70,7 @@ impl OpenRequestListener {
                 version,
                 old_version,
                 transaction,
+                created_db: _,
             } => {
                 // TODO: link with backend connection concept.
                 let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
@@ -231,6 +232,7 @@ impl IDBOpenDBRequest {
             transaction,
             can_gc,
         );
+        transaction.set_upgrade_metadata(old_version);
         connection.set_transaction(&transaction);
 
         rooted!(in(*cx) let mut connection_val = UndefinedValue());
@@ -276,11 +278,13 @@ impl IDBOpenDBRequest {
             // TODO: implement.
         }
 
+        let aborted = transaction.is_aborted();
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::OpenTransactionInactive {
                 name: connection.get_name().to_string(),
                 transaction: transaction.get_serial_number(),
+                aborted,
             })
             .is_err()
         {

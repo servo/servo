@@ -158,10 +158,12 @@ impl IDBObjectStore {
         // Let transaction be this object store handle's transaction.
         let transaction = &self.transaction;
 
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
-        if !transaction.is_active() {
-            return Err(Error::TransactionInactive(None));
-        }
+        // A transaction is in this state after control returns to the event loop after its creation,
+        // and when events are not being dispatched. No requests can be made against the transaction when it is in this state.
+        // The implementation must allow requests to be placed against the transaction whenever it is active.
+        transaction.assert_active_for_request()?;
 
         Ok(())
     }

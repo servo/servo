@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use base::generic_channel::{GenericSend, GenericSender};
+use base::id::ScriptEventLoopId;
 use dom_struct::dom_struct;
 use profile_traits::generic_channel::channel;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
@@ -99,6 +100,13 @@ impl IDBDatabase {
     }
 
     pub fn version(&self) -> u64 {
+        let cached = self.version.get();
+        if let Some(transaction) = self.upgrade_transaction.get() {
+            if transaction.is_aborted() {
+                return cached;
+            }
+        }
+
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
         let operation = SyncOperation::Version(
             sender,
@@ -110,10 +118,21 @@ impl IDBDatabase {
             .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(operation));
 
-        receiver.recv().unwrap().unwrap_or_else(|e| {
-            error!("{e:?}");
-            u64::MAX
-        })
+        match receiver.recv() {
+            Ok(Ok(version)) => {
+                self.version.set(version);
+                version
+            },
+            Ok(Err(e)) => {
+                error!("{e:?}");
+                cached
+            },
+            Err(_) => cached,
+        }
+    }
+
+    pub(crate) fn set_version_cache(&self, version: u64) {
+        self.version.set(version);
     }
 
     pub fn set_transaction(&self, transaction: &IDBTransaction) {
@@ -166,7 +185,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         }
 
         // Step 3
-        Ok(match store_names {
+        let transaction = match store_names {
             StringOrStringSequence::String(name) => IDBTransaction::new(
                 &self.global(),
                 self,
@@ -185,7 +204,17 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                     CanGc::note(),
                 )
             },
-        })
+        };
+
+        if mode != IDBTransactionMode::Versionchange {
+            if let Some(event_loop_id) = ScriptEventLoopId::installed() {
+                // https://w3c.github.io/IndexedDB/#transaction-concept
+                // A transaction optionally has a cleanup event loop which is an event loop.
+                transaction.set_cleanup_event_loop(event_loop_id);
+            }
+        }
+
+        Ok(transaction)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-createobjectstore>

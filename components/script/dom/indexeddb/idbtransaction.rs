@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 
 use base::generic_channel::{GenericSend, GenericSender};
+use base::id::ScriptEventLoopId;
 use dom_struct::dom_struct;
 use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
@@ -18,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreP
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
     IDBTransactionMethods, IDBTransactionMode,
 };
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible, create_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -49,11 +50,25 @@ pub struct IDBTransaction {
     active: Cell<bool>,
     // https://www.w3.org/TR/IndexedDB-2/#transaction-finish
     finished: Cell<bool>,
+    // https://www.w3.org/TR/IndexedDB-2/#transaction-commit
+    commit_requested: Cell<bool>,
+    // https://www.w3.org/TR/IndexedDB-2/#transaction-commit
+    committing: Cell<bool>,
     // Tracks how many IDBRequest instances are still pending for this
     // transaction. The value is incremented when a request is added to the
     // transaction’s request list and decremented once the request has
     // finished.
     pending_request_count: Cell<usize>,
+    aborted: Cell<bool>,
+    upgrade_old_version: Cell<Option<u64>>,
+    // “These steps are invoked by [HTML]… ensure that transactions created by a script call to
+    // transaction() are deactivated once the task that invoked the script has completed. The steps
+    // are run at most once for each transaction.”
+    // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+    #[no_trace]
+    cleanup_event_loop: DomRefCell<Option<ScriptEventLoopId>>,
+    cleanup_done: Cell<bool>,
+    cleanup_unregistered: Cell<bool>,
 
     // An unique identifier, used to commit and revert this transaction
     // FIXME:(rasviitanen) Replace this with a channel
@@ -78,7 +93,14 @@ impl IDBTransaction {
             requests: Default::default(),
             active: Cell::new(true),
             finished: Cell::new(false),
+            commit_requested: Cell::new(false),
+            committing: Cell::new(false),
             pending_request_count: Cell::new(0),
+            aborted: Cell::new(false),
+            upgrade_old_version: Cell::new(None),
+            cleanup_event_loop: DomRefCell::new(None),
+            cleanup_done: Cell::new(false),
+            cleanup_unregistered: Cell::new(false),
             serial_number,
         }
     }
@@ -150,16 +172,67 @@ impl IDBTransaction {
 
     pub fn set_active_flag(&self, status: bool) {
         self.active.set(status);
-        // When the transaction becomes inactive and no requests are pending,
-        // it can transition to the finished state.
-        if !status && self.pending_request_count.get() == 0 && !self.finished.get() {
-            self.finished.set(true);
-            self.dispatch_complete();
+        if !status {
+            self.maybe_finish_successfully();
         }
     }
 
     pub fn is_active(&self) -> bool {
         self.active.get()
+    }
+
+    pub(crate) fn is_aborted(&self) -> bool {
+        self.aborted.get()
+    }
+
+    pub(crate) fn is_finished(&self) -> bool {
+        self.finished.get()
+    }
+
+    pub(crate) fn cleanup_event_loop(&self) -> Option<ScriptEventLoopId> {
+        *self.cleanup_event_loop.borrow()
+    }
+
+    pub(crate) fn is_cleanup_done(&self) -> bool {
+        self.cleanup_done.get()
+    }
+
+    pub(crate) fn set_cleanup_event_loop(&self, event_loop_id: ScriptEventLoopId) {
+        if self.cleanup_done.get() || self.cleanup_unregistered.get() {
+            return;
+        }
+        *self.cleanup_event_loop.borrow_mut() = Some(event_loop_id);
+        self.global().register_indexeddb_transaction(self);
+    }
+
+    pub(crate) fn mark_cleanup_ran(&self) {
+        self.cleanup_done.set(true);
+    }
+
+    pub(crate) fn assert_active_for_request(&self) -> Fallible<()> {
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // Once a transaction has committed or aborted, it enters this state.
+        // No requests can be made against the transaction when it is in this state.
+        // The implementation must allow requests to be placed against the transaction whenever it is active.”
+
+        // Inference for implementation: after commit() is called we must prevent further request placement even if script is still running,
+        // because the commit has been explicitly requested and the transaction is transitioning toward finished.
+        if self.finished.get() ||
+            self.aborted.get() ||
+            self.commit_requested.get() ||
+            self.committing.get() ||
+            !self.active.get()
+        {
+            return Err(Error::TransactionInactive(None));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn deactivate_for_cleanup(&self) {
+        // SPEC (cleanup IndexedDB transactions):
+        // “Set transaction’s state to inactive.”
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        self.active.set(false);
     }
 
     pub fn get_mode(&self) -> IDBTransactionMode {
@@ -176,10 +249,7 @@ impl IDBTransaction {
 
     pub fn add_request(&self, request: &IDBRequest) {
         self.requests.borrow_mut().push(Dom::from_ref(request));
-        // Increase the number of outstanding requests so that we can detect when
-        // the transaction is allowed to finish.
-        self.pending_request_count
-            .set(self.pending_request_count.get() + 1);
+        self.inc_pending_requests();
     }
 
     /// Must be called by an `IDBRequest` when it finishes (either success or
@@ -187,16 +257,170 @@ impl IDBTransaction {
     /// is no longer active, the `"complete"` event is dispatched and any
     /// associated `IDBOpenDBRequest` `"success"` event is fired afterwards.
     pub fn request_finished(&self) {
-        if self.pending_request_count.get() == 0 {
+        self.dec_pending_requests();
+        if self.aborted.get() {
+            self.maybe_finish_after_abort();
+        } else {
+            self.maybe_finish_successfully();
+        }
+    }
+
+    pub(crate) fn set_upgrade_metadata(&self, old_version: u64) {
+        self.upgrade_old_version.set(Some(old_version));
+    }
+
+    pub(crate) fn initiate_abort(&self, error: Error, can_gc: CanGc) {
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // A transaction can be aborted at any time before it is finished,
+        // even if the transaction isn’t currently active or hasn’t yet started.”
+        // Abort can be initiated any time before the transaction finishes.
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        if self.finished.get() || self.aborted.get() {
             return;
         }
-        let remaining = self.pending_request_count.get() - 1;
-        self.pending_request_count.set(remaining);
 
-        if remaining == 0 && !self.active.get() && !self.finished.get() {
-            self.finished.set(true);
-            self.dispatch_complete();
+        if self.error.get().is_none() {
+            if let Ok(exception) = create_dom_exception(&self.global(), error, can_gc) {
+                self.error.set(Some(&exception));
+            }
         }
+
+        self.aborted.set(true);
+        let _ = self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::AbortTransaction {
+                origin: self.global().origin().immutable().clone(),
+                name: self.db.get_name().to_string(),
+                transaction: self.serial_number,
+            });
+        // https://w3c.github.io/IndexedDB/#abort-a-transaction
+        // When a transaction is aborted the implementation must undo (roll back)
+        // any changes that were made to the database during that transaction.”
+        self.queue_abort_pending_requests();
+        // https://w3c.github.io/IndexedDB/#abort-a-transaction
+        if let Some(old_version) = self.upgrade_old_version.get() {
+            // Keep the DOM-side version consistent until backend cleanup runs.
+            self.db.set_version_cache(old_version);
+        }
+
+        // NOTE: Completion of abort waits for outstanding requests to finish.
+        if self.pending_request_count.get() == 0 {
+            self.maybe_finish_after_abort();
+        }
+    }
+
+    fn queue_abort_pending_requests(&self) {
+        // https://w3c.github.io/IndexedDB/#transaction-concept
+        // A transaction has a request list of pending requests which have been made against the transaction.
+        // When a transaction is aborted the implementation must
+        // abort all outstanding requests made against the transaction.
+        let requests: Vec<Trusted<IDBRequest>> = self
+            .requests
+            .borrow()
+            .iter()
+            .map(|request| Trusted::new(&**request))
+            .collect();
+        let global = self.global();
+        global.task_manager().database_access_task_source().queue(
+            task!(abort_pending_requests: move || {
+                for request in requests {
+                    let request = request.root();
+                    request.abort_due_to_transaction(CanGc::note());
+                }
+            }),
+        );
+    }
+
+    fn inc_pending_requests(&self) {
+        // Track outstanding requests so we can detect when the transaction may finish.
+        self.pending_request_count
+            .set(self.pending_request_count.get() + 1);
+    }
+
+    fn dec_pending_requests(&self) {
+        let pending = self.pending_request_count.get();
+        if pending == 0 {
+            return;
+        }
+        self.pending_request_count.set(pending - 1);
+    }
+
+    fn maybe_finish_successfully(&self) {
+        // Finish only after all requests complete and the transaction becomes inactive.
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // The implementation must attempt to commit an inactive transaction when all requests
+        // placed against the transaction have completed and their returned results handled,
+        // no new requests have been placed against the transaction, and the transaction has not been aborted
+        if self.active.get() ||
+            self.pending_request_count.get() != 0 ||
+            self.finished.get() ||
+            self.aborted.get() ||
+            self.error.get().is_some()
+        {
+            return;
+        }
+
+        self.finished.set(true);
+        self.notify_transaction_finished();
+        self.clear_cleanup_event_loop_and_unregister();
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // An event with type complete is fired at a transaction that has successfully committed.
+        self.dispatch_complete();
+    }
+
+    fn maybe_finish_after_abort(&self) {
+        // https://w3c.github.io/IndexedDB/#transaction-concept
+        // A transaction has a request list of pending requests which have been made against the transaction.
+        if self.finished.get() || self.pending_request_count.get() != 0 {
+            return;
+        }
+        self.finished.set(true);
+        self.active.set(false);
+        self.clear_cleanup_event_loop_and_unregister();
+        self.notify_transaction_finished();
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // An event with type abort is fired at a transaction that has aborted.
+        self.dispatch_abort();
+    }
+    fn notify_transaction_finished(&self) {
+        let _ = self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::TransactionFinished {
+                origin: self.global().origin().immutable().clone(),
+                name: self.db.get_name().to_string(),
+                transaction: self.serial_number,
+            });
+    }
+
+    pub(crate) fn clear_cleanup_event_loop_and_unregister(&self) {
+        if self.cleanup_unregistered.replace(true) {
+            return;
+        }
+        // Clears the per-transaction cleanup event loop and removes this transaction from the GlobalScope list.
+        // This is bookkeeping to avoid keeping finished transactions alive.
+        // Note: this is not the spec “cleanup algorithm”; the spec algorithm is invoked by HTML at end of task.
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        *self.cleanup_event_loop.borrow_mut() = None;
+        self.global().unregister_indexeddb_transaction(self);
+    }
+
+    fn dispatch_abort(&self) {
+        let global = self.global();
+        let this = Trusted::new(self);
+        global.task_manager().database_access_task_source().queue(
+            task!(send_abort_notification: move || {
+                let this = this.root();
+                let global = this.global();
+                let event = Event::new(
+                    &global,
+                    Atom::from("abort"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    CanGc::note()
+                );
+                event.fire(this.upcast(), CanGc::note());
+            }),
+        );
     }
 
     fn dispatch_complete(&self) {
@@ -311,7 +535,11 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#commit-transaction>
     fn Commit(&self) -> Fallible<()> {
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // An explicit call to commit() will initiate a commit without waiting for request results to be handled by script.
         // Step 1
+        self.commit_requested.set(true);
+        self.committing.set(true);
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
         let start_operation = SyncOperation::Commit(
             sender,
@@ -338,9 +566,6 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         // Step 3
         // FIXME:(rasviitanen) https://www.w3.org/TR/IndexedDB-2/#commit-a-transaction
 
-        // Steps 3.1 and 3.3
-        self.dispatch_complete();
-
         Ok(())
     }
 
@@ -352,8 +577,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         if self.finished.get() {
             return Err(Error::InvalidState(None));
         }
-
-        self.active.set(false);
+        self.initiate_abort(Error::Abort(None), CanGc::note());
 
         Ok(())
     }

@@ -59,7 +59,7 @@ pub enum KeyPath {
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum IndexedDBTxnMode {
     Readonly,
     Readwrite,
@@ -342,6 +342,7 @@ pub enum OpenDatabaseResult {
         version: u64,
         old_version: u64,
         transaction: u64,
+        created_db: bool,
     },
 }
 
@@ -488,9 +489,25 @@ pub enum IndexedDBThreadMsg {
         IndexedDBTxnMode,
         AsyncOperation,
     ),
+    StartQueuedTransaction {
+        origin: ImmutableOrigin,
+        name: String,
+        transaction: u64,
+    },
+    TransactionFinished {
+        origin: ImmutableOrigin,
+        name: String,
+        transaction: u64,
+    },
+    AbortTransaction {
+        origin: ImmutableOrigin,
+        name: String,
+        transaction: u64,
+    },
     OpenTransactionInactive {
         name: String,
         transaction: u64,
+        aborted: bool,
     },
 }
 

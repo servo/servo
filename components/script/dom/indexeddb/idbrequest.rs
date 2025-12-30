@@ -46,6 +46,17 @@ struct RequestListener {
     iteration_param: Option<IterationParam>,
 }
 
+// https://w3c.github.io/IndexedDB/#transaction-lifecycle
+// A transaction is in this state after control returns to the event loop after its creation,
+// and when events are not being dispatched.”
+struct TxnActiveGuard<'a>(&'a IDBTransaction);
+
+impl Drop for TxnActiveGuard<'_> {
+    fn drop(&mut self) {
+        self.0.set_active_flag(false);
+    }
+}
+
 pub enum IdbResult {
     Key(IndexedDBKeyType),
     Keys(Vec<IndexedDBKeyType>),
@@ -127,9 +138,6 @@ impl RequestListener {
         let request = self.request.root();
         let global = request.global();
         let cx = GlobalScope::get_cx();
-
-        // Substep 1: Set the result of request to result.
-        request.set_ready_state_done();
 
         let _ac = enter_realm(&*request);
         rooted!(in(*cx) let mut answer = UndefinedValue());
@@ -218,6 +226,20 @@ impl RequestListener {
                 },
             }
 
+            let transaction = request
+                .transaction
+                .get()
+                .expect("Request unexpectedly has no transaction");
+
+            if transaction.is_aborted() {
+                Self::handle_async_request_error(&global, cx, request, Error::Abort(None));
+                return;
+            }
+
+            if !request.begin_completion() {
+                return;
+            }
+
             // Substep 3.1: Set the result of request to answer.
             request.set_result(answer.handle());
 
@@ -226,11 +248,6 @@ impl RequestListener {
 
             // Substep 3.3: Fire a success event at request.
             // TODO: follow spec here
-            let transaction = request
-                .transaction
-                .get()
-                .expect("Request unexpectedly has no transaction");
-
             let event = Event::new(
                 &global,
                 Atom::from("success"),
@@ -239,11 +256,18 @@ impl RequestListener {
                 CanGc::note(),
             );
 
+            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+            // A transaction is in this state when it is first created,
+            // and during dispatch of an event from a request associated with the transaction.
             transaction.set_active_flag(true);
+            let _guard = TxnActiveGuard(&transaction);
             event
                 .upcast::<Event>()
                 .fire(request.upcast(), CanGc::note());
-            transaction.set_active_flag(false);
+
+            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+            // A transaction is in this state after control returns to the event loop after its creation,
+            // and when events are not being dispatched.
             // Notify the transaction that this request has finished.
             transaction.request_finished();
         } else {
@@ -261,6 +285,10 @@ impl RequestListener {
         request: DomRoot<IDBRequest>,
         error: Error,
     ) {
+        let transaction_error = error.clone();
+        if !request.begin_completion() {
+            return;
+        }
         // Substep 1: Set the result of request to undefined.
         rooted!(in(*cx) let undefined = UndefinedValue());
         request.set_result(undefined.handle());
@@ -283,12 +311,26 @@ impl RequestListener {
             CanGc::note(),
         );
 
-        // TODO: why does the transaction need to be active?
+        // https://w3c.github.io/IndexedDB/#events
+        // An error event bubbles and is cancelable.
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // A transaction is in this state when it is first created,
+        // and during dispatch of an event from a request associated with the transaction.”
         transaction.set_active_flag(true);
-        event
+        let _guard = TxnActiveGuard(&transaction);
+
+        // https://w3c.github.io/IndexedDB/#event-dispatch
+        let not_canceled = event
             .upcast::<Event>()
             .fire(request.upcast(), CanGc::note());
-        transaction.set_active_flag(false);
+        // A transaction is in this state after control returns to the event loop after its creation,
+        // and when events are not being dispatched.
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        if not_canceled {
+            // Unhandled error events must abort the transaction.
+            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+            transaction.initiate_abort(transaction_error, CanGc::note());
+        }
         // Notify the transaction that this request has finished.
         transaction.request_finished();
     }
@@ -303,6 +345,7 @@ pub struct IDBRequest {
     source: MutNullableDom<IDBObjectStore>,
     transaction: MutNullableDom<IDBTransaction>,
     ready_state: Cell<IDBRequestReadyState>,
+    completed: Cell<bool>,
 }
 
 impl IDBRequest {
@@ -315,6 +358,7 @@ impl IDBRequest {
             source: Default::default(),
             transaction: Default::default(),
             ready_state: Cell::new(IDBRequestReadyState::Pending),
+            completed: Cell::new(false),
         }
     }
 
@@ -348,6 +392,44 @@ impl IDBRequest {
         self.transaction.set(Some(transaction));
     }
 
+    fn begin_completion(&self) -> bool {
+        if self.completed.replace(true) {
+            return false;
+        }
+        self.set_ready_state_done();
+        true
+    }
+
+    pub(crate) fn abort_due_to_transaction(&self, can_gc: CanGc) {
+        if !self.begin_completion() {
+            return;
+        }
+        let global = self.global();
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let undefined = UndefinedValue());
+        self.set_result(undefined.handle());
+        self.set_error(Some(Error::Abort(None)), can_gc);
+
+        let transaction = self.transaction.get().expect("Request has no transaction");
+        let event = Event::new(
+            &global,
+            Atom::from("error"),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            CanGc::note(),
+        );
+        // https://w3c.github.io/IndexedDB/#events
+        // An error event bubbles and is cancelable.
+        // https://w3c.github.io/IndexedDB/#event-dispatch
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // A transaction is in this state when it is first created,
+        // and during dispatch of an event from a request associated with the transaction.”
+        transaction.set_active_flag(true);
+        let _guard = TxnActiveGuard(&transaction);
+        event.upcast::<Event>().fire(self.upcast(), CanGc::note());
+        // Notify the transaction that this request has finished.
+        transaction.request_finished();
+    }
     // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
     pub fn execute_async<T, F>(
         source: &IDBObjectStore,
@@ -365,9 +447,12 @@ impl IDBRequest {
         let global = transaction.global();
 
         // Step 2: Assert: transaction is active.
-        if !transaction.is_active() {
-            return Err(Error::TransactionInactive(None));
-        }
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // A transaction is in this state after control returns to the event loop after its creation,
+        // and when events are not being dispatched. No requests can be made against the transaction when it is in this state.”
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // The implementation must allow requests to be placed against the transaction whenever it is active.
+        transaction.assert_active_for_request()?;
 
         // Step 3: If request was not given, let request be a new request with source as source.
         let request = request.unwrap_or_else(|| {

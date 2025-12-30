@@ -20,7 +20,7 @@ use base::IpcSend;
 use base::generic_channel::GenericCallback;
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
-    ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
+    ScriptEventLoopId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
@@ -122,6 +122,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::html::htmlscriptelement::ScriptId;
 use crate::dom::idbfactory::IDBFactory;
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -318,6 +319,8 @@ pub(crate) struct GlobalScope {
 
     /// Vector storing closing references of all workers
     list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
+
+    indexeddb_transactions: DomRefCell<Vec<Dom<IDBTransaction>>>,
 
     /// Vector storing references of all eventsources.
     event_source_tracker: DOMTracker<EventSource>,
@@ -814,6 +817,7 @@ impl GlobalScope {
             top_level_creation_url,
             permission_state_invocation_results: Default::default(),
             list_auto_close_worker: Default::default(),
+            indexeddb_transactions: DomRefCell::new(Vec::new()),
             event_source_tracker: DOMTracker::new(),
             abort_signal_dependents: Default::default(),
             uncaught_rejections: Default::default(),
@@ -3021,6 +3025,65 @@ impl GlobalScope {
             return worker.IndexedDB();
         }
         unreachable!("IndexedDB is only exposed on Window and WorkerGlobalScope.");
+    }
+
+    pub(crate) fn register_indexeddb_transaction(&self, transaction: &IDBTransaction) {
+        self.indexeddb_transactions
+            .borrow_mut()
+            .push(Dom::from_ref(transaction));
+    }
+
+    pub(crate) fn unregister_indexeddb_transaction(&self, transaction: &IDBTransaction) {
+        let mut transactions = self.indexeddb_transactions.borrow_mut();
+        // Remove by DOM object identity (not structural equality).
+        let transaction_ptr = transaction as *const IDBTransaction;
+        transactions.retain(|txn| txn.as_ptr() != transaction_ptr);
+    }
+
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn cleanup_indexeddb_transactions_for_event_loop(
+        &self,
+        event_loop_id: ScriptEventLoopId,
+    ) -> bool {
+        let transactions: Vec<Dom<IDBTransaction>> = self
+            .indexeddb_transactions
+            .borrow()
+            .iter()
+            .cloned()
+            .collect();
+
+        // “If there are no transactions with cleanup event loop matching the current event loop, return false.”
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        if !transactions
+            .iter()
+            .any(|txn| txn.cleanup_event_loop() == Some(event_loop_id))
+        {
+            return false;
+        }
+
+        // “For each transaction… Set transaction’s state to inactive. Clear transaction’s cleanup event loop. Return true.”
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        let mut did_cleanup = false;
+        for txn in transactions {
+            if txn.cleanup_event_loop() != Some(event_loop_id) || txn.is_cleanup_done() {
+                continue;
+            }
+            if !txn.is_finished() {
+                // SPEC (cleanup IndexedDB transactions):
+                // “Set transaction’s state to inactive.”
+                // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+                txn.deactivate_for_cleanup();
+            }
+            // SPEC (cleanup IndexedDB transactions):
+            // “Clear transaction’s cleanup event loop.”
+            // “The steps are run at most once for each transaction.”
+            // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+            txn.mark_cleanup_ran();
+            txn.clear_cleanup_event_loop_and_unregister();
+            did_cleanup = true;
+        }
+
+        did_cleanup
     }
 
     /// Perform a microtask checkpoint.
