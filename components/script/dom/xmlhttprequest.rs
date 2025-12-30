@@ -530,7 +530,12 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-send()-method>
-    fn Send(&self, data: Option<DocumentOrXMLHttpRequestBodyInit>, can_gc: CanGc) -> ErrorResult {
+    fn Send(
+        &self,
+        cx: &mut js::context::JSContext,
+        data: Option<DocumentOrXMLHttpRequestBodyInit>,
+    ) -> ErrorResult {
+        let can_gc = CanGc::from_cx(cx);
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState(None));
@@ -757,7 +762,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
         self.fetch_time.set(Instant::now());
 
-        let rv = self.fetch(request, &self.global(), can_gc);
+        let rv = self.fetch(cx, request, &self.global());
         // Step 10
         if self.sync.get() {
             return rv;
@@ -1566,9 +1571,9 @@ impl XMLHttpRequest {
 
     fn fetch(
         &self,
+        cx: &mut js::context::JSContext,
         request_builder: RequestBuilder,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let xhr = Trusted::new(self);
 
@@ -1608,7 +1613,7 @@ impl XMLHttpRequest {
 
         if let Some(script_port) = script_port {
             loop {
-                if !global.process_event(script_port.recv().unwrap(), can_gc) {
+                if !global.process_event(script_port.recv().unwrap(), cx) {
                     // We're exiting.
                     return Err(Error::Abort(None));
                 }
