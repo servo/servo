@@ -9159,7 +9159,7 @@ class GlobalGenRoots():
             if base in topTypes:
                 typeIdCode.append(CGGeneric(f"""
 impl {base} {{
-    #[expect(dead_code)]
+    #[allow(dead_code)]
     pub(crate) fn type_id(&self) -> &'static {base}TypeId {{
         unsafe {{
             &get_dom_class(self.reflector().get_jsobject().get())
