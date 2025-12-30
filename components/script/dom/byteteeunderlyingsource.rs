@@ -431,7 +431,6 @@ impl ByteTeeUnderlyingSource {
     /// Let cancel1Algorithm be the following steps, taking a reason argument
     /// and
     /// Let cancel2Algorithm be the following steps, taking a reason argument
-    #[expect(unsafe_code)]
     pub(crate) fn cancel_algorithm(
         &self,
         reason: SafeHandleValue,
