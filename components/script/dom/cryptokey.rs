@@ -44,6 +44,14 @@ pub(crate) enum Handle {
     Pbkdf2(Vec<u8>),
     Hmac(Vec<u8>),
     Ed25519(Vec<u8>),
+    MlKem512PrivateKey((ml_kem::B32, ml_kem::B32)),
+    MlKem768PrivateKey((ml_kem::B32, ml_kem::B32)),
+    MlKem1024PrivateKey((ml_kem::B32, ml_kem::B32)),
+    MlKem512PublicKey(Box<ml_kem::Encoded<ml_kem::kem::EncapsulationKey<ml_kem::MlKem512Params>>>),
+    MlKem768PublicKey(Box<ml_kem::Encoded<ml_kem::kem::EncapsulationKey<ml_kem::MlKem768Params>>>),
+    MlKem1024PublicKey(
+        Box<ml_kem::Encoded<ml_kem::kem::EncapsulationKey<ml_kem::MlKem1024Params>>>,
+    ),
     ChaCha20Poly1305Key(chacha20poly1305::Key),
     Argon2Password(Vec<u8>),
 }
@@ -233,6 +241,12 @@ impl MallocSizeOf for Handle {
             Handle::Pbkdf2(bytes) => bytes.size_of(ops),
             Handle::Hmac(bytes) => bytes.size_of(ops),
             Handle::Ed25519(bytes) => bytes.size_of(ops),
+            Handle::MlKem512PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
+            Handle::MlKem768PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
+            Handle::MlKem1024PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
+            Handle::MlKem512PublicKey(public_key) => public_key.size_of(ops),
+            Handle::MlKem768PublicKey(public_key) => public_key.size_of(ops),
+            Handle::MlKem1024PublicKey(public_key) => public_key.size_of(ops),
             Handle::ChaCha20Poly1305Key(key) => key.size_of(ops),
             Handle::Argon2Password(password) => password.size_of(ops),
         }

@@ -299,3 +299,11 @@ dictionary Argon2Params : Algorithm {
   BufferSource secretValue;
   BufferSource associatedData;
 };
+
+// https://wicg.github.io/webcrypto-modern-algos/#partial-JsonWebKey-dictionary
+
+partial dictionary JsonWebKey {
+  // The following fields are defined in draft-ietf-cose-dilithium-08
+  DOMString pub;
+  DOMString priv;
+};
