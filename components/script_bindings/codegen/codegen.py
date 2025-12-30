@@ -7472,7 +7472,7 @@ class CGNonNamespacedEnum(CGThing):
         entries = [f"{names[0]} = {first}"] + names[1:]
 
         # Append a Last.
-        entries.append(f'#[expect(dead_code)] Last = {first + len(entries)}')
+        entries.append(f'#[allow(dead_code)] Last = {first + len(entries)}')
 
         # Indent.
         entries = [f'    {e}' for e in entries]
