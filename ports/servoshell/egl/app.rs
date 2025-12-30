@@ -261,7 +261,7 @@ pub struct App {
     platform_window: Rc<EmbeddedPlatformWindow>,
 }
 
-#[allow(unused)]
+#[expect(unused)]
 impl App {
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
         let mut servo_builder = ServoBuilder::default()

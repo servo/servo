@@ -225,8 +225,8 @@ fn test_cmd_and_location_bar_url() {
 fn test_url_any_os(
     input: &str,
     location: &str,
-    #[allow(unused)] if_exists: &str,
-    #[allow(unused)] if_exists_windows: &str,
+    #[cfg_attr(target_os = "windows", expect(unused))] if_exists: &str,
+    #[cfg_attr(not(target_os = "windows"), expect(unused))] if_exists_windows: &str,
     otherwise: &str,
 ) {
     #[cfg(not(target_os = "windows"))]

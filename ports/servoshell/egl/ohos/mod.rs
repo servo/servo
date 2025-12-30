@@ -812,7 +812,7 @@ fn register_xcomponent_callbacks(env: &Env, xcomponent: &Object) -> napi_ohos::R
     Ok(())
 }
 
-#[allow(unused)]
+#[expect(unused)]
 fn debug_jsobject(obj: &Object, obj_name: &str) -> napi_ohos::Result<()> {
     let names = obj.get_property_names()?;
     error!("Getting property names of object {obj_name}");
@@ -1053,7 +1053,7 @@ impl Ime for ServoIme {
     }
 }
 
-#[allow(unused)]
+#[expect(unused)]
 impl HostTrait for HostCallbacks {
     fn show_alert(&self, message: String) {
         // forward it to tracing
