@@ -2605,7 +2605,7 @@ impl GlobalScope {
         // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
         let preloaded_resources = self
             .downcast::<Window>()
-            .map(|window: &Window| window.Document().preloaded_resources())
+            .map(|window: &Window| window.Document().preloaded_resources().clone())
             .unwrap_or_default();
         RequestClient {
             preloaded_resources,

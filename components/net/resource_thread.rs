@@ -24,7 +24,7 @@ use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
-use net_traits::request::{Destination, RequestBuilder, RequestId};
+use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::{
     AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
@@ -53,7 +53,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::fetch_params::FetchParams;
+use crate::fetch::fetch_params::{FetchParams, SharedPreloadedResources};
 use crate::fetch::methods::{CancellationListener, FetchContext, WebSocketChannel, fetch};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::{self, HstsList};
@@ -536,6 +536,9 @@ impl ResourceChannelManager {
                 }
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
+            CoreResourceMsg::StorePreloadedResponse(preload_id, response) => self
+                .resource_manager
+                .handle_preloaded_response(preload_id, response),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     let auth_cache = http_state.auth_cache.read();
@@ -583,6 +586,7 @@ pub struct CoreResourceManager {
     thread_pool: Arc<ThreadPool>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
+    preloaded_resources: SharedPreloadedResources,
 }
 
 impl CoreResourceManager {
@@ -607,6 +611,14 @@ impl CoreResourceManager {
             thread_pool: pool_handle,
             ca_certificates,
             ignore_certificate_errors,
+            preloaded_resources: Default::default(),
+        }
+    }
+
+    fn handle_preloaded_response(&self, preload_id: PreloadId, response: Response) {
+        let mut preloaded_resources = self.preloaded_resources.lock().unwrap();
+        if let Some(entry) = preloaded_resources.get_mut(&preload_id) {
+            entry.with_response(response);
         }
     }
 
@@ -678,6 +690,12 @@ impl CoreResourceManager {
 
         let ca_certificates = self.ca_certificates.clone();
         let ignore_certificate_errors = self.ignore_certificate_errors;
+        let preloaded_resources = self.preloaded_resources.clone();
+        if let Some(ref preload_id) = request.preload_id {
+            let mut preloaded_resources = self.preloaded_resources.lock().unwrap();
+            let entry = PreloadEntry::new(request.integrity_metadata.clone());
+            preloaded_resources.insert(preload_id.clone(), entry);
+        }
 
         spawn_task(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
@@ -697,6 +715,7 @@ impl CoreResourceManager {
                 websocket_chan: None,
                 ca_certificates,
                 ignore_certificate_errors,
+                preloaded_resources,
             };
 
             match res_init_ {
@@ -747,6 +766,7 @@ impl CoreResourceManager {
 
         let ca_certificates = self.ca_certificates.clone();
         let ignore_certificate_errors = self.ignore_certificate_errors;
+        let preloaded_resources = self.preloaded_resources.clone();
 
         spawn_task(async move {
             let mut event_sender = event_sender;
@@ -783,6 +803,7 @@ impl CoreResourceManager {
                         )))),
                         ca_certificates,
                         ignore_certificate_errors,
+                        preloaded_resources,
                     };
                     fetch(request, &mut event_sender, &context).await;
                 },

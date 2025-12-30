@@ -42,7 +42,9 @@ use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as T
 
 use crate::connector::CACertificates;
 use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::fetch_params::{FetchParams, PreloadResponseCandidate};
+use crate::fetch::fetch_params::{
+    ConsumePreloadedResources, FetchParams, SharedPreloadedResources,
+};
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{
@@ -93,6 +95,7 @@ pub struct FetchContext {
     pub websocket_chan: Option<Arc<Mutex<WebSocketChannel>>>,
     pub ca_certificates: CACertificates<'static>,
     pub ignore_certificate_errors: bool,
+    pub preloaded_resources: SharedPreloadedResources,
 }
 
 #[derive(Default)]
@@ -163,24 +166,15 @@ pub async fn fetch_with_cors_cache(
             assert!(request.origin == client.origin);
             // Step 10.2. Let onPreloadedResponseAvailable be an algorithm that runs the
             // following step given a response response: set fetchParams’s preloaded response candidate to response.
-            let on_preloaded_response_available = |response| {
-                fetch_params.preload_response_candidate =
-                    PreloadResponseCandidate::Response(Box::new(response))
-            };
             // Step 10.3. Let foundPreloadedResource be the result of invoking consume a preloaded resource
             // for request’s client, given request’s URL, request’s destination, request’s mode,
             // request’s credentials mode, request’s integrity metadata, and onPreloadedResponseAvailable.
-            let found_preloaded_resource =
-                client.consume_preloaded_resource(request, on_preloaded_response_available);
             // Step 10.4. If foundPreloadedResource is true and fetchParams’s preloaded response candidate is null,
             // then set fetchParams’s preloaded response candidate to "pending".
-            if found_preloaded_resource &&
-                matches!(
-                    fetch_params.preload_response_candidate,
-                    PreloadResponseCandidate::None
-                )
+            if let Some(candidate) =
+                client.consume_preloaded_resource(request, context.preloaded_resources.clone())
             {
-                fetch_params.preload_response_candidate = PreloadResponseCandidate::Pending;
+                fetch_params.preload_response_candidate = candidate;
             }
         }
     }
@@ -463,15 +457,9 @@ pub async fn main_fetch(
             };
 
             // fetchParams’s preloaded response candidate is non-null
-            if let PreloadResponseCandidate::Response(response) =
-                &fetch_params.preload_response_candidate
-            {
-                // Step 1. Wait until fetchParams’s preloaded response candidate is not "pending".
-                // TODO
-                // Step 2. Assert: fetchParams’s preloaded response candidate is a response.
-                // TODO
-                // Step 3. Return fetchParams’s preloaded response candidate.
-                *response.clone()
+            if let Some(response) = fetch_params.preload_response_candidate.response().await {
+                response.get_resource_timing().lock().preloaded = true;
+                response
             }
             // request's current URL's origin is same origin with request's origin, and request's
             // response tainting is "basic"

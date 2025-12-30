@@ -33,7 +33,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
-use crate::request::{Request, RequestBuilder};
+use crate::request::{PreloadId, Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
 
 pub mod blob_url_store;
@@ -640,6 +640,7 @@ pub enum CoreResourceMsg {
     NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
+    StorePreloadedResponse(PreloadId, Response),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
     Exit(IpcSender<()>),
@@ -865,6 +866,7 @@ pub struct ResourceFetchTiming {
     pub connect_start: Option<CrossProcessInstant>,
     pub connect_end: Option<CrossProcessInstant>,
     pub start_time: Option<CrossProcessInstant>,
+    pub preloaded: bool,
 }
 
 pub enum RedirectStartValue {
@@ -926,6 +928,7 @@ impl ResourceFetchTiming {
             connect_end: None,
             response_end: None,
             start_time: None,
+            preloaded: false,
         }
     }
 

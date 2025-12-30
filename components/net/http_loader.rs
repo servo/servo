@@ -1338,7 +1338,8 @@ async fn http_network_or_cache_fetch(
     else {
         // Step 8.2.1 - 8.2.3: Set httpRequest to a clone of request
         // and Set httpFetchParams to a copy of fetchParams.
-        fetch_params_copy = fetch_params.clone();
+        fetch_params_copy =
+            std::mem::replace(fetch_params, FetchParams::new(fetch_params.request.clone()));
         http_fetch_params = &mut fetch_params_copy;
 
         &mut http_fetch_params.request

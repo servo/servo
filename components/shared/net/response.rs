@@ -42,7 +42,7 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -90,13 +90,17 @@ pub struct ResponseInit {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     url: Option<ServoUrl>,
     pub url_list: Vec<ServoUrl>,
     pub status: HttpStatus,
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     #[ignore_malloc_size_of = "Mutex heap size undefined"]
