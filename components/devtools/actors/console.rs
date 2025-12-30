@@ -460,6 +460,9 @@ impl Actor for ConsoleActor {
             },
 
             "clearMessagesCacheAsync" => {
+                self.cached_events
+                    .borrow_mut()
+                    .remove(&self.current_unique_id(registry));
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
             },
