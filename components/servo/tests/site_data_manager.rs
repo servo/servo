@@ -11,22 +11,55 @@ use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server, replace_host_table};
-use servo::{JSValue, ServoUrl, SiteData, StorageType, WebViewBuilder};
+use servo::{JSValue, Servo, ServoUrl, SiteData, StorageType, WebView, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
+pub struct WebViewTest {
+    servo_test: ServoTest,
+    delegate: Rc<WebViewDelegateImpl>,
+    webview: WebView,
+}
+
+impl WebViewTest {
+    fn new() -> Self {
+        let servo_test = ServoTest::new();
+        let delegate = Rc::new(WebViewDelegateImpl::default());
+        let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+            .delegate(delegate.clone())
+            .build();
+        let delegate_clone = delegate.clone();
+        servo_test.spin(move || !delegate_clone.url_changed.get());
+
+        Self {
+            servo_test,
+            delegate,
+            webview,
+        }
+    }
+
+    fn servo(&self) -> &Servo {
+        &self.servo_test.servo()
+    }
+
+    fn load_and_wait(&self, url: ServoUrl) {
+        self.delegate.reset();
+        self.webview.load(url.clone().into_url());
+        let delegate_clone = self.delegate.clone();
+        self.servo_test
+            .spin(move || !delegate_clone.url_changed.get());
+    }
+
+    fn evaluate_javascript(&self, script: impl ToString) {
+        let _ = evaluate_javascript(&self.servo_test, self.webview.clone(), script);
+    }
+}
+
 #[test]
 fn test_site_data() {
-    let servo_test = ServoTest::new();
-    let servo = servo_test.servo();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo, servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .build();
-    let delegate_clone = delegate.clone();
-    servo_test.spin(move || !delegate_clone.url_changed.get());
+    let webview_test = WebViewTest::new();
 
-    let site_data_manager = servo.site_data_manager();
+    let site_data_manager = webview_test.servo().site_data_manager();
 
     let sites = site_data_manager.site_data(StorageType::Cookies);
     assert_eq!(sites.len(), 0);
@@ -77,14 +110,9 @@ fn test_site_data() {
     let custom_url2 = ServoUrl::parse(&format!("http://www.site-data-2.test:{}", port2)).unwrap();
     let custom_url3 = ServoUrl::parse(&format!("http://www.site-data-3.test:{}", port3)).unwrap();
 
-    delegate.reset();
-    webview.load(custom_url0.clone().into_url());
-    let delegate_clone = delegate.clone();
-    servo_test.spin(move || !delegate_clone.url_changed.get());
-
+    webview_test.load_and_wait(custom_url0);
     let _ = server0.close();
-
-    let _ = evaluate_javascript(&servo_test, webview.clone(), "document.cookie = 'foo=bar';");
+    webview_test.evaluate_javascript("document.cookie = 'foo=bar';");
 
     let sites = site_data_manager.site_data(StorageType::Cookies);
     assert_eq!(
@@ -101,18 +129,9 @@ fn test_site_data() {
         &[SiteData::new("site-data-0.test", StorageType::Cookies),]
     );
 
-    delegate.reset();
-    webview.load(custom_url1.clone().into_url());
-    let delegate_clone = delegate.clone();
-    servo_test.spin(move || !delegate_clone.url_changed.get());
-
+    webview_test.load_and_wait(custom_url1);
     let _ = server1.close();
-
-    let _ = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "localStorage.setItem('foo', 'bar');",
-    );
+    webview_test.evaluate_javascript("localStorage.setItem('foo', 'bar');");
 
     let sites = site_data_manager.site_data(StorageType::Cookies);
     assert_eq!(
@@ -135,18 +154,9 @@ fn test_site_data() {
         ]
     );
 
-    delegate.reset();
-    webview.load(custom_url2.clone().into_url());
-    let delegate_clone = delegate.clone();
-    servo_test.spin(move || !delegate_clone.url_changed.get());
-
+    webview_test.load_and_wait(custom_url2);
     let _ = server2.close();
-
-    let _ = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "sessionStorage.setItem('foo', 'bar');",
-    );
+    webview_test.evaluate_javascript("sessionStorage.setItem('foo', 'bar');");
 
     let sites = site_data_manager.site_data(StorageType::Cookies);
     assert_eq!(
@@ -173,15 +183,9 @@ fn test_site_data() {
         ]
     );
 
-    delegate.reset();
-    webview.load(custom_url3.clone().into_url());
-    servo_test.spin(move || !delegate.url_changed.get());
-
+    webview_test.load_and_wait(custom_url3);
     let _ = server3.close();
-
-    let _ = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
+    webview_test.evaluate_javascript(
         "document.cookie = 'foo=bar';\
         localStorage.setItem('foo', 'bar');\
         sessionStorage.setItem('foo', 'bar');",
