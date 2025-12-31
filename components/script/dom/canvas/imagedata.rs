@@ -5,11 +5,11 @@
 use std::borrow::Cow;
 use std::vec::Vec;
 
+use base::generic_channel::GenericSharedMemory;
 use base::id::{ImageDataId, ImageDataIndex};
 use constellation_traits::SerializableImageData;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
-use ipc_channel::ipc::IpcSharedMemory;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -205,9 +205,9 @@ impl ImageData {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn to_shared_memory(&self) -> IpcSharedMemory {
+    pub(crate) fn to_shared_memory(&self) -> GenericSharedMemory {
         // This is safe because we copy the slice content
-        IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
+        GenericSharedMemory::from_bytes(unsafe { self.as_slice() })
     }
 
     #[expect(unsafe_code)]

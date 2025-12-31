@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::{slice, thread};
 
 use base::Epoch;
-use base::generic_channel::RoutedReceiver;
+use base::generic_channel::{GenericSharedMemory, RoutedReceiver};
 use base::id::PainterId;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
@@ -38,7 +38,6 @@ use glow::{
     bytes_per_type, components_per_format,
 };
 use half::f16;
-use ipc_channel::ipc::IpcSharedMemory;
 use itertools::Itertools;
 use log::{debug, error, trace, warn};
 use parking_lot::RwLock;
@@ -1259,7 +1258,7 @@ impl WebGLImpl {
                     (false, _) => SnapshotAlphaMode::Opaque,
                 };
                 sender
-                    .send((IpcSharedMemory::from_bytes(&pixels), alpha_mode))
+                    .send((GenericSharedMemory::from_bytes(&pixels), alpha_mode))
                     .unwrap();
             },
             WebGLCommand::ReadPixelsPP(rect, format, pixel_type, offset) => unsafe {

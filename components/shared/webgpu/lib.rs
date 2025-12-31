@@ -9,7 +9,8 @@ pub mod render_commands;
 
 use std::ops::Range;
 
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use base::generic_channel::GenericSharedMemory;
+use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 use webrender_api::euclid::default::Size2D;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
@@ -150,7 +151,7 @@ pub struct Pipeline<T: std::fmt::Debug + Serialize> {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Mapping {
-    pub data: IpcSharedMemory,
+    pub data: GenericSharedMemory,
     pub mode: HostMap,
     pub range: Range<u64>,
 }

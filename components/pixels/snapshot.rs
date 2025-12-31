@@ -5,12 +5,12 @@
 use std::ops::{Bound, Deref, DerefMut, Range, RangeBounds};
 use std::sync::Arc;
 
+use base::generic_channel::GenericSharedMemory;
 use euclid::default::{Rect, Size2D};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
 use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageError, Rgb};
-use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
@@ -89,7 +89,7 @@ impl SnapshotAlphaMode {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum SnapshotData {
     SharedMemory(
-        #[conditional_malloc_size_of] Arc<IpcSharedMemory>,
+        #[conditional_malloc_size_of] Arc<GenericSharedMemory>,
         Range<usize>,
     ),
     SharedVec(#[conditional_malloc_size_of] Arc<Vec<u8>>, Range<usize>),
@@ -292,12 +292,13 @@ impl Snapshot {
         let (data, byte_range) = match &self.data {
             SnapshotData::SharedMemory(data, byte_range) => (data.clone(), byte_range.clone()),
             SnapshotData::SharedVec(data, byte_range) => (
-                Arc::new(IpcSharedMemory::from_bytes(data)),
+                Arc::new(GenericSharedMemory::from_bytes(data)),
                 byte_range.clone(),
             ),
-            SnapshotData::Owned(data) => {
-                (Arc::new(IpcSharedMemory::from_bytes(data)), 0..data.len())
-            },
+            SnapshotData::Owned(data) => (
+                Arc::new(GenericSharedMemory::from_bytes(data)),
+                0..data.len(),
+            ),
         };
         SharedSnapshot {
             size: self.size,
@@ -413,7 +414,7 @@ pub struct SharedSnapshot {
     size: Size2D<u32>,
     /// The shared data of this [`SharedSnapshot`].
     #[conditional_malloc_size_of]
-    data: Arc<IpcSharedMemory>,
+    data: Arc<GenericSharedMemory>,
     /// The byte range of the data within the shared memory segment. This is used to
     /// send individual image frames of animated images.
     byte_range: Range<usize>,
@@ -438,7 +439,7 @@ impl SharedSnapshot {
         let length_in_bytes = size.area() as usize * 4;
         Self {
             size,
-            data: Arc::new(IpcSharedMemory::from_byte(0, length_in_bytes)),
+            data: Arc::new(GenericSharedMemory::from_byte(0, length_in_bytes)),
             byte_range: 0..length_in_bytes,
             format: SnapshotPixelFormat::RGBA,
             alpha_mode: SnapshotAlphaMode::Transparent {
@@ -463,7 +464,7 @@ impl SharedSnapshot {
         &(&self.data)[self.byte_range.clone()]
     }
 
-    pub fn shared_memory(&self) -> IpcSharedMemory {
+    pub fn shared_memory(&self) -> GenericSharedMemory {
         (*self.data).clone()
     }
 }
