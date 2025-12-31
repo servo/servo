@@ -266,26 +266,26 @@ dictionary JsonWebKey {
 
 [SecureContext,Exposed=(Window,Worker)]
 partial interface SubtleCrypto {
-  // Promise<EncapsulatedKey> encapsulateKey(
-  //   AlgorithmIdentifier encapsulationAlgorithm,
-  //   CryptoKey encapsulationKey,
-  //   AlgorithmIdentifier sharedKeyAlgorithm,
-  //   boolean extractable,
-  //   sequence<KeyUsage> keyUsages
-  // );
+  Promise<EncapsulatedKey> encapsulateKey(
+    AlgorithmIdentifier encapsulationAlgorithm,
+    CryptoKey encapsulationKey,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence<KeyUsage> keyUsages
+  );
   Promise<EncapsulatedBits> encapsulateBits(
     AlgorithmIdentifier encapsulationAlgorithm,
     CryptoKey encapsulationKey
   );
 
-  // Promise<CryptoKey> decapsulateKey(
-  //   AlgorithmIdentifier decapsulationAlgorithm,
-  //   CryptoKey decapsulationKey,
-  //   BufferSource ciphertext,
-  //   AlgorithmIdentifier sharedKeyAlgorithm,
-  //   boolean extractable,
-  //   sequence<KeyUsage> keyUsages
-  // );
+  Promise<CryptoKey> decapsulateKey(
+    AlgorithmIdentifier decapsulationAlgorithm,
+    CryptoKey decapsulationKey,
+    BufferSource ciphertext,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence<KeyUsage> keyUsages
+  );
   Promise<ArrayBuffer> decapsulateBits(
     AlgorithmIdentifier decapsulationAlgorithm,
     CryptoKey decapsulationKey,
