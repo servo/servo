@@ -51,6 +51,7 @@ tracing = [
     "layout/tracing",
     "profile_traits/tracing",
     "script/tracing",
+    "compositing_traits/tracing",
 ]
 vello = ["constellation/vello"]
 vello_cpu = ["constellation/vello_cpu"]

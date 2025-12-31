@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 no-wgl = ["surfman/sm-angle-default"]
+tracing = ["dep:tracing"]
 
 [dependencies]
 base = { workspace = true }
@@ -35,10 +36,13 @@ profile_traits = { path = '../profile' }
 raw-window-handle = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
+serde_bytes = { workspace = true }
 servo_geometry = { path = "../../geometry" }
 smallvec = { workspace = true }
 strum = { workspace = true }
+servo-tracing = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
+tracing = { workspace = true, optional = true }
 webrender_api = { workspace = true }

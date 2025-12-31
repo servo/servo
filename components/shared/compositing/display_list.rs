@@ -58,14 +58,14 @@ pub struct AxesScrollSensitivity {
     pub y: ScrollType,
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SpatialTreeNodeInfo {
     ReferenceFrame(ReferenceFrameNodeInfo),
     Scroll(ScrollableNodeInfo),
     Sticky(StickyNodeInfo),
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StickyNodeInfo {
     pub frame_rect: LayoutRect,
     pub margins: SideOffsets2D<Option<f32>, LayoutPixel>,
@@ -163,7 +163,7 @@ impl StickyNodeInfo {
     }
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ReferenceFrameNodeInfo {
     pub origin: LayoutPoint,
     /// Origin of this frame relative to the document for bounding box queries.
@@ -175,7 +175,7 @@ pub struct ReferenceFrameNodeInfo {
 
 /// Data stored for nodes in the [ScrollTree] that actually scroll,
 /// as opposed to reference frames and sticky nodes which do not.
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollableNodeInfo {
     /// The external scroll id of this node, used to track
     /// it between successive re-layouts.
@@ -290,7 +290,7 @@ pub struct ScrollTreeNodeTransformationCache {
     cumulative_sticky_offsets: LayoutVector2D,
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// A node in a tree of scroll nodes. This may either be a scrollable
 /// node which responds to scroll events or a non-scrollable one.
 pub struct ScrollTreeNode {
@@ -421,7 +421,7 @@ impl ScrollTreeNode {
 /// A tree of spatial nodes, which mirrors the spatial nodes in the WebRender
 /// display list, except these are used for scrolling in `Paint` so that
 /// new offsets can be sent to WebRender.
-#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTree {
     /// A list of `Paint`-side scroll nodes that describe the tree
     /// of WebRender spatial nodes, used by `Paint` to scroll the
@@ -801,7 +801,7 @@ impl ScrollTree {
 
 /// A data structure which stores `Paint`-side information about
 /// display lists sent to `Paint`.
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PaintDisplayListInfo {
     /// The WebRender [PipelineId] of this display list.
     pub pipeline_id: PipelineId,
