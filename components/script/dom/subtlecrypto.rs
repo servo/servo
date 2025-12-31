@@ -152,9 +152,7 @@ enum Operation {
     ImportKey,
     ExportKey,
     GetKeyLength,
-    #[expect(unused)]
     Encapsulate,
-    #[expect(unused)]
     Decapsulate,
 }
 
@@ -311,6 +309,23 @@ impl SubtleCrypto {
                 let promise = trusted_promise.root();
                 promise.reject_error(error, CanGc::note());
             }));
+    }
+
+    /// Queue a global task on the crypto task source, given realm's global object, to resolve
+    /// promise with the result of converting EncapsulateBits to an ECMAScript Object in realm, as
+    /// defined by [WebIDL].
+    fn resolve_promise_with_encapsulated_bits(
+        &self,
+        promise: Rc<Promise>,
+        encapsulated_bits: SubtleEncapsulatedBits,
+    ) {
+        let trusted_promise = TrustedPromise::new(promise);
+        self.global().task_manager().crypto_task_source().queue(
+            task!(resolve_encapsulated_bits: move || {
+                let promise = trusted_promise.root();
+                promise.resolve_native(&encapsulated_bits, CanGc::note());
+            }),
+        );
     }
 }
 
@@ -1652,6 +1667,197 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 subtle.resolve_promise_with_key(promise, result);
             }),
         );
+        promise
+    }
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-encapsulateBits>
+    fn EncapsulateBits(
+        &self,
+        cx: JSContext,
+        encapsulation_algorithm: AlgorithmIdentifier,
+        encapsulation_key: &CryptoKey,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1. Let encapsulationAlgorithm and encapsulationKey be the encapsulationAlgorithm
+        // and encapsulationKey parameters passed to the encapsulateBits() method, respectively.
+
+        // Step 2. Let normalizedEncapsulationAlgorithm be the result of normalizing an algorithm,
+        // with alg set to encapsulationAlgorithm and op set to "encapsulate".
+        // Step 3. If an error occurred, return a Promise rejected with
+        // normalizedEncapsulationAlgorithm.
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_encapsulation_algorithm =
+            match normalize_algorithm(cx, Operation::Encapsulate, &encapsulation_algorithm, can_gc)
+            {
+                Ok(algorithm) => algorithm,
+                Err(error) => {
+                    promise.reject_error(error, can_gc);
+                    return promise;
+                },
+            };
+
+        // Step 4. Let realm be the relevant realm of this.
+        // Step 5. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 3.
+
+        // Step 6. Return promise and perform the remaining steps in parallel.
+        let trusted_subtle = Trusted::new(self);
+        let trusted_encapsulation_key = Trusted::new(encapsulation_key);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        self.global().task_manager().dom_manipulation_task_source().queue(
+            task!(derive_key: move || {
+                let subtle = trusted_subtle.root();
+                let encapsulation_key = trusted_encapsulation_key.root();
+                let promise = trusted_promise.root();
+
+                // Step 7. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 8. If the name member of normalizedEncapsulationAlgorithm is not equal to
+                // the name attribute of the [[algorithm]] internal slot of encapsulationKey then
+                // throw an InvalidAccessError.
+                if normalized_encapsulation_algorithm.name() != encapsulation_key.algorithm().name() {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "[[algorithm]] internal slot of encapsulationKey is not equal to \
+                        normalizedEncapsulationAlgorithm".to_string(),
+                    )));
+                    return;
+                }
+
+                // Step 9. If the [[usages]] internal slot of encapsulationKey does not contain an
+                // entry that is "encapsulateBits", then throw an InvalidAccessError.
+                if !encapsulation_key.usages().contains(&KeyUsage::EncapsulateBits) {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "[[usages]] internal slot of encapsulationKey does not contain an \
+                        entry that is \"encapsulateBits\"".to_string(),
+                    )));
+                    return;
+                }
+
+                // Step 10. Let encapsulatedBits be the result of performing the encapsulate
+                // operation specified by the [[algorithm]] internal slot of encapsulationKey using
+                // encapsulationKey.
+                // NOTE: Step 8 guarantees normalizedEncapsulationAlgorithm specifies the same
+                // algorithm as the [[algorithm]] internal slot of encapsulationKey.
+                let encapsulated_bits = match normalized_encapsulation_algorithm.encapsulate(&encapsulation_key) {
+                    Ok(encapsulated_bits) => encapsulated_bits,
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
+                        return;
+                    },
+                };
+
+                // Step 11. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 12. Let result be the result of converting encapsulatedBits to an
+                // ECMAScript Object in realm, as defined by [WebIDL].
+                // Step 13. Resolve promise with result.
+                subtle.resolve_promise_with_encapsulated_bits(promise, encapsulated_bits);
+            }),
+        );
+        promise
+    }
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-decapsulateBits>
+    fn DecapsulateBits(
+        &self,
+        cx: JSContext,
+        decapsulation_algorithm: AlgorithmIdentifier,
+        decapsulation_key: &CryptoKey,
+        ciphertext: ArrayBufferViewOrArrayBuffer,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1. Let decapsulationAlgorithm and decapsulationKey be the decapsulationAlgorithm
+        // and decapsulationKey parameters passed to the decapsulateBits() method, respectively.
+
+        // Step 2. Let ciphertext be the result of getting a copy of the bytes held by the
+        // ciphertext parameter passed to the decapsulateBits() method.
+        let ciphertext = match ciphertext {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        // Step 3. Let normalizedDecapsulationAlgorithm be the result of normalizing an algorithm,
+        // with alg set to decapsulationAlgorithm and op set to "decapsulate".
+        // Step 4. If an error occurred, return a Promise rejected with
+        // normalizedDecapsulationAlgorithm.
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_decapsulation_algorithm =
+            match normalize_algorithm(cx, Operation::Decapsulate, &decapsulation_algorithm, can_gc)
+            {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    promise.reject_error(error, can_gc);
+                    return promise;
+                },
+            };
+
+        // Step 5. Let realm be the relevant realm of this.
+        // Step 6. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 4.
+
+        // Step 7. Return promise and perform the remaining steps in parallel.
+        let trusted_subtle = Trusted::new(self);
+        let trusted_decapsulation_key = Trusted::new(decapsulation_key);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(decapsulate_bits: move || {
+                let subtle = trusted_subtle.root();
+                let promise = trusted_promise.root();
+                let decapsulation_key = trusted_decapsulation_key.root();
+
+                // Step 8. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 9. If the name member of normalizedDecapsulationAlgorithm is not equal to
+                // the name attribute of the [[algorithm]] internal slot of decapsulationKey then
+                // throw an InvalidAccessError.
+                if normalized_decapsulation_algorithm.name() != decapsulation_key.algorithm().name() {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "[[algorithm]] internal slot of decapsulationKey is not equal to \
+                        normalizedDecapsulationAlgorithm".to_string()
+                    )));
+                    return;
+                }
+
+                // Step 10. If the [[usages]] internal slot of decapsulationKey does not contain an
+                // entry that is "decapsulateBits", then throw an InvalidAccessError.
+                if !decapsulation_key.usages().contains(&KeyUsage::DecapsulateBits) {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "[[usages]] internal slot of decapsulationKey does not contain an \
+                        entry that is \"decapsulateBits\"".to_string(),
+                    )));
+                    return;
+                }
+
+                // Step 11. Let decapsulatedBits be the result of performing the decapsulate
+                // operation specified by the [[algorithm]] internal slot of decapsulationKey using
+                // decapsulationKey and ciphertext.
+                // NOTE: Step 9 guarantees normalizedDecapsulationAlgorithm specifies the same
+                // algorithm as the [[algorithm]] internal slot of decapsulationKey.
+                let decapsulated_bits_result =
+                    normalized_decapsulation_algorithm.decapsulate(&decapsulation_key, &ciphertext);
+                let decapsulated_bits = match decapsulated_bits_result {
+                    Ok(decapsulated_bits) => decapsulated_bits,
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
+                        return;
+                    },
+                };
+
+                // Step 12. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 13. Let result be the result of creating an ArrayBuffer in realm,
+                // containing decapsulatedBits.
+                // Step 14. Resolve promise with result.
+                subtle.resolve_promise_with_data(promise, decapsulated_bits);
+            }));
         promise
     }
 }
@@ -3867,7 +4073,6 @@ impl NormalizedAlgorithm {
         }
     }
 
-    #[expect(unused)]
     fn encapsulate(&self, key: &CryptoKey) -> Result<SubtleEncapsulatedBits, Error> {
         match (self.name(), self) {
             (
@@ -3878,7 +4083,6 @@ impl NormalizedAlgorithm {
         }
     }
 
-    #[expect(unused)]
     fn decapsulate(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
         match (self.name(), self) {
             (
