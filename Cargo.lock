@@ -8411,7 +8411,7 @@ dependencies = [
 
 [[package]]
 name = "servoshell"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "android_logger",
  "backtrace",
