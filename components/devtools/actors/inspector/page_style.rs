@@ -193,10 +193,9 @@ impl PageStyleActor {
                             e.insert(name);
                             rule
                         },
-                        Entry::Occupied(e) => {
-                            let actor = registry.find::<StyleRuleActor>(e.get());
-                            actor.applied(registry)?
-                        },
+                        Entry::Occupied(e) => registry
+                            .apply(e.get(), |actor: &StyleRuleActor| actor.applied(registry))
+                            .expect("The name should match an actor")?,
                     };
                     if inherited.is_some() && rule.declarations.is_empty() {
                         return None;

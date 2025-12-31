@@ -86,7 +86,7 @@ pub(crate) trait ActorEncode<T: Serialize>: Actor {
 /// A list of known, owned actors.
 pub struct ActorRegistry {
     actors: HashMap<String, Box<dyn Actor>>,
-    new_actors: RefCell<Vec<Box<dyn Actor>>>,
+    new_actors: RefCell<HashMap<String, Box<dyn Actor>>>,
     old_actors: RefCell<Vec<String>>,
     script_actors: RefCell<HashMap<String, String>>,
 
@@ -105,7 +105,7 @@ impl ActorRegistry {
     pub fn new() -> ActorRegistry {
         ActorRegistry {
             actors: HashMap::new(),
-            new_actors: RefCell::new(vec![]),
+            new_actors: RefCell::new(HashMap::new()),
             old_actors: RefCell::new(vec![]),
             script_actors: RefCell::new(HashMap::new()),
             source_actor_names: RefCell::new(HashMap::new()),
@@ -189,19 +189,47 @@ impl ActorRegistry {
     /// It won't be available until after the next message is processed.
     pub(crate) fn register_later<T: Actor>(&self, actor: T) {
         let mut actors = self.new_actors.borrow_mut();
-        actors.push(Box::new(actor));
+        actors.insert(actor.name(), Box::new(actor));
     }
 
-    /// Find an actor by registered name
-    pub fn find<'a, T: Any>(&'a self, name: &str) -> &'a T {
-        let actor = self.actors.get(name).unwrap();
-        actor.actor_as_any().downcast_ref::<T>().unwrap()
+    /// Find an actor by its registered name.
+    /// Returns None if the actor isn't found.
+    pub fn try_find<'a, T: Actor>(&'a self, name: &str) -> Option<&'a T> {
+        let actor = self.actors.get(name)?;
+        actor.actor_as_any().downcast_ref::<T>()
     }
 
-    /// Find an actor by registered name
-    pub fn find_mut<'a, T: Any>(&'a mut self, name: &str) -> &'a mut T {
+    /// Find an actor by its registered name.
+    /// Panics if the actor isn't found.
+    pub fn find<'a, T: Actor>(&'a self, name: &str) -> &'a T {
+        self.try_find::<T>(name).unwrap()
+    }
+
+    /// Find an actor by its registered name and return a mutable reference.
+    /// Panics if the actor isn't found.
+    pub fn find_mut<'a, T: Actor>(&'a mut self, name: &str) -> &'a mut T {
         let actor = self.actors.get_mut(name).unwrap();
         actor.actor_as_any_mut().downcast_mut::<T>().unwrap()
+    }
+
+    /// Apply a function to a registered actor.
+    /// If no actor is found, it will try to check for newly registered actors this frame (from `register_later`).
+    pub fn apply<T: Actor, R, F: Fn(&T) -> R>(&self, name: &str, f: F) -> Result<R, ActorError> {
+        if let Some(actor) = self.try_find::<T>(name) {
+            Ok(f(actor))
+        } else {
+            let actors = self
+                .new_actors
+                .try_borrow()
+                .map_err(|_| ActorError::Internal)?;
+            let actor = actors
+                .get(name)
+                .ok_or(ActorError::Internal)?
+                .actor_as_any()
+                .downcast_ref::<T>()
+                .ok_or(ActorError::Internal)?;
+            Ok(f(actor))
+        }
     }
 
     /// Find an actor by registered name and return its serialization
@@ -246,8 +274,8 @@ impl ActorRegistry {
             },
         }
         let new_actors = mem::take(&mut *self.new_actors.borrow_mut());
-        for actor in new_actors.into_iter() {
-            self.actors.insert(actor.name().to_owned(), actor);
+        for (name, actor) in new_actors.into_iter() {
+            self.actors.insert(name, actor);
         }
 
         let old_actors = mem::take(&mut *self.old_actors.borrow_mut());
