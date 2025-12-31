@@ -3009,6 +3009,7 @@ impl SupportedAlgorithm {
             (Self::Pbkdf2, Operation::GetKeyLength) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-registration>
+            (Self::MlKem(_), Operation::GenerateKey) => ParameterType::None,
             (Self::MlKem(_), Operation::ImportKey) => ParameterType::None,
             (Self::MlKem(_), Operation::ExportKey) => ParameterType::None,
 
@@ -3531,6 +3532,11 @@ impl NormalizedAlgorithm {
                 hmac_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
+            (
+                ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024,
+                NormalizedAlgorithm::Algorithm(algo),
+            ) => ml_kem_operation::generate_key(global, algo, extractable, usages, can_gc)
+                .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
             (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
                 chacha20_poly1305_operation::generate_key(global, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
