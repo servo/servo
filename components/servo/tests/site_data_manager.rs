@@ -10,7 +10,7 @@ use std::rc::Rc;
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
-use net::test_util::{make_body, make_server, replace_host_table};
+use net::test_util::{Server, make_body, make_server, replace_host_table};
 use servo::{JSValue, Servo, ServoUrl, SiteData, StorageType, WebView, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
@@ -55,6 +55,55 @@ impl WebViewTest {
     }
 }
 
+type TestSiteDataStep<'a> = (SiteData, Option<&'a dyn Fn(&SiteData)>);
+
+fn run_test_site_data_steps(webview_test: &WebViewTest, steps: &[TestSiteDataStep]) {
+    let ip = "127.0.0.1".parse().unwrap();
+    let host_table: HashMap<_, _> = steps
+        .iter()
+        .map(|step| (format!("www.{}", step.0.name()), ip))
+        .collect();
+    replace_host_table(host_table);
+
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+
+    let mut servers: Vec<(Server, ServoUrl)> =
+        (0..steps.len()).map(|_| make_server(handler)).collect();
+    servers.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+    for ((site, callback), (server, url)) in steps.iter().zip(servers.into_iter()) {
+        let port = url.port().unwrap();
+        let custom_url = ServoUrl::parse(&format!("http://www.{}:{port}", site.name())).unwrap();
+
+        webview_test.load_and_wait(custom_url.clone());
+
+        let _ = server.close();
+
+        let storage_types = site.storage_types();
+
+        if storage_types.contains(StorageType::Cookies) {
+            webview_test.evaluate_javascript("document.cookie = 'foo=bar';");
+        }
+
+        if storage_types.contains(StorageType::Local) {
+            webview_test.evaluate_javascript("localStorage.setItem('foo', 'bar');");
+        }
+
+        if storage_types.contains(StorageType::Session) {
+            webview_test.evaluate_javascript("sessionStorage.setItem('foo', 'bar');");
+        }
+
+        if let Some(callback) = callback {
+            callback(site);
+        }
+    }
+}
+
 #[test]
 fn test_site_data() {
     let webview_test = WebViewTest::new();
@@ -70,164 +119,128 @@ fn test_site_data() {
     let sites = site_data_manager.site_data(StorageType::all());
     assert_eq!(sites.len(), 0);
 
-    let ip = "127.0.0.1".parse().unwrap();
-    let mut host_table = HashMap::new();
-    host_table.insert("www.site-data-0.test".to_owned(), ip);
-    host_table.insert("www.site-data-1.test".to_owned(), ip);
-    host_table.insert("www.site-data-2.test".to_owned(), ip);
-    host_table.insert("www.site-data-3.test".to_owned(), ip);
-
-    replace_host_table(host_table);
-
-    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
-    let handler =
-        move |_: HyperRequest<Incoming>,
-              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            *response.body_mut() = make_body(MESSAGE.to_vec());
-        };
-
-    let mut servers = Vec::new();
-    for _ in 0..4 {
-        let (server, url) = make_server(handler);
-        servers.push((server, url));
-    }
-
-    servers.sort_by(|(_, a), (_, b)| a.cmp(b));
-
-    let [
-        (server0, url0),
-        (server1, url1),
-        (server2, url2),
-        (server3, url3),
-    ] = servers.try_into().unwrap();
-    let port0 = url0.port().unwrap();
-    let port1 = url1.port().unwrap();
-    let port2 = url2.port().unwrap();
-    let port3 = url3.port().unwrap();
-
-    let custom_url0 = ServoUrl::parse(&format!("http://www.site-data-0.test:{}", port0)).unwrap();
-    let custom_url1 = ServoUrl::parse(&format!("http://www.site-data-1.test:{}", port1)).unwrap();
-    let custom_url2 = ServoUrl::parse(&format!("http://www.site-data-2.test:{}", port2)).unwrap();
-    let custom_url3 = ServoUrl::parse(&format!("http://www.site-data-3.test:{}", port3)).unwrap();
-
-    webview_test.load_and_wait(custom_url0);
-    let _ = server0.close();
-    webview_test.evaluate_javascript("document.cookie = 'foo=bar';");
-
-    let sites = site_data_manager.site_data(StorageType::Cookies);
-    assert_eq!(
-        &sites,
-        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
-    );
-    let sites = site_data_manager.site_data(StorageType::Local);
-    assert_eq!(sites.len(), 0);
-    let sites = site_data_manager.site_data(StorageType::Session);
-    assert_eq!(sites.len(), 0);
-    let sites = site_data_manager.site_data(StorageType::all());
-    assert_eq!(
-        &sites,
-        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
-    );
-
-    webview_test.load_and_wait(custom_url1);
-    let _ = server1.close();
-    webview_test.evaluate_javascript("localStorage.setItem('foo', 'bar');");
-
-    let sites = site_data_manager.site_data(StorageType::Cookies);
-    assert_eq!(
-        &sites,
-        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
-    );
-    let sites = site_data_manager.site_data(StorageType::Local);
-    assert_eq!(
-        &sites,
-        &[SiteData::new("site-data-1.test", StorageType::Local),]
-    );
-    let sites = site_data_manager.site_data(StorageType::Session);
-    assert_eq!(sites.len(), 0);
-    let sites = site_data_manager.site_data(StorageType::all());
-    assert_eq!(
-        &sites,
-        &[
+    let steps: &[TestSiteDataStep] = &[
+        (
             SiteData::new("site-data-0.test", StorageType::Cookies),
+            Some(&|_| {
+                let sites = site_data_manager.site_data(StorageType::Cookies);
+                assert_eq!(
+                    &sites,
+                    &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+                );
+                let sites = site_data_manager.site_data(StorageType::Local);
+                assert_eq!(sites.len(), 0);
+                let sites = site_data_manager.site_data(StorageType::Session);
+                assert_eq!(sites.len(), 0);
+                let sites = site_data_manager.site_data(StorageType::all());
+                assert_eq!(
+                    &sites,
+                    &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+                );
+            }),
+        ),
+        (
             SiteData::new("site-data-1.test", StorageType::Local),
-        ]
-    );
-
-    webview_test.load_and_wait(custom_url2);
-    let _ = server2.close();
-    webview_test.evaluate_javascript("sessionStorage.setItem('foo', 'bar');");
-
-    let sites = site_data_manager.site_data(StorageType::Cookies);
-    assert_eq!(
-        &sites,
-        &[SiteData::new("site-data-0.test", StorageType::Cookies),]
-    );
-    let sites = site_data_manager.site_data(StorageType::Local);
-    assert_eq!(
-        &sites,
-        &[SiteData::new("site-data-1.test", StorageType::Local),]
-    );
-    let sites = site_data_manager.site_data(StorageType::Session);
-    assert_eq!(
-        &sites,
-        &[SiteData::new("site-data-2.test", StorageType::Session),]
-    );
-    let sites = site_data_manager.site_data(StorageType::all());
-    assert_eq!(
-        &sites,
-        &[
-            SiteData::new("site-data-0.test", StorageType::Cookies),
-            SiteData::new("site-data-1.test", StorageType::Local),
+            Some(&|_| {
+                let sites = site_data_manager.site_data(StorageType::Cookies);
+                assert_eq!(
+                    &sites,
+                    &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+                );
+                let sites = site_data_manager.site_data(StorageType::Local);
+                assert_eq!(
+                    &sites,
+                    &[SiteData::new("site-data-1.test", StorageType::Local),]
+                );
+                let sites = site_data_manager.site_data(StorageType::Session);
+                assert_eq!(sites.len(), 0);
+                let sites = site_data_manager.site_data(StorageType::all());
+                assert_eq!(
+                    &sites,
+                    &[
+                        SiteData::new("site-data-0.test", StorageType::Cookies),
+                        SiteData::new("site-data-1.test", StorageType::Local),
+                    ]
+                );
+            }),
+        ),
+        (
             SiteData::new("site-data-2.test", StorageType::Session),
-        ]
-    );
-
-    webview_test.load_and_wait(custom_url3);
-    let _ = server3.close();
-    webview_test.evaluate_javascript(
-        "document.cookie = 'foo=bar';\
-        localStorage.setItem('foo', 'bar');\
-        sessionStorage.setItem('foo', 'bar');",
-    );
-
-    let sites = site_data_manager.site_data(StorageType::Cookies);
-    assert_eq!(
-        &sites,
-        &[
-            SiteData::new("site-data-0.test", StorageType::Cookies),
-            SiteData::new("site-data-3.test", StorageType::Cookies),
-        ]
-    );
-    let sites = site_data_manager.site_data(StorageType::Local);
-    assert_eq!(
-        &sites,
-        &[
-            SiteData::new("site-data-1.test", StorageType::Local),
-            SiteData::new("site-data-3.test", StorageType::Local),
-        ]
-    );
-    let sites = site_data_manager.site_data(StorageType::Session);
-    assert_eq!(
-        &sites,
-        &[
-            SiteData::new("site-data-2.test", StorageType::Session),
-            SiteData::new("site-data-3.test", StorageType::Session),
-        ]
-    );
-    let sites = site_data_manager.site_data(StorageType::all());
-    assert_eq!(
-        &sites,
-        &[
-            SiteData::new("site-data-0.test", StorageType::Cookies),
-            SiteData::new("site-data-1.test", StorageType::Local),
-            SiteData::new("site-data-2.test", StorageType::Session),
+            Some(&|_| {
+                let sites = site_data_manager.site_data(StorageType::Cookies);
+                assert_eq!(
+                    &sites,
+                    &[SiteData::new("site-data-0.test", StorageType::Cookies),]
+                );
+                let sites = site_data_manager.site_data(StorageType::Local);
+                assert_eq!(
+                    &sites,
+                    &[SiteData::new("site-data-1.test", StorageType::Local),]
+                );
+                let sites = site_data_manager.site_data(StorageType::Session);
+                assert_eq!(
+                    &sites,
+                    &[SiteData::new("site-data-2.test", StorageType::Session),]
+                );
+                let sites = site_data_manager.site_data(StorageType::all());
+                assert_eq!(
+                    &sites,
+                    &[
+                        SiteData::new("site-data-0.test", StorageType::Cookies),
+                        SiteData::new("site-data-1.test", StorageType::Local),
+                        SiteData::new("site-data-2.test", StorageType::Session),
+                    ]
+                );
+            }),
+        ),
+        (
             SiteData::new(
                 "site-data-3.test",
-                StorageType::Cookies | StorageType::Local | StorageType::Session
+                StorageType::Cookies | StorageType::Local | StorageType::Session,
             ),
-        ]
-    );
+            Some(&|_| {
+                let sites = site_data_manager.site_data(StorageType::Cookies);
+                assert_eq!(
+                    &sites,
+                    &[
+                        SiteData::new("site-data-0.test", StorageType::Cookies),
+                        SiteData::new("site-data-3.test", StorageType::Cookies),
+                    ]
+                );
+                let sites = site_data_manager.site_data(StorageType::Local);
+                assert_eq!(
+                    &sites,
+                    &[
+                        SiteData::new("site-data-1.test", StorageType::Local),
+                        SiteData::new("site-data-3.test", StorageType::Local),
+                    ]
+                );
+                let sites = site_data_manager.site_data(StorageType::Session);
+                assert_eq!(
+                    &sites,
+                    &[
+                        SiteData::new("site-data-2.test", StorageType::Session),
+                        SiteData::new("site-data-3.test", StorageType::Session),
+                    ]
+                );
+                let sites = site_data_manager.site_data(StorageType::all());
+                assert_eq!(
+                    &sites,
+                    &[
+                        SiteData::new("site-data-0.test", StorageType::Cookies),
+                        SiteData::new("site-data-1.test", StorageType::Local),
+                        SiteData::new("site-data-2.test", StorageType::Session),
+                        SiteData::new(
+                            "site-data-3.test",
+                            StorageType::Cookies | StorageType::Local | StorageType::Session
+                        ),
+                    ]
+                );
+            }),
+        ),
+    ];
+
+    run_test_site_data_steps(&webview_test, steps);
 }
 
 #[test]
