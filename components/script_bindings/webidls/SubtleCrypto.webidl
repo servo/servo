@@ -300,6 +300,18 @@ dictionary Argon2Params : Algorithm {
   BufferSource associatedData;
 };
 
+// https://wicg.github.io/webcrypto-modern-algos/#encapsulation
+
+dictionary EncapsulatedKey {
+  CryptoKey sharedKey;
+  ArrayBuffer ciphertext;
+};
+
+dictionary EncapsulatedBits {
+  ArrayBuffer sharedKey;
+  ArrayBuffer ciphertext;
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#partial-JsonWebKey-dictionary
 
 partial dictionary JsonWebKey {

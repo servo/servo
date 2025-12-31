@@ -4,7 +4,7 @@
 
 use der::asn1::{BitString, OctetString};
 use der::{AnyRef, Choice, Decode, Encode, Sequence};
-use ml_kem::kem::EncapsulationKey;
+use ml_kem::kem::{Decapsulate, Encapsulate, EncapsulationKey};
 use ml_kem::{
     B32, Encoded, EncodedSizeUser, KemCore, MlKem512, MlKem512Params, MlKem768, MlKem768Params,
     MlKem1024, MlKem1024Params,
@@ -24,7 +24,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_ML_KEM_512, ALG_ML_KEM_768, ALG_ML_KEM_1024, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleKeyAlgorithm,
+    KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleEncapsulatedBits, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -122,6 +122,171 @@ enum MlKemPrivateKeyStructure {
     Seed(OctetString),
     ExpandedKey(OctetString),
     Both(Both),
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-encapsulate>
+pub(crate) fn encapsulate(
+    normalized_algorithm: &SubtleAlgorithm,
+    key: &CryptoKey,
+) -> Result<SubtleEncapsulatedBits, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "public", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"public\"".to_string(),
+        )));
+    }
+
+    // Step 2. Perform the encapsulation key check described in Section 7.2 of [FIPS-203] with the
+    // parameter set indicated by the name member of algorithm, using the key represented by the
+    // [[handle]] internal slot of key as the ek input parameter.
+    // Step 3. If the encapsulation key check failed, return an OperationError.
+    // Step 4. Let sharedKey and ciphertext be the outputs that result from performing the
+    // ML-KEM.Encaps function described in Section 7.2 of [FIPS-203] with the parameter set
+    // indicated by the name member of algorithm, using the key represented by the [[handle]]
+    // internal slot of key as the ek input parameter.
+    // Step 5. If the ML-KEM.Encaps function returned an error, return an OperationError.
+    let (shared_key, ciphertext) = match normalized_algorithm.name.as_str() {
+        ALG_ML_KEM_512 => {
+            let Handle::MlKem512PublicKey(encoded_ek) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-KEM-512 public key".to_string(),
+                )));
+            };
+            let ek = EncapsulationKey::<MlKem512Params>::from_bytes(encoded_ek);
+            let (encoded_ciphertext, shared_key) = ek.encapsulate(&mut OsRng).map_err(|_| {
+                Error::Operation(Some("Failed to perform ML-KEM encapsulation".to_string()))
+            })?;
+            (shared_key.to_vec(), encoded_ciphertext.to_vec())
+        },
+        ALG_ML_KEM_768 => {
+            let Handle::MlKem768PublicKey(encoded_ek) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-KEM-768 public key".to_string(),
+                )));
+            };
+            let ek = EncapsulationKey::<MlKem768Params>::from_bytes(encoded_ek);
+            let (encoded_ciphertext, shared_key) = ek.encapsulate(&mut OsRng).map_err(|_| {
+                Error::Operation(Some("Failed to perform ML-KEM encapsulation".to_string()))
+            })?;
+            (shared_key.to_vec(), encoded_ciphertext.to_vec())
+        },
+        ALG_ML_KEM_1024 => {
+            let Handle::MlKem1024PublicKey(encoded_ek) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-KEM-1024 public key".to_string(),
+                )));
+            };
+            let ek = EncapsulationKey::<MlKem1024Params>::from_bytes(encoded_ek);
+            let (encoded_ciphertext, shared_key) = ek.encapsulate(&mut OsRng).map_err(|_| {
+                Error::Operation(Some("Failed to perform ML-KEM encapsulation".to_string()))
+            })?;
+            (shared_key.to_vec(), encoded_ciphertext.to_vec())
+        },
+        _ => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not an ML-KEM algorithm",
+                normalized_algorithm.name.as_str()
+            ))));
+        },
+    };
+
+    // Step 6. Let result be a new EncapsulatedBits dictionary.
+    // Step 7. Set the sharedKey attribute of result to the result of creating an ArrayBuffer
+    // containing sharedKey.
+    // Step 8. Set the ciphertext attribute of result to the result of creating an ArrayBuffer
+    // containing ciphertext.
+    let result = SubtleEncapsulatedBits {
+        shared_key: Some(shared_key),
+        ciphertext: Some(ciphertext),
+    };
+
+    // Step 9. Return result.
+    Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-decapsulate>
+pub(crate) fn decapsulate(
+    normalized_algorithm: &SubtleAlgorithm,
+    key: &CryptoKey,
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"private\"".to_string(),
+        )));
+    }
+
+    // Step 2. Perform the decapsulation input check described in Section 7.3 of [FIPS-203] with
+    // the parameter set indicated by the name member of algorithm, using the key represented by
+    // the [[handle]] internal slot of key as the dk input parameter, and ciphertext as the c input
+    // parameter.
+    // Step 3. If the decapsulation key check failed, return an OperationError.
+    // Step 4. Let sharedKey be the output that results from performing the ML-KEM.Decaps function
+    // described in Section 7.3 of [FIPS-203] with the parameter set indicated by the name member
+    // of algorithm, using the key represented by the [[handle]] internal slot of key as the dk
+    // input parameter, and ciphertext as the c input parameter.
+    let shared_key = match normalized_algorithm.name.as_str() {
+        ALG_ML_KEM_512 => {
+            let Handle::MlKem512PrivateKey(seed) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-KEM-512 private key".to_string(),
+                )));
+            };
+            let ciphertext = ciphertext
+                .try_into()
+                .map_err(|_| Error::Operation(Some("Failed to load the ciphertext".to_string())))?;
+            let (dk, _) = MlKem512::generate_deterministic(&seed.0, &seed.1);
+            dk.decapsulate(ciphertext)
+                .map_err(|_| {
+                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".to_string()))
+                })?
+                .to_vec()
+        },
+        ALG_ML_KEM_768 => {
+            let Handle::MlKem768PrivateKey(seed) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-KEM-768 private key".to_string(),
+                )));
+            };
+            let ciphertext = ciphertext
+                .try_into()
+                .map_err(|_| Error::Operation(Some("Failed to load the ciphertext".to_string())))?;
+            let (dk, _) = MlKem768::generate_deterministic(&seed.0, &seed.1);
+            dk.decapsulate(ciphertext)
+                .map_err(|_| {
+                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".to_string()))
+                })?
+                .to_vec()
+        },
+        ALG_ML_KEM_1024 => {
+            let Handle::MlKem1024PrivateKey(seed) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-KEM-1024 private key".to_string(),
+                )));
+            };
+            let ciphertext = ciphertext
+                .try_into()
+                .map_err(|_| Error::Operation(Some("Failed to load the ciphertext".to_string())))?;
+            let (dk, _) = MlKem1024::generate_deterministic(&seed.0, &seed.1);
+            dk.decapsulate(ciphertext)
+                .map_err(|_| {
+                    Error::Operation(Some("Failed to perform ML-KEM decapsulation".to_string()))
+                })?
+                .to_vec()
+        },
+        _ => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not an ML-KEM algorithm",
+                normalized_algorithm.name.as_str()
+            ))));
+        },
+    };
+
+    // Step 5. Return sharedKey.
+    Ok(shared_key)
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-generate-key>

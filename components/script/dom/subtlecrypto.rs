@@ -42,10 +42,10 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AeadParams, AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, EcKeyAlgorithm,
-    EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, HkdfParams,
-    HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat,
-    Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm, RsaHashedKeyGenParams,
-    RsaKeyAlgorithm, RsaOaepParams, RsaPssParams, SubtleCryptoMethods,
+    EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, EncapsulatedBits,
+    EncapsulatedKey, HkdfParams, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey,
+    KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm,
+    RsaHashedKeyGenParams, RsaKeyAlgorithm, RsaOaepParams, RsaPssParams, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -152,6 +152,10 @@ enum Operation {
     ImportKey,
     ExportKey,
     GetKeyLength,
+    #[expect(unused)]
+    Encapsulate,
+    #[expect(unused)]
+    Decapsulate,
 }
 
 impl Operation {
@@ -169,6 +173,8 @@ impl Operation {
             Operation::ImportKey => "importKey",
             Operation::ExportKey => "exportKey",
             Operation::GetKeyLength => "get key length",
+            Operation::Encapsulate => "encapsulate",
+            Operation::Decapsulate => "decapsulate",
         }
     }
 }
@@ -2382,6 +2388,61 @@ impl From<RootedTraceableBox<Argon2Params>> for SubtleArgon2Params {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey>
+#[expect(unused)]
+struct SubtleEncapsulatedKey {
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey-sharedKey>
+    shared_key: Option<Trusted<CryptoKey>>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey-ciphertext>
+    ciphertext: Option<Vec<u8>>,
+}
+
+impl SafeToJSValConvertible for SubtleEncapsulatedKey {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+        let shared_key = self.shared_key.as_ref().map(|shared_key| shared_key.root());
+        let ciphertext = self.ciphertext.as_ref().map(|data| {
+            rooted!(in(*cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
+            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut(), can_gc)
+                .expect("Failed to convert ciphertext to ArrayBufferU8")
+        });
+        let encapsulated_key = RootedTraceableBox::new(EncapsulatedKey {
+            sharedKey: shared_key,
+            ciphertext,
+        });
+        encapsulated_key.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits>
+struct SubtleEncapsulatedBits {
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits-sharedKey>
+    shared_key: Option<Vec<u8>>,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits-ciphertext>
+    ciphertext: Option<Vec<u8>>,
+}
+
+impl SafeToJSValConvertible for SubtleEncapsulatedBits {
+    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+        let shared_key = self.shared_key.as_ref().map(|data| {
+            rooted!(in(*cx) let mut shared_key_ptr = ptr::null_mut::<JSObject>());
+            create_buffer_source::<ArrayBufferU8>(cx, data, shared_key_ptr.handle_mut(), can_gc)
+                .expect("Failed to convert shared key to ArrayBufferU8")
+        });
+        let ciphertext = self.ciphertext.as_ref().map(|data| {
+            rooted!(in(*cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
+            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut(), can_gc)
+                .expect("Failed to convert ciphertext to ArrayBufferU8")
+        });
+        let encapsulated_bits = RootedTraceableBox::new(EncapsulatedBits {
+            sharedKey: shared_key,
+            ciphertext,
+        });
+        encapsulated_bits.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
 /// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
 fn dictionary_from_jsval<T>(cx: JSContext, value: HandleValue, can_gc: CanGc) -> Fallible<T>
 where
@@ -3009,6 +3070,8 @@ impl SupportedAlgorithm {
             (Self::Pbkdf2, Operation::GetKeyLength) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-registration>
+            (Self::MlKem(_), Operation::Encapsulate) => ParameterType::None,
+            (Self::MlKem(_), Operation::Decapsulate) => ParameterType::None,
             (Self::MlKem(_), Operation::GenerateKey) => ParameterType::None,
             (Self::MlKem(_), Operation::ImportKey) => ParameterType::None,
             (Self::MlKem(_), Operation::ExportKey) => ParameterType::None,
@@ -3800,6 +3863,28 @@ impl NormalizedAlgorithm {
             (ALG_ARGON2ID, NormalizedAlgorithm::Algorithm(_algo)) => {
                 argon2_operation::get_key_length()
             },
+            _ => Err(Error::NotSupported(None)),
+        }
+    }
+
+    #[expect(unused)]
+    fn encapsulate(&self, key: &CryptoKey) -> Result<SubtleEncapsulatedBits, Error> {
+        match (self.name(), self) {
+            (
+                ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024,
+                NormalizedAlgorithm::Algorithm(algo),
+            ) => ml_kem_operation::encapsulate(algo, key),
+            _ => Err(Error::NotSupported(None)),
+        }
+    }
+
+    #[expect(unused)]
+    fn decapsulate(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
+        match (self.name(), self) {
+            (
+                ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024,
+                NormalizedAlgorithm::Algorithm(algo),
+            ) => ml_kem_operation::decapsulate(algo, key, ciphertext),
             _ => Err(Error::NotSupported(None)),
         }
     }
