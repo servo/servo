@@ -216,8 +216,8 @@ impl ProtocolHandler for WebPageContentProtocolHandler {
                 NetworkError::Internal("Failed to parse substituted protocol handler url".into()),
             )));
         };
-        // Ensure we did a proper substitution with a HTTP result
-        assert!(matches!(result_url.scheme(), "http" | "https"));
+        // Ensure we did a proper substitution with a HTTP result or internal Servo link
+        assert!(matches!(result_url.scheme(), "http" | "https" | "servo"));
         // Step 9. Navigate an appropriate navigable to resultURL.
         request.url_list.push(result_url);
         let request2 = request.clone();

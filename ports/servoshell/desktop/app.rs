@@ -11,7 +11,8 @@ use std::{env, fs};
 
 use servo::protocol_handler::ProtocolRegistry;
 use servo::{
-    EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
+    EventLoopWaker, Opts, PrefValue, Preferences, ServoBuilder, ServoUrl, UserContentManager,
+    UserScript,
 };
 use url::Url;
 use winit::application::ApplicationHandler;
@@ -89,6 +90,10 @@ impl App {
             "resource",
             protocols::resource::ResourceProtocolHandler::default(),
         );
+        if let PrefValue::Str(mailto_handler) = self.preferences.get_value("mailto_handler") {
+            let _ = protocol_registry
+                .register_page_content_handler("mailto".to_owned(), mailto_handler);
+        }
 
         let servo_builder = ServoBuilder::default()
             .opts(self.opts.clone())
