@@ -424,7 +424,7 @@ jobs:
         if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
         run: uv run ./etc/ci/scenario/servo_test_slide.py
       - name: Upload failure screenshots
-        if: ${{ steps.install_hap.outcome == 'success' && ! cancelled() }}
+        if: ${{ steps.install_hap.outcome == 'success' && failure() }}
         uses: actions/upload-artifact@v5
         with:
           path: "servo_scenario_*_error.jpg"
