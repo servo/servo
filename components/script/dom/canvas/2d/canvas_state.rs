@@ -33,11 +33,9 @@ use range::Range;
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
-use style::context::QuirksMode;
-use style::parser::ParserContext;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::CssRuleType;
 use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
@@ -48,6 +46,7 @@ use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
 use crate::conversions::Convert;
+use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -2516,16 +2515,8 @@ pub(super) fn parse_color(
     let mut input = ParserInput::new(&string);
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
-    let context = ParserContext::new(
-        Origin::Author,
-        &url,
-        Some(CssRuleType::Style),
-        ParsingMode::DEFAULT,
-        QuirksMode::NoQuirks,
-        /* namespaces = */ Default::default(),
-        None,
-        None,
-    );
+    let context =
+        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
     match Color::parse_and_compute(&context, &mut parser, None) {
         Some(color) => {
             // TODO: https://github.com/whatwg/html/issues/1099

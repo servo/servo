@@ -6,12 +6,11 @@ use cssparser::{Parser, ParserInput, serialize_identifier};
 use dom_struct::dom_struct;
 use layout_api::{PropertyRegistration, RegisterPropertyError};
 use script_bindings::codegen::GenericBindings::CSSBinding::PropertyDefinition;
-use style::context::QuirksMode;
-use style::parser::ParserContext;
 use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
+use style::stylesheets::{CssRuleType, UrlExtraData};
 use style_traits::ParsingMode;
 
+use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::codegen::Bindings::CSSBinding::CSSMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -43,15 +42,10 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
         decl.push_str(&value.str());
         let decl = Declaration(decl);
         let url_data = UrlExtraData(win.Document().url().get_arc());
-        let context = ParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Style),
+        let context = parser_context_for_anonymous_content(
+            CssRuleType::Style,
             ParsingMode::DEFAULT,
-            QuirksMode::NoQuirks,
-            /* namespaces = */ Default::default(),
-            None,
-            None,
+            &url_data,
         );
         decl.eval(&context)
     }
@@ -67,15 +61,10 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
         };
 
         let url_data = UrlExtraData(win.Document().url().get_arc());
-        let context = ParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Style),
+        let context = parser_context_for_anonymous_content(
+            CssRuleType::Style,
             ParsingMode::DEFAULT,
-            QuirksMode::NoQuirks,
-            /* namespaces = */ Default::default(),
-            None,
-            None,
+            &url_data,
         );
         cond.eval(&context)
     }

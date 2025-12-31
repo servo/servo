@@ -13,14 +13,14 @@ use dom_struct::dom_struct;
 use euclid::default::{Rect, SideOffsets2D, Size2D};
 use js::rust::{HandleObject, MutableHandleValue};
 use layout_api::BoxAreaType;
-use style::context::QuirksMode;
-use style::parser::{Parse, ParserContext};
-use style::stylesheets::{CssRuleType, Origin};
+use style::parser::Parse;
+use style::stylesheets::CssRuleType;
 use style::values::computed::Overflow;
 use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style_traits::{ParsingMode, ToCss};
 use url::Url;
 
+use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
@@ -836,16 +836,8 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
     let mut parser = Parser::new(&mut input);
 
     let url = Url::parse("about:blank").unwrap().into();
-    let context = ParserContext::new(
-        Origin::Author,
-        &url,
-        Some(CssRuleType::Style),
-        ParsingMode::DEFAULT,
-        QuirksMode::NoQuirks,
-        /* namespaces = */ Default::default(),
-        None,
-        None,
-    );
+    let context =
+        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
 
     parser
         .parse_entirely(|p| IntersectionObserverMargin::parse(&context, p))

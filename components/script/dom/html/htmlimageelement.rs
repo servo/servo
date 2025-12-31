@@ -32,13 +32,12 @@ use rustc_hash::FxHashSet;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
-use style::context::QuirksMode;
-use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::CssRuleType;
 use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::ParsingMode;
 use url::Url;
 
+use crate::css::parser_context_for_anonymous_content;
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -1740,18 +1739,10 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
     let url_data = Url::parse("about:blank").unwrap().into();
-    let context = ParserContext::new(
-        Origin::Author,
-        &url_data,
-        Some(CssRuleType::Style),
-        // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
-        // browsers do regarding quirks-mode in a media list?
-        ParsingMode::empty(),
-        QuirksMode::NoQuirks,
-        /* namespaces = */ Default::default(),
-        None,
-        None,
-    );
+    // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
+    // browsers do regarding quirks-mode in a media list?
+    let context =
+        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::empty(), &url_data);
     SourceSizeList::parse(&context, &mut parser)
 }
 
