@@ -171,7 +171,7 @@ pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
         return 1.0;
     };
     layout_box
-        .with_first_base(|base| base.style.effective_zoom.value())
+        .with_base(|base| base.style.effective_zoom.value())
         .unwrap_or(1.0)
 }
 
@@ -781,7 +781,7 @@ pub(crate) fn process_scroll_container_query(
     let layout_box = layout_box.as_ref()?;
 
     let (style, flags) =
-        layout_box.with_first_base(|base| (base.style.clone(), base.base_fragment_info.flags))?;
+        layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))?;
 
     // - The element is the root element.
     // - The element is the body element.
@@ -838,7 +838,7 @@ pub(crate) fn process_scroll_container_query(
         };
 
         let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
-            .with_first_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+            .with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
         else {
             continue;
         };

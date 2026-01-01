@@ -170,7 +170,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         damage_for_parent.contains(RestyleDamage::RELAYOUT)
     {
         let outer_inline_content_sizes_depend_on_content = Cell::new(false);
-        node.with_each_layout_box_base_including_pseudos(|base| {
+        node.with_layout_box_base_including_pseudos(|base| {
             base.clear_fragments();
             if original_element_damage.contains(RestyleDamage::RELAYOUT) {
                 // If the node itself has damage, we must clear both the cached layout results

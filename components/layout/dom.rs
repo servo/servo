@@ -74,7 +74,7 @@ impl InnerDOMLayoutData {
         self.self_box
             .borrow()
             .as_ref()
-            .map(|layout_box| layout_box.with_base_flat(LayoutBoxBase::fragments))
+            .and_then(|layout_box| layout_box.with_base(LayoutBoxBase::fragments))
             .unwrap_or_default()
     }
 
@@ -94,19 +94,19 @@ impl InnerDOMLayoutData {
         }
     }
 
-    fn with_each_layout_box_base(&self, callback: impl Fn(&LayoutBoxBase)) {
+    fn with_layout_box_base(&self, callback: impl Fn(&LayoutBoxBase)) {
         if let Some(data) = self.self_box.borrow().as_ref() {
-            data.with_each_base(callback);
+            data.with_base(callback);
         }
     }
 
-    fn with_each_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {
-        self.with_each_layout_box_base(&callback);
+    fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {
+        self.with_layout_box_base(&callback);
         for pseudo_layout_data in self.pseudo_boxes.iter() {
             pseudo_layout_data
                 .data
                 .borrow()
-                .with_each_layout_box_base(&callback);
+                .with_layout_box_base(&callback);
         }
     }
 }
@@ -116,95 +116,42 @@ impl InnerDOMLayoutData {
 pub(super) enum LayoutBox {
     DisplayContents(SharedInlineStyles),
     BlockLevel(ArcRefCell<BlockLevelBox>),
-    InlineLevel(Vec<ArcRefCell<InlineItem>>),
+    InlineLevel(ArcRefCell<InlineItem>),
     FlexLevel(ArcRefCell<FlexLevelBox>),
     TableLevelBox(TableLevelBox),
     TaffyItemBox(ArcRefCell<TaffyItemBox>),
 }
 
 impl LayoutBox {
-    pub(crate) fn with_each_base(&self, callback: impl Fn(&LayoutBoxBase)) {
-        self.with_base_fold((), |_, base| callback(base))
-    }
-
-    pub(crate) fn with_first_base<T>(
-        &self,
-        callback: impl FnOnce(&LayoutBoxBase) -> T,
-    ) -> Option<T> {
+    pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> Option<T> {
         Some(match self {
             LayoutBox::DisplayContents(..) => return None,
             LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().with_base(callback),
-            LayoutBox::InlineLevel(inline_items) => {
-                inline_items.first()?.borrow().with_base(callback)
-            },
+            LayoutBox::InlineLevel(inline_item) => inline_item.borrow().with_base(callback),
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
             LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
             LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
         })
     }
 
-    pub(crate) fn with_base_flat<T>(&self, callback: impl Fn(&LayoutBoxBase) -> Vec<T>) -> Vec<T> {
-        match self {
-            LayoutBox::DisplayContents(..) => vec![],
-            LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().with_base(callback),
-            LayoutBox::InlineLevel(inline_items) => inline_items
-                .iter()
-                .flat_map(|inline_item| inline_item.borrow().with_base(&callback))
-                .collect(),
-            LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
-            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
-            LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
-        }
-    }
-
-    pub(crate) fn with_base_fold<T>(
-        &self,
-        init: T,
-        callback: impl Fn(T, &LayoutBoxBase) -> T,
-    ) -> T {
-        match self {
-            LayoutBox::DisplayContents(..) => init,
-            LayoutBox::BlockLevel(block_level_box) => block_level_box
-                .borrow()
-                .with_base(|base| callback(init, base)),
-            LayoutBox::InlineLevel(inline_items) => inline_items.iter().fold(init, |acc, item| {
-                item.borrow().with_base(|base| callback(acc, base))
-            }),
-            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
-                .borrow()
-                .with_base(|base| callback(init, base)),
-            LayoutBox::TableLevelBox(table_level_box) => {
-                table_level_box.with_base(|base| callback(init, base))
-            },
-            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
-                .borrow()
-                .with_base(|base| callback(init, base)),
-        }
-    }
-
-    pub(crate) fn with_base_mut_fold<T>(
+    pub(crate) fn with_base_mut<T>(
         &mut self,
-        init: T,
-        callback: impl Fn(T, &mut LayoutBoxBase) -> T,
-    ) -> T {
-        match self {
-            LayoutBox::DisplayContents(..) => init,
-            LayoutBox::BlockLevel(block_level_box) => block_level_box
-                .borrow_mut()
-                .with_base_mut(|base| callback(init, base)),
-            LayoutBox::InlineLevel(inline_items) => inline_items.iter().fold(init, |acc, item| {
-                item.borrow_mut().with_base_mut(|base| callback(acc, base))
-            }),
-            LayoutBox::FlexLevel(flex_level_box) => flex_level_box
-                .borrow_mut()
-                .with_base_mut(|base| callback(init, base)),
-            LayoutBox::TableLevelBox(table_level_box) => {
-                table_level_box.with_base_mut(|base| callback(init, base))
+        callback: impl FnOnce(&mut LayoutBoxBase) -> T,
+    ) -> Option<T> {
+        Some(match self {
+            LayoutBox::DisplayContents(..) => return None,
+            LayoutBox::BlockLevel(block_level_box) => {
+                block_level_box.borrow_mut().with_base_mut(callback)
             },
-            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
-                .borrow_mut()
-                .with_base_mut(|base| callback(init, base)),
-        }
+            LayoutBox::InlineLevel(inline_item) => inline_item.borrow_mut().with_base_mut(callback),
+            LayoutBox::FlexLevel(flex_level_box) => {
+                flex_level_box.borrow_mut().with_base_mut(callback)
+            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => {
+                taffy_item_box.borrow_mut().with_base_mut(callback)
+            },
+            LayoutBox::TableLevelBox(table_box) => table_box.with_base_mut(callback),
+        })
     }
 
     fn repair_style(
@@ -223,12 +170,10 @@ impl LayoutBox {
                     .borrow_mut()
                     .repair_style(context, node, new_style);
             },
-            LayoutBox::InlineLevel(inline_items) => {
-                for inline_item in inline_items {
-                    inline_item
-                        .borrow_mut()
-                        .repair_style(context, node, new_style);
-                }
+            LayoutBox::InlineLevel(inline_item) => {
+                inline_item
+                    .borrow_mut()
+                    .repair_style(context, node, new_style);
             },
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box
                 .borrow_mut()
@@ -240,20 +185,6 @@ impl LayoutBox {
                 .borrow_mut()
                 .repair_style(context, node, new_style),
         }
-    }
-
-    /// If this [`LayoutBox`] represents an unsplit (due to inline-block splits) inline
-    /// level item, unwrap and return it. If not, return `None`.
-    pub(crate) fn unsplit_inline_level_layout_box(self) -> Option<ArcRefCell<InlineItem>> {
-        let LayoutBox::InlineLevel(inline_level_boxes) = self else {
-            return None;
-        };
-        // If this element box has been subject to inline-block splitting, ignore it. It's
-        // not useful currently for incremental box tree construction.
-        if inline_level_boxes.len() != 1 {
-            return None;
-        }
-        inline_level_boxes.into_iter().next()
     }
 }
 
@@ -333,7 +264,7 @@ pub(crate) trait NodeExt<'dom> {
     fn unset_all_pseudo_boxes(&self);
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
-    fn with_each_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
+    fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
 
     fn repair_style(&self, context: &SharedStyleContext);
     fn take_restyle_damage(&self) -> LayoutDamage;
@@ -475,9 +406,9 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         self.ensure_inner_layout_data().pseudo_boxes.clear();
     }
 
-    fn with_each_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {
+    fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {
         if let Some(inner_layout_data) = self.inner_layout_data() {
-            inner_layout_data.with_each_layout_box_base_including_pseudos(callback);
+            inner_layout_data.with_layout_box_base_including_pseudos(callback);
         }
     }
 

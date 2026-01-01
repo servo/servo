@@ -468,15 +468,18 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 let atomic = self
                     .ensure_inline_formatting_context_builder()
                     .push_atomic(construction_callback, old_layout_box);
-                box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
+                box_slot.set(LayoutBox::InlineLevel(atomic));
                 return;
             },
         };
 
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
-        self.ensure_inline_formatting_context_builder()
-            .start_inline_box(|| ArcRefCell::new(InlineBox::new(info)), old_layout_box);
+        let inline_builder = self.ensure_inline_formatting_context_builder();
+        inline_builder.start_inline_box(|| ArcRefCell::new(InlineBox::new(info)), old_layout_box);
+        box_slot.set(LayoutBox::InlineLevel(
+            inline_builder.inline_items.last().unwrap().clone(),
+        ));
 
         if is_list_item {
             if let Some((marker_info, marker_contents)) =
@@ -494,17 +497,10 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
 
         self.finish_anonymous_table_if_needed();
 
-        // As we are ending this inline box, during the course of the `traverse()` above, the ongoing
-        // inline formatting context may have been split around block-level elements. In that case,
-        // more than a single inline box tree item may have been produced for this inline-level box.
-        // `InlineFormattingContextBuilder::end_inline_box()` is returning all of those box tree
-        // items.
-        box_slot.set(LayoutBox::InlineLevel(
-            self.inline_formatting_context_builder
-                .as_mut()
-                .expect("Should be building an InlineFormattingContext")
-                .end_inline_box(),
-        ));
+        self.inline_formatting_context_builder
+            .as_mut()
+            .expect("Should be building an InlineFormattingContext")
+            .end_inline_box();
     }
 
     fn handle_block_level_element(
@@ -514,26 +510,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        // We just found a block level element, all ongoing inline level boxes
-        // need to be split around it.
-        //
-        // After calling `split_around_block_and_finish`,
-        // `self.inline_formatting_context_builder` is set up with the state
-        // that we want to have after we push the block below.
-        if let Some(inline_formatting_context) = self
-            .inline_formatting_context_builder
-            .as_mut()
-            .and_then(|builder| {
-                builder.split_around_block_and_finish(
-                    self.context,
-                    !self.have_already_seen_first_line_for_text_indent,
-                    self.info.style.to_bidi_level(),
-                )
-            })
-        {
-            self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
-        }
-
         let propagated_data = self.propagated_data;
         let kind = match contents {
             Contents::NonReplaced(contents) => match display_inside {
@@ -562,12 +538,22 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 contents,
             },
         };
-        self.block_level_boxes.push(BlockLevelJob {
+        let job = BlockLevelJob {
             info: info.clone(),
             box_slot,
             kind,
             propagated_data,
-        });
+        };
+        if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
+            if builder.currently_processing_inline_box() {
+                builder.push_block_level_box(job.finish(self.context), self.info, self.context);
+                return;
+            }
+            if let Some(context) = self.finish_ongoing_inline_formatting_context() {
+                self.push_block_level_job_for_inline_formatting_context(context);
+            }
+        }
+        self.block_level_boxes.push(job);
 
         // Any block also counts as the first line for the purposes of text indent. Even if
         // they don't actually indent.
@@ -607,7 +593,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
             let inline_level_box =
                 inline_builder.push_absolutely_positioned_box(constructor, old_layout_box);
-            box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
+            box_slot.set(LayoutBox::InlineLevel(inline_level_box));
             return;
         }
 
@@ -643,7 +629,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                 };
                 let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
                 let inline_level_box = builder.push_float_box(constructor, old_layout_box);
-                box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
+                box_slot.set(LayoutBox::InlineLevel(inline_level_box));
                 return;
             }
         }
