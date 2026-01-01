@@ -532,6 +532,15 @@ impl ResourceThreads {
         receiver.recv().unwrap()
     }
 
+    pub fn clear_cookies_for_sites(&self, sites: &[&str]) {
+        let sites = sites.iter().map(|site| site.to_string()).collect();
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::DeleteCookiesForSites(sites, sender));
+        let _ = receiver.recv();
+    }
+
     pub fn clear_cookies(&self) {
         let (sender, receiver) = ipc::channel().unwrap();
         let _ = self
@@ -620,6 +629,7 @@ pub enum CoreResourceMsg {
     ),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
+    DeleteCookiesForSites(Vec<String>, GenericSender<()>),
     DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
