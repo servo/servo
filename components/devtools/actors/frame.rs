@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // TODO: Remove once the actor is used
-#![allow(dead_code)]
+#![expect(dead_code)]
 
 use serde::Serialize;
 use serde_json::{Map, Value};

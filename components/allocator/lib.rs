@@ -45,11 +45,11 @@ unsafe extern "C" fn enclosing_size_impl(ptr: *const c_void) -> usize {
     size
 }
 
-#[allow(non_upper_case_globals)]
+#[expect(non_upper_case_globals)]
 #[cfg(feature = "allocation-tracking")]
 pub static enclosing_size: Option<EnclosingSizeFn> = Some(crate::enclosing_size_impl);
 
-#[allow(non_upper_case_globals)]
+#[expect(non_upper_case_globals)]
 #[cfg(not(feature = "allocation-tracking"))]
 pub static enclosing_size: Option<EnclosingSizeFn> = None;
 

@@ -261,7 +261,7 @@ pub struct App {
     platform_window: Rc<EmbeddedPlatformWindow>,
 }
 
-#[allow(unused)]
+#[expect(unused)]
 impl App {
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
         let mut servo_builder = ServoBuilder::default()
@@ -618,7 +618,6 @@ pub(crate) struct XrDiscoveryWebXrRegistry {
 }
 
 #[cfg(feature = "webxr")]
-#[cfg_attr(target_env = "ohos", allow(dead_code))]
 impl XrDiscoveryWebXrRegistry {
     pub(crate) fn new(xr_discovery: Option<servo::webxr::Discovery>) -> Self {
         Self {

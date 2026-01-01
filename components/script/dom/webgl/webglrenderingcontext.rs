@@ -2093,7 +2093,7 @@ pub(crate) fn capture_webgl_backtrace() -> WebGLCommandBacktrace {
 }
 
 #[cfg(feature = "webgl_backtrace")]
-#[cfg_attr(feature = "webgl_backtrace", allow(unsafe_code))]
+#[cfg_attr(feature = "webgl_backtrace", expect(unsafe_code))]
 pub(crate) fn capture_webgl_backtrace() -> WebGLCommandBacktrace {
     let bt = Backtrace::new();
     unsafe {

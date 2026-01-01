@@ -290,7 +290,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    #[allow(unsafe_code, clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         webview_id: WebViewId,

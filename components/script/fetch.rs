@@ -348,7 +348,7 @@ fn queue_deferred_fetch(
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
-#[allow(non_snake_case, unsafe_code)]
+#[expect(non_snake_case, unsafe_code)]
 pub(crate) fn FetchLater(
     window: &Window,
     input: RequestInfo,

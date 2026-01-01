@@ -388,7 +388,7 @@ where
         }
     }
     /// <https://streams.spec.whatwg.org/#abstract-opdef-cloneasuint8array>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn clone_as_uint8_array(
         &self,
         cx: JSContext,

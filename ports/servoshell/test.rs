@@ -222,17 +222,25 @@ fn test_cmd_and_location_bar_url() {
 }
 
 /// Like [test_url] but will produce test for Windows or non Windows using `#[cfg(target_os)]` internally.
+#[cfg(not(target_os = "windows"))]
 fn test_url_any_os(
     input: &str,
     location: &str,
-    #[allow(unused)] if_exists: &str,
-    #[allow(unused)] if_exists_windows: &str,
+    if_exists: &str,
+    _if_exists_windows: &str,
     otherwise: &str,
 ) {
-    #[cfg(not(target_os = "windows"))]
     test_url(input, location, if_exists, otherwise);
+}
 
-    #[cfg(target_os = "windows")]
+#[cfg(target_os = "windows")]
+fn test_url_any_os(
+    input: &str,
+    location: &str,
+    _if_exists: &str,
+    if_exists_windows: &str,
+    otherwise: &str,
+) {
     test_url(input, location, if_exists_windows, otherwise);
 }
 

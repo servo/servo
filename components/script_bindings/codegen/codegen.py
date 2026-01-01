@@ -7472,7 +7472,7 @@ class CGNonNamespacedEnum(CGThing):
         entries = [f"{names[0]} = {first}"] + names[1:]
 
         # Append a Last.
-        entries.append(f'#[allow(dead_code)] Last = {first + len(entries)}')
+        entries.append(f'Last = {first + len(entries)}')
 
         # Indent.
         entries = [f'    {e}' for e in entries]
@@ -7900,7 +7900,7 @@ class CGRegisterProxyHandlers(CGThing):
         )
         self.root = CGList([
             CGGeneric(
-                "#[allow(non_upper_case_globals)]\n"
+                "#[expect(non_upper_case_globals)]\n"
                 "pub(crate) mod proxy_handlers {\n"
                 f"{body}}}\n"
             ),

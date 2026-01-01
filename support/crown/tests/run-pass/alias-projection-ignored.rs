@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 //@rustc-env:RUSTC_BOOTSTRAP=1
 
-#![allow(dead_code)]
+#![expect(dead_code)]
 
 fn main() {}
 
