@@ -398,17 +398,16 @@ pub async fn main_fetch(
             target.process_csp_violations(request, violations);
         }
 
-    if check_result == csp::CheckResult::Blocked {
-        warn!("Request blocked by CSP");
-        response = Some(Response::network_error(NetworkError::ContentSecurityPolicy))
-    }
+        if check_result == csp::CheckResult::Blocked {
+            warn!("Request blocked by CSP");
+            response = Some(Response::network_error(NetworkError::ContentSecurityPolicy))
+        }
+    };
     if should_request_be_blocked_due_to_a_bad_port(&request.current_url()) {
         response = Some(Response::network_error(NetworkError::InvalidPort));
     }
     if should_request_be_blocked_as_mixed_content(request, &context.protocols) {
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Blocked as mixed content".into(),
-        )));
+        response = Some(Response::network_error(NetworkError::MixedContent));
     }
 
     // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
@@ -654,14 +653,14 @@ pub async fn main_fetch(
             &blocked_error_response
         } else if should_replace_with_mime_type_error {
             // Defer rebinding result
-            blocked_error_response = Response::network_error(NetworkError::MimeType);
+            blocked_error_response =
+                Response::network_error(NetworkError::MimeType("Blocked by MIME type".into()));
             &blocked_error_response
         } else if should_replace_with_mixed_content {
             blocked_error_response = Response::network_error(NetworkError::MixedContent);
             &blocked_error_response
         } else if should_replace_with_csp_error {
-            blocked_error_response =
-                Response::network_error(NetworkError::ContentSecurityPolicyViolation);
+            blocked_error_response = Response::network_error(NetworkError::ContentSecurityPolicy);
             &blocked_error_response
         } else {
             internal_response

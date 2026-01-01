@@ -42,9 +42,9 @@ impl ProtocolHandler for BlobProtocolHander {
         let (id, origin) = match parse_blob_url(&url) {
             Ok((id, origin)) => (id, origin),
             Err(error) => {
-                return Box::pin(ready(Response::network_error(NetworkError::Internal(
-                    format!("Invalid blob URL ({error})"),
-                ))));
+                return Box::pin(ready(Response::network_error(
+                    NetworkError::ResourceLoadError(format!("Invalid blob URL ({error})")),
+                )));
             },
         };
 

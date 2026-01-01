@@ -61,7 +61,12 @@ fn assert_parse(
         },
         None => {
             assert!(response.is_network_error());
-            assert_eq!(response.metadata().err(), Some(NetworkError::ResourceError));
+            assert_eq!(
+                response.metadata().err(),
+                Some(NetworkError::ResourceLoadError(
+                    "Decoding data URL failed".to_owned()
+                ))
+            );
         },
     }
 }

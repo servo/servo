@@ -94,10 +94,14 @@ impl ProtocolHandler for FileProtocolHander {
 
                 response
             } else {
-                Response::network_error(NetworkError::ResourceError)
+                Response::network_error(NetworkError::ResourceLoadError(
+                    "Opening file failed".into(),
+                ))
             }
         } else {
-            Response::network_error(NetworkError::ResourceError)
+            Response::network_error(NetworkError::ResourceLoadError(
+                "Constructing file path failed".into(),
+            ))
         };
 
         Box::pin(ready(response))

@@ -349,7 +349,7 @@ impl Response {
                         }),
                     }
                 },
-                None => Err(NetworkError::Internal(
+                None => Err(NetworkError::ResourceLoadError(
                     "No url found in unsafe response".to_owned(),
                 )),
             }

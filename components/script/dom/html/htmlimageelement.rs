@@ -281,13 +281,13 @@ impl FetchResponseListener for ImageContext {
 
         self.status = {
             if status.is_error() {
-                Err(NetworkError::Internal(
+                Err(NetworkError::ResourceLoadError(
                     "No http status code received".to_owned(),
                 ))
             } else if status.is_success() {
                 Ok(())
             } else {
-                Err(NetworkError::Internal(format!(
+                Err(NetworkError::ResourceLoadError(format!(
                     "HTTP error code {}",
                     status.code()
                 )))

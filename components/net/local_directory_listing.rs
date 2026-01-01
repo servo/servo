@@ -32,7 +32,7 @@ pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Respons
     let directory_contents = match std::fs::read_dir(path_buf.clone()) {
         Ok(directory_contents) => directory_contents,
         Err(error) => {
-            return Response::network_error(NetworkError::Internal(format!(
+            return Response::network_error(NetworkError::ResourceLoadError(format!(
                 "Unable to access directory: {error}"
             )));
         },

@@ -4,7 +4,6 @@
 
 #![deny(unsafe_code)]
 
-use std::collections::HashMap;
 use std::fmt::{self, Debug, Display};
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
@@ -1141,10 +1140,10 @@ pub enum NetworkError {
     RedirectError,
     TooManyRedirects,
     InvalidMethod,
-    ResourceError,
+    ResourceLoadError(String),
     ContentSecurityPolicy,
     Nosniff,
-    MimeType,
+    MimeType(String),
     SubresourceIntegrity,
     MixedContent,
     CacheError,
@@ -1169,10 +1168,10 @@ impl fmt::Debug for NetworkError {
             NetworkError::RedirectError => write!(f, "Redirect failed"),
             NetworkError::TooManyRedirects => write!(f, "Too many redirects"),
             NetworkError::InvalidMethod => write!(f, "Unexpected method"),
-            NetworkError::ResourceError => write!(f, "Resource access failed"),
+            NetworkError::ResourceLoadError(s) => write!(f, "{}", s),
             NetworkError::ContentSecurityPolicy => write!(f, "Blocked by Content-Security-Policy"),
             NetworkError::Nosniff => write!(f, "Blocked by nosniff"),
-            NetworkError::MimeType => write!(f, "Blocked by mime type"),
+            NetworkError::MimeType(s) => write!(f, "{}", s),
             NetworkError::SubresourceIntegrity => {
                 write!(f, "Subresource integrity validation failed")
             },

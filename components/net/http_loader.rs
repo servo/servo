@@ -2495,7 +2495,7 @@ async fn cors_preflight_fetch(
     }
 
     // Step 8 Return a network error.
-    Response::network_error(NetworkError::CorsViolation)
+    Response::network_error(NetworkError::CorsGeneral)
 }
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
