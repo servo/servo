@@ -427,4 +427,5 @@ jobs:
         if: ${{ steps.install_hap.outcome == 'success' && failure() }}
         uses: actions/upload-artifact@v5
         with:
+          name: hos-${{ inputs.profile }}-scenario-failures-screenshots
           path: "servo_scenario_*_error.jpg"
