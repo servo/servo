@@ -235,6 +235,12 @@ impl AnonymousBlockBox {
                 },
             );
 
+        // If this Fragment's layout depends on the block size of the containing block,
+        // then the entire layout of the inline formatting context does as well.
+        layout.depends_on_block_constraints |= fragment.base.flags.contains(
+            FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
+        );
+
         let mut fragment = Fragment::Box(ArcRefCell::new(fragment));
         layout.placement_state.place_fragment_and_update_baseline(
             &mut fragment,
