@@ -1187,7 +1187,7 @@ pub async fn http_redirect_fetch(
 
     // Step 7: If request’s redirect count is 20, then return a network error.
     if request.redirect_count >= 20 {
-        return Response::network_error(NetworkError::RedirectError);
+        return Response::network_error(NetworkError::TooManyRedirects);
     }
 
     // Step 8: Increase request’s redirect count by 1.
@@ -2170,7 +2170,7 @@ async fn http_network_fetch(
     let devtools_sender = context.devtools_chan.clone();
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
-        return Response::network_error(NetworkError::ConnectionFailure);
+        return Response::network_error(NetworkError::LoadCancelled);
     }
 
     *res_body.lock() = ResponseBody::Receiving(vec![]);
