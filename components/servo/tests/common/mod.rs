@@ -140,7 +140,7 @@ impl WebViewDelegate for WebViewDelegateImpl {
     }
 }
 
-#[expect(dead_code)]
+#[allow(dead_code)] // Used by some tests and not others
 pub(crate) fn evaluate_javascript(
     servo_test: &ServoTest,
     webview: WebView,
