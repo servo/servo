@@ -618,7 +618,6 @@ pub(crate) struct XrDiscoveryWebXrRegistry {
 }
 
 #[cfg(feature = "webxr")]
-#[cfg_attr(target_env = "ohos", expect(dead_code))]
 impl XrDiscoveryWebXrRegistry {
     pub(crate) fn new(xr_discovery: Option<servo::webxr::Discovery>) -> Self {
         Self {
