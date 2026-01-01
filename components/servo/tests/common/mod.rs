@@ -88,7 +88,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) number_of_controls_hidden: Cell<usize>,
 }
 
-#[expect(dead_code)]
+#[allow(dead_code)] // Used by some tests and not others
 impl WebViewDelegateImpl {
     pub(crate) fn reset(&self) {
         self.url_changed.set(false);
