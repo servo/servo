@@ -399,6 +399,13 @@ impl ResourceChannelManager {
                     cancellation_listener.cancel();
                 }
             },
+            CoreResourceMsg::DeleteCookiesForSites(sites, sender) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .delete_cookies_for_sites(&sites);
+                let _ = sender.send(());
+            },
             CoreResourceMsg::DeleteCookies(request, sender) => {
                 http_state
                     .cookie_jar
