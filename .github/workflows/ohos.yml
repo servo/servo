@@ -302,8 +302,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Python
         uses: ./.github/actions/setup-python
-      - name: Drop me, forcing failure
-        run: exit 1
       - name: Get model name
         id: hdc_product_name
         # awk is used to remove trailing spaces
