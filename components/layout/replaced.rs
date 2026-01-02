@@ -16,13 +16,12 @@ use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
-use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
+use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::{ComputedValues, StyleBuilder};
 use style::rule_cache::RuleCacheConditions;
 use style::servo::url::ComputedUrl;
-use style::str::char_is_whitespace;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
@@ -279,7 +278,9 @@ impl ReplacedContents {
         {
             Some(width.px() / height.px())
         } else {
-            Self::svg_ratio_from_view_box(svg_data.view_box)
+            svg_data
+                .view_box
+                .and_then(SVGElementData::ratio_from_view_box)
         };
 
         let natural_size = NaturalSizes {
@@ -288,29 +289,6 @@ impl ReplacedContents {
             ratio,
         };
         Some((ReplacedContentKind::SVGElement(vector_image), natural_size))
-    }
-
-    fn svg_ratio_from_view_box(view_box: Option<&AttrValue>) -> Option<f32> {
-        if let Some(view_box) = view_box {
-            let mut iter = view_box.chars();
-            let _min_x = parse_integer(&mut iter).ok()?;
-            let _min_y = parse_integer(&mut iter).ok()?;
-
-            let width = parse_unsigned_integer(&mut iter).ok()?;
-            if width == 0 {
-                return None;
-            }
-
-            let height = parse_unsigned_integer(&mut iter).ok()?;
-            if height == 0 {
-                return None;
-            }
-
-            let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
-            iter.next().is_none().then(|| width as f32 / height as f32)
-        } else {
-            None
-        }
     }
 
     pub fn from_image_url(
