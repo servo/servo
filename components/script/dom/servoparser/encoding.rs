@@ -83,21 +83,12 @@ impl DetectingState {
         if !self.attempted_bom_sniffing && self.buffered_bytes.len() > 2 {
             self.attempted_bom_sniffing = true;
 
-            // https://encoding.spec.whatwg.org/#bom-sniff
-            match self.buffered_bytes.as_slice() {
-                [0xEF, 0xBB, 0xBF, ..] => {
-                    log::debug!("Determined that the document is UTF-8 via BOM-sniffing");
-                    return Some(UTF_8);
-                },
-                [0xFE, 0xFF, ..] => {
-                    log::debug!("Determined that the document is UTF-16BE via BOM-sniffing");
-                    return Some(UTF_16BE);
-                },
-                [0xFF, 0xFE, ..] => {
-                    log::debug!("Determined that the document is UTF-16LE via BOM-sniffing");
-                    return Some(UTF_16LE);
-                },
-                _ => {},
+            if let Some((encoding, _)) = Encoding::for_bom(self.buffered_bytes.as_slice()) {
+                log::debug!(
+                    "Determined that the document is {} via BOM-sniffing",
+                    encoding.name()
+                );
+                return Some(encoding);
             }
         }
 
@@ -127,9 +118,13 @@ impl DetectingState {
         // to prescan the byte stream
         let bytes_to_prescan =
             &self.buffered_bytes[..Self::BUFFER_THRESHOLD.min(self.buffered_bytes.len())];
-        if let Some(encoding) = prescan_the_byte_stream_to_determine_the_encoding(bytes_to_prescan)
-            .or_else(|| get_xml_encoding(bytes_to_prescan))
-        {
+        let sniffed_encoding = if document.is_html_document() {
+            prescan_the_byte_stream_to_determine_the_encoding(bytes_to_prescan)
+                .or_else(|| get_xml_encoding(bytes_to_prescan))
+        } else {
+            get_xml_encoding(bytes_to_prescan)
+        };
+        if let Some(encoding) = sniffed_encoding {
             log::debug!(
                 "Prescanning the byte stream determined that the encoding is {}",
                 encoding.name()
@@ -137,43 +132,46 @@ impl DetectingState {
             return Some(encoding);
         }
 
-        // Step 6. If the HTML parser for which this algorithm is being run is associated with a Document d
-        // whose container document is non-null, then:
-        // Step 6.1 Let parentDocument be d's container document.
-        // Step 6.2 If parentDocument's origin is same origin with d's origin and parentDocument's character encoding
-        // is not UTF-16BE/LE, then return parentDocument's character encoding, with the confidence tentative.
-        if let Some(encoding) = self.encoding_of_container_document {
-            if encoding != UTF_16LE && encoding != UTF_16BE {
-                log::debug!(
-                    "Inferred encoding to be that of the container document, which is {}",
-                    encoding.name()
-                );
-                return Some(encoding);
+        if document.is_html_document() {
+            // Step 6. If the HTML parser for which this algorithm is being run is associated with a Document d
+            // whose container document is non-null, then:
+            // Step 6.1 Let parentDocument be d's container document.
+            // Step 6.2 If parentDocument's origin is same origin with d's origin and parentDocument's character encoding
+            // is not UTF-16BE/LE, then return parentDocument's character encoding, with the confidence tentative.
+            // NOTE: This should not happen for XML documents
+            if let Some(encoding) = self.encoding_of_container_document {
+                if encoding != UTF_16LE && encoding != UTF_16BE {
+                    log::debug!(
+                        "Inferred encoding to be that of the container document, which is {}",
+                        encoding.name()
+                    );
+                    return Some(encoding);
+                }
             }
-        }
 
-        // Step 7. Otherwise, if the user agent has information on the likely encoding for this page, e.g.
-        // based on the encoding of the page when it was last visited, then return that encoding,
-        // with the confidence tentative.
-        // NOTE: We have no such information.
+            // Step 7. Otherwise, if the user agent has information on the likely encoding for this page, e.g.
+            // based on the encoding of the page when it was last visited, then return that encoding,
+            // with the confidence tentative.
+            // NOTE: We have no such information.
 
-        // Step 8. The user agent may attempt to autodetect the character encoding from applying frequency analysis
-        // or other algorithms to the data stream.
-        let mut encoding_detector = chardetng::EncodingDetector::new();
-        encoding_detector.feed(&self.buffered_bytes, is_at_end_of_file == AtEndOfFile::Yes);
-        let url = document.url();
-        let tld = url
-            .as_url()
-            .domain()
-            .and_then(|domain| domain.rsplit('.').next())
-            .map(|tld| tld.as_bytes());
-        let (guessed_encoding, is_probably_right) = encoding_detector.guess_assess(tld, true);
-        if is_probably_right {
-            log::debug!(
-                "chardetng determined that the document encoding is {}",
-                guessed_encoding.name()
-            );
-            return Some(guessed_encoding);
+            // Step 8. The user agent may attempt to autodetect the character encoding from applying frequency analysis
+            // or other algorithms to the data stream.
+            let mut encoding_detector = chardetng::EncodingDetector::new();
+            encoding_detector.feed(&self.buffered_bytes, is_at_end_of_file == AtEndOfFile::Yes);
+            let url = document.url();
+            let tld = url
+                .as_url()
+                .domain()
+                .and_then(|domain| domain.rsplit('.').next())
+                .map(|tld| tld.as_bytes());
+            let (guessed_encoding, is_probably_right) = encoding_detector.guess_assess(tld, true);
+            if is_probably_right {
+                log::debug!(
+                    "chardetng determined that the document encoding is {}",
+                    guessed_encoding.name()
+                );
+                return Some(guessed_encoding);
+            }
         }
 
         // Step 9. Otherwise, return an implementation-defined or user-specified default character encoding,
