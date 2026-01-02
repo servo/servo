@@ -9,7 +9,7 @@ use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
 use html5ever::local_name;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
-use layout_api::{IFrameSize, LayoutImageDestination};
+use layout_api::{IFrameSize, LayoutImageDestination, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
@@ -179,93 +179,11 @@ impl ReplacedContents {
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
             } else if let Some(svg_data) = node.as_svg() {
-                let svg_source = match svg_data.source {
-                    None => {
-                        // The SVGSVGElement is not yet serialized, so we add it to a list
-                        // and hand it over to script to peform the serialization.
-                        context
-                            .image_resolver
-                            .queue_svg_element_for_serialization(node);
-                        return None;
-                    },
-                    Some(Err(_)) => {
-                        // Don't attempt to serialize if previous attempt had errored.
-                        return None;
-                    },
-                    Some(Ok(svg_source)) => svg_source,
-                };
-
-                let result = context
-                    .image_resolver
-                    .get_cached_image_for_url(
-                        node.opaque(),
-                        svg_source,
-                        LayoutImageDestination::BoxTreeConstruction,
-                    )
-                    .ok();
-
-                let vector_image = result.map(|result| match result {
-                    Image::Vector(vector_image) => vector_image,
-                    _ => unreachable!("SVG element can't contain a raster image."),
-                });
-
-                let rule_cache_conditions = &mut RuleCacheConditions::default();
-                let parent_style = &node.selected_style();
-                let style_builder = StyleBuilder::new(
-                    context.style_context.stylist.device(),
-                    Some(context.style_context.stylist),
-                    Some(parent_style),
-                    None,
-                    None,
-                    false,
-                );
-
-                let to_computed_context = Context::new(
-                    style_builder,
-                    context.style_context.quirks_mode(),
-                    rule_cache_conditions,
-                    ContainerSizeQuery::none(),
-                );
-
-                let attr_to_computed = |attr_val: &AttrValue| {
-                    if let AttrValue::Length(_, length) = attr_val {
-                        length.to_computed_value(&to_computed_context)
-                    } else {
-                        None
-                    }
-                };
-                let width = svg_data.width.and_then(attr_to_computed);
-                let height = svg_data.height.and_then(attr_to_computed);
-
-                let ratio = if let (Some(width), Some(height)) = (width, height) &&
-                    !width.is_zero() &&
-                    !height.is_zero()
-                {
-                    Some(width.px() / height.px())
+                if let Some(kind_size) = Self::svg_kind_size(svg_data, context, node) {
+                    kind_size
                 } else {
-                    svg_data.view_box.and_then(|view_box| {
-                        let mut iter = view_box.chars();
-                        let _min_x = parse_integer(&mut iter).ok()?;
-                        let _min_y = parse_integer(&mut iter).ok()?;
-                        let width = parse_unsigned_integer(&mut iter).ok()?;
-                        if width == 0 {
-                            return None;
-                        }
-                        let height = parse_unsigned_integer(&mut iter).ok()?;
-                        if height == 0 {
-                            return None;
-                        }
-                        let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
-                        iter.next().is_none().then(|| width as f32 / height as f32)
-                    })
-                };
-
-                let natural_size = NaturalSizes {
-                    width: width.map(|w| Au::from_f32_px(w.px())),
-                    height: height.map(|h| Au::from_f32_px(h.px())),
-                    ratio,
-                };
-                (ReplacedContentKind::SVGElement(vector_image), natural_size)
+                    return None;
+                }
             } else {
                 let element = node.as_html_element()?;
                 if !element.has_local_name(&local_name!("audio")) {
@@ -293,6 +211,110 @@ impl ReplacedContents {
             natural_size,
             base_fragment_info: node.into(),
         })
+    }
+
+    fn svg_kind_size(
+        svg_data: SVGElementData,
+        context: &LayoutContext,
+        node: ServoThreadSafeLayoutNode<'_>,
+    ) -> Option<(ReplacedContentKind, NaturalSizes)> {
+        let svg_source = match svg_data.source {
+            None => {
+                // The SVGSVGElement is not yet serialized, so we add it to a list
+                // and hand it over to script to peform the serialization.
+                context
+                    .image_resolver
+                    .queue_svg_element_for_serialization(node);
+                return None;
+            },
+            Some(Err(_)) => {
+                // Don't attempt to serialize if previous attempt had errored.
+                return None;
+            },
+            Some(Ok(svg_source)) => svg_source,
+        };
+
+        let result = context
+            .image_resolver
+            .get_cached_image_for_url(
+                node.opaque(),
+                svg_source,
+                LayoutImageDestination::BoxTreeConstruction,
+            )
+            .ok();
+
+        let vector_image = result.map(|result| match result {
+            Image::Vector(vector_image) => vector_image,
+            _ => unreachable!("SVG element can't contain a raster image."),
+        });
+
+        let rule_cache_conditions = &mut RuleCacheConditions::default();
+
+        let parent_style = &node.selected_style();
+        let style_builder = StyleBuilder::new(
+            context.style_context.stylist.device(),
+            Some(context.style_context.stylist),
+            Some(parent_style),
+            None,
+            None,
+            false,
+        );
+
+        let to_computed_context = Context::new(
+            style_builder,
+            context.style_context.quirks_mode(),
+            rule_cache_conditions,
+            ContainerSizeQuery::none(),
+        );
+
+        let attr_to_computed = |attr_val: &AttrValue| {
+            if let AttrValue::Length(_, length) = attr_val {
+                length.to_computed_value(&to_computed_context)
+            } else {
+                None
+            }
+        };
+        let width = svg_data.width.and_then(attr_to_computed);
+        let height = svg_data.height.and_then(attr_to_computed);
+
+        let ratio = if let (Some(width), Some(height)) = (width, height) &&
+            !width.is_zero() &&
+            !height.is_zero()
+        {
+            Some(width.px() / height.px())
+        } else {
+            Self::svg_ratio_from_view_box(svg_data.view_box)
+        };
+
+        let natural_size = NaturalSizes {
+            width: width.map(|w| Au::from_f32_px(w.px())),
+            height: height.map(|h| Au::from_f32_px(h.px())),
+            ratio,
+        };
+        Some((ReplacedContentKind::SVGElement(vector_image), natural_size))
+    }
+
+    fn svg_ratio_from_view_box(view_box: Option<&AttrValue>) -> Option<f32> {
+        if let Some(view_box) = view_box {
+            let mut iter = view_box.chars();
+            let _min_x = parse_integer(&mut iter).ok()?;
+            let _min_y = parse_integer(&mut iter).ok()?;
+
+            let width = parse_unsigned_integer(&mut iter).ok()?;
+            if width == 0 {
+                return None;
+            }
+
+            let height = parse_unsigned_integer(&mut iter).ok()?;
+            if height == 0 {
+                return None;
+            }
+
+            let mut iter = iter.skip_while(|c| char_is_whitespace(*c));
+            iter.next().is_none().then(|| width as f32 / height as f32)
+        } else {
+            None
+        }
     }
 
     pub fn from_image_url(
