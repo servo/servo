@@ -143,8 +143,8 @@ pub struct SVGElementData<'dom> {
 }
 
 impl SVGElementData<'_> {
-    pub fn ratio_from_view_box(view_box: &AttrValue) -> Option<f32> {
-        let mut iter = view_box.chars();
+    pub fn ratio_from_view_box(&self) -> Option<f32> {
+        let mut iter = self.view_box?.chars();
         let _min_x = parse_integer(&mut iter).ok()?;
         let _min_y = parse_integer(&mut iter).ok()?;
 
