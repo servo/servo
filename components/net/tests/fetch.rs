@@ -92,14 +92,7 @@ fn test_fetch_on_bad_port_is_network_error() {
     let fetch_response = fetch(request, None);
     assert!(fetch_response.is_network_error());
     let fetch_error = fetch_response.get_network_error().unwrap();
-<<<<<<< HEAD
     assert_eq!(fetch_error, &NetworkError::InvalidPort)
-=======
-    assert_eq!(
-        fetch_error,
-        &NetworkError::Internal("Request attempted on bad port".into())
-    )
->>>>>>> 9a860baef0 (script: Use correct creation_url for workers (#41458))
 }
 
 #[test]

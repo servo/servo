@@ -509,7 +509,7 @@ impl<'dom> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
 
             let slotted_nodes = element.slotted_nodes();
             if !slotted_nodes.is_empty() {
-                #[allow(clippy::unnecessary_to_owned)] // Clippy is wrong.
+                #[expect(clippy::unnecessary_to_owned)] // Clippy is wrong.
                 return Self::Slottables(slotted_nodes.to_owned().into_iter());
             }
         }

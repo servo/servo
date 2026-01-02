@@ -159,7 +159,7 @@ impl<D: DomTypes> CallbackFunction<D> {
     /// Create a new `CallbackFunction` for this object.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // These are used by the bindings and do not need `default()` functions.
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             object: CallbackObject::new(),
@@ -191,7 +191,7 @@ pub struct CallbackInterface<D: DomTypes> {
 impl<D: DomTypes> CallbackInterface<D> {
     /// Create a new CallbackInterface object for the given `JSObject`.
     // These are used by the bindings and do not need `default()` functions.
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             object: CallbackObject::new(),

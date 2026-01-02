@@ -106,7 +106,7 @@ impl ScriptWindowProxies {
     // get the browsing context for the parent if there is one,
     // construct a new similar-origin browsing context, add it
     // to the `window_proxies` map, and return it.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn local_window_proxy(
         &self,
         senders: &ScriptThreadSenders,

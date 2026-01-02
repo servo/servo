@@ -97,7 +97,7 @@ pub(crate) struct HTMLFormElement {
     controls: DomRefCell<Vec<Dom<Element>>>,
 
     /// It is safe to use FxBuildHasher here as `Atom` is in the string_cache.
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     past_names_map:
         DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<usize>), FxBuildHasher>>,
 

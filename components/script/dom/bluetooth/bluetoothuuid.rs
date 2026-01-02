@@ -13,7 +13,7 @@ use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 
-#[allow(clippy::upper_case_acronyms)]
+#[expect(clippy::upper_case_acronyms)]
 pub(crate) type UUID = DOMString;
 pub(crate) type BluetoothServiceUUID = StringOrUnsignedLong;
 pub(crate) type BluetoothCharacteristicUUID = StringOrUnsignedLong;

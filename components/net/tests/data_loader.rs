@@ -63,11 +63,7 @@ fn assert_parse(
             assert!(response.is_network_error());
             assert_eq!(
                 response.metadata().err(),
-<<<<<<< HEAD
                 Some(NetworkError::ResourceLoadError(
-=======
-                Some(NetworkError::Internal(
->>>>>>> 9a860baef0 (script: Use correct creation_url for workers (#41458))
                     "Decoding data URL failed".to_owned()
                 ))
             );

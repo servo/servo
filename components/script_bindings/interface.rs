@@ -248,7 +248,7 @@ pub(crate) fn create_callback_interface_object<D: DomTypes>(
 }
 
 /// Create the interface prototype object of a non-callback interface.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn create_interface_prototype_object<D: DomTypes>(
     cx: SafeJSContext,
     global: HandleObject,
@@ -293,7 +293,7 @@ pub(crate) fn create_interface_prototype_object<D: DomTypes>(
 }
 
 /// Create and define the interface object of a non-callback interface.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn create_noncallback_interface_object<D: DomTypes>(
     cx: SafeJSContext,
     global: HandleObject,
@@ -366,7 +366,7 @@ pub(crate) fn create_named_constructors(
 }
 
 /// Create a new object with a unique type.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn create_object<D: DomTypes>(
     cx: SafeJSContext,
     global: HandleObject,

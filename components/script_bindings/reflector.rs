@@ -62,7 +62,7 @@ impl Reflector {
 
     /// Create an uninitialized `Reflector`.
     // These are used by the bindings and do not need `default()` functions.
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Reflector {
         Reflector {
             object: Heap::default(),
@@ -115,7 +115,7 @@ impl<D: DomTypes, T: DomObject> DomGlobalGeneric<D> for T {}
 /// A trait to provide a function pointer to wrap function for DOM objects.
 pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
     /// Function pointer to the general wrap function type
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     const WRAP: unsafe fn(
         JSContext,
         &D::GlobalScope,
@@ -129,7 +129,7 @@ pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
 /// DOM iterator interfaces.
 pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + Iterable {
     /// Function pointer to the wrap function for `IterableIterator<T>`
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     const ITER_WRAP: unsafe fn(
         JSContext,
         &D::GlobalScope,

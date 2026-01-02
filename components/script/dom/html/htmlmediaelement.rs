@@ -524,7 +524,7 @@ pub(crate) struct HTMLMediaElement {
     #[conditional_malloc_size_of]
     pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// Play promises which are soon to be fulfilled by a queued task.
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     #[conditional_malloc_size_of]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]

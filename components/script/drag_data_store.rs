@@ -105,7 +105,6 @@ pub(crate) struct DragDataStore {
 impl DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#create-a-drag-data-store>
     // We don't really need it since it's only instantiated by DataTransfer.
-    #[allow(clippy::new_without_default)]
     pub(crate) fn new() -> DragDataStore {
         DragDataStore {
             item_list: IndexMap::new(),

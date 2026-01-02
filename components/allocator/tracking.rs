@@ -68,7 +68,7 @@ impl<A> AccountingAlloc<A> {
         Self { allocator }
     }
 
-    #[allow(clippy::absurd_extreme_comparisons)]
+    #[expect(clippy::absurd_extreme_comparisons)]
     fn remove_allocation(&self, ptr: *const c_void, size: usize) {
         if size < MIN_SIZE {
             return;
@@ -84,7 +84,7 @@ impl<A> AccountingAlloc<A> {
         IN_ALLOCATION.with(|status| status.set(old));
     }
 
-    #[allow(clippy::absurd_extreme_comparisons)]
+    #[expect(clippy::absurd_extreme_comparisons)]
     fn record_allocation(&self, ptr: *mut u8, size: usize) {
         if size < MIN_SIZE {
             return;
@@ -139,7 +139,7 @@ impl<A> AccountingAlloc<A> {
     }
 
     // The default is an absurd comparisons but you are supposed to change the default.
-    #[allow(clippy::absurd_extreme_comparisons)]
+    #[expect(clippy::absurd_extreme_comparisons)]
     pub(crate) fn note_allocation(&self, ptr: *const c_void, size: usize) {
         if size < MIN_SIZE {
             return;

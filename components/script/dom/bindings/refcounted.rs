@@ -41,7 +41,6 @@ use crate::dom::bindings::trace::trace_reflector;
 use crate::dom::promise::Promise;
 use crate::task::TaskOnce;
 
-#[allow(missing_docs)] // FIXME
 mod dummy {
     // Attributes don’t apply through the macro.
     use std::cell::RefCell;
@@ -260,7 +259,7 @@ impl LiveDOMReferences {
     /// ptr must be a pointer to a type that implements DOMObject.
     /// This is not enforced by the type system to reduce duplicated generic code,
     /// which is acceptable since this method is internal to this module.
-    #[allow(clippy::arc_with_non_send_sync)]
+    #[expect(clippy::arc_with_non_send_sync)]
     unsafe fn addref(&self, ptr: *const libc::c_void) -> Arc<TrustedReference> {
         let mut table = self.reflectable_table.borrow_mut();
         let capacity = table.capacity();

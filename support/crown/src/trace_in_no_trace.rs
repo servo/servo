@@ -178,7 +178,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
     }
 
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
-        #[allow(clippy::single_match)]
+        #[expect(clippy::single_match)]
         match var.data {
             hir::VariantData::Tuple(fields, ..) => {
                 for field in fields {

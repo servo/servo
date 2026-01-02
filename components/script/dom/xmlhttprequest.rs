@@ -1708,7 +1708,7 @@ fn serialize_document(doc: &Document) -> Fallible<DOMString> {
 pub(crate) fn is_field_value(slice: &[u8]) -> bool {
     // Classifications of characters necessary for the [CRLF] (SP|HT) rule
     #[derive(PartialEq)]
-    #[allow(clippy::upper_case_acronyms)]
+    #[expect(clippy::upper_case_acronyms)]
     enum PreviousCharacter {
         Other,
         CR,

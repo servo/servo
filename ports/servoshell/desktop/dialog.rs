@@ -22,7 +22,7 @@ use servo::{
 /// for the sake of consistency.
 const MINIMUM_UI_ELEMENT_WIDTH: f32 = 150.0;
 
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum Dialog {
     File {
         dialog: EguiFileDialog,

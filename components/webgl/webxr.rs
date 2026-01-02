@@ -99,7 +99,6 @@ impl WebXRBridge {
         context_id: WebXRContextId,
     ) {
         for manager in self.managers.values_mut() {
-            #[allow(clippy::unnecessary_to_owned)] // Needs mutable borrow later in destroy
             for (other_id, layer_id) in manager.layers().to_vec() {
                 if other_id == context_id {
                     manager.destroy_layer(contexts, context_id, layer_id);

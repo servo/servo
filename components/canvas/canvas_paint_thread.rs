@@ -519,7 +519,7 @@ impl Canvas {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn draw_image(
         &mut self,
         snapshot: Snapshot,

@@ -31,7 +31,7 @@ pub(crate) struct TextMetrics {
 
 #[expect(non_snake_case)]
 impl TextMetrics {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         width: f64,
         actualBoundingBoxLeft: f64,
@@ -63,7 +63,7 @@ impl TextMetrics {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         width: f64,

@@ -103,7 +103,7 @@ impl MutationRecord {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         record_type: &str,
         target: &Node,

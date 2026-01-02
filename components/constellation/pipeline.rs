@@ -98,7 +98,7 @@ impl Pipeline {
     }
 
     /// Creates a new `Pipeline`, after it has been spawned in its [`EventLoop`].
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new_already_spawned(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,

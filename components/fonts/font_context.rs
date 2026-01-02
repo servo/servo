@@ -138,7 +138,6 @@ impl FontContext {
         paint_api: CrossProcessPaintApi,
         resource_threads: ResourceThreads,
     ) -> Self {
-        #[allow(clippy::default_constructed_unit_structs)]
         Self {
             system_font_service_proxy,
             resource_threads: Mutex::new(resource_threads.core_thread),

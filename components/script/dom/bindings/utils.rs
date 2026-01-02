@@ -126,7 +126,6 @@ unsafe extern "C" fn instance_class_is_error(clasp: *const js::jsapi::JSClass) -
     root_interface == PrototypeList::ID::DOMException as u32
 }
 
-#[allow(missing_docs)] // FIXME
 pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
     instanceClassIsError: Some(instance_class_is_error),

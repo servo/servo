@@ -187,7 +187,7 @@ pub(super) fn build_linear(
 }
 
 /// <https://drafts.csswg.org/css-images-3/#radial-gradients>
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(super) fn build_radial(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
@@ -291,7 +291,7 @@ pub(super) fn build_radial(
 }
 
 /// <https://drafts.csswg.org/css-images-4/#conic-gradients>
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn build_conic(
     style: &ComputedValues,
     angle: Angle,
