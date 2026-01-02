@@ -230,7 +230,7 @@ impl Handler {
         // and value serialize the timeouts configuration with session's session timeouts.
         capabilities.insert(
             "timeouts".to_string(),
-            json!(serialize_timeouts_configuration(&session.timeouts)),
+            serialize_timeouts_configuration(&session.timeouts),
         );
 
         // Step 10. Process any extension capabilities in capabilities in an implementation-defined manner

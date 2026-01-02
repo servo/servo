@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
 /// Initial script timeout from
@@ -23,6 +23,10 @@ pub(crate) const DEFAULT_IMPLICIT_WAIT: u64 = 0;
 /// If after 10 seconds the screenshot cannot be taken, assume that the test has
 /// timed out.
 pub(crate) const SCREENSHOT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// https://262.ecma-international.org/6.0/#sec-number.max_safe_integer
+/// 2^53 - 1
+pub(crate) static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 pub(crate) struct TimeoutsConfiguration {
     pub(crate) script: Option<u64>,
@@ -68,9 +72,21 @@ pub(crate) fn deserialize_as_timeouts_configuration(
             //  - "implicit": Set configuration's implicit wait timeout to value.
             *target = match value {
                 Value::Null => None,
-                _ => Some(value.as_f64().ok_or_else(|| {
-                    WebDriverError::new(ErrorStatus::InvalidArgument, "Invalid value for {key}")
-                })? as u64),
+                Value::Number(num) => match num.as_u64() {
+                    Some(val) if val <= MAXIMUM_SAFE_INTEGER => Some(val),
+                    _ => {
+                        return Err(WebDriverError::new(
+                            ErrorStatus::InvalidArgument,
+                            format!("Invalid value for {}", key),
+                        ));
+                    },
+                },
+                _ => {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::InvalidArgument,
+                        format!("Invalid value type for {}", key),
+                    ));
+                },
             };
         }
 
@@ -83,10 +99,11 @@ pub(crate) fn deserialize_as_timeouts_configuration(
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-serialize-the-timeouts-configuration>
 pub(crate) fn serialize_timeouts_configuration(timeouts: &TimeoutsConfiguration) -> Value {
-    let mut map = serde_json::Map::new();
-    map.insert("script".to_string(), Value::from(timeouts.script));
-    map.insert("pageLoad".to_string(), Value::from(timeouts.page_load));
-    map.insert("implicit".to_string(), Value::from(timeouts.implicit_wait));
-    Value::Object(map)
+    json!({
+        "script": timeouts.script,
+        "pageLoad": timeouts.page_load,
+        "implicit": timeouts.implicit_wait,
+    })
 }
