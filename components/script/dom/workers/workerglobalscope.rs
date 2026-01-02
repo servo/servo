@@ -593,7 +593,8 @@ impl WorkerGlobalScope {
 
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
-            Some(Script::Classic(script)) if script.record.is_ok() => script,
+            Some(Script::Classic(script)) if script.record.is_ok() => Script::Classic(script),
+            Some(Script::Other(script)) => Script::Other(script),
             _ => {
                 // Step 1.1 Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
@@ -614,6 +615,8 @@ impl WorkerGlobalScope {
             return;
         }
 
+        // 10. If script is a classic script, then run the classic script script. Otherwise, it is
+        //     a module script; run the module script script.
         {
             let _ar = AutoWorkerReset::new(dedicated_worker_scope, worker);
             let realm = enter_realm(self);
@@ -623,9 +626,17 @@ impl WorkerGlobalScope {
                 can_gc,
             );
             self.execution_ready.store(true, Ordering::Relaxed);
-            _ = self
-                .globalscope
-                .run_a_classic_script(script, RethrowErrors::No, can_gc);
+            match script {
+                Script::Classic(script) => {
+                    _ = self
+                        .globalscope
+                        .run_a_classic_script(script, RethrowErrors::No, can_gc);
+                },
+                Script::Other(script) => {
+                    self.globalscope
+                        .run_a_module_script(None, &script, false, can_gc);
+                },
+            };
             dedicated_worker_scope.fire_queued_messages(can_gc);
         }
     }
