@@ -52,6 +52,12 @@ pub(crate) enum Handle {
     MlKem1024PublicKey(
         Box<ml_kem::Encoded<ml_kem::kem::EncapsulationKey<ml_kem::MlKem1024Params>>>,
     ),
+    MlDsa44PrivateKey(ml_dsa::B32),
+    MlDsa65PrivateKey(ml_dsa::B32),
+    MlDsa87PrivateKey(ml_dsa::B32),
+    MlDsa44PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa44>>),
+    MlDsa65PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa65>>),
+    MlDsa87PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa87>>),
     ChaCha20Poly1305Key(chacha20poly1305::Key),
     Argon2Password(Vec<u8>),
 }
@@ -247,6 +253,12 @@ impl MallocSizeOf for Handle {
             Handle::MlKem512PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlKem768PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlKem1024PublicKey(public_key) => public_key.size_of(ops),
+            Handle::MlDsa44PrivateKey(seed) => seed.size_of(ops),
+            Handle::MlDsa65PrivateKey(seed) => seed.size_of(ops),
+            Handle::MlDsa87PrivateKey(seed) => seed.size_of(ops),
+            Handle::MlDsa44PublicKey(public_key) => public_key.size_of(ops),
+            Handle::MlDsa65PublicKey(public_key) => public_key.size_of(ops),
+            Handle::MlDsa87PublicKey(public_key) => public_key.size_of(ops),
             Handle::ChaCha20Poly1305Key(key) => key.size_of(ops),
             Handle::Argon2Password(password) => password.size_of(ops),
         }

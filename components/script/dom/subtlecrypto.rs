@@ -11,6 +11,7 @@ mod ecdsa_operation;
 mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
+mod ml_dsa_operation;
 mod ml_kem_operation;
 mod pbkdf2_operation;
 mod rsa_common;
@@ -88,6 +89,9 @@ const ALG_PBKDF2: &str = "PBKDF2";
 const ALG_ML_KEM_512: &str = "ML-KEM-512";
 const ALG_ML_KEM_768: &str = "ML-KEM-768";
 const ALG_ML_KEM_1024: &str = "ML-KEM-1024";
+const ALG_ML_DSA_44: &str = "ML-DSA-44";
+const ALG_ML_DSA_65: &str = "ML-DSA-65";
+const ALG_ML_DSA_87: &str = "ML-DSA-87";
 const ALG_CHACHA20_POLY1305: &str = "ChaCha20-Poly1305";
 const ALG_SHA3_256: &str = "SHA3-256";
 const ALG_SHA3_384: &str = "SHA3-384";
@@ -120,6 +124,9 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_ML_KEM_512,
     ALG_ML_KEM_768,
     ALG_ML_KEM_1024,
+    ALG_ML_DSA_44,
+    ALG_ML_DSA_65,
+    ALG_ML_DSA_87,
     ALG_CHACHA20_POLY1305,
     ALG_SHA3_256,
     ALG_SHA3_384,
@@ -3363,6 +3370,23 @@ impl MlKemAlgorithm {
     }
 }
 
+/// Inner type of <https://w3c.github.io/webcrypto/#dfn-supportedAlgorithms> for ML-DSA
+enum MlDsaAlgorithm {
+    MlDsa44,
+    MlDsa65,
+    MlDsa87,
+}
+
+impl MlDsaAlgorithm {
+    fn as_str(&self) -> &'static str {
+        match self {
+            MlDsaAlgorithm::MlDsa44 => ALG_ML_DSA_44,
+            MlDsaAlgorithm::MlDsa65 => ALG_ML_DSA_65,
+            MlDsaAlgorithm::MlDsa87 => ALG_ML_DSA_87,
+        }
+    }
+}
+
 /// Inner type of <https://w3c.github.io/webcrypto/#dfn-supportedAlgorithms> for SHA3
 enum Sha3Algorithm {
     Sha3_256,
@@ -3430,6 +3454,7 @@ enum SupportedAlgorithm {
     Hkdf,
     Pbkdf2,
     MlKem(MlKemAlgorithm),
+    MlDsa(MlDsaAlgorithm),
     ChaCha20Poly1305,
     Sha3(Sha3Algorithm),
     CShake(CShakeAlgorithm),
@@ -3455,6 +3480,7 @@ impl SupportedAlgorithm {
             SupportedAlgorithm::Hkdf => ALG_HKDF,
             SupportedAlgorithm::Pbkdf2 => ALG_PBKDF2,
             SupportedAlgorithm::MlKem(ml_kem_algorithm) => ml_kem_algorithm.as_str(),
+            SupportedAlgorithm::MlDsa(ml_dsa_algorithm) => ml_dsa_algorithm.as_str(),
             SupportedAlgorithm::ChaCha20Poly1305 => ALG_CHACHA20_POLY1305,
             SupportedAlgorithm::Sha3(sha3_algorithm) => sha3_algorithm.as_str(),
             SupportedAlgorithm::CShake(cshake_algorithm) => cshake_algorithm.as_str(),
@@ -3591,6 +3617,9 @@ impl SupportedAlgorithm {
             (Self::MlKem(_), Operation::ImportKey) => ParameterType::None,
             (Self::MlKem(_), Operation::ExportKey) => ParameterType::None,
 
+            // <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-registration>
+            (Self::MlDsa(_), Operation::ImportKey) => ParameterType::None,
+
             // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
             (Self::ChaCha20Poly1305, Operation::Encrypt) => ParameterType::AeadParams,
             (Self::ChaCha20Poly1305, Operation::Decrypt) => ParameterType::AeadParams,
@@ -3649,6 +3678,9 @@ impl TryFrom<&str> for SupportedAlgorithm {
             ALG_ML_KEM_512 => Ok(SupportedAlgorithm::MlKem(MlKemAlgorithm::MlKem512)),
             ALG_ML_KEM_768 => Ok(SupportedAlgorithm::MlKem(MlKemAlgorithm::MlKem768)),
             ALG_ML_KEM_1024 => Ok(SupportedAlgorithm::MlKem(MlKemAlgorithm::MlKem1024)),
+            ALG_ML_DSA_44 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa44)),
+            ALG_ML_DSA_65 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa65)),
+            ALG_ML_DSA_87 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa87)),
             ALG_CHACHA20_POLY1305 => Ok(SupportedAlgorithm::ChaCha20Poly1305),
             ALG_SHA3_256 => Ok(SupportedAlgorithm::Sha3(Sha3Algorithm::Sha3_256)),
             ALG_SHA3_384 => Ok(SupportedAlgorithm::Sha3(Sha3Algorithm::Sha3_384)),
@@ -4278,6 +4310,18 @@ impl NormalizedAlgorithm {
                 ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024,
                 NormalizedAlgorithm::Algorithm(algo),
             ) => ml_kem_operation::import_key(
+                global,
+                algo,
+                format,
+                key_data,
+                extractable,
+                usages,
+                can_gc,
+            ),
+            (
+                ALG_ML_DSA_44 | ALG_ML_DSA_65 | ALG_ML_DSA_87,
+                NormalizedAlgorithm::Algorithm(algo),
+            ) => ml_dsa_operation::import_key(
                 global,
                 algo,
                 format,
