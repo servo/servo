@@ -246,11 +246,11 @@ impl ReplacedContents {
 
         let rule_cache_conditions = &mut RuleCacheConditions::default();
 
-        let parent_style = &node.selected_style();
+        let parent_style = node.style(&context.style_context);
         let style_builder = StyleBuilder::new(
             context.style_context.stylist.device(),
             Some(context.style_context.stylist),
-            Some(parent_style),
+            Some(&parent_style),
             None,
             None,
             false,
