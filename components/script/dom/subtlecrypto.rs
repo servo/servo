@@ -3618,6 +3618,7 @@ impl SupportedAlgorithm {
             (Self::MlKem(_), Operation::ExportKey) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-registration>
+            (Self::MlDsa(_), Operation::GenerateKey) => ParameterType::None,
             (Self::MlDsa(_), Operation::ImportKey) => ParameterType::None,
             (Self::MlDsa(_), Operation::ExportKey) => ParameterType::None,
 
@@ -4147,6 +4148,11 @@ impl NormalizedAlgorithm {
                 ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024,
                 NormalizedAlgorithm::Algorithm(algo),
             ) => ml_kem_operation::generate_key(global, algo, extractable, usages, can_gc)
+                .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
+            (
+                ALG_ML_DSA_44 | ALG_ML_DSA_65 | ALG_ML_DSA_87,
+                NormalizedAlgorithm::Algorithm(algo),
+            ) => ml_dsa_operation::generate_key(global, algo, extractable, usages, can_gc)
                 .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
             (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
                 chacha20_poly1305_operation::generate_key(global, extractable, usages, can_gc)
