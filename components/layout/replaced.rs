@@ -179,11 +179,7 @@ impl ReplacedContents {
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
             } else if let Some(svg_data) = node.as_svg() {
-                if let Some(kind_size) = Self::svg_kind_size(svg_data, context, node) {
-                    kind_size
-                } else {
-                    return None;
-                }
+                Self::svg_kind_size(svg_data, context, node)?
             } else {
                 let element = node.as_html_element()?;
                 if !element.has_local_name(&local_name!("audio")) {
