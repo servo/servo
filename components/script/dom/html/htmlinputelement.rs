@@ -13,6 +13,7 @@ use std::{f64, ptr};
 
 use base::generic_channel::GenericSender;
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use base::{Lines, RopeMovement};
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
@@ -89,9 +90,8 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::textinput::Lines::Single;
 use crate::textinput::{
-    ClipboardEventFlags, Direction, IsComposing, KeyReaction, SelectionDirection, TextInput,
+    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -486,7 +486,7 @@ impl HTMLInputElement {
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DomRefCell::new(TextInput::new(
-                Single,
+                Lines::Single,
                 DOMString::new(),
                 EmbedderClipboardProvider {
                     embedder_sender,
@@ -621,7 +621,7 @@ impl HTMLInputElement {
     pub(crate) fn enable_sanitization(&self) {
         self.sanitization_flag.set(true);
         let mut textinput = self.textinput.borrow_mut();
-        let mut value = textinput.single_line_content().clone();
+        let mut value = textinput.get_content();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
         self.upcast::<Node>().dirty(NodeDamage::Other);
@@ -1752,12 +1752,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                     let mut textinput = self.textinput.borrow_mut();
 
                     // Step 5.
-                    if *textinput.single_line_content() != value {
+                    if textinput.get_content() != value {
                         // Steps 1-2
                         textinput.set_content(value);
 
                         // Step 5.
-                        textinput.clear_selection_to_limit(Direction::Forward);
+                        textinput.clear_selection_to_end();
                     }
                 }
 
@@ -3057,14 +3057,14 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Step 6
                         let mut textinput = self.textinput.borrow_mut();
-                        let mut value = textinput.single_line_content().clone();
+                        let mut value = textinput.get_content();
                         self.sanitize_value(&mut value);
                         textinput.set_content(value);
                         self.upcast::<Node>().dirty(NodeDamage::Other);
 
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
-                            textinput.clear_selection_to_limit(Direction::Backward);
+                            textinput.clear_selection_to_start();
                         }
                     },
                     AttributeMutation::Removed => {
@@ -3260,16 +3260,18 @@ impl VirtualMethods for HTMLInputElement {
                     // the space key. There's no nice way to catch this so let's use this for
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
-                        let window = self.owner_window();
-
                         // Position the caret at the click position or at the end of the current value.
-                        let edit_point_index = window
+                        if let Some(grapheme_index) = self
+                            .owner_window()
                             .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped())
-                            .unwrap_or_else(|| self.textinput.borrow().chars().count());
-                        self.textinput.borrow_mut().clear_selection();
-                        self.textinput
-                            .borrow_mut()
-                            .set_edit_point_index(edit_point_index);
+                        {
+                            let mut textinput = self.textinput.borrow_mut();
+                            textinput.clear_selection_to_start();
+                            textinput
+                                .modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
+                        } else {
+                            self.textinput.borrow_mut().clear_selection_to_end();
+                        }
                         self.upcast::<Node>().dirty(NodeDamage::Other);
                         event.PreventDefault();
                     }
