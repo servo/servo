@@ -20,7 +20,7 @@ def test_timeouts(new_session, add_browser_capabilities, key, value):
     value = assert_success(response)
     assert value["capabilities"]["timeouts"] == timeouts
 
-@pytest.mark.parametrize("value", [MAX_SAFE_INTEGER + 1, -11])
+@pytest.mark.parametrize("value", [MAX_SAFE_INTEGER + 1, -1])
 @pytest.mark.parametrize("key", ["implicit", "pageLoad", "script"])
 def test_invalid_timeouts(new_session, add_browser_capabilities, key, value):
     timeouts = {key: value}
