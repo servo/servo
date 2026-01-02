@@ -1132,9 +1132,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 )));
             };
             let alg = match key_algorithm.name.as_str() {
-                ALG_ML_KEM_512 => ID_ALG_ML_KEM_512,
-                ALG_ML_KEM_768 => ID_ALG_ML_KEM_768,
-                ALG_ML_KEM_1024 => ID_ALG_ML_KEM_1024,
+                ALG_ML_KEM_512 => "MLKEM512",
+                ALG_ML_KEM_768 => "MLKEM768",
+                ALG_ML_KEM_1024 => "MLKEM1024",
                 _ => {
                     return Err(Error::Operation(Some(format!(
                         "{} is not an ML-KEM algorithm",
