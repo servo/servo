@@ -1126,15 +1126,17 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 2.3. Set the alg attribute of jwk to the alg value corresponding to the name
             // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-01]
             // (Figure 1).
+            //
+            // <https://www.ietf.org/archive/id/draft-ietf-jose-pqc-kem-01.html#direct-table>
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
                 return Err(Error::Operation(Some(
                     "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
                 )));
             };
             let alg = match key_algorithm.name.as_str() {
-                ALG_ML_KEM_512 => ID_ALG_ML_KEM_512,
-                ALG_ML_KEM_768 => ID_ALG_ML_KEM_768,
-                ALG_ML_KEM_1024 => ID_ALG_ML_KEM_1024,
+                ALG_ML_KEM_512 => "MLKEM512",
+                ALG_ML_KEM_768 => "MLKEM768",
+                ALG_ML_KEM_1024 => "MLKEM1024",
                 _ => {
                     return Err(Error::Operation(Some(format!(
                         "{} is not an ML-KEM algorithm",
