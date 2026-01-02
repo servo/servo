@@ -213,36 +213,6 @@ impl ReplacedContents {
         context: &LayoutContext,
         node: ServoThreadSafeLayoutNode<'_>,
     ) -> Option<(ReplacedContentKind, NaturalSizes)> {
-        let svg_source = match svg_data.source {
-            None => {
-                // The SVGSVGElement is not yet serialized, so we add it to a list
-                // and hand it over to script to peform the serialization.
-                context
-                    .image_resolver
-                    .queue_svg_element_for_serialization(node);
-                return None;
-            },
-            Some(Err(_)) => {
-                // Don't attempt to serialize if previous attempt had errored.
-                return None;
-            },
-            Some(Ok(svg_source)) => svg_source,
-        };
-
-        let result = context
-            .image_resolver
-            .get_cached_image_for_url(
-                node.opaque(),
-                svg_source,
-                LayoutImageDestination::BoxTreeConstruction,
-            )
-            .ok();
-
-        let vector_image = result.map(|result| match result {
-            Image::Vector(vector_image) => vector_image,
-            _ => unreachable!("SVG element can't contain a raster image."),
-        });
-
         let rule_cache_conditions = &mut RuleCacheConditions::default();
 
         let parent_style = node.style(&context.style_context);
@@ -278,9 +248,7 @@ impl ReplacedContents {
         {
             Some(width.px() / height.px())
         } else {
-            svg_data
-                .view_box
-                .and_then(SVGElementData::ratio_from_view_box)
+            svg_data.ratio_from_view_box()
         };
 
         let natural_size = NaturalSizes {
@@ -288,6 +256,37 @@ impl ReplacedContents {
             height: height.map(|h| Au::from_f32_px(h.px())),
             ratio,
         };
+
+        let svg_source = match svg_data.source {
+            None => {
+                // The SVGSVGElement is not yet serialized, so we add it to a list
+                // and hand it over to script to peform the serialization.
+                context
+                    .image_resolver
+                    .queue_svg_element_for_serialization(node);
+                return None;
+            },
+            Some(Err(_)) => {
+                // Don't attempt to serialize if previous attempt had errored.
+                return None;
+            },
+            Some(Ok(svg_source)) => svg_source,
+        };
+
+        let result = context
+            .image_resolver
+            .get_cached_image_for_url(
+                node.opaque(),
+                svg_source,
+                LayoutImageDestination::BoxTreeConstruction,
+            )
+            .ok();
+
+        let vector_image = result.map(|result| match result {
+            Image::Vector(vector_image) => vector_image,
+            _ => unreachable!("SVG element can't contain a raster image."),
+        });
+
         Some((ReplacedContentKind::SVGElement(vector_image), natural_size))
     }
 
