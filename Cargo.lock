@@ -789,6 +789,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "time",
+ "unicode-segmentation",
  "webrender_api",
  "windows-sys 0.61.2",
 ]

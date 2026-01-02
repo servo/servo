@@ -322,13 +322,11 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     fn start(&self) -> Utf16CodeUnitLength {
-        let textinput = self.textinput.borrow();
-        textinput.text_point_to_utf16_offset(textinput.selection_start())
+        self.textinput.borrow().selection_start_utf16()
     }
 
     fn end(&self) -> Utf16CodeUnitLength {
-        let textinput = self.textinput.borrow();
-        textinput.text_point_to_utf16_offset(textinput.selection_end())
+        self.textinput.borrow().selection_end_utf16()
     }
 
     fn direction(&self) -> SelectionDirection {
