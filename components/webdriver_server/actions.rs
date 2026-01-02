@@ -26,14 +26,12 @@ use webdriver::actions::{
 };
 use webdriver::error::{ErrorStatus, WebDriverError};
 
+use crate::timeout::MAXIMUM_SAFE_INTEGER;
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_oneshot_response};
 
 // Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
 static WHEELSCROLL_INTERVAL: u64 = 17;
-
-// https://262.ecma-international.org/6.0/#sec-number.max_safe_integer
-static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 // A single action, corresponding to an `action object` in the spec.
 // In the spec, `action item` refers to a plain JSON object.
