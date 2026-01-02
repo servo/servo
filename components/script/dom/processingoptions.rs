@@ -493,7 +493,7 @@ impl FetchResponseListener for LinkFetchContext {
                 response
             } else {
                 // Step 11.2. Otherwise, set response to a network error.
-                Response::network_error(NetworkError::Internal("Failed to preload".into()))
+                Response::network_error(NetworkError::ResourceLoadError("Failed to preload".into()))
             };
             // Step 11.5. If entry's on response available is null, then set entry's response to response;
             // otherwise call entry's on response available given response.

@@ -1210,13 +1210,13 @@ impl FetchResponseListener for ModuleContext {
 
         self.status = {
             if status.is_error() {
-                Err(NetworkError::Internal(
+                Err(NetworkError::ResourceLoadError(
                     "No http status code received".to_owned(),
                 ))
             } else if status.is_success() {
                 Ok(())
             } else {
-                Err(NetworkError::Internal(format!(
+                Err(NetworkError::ResourceLoadError(format!(
                     "HTTP error code {}",
                     status.code()
                 )))
@@ -1255,19 +1255,19 @@ impl FetchResponseListener for ModuleContext {
                     let essence_mime = content_type.essence_str();
 
                     if !SCRIPT_JS_MIMES.contains(&essence_mime) {
-                        return Err(NetworkError::Internal(format!(
+                        return Err(NetworkError::MimeType(format!(
                             "Invalid MIME type: {}",
                             essence_mime
                         )));
                     }
                 } else {
-                    return Err(NetworkError::Internal(format!(
+                    return Err(NetworkError::MimeType(format!(
                         "Failed to parse MIME type: {}",
                         content_type
                     )));
                 }
             } else {
-                return Err(NetworkError::Internal("No MIME type".into()));
+                return Err(NetworkError::MimeType("No MIME type".into()));
             }
 
             // Step 13.4: Let referrerPolicy be the result of parsing the `Referrer-Policy` header

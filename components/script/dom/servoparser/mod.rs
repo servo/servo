@@ -1221,15 +1221,15 @@ impl FetchResponseListener for ParserContext {
             Err(error) => (
                 // Check variant without moving
                 match &error {
-                    NetworkError::SslValidation(..) |
-                    NetworkError::Internal(..) |
-                    NetworkError::Crash(..) => {
+                    NetworkError::LoadCancelled => {
+                        return;
+                    },
+                    _ => {
                         let mut meta = Metadata::default(self.url.clone());
                         let mime: Option<Mime> = "text/html".parse().ok();
                         meta.set_content_type(mime.as_ref());
                         Some(meta)
                     },
-                    _ => None,
                 },
                 Some(error),
             ),
@@ -1310,13 +1310,38 @@ impl FetchResponseListener for ParserContext {
                     let page = page.replace("${bytes}", encoded_bytes.as_str());
                     page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string())
                 },
-                NetworkError::Internal(reason) => {
+                NetworkError::Internal(reason) |
+                NetworkError::ResourceLoadError(reason) |
+                NetworkError::MimeType(reason) => {
                     let page = resources::read_string(Resource::NetErrorHTML);
                     page.replace("${reason}", &reason)
                 },
                 NetworkError::Crash(details) => {
                     let page = resources::read_string(Resource::CrashHTML);
                     page.replace("${details}", &details)
+                },
+                NetworkError::UnsupportedScheme |
+                NetworkError::CorsGeneral |
+                NetworkError::CrossOriginResponse |
+                NetworkError::CorsCredentials |
+                NetworkError::CorsAllowMethods |
+                NetworkError::CorsAllowHeaders |
+                NetworkError::CorsMethod |
+                NetworkError::CorsAuthorization |
+                NetworkError::CorsHeaders |
+                NetworkError::ConnectionFailure |
+                NetworkError::RedirectError |
+                NetworkError::TooManyRedirects |
+                NetworkError::InvalidMethod |
+                NetworkError::ContentSecurityPolicy |
+                NetworkError::Nosniff |
+                NetworkError::SubresourceIntegrity |
+                NetworkError::MixedContent |
+                NetworkError::CacheError |
+                NetworkError::InvalidPort |
+                NetworkError::LocalDirectoryError => {
+                    let page = resources::read_string(Resource::NetErrorHTML);
+                    page.replace("${reason}", &format!("{:?}", error))
                 },
                 NetworkError::LoadCancelled => {
                     // The next load will show a page

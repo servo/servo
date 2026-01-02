@@ -1222,7 +1222,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     assert_eq!(
         response.get_network_error(),
-        Some(&NetworkError::Internal("Too many redirects".to_owned()))
+        Some(&NetworkError::TooManyRedirects)
     );
 }
 

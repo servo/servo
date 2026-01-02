@@ -19,24 +19,20 @@ pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Respons
     if !pref!(network_local_directory_listing_enabled) {
         // If you want to be able to browse local directories, configure Servo prefs so that
         // "network.local_directory_listing.enabled" is set to true.
-        return Response::network_error(NetworkError::Internal(
-            "Local directory listing feature has not been enabled in preferences".into(),
-        ));
+        return Response::network_error(NetworkError::LocalDirectoryError);
     }
 
     if !request.origin.is_opaque() {
         // Checking for an opaque origin as a shorthand for user activation
         // as opposed to a request originating from a script.
         // TODO(32534): carefully consider security of this approach.
-        return Response::network_error(NetworkError::Internal(
-            "Cannot request local directory listing from non-local origin.".into(),
-        ));
+        return Response::network_error(NetworkError::LocalDirectoryError);
     }
 
     let directory_contents = match std::fs::read_dir(path_buf.clone()) {
         Ok(directory_contents) => directory_contents,
         Err(error) => {
-            return Response::network_error(NetworkError::Internal(format!(
+            return Response::network_error(NetworkError::ResourceLoadError(format!(
                 "Unable to access directory: {error}"
             )));
         },
