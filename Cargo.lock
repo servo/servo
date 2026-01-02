@@ -8789,6 +8789,7 @@ name = "storage_traits"
 version = "0.0.1"
 dependencies = [
  "base",
+ "log",
  "malloc_size_of_derive",
  "profile_traits",
  "serde",

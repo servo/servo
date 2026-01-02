@@ -13153,6 +13153,17 @@
       {}
      ]
     ],
+    "client_storage.any.js": [
+     "90d76d522d3e1205c10bc56dac3ca1dc8658d263",
+     [
+      "mozilla/client_storage.any.html",
+      {}
+     ],
+     [
+      "mozilla/client_storage.any.worker.html",
+      {}
+     ]
+    ],
     "codegen_unions.html": [
      "1fff0e01c89cfa3bff91a6f19c00171bbb55b692",
      [

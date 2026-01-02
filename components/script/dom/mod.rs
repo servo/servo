@@ -236,6 +236,7 @@ pub(crate) mod byteteeunderlyingsource;
 pub(crate) mod cdatasection;
 pub(crate) mod characterdata;
 pub(crate) mod client;
+pub(crate) mod clientstoragetest;
 pub(crate) mod clipboard;
 pub(crate) mod clipboardevent;
 pub(crate) mod clipboarditem;
