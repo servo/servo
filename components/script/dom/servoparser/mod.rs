@@ -1221,15 +1221,15 @@ impl FetchResponseListener for ParserContext {
             Err(error) => (
                 // Check variant without moving
                 match &error {
-                    NetworkError::SslValidation(..) |
-                    NetworkError::Internal(..) |
-                    NetworkError::Crash(..) => {
+                    NetworkError::LoadCancelled => {
+                        return;
+                    },
+                    _ => {
                         let mut meta = Metadata::default(self.url.clone());
                         let mime: Option<Mime> = "text/html".parse().ok();
                         meta.set_content_type(mime.as_ref());
                         Some(meta)
                     },
-                    _ => None,
                 },
                 Some(error),
             ),
