@@ -3,18 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use der::asn1::{BitString, OctetString};
-use der::{AnyRef, Choice, Decode, Sequence};
+use der::{AnyRef, Choice, Decode, Encode, Sequence};
 use ml_dsa::{B32, EncodedVerifyingKey, KeyGen, MlDsa44, MlDsa65, MlDsa87};
+use pkcs8::spki::AlgorithmIdentifier;
 use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, KeyType, KeyUsage,
+};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ML_DSA_44, ALG_ML_DSA_65, ALG_ML_DSA_87, JsonWebKeyExt, JwkStringField,
+    ALG_ML_DSA_44, ALG_ML_DSA_65, ALG_ML_DSA_87, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
@@ -551,6 +555,285 @@ pub(crate) fn import_key(
     Ok(key)
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-export-key>
+///
+/// The exportKey() method does not involve AlgorithmIdentifier and algorithm normalization, so
+/// there should not be normalizedAlgorithm in the export key operation. It could be a mistake in
+/// the specification (Related issue: <https://github.com/WICG/webcrypto-modern-algos/issues/47>).
+///
+/// In our implementation, we use the name attribute of the [[algorithhm]] internal slot of key to
+/// determine the security category.
+pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    // Step 1. Let key be the CryptoKey to be exported.
+
+    // Step 2. If the underlying cryptographic key material represented by the [[handle]] internal
+    // slot of key cannot be accessed, then throw an OperationError.
+
+    // Step 3.
+    let result = match format {
+        KeyFormat::Spki => {
+            // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"public\"".to_string(),
+                )));
+            }
+
+            // Step 3.2.
+            // Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure defined in
+            // [RFC5280] with the following properties:
+            //
+            //     Set the algorithm field to an AlgorithmIdentifier ASN.1 type with the following
+            //     properties:
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-44":
+            //             Set the algorithm object identifier to the id-ml-dsa-44
+            //             (2.16.840.1.101.3.4.3.17) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-65":
+            //             Set the algorithm object identifier to the id-ml-dsa-65
+            //             (2.16.840.1.101.3.4.3.18) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-87":
+            //             Set the algorithm object identifier to the id-ml-dsa-87
+            //             (2.16.840.1.101.3.4.3.19) OID.
+            //
+            //         Otherwise:
+            //             throw a NotSupportedError.
+            //
+            //     Set the subjectPublicKey field to keyData.
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+            let oid = match key_algorithm.name.as_str() {
+                ALG_ML_DSA_44 => ID_ALG_ML_DSA_44,
+                ALG_ML_DSA_65 => ID_ALG_ML_DSA_65,
+                ALG_ML_DSA_87 => ID_ALG_ML_DSA_87,
+                _ => {
+                    return Err(Error::Operation(Some(format!(
+                        "{} is not an ML-DSA algorithm",
+                        key_algorithm.name.as_str()
+                    ))));
+                },
+            };
+            let key_bytes = convert_handle_to_public_key(key.handle())?;
+            let subject_public_key = BitString::from_bytes(&key_bytes).map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode BitString for subjectPublicKey field of SubjectPublicKeyInfo"
+                        .to_string(),
+                ))
+            })?;
+            let data = SubjectPublicKeyInfo {
+                algorithm: AlgorithmIdentifier::<AnyRef> {
+                    oid: ObjectIdentifier::new_unwrap(oid),
+                    parameters: None,
+                },
+                subject_public_key,
+            };
+
+            // Step 3.3. Let result be the result of DER-encoding data.
+            ExportedKey::Bytes(data.to_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode SubjectPublicKeyInfo in DER format".to_string(),
+                ))
+            })?)
+        },
+        KeyFormat::Pkcs8 => {
+            // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Private {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"private\"".to_string(),
+                )));
+            }
+
+            // Step 3.2.
+            // Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in [RFC5208]
+            // with the following properties:
+            //
+            //     Set the version field to 0.
+            //
+            //     Set the privateKeyAlgorithm field to a PrivateKeyAlgorithmIdentifier ASN.1 type
+            //     with the following properties:
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-44":
+            //             Set the algorithm object identifier to the id-ml-dsa-44
+            //             (2.16.840.1.101.3.4.3.17) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-65":
+            //             Set the algorithm object identifier to the id-ml-dsa-65
+            //             (2.16.840.1.101.3.4.3.18) OID.
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-87":
+            //             Set the algorithm object identifier to the id-ml-dsa-87
+            //             (2.16.840.1.101.3.4.3.19) OID.
+            //
+            //         Otherwise:
+            //             throw a NotSupportedError.
+            //
+            //     Set the privateKey field as follows:
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-44":
+            //             Set the privateKey field to the result of DER-encoding a
+            //             ML-DSA-44-PrivateKey ASN.1 type that represents the ML-DSA private key
+            //             seed represented by the [[handle]] internal slot of key using the
+            //             seed-only format (using a context-specific [0] primitive tag with an
+            //             implicit encoding of OCTET STRING).
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-65":
+            //             Set the privateKey field to the result of DER-encoding a
+            //             ML-DSA-65-PrivateKey ASN.1 type that represents the ML-DSA private key
+            //             seed represented by the [[handle]] internal slot of key using the
+            //             seed-only format (using a context-specific [0] primitive tag with an
+            //             implicit encoding of OCTET STRING).
+            //
+            //         If the name member of normalizedAlgorithm is "ML-DSA-87":
+            //             Set the privateKey field to the result of DER-encoding a
+            //             ML-DSA-87-PrivateKey ASN.1 type that represents the ML-DSA private key
+            //             seed represented by the [[handle]] internal slot of key using the
+            //             seed-only format (using a context-specific [0] primitive tag with an
+            //             implicit encoding of OCTET STRING).
+            //
+            //         Otherwise:
+            //             throw a NotSupportedError.
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+            let oid = match key_algorithm.name.as_str() {
+                ALG_ML_DSA_44 => ID_ALG_ML_DSA_44,
+                ALG_ML_DSA_65 => ID_ALG_ML_DSA_65,
+                ALG_ML_DSA_87 => ID_ALG_ML_DSA_87,
+                _ => {
+                    return Err(Error::Operation(Some(format!(
+                        "{} is not an ML-DSA algorithm",
+                        key_algorithm.name.as_str()
+                    ))));
+                },
+            };
+            let (seed_bytes, _public_key_bytes) =
+                convert_handle_to_seed_and_public_key(key.handle())?;
+            let private_key =
+                MlDsaPrivateKeyStructure::Seed(OctetString::new(seed_bytes).map_err(|_| {
+                    Error::Operation(Some(
+                        "Failed to encode OctetString for privateKey field of \
+                        ASN.1 ML-DSA private key structure"
+                            .to_string(),
+                    ))
+                })?);
+            let encoded_private_key = private_key.to_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode ASN.1 ML-DSA private key structure in DER format".to_string(),
+                ))
+            })?;
+            let private_key_info = PrivateKeyInfo {
+                algorithm: AlgorithmIdentifier {
+                    oid: ObjectIdentifier::new_unwrap(oid),
+                    parameters: None,
+                },
+                private_key: &encoded_private_key,
+                public_key: None,
+            };
+
+            // Step 3.3. Let result be the result of DER-encoding data.
+            ExportedKey::Bytes(private_key_info.to_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to encode PrivateKeyInfo in DER format".to_string(),
+                ))
+            })?)
+        },
+        // If format is "raw-public":
+        KeyFormat::Raw_public => {
+            // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Public {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"public\"".to_string(),
+                )));
+            }
+
+            // Step 3.2. Let data be a byte sequence containing the ML-DSA public key represented
+            // by the [[handle]] internal slot of key.
+            let data = convert_handle_to_public_key(key.handle())?;
+
+            // Step 3.2. Let result be data.
+            ExportedKey::Bytes(data)
+        },
+        // If format is "raw-seed":
+        KeyFormat::Raw_seed => {
+            // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
+            // InvalidAccessError.
+            if key.Type() != KeyType::Private {
+                return Err(Error::InvalidAccess(Some(
+                    "[[type]] internal slot of key is not \"private\"".to_string(),
+                )));
+            }
+
+            // Step 3.2. Let data be a byte sequence containing the ξ seed variable of the key
+            // represented by the [[handle]] internal slot of key.
+            let (data, _public_key_bytes) = convert_handle_to_seed_and_public_key(key.handle())?;
+
+            // Step 3.3. Let result be data.
+            ExportedKey::Bytes(data)
+        },
+        // If format is "jwk":
+        KeyFormat::Jwk => {
+            // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 3.2. Set the kty attribute of jwk to "AKP".
+            // Step 3.3. Set the alg attribute of jwk to the name member of normalizedAlgorithm.
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("AKP")),
+                alg: Some(DOMString::from(key_algorithm.name.as_str())),
+                ..Default::default()
+            };
+
+            // Step 3.4. Set the pub attribute of jwk to the base64url encoded public key
+            // corresponding to the [[handle]] internal slot of key.
+            // Step 3.5
+            // If the [[type]] internal slot of key is "private":
+            //     Set the priv attribute of jwk to the base64url encoded seed represented by the
+            //     [[handle]] internal slot of key.
+            if key.Type() == KeyType::Private {
+                let (seed_bytes, public_key_bytes) =
+                    convert_handle_to_seed_and_public_key(key.handle())?;
+                jwk.encode_string_field(JwkStringField::Pub, &public_key_bytes);
+                jwk.encode_string_field(JwkStringField::Priv, &seed_bytes);
+            } else {
+                let public_key_bytes = convert_handle_to_public_key(key.handle())?;
+                jwk.encode_string_field(JwkStringField::Pub, &public_key_bytes);
+            }
+
+            // Step 3.6. Set the key_ops attribute of jwk to the usages attribute of key.
+            jwk.set_key_ops(key.usages());
+
+            // Step 3.7. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+            jwk.ext = Some(key.Extractable());
+
+            // Step 3.8. Let result be jwk.
+            ExportedKey::Jwk(Box::new(jwk))
+        },
+        // Otherwise:
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(Some(
+                "Unsupported export key format for ML-DSA key".to_string(),
+            )));
+        },
+    };
+
+    // Step 3. Return result.
+    Ok(result)
+}
+
 /// Convert seed bytes to an ML-DSA private key handle and an ML-DSA public key handle. If private
 /// key bytes and/or public key bytes are provided, it runs a consistency check against the seed.
 /// If the length in bits of seed bytes is not 256, the conversion fails, or the consistency check
@@ -676,4 +959,56 @@ fn convert_public_key_to_handle(algo_name: &str, public_key_bytes: &[u8]) -> Res
     };
 
     Ok(public_key_handle)
+}
+
+/// Convert an ML-DSA private key handle to seed bytes and public key bytes. If the handle is not
+/// representing a ML-DSA private key, throw an OperationError.
+fn convert_handle_to_seed_and_public_key(handle: &Handle) -> Result<(Vec<u8>, Vec<u8>), Error> {
+    let result = match handle {
+        Handle::MlDsa44PrivateKey(seed) => {
+            let key_pair = MlDsa44::key_gen_internal(seed);
+            (
+                seed.to_vec(),
+                key_pair.verifying_key().encode().as_slice().to_vec(),
+            )
+        },
+        Handle::MlDsa65PrivateKey(seed) => {
+            let key_pair = MlDsa65::key_gen_internal(seed);
+            (
+                seed.to_vec(),
+                key_pair.verifying_key().encode().as_slice().to_vec(),
+            )
+        },
+        Handle::MlDsa87PrivateKey(seed) => {
+            let key_pair = MlDsa87::key_gen_internal(seed);
+            (
+                seed.to_vec(),
+                key_pair.verifying_key().encode().as_slice().to_vec(),
+            )
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an ML-DSA private key".to_string(),
+            )));
+        },
+    };
+
+    Ok(result)
+}
+
+/// Convert an ML-DSA public key handle to public key bytes. If the handle is not representing a
+/// ML-DSA public key, throw an OperationError.
+fn convert_handle_to_public_key(handle: &Handle) -> Result<Vec<u8>, Error> {
+    let result = match handle {
+        Handle::MlDsa44PublicKey(public_key) => public_key.to_vec(),
+        Handle::MlDsa65PublicKey(public_key) => public_key.as_slice().to_vec(),
+        Handle::MlDsa87PublicKey(public_key) => public_key.to_vec(),
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an ML-DSA public key".to_string(),
+            )));
+        },
+    };
+
+    Ok(result)
 }
