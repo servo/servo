@@ -62,7 +62,7 @@ updates:
         - "tungstenite"
     wayland-related:
       patterns:
-        - "wayland*"
+        - "wayland-*"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: selectors
