@@ -24,10 +24,6 @@ pub(crate) const DEFAULT_IMPLICIT_WAIT: u64 = 0;
 /// timed out.
 pub(crate) const SCREENSHOT_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// https://262.ecma-international.org/6.0/#sec-number.max_safe_integer
-/// 2^53 - 1
-pub(crate) static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-
 pub(crate) struct TimeoutsConfiguration {
     pub(crate) script: Option<u64>,
     pub(crate) page_load: Option<u64>,
@@ -72,21 +68,11 @@ pub(crate) fn deserialize_as_timeouts_configuration(
             //  - "implicit": Set configuration's implicit wait timeout to value.
             *target = match value {
                 Value::Null => None,
-                Value::Number(num) => match num.as_u64() {
-                    Some(val) if val <= MAXIMUM_SAFE_INTEGER => Some(val),
-                    _ => {
-                        return Err(WebDriverError::new(
-                            ErrorStatus::InvalidArgument,
-                            format!("Invalid value for {}", key),
-                        ));
-                    },
-                },
-                _ => {
-                    return Err(WebDriverError::new(
-                        ErrorStatus::InvalidArgument,
-                        format!("Invalid value type for {}", key),
-                    ));
-                },
+                Value::Number(num) => Some(
+                    num.as_u64()
+                        .expect("Number already validated when parsing requests"),
+                ),
+                _ => unreachable!("This has been validated when parsing requests"),
             };
         }
 
