@@ -55,7 +55,10 @@ impl WebViewTest {
     }
 }
 
-type TestSiteDataStep<'a> = (SiteData, Option<&'a dyn Fn(&SiteData)>);
+// Note: MSRV currently rejects a borrowed callback here. Can be switched back
+// to a borrowed callback once MSRV is eventually bumped, so this can become:
+// `type TestSiteDataStep<'a> = (SiteData, Option<&'a dyn Fn(&SiteData)>);`
+type TestSiteDataStep<'a> = (SiteData, Option<Box<dyn Fn(&SiteData) + 'a>>);
 
 fn run_test_site_data_steps(webview_test: &WebViewTest, steps: &[TestSiteDataStep]) {
     let ip = "127.0.0.1".parse().unwrap();
@@ -122,7 +125,7 @@ fn test_site_data() {
     let steps: &[TestSiteDataStep] = &[
         (
             SiteData::new("site-data-0.test", StorageType::Cookies),
-            Some(&|_| {
+            Some(Box::new(|_| {
                 let sites = site_data_manager.site_data(StorageType::Cookies);
                 assert_eq!(
                     &sites,
@@ -137,11 +140,11 @@ fn test_site_data() {
                     &sites,
                     &[SiteData::new("site-data-0.test", StorageType::Cookies),]
                 );
-            }),
+            })),
         ),
         (
             SiteData::new("site-data-1.test", StorageType::Local),
-            Some(&|_| {
+            Some(Box::new(|_| {
                 let sites = site_data_manager.site_data(StorageType::Cookies);
                 assert_eq!(
                     &sites,
@@ -162,11 +165,11 @@ fn test_site_data() {
                         SiteData::new("site-data-1.test", StorageType::Local),
                     ]
                 );
-            }),
+            })),
         ),
         (
             SiteData::new("site-data-2.test", StorageType::Session),
-            Some(&|_| {
+            Some(Box::new(|_| {
                 let sites = site_data_manager.site_data(StorageType::Cookies);
                 assert_eq!(
                     &sites,
@@ -191,14 +194,14 @@ fn test_site_data() {
                         SiteData::new("site-data-2.test", StorageType::Session),
                     ]
                 );
-            }),
+            })),
         ),
         (
             SiteData::new(
                 "site-data-3.test",
                 StorageType::Cookies | StorageType::Local | StorageType::Session,
             ),
-            Some(&|_| {
+            Some(Box::new(|_| {
                 let sites = site_data_manager.site_data(StorageType::Cookies);
                 assert_eq!(
                     &sites,
@@ -236,7 +239,7 @@ fn test_site_data() {
                         ),
                     ]
                 );
-            }),
+            })),
         ),
     ];
 
