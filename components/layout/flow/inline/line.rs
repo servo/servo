@@ -17,7 +17,7 @@ use style::computed_values::writing_mode::T as WritingMode;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::length::GenericMargin;
 use style::values::specified::align::AlignFlags;
-use style::values::specified::box_::{DisplayOutside, DisplayInside};
+use style::values::specified::box_::{DisplayInside, DisplayOutside};
 use style::values::specified::text::TextOverflowSide;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
@@ -642,7 +642,7 @@ impl LineItemLayout<'_, '_> {
                 .total_advance();
 
             // Create overflow marker bounding box
-            let mut max_inline_advance = self.layout.containing_block.size.inline -
+            let mut max_inline_advance = self.layout.containing_block().size.inline -
                 text_item
                     .inline_styles
                     .style
@@ -750,14 +750,14 @@ impl LineItemLayout<'_, '_> {
                 ));
 
                 // After inserting the overflow marker, don't create anymore TextFragments.
-                self.current_state.inline_advance = self.layout.containing_block.size.inline;
+                self.current_state.inline_advance = self.layout.containing_block().size.inline;
 
                 // Overflow marker has been added. This will be used to optimize the function `layout_text_run`
                 self.overflow_indicator_added = true;
             } else {
                 // Insert text fragment
                 let text_metadata = OverflowIndicatorData::new(
-                    (Au(0), self.layout.containing_block.size.inline),
+                    (Au(0), self.layout.containing_block().size.inline),
                     first_text_item_of_the_line,
                     original_inline_advance,
                     false,
@@ -784,7 +784,7 @@ impl LineItemLayout<'_, '_> {
         } else {
             // Insert text fragment
             let text_metadata = OverflowIndicatorData::new(
-                (Au(0), self.layout.containing_block.size.inline),
+                (Au(0), self.layout.containing_block().size.inline),
                 first_text_item_of_the_line,
                 original_inline_advance,
                 false,
@@ -890,9 +890,9 @@ impl LineItemLayout<'_, '_> {
         let overflow_indicator_painter_id = self.layout.layout_context.painter_id;
 
         let overflow_indicator_font_group = overflow_indicator_font_context
-            .font_group(self.layout.containing_block.style.clone().clone_font());
+            .font_group(self.layout.containing_block().style.clone().clone_font());
 
-        let overflow_indicator_font = match overflow_indicator_font_group.write().find_by_codepoint(
+        let overflow_indicator_font = match overflow_indicator_font_group.find_by_codepoint(
             overflow_indicator_font_context,
             overflow_indicator_char,
             None,
@@ -900,9 +900,7 @@ impl LineItemLayout<'_, '_> {
             None,
         ) {
             Some(font) => font,
-            None => overflow_indicator_font_group
-                .write()
-                .first(overflow_indicator_font_context)?,
+            None => overflow_indicator_font_group.first(overflow_indicator_font_context)?,
         };
 
         let overflow_font_instance_key = overflow_indicator_font.key(
