@@ -1160,7 +1160,12 @@ pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     };
 
     let mut base_fragment_info = base.base_fragment_info;
-    if depends_on_block_constraints {
+
+    // An anonymous block doesn't establish a containing block for its contents. Therefore,
+    // if its contents depend on block constraints, its block size (which is intrinsic) also
+    // depends on block constraints.
+    let is_anonymous = matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox));
+    if depends_on_block_constraints || (is_anonymous && flow_layout.depends_on_block_constraints) {
         base_fragment_info
             .flags
             .insert(FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM);
