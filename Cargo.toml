@@ -118,6 +118,7 @@ markup5ever = "0.36.1"
 memmap2 = "0.9.9"
 mime = "0.3.13"
 mime_guess = "2.0.5"
+ml-dsa = "0.0.4"
 ml-kem = { version = "0.2", features = ["deterministic"] }
 mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }

@@ -196,6 +196,12 @@ skip = [
 
     # Dependency by quick_cache and other
     "hashbrown",
+
+    # Duplicated by ml-kem 0.2.1 and ml-dsa 0.0.4. They use different
+    # version of hybrid-array. Once ml-kem releases the next version
+    # 0.3.0 and ml-dsa releases the next version 0.1.0, we can remove
+    # this.
+    "hybrid-array",
 ]
 
 # github.com organizations to allow git sources for

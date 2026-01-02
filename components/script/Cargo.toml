@@ -102,6 +102,7 @@ media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
 mime_guess = { workspace = true }
+ml-dsa = { workspace = true }
 ml-kem = { workspace = true }
 net_traits = { workspace = true }
 nom = { workspace = true }
