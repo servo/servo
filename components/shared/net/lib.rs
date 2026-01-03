@@ -1187,6 +1187,16 @@ impl fmt::Debug for NetworkError {
 }
 
 impl NetworkError {
+    pub fn is_permanent_failure(&self) -> bool {
+        matches!(
+            self,
+            NetworkError::InvalidPort |
+                NetworkError::MixedContent |
+                NetworkError::ContentSecurityPolicy |
+                NetworkError::UnsupportedScheme
+        )
+    }
+
     pub fn from_hyper_error(error: &HyperError, certificate: Option<CertificateDer>) -> Self {
         let error_string = error.to_string();
         match certificate {
