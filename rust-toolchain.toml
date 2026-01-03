@@ -1,7 +1,9 @@
 [toolchain]
-# Be sure to update the 'rust-overlay' module's url in shell.nix to point to a
-# commit which supports the required rustc version and also update the version
-# in support/crown/rust-toolchain.toml when bumping this!
+# Be sure to also update the rust version in the following places when bumping the version:
+# - the 'rust-overlay' module's url in shell.nix to point to a
+#   commit which supports the required rustc version
+# - the version in support/crown/rust-toolchain.toml
+# - the version in .github/devcontainer.json
 channel = "1.91.0"
 
 components = [
