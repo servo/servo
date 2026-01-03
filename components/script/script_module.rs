@@ -67,7 +67,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{
     HTMLScriptElement, SCRIPT_JS_MIMES, Script, ScriptId, ScriptOrigin, ScriptType,
 };
-use crate::dom::htmlscriptelement::substitute_with_local_script;
+use crate::dom::htmlscriptelement::{ScriptResult, substitute_with_local_script};
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -1063,7 +1063,43 @@ impl ModuleOwner {
         can_gc: CanGc,
     ) {
         match &self {
-            ModuleOwner::Worker(_, _) => {},
+            ModuleOwner::Worker(worker, scope) => {
+                let global = self.global();
+                let load: ScriptResult = {
+                    let module_tree = module_identity.get_module_tree(&global);
+
+                    let network_error = module_tree.get_network_error().borrow();
+                    match network_error.as_ref() {
+                        Some(network_error) => Err(network_error.clone().into()),
+                        None => match module_identity {
+                            ModuleIdentity::ModuleUrl(script_src) => {
+                                Ok(Script::Other(ScriptOrigin::external(
+                                    Rc::clone(&module_tree.get_text().borrow()),
+                                    script_src.clone(),
+                                    fetch_options,
+                                    ScriptType::Module,
+                                    global.unminified_js_dir(),
+                                )))
+                            },
+                            ModuleIdentity::ScriptId(_) => {
+                                Ok(Script::Other(ScriptOrigin::internal(
+                                    Rc::clone(&module_tree.get_text().borrow()),
+                                    global.get_url(),
+                                    fetch_options,
+                                    ScriptType::Module,
+                                    global.unminified_js_dir(),
+                                    Err(Error::NotFound(None)),
+                                )))
+                            },
+                        },
+                    }
+                };
+                if let Ok(script) = load {
+                    scope
+                        .root()
+                        .on_complete(Some(script), worker.clone(), can_gc);
+                }
+            },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
                 let global = self.global();
@@ -1376,12 +1412,6 @@ impl FetchResponseListener for ModuleContext {
                             CanGc::note(),
                         );
                     },
-                }
-
-                if let ModuleOwner::Worker(ref worker, ref scope) = self.owner {
-                    let scope = scope.root();
-                    let script = Script::Other(resp_mod_script);
-                    scope.on_complete(Some(script), worker.clone(), CanGc::note());
                 }
             },
         }
