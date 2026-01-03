@@ -90,6 +90,23 @@ pub(crate) fn get_raw_window_handle(
     let window_origin = unsafe { get_xcomponent_offset(xcomponent, window) }
         .expect("Could not get native window offset");
     let viewport_rect = Rect::new(window_origin, window_size);
+
+    unsafe {
+        // set special mode for graphics operation, see https://developer.huawei.com/consumer/en/doc/harmonyos-faqs/faqs-arkgraphics-2d-14
+        let mut usage: u32 = 0;
+        ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
+            window as *mut ohos_sys_opaque_types::NativeWindow,
+            ohos_window_sys::native_window::NativeWindowOperation::GET_USAGE as i32,
+            &mut usage,
+        );
+        usage = usage & (!ohos_window_sys::native_buffer::native_buffer::OH_NativeBuffer_Usage::NATIVEBUFFER_USAGE_CPU_READ.0);
+        ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
+            window as *mut ohos_sys_opaque_types::NativeWindow,
+            ohos_window_sys::native_window::NativeWindowOperation::SET_USAGE as i32,
+            usage,
+        );
+    }
+
     let native_window = NonNull::new(window).expect("Could not get native window");
     let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
     (window_handle, viewport_rect)
@@ -223,6 +240,7 @@ fn init_app(
     crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
     let (window_handle, viewport_rect) = get_raw_window_handle(xcomponent, native_window);
+
     let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
     let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
     let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
