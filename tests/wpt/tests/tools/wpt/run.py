@@ -773,6 +773,27 @@ class Servo(BrowserSetup):
             if binary is None:
                 raise WptrunError("Unable to find servo binary in PATH")
             kwargs["binary"] = binary
+        if kwargs["webdriver_binary"] is None:
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver(self.venv.bin_path)
+
+            if webdriver_binary is None:
+                install = self.prompt_install("servodriver")
+
+                if install:
+                    webdriver_binary = self.browser.install_webdriver(
+                        dest=self.venv.bin_path,
+                        channel=browser_channel,
+                        browser_binary=kwargs["binary"],
+                    )
+            else:
+                logger.info("Using webdriver binary %s" % webdriver_binary)
+
+            if webdriver_binary:
+                kwargs["webdriver_binary"] = webdriver_binary
+            else:
+                raise WptrunError("Unable to locate or install matching servodriver binary")
 
 
 class ServoWebDriver(Servo):
