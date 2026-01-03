@@ -62,6 +62,9 @@ pub use webrender_api::units::{
 };
 
 pub use crate::network_manager::{CacheEntry, NetworkManager};
+#[cfg(feature = "gamepad")]
+pub use crate::responders::GamepadProvider;
+pub use crate::responders::IpcResponder;
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};

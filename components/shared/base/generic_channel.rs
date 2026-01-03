@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 
 use crossbeam_channel::RecvTimeoutError;
-use ipc_channel::ipc::IpcError;
+use ipc_channel::ipc::{IpcError, IpcSender};
 use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::de::VariantAccess;
@@ -169,6 +169,12 @@ where
                 GenericSender(GenericSenderVariants::Crossbeam(chan.clone()))
             },
         }
+    }
+}
+
+impl<T: Serialize> From<IpcSender<T>> for GenericSender<T> {
+    fn from(sender: IpcSender<T>) -> Self {
+        GenericSender(GenericSenderVariants::Ipc(sender))
     }
 }
 
