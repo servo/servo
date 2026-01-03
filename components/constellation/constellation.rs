@@ -3727,6 +3727,8 @@ where
                     new_browsing_context_info: None,
                     viewport_details,
                 });
+                self.paint_proxy
+                    .send(PaintMessage::ReEnableLCPCalculation(webview_id));
                 Some(new_pipeline_id)
             },
         }
@@ -4163,6 +4165,8 @@ where
             ScriptThreadMessage::Reload(pipeline_id),
             "Got reload event after closure",
         );
+        self.paint_proxy
+            .send(PaintMessage::ReEnableLCPCalculation(webview_id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>

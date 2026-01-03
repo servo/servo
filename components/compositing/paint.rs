@@ -537,6 +537,11 @@ impl Paint {
                     painter.append_lcp_candidate(lcp_candidate, webview_id, pipeline_id, epoch);
                 }
             },
+            PaintMessage::ReEnableLCPCalculation(webview_id) => {
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.reenable_lcp_calculation(webview_id);
+                }
+            },
         }
     }
 
@@ -791,6 +796,14 @@ impl Paint {
         }
         self.painter_mut(webview_id.into())
             .notify_scroll_event(webview_id, scroll, point);
+    }
+
+    pub fn lcp_calculation_enabled_for_webview(&self, webview_id: WebViewId) -> bool {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
+            return false;
+        }
+        self.painter(webview_id.into())
+            .lcp_calculation_enabled_for_webview(webview_id)
     }
 
     pub fn pinch_zoom(&self, webview_id: WebViewId, pinch_zoom_delta: f32, center: DevicePoint) {

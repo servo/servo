@@ -742,6 +742,13 @@ impl WebView {
         self.delegate()
             .show_embedder_control(self.clone(), embedder_control);
     }
+
+    pub fn lcp_calculation_enabled(&self) -> bool {
+        self.inner()
+            .servo
+            .paint()
+            .lcp_calculation_enabled_for_webview(self.id())
+    }
 }
 
 /// A structure used to expose a view of the [`WebView`] to the Servo
