@@ -197,60 +197,6 @@ def create_github_reports(body: str, tag: str = ""):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
             print(body, file=f)
 
-    # Create a GitHub check run. This is more user friendly than a job summary,
-    # but has a very limited size -- thus it may fail.
-    # This process is based on the documentation here:
-    # https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-runs
-    results = json.loads(os.environ.get("RESULTS", "{}"))
-    if all(r == "success" for r in results):
-        conclusion = "success"
-    elif "failure" in results:
-        conclusion = "failure"
-    elif "cancelled" in results:
-        conclusion = "cancelled"
-    else:
-        conclusion = "neutral"
-
-    github_token = os.environ.get("GITHUB_TOKEN")
-    github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
-    if "sha" not in github_context:
-        return None
-    if "repository" not in github_context:
-        return None
-    repo = github_context["repository"]
-    data = {
-        "name": tag,
-        "head_sha": github_context["sha"],
-        "status": "completed",
-        "started_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
-        "conclusion": conclusion,
-        "completed_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
-        "output": {
-            "title": f"Aggregated {tag} report",
-            "summary": body,
-            "images": [{"alt": "WPT logo", "image_url": "https://avatars.githubusercontent.com/u/37226233"}],
-        },
-        "actions": [],
-    }
-
-    subprocess.Popen(
-        [
-            "curl",
-            "-L",
-            "-X",
-            "POST",
-            "-H",
-            "Accept: application/vnd.github+json",
-            "-H",
-            f"Authorization: Bearer {github_token}",
-            "-H",
-            "X-GitHub-Api-Version: 2022-11-28",
-            f"https://api.github.com/repos/{repo}/check-runs",
-            "-d",
-            json.dumps(data),
-        ]
-    ).wait()
-
 
 def main():
     parser = argparse.ArgumentParser()
