@@ -189,6 +189,10 @@ pub(crate) fn outer_inline(
                 };
             ConstraintSpace::new(block_size, style, aspect_ratio)
         } else {
+            // Even if the size doesn't directly depend on block constraints, since this box
+            // doesn't establish a containing block, its contents can depend on its block
+            // constraints. And thus have a dependency via the intrinsic size.
+            depends_on_block_constraints = true;
             // This assumes that there is no preferred aspect ratio, or that there is no
             // block size constraint to be transferred so the ratio is irrelevant.
             // We only get into here for anonymous blocks, for which the assumption holds.
