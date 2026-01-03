@@ -15,8 +15,10 @@ use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::WebViewId;
 use base::threadpool::ThreadPool;
 use base::{read_json_from_file, write_json_to_file};
+use log::warn;
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::pub_domains::registered_domain_name;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
 };
@@ -62,6 +64,8 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
 
 #[derive(Deserialize, Serialize)]
 pub struct StorageOrigins {
+    // TODO: Consider grouping by eTLD+1
+    // TODO: Consider ImmutableOrigin instead of String for tracking origins
     origin_descriptors: FxHashMap<String, OriginDescriptor>,
 }
 
@@ -89,6 +93,32 @@ impl StorageOrigins {
 
     fn origin_descriptors(&self) -> Vec<OriginDescriptor> {
         self.origin_descriptors.values().cloned().collect()
+    }
+
+    fn take_origins_for_sites(&mut self, sites: &[String]) -> Vec<ImmutableOrigin> {
+        // TODO: This can use `extract_if` once MSVR is bumbed (>=1.88)
+
+        let mut result = Vec::new();
+
+        self.origin_descriptors.retain(|_, descriptor| {
+            let url =
+                ServoUrl::parse(&descriptor.name).expect("Should always be able to parse origins.");
+
+            let Some(domain) = registered_domain_name(&url) else {
+                warn!("Failed to get a registered domain name for: {url}");
+                return true;
+            };
+            let domain = domain.to_string();
+
+            if sites.contains(&domain) {
+                result.push(url.origin());
+                false
+            } else {
+                true
+            }
+        });
+
+        result
     }
 }
 
@@ -250,6 +280,10 @@ impl WebStorageManager {
                 },
                 WebStorageThreadMsg::ListOrigins(sender, storage_type) => {
                     let _ = sender.send(self.origin_descriptors(storage_type));
+                },
+                WebStorageThreadMsg::ClearDataForSites(sender, storage_type, sites) => {
+                    self.clear_data_for_sites(storage_type, &sites);
+                    let _ = sender.send(());
                 },
                 WebStorageThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
@@ -564,6 +598,24 @@ impl WebStorageManager {
         match storage_type {
             WebStorageType::Session => self.session_storage_origins.origin_descriptors(),
             WebStorageType::Local => self.local_storage_origins.origin_descriptors(),
+        }
+    }
+
+    fn clear_data_for_sites(&mut self, storage_type: WebStorageType, sites: &[String]) {
+        match storage_type {
+            WebStorageType::Session => {
+                let origins = self.session_storage_origins.take_origins_for_sites(sites);
+
+                self.session_data.retain(|_, origins_map| {
+                    for origin in &origins {
+                        origins_map.remove(origin);
+                    }
+                    !origins_map.is_empty()
+                });
+            },
+            WebStorageType::Local => {
+                // TODO: Implement clering site data for localStorage
+            },
         }
     }
 }
