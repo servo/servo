@@ -83,7 +83,7 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 
-fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> RethrowError {
+pub(crate) fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
     Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut(), can_gc);
 
@@ -123,8 +123,8 @@ impl Clone for RethrowError {
 }
 
 pub(crate) struct ModuleScript {
-    base_url: ServoUrl,
-    options: ScriptFetchOptions,
+    pub(crate) base_url: ServoUrl,
+    pub(crate) options: ScriptFetchOptions,
     owner: Option<ModuleOwner>,
 }
 
@@ -662,7 +662,7 @@ impl ModuleTree {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
-    fn resolve_module_specifier(
+    pub(crate) fn resolve_module_specifier(
         global: &GlobalScope,
         script: Option<&ModuleScript>,
         specifier: DOMString,
@@ -1463,7 +1463,7 @@ impl ScriptFetchOptions {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#descendant-script-fetch-options>
-    fn descendant_fetch_options(&self) -> ScriptFetchOptions {
+    pub(crate) fn descendant_fetch_options(&self) -> ScriptFetchOptions {
         Self {
             referrer: self.referrer.clone(),
             integrity_metadata: String::new(),
@@ -1476,7 +1476,7 @@ impl ScriptFetchOptions {
 }
 
 #[expect(unsafe_code)]
-unsafe fn module_script_from_reference_private(
+pub(crate) unsafe fn module_script_from_reference_private(
     reference_private: &RawHandle<JSVal>,
 ) -> Option<&ModuleScript> {
     if reference_private.get().is_undefined() {
