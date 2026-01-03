@@ -354,14 +354,14 @@ class PackageCommands(CommandBase):
             bundle_wxs_path = path.join(dir_to_msi, "Servo.wxs")
             try:
                 with cd(dir_to_msi):
-                    subprocess.check_call(["candle", bundle_wxs_path, "-ext", "WixUIExtension"])
+                    subprocess.check_call(["candle", bundle_wxs_path, "-ext", "WixBalExtension"])
             except subprocess.CalledProcessError as e:
                 print("WiX candle exited with return value %d" % e.returncode)
                 return e.returncode
             try:
                 wxsobj_path = "{}.wixobj".format(path.splitext(bundle_wxs_path)[0])
                 with cd(dir_to_msi):
-                    subprocess.check_call(["light", wxsobj_path, "-ext", "WixUIExtension"])
+                    subprocess.check_call(["light", wxsobj_path, "-ext", "WixBalExtension"])
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
