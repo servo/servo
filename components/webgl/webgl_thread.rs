@@ -2836,7 +2836,7 @@ fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
     mapped
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn prepare_pixels(
     internal_format: TexFormat,
     data_type: TexDataType,

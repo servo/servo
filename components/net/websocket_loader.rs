@@ -41,7 +41,6 @@ use crate::cookie::ServoCookie;
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
 
-#[allow(clippy::result_large_err)]
 /// Create a Request object for the initial HTTP request.
 /// This request contains `Origin`, `Sec-WebSocket-Protocol`, `Authorization`,
 /// and `Cookie` headers as appropriate.
@@ -117,7 +116,6 @@ pub fn create_handshake_request(
     Ok(request.headers(headers).build())
 }
 
-#[allow(clippy::result_large_err)]
 /// Process an HTTP response resulting from a WS handshake.
 /// This ensures that any `Cookie` or HSTS headers are recognized.
 /// Returns an error if the protocol selected by the handshake doesn't

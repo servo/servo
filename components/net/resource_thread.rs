@@ -77,7 +77,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub fn new_resource_threads(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
@@ -117,7 +117,7 @@ pub fn new_resource_threads(
 }
 
 /// Create a CoreResourceThread
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,

@@ -93,7 +93,7 @@ impl<P> Pass<P> {
     }
 }
 
-#[allow(clippy::upper_case_acronyms)] // Name of the library
+#[expect(clippy::upper_case_acronyms)] // Name of the library
 pub(crate) struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
     sender: IpcSender<WebGPURequest>,

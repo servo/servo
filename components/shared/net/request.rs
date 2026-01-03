@@ -389,7 +389,7 @@ impl RequestBody {
         self.source == BodySource::Null
     }
 
-    #[allow(clippy::len_without_is_empty)]
+    #[expect(clippy::len_without_is_empty)]
     pub fn len(&self) -> Option<usize> {
         self.total_bytes
     }

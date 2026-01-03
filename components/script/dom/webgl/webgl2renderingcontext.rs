@@ -458,7 +458,7 @@ impl WebGL2RenderingContext {
     }
 
     #[expect(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn read_pixels_into(
         &self,
         x: i32,
@@ -859,7 +859,7 @@ impl WebGL2RenderingContext {
             .send_command(WebGLCommand::VertexAttribU(index, x, y, z, w));
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn tex_storage(
         &self,
         dimensions: u8,
@@ -908,7 +908,7 @@ impl WebGL2RenderingContext {
         );
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn tex_image_3d(
         &self,
         texture: &WebGLTexture,

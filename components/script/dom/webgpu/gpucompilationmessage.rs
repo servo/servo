@@ -46,7 +46,7 @@ impl GPUCompilationMessage {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         message: DOMString,

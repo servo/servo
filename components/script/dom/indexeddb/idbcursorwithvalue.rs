@@ -43,7 +43,7 @@ impl IDBCursorWithValue {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         transaction: &IDBTransaction,

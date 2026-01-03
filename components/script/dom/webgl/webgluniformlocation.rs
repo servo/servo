@@ -44,7 +44,7 @@ impl WebGLUniformLocation {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
         id: i32,

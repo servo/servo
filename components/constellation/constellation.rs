@@ -1015,7 +1015,7 @@ where
     }
 
     /// Helper function for creating a pipeline
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_pipeline(
         &mut self,
         new_pipeline_id: PipelineId,
@@ -1153,7 +1153,7 @@ where
     }
 
     /// Create a new browsing context and update the internal bookkeeping.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_browsing_context(
         &mut self,
         browsing_context_id: BrowsingContextId,
@@ -2965,7 +2965,7 @@ where
         }
     }
 
-    #[allow(deprecated)]
+    #[expect(deprecated)]
     fn update_active_keybord_modifiers(&mut self, event: &KeyboardEvent) {
         self.active_keyboard_modifiers = event.event.modifiers;
 

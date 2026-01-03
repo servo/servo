@@ -28,7 +28,7 @@ use crate::script_runtime::CanGc;
 
 /// <https://url.spec.whatwg.org/#url>
 #[dom_struct]
-#[allow(clippy::upper_case_acronyms)]
+#[expect(clippy::upper_case_acronyms)]
 pub(crate) struct URL {
     reflector_: Reflector,
 

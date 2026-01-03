@@ -226,7 +226,7 @@ impl SqliteEngine {
             .map(|models| models.into_iter().map(|m| m.data).collect())
     }
 
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     fn get_all_records(
         connection: &Connection,
         store: object_store_model::Model,

@@ -484,7 +484,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn perform_pointer_move(
         &mut self,
         source_id: &str,
@@ -651,7 +651,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-perform-a-scroll>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn perform_scroll(
         &self,
         duration: u64,

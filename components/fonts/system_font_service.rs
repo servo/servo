@@ -89,7 +89,6 @@ impl SystemFontService {
         thread::Builder::new()
             .name("SystemFontService".to_owned())
             .spawn(move || {
-                #[allow(clippy::default_constructed_unit_structs)]
                 let mut cache = SystemFontService {
                     port: receiver,
                     local_families: Default::default(),

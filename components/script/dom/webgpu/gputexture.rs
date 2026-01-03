@@ -45,7 +45,7 @@ pub(crate) struct GPUTexture {
 }
 
 impl GPUTexture {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         texture: WebGPUTexture,
         device: &GPUDevice,
@@ -73,7 +73,7 @@ impl GPUTexture {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         texture: WebGPUTexture,

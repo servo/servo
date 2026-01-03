@@ -70,7 +70,6 @@ pub enum RenderCommand {
     ExecuteBundles(Vec<RenderBundleId>),
 }
 
-#[allow(clippy::result_large_err)]
 pub fn apply_render_command(
     global: &Global,
     pass: &mut RenderPass,

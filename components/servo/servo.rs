@@ -927,7 +927,7 @@ fn create_paint_channel(
     (paint_proxy, receiver)
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn create_constellation(
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
     paint: &Paint,

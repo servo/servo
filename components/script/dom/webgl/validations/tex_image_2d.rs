@@ -253,7 +253,7 @@ pub(crate) struct TexImage2DValidator<'a> {
 
 impl<'a> TexImage2DValidator<'a> {
     /// TODO: Move data validation logic here.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
@@ -385,7 +385,7 @@ pub(crate) struct CommonCompressedTexImage2DValidator<'a> {
 }
 
 impl<'a> CommonCompressedTexImage2DValidator<'a> {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
@@ -509,7 +509,7 @@ pub(crate) struct CompressedTexImage2DValidator<'a> {
 }
 
 impl<'a> CompressedTexImage2DValidator<'a> {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
@@ -586,7 +586,7 @@ pub(crate) struct CompressedTexSubImage2DValidator<'a> {
 }
 
 impl<'a> CompressedTexSubImage2DValidator<'a> {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
@@ -699,7 +699,7 @@ pub(crate) struct TexStorageValidatorResult {
 }
 
 impl<'a> TexStorageValidator<'a> {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         dimensions: u8,

@@ -493,7 +493,6 @@ pub(crate) trait ErrorToJsval {
 
 impl ErrorToJsval for Error {
     /// Convert this error value to a JS value, consuming it in the process.
-    #[allow(clippy::wrong_self_convention)]
     fn to_jsval(
         self,
         cx: SafeJSContext,

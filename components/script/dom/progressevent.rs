@@ -41,7 +41,7 @@ impl ProgressEvent {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -65,7 +65,7 @@ impl ProgressEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

@@ -53,7 +53,7 @@ impl ClientStorageThread {
     }
 
     pub fn start(&mut self) {
-        #[allow(clippy::never_loop)]
+        #[expect(clippy::never_loop)]
         loop {
             match self.generic_receiver.recv().unwrap() {
                 ClientStorageThreadMessage::Exit(sender) => {

@@ -125,7 +125,7 @@ impl From<Au> for ContentSizes {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn outer_inline(
     base: &LayoutBoxBase,
     layout_style: &LayoutStyle,

@@ -85,7 +85,6 @@ impl GlClearer {
             })
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn clear(
         &mut self,
         contexts: &mut dyn GLContexts<SurfmanGL>,

@@ -125,7 +125,7 @@ impl FileManager {
     /// Read a file for the Fetch implementation.
     /// It gets the required headers synchronously and reads the actual content
     /// in a separate thread.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn fetch_file(
         &self,
         done_sender: &mut TokioSender<Data>,
@@ -263,7 +263,7 @@ impl FileManager {
             });
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn fetch_blob_buf(
         &self,
         done_sender: &mut TokioSender<Data>,

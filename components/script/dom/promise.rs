@@ -450,7 +450,7 @@ struct WaitForAllFulfillmentHandler {
 
     /// The results of the promises.
     #[ignore_malloc_size_of = "mozjs"]
-    #[allow(clippy::vec_box)]
+    #[expect(clippy::vec_box)]
     result: Rc<RefCell<Vec<Box<Heap<JSVal>>>>>,
 
     /// The index identifying which promise this handler is attached to.

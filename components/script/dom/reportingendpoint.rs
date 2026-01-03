@@ -126,7 +126,7 @@ impl SendReportsToEndpoints for GlobalScope {
         endpoints: Vec<ReportingEndpoint>,
     ) {
         // Step 1. Let endpoint map be an empty map of endpoint objects to lists of report objects.
-        #[allow(clippy::mutable_key_type)]
+        #[expect(clippy::mutable_key_type)]
         // See `impl Hash for DOMString`.
         let mut endpoint_map: HashMap<&ReportingEndpoint, Vec<Report>> = HashMap::new();
         // Step 2. For each report in reports:

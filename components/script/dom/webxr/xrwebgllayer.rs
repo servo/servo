@@ -78,7 +78,7 @@ impl XRWebGLLayer {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,

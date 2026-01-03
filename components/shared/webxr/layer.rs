@@ -170,7 +170,7 @@ impl Drop for LayerManager {
     }
 }
 
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 pub struct LayerManagerFactory<GL: GLTypes>(
     Box<dyn Send + FnOnce(&mut dyn GLContexts<GL>) -> Result<Box<dyn LayerManagerAPI<GL>>, Error>>,
 );

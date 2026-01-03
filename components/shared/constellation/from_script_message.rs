@@ -145,7 +145,7 @@ pub enum JsEvalResult {
 
 impl LoadData {
     /// Create a new `LoadData` object.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         load_origin: LoadOrigin,
         url: ServoUrl,

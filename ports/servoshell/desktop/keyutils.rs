@@ -26,7 +26,7 @@ trait FromWinitKeyEvent {
     fn from_winit_key_event(key_event: &KeyEvent) -> Self;
 }
 
-#[allow(deprecated)]
+#[expect(deprecated)]
 impl FromWinitKeyEvent for Key {
     fn from_winit_key_event(key_event: &KeyEvent) -> Self {
         let named_key = match key_event.logical_key {

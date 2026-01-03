@@ -116,7 +116,7 @@ impl TrustedTypePolicyFactory {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-type-data-for-attribute>
-    #[allow(clippy::if_same_then_else)]
+    #[expect(clippy::if_same_then_else)]
     fn get_trusted_type_data_for_attribute(
         element_namespace: &Namespace,
         element_name: &LocalName,
@@ -421,7 +421,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
         .map(|tuple| DOMString::from(tuple.0.as_ref()))
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getpropertytype>
-    #[allow(clippy::if_same_then_else)]
+    #[expect(clippy::if_same_then_else)]
     fn GetPropertyType(
         &self,
         tag_name: DOMString,
