@@ -2597,6 +2597,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     },
                     |_aspect_ratio| None,
                 );
+                self.depends_on_block_constraints |=
+                    inline_content_sizes_result.depends_on_block_constraints;
                 self.current_line = inline_content_sizes_result.sizes;
                 self.forced_line_break();
             },
