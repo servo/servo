@@ -3619,6 +3619,7 @@ impl SupportedAlgorithm {
 
             // <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-registration>
             (Self::MlDsa(_), Operation::ImportKey) => ParameterType::None,
+            (Self::MlDsa(_), Operation::ExportKey) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
             (Self::ChaCha20Poly1305, Operation::Encrypt) => ParameterType::AeadParams,
@@ -4470,6 +4471,7 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
         ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024 => {
             ml_kem_operation::export_key(format, key)
         },
+        ALG_ML_DSA_44 | ALG_ML_DSA_65 | ALG_ML_DSA_87 => ml_dsa_operation::export_key(format, key),
         ALG_CHACHA20_POLY1305 => chacha20_poly1305_operation::export_key(format, key),
         _ => Err(Error::NotSupported(None)),
     }
