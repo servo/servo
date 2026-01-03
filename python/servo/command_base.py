@@ -32,6 +32,7 @@ from subprocess import PIPE, CompletedProcess
 from typing import Any, Optional, Union, LiteralString, cast, List
 from collections.abc import Generator, Callable
 from xml.etree.ElementTree import XML
+from pathlib import Path
 
 import toml
 from mach.decorators import CommandArgument, CommandArgumentGroup
@@ -480,6 +481,54 @@ class CommandBase(object):
     def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
+    def get_current_clang_version(self, cc_string: str) -> Optional[str]:
+        try:
+            result = subprocess.run(
+                [cc_string, "--version"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            clang_version_full_string_split = result.stdout.lower().split()
+            for prev, curr in zip(clang_version_full_string_split, clang_version_full_string_split[1:]):
+                if prev == "version":
+                    return curr
+            return None
+        except (subprocess.CalledProcessError, FileNotFoundError) as _:
+            return None
+
+    def get_valid_clang_path_using_version_string(self, clang_version: str) -> Optional[str]:
+        cc_name = "clang-" + clang_version.split(".")[0]
+        return shutil.which(cc_name)
+
+    def get_valid_clang_lib_path_using_path(self, clang_path_str: str) -> Optional[str]:
+        """
+        The Ubuntu the clanglib can be found in the `/usr/lib/llvm-[XX]/lib/` (ex: `/usr/lib/llvm-20/lib/`).
+        The Fedora installs clanglib in the `/usr/lib64/llvm[XX]/lib64/`.
+
+        In cases of macos and Ubuntu, the plan is to traverse up the clang path and go for the `../lib/`.
+        """
+        clang_path = Path(clang_path_str)
+        lib_path = clang_path.parent / "lib"
+
+        if lib_path.exists() and lib_path.is_dir():
+            return str(lib_path)
+        return None
+
+    def get_correct_clang_lib_path_using_llvm(_) -> Optional[str]:
+        try:
+            result = subprocess.run(
+                ["llvm-config", "--libdir"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            return result.stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError) as _:
+            return None
+
     def build_env(self) -> dict[str, str]:
         """Return an extended environment dictionary."""
         env = os.environ.copy()
@@ -504,6 +553,26 @@ class CommandBase(object):
         else:
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
+
+        # The default clang of Ubuntu24.04 from apt seem to be clang-18
+        # But mach seem to use the llvm's lib .so instead, so to sync, we can force LIBCLANG_PATH
+        clang_version = None
+        cc_str_from_env = os.getenv("CC")
+        if cc_str_from_env is not None:
+            clang_version = self.get_current_clang_version(cc_str_from_env)
+        cc_path = None
+        if clang_version is not None:
+            cc_path = self.get_valid_clang_path_using_version_string(clang_version)
+
+        libdir = self.get_correct_clang_lib_path_using_llvm()
+        if libdir is not None:
+            env.setdefault("LIBCLANG_PATH", libdir)
+
+        if cc_path is not None:
+            env.setdefault("CLANG_PATH", cc_path)
+            libdir = self.get_valid_clang_lib_path_using_path(cc_path)
+            if libdir is not None:
+                env.setdefault("LIBCLANG_PATH", libdir)
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
