@@ -61,10 +61,6 @@
       </Directory>
     </Directory>
 
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
-    <UIRef Id="WixUI_InstallDir" />
-
-
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="Servo"/>
       % for c in components:
