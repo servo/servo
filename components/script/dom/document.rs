@@ -13,8 +13,9 @@ use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericSend;
 use base::id::WebViewId;
-use base::{Epoch, IpcSend, generic_channel};
+use base::{Epoch, generic_channel};
 use bitflags::bitflags;
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};

@@ -6,13 +6,12 @@ use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use base::IpcSend;
+use base::generic_channel::{GenericSend, GenericSender};
 use base::id::CookieStoreId;
 use cookie::{Cookie, SameSite};
 use dom_struct::dom_struct;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
-use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use itertools::Itertools;
 use js::jsval::NullValue;
@@ -50,7 +49,7 @@ pub(crate) struct CookieStore {
     store_id: CookieStoreId,
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
-    unregister_channel: IpcSender<CoreResourceMsg>,
+    unregister_channel: GenericSender<CoreResourceMsg>,
 }
 
 struct CookieListener {
@@ -97,7 +96,7 @@ impl CookieListener {
 }
 
 impl CookieStore {
-    fn new_inherited(unregister_channel: IpcSender<CoreResourceMsg>) -> CookieStore {
+    fn new_inherited(unregister_channel: GenericSender<CoreResourceMsg>) -> CookieStore {
         CookieStore {
             eventtarget: EventTarget::new_inherited(),
             in_flight: Default::default(),

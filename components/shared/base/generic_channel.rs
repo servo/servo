@@ -24,6 +24,8 @@ mod oneshot;
 /// 'GenericSharedMemory' is, however, still useful so we reexport it under a different name for future optimization.
 pub use ipc_channel::ipc::IpcSharedMemory as GenericSharedMemory;
 pub use oneshot::{GenericOneshotReceiver, GenericOneshotSender, oneshot};
+mod generic_channelset;
+pub use generic_channelset::{GenericReceiverSet, GenericSelectionResult};
 
 /// Abstraction of the ability to send a particular type of message cross-process.
 /// This can be used to ease the use of GenericSender sub-fields.
@@ -246,6 +248,11 @@ impl fmt::Display for ReceiveError {
             ReceiveError::Io(ref error) => write!(fmt, "io error: {error}"),
             ReceiveError::Disconnected => write!(fmt, "disconnected"),
         }
+    }
+}
+impl From<std::io::Error> for ReceiveError {
+    fn from(value: std::io::Error) -> Self {
+        ReceiveError::Io(value)
     }
 }
 
@@ -641,5 +648,240 @@ mod single_process_channel_tests {
         });
         let received = rx.try_recv_timeout(timeout_duration);
         assert!(received.is_ok());
+    }
+}
+
+/// This tests need to be in here because they use the 'new_generic_channel_..' methods
+#[cfg(test)]
+mod generic_receiversets_tests {
+    use std::time::Duration;
+
+    use crate::generic_channel::generic_channelset::{
+        GenericSelectionResult, create_crossbeam_receiver_set, create_ipc_receiver_set,
+    };
+    use crate::generic_channel::{new_generic_channel_crossbeam, new_generic_channel_ipc};
+
+    #[test]
+    fn test_ipc_side1() {
+        let (snd1, recv1) = new_generic_channel_ipc().unwrap();
+        let (snd2, recv2) = new_generic_channel_ipc().unwrap();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let snd2_c = snd2.clone();
+        let mut set = create_ipc_receiver_set();
+        let recv1_select_index = set.add(recv1);
+        let _recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            snd1_c.send(10).unwrap();
+        });
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(1));
+            let _ = snd2_c.send(20); // this might error with closed channel
+        });
+
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::MessageReceived(recv1_select_index, 10)
+        );
+    }
+
+    #[test]
+    fn test_ipc_side2() {
+        let (snd1, recv1) = new_generic_channel_ipc().unwrap();
+        let (snd2, recv2) = new_generic_channel_ipc().unwrap();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let snd2_c = snd2.clone();
+        let mut set = create_ipc_receiver_set();
+        let _recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(1));
+            let _ = snd1_c.send(10);
+        });
+        std::thread::spawn(move || {
+            snd2_c.send(20).unwrap();
+        });
+
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
+        );
+    }
+
+    #[test]
+    fn test_crossbeam_side1() {
+        let (snd1, recv1) = new_generic_channel_crossbeam();
+        let (snd2, recv2) = new_generic_channel_crossbeam();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let snd2_c = snd2.clone();
+        let mut set = create_crossbeam_receiver_set();
+        let recv1_select_index = set.add(recv1);
+        let _recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            snd1_c.send(10).unwrap();
+        });
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            let _ = snd2_c.send(20);
+        });
+
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::MessageReceived(recv1_select_index, 10)
+        );
+    }
+
+    #[test]
+    fn test_crossbeam_side2() {
+        let (snd1, recv1) = new_generic_channel_crossbeam();
+        let (snd2, recv2) = new_generic_channel_crossbeam();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let snd2_c = snd2.clone();
+        let mut set = create_crossbeam_receiver_set();
+        let _recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            let _ = snd1_c.send(10);
+        });
+        std::thread::spawn(move || {
+            snd2_c.send(20).unwrap();
+        });
+
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
+        );
+    }
+
+    #[test]
+    fn test_ipc_no_crash_on_disconnect() {
+        // Test that we do not crash if a channel gets disconnected.
+        // Channel 2 gets disconnected because snd2 gets moved into the thread and then falls out of scope
+        let (snd1, recv1) = new_generic_channel_ipc().unwrap();
+        let (snd2, recv2) = new_generic_channel_ipc().unwrap();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let mut set = create_ipc_receiver_set();
+        let _recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            let _ = snd1_c.send(10);
+        });
+        std::thread::spawn(move || {
+            snd2.send(20).unwrap();
+        });
+        std::thread::sleep(Duration::from_secs(1));
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
+        );
+    }
+
+    #[test]
+    fn test_crossbeam_no_crash_on_disconnect() {
+        // Channel 2 gets disconnected because snd2 gets moved into the thread and then falls out of scope
+        let (snd1, recv1) = new_generic_channel_crossbeam();
+        let (snd2, recv2) = new_generic_channel_crossbeam();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let mut set = create_crossbeam_receiver_set();
+        let _recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            let _ = snd1_c.send(10);
+        });
+        std::thread::spawn(move || {
+            snd2.send(20).unwrap();
+        });
+        std::thread::sleep(Duration::from_secs(1));
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::MessageReceived(recv2_select_index, 20)
+        );
+    }
+
+    #[test]
+    fn test_ipc_disconnect_correct_message() {
+        // Test that we do not crash if a channel gets disconnected.
+        let (snd1, recv1) = new_generic_channel_ipc().unwrap();
+        let (snd2, recv2) = new_generic_channel_ipc().unwrap();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let mut set = create_ipc_receiver_set();
+        let _recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            let _ = snd1_c.send(10);
+        });
+        std::thread::spawn(move || {
+            drop(snd2);
+        });
+
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::ChannelClosed(recv2_select_index)
+        );
+    }
+
+    #[test]
+    fn test_crossbeam_disconnect_correct_messaget() {
+        let (snd1, recv1) = new_generic_channel_crossbeam();
+        let (snd2, recv2) = new_generic_channel_crossbeam();
+
+        // We keep the senders alive till all threads are done
+        let snd1_c = snd1.clone();
+        let mut set = create_crossbeam_receiver_set();
+        let _recv1_select_index = set.add(recv1);
+        let recv2_select_index = set.add(recv2);
+
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            let _ = snd1_c.send(10);
+        });
+        std::thread::spawn(move || {
+            drop(snd2);
+        });
+
+        let select_result = set.select();
+        let channel_result = select_result.first().unwrap();
+        assert_eq!(
+            *channel_result,
+            GenericSelectionResult::ChannelClosed(recv2_select_index)
+        );
     }
 }
