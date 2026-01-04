@@ -892,6 +892,7 @@ impl Window {
         let global = self.as_global_scope();
         WebFontDocumentContext {
             policy_container: global.policy_container(),
+            request_client: global.request_client(),
             document_url: global.api_base_url(),
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
             insecure_requests_policy: global.insecure_requests_policy(),
