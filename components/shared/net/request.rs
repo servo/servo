@@ -193,6 +193,8 @@ pub struct RequestClient {
     pub policy_container: RequestPolicyContainer,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
     pub origin: Origin,
+    /// <https://html.spec.whatwg.org/multipage/#nested-browsing-context>
+    pub is_nested_browsing_context: bool,
 }
 
 impl RequestClient {

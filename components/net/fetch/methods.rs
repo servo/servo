@@ -1179,8 +1179,15 @@ fn should_upgrade_request_to_potentially_trustworthy(
             return true;
         }
 
-        // Step 2.2
-        // TODO If request’s client's target browsing context is a nested browsing context
+        // Step 2.2 If request’s client's target browsing context is a nested browsing context,
+        // skip the remaining substeps and continue upgrading request.
+        if request
+            .client
+            .as_ref()
+            .is_some_and(|client| client.is_nested_browsing_context)
+        {
+            return true;
+        }
 
         // Step 2.4
         // TODO : check for insecure navigation set after its implemention
