@@ -73,6 +73,38 @@ pub(crate) struct TextFragment {
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
+
+    /// Struct for overflow indicator-related metadata.
+    /// One example of overflow indicator is ellipsis glyph.
+    pub overflow_metadata: OverflowIndicatorData,
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct OverflowIndicatorData {
+    /// The left & right bounds of the containing block, after overflow indicator is taken into account.
+    /// The right bound is simply the width of the containing block minus the `second` value of overflow indicator width.
+    /// TODO: Add left bound computation logic after double-valued `text-overflow` is supported.
+    pub containing_block_bounds: (Au, Au),
+
+    /// Per the CSS specification <https://drafts.csswg.org/css-overflow/#text-overflow>,
+    /// "The first character or atomic inline-level element on a line must be clipped rather than ellipsed."
+    /// Therefore, this value is needed during display list construction. If we're still processing the first
+    /// character, then we clip instead of eliding it.
+    pub contains_first_character_of_the_line: bool,
+
+    /// A line can contain more than one TextFragment.
+    /// For example, consider the case 中文english. In this case, there will be two text fragments.
+    /// Suppose that the `english` TextFragment is the one that will be elided.
+    /// In this case, we need to know the total width of the preceeding TextFragment(s)
+    /// in order to know where to clip the `english` TextFragment.
+    /// In our case, `inline_offset` is simply the total advance （width) of `中文` TextFragment.
+    pub inline_offset: Au,
+
+    /// Whether this TextFragment can be elided.
+    /// This information will be useful during display list construction.
+    /// If `can_be_elided` is true, then we add our clipping logic.
+    /// Else, Servo will handle it as usual.
+    pub can_be_elided: bool,
 }
 
 #[derive(MallocSizeOf)]
@@ -87,6 +119,22 @@ pub(crate) struct ImageFragment {
 pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
+}
+
+impl OverflowIndicatorData {
+    pub fn new(
+        containing_block_bounds: (Au, Au),
+        contains_first_character_of_the_line: bool,
+        inline_offset: Au,
+        can_be_elided: bool,
+    ) -> Self {
+        Self {
+            containing_block_bounds,
+            contains_first_character_of_the_line,
+            inline_offset,
+            can_be_elided,
+        }
+    }
 }
 
 impl Fragment {
