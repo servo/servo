@@ -19,7 +19,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
@@ -43,7 +43,6 @@ impl OpenRequestListener {
     fn handle_open_db(&self, name: String, response: OpenDatabaseResult, can_gc: CanGc) {
         let request = self.open_request.root();
         let global = request.global();
-        let idb_factory = global.get_indexeddb();
         let name = DBName(name);
         match response {
             OpenDatabaseResult::Connection { version, upgraded } => {
@@ -51,18 +50,14 @@ impl OpenRequestListener {
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
-                    if upgraded {
-                        unreachable!("A connection should exist for the upgraded db.");
-                    }
-                    let connection = IDBDatabase::new(
+                let connection = request.pending_connection.or_init(|| {
+                    debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
+                    IDBDatabase::new(
                         &global,
                         DOMString::from_string(name.0.clone()),
                         version,
                         can_gc,
-                    );
-                    idb_factory.note_connection(name.clone(), &connection);
-                    connection
+                    )
                 });
                 request.dispatch_success(&connection);
             },
@@ -72,16 +67,13 @@ impl OpenRequestListener {
                 transaction,
             } => {
                 // TODO: link with backend connection concept.
-                let connection = idb_factory.get_connection(&name).unwrap_or_else(|| {
-                    let connection = IDBDatabase::new(
-                        &global,
-                        DOMString::from_string(name.0.clone()),
-                        version,
-                        can_gc,
-                    );
-                    idb_factory.note_connection(name.clone(), &connection);
-                    connection
-                });
+                let connection = IDBDatabase::new(
+                    &global,
+                    DOMString::from_string(name.0.clone()),
+                    version,
+                    can_gc,
+                );
+                request.pending_connection.set(Some(&connection));
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
             },
             OpenDatabaseResult::VersionError => {
@@ -194,12 +186,14 @@ impl OpenRequestListener {
 #[dom_struct]
 pub struct IDBOpenDBRequest {
     idbrequest: IDBRequest,
+    pending_connection: MutNullableDom<IDBDatabase>,
 }
 
 impl IDBOpenDBRequest {
     pub fn new_inherited() -> IDBOpenDBRequest {
         IDBOpenDBRequest {
             idbrequest: IDBRequest::new_inherited(),
+            pending_connection: Default::default(),
         }
     }
 
@@ -274,17 +268,20 @@ impl IDBOpenDBRequest {
             // run abort a transaction with transaction
             // and a newly created "AbortError" DOMException.
             // TODO: implement.
-        }
 
-        if global
-            .storage_threads()
-            .send(IndexedDBThreadMsg::OpenTransactionInactive {
-                name: connection.get_name().to_string(),
-                transaction: transaction.get_serial_number(),
-            })
-            .is_err()
-        {
-            error!("Failed to send OpenTransactionInactive.");
+            // Note: only sending this if active,
+            // because if the transaction was aborted
+            // we don't want to create a connection.
+            if global
+                .storage_threads()
+                .send(IndexedDBThreadMsg::OpenTransactionInactive {
+                    name: connection.get_name().to_string(),
+                    origin: global.origin().immutable().clone(),
+                })
+                .is_err()
+            {
+                error!("Failed to send OpenTransactionInactive.");
+            }
         }
     }
 
@@ -378,33 +375,23 @@ impl IDBOpenDBRequest {
     }
 
     pub fn dispatch_success(&self, result: &IDBDatabase) {
+        self.idbrequest.set_ready_state_done();
         let global = self.global();
-        let this = Trusted::new(self);
-        let result = Trusted::new(result);
+        let cx = GlobalScope::get_cx();
 
-        global.task_manager().database_access_task_source().queue(
-            task!(send_success_notification: move || {
-                let this = this.root();
-                let result = result.root();
-                this.idbrequest.set_ready_state_done();
-                let global = this.global();
-                let cx = GlobalScope::get_cx();
+        let _ac = enter_realm(result);
+        rooted!(in(*cx) let mut result_val = UndefinedValue());
+        result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::note());
+        self.set_result(result_val.handle());
 
-                let _ac = enter_realm(&*result);
-                rooted!(in(*cx) let mut result_val = UndefinedValue());
-                result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::note());
-                this.set_result(result_val.handle());
-
-                let event = Event::new(
-                    &global,
-                    Atom::from("success"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    CanGc::note()
-                );
-                event.fire(this.upcast(), CanGc::note());
-            }),
+        let event = Event::new(
+            &global,
+            Atom::from("success"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            CanGc::note(),
         );
+        event.fire(self.upcast(), CanGc::note());
     }
 }
 

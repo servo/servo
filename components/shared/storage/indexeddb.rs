@@ -473,6 +473,18 @@ pub enum SyncOperation {
         String, // Database
     ),
 
+    /// Abort pending database upgrades
+    AbortPendingUpgrades {
+        names: Vec<String>,
+        origin: ImmutableOrigin,
+    },
+
+    /// Abort the current pending upgrade.
+    AbortPendingUpgrade {
+        name: String,
+        origin: ImmutableOrigin,
+    },
+
     /// Send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),
 }
@@ -490,7 +502,7 @@ pub enum IndexedDBThreadMsg {
     ),
     OpenTransactionInactive {
         name: String,
-        transaction: u64,
+        origin: ImmutableOrigin,
     },
 }
 
