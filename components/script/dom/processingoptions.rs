@@ -517,6 +517,11 @@ impl FetchResponseListener for LinkFetchContext {
                 CoreResourceMsg::StorePreloadedResponse(preload_id.clone(), response),
             );
         }
+
+        if let Ok(ref response) = response_result {
+            submit_timing(&self, response, CanGc::note());
+        }
+
         // Step 11.6. If processResponse is given, then call processResponse with response.
         //
         // Part of Preload
@@ -526,11 +531,7 @@ impl FetchResponseListener for LinkFetchContext {
         // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
             link.root()
-                .fire_event_after_response(response_result.clone(), CanGc::note());
-        }
-
-        if let Ok(response) = response_result {
-            submit_timing(&self, &response, CanGc::note());
+                .fire_event_after_response(response_result, CanGc::note());
         }
     }
 
