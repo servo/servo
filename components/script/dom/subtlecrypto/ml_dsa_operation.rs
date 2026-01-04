@@ -5,11 +5,12 @@
 use der::asn1::{BitString, OctetString};
 use der::{AnyRef, Choice, Decode, Encode, Sequence};
 use ml_dsa::{B32, EncodedVerifyingKey, KeyGen, MlDsa44, MlDsa65, MlDsa87};
+use pkcs8::rand_core::{OsRng, RngCore};
 use pkcs8::spki::AlgorithmIdentifier;
 use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
@@ -117,6 +118,93 @@ enum MlDsaPrivateKeyStructure {
     Seed(OctetString),
     ExpandedKey(OctetString),
     Both(Both),
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-generate-key>
+pub(crate) fn generate_key(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAlgorithm,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<CryptoKeyPair, Error> {
+    // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
+    // SyntaxError.
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+    {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not one of \"sign\" or \"verify\"".to_string(),
+        )));
+    }
+
+    // Step 2. Generate an ML-DSA key pair, as described in Section 5.1 of [FIPS-204], with the
+    // parameter set indicated by the name member of normalizedAlgorithm.
+    // Step 3. If the key generation step fails, then throw an OperationError.
+    let mut seed_bytes = vec![0u8; 32];
+    OsRng.fill_bytes(&mut seed_bytes);
+    let (private_key_handle, public_key_handle) =
+        convert_seed_to_handles(&normalized_algorithm.name, &seed_bytes, None, None)?;
+
+    // Step 4. Let algorithm be a new KeyAlgorithm object.
+    // Step 5. Set the name attribute of algorithm to the name attribute of normalizedAlgorithm.
+    let algorithm = SubtleKeyAlgorithm {
+        name: normalized_algorithm.name.clone(),
+    };
+
+    // Step 6. Let publicKey be a new CryptoKey representing the public key of the generated key
+    // pair.
+    // Step 7. Set the [[type]] internal slot of publicKey to "public".
+    // Step 8. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 9. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 10. Set the [[usages]] internal slot of publicKey to be the usage intersection of
+    // usages and [ "verify" ].
+    let public_key = CryptoKey::new(
+        global,
+        KeyType::Public,
+        true,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
+        usages
+            .iter()
+            .filter(|usage| **usage == KeyUsage::Verify)
+            .cloned()
+            .collect(),
+        public_key_handle,
+        can_gc,
+    );
+
+    // Step 11. Let privateKey be a new CryptoKey representing the private key of the generated key
+    // pair.
+    // Step 12. Set the [[type]] internal slot of privateKey to "private".
+    // Step 13. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of privateKey to extractable.
+    // Step 15. Set the [[usages]] internal slot of privateKey to be the usage intersection of
+    // usages and [ "sign" ].
+    let private_key = CryptoKey::new(
+        global,
+        KeyType::Private,
+        extractable,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+        usages
+            .iter()
+            .filter(|usage| **usage == KeyUsage::Sign)
+            .cloned()
+            .collect(),
+        private_key_handle,
+        can_gc,
+    );
+
+    // Step 16. Let result be a new CryptoKeyPair dictionary.
+    // Step 17. Set the publicKey attribute of result to be publicKey.
+    // Step 18. Set the privateKey attribute of result to be privateKey.
+    let result = CryptoKeyPair {
+        publicKey: Some(public_key),
+        privateKey: Some(private_key),
+    };
+
+    // Step 19. Return result.
+    Ok(result)
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-import-key>
