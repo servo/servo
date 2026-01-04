@@ -4,6 +4,7 @@
 
 use constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use dom_struct::dom_struct;
+use encoding_rs::Encoding;
 use net_traits::request::Referrer;
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -71,6 +72,7 @@ impl Location {
         url: ServoUrl,
         history_handling: NavigationHistoryBehavior,
         navigation_type: NavigationType,
+        encoding_override: Option<&'static Encoding>,
         can_gc: CanGc,
     ) {
         fn incumbent_window() -> DomRoot<Window> {
@@ -122,7 +124,7 @@ impl Location {
 
         // Initiate navigation
         // TODO: rethrow exceptions, set exceptions enabled flag.
-        let load_data = LoadData::new(
+        let mut load_data = LoadData::new(
             LoadOrigin::Script(load_origin),
             url,
             creator_pipeline_id,
@@ -133,6 +135,7 @@ impl Location {
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
+        load_data.encoding_override = encoding_override;
         self.window
             .load_url(history_handling, reload_triggered, load_data, can_gc);
     }
@@ -238,6 +241,7 @@ impl Location {
                     copy_url,
                     NavigationHistoryBehavior::Push,
                     NavigationType::Normal,
+                    None,
                     can_gc,
                 );
             }
@@ -259,6 +263,7 @@ impl Location {
             url,
             NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByConstellation,
+            None,
             can_gc,
         );
     }
@@ -295,6 +300,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             url,
             NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByScript,
+            None,
             can_gc,
         );
         Ok(())
@@ -317,6 +323,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
                 url,
                 NavigationHistoryBehavior::Replace,
                 NavigationType::Normal,
+                None,
                 can_gc,
             );
         }
@@ -429,6 +436,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
                 url,
                 NavigationHistoryBehavior::Push,
                 NavigationType::Normal,
+                None,
                 can_gc,
             );
         }

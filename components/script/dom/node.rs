@@ -3017,6 +3017,7 @@ impl Node {
                     document.has_trustworthy_ancestor_or_current_origin(),
                     document.custom_element_reaction_stack(),
                     document.creation_sandboxing_flag_set(),
+                    None,
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)

@@ -362,7 +362,7 @@ impl DOMString {
                 #[cfg(test)]
                 DOMStringType::Latin1Vec(ref items) => {
                     let mut v = vec![0; items.len() * 2];
-                    let real_size = tendril::encoding_rs::mem::convert_latin1_to_utf8(
+                    let real_size = encoding_rs::mem::convert_latin1_to_utf8(
                         items.as_slice(),
                         v.as_mut_slice(),
                     );
@@ -739,10 +739,8 @@ impl ToJSValConvertible for DOMString {
             #[cfg(test)]
             DOMStringType::Latin1Vec(ref items) => {
                 let mut v = vec![0; items.len() * 2];
-                let real_size = tendril::encoding_rs::mem::convert_latin1_to_utf8(
-                    items.as_slice(),
-                    v.as_mut_slice(),
-                );
+                let real_size =
+                    encoding_rs::mem::convert_latin1_to_utf8(items.as_slice(), v.as_mut_slice());
                 v.truncate(real_size);
 
                 String::from_utf8(v)

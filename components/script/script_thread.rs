@@ -133,7 +133,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::NodeTraits;
-use crate::dom::servoparser::{ParserContext, ServoParser};
+use crate::dom::servoparser::{EncodingInformation, ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -3373,6 +3373,7 @@ impl ScriptThread {
             incomplete.load_data.has_trustworthy_ancestor_origin,
             self.custom_element_reaction_stack.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
+            incomplete.load_data.encoding_override,
             can_gc,
         );
 
@@ -3441,12 +3442,20 @@ impl ScriptThread {
         document.set_https_state(metadata.https_state);
         document.set_navigation_start(incomplete.navigation_start);
 
+        let encoding_information = incomplete
+            .load_data
+            .encoding_override
+            .map(EncodingInformation::Known)
+            .unwrap_or(EncodingInformation::Unknown {
+                content_type: encoding_hint_from_content_type,
+                encoding_of_container_document: incomplete.load_data.container_document_encoding,
+            });
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(
                 &document,
                 None,
                 final_url,
-                encoding_hint_from_content_type,
+                encoding_information,
                 can_gc,
             );
         } else {
@@ -3454,8 +3463,7 @@ impl ScriptThread {
                 &document,
                 None,
                 final_url,
-                encoding_hint_from_content_type,
-                incomplete.load_data.container_document_encoding,
+                encoding_information,
                 can_gc,
             );
         }

@@ -19,7 +19,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
-use crate::dom::servoparser::ServoParser;
+use crate::dom::servoparser::{EncodingInformation, ServoParser};
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -106,6 +106,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.has_trustworthy_ancestor_or_current_origin(),
                     doc.custom_element_reaction_stack(),
                     doc.creation_sandboxing_flag_set(),
+                    None,
                     can_gc,
                 );
                 // Step switch-1. Parse HTML from a string given document and compliantString.
@@ -113,8 +114,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     &document,
                     Some(compliant_string),
                     url,
-                    None,
-                    None,
+                    EncodingInformation::Irrelevant,
                     can_gc,
                 );
                 document
@@ -142,6 +142,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.has_trustworthy_ancestor_or_current_origin(),
                     doc.custom_element_reaction_stack(),
                     doc.creation_sandboxing_flag_set(),
+                    None,
                     can_gc,
                 );
                 // Step switch-1. Create an XML parser parser, associated with document,
@@ -150,7 +151,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     &document,
                     Some(compliant_string),
                     url,
-                    None,
+                    EncodingInformation::Irrelevant,
                     can_gc,
                 );
                 document

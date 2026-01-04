@@ -1106,6 +1106,12 @@ impl<S: tendril::TendrilSink<tendril::fmt::UTF8, A>, A: tendril::Atomicity> Mall
     }
 }
 
+impl<F: tendril::Format> MallocSizeOf for tendril::SendTendril<F> {
+    fn size_of(&self, _: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
         $(

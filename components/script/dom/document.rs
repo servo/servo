@@ -170,7 +170,7 @@ use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBox};
 use crate::dom::selection::Selection;
-use crate::dom::servoparser::ServoParser;
+use crate::dom::servoparser::{EncodingInformation, ServoParser};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::text::Text;
@@ -235,6 +235,7 @@ impl RefreshRedirectDue {
             self.url.clone(),
             NavigationHistoryBehavior::Replace,
             NavigationType::DeclarativeRefresh,
+            None,
             can_gc,
         );
     }
@@ -3574,6 +3575,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        encoding_override: Option<&'static Encoding>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3604,9 +3606,12 @@ impl Document {
             .unwrap()
         });
 
-        let encoding = content_type
-            .get_parameter(CHARSET)
-            .and_then(|charset| Encoding::for_label(charset.as_bytes()))
+        let encoding = encoding_override
+            .or_else(|| {
+                content_type
+                    .get_parameter(CHARSET)
+                    .and_then(|charset| Encoding::for_label(charset.as_bytes()))
+            })
             .unwrap_or(UTF_8);
 
         let has_focus = window.parent_info().is_none();
@@ -3864,6 +3869,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        encoding_override: Option<&'static Encoding>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3887,6 +3893,7 @@ impl Document {
             has_trustworthy_ancestor_origin,
             custom_element_reaction_stack,
             creation_sandboxing_flag_set,
+            encoding_override,
             can_gc,
         )
     }
@@ -3913,6 +3920,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        encoding_override: Option<&'static Encoding>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3936,6 +3944,7 @@ impl Document {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 creation_sandboxing_flag_set,
+                encoding_override,
             )),
             window,
             proto,
@@ -4072,6 +4081,7 @@ impl Document {
                     self.has_trustworthy_ancestor_or_current_origin(),
                     self.custom_element_reaction_stack.clone(),
                     self.creation_sandboxing_flag_set(),
+                    None,
                     can_gc,
                 );
                 new_doc
@@ -4823,6 +4833,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.active_sandboxing_flag_set.get(),
+            None,
             can_gc,
         ))
     }
@@ -4872,10 +4883,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
+            None,
             can_gc,
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, can_gc);
+        ServoParser::parse_html_document(
+            &document,
+            Some(compliant_html),
+            url,
+            EncodingInformation::Irrelevant,
+            can_gc,
+        );
         // Step 5. Return document.
         document.set_ready_state(DocumentReadyState::Complete, can_gc);
         Ok(document)
