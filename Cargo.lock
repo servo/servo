@@ -7853,6 +7853,7 @@ dependencies = [
  "deny_public_fields",
  "dom_struct",
  "domobject_derive",
+ "encoding_rs",
  "html5ever",
  "indexmap",
  "jstraceable_derive",
