@@ -54,7 +54,9 @@ use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::{FetchParams, SharedPreloadedResources};
-use crate::fetch::methods::{CancellationListener, FetchContext, WebSocketChannel, fetch};
+use crate::fetch::methods::{
+    CancellationListener, FetchContext, SharedInflightKeepAliveRecords, WebSocketChannel, fetch,
+};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::{self, HstsList};
 use crate::http_cache::HttpCache;
@@ -539,6 +541,21 @@ impl ResourceChannelManager {
             CoreResourceMsg::StorePreloadedResponse(preload_id, response) => self
                 .resource_manager
                 .handle_preloaded_response(preload_id, response),
+            CoreResourceMsg::TotalSizeOfInFlightKeepAliveRecords(pipeline_id, sender) => {
+                let total = self
+                    .resource_manager
+                    .in_flight_keep_alive_records
+                    .lock()
+                    .get(&pipeline_id)
+                    .map(|records| {
+                        records
+                            .iter()
+                            .map(|record| record.keep_alive_body_length)
+                            .sum()
+                    })
+                    .unwrap_or_default();
+                let _ = sender.send(total);
+            },
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     let auth_cache = http_state.auth_cache.read();
@@ -587,6 +604,8 @@ pub struct CoreResourceManager {
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     preloaded_resources: SharedPreloadedResources,
+    /// <https://fetch.spec.whatwg.org/#concept-fetch-record>
+    in_flight_keep_alive_records: SharedInflightKeepAliveRecords,
 }
 
 impl CoreResourceManager {
@@ -612,6 +631,7 @@ impl CoreResourceManager {
             ca_certificates,
             ignore_certificate_errors,
             preloaded_resources: Default::default(),
+            in_flight_keep_alive_records: Default::default(),
         }
     }
 
@@ -690,6 +710,7 @@ impl CoreResourceManager {
 
         let ca_certificates = self.ca_certificates.clone();
         let ignore_certificate_errors = self.ignore_certificate_errors;
+        let in_flight_keep_alive_records = self.in_flight_keep_alive_records.clone();
         let preloaded_resources = self.preloaded_resources.clone();
         if let Some(ref preload_id) = request.preload_id {
             let mut preloaded_resources = self.preloaded_resources.lock().unwrap();
@@ -716,6 +737,7 @@ impl CoreResourceManager {
                 ca_certificates,
                 ignore_certificate_errors,
                 preloaded_resources,
+                in_flight_keep_alive_records,
             };
 
             match res_init_ {
@@ -766,6 +788,7 @@ impl CoreResourceManager {
 
         let ca_certificates = self.ca_certificates.clone();
         let ignore_certificate_errors = self.ignore_certificate_errors;
+        let in_flight_keep_alive_records = self.in_flight_keep_alive_records.clone();
         let preloaded_resources = self.preloaded_resources.clone();
 
         spawn_task(async move {
@@ -804,6 +827,7 @@ impl CoreResourceManager {
                         ca_certificates,
                         ignore_certificate_errors,
                         preloaded_resources,
+                        in_flight_keep_alive_records,
                     };
                     fetch(request, &mut event_sender, &context).await;
                 },

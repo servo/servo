@@ -1450,7 +1450,6 @@ impl HTMLMediaElement {
 
         *current_fetch_context = Some(HTMLMediaElementFetchContext::new(
             request.id,
-            request.keep_alive,
             global.core_resource_thread(),
         ));
         let listener =
@@ -3623,7 +3622,6 @@ pub(crate) struct HTMLMediaElementFetchContext {
 impl HTMLMediaElementFetchContext {
     fn new(
         request_id: RequestId,
-        keep_alive: bool,
         core_resource_thread: CoreResourceThread,
     ) -> HTMLMediaElementFetchContext {
         HTMLMediaElementFetchContext {
@@ -3632,11 +3630,7 @@ impl HTMLMediaElementFetchContext {
             is_seekable: false,
             origin_clean: true,
             data_source: RefCell::new(BufferedDataSource::new()),
-            fetch_canceller: FetchCanceller::new(
-                request_id,
-                keep_alive,
-                core_resource_thread.clone(),
-            ),
+            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread.clone()),
         }
     }
 

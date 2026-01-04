@@ -72,7 +72,7 @@ def main(request, response):
                 payload = request.body
 
             payload_parts = list(filter(None, payload.split(b":")))
-            if len(payload_parts) > 0:
+            if len(payload_parts) > 1:
                 payload_size = int(payload_parts[0])
 
                 # Confirm the payload size sent matches with the number of

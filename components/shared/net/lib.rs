@@ -10,7 +10,7 @@ use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{self, GenericSender};
-use base::id::{CookieStoreId, HistoryStateId};
+use base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
@@ -641,6 +641,7 @@ pub enum CoreResourceMsg {
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
     StorePreloadedResponse(PreloadId, Response),
+    TotalSizeOfInFlightKeepAliveRecords(PipelineId, GenericSender<u64>),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
     Exit(IpcSender<()>),
