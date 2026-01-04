@@ -13,6 +13,7 @@ pub mod cross_process_instant;
 pub mod generic_channel;
 pub mod id;
 pub mod print_tree;
+mod rope;
 pub mod text;
 pub mod threadpool;
 mod unicode_block;
@@ -24,6 +25,7 @@ use std::path::Path;
 use ipc_channel::ipc::{IpcError, IpcSender};
 use log::{trace, warn};
 use malloc_size_of_derive::MallocSizeOf;
+pub use rope::{Lines, Rope, RopeChars, RopeIndex, RopeMovement, RopeSlice};
 use serde::{Deserialize, Serialize};
 use webrender_api::Epoch as WebRenderEpoch;
 
