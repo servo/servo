@@ -889,10 +889,21 @@ impl FontFamilyDescriptor {
     }
 }
 
+#[derive(PartialEq)]
 pub struct FontBaseline {
     pub ideographic_baseline: f32,
     pub alphabetic_baseline: f32,
     pub hanging_baseline: f32,
+}
+
+impl std::fmt::Debug for FontBaseline {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            self.ideographic_baseline, self.alphabetic_baseline, self.hanging_baseline
+        )
+    }
 }
 
 /// Given a mapping array `mapping` and a value, map that value onto

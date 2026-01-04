@@ -14,6 +14,9 @@ test = true
 doctest = false
 
 [features]
+default = ["harfrust", "harfbuzz"]
+harfbuzz = ["dep:harfbuzz-sys"]
+harfrust = ["dep:harfrust"]
 tracing = ["dep:tracing"]
 
 [dependencies]
@@ -26,7 +29,8 @@ euclid = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
 # FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
-harfbuzz-sys = { workspace = true, features = ["bundled"] }
+harfbuzz-sys = { workspace = true, optional = true, features = ["bundled"] }
+harfrust = { workspace = true, optional = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 libc = { workspace = true }
