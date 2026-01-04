@@ -188,7 +188,7 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::dom::xpathexpression::XPathExpression;
-use crate::fetch::FetchCanceller;
+use crate::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
@@ -2014,11 +2014,15 @@ impl Document {
         // Step 8.2. For each deferred fetch record deferredRecord of navigable’s active document’s
         // relevant settings object’s fetch group’s deferred fetch records:
         for deferred_fetch in navigable.as_global_scope().deferred_fetches() {
-            // Step 8.2.1. Let requestLength be the total request length of deferredRecord’s request.
+            // Step 8.2.1. If deferredRecord’s invoke state is not "pending", then continue.
+            if deferred_fetch.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
+                continue;
+            }
+            // Step 8.2.2. Let requestLength be the total request length of deferredRecord’s request.
             let request_length = deferred_fetch.request.total_request_length();
-            // Step 8.2.2. Decrement quota by requestLength.
+            // Step 8.2.3. Decrement quota by requestLength.
             quota -= request_length as isize;
-            // Step 8.2.3. If deferredRecord’s request’s URL’s origin is same origin with origin,
+            // Step 8.2.4. If deferredRecord’s request’s URL’s origin is same origin with origin,
             // then decrement quotaForRequestOrigin by requestLength.
             if deferred_fetch.request.url().origin() == origin {
                 quota_for_request_origin -= request_length as isize;
