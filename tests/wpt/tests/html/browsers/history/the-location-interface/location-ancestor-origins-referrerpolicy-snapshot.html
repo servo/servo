@@ -1,0 +1,42 @@
+<!doctype html>
+<title>location.ancestorOrigins snapshot timing of referrerpolicy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async () => {
+  assert_implements(location.ancestorOrigins);
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html?pipe=trickle(d1)';
+  iframe.referrerPolicy = 'no-referrer';
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  // initial about:blank should see 'no-referrer' results
+  assert_array_equals(Array.from(iframe.contentWindow.location.ancestorOrigins), ['null']);
+  iframe.referrerPolicy = '';
+  await loaded;
+  // The referrerpolicy attribute get snapshotted at step 16 of "beginning navigation"
+  // https://html.spec.whatwg.org/#beginning-navigation and result should therefore,
+  // still be ["null"], here.
+  assert_array_equals(Array.from(iframe.contentWindow.location.ancestorOrigins), ["null"]);
+});
+
+promise_test(async () => {
+  assert_implements(location.ancestorOrigins);
+  const iframe = document.createElement('iframe');
+
+  iframe.referrerPolicy = 'no-referrer';
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  // initial about:blank should see 'no-referrer' results
+  assert_array_equals(Array.from(iframe.contentWindow.location.ancestorOrigins), ['null']);
+  iframe.referrerPolicy = '';
+  await loaded;
+
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+    iframe.src = '/common/blank.html?pipe=trickle(d1)';
+  });
+  assert_array_equals(Array.from(iframe.contentWindow.location.ancestorOrigins), [window.origin]);
+});
+</script>

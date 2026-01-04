@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Location.ancestorOrigins lifetime behavior</title>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#dom-location-ancestororigins">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      function createIframeAndNavigate(test, src) {
+        return new Promise(resolve => {
+          const iframe = document.createElement("iframe");
+          iframe.onload = () => {
+            resolve(iframe);
+          }
+          iframe.src = src;
+          document.body.appendChild(iframe);
+          test.add_cleanup(() => {
+            iframe.remove();
+          });
+        });
+      }
+
+
+      promise_test(async t => {
+        assert_implements(location.ancestorOrigins, "location.ancestorOrigins not implemented");
+        const iframe = await createIframeAndNavigate(t, "about:blank");
+        assert_array_equals(
+          iframe.contentWindow.location.ancestorOrigins,
+          [location.origin],
+          "Initial ancestorOrigins should match expected placeholder value"
+        );
+
+        const loc = iframe.contentWindow.location;
+        iframe.remove();
+
+        assert_array_equals(
+          Array.from(loc.ancestorOrigins),
+          [],
+          "ancestorOrigins should be empty after iframe removal"
+        );
+      }, "location.ancestorOrigins returns empty list after iframe is removed and referenced Location's relevant document is null");
+
+      promise_test(async t => {
+        assert_implements(location.ancestorOrigins, "location.ancestorOrigins not implemented");
+        const iframe = await createIframeAndNavigate(t, "about:blank");
+        assert_array_equals(
+          iframe.contentWindow.location.ancestorOrigins,
+          [location.origin],
+          "Initial ancestorOrigins should match expected placeholder value"
+        );
+
+        const loc = iframe.contentWindow.location;
+        await new Promise(resolve => {
+          iframe.onload = resolve;
+          iframe.src = "http://{{hosts[alt][]}}:{{ports[http][0]}}/common/blank.html";
+        });
+
+        assert_array_equals(
+          Array.from(loc.ancestorOrigins),
+          [],
+          "ancestorOrigins should be empty after iframe navigation"
+        );
+      }, "location.ancestorOrigins returns empty list when iframe navigated away and referenced Location's relevant document is null");
+    </script>
+  </body>
+
+</html>

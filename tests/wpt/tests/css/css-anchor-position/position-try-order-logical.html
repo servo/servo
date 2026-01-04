@@ -5,6 +5,7 @@
 .container {
   position: relative;
   display: inline-block;
+  vertical-align: middle;
   width: 100px;
   height: 100px;
   margin: 10px;
@@ -24,10 +25,17 @@
 .anchored {
   position: absolute;
   position-anchor: --a;
-  position-try-fallbacks: flip-block flip-inline;
+  left: 100px;  /* ensure the element will overflow the IMCB at "base" position */
+  /* fallbacks: (1) with left inset removed; (2) also flipped in both axes */
+  position-try-fallbacks: --noinset, --noinset flip-block flip-inline;
   width: 15px;
   height: 15px;
   background: green;
+}
+
+@position-try --noinset {
+  /* a fallback that just removes the left inset from the base position */
+  left: unset;
 }
 </style>
 <div class="container">

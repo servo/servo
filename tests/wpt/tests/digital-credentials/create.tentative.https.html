@@ -246,4 +246,16 @@
       );
     }
   }, "Throws TypeError when request data is not JSON stringifiable.");
+
+  promise_test(async (t) => {
+    const options = {
+      password: document.createElement("form"),
+    };
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.create(options),
+      "Should throw for invalid form element"
+    );
+  }, "Throws when form element does not contain password.");
 </script>
