@@ -208,6 +208,10 @@ pub struct RequestClient {
     pub policy_container: RequestPolicyContainer,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
     pub origin: Origin,
+    /// <https://html.spec.whatwg.org/multipage/#nested-browsing-context>
+    pub is_nested_browsing_context: bool,
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
+    pub insecure_requests_policy: InsecureRequestsPolicy,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#system-visibility-state>
