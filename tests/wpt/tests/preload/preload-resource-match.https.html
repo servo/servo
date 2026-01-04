@@ -103,7 +103,7 @@ const loaders = {
     },
     fetch: async (href, attr, t) => {
         const options = {mode: attr.crossOrigin ? 'cors' : 'no-cors',
-             credentials: !attr.crossOrigin || attr.crossOrigin === 'anonymous' ? 'omit' : 'include'}
+             credentials: attr.crossOrigin === 'anonymous' ? 'same-origin' : 'include'}
 
         const response = await fetch(href, options)
         await response.text();
