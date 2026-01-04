@@ -156,6 +156,8 @@ pub(crate) struct ServoParser {
     // The whole input as a string, if needed for the devtools Sources panel.
     // TODO: use a faster type for concatenating strings?
     content_for_devtools: Option<DomRefCell<String>>,
+    /// Whether encoding declarations in the document should be ignored.
+    ignore_encoding_hints: IgnoreEncodingHints,
 }
 
 pub(crate) struct ElementAttribute {
@@ -529,6 +531,11 @@ impl ServoParser {
             } => NetworkDecoderState::new(content_type, encoding_of_container_document),
             EncodingInformation::Irrelevant => NetworkDecoderState::new(None, None),
         };
+        let ignore_encoding_hints = if encoding_info == EncodingInformation::Irrelevant {
+            IgnoreEncodingHints::Yes
+        } else {
+            IgnoreEncodingHints::No
+        };
 
         ServoParser {
             reflector: Reflector::new(),
@@ -549,6 +556,7 @@ impl ServoParser {
             prefetch_tokenizer: prefetch::Tokenizer::new(document),
             prefetch_input: BufferQueue::default(),
             content_for_devtools,
+            ignore_encoding_hints,
         }
     }
 
@@ -783,6 +791,14 @@ impl ServoParser {
             match feed(&self.tokenizer) {
                 TokenizerResult::Done => return,
                 TokenizerResult::EncodingIndicator(encoding) => {
+                    if self.script_nesting_level.get() > 0 ||
+                        self.ignore_encoding_hints == IgnoreEncodingHints::Yes
+                    {
+                        log::debug!(
+                            "Ignoring encoding hint {encoding} because encoding is irrelevant or we're in document.write"
+                        );
+                        continue;
+                    }
                     let Some(encoding) = Encoding::for_label(encoding.as_bytes()) else {
                         log::debug!("Failed to parse {encoding:?} as an encoding hint");
                         continue;
@@ -2039,6 +2055,7 @@ enum EncodingConfidence {
 }
 
 /// A priori information about the encoding of the document passed to the parser.
+#[derive(PartialEq)]
 pub(crate) enum EncodingInformation {
     /// Used when servo previously determined the correct encoding.
     Known(&'static Encoding),
@@ -2062,4 +2079,12 @@ impl EncodingInformation {
             Self::Irrelevant => None,
         }
     }
+}
+
+/// Whether the parser should ignore encoding hints from `<meta charset>` and `<meta http-equiv="Content-Type">`
+/// tags. This is desirable for APIs like `DOMParser.parseFromString`.
+#[derive(Eq, JSTraceable, MallocSizeOf, PartialEq)]
+pub enum IgnoreEncodingHints {
+    Yes,
+    No,
 }
