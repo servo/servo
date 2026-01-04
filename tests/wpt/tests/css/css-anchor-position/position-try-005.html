@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback">
+<link rel="author" href="mailto:jkew@mozilla.com">
+<link rel="match" href="position-try-005-ref.html">
+
+<style>
+.cb {
+  position: relative;
+  width: 250px;
+  height: 100px;
+  background: yellow;
+}
+.anchor {
+  position: relative;
+  anchor-name: --a;
+  top: 25px;
+  left: 50px;
+  width: 50px;
+  height: 50px;
+  background: blue;
+}
+.target {
+  position: absolute;
+  position-try-fallbacks: --f1, --f2, --f3, --f4;
+  width: 140px;
+  margin: 10px;
+  background: #0004;
+  /* Position to the right of the anchor. */
+  left: anchor(--a right);
+  top: anchor(--a top);
+}
+/* fallback positions with various widths, none of which actually fit */
+@position-try --f1 {
+  inset: auto;
+  /* Position to the left of the anchor. */
+  right: anchor(--a left);
+  top: anchor(--a top);
+  width: 300px;
+}
+@position-try --f2 {
+  inset: auto;
+  /* Position to the bottom of the anchor. */
+  left: anchor(--a left);
+  top: anchor(--a bottom);
+  width: 250px;
+}
+@position-try --f3 {
+  inset: auto;
+  /* Position to the top of the anchor. */
+  left: anchor(--a left);
+  bottom: anchor(--a top);
+  width: 150px;
+}
+@position-try --f4 {
+  inset: auto;
+  /* Position to the right of the anchor, with a larger width. */
+  left: anchor(--a right);
+  top: anchor(--a top);
+  width: 200px;
+}
+</style>
+<body>
+  <!-- None of the fallback rules fit. The base style is used. -->
+  <div class="cb">
+    <div class="anchor"></div>
+    <!-- target element includes wrapped text, to check that its content is reflowed appropriately for the chosen position -->
+    <div class="target">This text should wrap and overflow the yellow containing block vertically (and not horizontally).</div>
+  </div>
+</body>

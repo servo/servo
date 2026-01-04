@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Interlinear ruby annotation box with margin</title>
+<link rel="match" href="ruby-annotation-with-margin-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#interlinear-layout">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body {
+  font-family: Ahem;
+  font-size: 10px;
+}
+
+ruby {
+  color: transparent;
+}
+
+rt {
+  color: green;
+}
+
+.under ruby {
+  ruby-position: under;
+}
+</style>
+<div><ruby>base<rt style="margin: 10px;">annotation</rt></ruby></div>
+<div><ruby>base<rt style="margin-top: 10px;">annotation</rt></ruby></div>
+<div><ruby>base<rt style="margin-bottom: 10px;">annotation</rt></ruby></div>
+
+<div class=under>
+  <div><ruby>base<rt style="margin: 10px;">annotation</rt></ruby></div>
+  <div><ruby>base<rt style="margin-top: 10px;">annotation</rt></ruby></div>
+  <div><ruby>base<rt style="margin-bottom: 10px;">annotation</rt></ruby></div>
+</div>
+
+<div style="writing-mode: vertical-lr">
+  <div><ruby>base<rt style="margin: 10px;">annotation</rt></ruby></div>
+  <div><ruby>base<rt style="margin-top: 10px;">annotation</rt></ruby></div>
+  <div><ruby>base<rt style="margin-bottom: 10px;">annotation</rt></ruby></div>
+</div>

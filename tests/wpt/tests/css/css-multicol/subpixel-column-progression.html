@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Element placed right after all columns (as specified by column-count)</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/467869214">
+<style>
+  body { margin:0; }
+</style>
+<div style="columns:479; column-fill:auto; gap:0; width:100px; height:1px;">
+  <div style="height:479px;"></div>
+  <div id="elm1" style="height:1px;"></div>
+</div>
+
+<div style="columns:479; column-fill:auto; gap:0; width:100px; height:1px;">
+  <div style="height:958px;"></div>
+  <div id="elm2" style="height:1px;"></div>
+</div>
+
+<div style="columns:100; column-fill:auto; gap:1.01px; width:500px; height:1px;">
+  <div style="height:99px;"></div>
+  <div id="elm3" style="margin-left:auto; width:0; height:1px;"></div>
+</div>
+
+<div style="columns:100; column-fill:auto; gap:1.01px; width:0; height:1px;">
+  <div style="height:100px;"></div>
+  <div id="elm4" style="height:1px;"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(elm1.getBoundingClientRect().left, 100);
+  }, "Should be exactly to the right of the multicol container");
+
+  test(()=> {
+    assert_equals(elm2.getBoundingClientRect().left, 200);
+  }, "Should equal to two multicol container widths");
+
+  test(()=> {
+    assert_equals(elm3.getBoundingClientRect().left, 500);
+  }, "Fractional column gaps and widths");
+
+  test(()=> {
+    assert_equals(elm4.getBoundingClientRect().left, 101);
+  }, "No space for columns, only gaps");
+</script>
