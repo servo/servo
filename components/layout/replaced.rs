@@ -22,6 +22,7 @@ use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
+use style::values::generics::counters::{Content, GenericContentItem, GenericContentItems};
 use url::Url;
 use webrender_api::ImageKey;
 
@@ -150,6 +151,9 @@ impl ReplacedContents {
 
         let (kind, natural_size) = {
             if let Some((image, natural_size_in_dots)) = node.as_image() {
+                if let Some(content_image) = Self::from_content_property(node, context) {
+                    return Some(content_image);
+                }
                 (
                     ReplacedContentKind::Image(image, node.showing_broken_image_icon()),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
@@ -209,11 +213,10 @@ impl ReplacedContents {
                     ratio: svg_data.ratio,
                 };
                 (ReplacedContentKind::SVGElement(vector_image), natural_size)
-            } else {
-                let element = node.as_html_element()?;
-                if !element.has_local_name(&local_name!("audio")) {
-                    return None;
-                }
+            } else if node
+                .as_html_element()
+                .is_some_and(|element| element.has_local_name(&local_name!("audio")))
+            {
                 let natural_size = NaturalSizes {
                     width: None,
                     // 40px is the height of the controls.
@@ -222,6 +225,8 @@ impl ReplacedContents {
                     ratio: None,
                 };
                 (ReplacedContentKind::Audio, natural_size)
+            } else {
+                return Self::from_content_property(node, context);
             }
         };
 
@@ -238,6 +243,26 @@ impl ReplacedContents {
         })
     }
 
+    fn from_content_property(
+        node: ServoThreadSafeLayoutNode<'_>,
+        context: &LayoutContext,
+    ) -> Option<Self> {
+        // If the `content` property is a single image URL, non-replaced boxes
+        // and images get replaced with the given image.
+        if let Content::Items(GenericContentItems { items, .. }) =
+            node.style(&context.style_context).clone_content()
+        {
+            if let [GenericContentItem::Image(image)] = items.as_slice() {
+                // Invalid images are treated as zero-sized.
+                return Some(
+                    Self::from_image(node, context, image)
+                        .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
+                );
+            }
+        }
+        None
+    }
+
     pub fn from_image_url(
         node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
@@ -251,6 +276,11 @@ impl ReplacedContents {
             ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
+                        if let Image::Raster(image) = &image {
+                            context
+                                .image_resolver
+                                .handle_animated_image(node.opaque(), image.clone());
+                        }
                         let metadata = image.metadata();
                         (
                             Some(image.clone()),
@@ -282,6 +312,14 @@ impl ReplacedContents {
         match image {
             ComputedImage::Url(image_url) => Self::from_image_url(element, context, image_url),
             _ => None, // TODO
+        }
+    }
+
+    pub(crate) fn zero_sized_invalid_image(node: ServoThreadSafeLayoutNode<'_>) -> Self {
+        Self {
+            kind: ReplacedContentKind::Image(None, false /* showing_broken_image_icon */),
+            natural_size: NaturalSizes::from_width_and_height(0., 0.),
+            base_fragment_info: node.into(),
         }
     }
 
