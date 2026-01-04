@@ -201,6 +201,7 @@ pub trait ImageCache: Sync + Send {
         &self,
         image_id: VectorImageId,
         size: DeviceIntSize,
+        svg_uuid: Option<String>,
     ) -> Option<RasterImage>;
 
     /// Adds a new listener to be notified once the given `image_id` has been rasterized at
