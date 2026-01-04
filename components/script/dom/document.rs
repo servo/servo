@@ -43,7 +43,9 @@ use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::{InsecureRequestsPolicy, PreloadedResources, RequestBuilder};
+use net_traits::request::{
+    InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
+};
 use net_traits::response::HttpsState;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
@@ -430,8 +432,7 @@ pub(crate) struct Document {
     policy_container: DomRefCell<PolicyContainer>,
     /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
     #[no_trace]
-    #[conditional_malloc_size_of]
-    preloaded_resources: PreloadedResources,
+    preloaded_resources: DomRefCell<PreloadedResources>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
@@ -1894,8 +1895,14 @@ impl Document {
         self.policy_container.borrow().csp_list.clone()
     }
 
-    pub(crate) fn preloaded_resources(&self) -> PreloadedResources {
-        self.preloaded_resources.clone()
+    pub(crate) fn preloaded_resources(&self) -> std::cell::Ref<'_, PreloadedResources> {
+        self.preloaded_resources.borrow()
+    }
+
+    pub(crate) fn insert_preloaded_resource(&self, key: PreloadKey, preload_id: PreloadId) {
+        self.preloaded_resources
+            .borrow_mut()
+            .insert(key, preload_id);
     }
 
     /// Add the policy container and HTTPS state to a given request.

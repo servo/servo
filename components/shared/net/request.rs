@@ -9,14 +9,15 @@ use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
-use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use parking_lot::Mutex;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use tokio::sync::oneshot::Sender as TokioSender;
 use url::Position;
 use uuid::Uuid;
 
@@ -134,13 +135,13 @@ pub enum ResponseTainting {
 #[derive(Clone, Debug, Eq, Hash, Deserialize, MallocSizeOf, Serialize, PartialEq)]
 pub struct PreloadKey {
     /// <https://html.spec.whatwg.org/multipage/#preload-url>
-    url: ServoUrl,
+    pub url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#preload-destination>
-    destination: Destination,
+    pub destination: Destination,
     /// <https://html.spec.whatwg.org/multipage/#preload-mode>
-    mode: RequestMode,
+    pub mode: RequestMode,
     /// <https://html.spec.whatwg.org/multipage/#preload-credentials-mode>
-    credentials_mode: CredentialsMode,
+    pub credentials_mode: CredentialsMode,
 }
 
 impl PreloadKey {
@@ -154,14 +155,25 @@ impl PreloadKey {
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize, Hash, MallocSizeOf)]
+pub struct PreloadId(pub Uuid);
+
+impl Default for PreloadId {
+    fn default() -> Self {
+        Self(Uuid::new_v4())
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#preload-entry>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, MallocSizeOf)]
 pub struct PreloadEntry {
     /// <https://html.spec.whatwg.org/multipage/#preload-integrity-metadata>
-    integrity_metadata: String,
+    pub integrity_metadata: String,
     /// <https://html.spec.whatwg.org/multipage/#preload-response>
-    #[serde(skip)]
-    response: Option<Response>,
+    pub response: Option<Response>,
+    /// <https://html.spec.whatwg.org/multipage/#preload-on-response-available>
+    #[ignore_malloc_size_of = "channels are hard"]
+    pub on_response_available: Option<TokioSender<Response>>,
 }
 
 impl PreloadEntry {
@@ -169,84 +181,33 @@ impl PreloadEntry {
         Self {
             integrity_metadata,
             response: None,
+            on_response_available: None,
         }
     }
 
-    pub fn with_response(&self, response: Response) -> Self {
-        Self {
-            integrity_metadata: self.integrity_metadata.clone(),
-            response: Some(response),
+    /// Part of step 11.5 of <https://html.spec.whatwg.org/multipage/#preload>
+    pub fn with_response(&mut self, response: Response) {
+        // Step 11.5. If entry's on response available is null, then set entry's response to response;
+        // otherwise call entry's on response available given response.
+        if let Some(sender) = self.on_response_available.take() {
+            let _ = sender.send(response);
+        } else {
+            self.response = Some(response);
         }
     }
 }
 
-pub type PreloadedResources = Arc<Mutex<IndexMap<PreloadKey, PreloadEntry>>>;
+pub type PreloadedResources = FxHashMap<PreloadKey, PreloadId>;
 
 /// <https://fetch.spec.whatwg.org/#concept-request-client>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestClient {
     /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
-    #[conditional_malloc_size_of]
-    #[serde(skip)] // TODO: Figure out what we need to do here to serialize this map
     pub preloaded_resources: PreloadedResources,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
     pub policy_container: RequestPolicyContainer,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
     pub origin: Origin,
-}
-
-impl RequestClient {
-    /// <https://html.spec.whatwg.org/multipage/#consume-a-preloaded-resource>
-    pub fn consume_preloaded_resource(
-        &self,
-        request: &Request,
-        on_response_available: impl FnOnce(Response),
-    ) -> bool {
-        // Step 1. Let key be a preload key whose URL is url,
-        // destination is destination, mode is mode, and credentials mode is credentialsMode.
-        let key = PreloadKey {
-            url: request.url().clone(),
-            destination: request.destination,
-            mode: request.mode.clone(),
-            credentials_mode: request.credentials_mode,
-        };
-        // Step 2. Let preloads be window's associated Document's map of preloaded resources.
-        let mut preloads = self.preloaded_resources.lock();
-        // Step 4. Let entry be preloads[key].
-        let Some(entry) = preloads.get_mut(&key) else {
-            // Step 3. If key does not exist in preloads, then return false.
-            return false;
-        };
-        // Step 5. Let consumerIntegrityMetadata be the result of parsing integrityMetadata.
-        let consumer_integrity_metadata =
-            csp::parse_subresource_integrity_metadata(&request.integrity_metadata);
-        // Step 6. Let preloadIntegrityMetadata be the result of parsing entry's integrity metadata.
-        let preload_integrity_metadata =
-            csp::parse_subresource_integrity_metadata(&entry.integrity_metadata);
-        // Step 7. If none of the following conditions apply:
-        if !(
-            // consumerIntegrityMetadata is no metadata;
-            consumer_integrity_metadata == csp::SubresourceIntegrityMetadata::NoMetadata
-            // consumerIntegrityMetadata is equal to preloadIntegrityMetadata; or
-            || consumer_integrity_metadata == preload_integrity_metadata
-        ) {
-            // then return false.
-            return false;
-        }
-        // Step 10. Otherwise, call onResponseAvailable with entry's response.
-        if let Some(response) = entry.response.as_ref() {
-            on_response_available(response.clone());
-        } else {
-            // Step 9. If entry's response is null, then set entry's on response available to onResponseAvailable.
-            // TODO
-        }
-        // Step 8. Remove preloads[key].
-        //
-        // Moved down to avoid double borrow on preloads with entry
-        preloads.shift_remove(&key);
-        // Step 11. Return true.
-        true
-    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#system-visibility-state>
@@ -417,6 +378,8 @@ impl RequestHeadersSize for HeaderMap {
 pub struct RequestBuilder {
     pub id: RequestId,
 
+    pub preload_id: Option<PreloadId>,
+
     /// <https://fetch.spec.whatwg.org/#concept-request-method>
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
@@ -506,6 +469,7 @@ impl RequestBuilder {
     pub fn new(webview_id: Option<WebViewId>, url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
             id: RequestId::default(),
+            preload_id: None,
             method: Method::GET,
             url,
             headers: HeaderMap::new(),
@@ -539,6 +503,11 @@ impl RequestBuilder {
             response_tainting: ResponseTainting::Basic,
             crash: None,
         }
+    }
+
+    pub fn preload_id(mut self, preload_id: PreloadId) -> RequestBuilder {
+        self.preload_id = Some(preload_id);
+        self
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-initiator>
@@ -719,6 +688,7 @@ impl RequestBuilder {
             self.target_webview_id,
             self.https_state,
         );
+        request.preload_id = self.preload_id;
         request.initiator = self.initiator;
         request.method = self.method;
         request.headers = self.headers;
@@ -762,6 +732,7 @@ pub struct Request {
     /// messages to the correct listeners. This is a UUID that is generated when a request
     /// is being built.
     pub id: RequestId,
+    pub preload_id: Option<PreloadId>,
     /// <https://fetch.spec.whatwg.org/#concept-request-method>
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
@@ -845,6 +816,7 @@ impl Request {
     ) -> Request {
         Request {
             id,
+            preload_id: None,
             method: Method::GET,
             local_urls_only: false,
             headers: HeaderMap::new(),

@@ -32,6 +32,11 @@ pub(crate) fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(
     resource_timing: &ResourceFetchTiming,
     can_gc: CanGc,
 ) {
+    // Resource timings should only be submitted for the initial preload request,
+    // not for the request that consumes the preload: https://github.com/whatwg/html/issues/12047
+    if resource_timing.preloaded {
+        return;
+    }
     // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
     //
     // TODO Resources for which the fetch was initiated, but was later aborted

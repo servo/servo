@@ -20,8 +20,8 @@ use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestMode,
-    ServiceWorkersMode,
+    CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestClient,
+    RequestMode, ServiceWorkersMode,
 };
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
@@ -114,6 +114,7 @@ pub trait CspViolationHandler: Send + std::fmt::Debug {
 #[derive(Debug)]
 pub struct WebFontDocumentContext {
     pub policy_container: PolicyContainer,
+    pub request_client: RequestClient,
     pub document_url: ServoUrl,
     pub has_trustworthy_ancestor_origin: bool,
     pub insecure_requests_policy: InsecureRequestsPolicy,
@@ -124,6 +125,7 @@ impl Clone for WebFontDocumentContext {
     fn clone(&self) -> WebFontDocumentContext {
         Self {
             policy_container: self.policy_container.clone(),
+            request_client: self.request_client.clone(),
             document_url: self.document_url.clone(),
             has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_origin,
             insecure_requests_policy: self.insecure_requests_policy,
@@ -903,6 +905,7 @@ impl RemoteWebFontDownloader {
         .credentials_mode(CredentialsMode::CredentialsSameOrigin)
         .service_workers_mode(ServiceWorkersMode::All)
         .policy_container(document_context.policy_container.clone())
+        .client(document_context.request_client.clone())
         .insecure_requests_policy(document_context.insecure_requests_policy)
         .has_trustworthy_ancestor_origin(document_context.has_trustworthy_ancestor_origin);
 

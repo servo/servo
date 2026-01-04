@@ -129,16 +129,16 @@ impl FetchResponseListener for XHRContext {
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
+        if let Ok(ref response) = response {
+            network_listener::submit_timing(&self, response, CanGc::note());
+        }
+
         let rv = self.xhr.root().process_response_complete(
             self.gen_id,
-            response.clone().map(|_| ()),
+            response.map(|_| ()),
             CanGc::note(),
         );
         *self.sync_status.borrow_mut() = Some(rv);
-
-        if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
