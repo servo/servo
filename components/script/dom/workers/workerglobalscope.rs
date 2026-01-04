@@ -78,7 +78,7 @@ use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
-use crate::fetch::{CspViolationsProcessor, Fetch, load_whole_resource};
+use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
@@ -699,13 +699,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .credentials_mode(CredentialsMode::Include)
             .parser_metadata(ParserMetadata::NotParserInserted)
             .use_url_credentials(true)
-            .origin(global_scope.origin().immutable().clone())
-            .insecure_requests_policy(self.insecure_requests_policy())
-            .policy_container(global_scope.policy_container())
-            .has_trustworthy_ancestor_origin(
-                global_scope.has_trustworthy_ancestor_or_current_origin(),
-            )
-            .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
+            .with_global_scope(global_scope);
 
             // https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-imported-script
             let (url, bytes, muted_errors) = match load_whole_resource(

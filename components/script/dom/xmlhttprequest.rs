@@ -73,7 +73,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use crate::fetch::FetchCanceller;
+use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext};
@@ -692,13 +692,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .use_cors_preflight(self.upload_listener.get())
         .credentials_mode(credentials_mode)
         .use_url_credentials(use_url_credentials)
-        .origin(global.origin().immutable().clone())
-        .referrer_policy(self.referrer_policy)
-        .insecure_requests_policy(global.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
-        .client(global.request_client())
-        .policy_container(global.policy_container())
-        .pipeline_id(Some(global.pipeline_id()));
+        .with_global_scope(&global)
+        .referrer_policy(self.referrer_policy);
 
         // step 4 (second half)
         if let Some(content_type) = content_type {

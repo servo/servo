@@ -26,7 +26,7 @@ use crate::dom::csp::Violation;
 use crate::dom::csppolicyviolationreport::serialize_disposition;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 
@@ -203,11 +203,8 @@ impl SendReportsToEndpoints for GlobalScope {
             None,
             None,
             self.get_referrer(),
-            self.insecure_requests_policy(),
-            self.has_trustworthy_ancestor_or_current_origin(),
-            self.policy_container(),
-            self.request_client(),
         )
+        .with_global_scope(self)
         .method(http::Method::POST)
         .body(request_body)
         .origin(origin)

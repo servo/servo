@@ -42,7 +42,7 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::CSSErrorReporter;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
@@ -477,15 +477,9 @@ impl ElementStylesheetLoader<'_> {
             cors_setting,
             None,
             global.get_referrer(),
-            document.insecure_requests_policy(),
-            document.has_trustworthy_ancestor_or_current_origin(),
-            global.policy_container(),
-            global.request_client(),
         )
-        .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(element.global().pipeline_id()))
+        .with_global_scope(&global)
         .referrer_policy(referrer_policy)
-        .client(global.request_client())
         .integrity_metadata(integrity_metadata);
 
         document.fetch(LoadType::Stylesheet(url), request, context);

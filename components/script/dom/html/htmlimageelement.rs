@@ -77,7 +77,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_realm;
@@ -443,13 +443,8 @@ impl HTMLImageElement {
             cors_setting_for_element(self.upcast()),
             None,
             global.get_referrer(),
-            document.insecure_requests_policy(),
-            document.has_trustworthy_ancestor_or_current_origin(),
-            global.policy_container(),
-            global.request_client(),
         )
-        .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(document.global().pipeline_id()))
+        .with_global_scope(&global)
         .referrer_policy(referrer_policy_for_element(self.upcast()));
 
         if self.uses_srcset_or_picture() {

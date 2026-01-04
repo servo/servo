@@ -148,8 +148,6 @@ impl TokenSink for PrefetchSink {
                         self.webview_id,
                         url,
                         cors_setting,
-                        self.origin.clone(),
-                        self.pipeline_id,
                         ScriptFetchOptions {
                             referrer: self.referrer.clone(),
                             referrer_policy: self.referrer_policy,
@@ -158,11 +156,13 @@ impl TokenSink for PrefetchSink {
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
                         },
-                        self.insecure_requests_policy,
-                        self.has_trustworthy_ancestor_origin,
-                        self.policy_container.clone(),
-                        self.request_client.clone(),
-                    );
+                    )
+                    .insecure_requests_policy(self.insecure_requests_policy)
+                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
+                    .policy_container(self.policy_container.clone())
+                    .client(self.request_client.clone())
+                    .origin(self.origin.clone())
+                    .pipeline_id(Some(self.pipeline_id));
                     let _ = self
                         .resource_threads
                         .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
@@ -179,11 +179,11 @@ impl TokenSink for PrefetchSink {
                         self.get_cors_settings(tag, local_name!("crossorigin")),
                         None,
                         self.referrer.clone(),
-                        self.insecure_requests_policy,
-                        self.has_trustworthy_ancestor_origin,
-                        self.policy_container.clone(),
-                        self.request_client.clone(),
                     )
+                    .insecure_requests_policy(self.insecure_requests_policy)
+                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
+                    .policy_container(self.policy_container.clone())
+                    .client(self.request_client.clone())
                     .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
                     .referrer_policy(self.get_referrer_policy(tag, local_name!("referrerpolicy")));
@@ -216,11 +216,11 @@ impl TokenSink for PrefetchSink {
                                 cors_setting,
                                 None,
                                 self.referrer.clone(),
-                                self.insecure_requests_policy,
-                                self.has_trustworthy_ancestor_origin,
-                                self.policy_container.clone(),
-                                self.request_client.clone(),
                             )
+                            .insecure_requests_policy(self.insecure_requests_policy)
+                            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
+                            .policy_container(self.policy_container.clone())
+                            .client(self.request_client.clone())
                             .origin(self.origin.clone())
                             .pipeline_id(Some(self.pipeline_id))
                             .referrer_policy(referrer_policy)

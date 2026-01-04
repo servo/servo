@@ -40,7 +40,7 @@ use crate::dom::html::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadySt
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::FetchCanceller;
+use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
@@ -235,12 +235,7 @@ impl HTMLVideoElement {
         .destination(Destination::Image)
         .credentials_mode(CredentialsMode::Include)
         .use_url_credentials(true)
-        .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(global.pipeline_id()))
-        .insecure_requests_policy(document.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
-        .policy_container(document.policy_container().to_owned())
-        .client(global.request_client());
+        .with_global_scope(&global);
 
         // Step 6. Fetch request. This must delay the load event of the element's node document.
         // This delay must be independent from the ones created by HTMLMediaElement during

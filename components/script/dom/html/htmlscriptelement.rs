@@ -9,20 +9,18 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use base::id::{PipelineId, WebViewId};
+use base::id::WebViewId;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
-    RequestBuilder, RequestClient, RequestId,
+    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
@@ -61,7 +59,7 @@ use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_module::{
     ImportMap, ModuleOwner, ModuleTree, ScriptFetchOptions, fetch_external_module_script,
@@ -514,13 +512,7 @@ pub(crate) fn script_fetch_request(
     webview_id: WebViewId,
     url: ServoUrl,
     cors_setting: Option<CorsSettings>,
-    origin: ImmutableOrigin,
-    pipeline_id: PipelineId,
     options: ScriptFetchOptions,
-    insecure_requests_policy: InsecureRequestsPolicy,
-    has_trustworthy_ancestor_origin: bool,
-    policy_container: PolicyContainer,
-    client: RequestClient,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -531,13 +523,7 @@ pub(crate) fn script_fetch_request(
         cors_setting,
         None,
         options.referrer,
-        insecure_requests_policy,
-        has_trustworthy_ancestor_origin,
-        policy_container,
-        client,
     )
-    .origin(origin)
-    .pipeline_id(Some(pipeline_id))
     .parser_metadata(options.parser_metadata)
     .integrity_metadata(options.integrity_metadata.clone())
     .referrer_policy(options.referrer_policy)
@@ -556,19 +542,9 @@ fn fetch_a_classic_script(
     // Step 1, 2.
     let doc = script.owner_document();
     let global = script.global();
-    let request = script_fetch_request(
-        doc.webview_id(),
-        url.clone(),
-        cors_setting,
-        doc.origin().immutable().clone(),
-        global.pipeline_id(),
-        options.clone(),
-        doc.insecure_requests_policy(),
-        doc.has_trustworthy_ancestor_origin(),
-        global.policy_container(),
-        global.request_client(),
-    );
-    let request = doc.prepare_request(request);
+    let request =
+        script_fetch_request(doc.webview_id(), url.clone(), cors_setting, options.clone())
+            .with_global_scope(&global);
 
     // TODO: Step 3, Add custom steps to perform fetch
 

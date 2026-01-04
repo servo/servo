@@ -12,11 +12,9 @@ use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
-use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
-    Request as NetTraitsRequest, RequestBuilder, RequestClient, RequestId, RequestMode,
-    ServiceWorkersMode,
+    CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
+    RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
@@ -768,6 +766,22 @@ pub(crate) fn load_whole_resource(
     }
 }
 
+pub(crate) trait RequestWithGlobalScope {
+    fn with_global_scope(self, global: &GlobalScope) -> Self;
+}
+
+impl RequestWithGlobalScope for RequestBuilder {
+    fn with_global_scope(self, global: &GlobalScope) -> Self {
+        self.insecure_requests_policy(global.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+            .policy_container(global.policy_container())
+            .client(global.request_client())
+            .pipeline_id(Some(global.pipeline_id()))
+            .origin(global.origin().immutable().clone())
+            .https_state(global.get_https_state())
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn create_a_potential_cors_request(
@@ -777,30 +791,23 @@ pub(crate) fn create_a_potential_cors_request(
     cors_setting: Option<CorsSettings>,
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
-    insecure_requests_policy: InsecureRequestsPolicy,
-    has_trustworthy_ancestor_origin: bool,
-    policy_container: PolicyContainer,
-    client: RequestClient,
 ) -> RequestBuilder {
     RequestBuilder::new(webview_id, url, referrer)
-        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-        // Step 1
+        // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
         .mode(match cors_setting {
             Some(_) => RequestMode::CorsMode,
+            // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
             None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
             None => RequestMode::NoCors,
         })
-        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-        // Step 3-4
         .credentials_mode(match cors_setting {
+            // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
             Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+            // Step 3. Let credentialsMode be "include".
             _ => CredentialsMode::Include,
         })
-        // Step 5
+        // Step 5. Return a new request whose URL is url, destination is destination,
+        // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
         .destination(destination)
         .use_url_credentials(true)
-        .insecure_requests_policy(insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
-        .policy_container(policy_container)
-        .client(client)
 }

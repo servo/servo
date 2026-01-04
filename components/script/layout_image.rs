@@ -21,6 +21,7 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
+use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
@@ -98,13 +99,8 @@ pub(crate) fn fetch_image_for_layout(
 
     let global = node.owner_global();
     let request = RequestBuilder::new(Some(document.webview_id()), url, global.get_referrer())
-        .origin(document.origin().immutable().clone())
         .destination(Destination::Image)
-        .pipeline_id(Some(global.pipeline_id()))
-        .insecure_requests_policy(document.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
-        .policy_container(document.policy_container().to_owned())
-        .client(global.request_client());
+        .with_global_scope(&global);
 
     // Layout image loads do not delay the document load event.
     document.fetch_background(request, context);

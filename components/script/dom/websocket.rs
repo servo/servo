@@ -44,6 +44,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
+use crate::fetch::RequestWithGlobalScope;
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 use crate::task_source::SendableTaskSource;
@@ -283,9 +284,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             url_record.clone(),
             Referrer::NoReferrer,
         )
-        .origin(global.origin().immutable().clone())
-        .insecure_requests_policy(global.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .with_global_scope(global)
         .mode(RequestMode::WebSocket {
             protocols,
             original_url: url_record,
@@ -293,9 +292,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         .service_workers_mode(ServiceWorkersMode::None)
         .credentials_mode(CredentialsMode::Include)
         .cache_mode(CacheMode::NoCache)
-        .policy_container(global.policy_container())
-        .redirect_mode(RedirectMode::Error)
-        .client(global.request_client());
+        .redirect_mode(RedirectMode::Error);
 
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,

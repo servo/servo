@@ -1905,15 +1905,6 @@ impl Document {
             .insert(key, preload_id);
     }
 
-    /// Add the policy container and HTTPS state to a given request.
-    ///
-    /// TODO: Can this hapen for all requests that go through the document?
-    pub(crate) fn prepare_request(&self, request: RequestBuilder) -> RequestBuilder {
-        request
-            .policy_container(self.policy_container().to_owned())
-            .https_state(self.https_state.get())
-    }
-
     pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         load: LoadType,

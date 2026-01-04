@@ -58,6 +58,7 @@ use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
 #[cfg(feature = "webxr")]
 use crate::dom::xrsystem::XRSystem;
+use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -468,7 +469,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // Step 1. Set base to this's relevant settings object's API base URL.
         let base = global.api_base_url();
         // Step 2. Set origin to this's relevant settings object's origin.
-        let origin = global.origin().immutable().clone();
+        //
+        // Handled in `crate::fetch::RequestWithGlobalScope::with_global_scope`
+
         // Step 3. Set parsedUrl to the result of the URL parser steps with url and base.
         // If the algorithm returns an error, or if parsedUrl's scheme is not "http" or "https",
         // throw a "TypeError" exception and terminate these steps.
@@ -522,14 +525,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         let request = RequestBuilder::new(None, url.clone(), global.get_referrer())
             .mode(cors_mode)
             .destination(Destination::None)
-            .policy_container(global.policy_container())
-            .insecure_requests_policy(global.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+            .with_global_scope(&global)
             .method(http::Method::POST)
             .body(request_body)
-            .origin(origin)
-            .pipeline_id(Some(global.pipeline_id()))
-            .client(global.request_client())
             .keep_alive(true)
             .credentials_mode(CredentialsMode::Include)
             .headers(headers);
