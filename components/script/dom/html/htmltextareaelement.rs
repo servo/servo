@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::ops::Range;
 
+use base::Lines;
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
@@ -46,9 +47,7 @@ use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::textinput::{
-    ClipboardEventFlags, Direction, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
-};
+use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, TextInput};
 
 #[dom_struct]
 pub(crate) struct HTMLTextAreaElement {
@@ -166,7 +165,6 @@ impl HTMLTextAreaElement {
                 },
                 None,
                 None,
-                SelectionDirection::None,
             )),
             value_dirty: Cell::new(false),
             form_owner: Default::default(),
@@ -383,7 +381,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
             if old_value != textinput.get_content() {
                 // Step 4
-                textinput.clear_selection_to_limit(Direction::Forward);
+                textinput.clear_selection_to_end();
             }
         }
 
