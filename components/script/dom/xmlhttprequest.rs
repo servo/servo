@@ -130,7 +130,7 @@ impl FetchResponseListener for XHRContext {
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         if let Ok(ref response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note());
+            network_listener::submit_timing(&self, response, CanGc::note());
         }
 
         let rv = self.xhr.root().process_response_complete(
