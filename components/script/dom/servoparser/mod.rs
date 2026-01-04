@@ -87,7 +87,7 @@ use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
-use crate::script_thread::ScriptThread;
+use crate::script_thread::with_script_thread;
 
 mod async_html;
 pub(crate) mod encoding;
@@ -902,6 +902,8 @@ struct NavigationParams {
 /// The context required for asynchronously fetching a document
 /// and parsing it progressively.
 pub(crate) struct ParserContext {
+    /// A handle to the [`ScriptThread`] that starrted this parsing.
+    //script_thread: Weak<ScriptThread>,
     /// The parser that initiated the request.
     parser: Option<Trusted<ServoParser>>,
     /// Is this a synthesized document
@@ -922,12 +924,14 @@ pub(crate) struct ParserContext {
 
 impl ParserContext {
     pub(crate) fn new(
+        //script_thread: Weak<ScriptThread>,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         url: ServoUrl,
         creation_sandboxing_flag_set: SandboxingFlagSet,
     ) -> ParserContext {
         ParserContext {
+            //script_thread,
             parser: None,
             is_synthesized_document: false,
             has_loaded_document: false,
@@ -1252,15 +1256,19 @@ impl FetchResponseListener for ParserContext {
             ),
         };
 
-        let parser = match ScriptThread::page_headers_available(
-            self.webview_id,
-            self.pipeline_id,
-            metadata,
-            CanGc::note(),
-        ) {
-            Some(parser) => parser,
-            None => return,
+        // TODO: This `with_script_thread` call should be removed once, ScriptThread is
+        // passed to tasks appropriately.
+        let Some(parser) = with_script_thread(|script_thread| {
+            script_thread.handle_page_headers_available(
+                self.webview_id,
+                self.pipeline_id,
+                metadata,
+                CanGc::note(),
+            )
+        }) else {
+            return;
         };
+
         if parser.aborted.get() {
             return;
         }

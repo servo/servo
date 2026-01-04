@@ -4174,8 +4174,13 @@ class CGCallGenerator(CGThing):
             call = CGWrapper(call, pre=f"{object}.")
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
+        if static:
+            global_string = "global.upcast::<D::GlobalScope>()"
+        else:
+            global_string = "&this.global_(InRealm::already(&AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx()))))"
+
         if hasCEReactions:
-            self.cgRoot.append(CGGeneric("<D as DomHelpers<D>>::push_new_element_queue();\n"))
+            self.cgRoot.append(CGGeneric(f"<D as DomHelpers<D>>::push_new_element_queue({global_string});\n"))
 
         self.cgRoot.append(CGList([
             CGGeneric("let result: "),
@@ -4186,19 +4191,14 @@ class CGCallGenerator(CGThing):
         ]))
 
         if hasCEReactions:
-            self.cgRoot.append(CGGeneric("<D as DomHelpers<D>>::pop_current_element_queue(CanGc::note());\n"))
+            self.cgRoot.append(CGGeneric(f"<D as DomHelpers<D>>::pop_current_element_queue({global_string}, CanGc::note());\n"))
 
         if isFallible:
-            if static:
-                glob = "global.upcast::<D::GlobalScope>()"
-            else:
-                glob = "&this.global_(InRealm::already(&AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx()))))"
-
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                f"        <D as DomHelpers<D>>::throw_dom_exception(SafeJSContext::from_ptr(cx.raw_cx()), {glob}, e, CanGc::note());\n"
+                f"        <D as DomHelpers<D>>::throw_dom_exception(SafeJSContext::from_ptr(cx.raw_cx()), {global_string}, e, CanGc::note());\n"
                 f"        return{errorResult};\n"
                 "    },\n"
                 "};"))

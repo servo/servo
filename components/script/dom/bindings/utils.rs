@@ -32,7 +32,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::script_thread::ScriptThread;
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// Static data associated with a global object.
@@ -183,11 +182,24 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         &InterfaceObjectMap::MAP
     }
 
-    fn push_new_element_queue() {
-        ScriptThread::custom_element_reaction_stack().push_new_element_queue()
+    fn push_new_element_queue(global: &<crate::DomTypeHolder as DomTypes>::GlobalScope) {
+        global.map_window(|window| {
+            window
+                .script_thread()
+                .custom_element_reaction_stack()
+                .push_new_element_queue();
+        });
     }
-    fn pop_current_element_queue(can_gc: CanGc) {
-        ScriptThread::custom_element_reaction_stack().pop_current_element_queue(can_gc)
+    fn pop_current_element_queue(
+        global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
+        can_gc: CanGc,
+    ) {
+        global.map_window(|window| {
+            window
+                .script_thread()
+                .custom_element_reaction_stack()
+                .pop_current_element_queue(can_gc);
+        });
     }
 
     fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>

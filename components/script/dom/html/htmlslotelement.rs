@@ -10,7 +10,6 @@ use js::gc::RootedVec;
 use js::rust::HandleObject;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 
-use crate::ScriptThread;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
     AssignedNodesOptions, HTMLSlotElementMethods,
@@ -356,12 +355,13 @@ impl HTMLSlotElement {
         }
         self.is_in_agents_signal_slots.set(true);
 
-        let mutation_observers = ScriptThread::mutation_observers();
         // Step 1. Append slot to slot’s relevant agent’s signal slots.
+        let script_thread = self.owner_window().script_thread();
+        let mutation_observers = script_thread.mutation_observers();
         mutation_observers.add_signal_slot(self);
 
         // Step 2. Queue a mutation observer microtask.
-        mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
+        mutation_observers.queue_mutation_observer_microtask(script_thread.microtask_queue());
     }
 
     pub(crate) fn remove_from_signal_slots(&self) {

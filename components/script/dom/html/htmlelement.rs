@@ -60,7 +60,6 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct HTMLElement {
@@ -1182,11 +1181,7 @@ impl VirtualMethods for HTMLElement {
             {
                 element.set_disabled_state(true);
                 element.set_enabled_state(false);
-                ScriptThread::enqueue_callback_reaction(
-                    element,
-                    CallbackReaction::FormDisabled(true),
-                    None,
-                );
+                element.enqueue_callback_reaction(CallbackReaction::FormDisabled(true), None);
             },
             // Removing the "disabled" attribute may enable a disabled
             // form element, but a fieldset ancestor may keep it disabled.
@@ -1197,11 +1192,7 @@ impl VirtualMethods for HTMLElement {
                 element.set_enabled_state(true);
                 element.check_ancestors_disabled_state_for_form_control();
                 if element.enabled_state() {
-                    ScriptThread::enqueue_callback_reaction(
-                        element,
-                        CallbackReaction::FormDisabled(false),
-                        None,
-                    );
+                    element.enqueue_callback_reaction(CallbackReaction::FormDisabled(false), None);
                 }
             },
             (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {
@@ -1239,11 +1230,7 @@ impl VirtualMethods for HTMLElement {
         if self.is_form_associated_custom_element() && element.enabled_state() {
             element.check_ancestors_disabled_state_for_form_control();
             if element.disabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    element,
-                    CallbackReaction::FormDisabled(true),
-                    None,
-                );
+                element.enqueue_callback_reaction(CallbackReaction::FormDisabled(true), None);
             }
         }
     }
@@ -1262,11 +1249,7 @@ impl VirtualMethods for HTMLElement {
             element.check_disabled_attribute();
             element.check_ancestors_disabled_state_for_form_control();
             if element.enabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    element,
-                    CallbackReaction::FormDisabled(false),
-                    None,
-                );
+                element.enqueue_callback_reaction(CallbackReaction::FormDisabled(false), None);
             }
         }
     }

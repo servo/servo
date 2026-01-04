@@ -21,7 +21,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::option::Option;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::result::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -66,7 +66,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSContext as UnsafeJSContext, JSTracer};
+use js::jsapi::JSContext as UnsafeJSContext;
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use js::rust::wrappers2::{JS_AddInterruptCallback, SetWindowProxyClass};
@@ -120,7 +120,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
@@ -175,18 +174,6 @@ pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R)
     with_optional_script_thread(|script_thread| script_thread.map(f).unwrap_or_default())
 }
 
-/// # Safety
-///
-/// The `JSTracer` argument must point to a valid `JSTracer` in memory. In addition,
-/// implementors of this method must ensure that all active objects are properly traced
-/// or else the garbage collector may end up collecting objects that are still reachable.
-pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
-    with_script_thread(|script_thread| {
-        trace!("tracing fields of ScriptThread");
-        unsafe { script_thread.trace(tr) };
-    })
-}
-
 // We borrow the incomplete parser contexts mutably during parsing,
 // which is fine except that parsing can trigger evaluation,
 // which can trigger GC, and so we can end up tracing the script
@@ -226,9 +213,13 @@ impl Drop for ScriptUserInteractingGuard {
 // ScriptThread instances are rooted on creation, so this is okay
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub struct ScriptThread {
+    /// A `Weak` reference to this [`ScriptThread`] used to give to child [`Window`]s so
+    /// they can more easily call methods on the [`ScriptThread`] without constantly having
+    /// to pass it everywhere.
+    #[no_trace]
+    this: Weak<ScriptThread>,
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
     last_render_opportunity_time: Cell<Option<Instant>>,
-
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<DocumentCollection>,
     /// The window proxies known by this thread
@@ -387,11 +378,17 @@ impl BackgroundHangMonitorExitSignal for BHMExitSignal {
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(_cx: *mut UnsafeJSContext) -> bool {
-    let res = ScriptThread::can_continue_running();
-    if !res {
-        ScriptThread::prepare_for_shutdown();
+    let Some(global_scope) = GlobalScope::current() else {
+        return true;
+    };
+    let Some(script_thread) = global_scope.map_window(|window| window.script_thread()) else {
+        return true;
+    };
+    if script_thread.can_continue_running() {
+        return true;
     }
-    res
+    script_thread.prepare_for_shutdown();
+    false
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -451,7 +448,7 @@ impl ScriptThreadFactory for ScriptThread {
                 );
 
                 SCRIPT_THREAD_ROOT.with(|root| {
-                    root.set(Some(&script_thread as *const _));
+                    root.set(Some(&*script_thread as *const _));
                 });
 
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
@@ -477,61 +474,37 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub(crate) fn runtime_handle() -> ParentRuntime {
-        with_optional_script_thread(|script_thread| {
-            script_thread.unwrap().js_runtime.prepare_for_new_child()
-        })
+    pub(crate) fn runtime_handle(&self) -> ParentRuntime {
+        self.js_runtime.prepare_for_new_child()
     }
 
-    pub(crate) fn can_continue_running() -> bool {
-        with_script_thread(|script_thread| script_thread.can_continue_running_inner())
+    pub(crate) fn mutation_observers(&self) -> Rc<ScriptMutationObservers> {
+        self.mutation_observers.clone()
     }
 
-    pub(crate) fn prepare_for_shutdown() {
-        with_script_thread(|script_thread| {
-            script_thread.prepare_for_shutdown_inner();
-        })
+    pub(crate) fn microtask_queue(&self) -> Rc<MicrotaskQueue> {
+        self.microtask_queue.clone()
     }
 
-    pub(crate) fn mutation_observers() -> Rc<ScriptMutationObservers> {
-        with_script_thread(|script_thread| script_thread.mutation_observers.clone())
-    }
-
-    pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
-        with_script_thread(|script_thread| script_thread.microtask_queue.clone())
-    }
-
-    pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .docs_with_no_blocking_loads
-                .borrow_mut()
-                .insert(Dom::from_ref(doc));
-        })
-    }
-
-    pub(crate) fn page_headers_available(
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        metadata: Option<Metadata>,
-        can_gc: CanGc,
-    ) -> Option<DomRoot<ServoParser>> {
-        with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, can_gc)
-        })
+    pub(crate) fn mark_document_with_no_blocked_loads(&self, document: &Document) {
+        self.docs_with_no_blocking_loads
+            .borrow_mut()
+            .insert(Dom::from_ref(document));
     }
 
     /// Process a single event as if it were the next event
     /// in the queue for this window event-loop.
     /// Returns a boolean indicating whether further events should be processed.
-    pub(crate) fn process_event(msg: CommonScriptMsg, cx: &mut js::context::JSContext) -> bool {
-        with_script_thread(|script_thread| {
-            if !script_thread.can_continue_running_inner() {
-                return false;
-            }
-            script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg), cx);
-            true
-        })
+    pub(crate) fn process_event(
+        &self,
+        msg: CommonScriptMsg,
+        cx: &mut js::context::JSContext,
+    ) -> bool {
+        if !self.can_continue_running() {
+            return false;
+        }
+        self.handle_msg_from_script(MainThreadScriptMsg::Common(msg), cx);
+        true
     }
 
     /// Schedule a [`TimerEventRequest`] on this [`ScriptThread`]'s [`TimerScheduler`].
@@ -546,12 +519,8 @@ impl ScriptThread {
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
-    pub(crate) fn await_stable_state(task: Microtask) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .microtask_queue
-                .enqueue(task, script_thread.get_cx());
-        });
+    pub(crate) fn await_stable_state(&self, task: Microtask) {
+        self.microtask_queue.enqueue(task, self.get_cx());
     }
 
     /// Check that two origins are "similar enough",
@@ -583,53 +552,48 @@ impl ScriptThread {
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub(crate) fn navigate(
+        &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
     ) {
-        with_script_thread(|script_thread| {
-            let is_javascript = load_data.url.scheme() == "javascript";
-            // If resource is a request whose url's scheme is "javascript"
-            // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
-            if is_javascript {
-                let Some(window) = script_thread.documents.borrow().find_window(pipeline_id) else {
-                    return;
-                };
-                let global = window.as_global_scope();
-                let trusted_global = Trusted::new(global);
-                let sender = script_thread
-                    .senders
-                    .pipeline_to_constellation_sender
-                    .clone();
-                let task = task!(navigate_javascript: move || {
-                    // Important re security. See https://github.com/servo/servo/issues/23373
-                    if trusted_global.root().is::<Window>() {
-                        let global = &trusted_global.root();
-                        if Self::navigate_to_javascript_url(global, global, &mut load_data, None, CanGc::note()) {
-                            sender
-                                .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
-                                .unwrap();
-                        }
+        let is_javascript = load_data.url.scheme() == "javascript";
+        // If resource is a request whose url's scheme is "javascript"
+        // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
+        if is_javascript {
+            let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+                return;
+            };
+            let global = window.as_global_scope();
+            let trusted_global = Trusted::new(global);
+            let sender = self.senders.pipeline_to_constellation_sender.clone();
+            let task = task!(navigate_javascript: move || {
+                // Important re security. See https://github.com/servo/servo/issues/23373
+                if trusted_global.root().is::<Window>() {
+                    let global = &trusted_global.root();
+                    if Self::navigate_to_javascript_url(global, global, &mut load_data, None, CanGc::note()) {
+                        sender
+                            .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
+                            .unwrap();
                     }
-                });
-                // Step 19 of <https://html.spec.whatwg.org/multipage/#navigate>
-                global
-                    .task_manager()
-                    .dom_manipulation_task_source()
-                    .queue(task);
-            } else {
-                script_thread
-                    .senders
-                    .pipeline_to_constellation_sender
-                    .send((
-                        webview_id,
-                        pipeline_id,
-                        ScriptToConstellationMessage::LoadUrl(load_data, history_handling),
-                    ))
-                    .expect("Sending a LoadUrl message to the constellation failed");
-            }
-        });
+                }
+            });
+            // Step 19 of <https://html.spec.whatwg.org/multipage/#navigate>
+            global
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task);
+        } else {
+            self.senders
+                .pipeline_to_constellation_sender
+                .send((
+                    webview_id,
+                    pipeline_id,
+                    ScriptToConstellationMessage::LoadUrl(load_data, history_handling),
+                ))
+                .expect("Sending a LoadUrl message to the constellation failed");
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>
@@ -676,35 +640,32 @@ impl ScriptThread {
     }
 
     pub(crate) fn get_top_level_for_browsing_context(
+        &self,
         sender_webview_id: WebViewId,
         sender_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
     ) -> Option<WebViewId> {
-        with_script_thread(|script_thread| {
-            script_thread.ask_constellation_for_top_level_info(
-                sender_webview_id,
-                sender_pipeline_id,
-                browsing_context_id,
-            )
-        })
+        self.ask_constellation_for_top_level_info(
+            sender_webview_id,
+            sender_pipeline_id,
+            browsing_context_id,
+        )
     }
 
-    pub(crate) fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
-        with_script_thread(|script_thread| script_thread.documents.borrow().find_document(id))
+    pub(crate) fn find_document(&self, id: PipelineId) -> Option<DomRoot<Document>> {
+        self.documents.borrow().find_document(id)
     }
 
     /// Creates a guard that sets user_is_interacting to true and returns the
     /// state of user_is_interacting on drop of the guard.
     /// Notice that you need to use `let _guard = ...` as `let _ = ...` is not enough
     #[must_use]
-    pub(crate) fn user_interacting_guard() -> ScriptUserInteractingGuard {
-        with_script_thread(|script_thread| {
-            ScriptUserInteractingGuard::new(script_thread.is_user_interacting.clone())
-        })
+    pub(crate) fn user_interacting_guard(&self) -> ScriptUserInteractingGuard {
+        ScriptUserInteractingGuard::new(self.is_user_interacting.clone())
     }
 
-    pub(crate) fn is_user_interacting() -> bool {
-        with_script_thread(|script_thread| script_thread.is_user_interacting.get())
+    pub(crate) fn is_user_interacting(&self) -> bool {
+        self.is_user_interacting.get()
     }
 
     pub(crate) fn get_fully_active_document_ids(&self) -> FxHashSet<PipelineId> {
@@ -724,47 +685,41 @@ impl ScriptThread {
             })
     }
 
-    pub(crate) fn window_proxies() -> Rc<ScriptWindowProxies> {
-        with_script_thread(|script_thread| script_thread.window_proxies.clone())
+    pub(crate) fn window_proxies(&self) -> Rc<ScriptWindowProxies> {
+        self.window_proxies.clone()
     }
 
-    pub(crate) fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
-        with_script_thread(|script_thread| {
-            script_thread.window_proxies.find_window_proxy_by_name(name)
-        })
+    pub(crate) fn find_window_proxy_by_name(
+        &self,
+        name: &DOMString,
+    ) -> Option<DomRoot<WindowProxy>> {
+        self.window_proxies.find_window_proxy_by_name(name)
     }
 
     /// The worklet will use the given `ImageCache`.
-    pub(crate) fn worklet_thread_pool(image_cache: Arc<dyn ImageCache>) -> Rc<WorkletThreadPool> {
-        with_optional_script_thread(|script_thread| {
-            let script_thread = script_thread.unwrap();
-            script_thread
-                .worklet_thread_pool
-                .borrow_mut()
-                .get_or_insert_with(|| {
-                    let init = WorkletGlobalScopeInit {
-                        to_script_thread_sender: script_thread.senders.self_sender.clone(),
-                        resource_threads: script_thread.resource_threads.clone(),
-                        storage_threads: script_thread.storage_threads.clone(),
-                        mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
-                        time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
-                        devtools_chan: script_thread.senders.devtools_server_sender.clone(),
-                        to_constellation_sender: script_thread
-                            .senders
-                            .pipeline_to_constellation_sender
-                            .clone(),
-                        to_embedder_sender: script_thread
-                            .senders
-                            .pipeline_to_embedder_sender
-                            .clone(),
-                        image_cache,
-                        #[cfg(feature = "webgpu")]
-                        gpu_id_hub: script_thread.gpu_id_hub.clone(),
-                    };
-                    Rc::new(WorkletThreadPool::spawn(init))
-                })
-                .clone()
-        })
+    pub(crate) fn worklet_thread_pool(
+        &self,
+        image_cache: Arc<dyn ImageCache>,
+    ) -> Rc<WorkletThreadPool> {
+        self.worklet_thread_pool
+            .borrow_mut()
+            .get_or_insert_with(|| {
+                let init = WorkletGlobalScopeInit {
+                    to_script_thread_sender: self.senders.self_sender.clone(),
+                    resource_threads: self.resource_threads.clone(),
+                    storage_threads: self.storage_threads.clone(),
+                    mem_profiler_chan: self.senders.memory_profiler_sender.clone(),
+                    time_profiler_chan: self.senders.time_profiler_sender.clone(),
+                    devtools_chan: self.senders.devtools_server_sender.clone(),
+                    to_constellation_sender: self.senders.pipeline_to_constellation_sender.clone(),
+                    to_embedder_sender: self.senders.pipeline_to_embedder_sender.clone(),
+                    image_cache,
+                    #[cfg(feature = "webgpu")]
+                    gpu_id_hub: self.gpu_id_hub.clone(),
+                };
+                Rc::new(WorkletThreadPool::spawn(init))
+            })
+            .clone()
     }
 
     fn handle_register_paint_worklet(
@@ -784,66 +739,47 @@ impl ScriptThread {
             .register_paint_worklet_modules(name, properties, painter);
     }
 
-    pub(crate) fn custom_element_reaction_stack() -> Rc<CustomElementReactionStack> {
-        with_optional_script_thread(|script_thread| {
-            script_thread
-                .as_ref()
-                .unwrap()
-                .custom_element_reaction_stack
-                .clone()
-        })
+    pub(crate) fn custom_element_reaction_stack(&self) -> Rc<CustomElementReactionStack> {
+        self.custom_element_reaction_stack.clone()
     }
 
     pub(crate) fn enqueue_callback_reaction(
+        &self,
         element: &Element,
         reaction: CallbackReaction,
         definition: Option<Rc<CustomElementDefinition>>,
     ) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .custom_element_reaction_stack
-                .enqueue_callback_reaction(element, reaction, definition);
-        })
+        self.custom_element_reaction_stack
+            .enqueue_callback_reaction(element, reaction, definition);
     }
 
     pub(crate) fn enqueue_upgrade_reaction(
+        &self,
         element: &Element,
         definition: Rc<CustomElementDefinition>,
     ) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .custom_element_reaction_stack
-                .enqueue_upgrade_reaction(element, definition);
-        })
+        self.custom_element_reaction_stack
+            .enqueue_upgrade_reaction(element, definition);
     }
 
-    pub(crate) fn invoke_backup_element_queue(can_gc: CanGc) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .custom_element_reaction_stack
-                .invoke_backup_element_queue(can_gc);
-        })
+    pub(crate) fn invoke_backup_element_queue(&self, can_gc: CanGc) {
+        self.custom_element_reaction_stack
+            .invoke_backup_element_queue(can_gc);
     }
 
-    pub(crate) fn save_node_id(pipeline: PipelineId, node_id: String) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .pipeline_to_node_ids
-                .borrow_mut()
-                .entry(pipeline)
-                .or_default()
-                .insert(node_id);
-        })
+    pub(crate) fn save_node_id(&self, pipeline: PipelineId, node_id: String) {
+        self.pipeline_to_node_ids
+            .borrow_mut()
+            .entry(pipeline)
+            .or_default()
+            .insert(node_id);
     }
 
-    pub(crate) fn has_node_id(pipeline: PipelineId, node_id: &str) -> bool {
-        with_script_thread(|script_thread| {
-            script_thread
-                .pipeline_to_node_ids
-                .borrow()
-                .get(&pipeline)
-                .is_some_and(|node_ids| node_ids.contains(node_id))
-        })
+    pub(crate) fn has_node_id(&self, pipeline: PipelineId, node_id: &str) -> bool {
+        self.pipeline_to_node_ids
+            .borrow()
+            .get(&pipeline)
+            .is_some_and(|node_ids| node_ids.contains(node_id))
     }
 
     /// Creates a new script thread.
@@ -852,7 +788,7 @@ impl ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    ) -> ScriptThread {
+    ) -> Rc<ScriptThread> {
         let (self_sender, self_receiver) = unbounded();
         let mut runtime =
             Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
@@ -861,6 +797,7 @@ impl ScriptThread {
 
         unsafe {
             SetWindowProxyClass(cx, GetWindowProxyClass());
+            // TODO: Set thread local data for this callback.
             JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
@@ -917,7 +854,6 @@ impl ScriptThread {
         };
 
         let microtask_queue = runtime.microtask_queue.clone();
-        let js_runtime = Rc::new(runtime);
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
@@ -954,50 +890,54 @@ impl ScriptThread {
                 },
             ));
 
-        ScriptThread {
-            documents: DomRefCell::new(DocumentCollection::default()),
-            last_render_opportunity_time: Default::default(),
-            window_proxies: Default::default(),
-            incomplete_loads: DomRefCell::new(vec![]),
-            incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
-            senders,
-            receivers,
-            image_cache_factory,
-            resource_threads: state.resource_threads,
-            storage_threads: state.storage_threads,
-            task_queue,
-            background_hang_monitor,
-            closing,
-            timer_scheduler: Default::default(),
-            microtask_queue,
-            js_runtime,
-            closed_pipelines: DomRefCell::new(FxHashSet::default()),
-            mutation_observers: Default::default(),
-            system_font_service: Arc::new(state.system_font_service.to_proxy()),
-            webgl_chan: state.webgl_chan,
-            #[cfg(feature = "webxr")]
-            webxr_registry: state.webxr_registry,
-            worklet_thread_pool: Default::default(),
-            docs_with_no_blocking_loads: Default::default(),
-            custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
-            paint_api: state.cross_process_paint_api,
-            profile_script_events: opts.debug.profile_script_events,
-            print_pwm: opts.print_pwm,
-            unminify_js: opts.unminify_js,
-            local_script_source: opts.local_script_source.clone(),
-            unminify_css: opts.unminify_css,
-            user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
-            player_context: state.player_context,
-            pipeline_to_node_ids: Default::default(),
-            is_user_interacting: Rc::new(Cell::new(false)),
-            #[cfg(feature = "webgpu")]
-            gpu_id_hub,
-            layout_factory,
-            scheduled_update_the_rendering: Default::default(),
-            needs_rendering_update: Arc::new(AtomicBool::new(false)),
-            debugger_global: debugger_global.as_traced(),
-            privileged_urls: state.privileged_urls,
-        }
+        Rc::new_cyclic(|this| {
+            runtime.set_script_thread(this.clone());
+            Self {
+                this: this.clone(),
+                documents: DomRefCell::new(DocumentCollection::default()),
+                last_render_opportunity_time: Default::default(),
+                window_proxies: Default::default(),
+                incomplete_loads: DomRefCell::new(vec![]),
+                incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
+                senders,
+                receivers,
+                image_cache_factory,
+                resource_threads: state.resource_threads,
+                storage_threads: state.storage_threads,
+                task_queue,
+                background_hang_monitor,
+                closing,
+                timer_scheduler: Default::default(),
+                microtask_queue,
+                js_runtime: Rc::new(runtime),
+                closed_pipelines: DomRefCell::new(FxHashSet::default()),
+                mutation_observers: Default::default(),
+                system_font_service: Arc::new(state.system_font_service.to_proxy()),
+                webgl_chan: state.webgl_chan,
+                #[cfg(feature = "webxr")]
+                webxr_registry: state.webxr_registry,
+                worklet_thread_pool: Default::default(),
+                docs_with_no_blocking_loads: Default::default(),
+                custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
+                paint_api: state.cross_process_paint_api,
+                profile_script_events: opts.debug.profile_script_events,
+                print_pwm: opts.print_pwm,
+                unminify_js: opts.unminify_js,
+                local_script_source: opts.local_script_source.clone(),
+                unminify_css: opts.unminify_css,
+                user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
+                player_context: state.player_context,
+                pipeline_to_node_ids: Default::default(),
+                is_user_interacting: Rc::new(Cell::new(false)),
+                #[cfg(feature = "webgpu")]
+                gpu_id_hub,
+                layout_factory,
+                scheduled_update_the_rendering: Default::default(),
+                needs_rendering_update: Arc::new(AtomicBool::new(false)),
+                debugger_global: debugger_global.as_traced(),
+                privileged_urls: state.privileged_urls,
+            }
+        })
     }
 
     #[expect(unsafe_code)]
@@ -1012,7 +952,7 @@ impl ScriptThread {
     }
 
     /// Check if we are closing.
-    fn can_continue_running_inner(&self) -> bool {
+    pub(crate) fn can_continue_running(&self) -> bool {
         if self.closing.load(Ordering::SeqCst) {
             return false;
         }
@@ -1020,7 +960,7 @@ impl ScriptThread {
     }
 
     /// We are closing, ensure no script can run and potentially hang.
-    fn prepare_for_shutdown_inner(&self) {
+    fn prepare_for_shutdown(&self) {
         let docs = self.documents.borrow();
         for (_, document) in docs.iter() {
             document
@@ -1091,7 +1031,7 @@ impl ScriptThread {
         self.cancel_scheduled_update_the_rendering();
         self.needs_rendering_update.store(false, Ordering::Relaxed);
 
-        if !self.can_continue_running_inner() {
+        if !self.can_continue_running() {
             return false;
         }
 
@@ -2803,6 +2743,7 @@ impl ScriptThread {
                         continue;
                     }
                     let window_proxy = WindowProxy::new_dissimilar_origin(
+                        window.script_thread(),
                         window.upcast::<GlobalScope>(),
                         browsing_context_id,
                         source_webview,
@@ -2915,7 +2856,7 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_headers_available(
+    pub(crate) fn handle_page_headers_available(
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -3086,14 +3027,12 @@ impl ScriptThread {
     }
 
     /// Handles animation tick requested during testing.
-    pub(crate) fn handle_tick_all_animations_for_testing(id: PipelineId) {
-        with_script_thread(|script_thread| {
-            let Some(document) = script_thread.documents.borrow().find_document(id) else {
-                warn!("Animation tick for tests for closed pipeline {id}.");
-                return;
-            };
-            document.maybe_mark_animating_nodes_as_dirty();
-        });
+    pub(crate) fn handle_tick_all_animations_for_testing(&self, id: PipelineId) {
+        let Some(document) = self.documents.borrow().find_document(id) else {
+            warn!("Animation tick for tests for closed pipeline {id}.");
+            return;
+        };
+        document.maybe_mark_animating_nodes_as_dirty();
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
@@ -3243,6 +3182,9 @@ impl ScriptThread {
 
         // Create the window and document objects.
         let window = Window::new(
+            self.this
+                .upgrade()
+                .expect("ScriptThread should be available during execution"),
             incomplete.webview_id,
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
@@ -3894,17 +3836,13 @@ impl ScriptThread {
         };
     }
 
-    pub(crate) fn enqueue_microtask(job: Microtask) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .microtask_queue
-                .enqueue(job, script_thread.get_cx());
-        });
+    pub(crate) fn enqueue_microtask(&self, job: Microtask) {
+        self.microtask_queue.enqueue(job, self.get_cx());
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         // Only perform the checkpoint if we're not shutting down.
-        if self.can_continue_running_inner() {
+        if self.can_continue_running() {
             let globals = self
                 .documents
                 .borrow()
@@ -3982,8 +3920,8 @@ impl ScriptThread {
         document.event_handler().handle_refresh_cursor();
     }
 
-    pub(crate) fn is_servo_privileged(url: ServoUrl) -> bool {
-        with_script_thread(|script_thread| script_thread.privileged_urls.contains(&url))
+    pub(crate) fn is_servo_privileged(&self, url: ServoUrl) -> bool {
+        self.privileged_urls.contains(&url)
     }
 
     fn handle_request_screenshot_readiness(

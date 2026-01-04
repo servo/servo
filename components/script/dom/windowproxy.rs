@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::ptr;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 use base::generic_channel;
 use base::generic_channel::GenericSend;
@@ -60,7 +60,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::script_thread::{ScriptThread, with_script_thread};
+use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 
 #[dom_struct]
@@ -74,6 +74,11 @@ pub(crate) struct WindowProxy {
     /// we have to brain-transplant the reflector when the WindowProxy
     /// changes Window.
     reflector: Reflector,
+
+    /// A handle to the [`ScriptThread`] that created this [`WindowProxy`].
+    #[ignore_malloc_size_of = "ScriptThread measures it's own memory"]
+    #[no_trace]
+    script_thread: Weak<ScriptThread>,
 
     /// The id of the browsing context.
     /// In the case that this is a nested browsing context, this is the id
@@ -139,7 +144,9 @@ pub(crate) struct WindowProxy {
 }
 
 impl WindowProxy {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
+        script_thread: Rc<ScriptThread>,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
         currently_active: Option<PipelineId>,
@@ -153,6 +160,7 @@ impl WindowProxy {
         });
         WindowProxy {
             reflector: Reflector::new(),
+            script_thread: Rc::downgrade(&script_thread),
             browsing_context_id,
             webview_id,
             name: DomRefCell::new(name),
@@ -167,7 +175,7 @@ impl WindowProxy {
             creator_base_url: creator.base_url,
             creator_url: creator.url,
             creator_origin: creator.origin,
-            script_window_proxies: ScriptThread::window_proxies(),
+            script_window_proxies: script_thread.window_proxies(),
         }
     }
 
@@ -201,6 +209,7 @@ impl WindowProxy {
 
             let current = Some(window.upcast::<GlobalScope>().pipeline_id());
             let window_proxy = Box::new(WindowProxy::new_inherited(
+                window.script_thread(),
                 browsing_context_id,
                 webview_id,
                 current,
@@ -234,6 +243,7 @@ impl WindowProxy {
 
     #[expect(unsafe_code)]
     pub(crate) fn new_dissimilar_origin(
+        script_thread: Rc<ScriptThread>,
         global_to_clone_from: &GlobalScope,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
@@ -248,6 +258,7 @@ impl WindowProxy {
 
             // Create a new browsing context.
             let window_proxy = Box::new(WindowProxy::new_inherited(
+                script_thread,
                 browsing_context_id,
                 webview_id,
                 None,
@@ -293,25 +304,26 @@ impl WindowProxy {
         }
     }
 
+    fn script_thread(&self) -> Rc<ScriptThread> {
+        Weak::upgrade(&self.script_thread)
+            .expect("Weak reference should always be upgradable when a ScriptThead is running")
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context>
     fn create_auxiliary_browsing_context(
         &self,
         name: DOMString,
         noopener: bool,
     ) -> Option<DomRoot<WindowProxy>> {
+        let script_thread = self.script_thread();
         let (response_sender, response_receiver) = ipc::channel().unwrap();
-        let window = self
-            .currently_active
-            .get()
-            .and_then(ScriptThread::find_document)
-            .map(|doc| DomRoot::from_ref(doc.window()))
-            .unwrap();
-
         let document = self
             .currently_active
             .get()
-            .and_then(ScriptThread::find_document)
-            .expect("A WindowProxy creating an auxiliary to have an active document");
+            .and_then(|currently_active| script_thread.find_document(currently_active))
+            .expect("A WindowProxy creating an auxiliary to have an active Document");
+        let window = DomRoot::from_ref(document.window());
+
         let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
@@ -352,11 +364,10 @@ impl WindowProxy {
             theme: window.theme(),
         };
 
-        with_script_thread(|script_thread| {
-            script_thread.spawn_pipeline(new_pipeline_info);
-        });
+        script_thread.spawn_pipeline(new_pipeline_info);
 
-        let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
+        let new_window_proxy = script_thread
+            .find_document(response.new_pipeline_id)
             .and_then(|doc| doc.browsing_context())?;
         if name.to_lowercase() != "_blank" {
             new_window_proxy.set_name(name);
@@ -397,7 +408,8 @@ impl WindowProxy {
         self.delaying_load_events_mode.set(false);
         if let Some(document) = self.document() {
             if !document.loader().events_inhibited() {
-                ScriptThread::mark_document_with_no_blocked_loads(&document);
+                self.script_thread()
+                    .mark_document_with_no_blocked_loads(&document);
             }
         }
     }
@@ -446,13 +458,14 @@ impl WindowProxy {
     }
 
     #[expect(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-opener
+    /// <https://html.spec.whatwg.org/multipage/#dom-opener>
     pub(crate) fn opener(
         &self,
         cx: *mut JSContext,
         in_realm_proof: InRealm,
         mut retval: MutableHandleValue,
     ) {
+        let script_thread = self.script_thread();
         if self.disowned.get() {
             return retval.set(NullValue());
         }
@@ -465,7 +478,7 @@ impl WindowProxy {
             Some(window_proxy) => window_proxy,
             None => {
                 let sender_pipeline_id = self.currently_active().unwrap();
-                match ScriptThread::get_top_level_for_browsing_context(
+                match script_thread.get_top_level_for_browsing_context(
                     self.webview_id(),
                     sender_pipeline_id,
                     opener_id,
@@ -476,6 +489,7 @@ impl WindowProxy {
                         let creator =
                             CreatorBrowsingContextInfo::from(parent_browsing_context, None);
                         WindowProxy::new_dissimilar_origin(
+                            script_thread.clone(),
                             &global_to_clone_from,
                             opener_id,
                             opener_top_id,
@@ -555,13 +569,15 @@ impl WindowProxy {
             false
         };
         let target_window = target_document.window();
+
         // Step 15.3 and 15.4 will have happened elsewhere,
         // since we've created a new browsing context and loaded it with about:blank.
+        let script_thread = self.script_thread();
         if !url.is_empty() {
             let existing_document = self
                 .currently_active
                 .get()
-                .and_then(ScriptThread::find_document)
+                .and_then(|currently_active| script_thread.find_document(currently_active))
                 .unwrap();
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
@@ -651,7 +667,7 @@ impl WindowProxy {
                 // TODO: expand the search to all 'familiar' bc,
                 // including auxiliaries familiar by way of their opener.
                 // See https://html.spec.whatwg.org/multipage/#familiar-with
-                match ScriptThread::find_window_proxy_by_name(&name) {
+                match self.script_thread().find_window_proxy_by_name(&name) {
                     Some(proxy) => (Some(proxy), false),
                     None => (self.create_auxiliary_browsing_context(name, noopener), true),
                 }
@@ -687,9 +703,7 @@ impl WindowProxy {
     }
 
     pub(crate) fn document(&self) -> Option<DomRoot<Document>> {
-        self.currently_active
-            .get()
-            .and_then(ScriptThread::find_document)
+        Weak::upgrade(&self.script_thread)?.find_document(self.currently_active.get()?)
     }
 
     pub(crate) fn parent(&self) -> Option<&WindowProxy> {
@@ -969,7 +983,6 @@ unsafe fn GetSubframeWindowProxy(
         let mut slot = UndefinedValue();
         unsafe { GetProxyPrivate(*proxy, &mut slot) };
         rooted!(in(cx) let target = slot.to_object());
-        let script_window_proxies = ScriptThread::window_proxies();
         if let Ok(win) = root_from_handleobject::<Window>(target.handle(), cx) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
@@ -981,16 +994,19 @@ unsafe fn GetSubframeWindowProxy(
                     result_sender,
                 ),
             );
+
             return result_receiver
                 .recv()
                 .ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(|id| script_window_proxies.find_window_proxy(id))
+                .and_then(|id| win.script_thread().window_proxies().find_window_proxy(id))
                 .map(|proxy| (proxy, (JSPROP_ENUMERATE | JSPROP_READONLY) as u32));
         } else if let Ok(win) =
             root_from_handleobject::<DissimilarOriginWindow>(target.handle(), cx)
         {
-            let browsing_context_id = win.window_proxy().browsing_context_id();
+            let window_proxy = win.window_proxy();
+            let script_thread = window_proxy.script_thread();
+            let browsing_context_id = window_proxy.browsing_context_id();
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
             let _ = win.global().script_to_constellation_chan().send(
@@ -1004,7 +1020,7 @@ unsafe fn GetSubframeWindowProxy(
                 .recv()
                 .ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(|id| script_window_proxies.find_window_proxy(id))
+                .and_then(|id| script_thread.window_proxies().find_window_proxy(id))
                 .map(|proxy| (proxy, JSPROP_READONLY as u32));
         }
     }

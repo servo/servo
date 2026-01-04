@@ -174,7 +174,6 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
 
@@ -1892,7 +1891,7 @@ impl Element {
                 new_value,
                 attr.namespace().clone(),
             );
-            ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            self.enqueue_callback_reaction(reaction, None);
         }
 
         // Step 3. Run the attribute change steps with element, attribute’s local name, oldValue, newValue, and attribute’s namespace.
@@ -2885,6 +2884,22 @@ impl Element {
             line_number: line_number + 2,
             column_number: 0,
         }
+    }
+
+    pub(crate) fn enqueue_callback_reaction(
+        &self,
+        reaction: CallbackReaction,
+        definition: Option<Rc<CustomElementDefinition>>,
+    ) {
+        self.owner_window()
+            .script_thread()
+            .enqueue_callback_reaction(self, reaction, definition);
+    }
+
+    pub(crate) fn enqueue_upgrade_reaction(&self, definition: Rc<CustomElementDefinition>) {
+        self.owner_window()
+            .script_thread()
+            .enqueue_upgrade_reaction(self, definition);
     }
 }
 

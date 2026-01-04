@@ -194,7 +194,6 @@ use crate::mime::{APPLICATION, CHARSET};
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
-use crate::script_thread::ScriptThread;
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
@@ -2079,7 +2078,9 @@ impl Document {
             return;
         }
 
-        ScriptThread::mark_document_with_no_blocked_loads(self);
+        self.window
+            .script_thread()
+            .mark_document_with_no_blocked_loads(self);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>

@@ -9,6 +9,7 @@ use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
 use std::ops::Range;
+use std::rc::Rc;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -83,7 +84,9 @@ use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
-use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, DomObject, DomObjectWrap, reflect_dom_object_with_proto,
+};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -370,6 +373,8 @@ impl Node {
     /// Clean up flags and runs steps 11-14 of remove a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext, can_gc: CanGc) {
+        let script_thread = root.script_thread();
+
         // Flags that reset when a node is disconnected
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
@@ -394,7 +399,7 @@ impl Node {
 
         // Step 12.
         let is_parent_connected = context.parent.is_connected();
-        let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
+        let custom_element_reaction_stack = script_thread.custom_element_reaction_stack();
 
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
@@ -1326,7 +1331,9 @@ impl Node {
 
         if rare_data.unique_id.is_none() {
             let node_id = UniqueId::new();
-            ScriptThread::save_node_id(pipeline, node_id.borrow().simple().to_string());
+            let node_string = node_id.borrow().simple().to_string();
+            self.global()
+                .map_window(|window| window.script_thread().save_node_id(pipeline, node_string));
             rare_data.unique_id = Some(node_id);
         }
         rare_data
@@ -2364,7 +2371,8 @@ impl Node {
             // Step 3.2 For each inclusiveDescendant in node’s shadow-including inclusive descendants
             // that is custom, enqueue a custom element callback reaction with inclusiveDescendant,
             // callback name "adoptedCallback", and « oldDocument, document ».
-            let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
+            let custom_element_reaction_stack =
+                document.script_thread().custom_element_reaction_stack();
             for descendant in node
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(|d| d.as_custom_element())
@@ -2615,7 +2623,9 @@ impl Node {
             SuppressObserver::Suppressed => None,
         };
 
-        let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
+        let custom_element_reaction_stack = parent_document
+            .script_thread()
+            .custom_element_reaction_stack();
 
         // Step 10. Let staticNodeList be a list of nodes, initially « ».
         let mut static_node_list: SmallVec<[_; 4]> = Default::default();
@@ -4117,6 +4127,8 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 }
 
 pub(crate) trait NodeTraits {
+    /// Get the [`ScriptThread`] context that this node exists in.
+    fn script_thread(&self) -> Rc<ScriptThread>;
     /// Get the [`Document`] that owns this node. Note that this may differ from the
     /// [`Document`] that the node was created in if it was adopted by a different
     /// [`Document`] (the owner).
@@ -4138,6 +4150,10 @@ pub(crate) trait NodeTraits {
 }
 
 impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
+    fn script_thread(&self) -> Rc<ScriptThread> {
+        self.owner_document().window().script_thread()
+    }
+
     fn owner_document(&self) -> DomRoot<Document> {
         self.upcast().owner_doc()
     }

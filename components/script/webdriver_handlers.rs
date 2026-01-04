@@ -91,7 +91,6 @@ use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::script_thread::ScriptThread;
 
 /// <https://w3c.github.io/webdriver/#dfn-is-stale>
 fn is_stale(element: &Element) -> bool {
@@ -183,18 +182,23 @@ fn get_known_shadow_root(
     pipeline: PipelineId,
     node_id: String,
 ) -> Result<DomRoot<ShadowRoot>, ErrorStatus> {
-    let doc = documents
+    let document = documents
         .find_document(pipeline)
         .ok_or(ErrorStatus::NoSuchWindow)?;
+
     // Step 1. If not node reference is known with session, session's current browsing context,
     // and reference return error with error code no such shadow root.
-    if !ScriptThread::has_node_id(pipeline, &node_id) {
+    if !document
+        .window()
+        .script_thread()
+        .has_node_id(pipeline, &node_id)
+    {
         return Err(ErrorStatus::NoSuchShadowRoot);
     }
 
     // Step 2. Let node be the result of get a node with session,
     // session's current browsing context, and reference.
-    let node = find_node_by_unique_id_in_document(&doc, node_id);
+    let node = find_node_by_unique_id_in_document(&document, node_id);
 
     // Step 3. If node is not null and node does not implement ShadowRoot
     // return error with error code no such shadow root.
@@ -238,17 +242,22 @@ fn get_known_element(
     pipeline: PipelineId,
     node_id: String,
 ) -> Result<DomRoot<Element>, ErrorStatus> {
-    let doc = documents
+    let document = documents
         .find_document(pipeline)
         .ok_or(ErrorStatus::NoSuchWindow)?;
+
     // Step 1. If not node reference is known with session, session's current browsing context,
     // and reference return error with error code no such element.
-    if !ScriptThread::has_node_id(pipeline, &node_id) {
+    if !document
+        .window()
+        .script_thread()
+        .has_node_id(pipeline, &node_id)
+    {
         return Err(ErrorStatus::NoSuchElement);
     }
     // Step 2.Let node be the result of get a node with session,
     // session's current browsing context, and reference.
-    let node = find_node_by_unique_id_in_document(&doc, node_id);
+    let node = find_node_by_unique_id_in_document(&document, node_id);
 
     // Step 3. If node is not null and node does not implement Element
     // return error with error code no such element.

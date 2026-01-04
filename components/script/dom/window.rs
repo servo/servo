@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -187,7 +187,7 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
-use crate::script_thread::{ScriptThread, with_script_thread};
+use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
@@ -265,6 +265,12 @@ struct PendingLayoutImageAncillaryData {
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
+    /// A reference to the currently operating `ScriptTherad`. This should always be
+    /// upgradeable to an `Rc` as long as the `ScriptThread` is running.
+    #[no_trace]
+    #[ignore_malloc_size_of = "Measured by the ScriptThread itself"]
+    script_thread: Weak<ScriptThread>,
+
     /// The webview that contains this [`Window`].
     ///
     /// This may not be the top-level [`Window`], in the case of frames.
@@ -464,6 +470,11 @@ pub(crate) struct Window {
 }
 
 impl Window {
+    pub(crate) fn script_thread(&self) -> Rc<ScriptThread> {
+        Weak::upgrade(&self.script_thread)
+            .expect("Weak reference should always be upgradable when a ScriptThead is running")
+    }
+
     pub(crate) fn webview_id(&self) -> WebViewId {
         self.webview_id
     }
@@ -885,7 +896,7 @@ impl Window {
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
-        with_script_thread(|script_thread| script_thread.perform_a_microtask_checkpoint(can_gc));
+        self.script_thread().perform_a_microtask_checkpoint(can_gc)
     }
 
     pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
@@ -1481,10 +1492,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
     fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        ScriptThread::enqueue_microtask(Microtask::User(UserMicrotask {
-            callback,
-            pipeline: self.pipeline_id(),
-        }));
+        self.script_thread()
+            .enqueue_microtask(Microtask::User(UserMicrotask {
+                callback,
+                pipeline: self.pipeline_id(),
+            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -2475,7 +2487,8 @@ impl Window {
     pub(crate) fn advance_animation_clock(&self, delta_ms: i32) {
         self.Document()
             .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
-        ScriptThread::handle_tick_all_animations_for_testing(self.pipeline_id());
+        self.script_thread()
+            .handle_tick_all_animations_for_testing(self.pipeline_id());
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This method will wait for
@@ -3130,7 +3143,7 @@ impl Window {
             }
 
             // Step 13
-            ScriptThread::navigate(
+            self.script_thread().navigate(
                 self.webview_id,
                 pipeline_id,
                 load_data,
@@ -3475,6 +3488,7 @@ impl Window {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        script_thread: Rc<ScriptThread>,
         webview_id: WebViewId,
         runtime: Rc<Runtime>,
         script_chan: Sender<MainThreadScriptMsg>,
@@ -3516,6 +3530,7 @@ impl Window {
         };
 
         let win = Box::new(Self {
+            script_thread: Rc::downgrade(&script_thread),
             webview_id,
             globalscope: GlobalScope::new_inherited(
                 pipeline_id,
@@ -3596,7 +3611,7 @@ impl Window {
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
             endpoints_list: Default::default(),
-            script_window_proxies: ScriptThread::window_proxies(),
+            script_window_proxies: script_thread.window_proxies(),
             has_pending_screenshot_readiness_request: Default::default(),
             visual_viewport: Default::default(),
         });

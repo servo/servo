@@ -45,7 +45,6 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
@@ -102,11 +101,24 @@ impl Promise {
         Promise::new_in_current_realm(comp, can_gc)
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn new_in_current_realm(_comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut(), can_gc);
-        Promise::new_with_js_promise(obj.handle(), cx)
+        let promise = Promise::new_with_js_promise(obj.handle(), cx);
+
+        let is_user_interacting = match promise
+            .global()
+            .map_window(|window| window.script_thread().is_user_interacting())
+            .unwrap_or_default()
+        {
+            true => PromiseUserInputEventHandlingState::HadUserInteractionAtCreation,
+            false => PromiseUserInputEventHandlingState::DidntHaveUserInteractionAtCreation,
+        };
+        unsafe { SetPromiseUserInputEventHandlingState(obj.handle(), is_user_interacting) };
+
+        promise
     }
 
     pub(crate) fn new2(cx: &mut js::context::JSContext, global: &GlobalScope) -> Rc<Promise> {
@@ -163,12 +175,6 @@ impl Promise {
             assert!(!do_nothing_obj.is_null());
             obj.set(NewPromiseObject(*cx, do_nothing_obj.handle()));
             assert!(!obj.is_null());
-            let is_user_interacting = if ScriptThread::is_user_interacting() {
-                PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
-            } else {
-                PromiseUserInputEventHandlingState::DidntHaveUserInteractionAtCreation
-            };
-            SetPromiseUserInputEventHandlingState(obj.handle(), is_user_interacting);
         }
     }
 
