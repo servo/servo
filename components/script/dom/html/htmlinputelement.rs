@@ -1424,6 +1424,7 @@ impl HTMLInputElement {
         match self.input_type() {
             _ if self.is_textual_widget() => self.update_textual_shadow_tree(can_gc),
             InputType::Color => self.update_color_shadow_tree(can_gc),
+            InputType::File => self.upcast::<Node>().dirty(NodeDamage::Other),
             _ => {},
         }
     }
