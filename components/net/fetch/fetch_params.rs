@@ -13,20 +13,25 @@ use tokio::sync::oneshot::Receiver as TokioReceiver;
 /// <https://fetch.spec.whatwg.org/#fetch-params-preloaded-response-candidate>
 pub enum PreloadResponseCandidate {
     None,
-    Pending(TokioReceiver<Response>),
-    Response(Box<Response>),
+    Pending(TokioReceiver<Response>, PreloadId),
+    Response(Box<Response>, PreloadId),
 }
 
 impl PreloadResponseCandidate {
     /// Part of Step 12 of <https://fetch.spec.whatwg.org/#concept-main-fetch>
-    pub(crate) async fn response(&mut self) -> Option<Response> {
+    pub(crate) async fn response(&mut self) -> Option<(Response, PreloadId)> {
         // Step 3. Return fetchParams’s preloaded response candidate.
         match self {
             PreloadResponseCandidate::None => None,
             // Step 2. Assert: fetchParams’s preloaded response candidate is a response.
-            PreloadResponseCandidate::Response(response) => Some(*response.clone()),
+            PreloadResponseCandidate::Response(response, preload_id) => {
+                Some((*response.clone(), preload_id.clone()))
+            },
             // Step 1. Wait until fetchParams’s preloaded response candidate is not "pending".
-            PreloadResponseCandidate::Pending(receiver) => receiver.await.ok(),
+            PreloadResponseCandidate::Pending(receiver, preload_id) => receiver
+                .await
+                .ok()
+                .map(|response| (response, preload_id.clone())),
         }
     }
 }
@@ -98,23 +103,31 @@ impl ConsumePreloadedResources for RequestClient {
             // then return false.
             return None;
         }
+
+        // Step 8. Remove preloads[key].
+        // Note: `self.preloads` is an immutable copy of the list of preloads
+        //       that is not shared with any other running fetch.
+        //       Instead, we defer removing the associated PreloadId->PreloadEntry
+        //       map entry until the entire response has been preloaded, since
+        //       it stores the Sender which will be used to transmit the complete
+        //       response.
+
         // Step 10. Otherwise, call onResponseAvailable with entry's response.
         let result = if let Some(response) = preload_entry.response.as_ref() {
-            Some(PreloadResponseCandidate::Response(Box::new(
-                response.clone(),
-            )))
+            Some(PreloadResponseCandidate::Response(
+                Box::new(response.clone()),
+                preload_id.clone(),
+            ))
         } else {
             // Step 9. If entry's response is null, then set entry's on response available to onResponseAvailable.
             let (sender, receiver) = tokio::sync::oneshot::channel();
             preload_entry.on_response_available = Some(sender);
             // Step 11. Return true.
-            Some(PreloadResponseCandidate::Pending(receiver))
+            Some(PreloadResponseCandidate::Pending(
+                receiver,
+                preload_id.clone(),
+            ))
         };
-
-        // Step 8. Remove preloads[key].
-        //
-        // Performed as last cleanup, as otherwise we can't access preload_entry
-        preloads.remove(preload_id);
 
         result
     }

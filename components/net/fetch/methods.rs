@@ -457,8 +457,15 @@ pub async fn main_fetch(
             };
 
             // fetchParams’s preloaded response candidate is non-null
-            if let Some(response) = fetch_params.preload_response_candidate.response().await {
+            if let Some((response, preload_id)) =
+                fetch_params.preload_response_candidate.response().await
+            {
                 response.get_resource_timing().lock().preloaded = true;
+                context
+                    .preloaded_resources
+                    .lock()
+                    .unwrap()
+                    .remove(&preload_id);
                 response
             }
             // request's current URL's origin is same origin with request's origin, and request's
