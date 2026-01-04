@@ -113,7 +113,7 @@ impl ConsumePreloadedResources for RequestClient {
         //       response.
 
         // Step 10. Otherwise, call onResponseAvailable with entry's response.
-        let result = if let Some(response) = preload_entry.response.as_ref() {
+        if let Some(response) = preload_entry.response.as_ref() {
             Some(PreloadResponseCandidate::Response(
                 Box::new(response.clone()),
                 preload_id.clone(),
@@ -127,8 +127,6 @@ impl ConsumePreloadedResources for RequestClient {
                 receiver,
                 preload_id.clone(),
             ))
-        };
-
-        result
+        }
     }
 }
