@@ -281,6 +281,7 @@ pub(crate) fn Fetch(
         global: Trusted::new(global),
         locally_aborted: false,
         canceller: FetchCanceller::new(request_id, keep_alive, global.core_resource_thread()),
+        url: request_init.url.clone(),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
@@ -492,6 +493,8 @@ pub(crate) struct FetchContext {
     global: Trusted<GlobalScope>,
     locally_aborted: bool,
     canceller: FetchCanceller,
+    #[no_trace]
+    url: ServoUrl,
 }
 
 impl FetchContext {
@@ -647,10 +650,7 @@ impl FetchResponseListener for FetchContext {
 
 impl ResourceTimingListener for FetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (
-            InitiatorType::Fetch,
-            self.resource_timing_global().get_url().clone(),
-        )
+        (InitiatorType::Fetch, self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
