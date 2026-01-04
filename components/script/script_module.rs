@@ -1834,7 +1834,8 @@ fn fetch_single_module_script(
         .insecure_requests_policy(global.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_origin())
         .policy_container(global.policy_container().to_owned())
-        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
+        .client(global.request_client());
 
     let context = ModuleContext {
         owner,

@@ -226,19 +226,21 @@ impl HTMLVideoElement {
         // document's relevant settings object, destination is "image", initiator type is "video",
         // credentials mode is "include", and whose use-URL-credentials flag is set.
         let document = self.owner_document();
+        let global = self.owner_global();
         let request = RequestBuilder::new(
             Some(document.webview_id()),
             poster_url.clone(),
-            document.global().get_referrer(),
+            global.get_referrer(),
         )
         .destination(Destination::Image)
         .credentials_mode(CredentialsMode::Include)
         .use_url_credentials(true)
         .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(document.global().pipeline_id()))
+        .pipeline_id(Some(global.pipeline_id()))
         .insecure_requests_policy(document.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
-        .policy_container(document.policy_container().to_owned());
+        .policy_container(document.policy_container().to_owned())
+        .client(global.request_client());
 
         // Step 6. Fetch request. This must delay the load event of the element's node document.
         // This delay must be independent from the ones created by HTMLMediaElement during

@@ -576,6 +576,7 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
         .insecure_requests_policy(global.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
         .policy_container(global.policy_container())
+        .client(global.request_client())
         .build()
 }
 
