@@ -430,6 +430,9 @@ pub(crate) struct Window {
     #[no_trace]
     player_context: WindowGLContext,
 
+    /// Whether or no this [`Window`] is "throttled." When this is true animations will not run
+    /// and timers will be slowed down. [`Window`]s become throttled when their [`Document`] is
+    /// no longer active or when the `WebView` that contains them is hidden.
     throttled: Cell<bool>,
 
     /// A shared marker for the validity of any cached layout values. A value of true

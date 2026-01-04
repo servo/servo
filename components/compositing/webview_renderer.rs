@@ -173,8 +173,10 @@ impl WebViewRenderer {
             .any(PipelineDetails::animation_callbacks_running)
     }
 
+    /// Whether this [`WebViewRenderer`] is animating. Note that hidden `WebView`s
+    /// are never considered to be animating.
     pub(crate) fn animating(&self) -> bool {
-        self.animating
+        self.animating && !self.hidden()
     }
 
     pub(crate) fn hidden(&self) -> bool {
@@ -185,7 +187,14 @@ impl WebViewRenderer {
     /// value changed or `false` otherwise.
     pub(crate) fn set_hidden(&mut self, new_value: bool) -> bool {
         let old_value = std::mem::replace(&mut self.hidden, new_value);
-        new_value != old_value
+        if new_value == old_value {
+            return false;
+        }
+
+        let _ = self.embedder_to_constellation_sender.send(
+            EmbedderToConstellationMessage::SetWebViewHidden(self.id, new_value),
+        );
+        true
     }
 
     /// Returns the [`PipelineDetails`] for the given [`PipelineId`], creating it if needed.

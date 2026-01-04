@@ -45,6 +45,10 @@ pub(crate) struct ConstellationWebView {
     /// The [`Theme`] that this [`ConstellationWebView`] uses. This is communicated to all
     /// `ScriptThread`s so that they know how to render the contents of a particular `WebView.
     theme: Theme,
+
+    /// Whether or not this entire [`ConstellationWebView`] is hiden. `WebView`s that
+    /// are hidden will be throttled.
+    hidden: bool,
 }
 
 impl ConstellationWebView {
@@ -61,6 +65,7 @@ impl ConstellationWebView {
             last_mouse_move_point: Default::default(),
             session_history: JointSessionHistory::new(),
             theme: Theme::Light,
+            hidden: false,
         }
     }
 
@@ -73,6 +78,17 @@ impl ConstellationWebView {
     /// Get the [`Theme`] of this [`ConstellationWebView`].
     pub(crate) fn theme(&self) -> Theme {
         self.theme
+    }
+
+    /// Whether or not the WebView is hidden.
+    pub(crate) fn hidden(&self) -> bool {
+        self.hidden
+    }
+
+    /// Set whether or not this [`ConstellationWebView`] is hidden, returning true if the value changed.
+    pub(crate) fn set_hidden(&mut self, hidden: bool) -> bool {
+        let old_hidden = std::mem::replace(&mut self.hidden, hidden);
+        old_hidden != self.hidden
     }
 
     fn target_pipeline_id_for_input_event(
