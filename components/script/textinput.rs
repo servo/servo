@@ -4,6 +4,7 @@
 
 //! Common handling of keyboard input and state management for text input controls
 
+use std::cmp::Ordering;
 use std::default::Default;
 use std::ops::Range;
 
@@ -64,9 +65,8 @@ impl From<SelectionDirection> for DOMString {
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct SelectionState {
-    start: RopeIndex,
-    end: RopeIndex,
-    direction: SelectionDirection,
+    edit_point: RopeIndex,
+    selection_origin: Option<RopeIndex>,
 }
 
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
@@ -83,7 +83,6 @@ pub struct TextInput<T: ClipboardProvider> {
     /// selection_origin may be after the edit_point, in the case of a backward selection.
     #[no_trace]
     selection_origin: Option<RopeIndex>,
-    selection_direction: SelectionDirection,
 
     #[ignore_malloc_size_of = "Can't easily measure this generic type"]
     clipboard_provider: T,
@@ -226,7 +225,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         clipboard_provider: T,
         max_length: Option<Utf16CodeUnitLength>,
         min_length: Option<Utf16CodeUnitLength>,
-        selection_direction: SelectionDirection,
     ) -> TextInput<T> {
         Self {
             rope: Rope::new(initial, lines),
@@ -235,7 +233,6 @@ impl<T: ClipboardProvider> TextInput<T> {
             clipboard_provider,
             max_length,
             min_length,
-            selection_direction,
             was_last_change_by_set_content: true,
         }
     }
@@ -248,14 +245,15 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_origin
     }
 
-    /// The selection origin, or the edit point if there is no selection. Note that the selection
-    /// origin may be after the edit point, in the case of a backward selection.
-    pub fn selection_origin_or_edit_point(&self) -> RopeIndex {
-        self.selection_origin.unwrap_or(self.edit_point)
-    }
-
     pub fn selection_direction(&self) -> SelectionDirection {
-        self.selection_direction
+        let Some(selection_origin) = self.selection_origin else {
+            return SelectionDirection::None;
+        };
+        match self.edit_point.cmp(&selection_origin) {
+            Ordering::Less => SelectionDirection::Backward,
+            Ordering::Equal => SelectionDirection::None,
+            Ordering::Greater => SelectionDirection::Forward,
+        }
     }
 
     pub(crate) fn set_max_length(&mut self, length: Option<Utf16CodeUnitLength>) {
@@ -308,12 +306,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The start of the selection (or the edit point, if there is no selection). Always less than
     /// or equal to selection_end(), regardless of the selection direction.
     pub fn selection_start(&self) -> RopeIndex {
-        match self.selection_direction {
-            SelectionDirection::None | SelectionDirection::Forward => {
-                self.selection_origin_or_edit_point()
-            },
-            SelectionDirection::Backward => self.edit_point,
-        }
+        self.selection_origin
+            .map(|selection_origin| selection_origin.min(self.edit_point))
+            .unwrap_or(self.edit_point)
     }
 
     pub(crate) fn selection_start_utf16(&self) -> Utf16CodeUnitLength {
@@ -328,10 +323,9 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The end of the selection (or the edit point, if there is no selection). Always greater
     /// than or equal to selection_start(), regardless of the selection direction.
     pub fn selection_end(&self) -> RopeIndex {
-        match self.selection_direction {
-            SelectionDirection::None | SelectionDirection::Forward => self.edit_point,
-            SelectionDirection::Backward => self.selection_origin_or_edit_point(),
-        }
+        self.selection_origin
+            .map(|selection_origin| selection_origin.max(self.edit_point))
+            .unwrap_or(self.edit_point)
     }
 
     pub(crate) fn selection_end_utf16(&self) -> Utf16CodeUnitLength {
@@ -359,29 +353,17 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// The state of the current selection. Can be used to compare whether selection state has changed.
     pub(crate) fn selection_state(&self) -> SelectionState {
         SelectionState {
-            start: self.selection_start(),
-            end: self.selection_end(),
-            direction: self.selection_direction,
+            edit_point: self.edit_point,
+            selection_origin: self.selection_origin,
         }
     }
 
     // Check that the selection is valid.
     fn assert_ok_selection(&self) {
-        debug!(
-            "edit_point: {:?}, selection_origin: {:?}, direction: {:?}",
-            self.edit_point, self.selection_origin, self.selection_direction
-        );
-
-        debug_assert_eq!(self.edit_point, self.rope.clamp_index(self.edit_point));
         if let Some(selection_origin) = self.selection_origin {
             debug_assert_eq!(selection_origin, self.rope.clamp_index(selection_origin));
-            match self.selection_direction {
-                SelectionDirection::None | SelectionDirection::Forward => {
-                    debug_assert!(selection_origin <= self.edit_point)
-                },
-                SelectionDirection::Backward => debug_assert!(self.edit_point <= selection_origin),
-            }
         }
+        debug_assert_eq!(self.edit_point, self.rope.clamp_index(self.edit_point));
     }
 
     fn selection_slice(&self) -> RopeSlice<'_> {
@@ -464,7 +446,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.selection_origin.is_none() {
             self.selection_origin = Some(old_edit_point);
         }
-        self.update_selection_direction();
     }
 
     pub fn modify_selection_or_edit_point(
@@ -478,22 +459,6 @@ impl<T: ClipboardProvider> TextInput<T> {
             Selection::NotSelected => self.modify_edit_point(amount, movement),
         }
         self.assert_ok_selection();
-    }
-
-    /// Update the field selection_direction.
-    ///
-    /// When the edit_point (or focus) is before the selection_origin (or anchor)
-    /// you have a backward selection. Otherwise you have a forward selection.
-    fn update_selection_direction(&mut self) {
-        debug!(
-            "edit_point: {:?}, selection_origin: {:?}",
-            self.edit_point, self.selection_origin
-        );
-        self.selection_direction = if Some(self.edit_point) < self.selection_origin {
-            SelectionDirection::Backward
-        } else {
-            SelectionDirection::Forward
-        }
     }
 
     /// Deal with a newline input.
@@ -515,14 +480,12 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub fn select_all(&mut self) {
         self.selection_origin = Some(RopeIndex::default());
         self.edit_point = self.rope.last_index();
-        self.selection_direction = SelectionDirection::Forward;
         self.assert_ok_selection();
     }
 
     /// Remove the current selection.
     pub fn clear_selection(&mut self) {
         self.selection_origin = None;
-        self.selection_direction = SelectionDirection::None;
     }
 
     /// Remove the current selection and set the edit point to the end of the content.
@@ -842,8 +805,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         if start > end {
             start = end;
         }
-
-        self.selection_direction = direction;
 
         match direction {
             SelectionDirection::None | SelectionDirection::Forward => {

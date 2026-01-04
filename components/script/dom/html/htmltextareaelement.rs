@@ -47,9 +47,7 @@ use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::textinput::{
-    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput,
-};
+use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, TextInput};
 
 #[dom_struct]
 pub(crate) struct HTMLTextAreaElement {
@@ -167,7 +165,6 @@ impl HTMLTextAreaElement {
                 },
                 None,
                 None,
-                SelectionDirection::None,
             )),
             value_dirty: Cell::new(false),
             form_owner: Default::default(),

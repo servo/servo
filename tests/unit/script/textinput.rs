@@ -41,7 +41,6 @@ fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
         DummyClipboardContext::new(""),
         None,
         None,
-        SelectionDirection::None,
     )
 }
 
@@ -53,7 +52,6 @@ fn test_set_content_ignores_max_length() {
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength::one()),
         None,
-        SelectionDirection::None,
     );
 
     textinput.set_content(DOMString::from("mozilla rocks"));
@@ -68,7 +66,6 @@ fn test_textinput_when_inserting_multiple_lines_over_a_selection_respects_max_le
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength(17)),
         None,
-        SelectionDirection::None,
     );
 
     textinput.modify_edit_point(1, RopeMovement::Grapheme);
@@ -91,7 +88,6 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength(17)),
         None,
-        SelectionDirection::None,
     );
 
     textinput.modify_edit_point(1, RopeMovement::Line);
@@ -108,7 +104,6 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength::one()),
         None,
-        SelectionDirection::None,
     );
 
     textinput.insert_char('a');
@@ -125,7 +120,6 @@ fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_wh
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength(5)),
         None,
-        SelectionDirection::None,
     );
 
     textinput.insert_char('a');
@@ -142,7 +136,6 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength(5)),
         None,
-        SelectionDirection::None,
     );
 
     textinput.modify_edit_point(1, RopeMovement::Grapheme);
@@ -164,7 +157,6 @@ fn test_single_line_textinput_with_max_length_allows_deletion_when_replacing_a_s
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength(1)),
         None,
-        SelectionDirection::None,
     );
 
     textinput.modify_edit_point(1, RopeMovement::Grapheme);
@@ -186,7 +178,6 @@ fn test_single_line_textinput_with_max_length_multibyte() {
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength(2)),
         None,
-        SelectionDirection::None,
     );
 
     textinput.insert_char('á');
@@ -205,7 +196,6 @@ fn test_single_line_textinput_with_max_length_multi_code_unit() {
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength(3)),
         None,
-        SelectionDirection::None,
     );
 
     textinput.insert_char('\u{10437}');
@@ -226,7 +216,6 @@ fn test_single_line_textinput_with_max_length_inside_char() {
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength::one()),
         None,
-        SelectionDirection::None,
     );
 
     textinput.insert_char('x');
@@ -242,7 +231,6 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         DummyClipboardContext::new(""),
         Some(Utf16CodeUnitLength::one()),
         None,
-        SelectionDirection::None,
     );
 
     textinput.insert_char('b');
@@ -539,7 +527,6 @@ fn test_clipboard_paste() {
         DummyClipboardContext::new("abc"),
         None,
         None,
-        SelectionDirection::None,
     );
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point().code_point, 0);
@@ -630,10 +617,6 @@ fn test_textinput_set_selection_with_direction() {
 fn test_selection_bounds() {
     let mut textinput = text_input(Lines::Single, "abcdef");
 
-    assert_eq!(
-        RopeIndex::new(0, 0),
-        textinput.selection_origin_or_edit_point()
-    );
     assert_eq!(RopeIndex::new(0, 0), textinput.selection_start());
     assert_eq!(RopeIndex::new(0, 0), textinput.selection_end());
 
@@ -641,10 +624,6 @@ fn test_selection_bounds() {
         Utf8CodeUnitLength(2),
         Utf8CodeUnitLength(5),
         SelectionDirection::Forward,
-    );
-    assert_eq!(
-        RopeIndex::new(0, 2),
-        textinput.selection_origin_or_edit_point()
     );
     assert_eq!(RopeIndex::new(0, 2), textinput.selection_start());
     assert_eq!(RopeIndex::new(0, 5), textinput.selection_end());
@@ -654,10 +633,6 @@ fn test_selection_bounds() {
         Utf8CodeUnitLength(6),
         SelectionDirection::Backward,
     );
-    assert_eq!(
-        RopeIndex::new(0, 6),
-        textinput.selection_origin_or_edit_point()
-    );
     assert_eq!(RopeIndex::new(0, 3), textinput.selection_start());
     assert_eq!(RopeIndex::new(0, 6), textinput.selection_end());
 
@@ -666,10 +641,6 @@ fn test_selection_bounds() {
         Utf8CodeUnitLength(0),
         Utf8CodeUnitLength(1),
         SelectionDirection::Forward,
-    );
-    assert_eq!(
-        RopeIndex::new(0, 0),
-        textinput.selection_origin_or_edit_point()
     );
     assert_eq!(RopeIndex::new(0, 0), textinput.selection_start());
     assert_eq!(RopeIndex::new(1, 0), textinput.selection_end());
