@@ -16,6 +16,10 @@ default = []
 tracing = ["dep:tracing"]
 webgpu = ["dep:webgpu"]
 webxr = ["dep:webxr", "dep:webxr-api"]
+# Enable software-based wheel fling/momentum scrolling.
+# This should be enabled on platforms that don't provide native
+# momentum scroll events.
+wheel_fling = []
 
 [lints.clippy]
 unwrap_used = "deny"
