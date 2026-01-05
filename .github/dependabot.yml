@@ -56,6 +56,12 @@ updates:
       patterns:
         - "strum"
         - "strum_macros"
+    tokio-rs-related:
+      # DO NOT add "tokio-rustls" below, which is from a separate repository.
+      patterns:
+        - "tokio"
+        - "tokio-stream"
+        - "tokio-util"
     tungstenite-related:
       patterns:
         - "async-tungstenite"
