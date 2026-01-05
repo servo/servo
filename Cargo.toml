@@ -105,7 +105,7 @@ imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
 ipc-channel = "0.20.2"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.14.4", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.14.5", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 layout_api = { path = "components/shared/layout" }
@@ -315,3 +315,8 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/rust-content-security-policy"]
 # content-security-policy = { path = "../rust-content-security-policy" }
+#
+# Or for mozjs:
+#
+# mozjs = { path = "../mozjs/mozjs" }
+# mozjs_sys = { path = "../mozjs/mozjs-sys" }
