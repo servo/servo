@@ -294,7 +294,8 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         .credentials_mode(CredentialsMode::Include)
         .cache_mode(CacheMode::NoCache)
         .policy_container(global.policy_container())
-        .redirect_mode(RedirectMode::Error);
+        .redirect_mode(RedirectMode::Error)
+        .client(global.request_client());
 
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,

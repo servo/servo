@@ -15,8 +15,10 @@ use crossbeam_channel::Sender;
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{Theme, ViewportDetails};
 use http::header;
+use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
-    CredentialsMode, InsecureRequestsPolicy, RedirectMode, RequestBuilder, RequestMode,
+    CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
+    RequestBuilder, RequestClient, RequestMode,
 };
 use net_traits::response::ResponseInit;
 use net_traits::{
@@ -194,6 +196,22 @@ impl InProgressLoad {
     pub(crate) fn request_builder(&mut self) -> RequestBuilder {
         let id = self.pipeline_id;
         let webview_id = self.webview_id;
+
+        let insecure_requests_policy = self
+            .load_data
+            .inherited_insecure_requests_policy
+            .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade);
+
+        let request_client = RequestClient {
+            preloaded_resources: PreloadedResources::default(),
+            policy_container: RequestPolicyContainer::PolicyContainer(
+                self.load_data.policy_container.clone().unwrap_or_default(),
+            ),
+            origin: Origin::Origin(self.origin.immutable().clone()),
+            is_nested_browsing_context: self.parent_info.is_some(),
+            insecure_requests_policy,
+        };
+
         let mut request_builder = RequestBuilder::new(
             Some(webview_id),
             self.load_data.url.clone(),
@@ -207,17 +225,14 @@ impl InProgressLoad {
         .pipeline_id(Some(id))
         .referrer_policy(self.load_data.referrer_policy)
         .policy_container(self.load_data.policy_container.clone().unwrap_or_default())
-        .insecure_requests_policy(
-            self.load_data
-                .inherited_insecure_requests_policy
-                .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade),
-        )
+        .insecure_requests_policy(insecure_requests_policy)
         .has_trustworthy_ancestor_origin(self.load_data.has_trustworthy_ancestor_origin)
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)
         .origin(self.origin.immutable().clone())
-        .crash(self.load_data.crash.clone());
+        .crash(self.load_data.crash.clone())
+        .client(request_client);
         request_builder.url_list = self.url_list.clone();
 
         if !request_builder.headers.contains_key(header::ACCEPT) {

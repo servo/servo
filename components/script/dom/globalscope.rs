@@ -2599,18 +2599,27 @@ impl GlobalScope {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#nested-browsing-context>
+    pub(crate) fn is_nested_browsing_context(&self) -> bool {
+        self.downcast::<Window>()
+            .is_some_and(|window| !window.is_top_level())
+    }
+
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
     pub(crate) fn request_client(&self) -> RequestClient {
         // Step 1.2.2. If global is a Window object and global’s navigable is not null,
         // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
-        let preloaded_resources = self
-            .downcast::<Window>()
+        let window = self.downcast::<Window>();
+        let preloaded_resources = window
             .map(|window: &Window| window.Document().preloaded_resources().clone())
             .unwrap_or_default();
+        let is_nested_browsing_context = window.is_some_and(|window| !window.is_top_level());
         RequestClient {
             preloaded_resources,
             policy_container: RequestPolicyContainer::PolicyContainer(self.policy_container()),
             origin: RequestOrigin::Origin(self.origin().immutable().clone()),
+            is_nested_browsing_context,
+            insecure_requests_policy: self.insecure_requests_policy(),
         }
     }
 
