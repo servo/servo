@@ -42,11 +42,12 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AeadParams, AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, EcKeyAlgorithm,
-    EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams, EncapsulatedBits,
-    EncapsulatedKey, HkdfParams, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey,
-    KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaHashedImportParams, RsaHashedKeyAlgorithm,
-    RsaHashedKeyGenParams, RsaKeyAlgorithm, RsaOaepParams, RsaPssParams, SubtleCryptoMethods,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, ContextParams,
+    EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams,
+    EncapsulatedBits, EncapsulatedKey, HkdfParams, HmacImportParams, HmacKeyAlgorithm,
+    HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaHashedImportParams,
+    RsaHashedKeyAlgorithm, RsaHashedKeyGenParams, RsaKeyAlgorithm, RsaOaepParams, RsaPssParams,
+    SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -2772,6 +2773,29 @@ impl TryFrom<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-ContextParams>
+#[derive(Clone, Debug, MallocSizeOf)]
+struct SubtleContextParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: String,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-ContextParams-context>
+    context: Option<Vec<u8>>,
+}
+
+impl From<RootedTraceableBox<ContextParams>> for SubtleContextParams {
+    fn from(value: RootedTraceableBox<ContextParams>) -> Self {
+        let context = value.context.as_ref().map(|context| match context {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        });
+        SubtleContextParams {
+            name: value.parent.name.to_string(),
+            context,
+        }
+    }
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams>
 #[derive(Clone, Debug, MallocSizeOf)]
 struct SubtleAeadParams {
@@ -3618,6 +3642,8 @@ impl SupportedAlgorithm {
             (Self::MlKem(_), Operation::ExportKey) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-registration>
+            (Self::MlDsa(_), Operation::Sign) => ParameterType::ContextParams,
+            (Self::MlDsa(_), Operation::Verify) => ParameterType::ContextParams,
             (Self::MlDsa(_), Operation::GenerateKey) => ParameterType::None,
             (Self::MlDsa(_), Operation::ImportKey) => ParameterType::None,
             (Self::MlDsa(_), Operation::ExportKey) => ParameterType::None,
@@ -3719,6 +3745,7 @@ enum ParameterType {
     HmacKeyGenParams,
     HkdfParams,
     Pbkdf2Params,
+    ContextParams,
     AeadParams,
     CShakeParams,
     Argon2Params,
@@ -3748,6 +3775,7 @@ enum NormalizedAlgorithm {
     HmacKeyGenParams(SubtleHmacKeyGenParams),
     HkdfParams(SubtleHkdfParams),
     Pbkdf2Params(SubtlePbkdf2Params),
+    ContextParams(SubtleContextParams),
     AeadParams(SubtleAeadParams),
     CShakeParams(SubtleCShakeParams),
     Argon2Params(SubtleArgon2Params),
@@ -3930,6 +3958,10 @@ impl NormalizedAlgorithm {
                 dictionary_from_jsval::<RootedTraceableBox<Pbkdf2Params>>(cx, value, can_gc)?
                     .try_into()?,
             ),
+            ParameterType::ContextParams => NormalizedAlgorithm::ContextParams(
+                dictionary_from_jsval::<RootedTraceableBox<ContextParams>>(cx, value, can_gc)?
+                    .into(),
+            ),
             ParameterType::AeadParams => NormalizedAlgorithm::AeadParams(
                 dictionary_from_jsval::<RootedTraceableBox<AeadParams>>(cx, value, can_gc)?.into(),
             ),
@@ -3967,6 +3999,7 @@ impl NormalizedAlgorithm {
             NormalizedAlgorithm::HmacKeyGenParams(algo) => &algo.name,
             NormalizedAlgorithm::HkdfParams(algo) => &algo.name,
             NormalizedAlgorithm::Pbkdf2Params(algo) => &algo.name,
+            NormalizedAlgorithm::ContextParams(algo) => &algo.name,
             NormalizedAlgorithm::AeadParams(algo) => &algo.name,
             NormalizedAlgorithm::CShakeParams(algo) => &algo.name,
             NormalizedAlgorithm::Argon2Params(algo) => &algo.name,
@@ -4030,6 +4063,10 @@ impl NormalizedAlgorithm {
                 ed25519_operation::sign(key, message)
             },
             (ALG_HMAC, NormalizedAlgorithm::Algorithm(_algo)) => hmac_operation::sign(key, message),
+            (
+                ALG_ML_DSA_44 | ALG_ML_DSA_65 | ALG_ML_DSA_87,
+                NormalizedAlgorithm::ContextParams(algo),
+            ) => ml_dsa_operation::sign(algo, key, message),
             _ => Err(Error::NotSupported(None)),
         }
     }
@@ -4051,6 +4088,10 @@ impl NormalizedAlgorithm {
             (ALG_HMAC, NormalizedAlgorithm::Algorithm(_algo)) => {
                 hmac_operation::verify(key, message, signature)
             },
+            (
+                ALG_ML_DSA_44 | ALG_ML_DSA_65 | ALG_ML_DSA_87,
+                NormalizedAlgorithm::ContextParams(algo),
+            ) => ml_dsa_operation::verify(algo, key, message, signature),
             _ => Err(Error::NotSupported(None)),
         }
     }

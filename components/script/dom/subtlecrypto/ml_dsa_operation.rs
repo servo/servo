@@ -4,7 +4,9 @@
 
 use der::asn1::{BitString, OctetString};
 use der::{AnyRef, Choice, Decode, Encode, Sequence};
-use ml_dsa::{B32, EncodedVerifyingKey, KeyGen, MlDsa44, MlDsa65, MlDsa87};
+use ml_dsa::{
+    B32, EncodedVerifyingKey, KeyGen, MlDsa44, MlDsa65, MlDsa87, Signature, VerifyingKey,
+};
 use pkcs8::rand_core::{OsRng, RngCore};
 use pkcs8::spki::AlgorithmIdentifier;
 use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
@@ -20,7 +22,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_ML_DSA_44, ALG_ML_DSA_65, ALG_ML_DSA_87, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleKeyAlgorithm,
+    KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleContextParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
 
@@ -118,6 +120,166 @@ enum MlDsaPrivateKeyStructure {
     Seed(OctetString),
     ExpandedKey(OctetString),
     Both(Both),
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-sign>
+pub(crate) fn sign(
+    normalized_algorithm: &SubtleContextParams,
+    key: &CryptoKey,
+    message: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"private\"".to_string(),
+        )));
+    }
+
+    // Step 2. Let context be the context member of normalizedAlgorithm or the empty octet string
+    // if the context member of normalizedAlgorithm is not present.
+    let context = normalized_algorithm.context.as_deref().unwrap_or_default();
+
+    // Step 3. Let result be the result of performing the ML-DSA.Sign signing algorithm, as
+    // specified in Section 5.2 of [FIPS-204], with the parameter set indicated by the name member
+    // of normalizedAlgorithm, using the ML-DSA private key associated with key as sk, message as M
+    // and context as ctx.
+    // Step 4. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
+    let result = match normalized_algorithm.name.as_str() {
+        ALG_ML_DSA_44 => {
+            let Handle::MlDsa44PrivateKey(seed) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-DSA-44 private key".to_string(),
+                )));
+            };
+            let key_pair = MlDsa44::key_gen_internal(seed);
+            let sk = key_pair.signing_key();
+            sk.sign_randomized(message, context, &mut OsRng)
+                .map_err(|_| {
+                    Error::Operation(Some("ML-DSA-44 failed to sign the message".to_string()))
+                })?
+                .encode()
+                .to_vec()
+        },
+        ALG_ML_DSA_65 => {
+            let Handle::MlDsa65PrivateKey(seed) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-DSA-65 private key".to_string(),
+                )));
+            };
+            let key_pair = MlDsa65::key_gen_internal(seed);
+            let sk = key_pair.signing_key();
+            sk.sign_randomized(message, context, &mut OsRng)
+                .map_err(|_| {
+                    Error::Operation(Some("ML-DSA-65 failed to sign the message".to_string()))
+                })?
+                .encode()
+                .to_vec()
+        },
+        ALG_ML_DSA_87 => {
+            let Handle::MlDsa87PrivateKey(seed) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-DSA-87 private key".to_string(),
+                )));
+            };
+            let key_pair = MlDsa87::key_gen_internal(seed);
+            let sk = key_pair.signing_key();
+            sk.sign_randomized(message, context, &mut OsRng)
+                .map_err(|_| {
+                    Error::Operation(Some("ML-DSA-87 failed to sign the message".to_string()))
+                })?
+                .encode()
+                .to_vec()
+        },
+        _ => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not an ML-DSA algorithm",
+                normalized_algorithm.name.as_str()
+            ))));
+        },
+    };
+
+    // Step 5. Return result.
+    Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-verify>
+pub(crate) fn verify(
+    normalized_algorithm: &SubtleContextParams,
+    key: &CryptoKey,
+    message: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "public", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"public\"".to_string(),
+        )));
+    }
+
+    // Step 2. Let context be the context member of normalizedAlgorithm or the empty octet string
+    // if the context member of normalizedAlgorithm is not present.
+    let context = normalized_algorithm.context.as_deref().unwrap_or_default();
+
+    // Step 3. Let result be the result of performing the ML-DSA.Verify verification algorithm, as
+    // specified in Section 5.3 of [FIPS-204], with the parameter set indicated by the name member
+    // of normalizedAlgorithm, using the ML-DSA public key associated with key as pk, message as M,
+    // signature as σ and context as ctx.
+    // Step 4. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
+    let result = match normalized_algorithm.name.as_str() {
+        ALG_ML_DSA_44 => {
+            let Handle::MlDsa44PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-DSA-44 public key".to_string(),
+                )));
+            };
+            match Signature::try_from(signature) {
+                Ok(signature) => {
+                    let pk = VerifyingKey::<MlDsa44>::decode(public_key);
+                    pk.verify_with_context(message, context, &signature)
+                },
+                Err(_) => false,
+            }
+        },
+        ALG_ML_DSA_65 => {
+            let Handle::MlDsa65PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-DSA-65 public key".to_string(),
+                )));
+            };
+            match Signature::try_from(signature) {
+                Ok(signature) => {
+                    let pk = VerifyingKey::<MlDsa65>::decode(public_key);
+                    pk.verify_with_context(message, context, &signature)
+                },
+                Err(_) => false,
+            }
+        },
+        ALG_ML_DSA_87 => {
+            let Handle::MlDsa87PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "The key handle is not representing an ML-DSA-87 public key".to_string(),
+                )));
+            };
+            match Signature::try_from(signature) {
+                Ok(signature) => {
+                    let pk = VerifyingKey::<MlDsa87>::decode(public_key);
+                    pk.verify_with_context(message, context, &signature)
+                },
+                Err(_) => false,
+            }
+        },
+        _ => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not an ML-DSA algorithm",
+                normalized_algorithm.name.as_str()
+            ))));
+        },
+    };
+
+    // Step 5. Return result.
+    Ok(result)
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-generate-key>

@@ -315,6 +315,12 @@ partial interface SubtleCrypto {
 
 enum KeyFormat { "raw-public", "raw-private", "raw-seed", "raw-secret", "raw", "spki", "pkcs8", "jwk" };
 
+// https://wicg.github.io/webcrypto-modern-algos/#context-params
+
+dictionary ContextParams : Algorithm {
+  BufferSource context;
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#aead-params
 
 dictionary AeadParams : Algorithm {
