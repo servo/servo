@@ -14,10 +14,10 @@ use crate::actors::watcher::WatcherActor;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Cause {
     #[serde(rename = "type")]
     pub type_: String,
-    #[serde(rename = "loadingDocumentUri")]
     pub loading_document_uri: Option<String>,
 }
 
@@ -27,20 +27,18 @@ pub(crate) fn handle_network_event(
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
 ) {
-    let mut actors = actors.lock().unwrap();
-    let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
-    let watcher_name = actor.watcher_name.clone();
+    let actors = actors.lock().unwrap();
+    let actor = actors.find::<NetworkEventActor>(&netevent_actor_name);
+    let watcher = actors.find::<WatcherActor>(&actor.watcher);
+
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
             actor.add_request(httprequest);
-
-            let resource_updates = actor.resource_updates();
-            let actor = actors.find::<NetworkEventActor>(&netevent_actor_name);
             let msg = actor.encode(&actors);
-            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+            let resource = actor.resource_updates(&actors);
 
             for stream in &mut connections {
-                watcher_actor.resource_array(
+                watcher.resource_array(
                     msg.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Available,
@@ -48,8 +46,8 @@ pub(crate) fn handle_network_event(
                 );
 
                 // Also push initial resource update (request headers, cookies)
-                watcher_actor.resource_array(
-                    resource_updates.clone(),
+                watcher.resource_array(
+                    resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
                     stream,
@@ -59,11 +57,10 @@ pub(crate) fn handle_network_event(
 
         NetworkEvent::HttpRequestUpdate(httprequest) => {
             actor.add_request(httprequest);
-            let resource = actor.resource_updates();
-            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+            let resource = actor.resource_updates(&actors);
 
             for stream in &mut connections {
-                watcher_actor.resource_array(
+                watcher.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -72,13 +69,11 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
-            // Store the response information in the actor
             actor.add_response(httpresponse);
-            let resource = actor.resource_updates();
-            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+            let resource = actor.resource_updates(&actors);
 
             for stream in &mut connections {
-                watcher_actor.resource_array(
+                watcher.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -87,12 +82,11 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::SecurityInfo(update) => {
-            actor.update_security_info(update.security_info);
-            let resource = actor.resource_updates();
-            let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
+            actor.add_security_info(update.security_info);
+            let resource = actor.resource_updates(&actors);
 
             for stream in &mut connections {
-                watcher_actor.resource_array(
+                watcher.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
