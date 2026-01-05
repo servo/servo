@@ -1004,6 +1004,18 @@ pub(crate) fn import_key(
     Ok(key)
 }
 
+fn create_public_key_export_error() -> Error {
+    Error::Operation(Some(
+        "Failed to export public key".to_string(),
+    ))
+}
+
+fn create_private_key_export_error() -> Error {
+    Error::Operation(Some(
+        "Failed to export private key".to_string(),
+    ))
+}
+
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-export-key>
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the CryptoKey to be exported.
@@ -1063,7 +1075,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 Handle::P521PublicKey(public_key) => public_key.to_public_key_der(),
                 _ => return Err(Error::Operation(None)),
             }
-            .map_err(|_| Error::Operation(Some("Failed to export public key".to_string())))?;
+            .map_err(|_| create_public_key_export_error())?;
 
             ExportedKey::Bytes(data.to_vec())
         },
@@ -1123,7 +1135,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 Handle::P521PrivateKey(private_key) => private_key.to_pkcs8_der(),
                 _ => return Err(Error::Operation(None)),
             }
-            .map_err(|_| Error::Operation(Some("Failed to export private key".to_string())))?;
+            .map_err(|_| create_private_key_export_error())?;
 
             ExportedKey::Bytes(data.as_bytes().to_vec())
         },
@@ -1166,54 +1178,50 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 // 6.2.1.2 of JSON Web Algorithms [JWA].
                 // Step 3.3.3. Set the y attribute of jwk according to the definition in Section
                 // 6.2.1.3 of JSON Web Algorithms [JWA].
-                let public_key_err =
-                    Error::Operation(Some("Failed to export public key".to_string()));
-                let private_key_err =
-                    Error::Operation(Some("Failed to export private key".to_string()));
                 let (x, y) = match key.handle() {
                     Handle::P256PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(public_key_err.clone())?.to_vec(),
-                            encoded_point.y().ok_or(public_key_err)?.to_vec(),
+                            encoded_point.x().ok_or(create_public_key_export_error())?.to_vec(),
+                            encoded_point.y().ok_or(create_public_key_export_error())?.to_vec(),
                         )
                     },
                     Handle::P384PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(public_key_err.clone())?.to_vec(),
-                            encoded_point.y().ok_or(public_key_err)?.to_vec(),
+                            encoded_point.x().ok_or(create_public_key_export_error())?.to_vec(),
+                            encoded_point.y().ok_or(create_public_key_export_error())?.to_vec(),
                         )
                     },
                     Handle::P521PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(public_key_err.clone())?.to_vec(),
-                            encoded_point.y().ok_or(public_key_err)?.to_vec(),
+                            encoded_point.x().ok_or(create_public_key_export_error())?.to_vec(),
+                            encoded_point.y().ok_or(create_public_key_export_error())?.to_vec(),
                         )
                     },
                     Handle::P256PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(private_key_err.clone())?.to_vec(),
-                            encoded_point.y().ok_or(private_key_err)?.to_vec(),
+                            encoded_point.x().ok_or(create_private_key_export_error())?.to_vec(),
+                            encoded_point.y().ok_or(create_private_key_export_error())?.to_vec(),
                         )
                     },
                     Handle::P384PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(private_key_err.clone())?.to_vec(),
-                            encoded_point.y().ok_or(private_key_err)?.to_vec(),
+                            encoded_point.x().ok_or(create_private_key_export_error())?.to_vec(),
+                            encoded_point.y().ok_or(create_private_key_export_error())?.to_vec(),
                         )
                     },
                     Handle::P521PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(private_key_err.clone())?.to_vec(),
-                            encoded_point.y().ok_or(private_key_err)?.to_vec(),
+                            encoded_point.x().ok_or(create_private_key_export_error())?.to_vec(),
+                            encoded_point.y().ok_or(create_private_key_export_error())?.to_vec(),
                         )
                     },
                     _ => {
