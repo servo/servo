@@ -12,8 +12,8 @@ use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingC
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use servo::{
-    EmbedderControl, JSValue, JavaScriptEvaluationError, LoadStatus, Servo, ServoBuilder,
-    SimpleDialog, WebView, WebViewDelegate,
+    EmbedderControl, JSValue, JavaScriptEvaluationError, LoadStatus, Preferences, Servo,
+    ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
 };
 
 pub struct ServoTest {
@@ -52,7 +52,12 @@ impl ServoTest {
         }
 
         let user_event_triggered = Arc::new(AtomicBool::new(false));
+        // Set the proxy to null as the tests will all be on localhost, hence, proxy might interfer.
+        let mut preferences = Preferences::default();
+        preferences.network_http_proxy_uri = String::new();
+
         let builder = ServoBuilder::default()
+            .preferences(preferences)
             .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)));
         let builder = customize(builder);
         Self {
