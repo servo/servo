@@ -111,6 +111,15 @@ impl RethrowError {
         Self(RootedTraceableBox::from_box(val))
     }
 
+    #[expect(unsafe_code)]
+    pub(crate) fn from_pending_exception(cx: SafeJSContext) -> Self {
+        rooted!(in(*cx) let mut exception = UndefinedValue());
+        assert!(unsafe { JS_GetPendingException(*cx, exception.handle_mut()) });
+        unsafe { JS_ClearPendingException(*cx) };
+
+        Self::new(Heap::boxed(exception.get()))
+    }
+
     pub(crate) fn handle(&self) -> Handle<'_, JSVal> {
         self.0.handle()
     }

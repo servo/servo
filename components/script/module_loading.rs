@@ -43,6 +43,10 @@ use crate::script_runtime::{CanGc, IntroductionType};
 struct ModuleObject(Box<Heap<*mut JSObject>>);
 
 impl ModuleObject {
+    fn new(obj: HandleObject) -> ModuleObject {
+        ModuleObject(Heap::boxed(obj.get()))
+    }
+
     pub(crate) fn handle(&self) -> HandleObject {
         unsafe { self.0.handle().into() }
     }
@@ -116,12 +120,16 @@ fn InnerModuleLoading(state: &GraphLoadingState, module: ModuleObject) {
 
         // d. For each ModuleRequest Record request of module.[[RequestedModules]], do
         for index in 0..requested_modules_count {
+            // Here Gecko will call hasFirstUnsupportedAttributeKey on each module request,
+            // GetRequestedModuleSpecifier will do it for us.
             let jsstr = unsafe { GetRequestedModuleSpecifier(*cx, module_handle, index) };
 
             if jsstr.is_null() {
                 // Step 1. Let error be ThrowCompletion(a newly created SyntaxError object).
+                let error = RethrowError::from_pending_exception(cx);
+
                 // Step 2. Perform ContinueModuleLoading(state, error).
-                ContinueModuleLoading(state);
+                ContinueModuleLoading(state, Err(error));
             } else if false {
                 // ii. Else if module.[[LoadedModules]] contains a LoadedModuleRequest Record record
                 // such that ModuleRequestsEqual(record, request) is true, then
@@ -160,21 +168,29 @@ fn InnerModuleLoading(state: &GraphLoadingState, module: ModuleObject) {
 }
 
 /// <https://tc39.es/ecma262/#sec-ContinueModuleLoading>
-fn ContinueModuleLoading(state: &GraphLoadingState) {
+fn ContinueModuleLoading(
+    state: &GraphLoadingState,
+    module_completion: Result<ModuleObject, RethrowError>,
+) {
     // Step 1. If state.[[IsLoading]] is false, return unused.
     if !state.is_loading.get() {
         return;
     }
 
     // TODO Pass a result with module or error
+    match module_completion {
+        // Step 2. If moduleCompletion is a normal completion, then
+        // a. Perform InnerModuleLoading(state, moduleCompletion.[[Value]]).
+        Ok(module) => InnerModuleLoading(state, module),
 
-    // Step 2. If moduleCompletion is a normal completion, then
-    // a. Perform InnerModuleLoading(state, moduleCompletion.[[Value]]).
+        // Step 3. Else,
+        Err(_) => {
+            // a. Set state.[[IsLoading]] to false.
+            state.is_loading.set(false);
 
-    // Step 3. Else,
-    // a. Set state.[[IsLoading]] to false.
-    // b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-
+            // TODO b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
+        },
+    }
     // Step 4. Return unused.
 }
 
@@ -187,7 +203,7 @@ fn FinishLoadingImportedModule(
     result: Result<ModuleObject, RethrowError>,
 ) {
     // Step 1. If result is a normal completion, then
-    if let Ok(module) = result {
+    if let Ok(ref module) = result {
         if let Some(private_data) = unsafe { private_module_data_from_reference(&referrer) } {
             let mut loaded_modules = private_data.loaded_modules.borrow_mut();
 
@@ -201,14 +217,15 @@ fn FinishLoadingImportedModule(
                 .unwrap_or_else(|| {
                     // i. Append the LoadedModuleRequest Record { [[Specifier]]: moduleRequest.[[Specifier]],
                     // [[Attributes]]: moduleRequest.[[Attributes]], [[Module]]: result.[[Value]] } to referrer.[[LoadedModules]].
-                    loaded_modules.insert(module_request_specifier, module);
+                    loaded_modules
+                        .insert(module_request_specifier, ModuleObject::new(module.handle()));
                 });
         }
     }
 
     // Step 2. If payload is a GraphLoadingState Record, then
     // a. Perform ContinueModuleLoading(payload, result).
-    ContinueModuleLoading(&payload);
+    ContinueModuleLoading(&payload, result);
 
     // TODO Step 3. Else,
     // a. Perform ContinueDynamicImport(payload, result).
