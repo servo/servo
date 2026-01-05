@@ -9,7 +9,7 @@
 use std::sync::Arc;
 
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
+use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 
@@ -97,7 +97,7 @@ pub(crate) fn fetch_image_for_layout(
     };
 
     let global = node.owner_global();
-    let request = FetchRequestInit::new(Some(document.webview_id()), url, global.get_referrer())
+    let request = RequestBuilder::new(Some(document.webview_id()), url, global.get_referrer())
         .origin(document.origin().immutable().clone())
         .destination(Destination::Image)
         .pipeline_id(Some(global.pipeline_id()))
