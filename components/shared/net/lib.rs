@@ -10,7 +10,7 @@ use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{self, GenericSender};
-use base::id::{CookieStoreId, HistoryStateId};
+use base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
@@ -651,6 +651,7 @@ pub enum CoreResourceMsg {
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
     StorePreloadedResponse(PreloadId, Response),
+    TotalSizeOfInFlightKeepAliveRecords(PipelineId, GenericSender<u64>),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
     Exit(IpcSender<()>),
@@ -1152,6 +1153,7 @@ pub enum NetworkError {
     ConnectionFailure,
     RedirectError,
     TooManyRedirects,
+    TooManyInFlightKeepAliveRequests,
     InvalidMethod,
     ResourceLoadError(String),
     ContentSecurityPolicy,
@@ -1180,6 +1182,9 @@ impl fmt::Debug for NetworkError {
             NetworkError::ConnectionFailure => write!(f, "Request failed"),
             NetworkError::RedirectError => write!(f, "Redirect failed"),
             NetworkError::TooManyRedirects => write!(f, "Too many redirects"),
+            NetworkError::TooManyInFlightKeepAliveRequests => {
+                write!(f, "Too many in flight keep-alive requests")
+            },
             NetworkError::InvalidMethod => write!(f, "Unexpected method"),
             NetworkError::ResourceLoadError(s) => write!(f, "{}", s),
             NetworkError::ContentSecurityPolicy => write!(f, "Blocked by Content-Security-Policy"),

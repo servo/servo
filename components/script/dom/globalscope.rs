@@ -16,12 +16,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use base::IpcSend;
 use base::generic_channel::GenericCallback;
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
+use base::{IpcSend, generic_channel};
 use constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
@@ -2603,6 +2603,26 @@ impl GlobalScope {
     pub(crate) fn is_nested_browsing_context(&self) -> bool {
         self.downcast::<Window>()
             .is_some_and(|window| !window.is_top_level())
+    }
+
+    /// Obtain the size of in flight keep alive records from the resource thread.
+    /// If we can't communicate with the thread, we return u64::MAX to ensure
+    /// the limit is higher than what is allowed. This ensures that whenever
+    /// we want to initiate a keep alive request and the thread doesn't communicate,
+    /// we block additional keep alive requests.
+    pub(crate) fn total_size_of_in_flight_keep_alive_records(&self) -> u64 {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        if self
+            .core_resource_thread()
+            .send(CoreResourceMsg::TotalSizeOfInFlightKeepAliveRecords(
+                self.pipeline_id(),
+                sender,
+            ))
+            .is_err()
+        {
+            return u64::MAX;
+        }
+        receiver.recv().unwrap_or(u64::MAX)
     }
 
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>

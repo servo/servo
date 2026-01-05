@@ -360,6 +360,18 @@ impl RequestBody {
     }
 }
 
+trait RequestBodySize {
+    fn body_length(&self) -> usize;
+}
+
+impl RequestBodySize for Option<RequestBody> {
+    fn body_length(&self) -> usize {
+        self.as_ref()
+            .and_then(|body| body.len())
+            .unwrap_or_default()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum InsecureRequestsPolicy {
     DoNotUpgrade,
@@ -726,6 +738,12 @@ impl RequestBuilder {
         request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
         request
     }
+
+    /// The body length for a keep-alive request. Is 0 if this request is not keep-alive
+    pub fn keep_alive_body_length(&self) -> u64 {
+        assert!(self.keep_alive);
+        self.body.body_length() as u64
+    }
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#concept-request) as defined by
@@ -959,6 +977,12 @@ impl Request {
         }
     }
 
+    /// The body length for a keep-alive request. Is 0 if this request is not keep-alive
+    pub fn keep_alive_body_length(&self) -> u64 {
+        assert!(self.keep_alive);
+        self.body.body_length() as u64
+    }
+
     /// <https://fetch.spec.whatwg.org/#total-request-length>
     pub fn total_request_length(&self) -> usize {
         // Step 1. Let totalRequestLength be the length of request’s URL, serialized with exclude fragment set to true.
@@ -973,11 +997,7 @@ impl Request {
         // by name’s length + value’s length.
         total_request_length += self.headers.total_size();
         // Step 4. Increment totalRequestLength by request’s body’s length.
-        total_request_length += self
-            .body
-            .as_ref()
-            .and_then(|body| body.len())
-            .unwrap_or_default();
+        total_request_length += self.body.body_length();
         // Step 5. Return totalRequestLength.
         total_request_length
     }
