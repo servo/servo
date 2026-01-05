@@ -399,10 +399,10 @@ pub(crate) fn FetchLater(
     if !url.is_potentially_trustworthy() {
         return Err(Error::Type("URL is not trustworthy".to_owned()));
     }
-    // Step 10. If request’s body is not null, and request’s body length is null, then throw a TypeError.
+    // Step 10. If request’s body is not null, and request’s body length is null or zero, then throw a TypeError.
     if let Some(body) = request.body.as_ref() {
-        if body.len().is_none() {
-            return Err(Error::Type("Body is null".to_owned()));
+        if body.len().is_none_or(|len| len == 0) {
+            return Err(Error::Type("Body is empty".to_owned()));
         }
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
@@ -427,7 +427,7 @@ pub(crate) fn FetchLater(
 
 /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
-enum DeferredFetchRecordInvokeState {
+pub(crate) enum DeferredFetchRecordInvokeState {
     Pending,
     Sent,
     Aborted,
@@ -439,7 +439,7 @@ pub(crate) struct DeferredFetchRecord {
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-request>
     pub(crate) request: NetTraitsRequest,
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
-    invoke_state: Cell<DeferredFetchRecordInvokeState>,
+    pub(crate) invoke_state: Cell<DeferredFetchRecordInvokeState>,
     activated: Cell<bool>,
 }
 

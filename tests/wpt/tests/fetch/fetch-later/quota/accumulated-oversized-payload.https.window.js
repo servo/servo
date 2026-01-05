@@ -37,15 +37,21 @@ test(
 
       // Makes the 2nd call (POST) to the same reporting origin that sends
       // max bytes, which should be rejected.
-      assert_throws_quotaexceedederror(() => {
-        fetchLater(requestUrl, {
-          method: 'POST',
-          signal: controller.signal,
-          body: makeBeaconData(generatePayload(quota), dataType),
-          // Required, as the size of referrer also take up quota.
-          referrer: '',
-        });
-      }, null, null);
+      assert_throws_quotaexceedederror(
+        () => {
+          fetchLater(requestUrl, {
+            method: 'POST',
+            signal: controller.signal,
+            body: makeBeaconData(generatePayload(quota), dataType),
+            // Required, as the size of referrer also take up quota.
+            referrer: '',
+          });
+        },
+        // Either no information should be provided, or it should exactly
+        // be the expected values
+        (requested) => [QUOTA_PER_ORIGIN, null].includes(requested),
+        (remaining) => [halfQuota - 1, null].includes(remaining)
+      );
 
       // Makes the 3rd call (GET) to the same reporting origin, where its
       // request size is len(requestUrl) + headers, which should be accepted.
