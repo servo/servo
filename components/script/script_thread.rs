@@ -226,7 +226,8 @@ impl Drop for ScriptUserInteractingGuard {
 // ScriptThread instances are rooted on creation, so this is okay
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub struct ScriptThread {
-    /// Weak Rc to itself or None if not yet initialized
+    /// A reference to the currently operating `ScriptThread`. This should always be
+    /// upgradable to an `Rc` as long as the `ScriptThread` is running.
     #[no_trace]
     this: Weak<ScriptThread>,
 
