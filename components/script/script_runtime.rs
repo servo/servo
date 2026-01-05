@@ -698,6 +698,14 @@ impl Runtime {
         unsafe { Self::new_with_parent(None, main_thread_sender) }
     }
 
+    #[allow(unsafe_code)]
+    /// ## Safety
+    /// - only one `JSContext` can exist on the thread at a time (see note in [js::context::JSContext::from_ptr])
+    /// - the `JSContext` must not outlive the `Runtime`
+    pub(crate) unsafe fn cx(&self) -> js::context::JSContext {
+        unsafe { js::context::JSContext::from_ptr(RustRuntime::get().unwrap()) }
+    }
+
     /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`SendableTaskSource`]
     /// for networking.
     ///

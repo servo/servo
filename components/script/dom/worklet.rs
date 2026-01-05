@@ -494,6 +494,7 @@ unsafe impl JSTraceable for WorkletThread {
 }
 
 impl WorkletThread {
+    #[allow(unsafe_code)]
     /// Spawn a new worklet thread, returning the channel to send it control messages.
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn spawn(
@@ -510,6 +511,8 @@ impl WorkletThread {
                 // TODO: configure the JS runtime (e.g. discourage GC, encourage agressive JIT)
                 debug!("Initializing worklet thread.");
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
+                let runtime = Runtime::new(None);
+                let mut cx = unsafe { runtime.cx() };
                 let mut thread = RootedTraceableBox::new(WorkletThread {
                     role,
                     control_receiver,
@@ -519,18 +522,18 @@ impl WorkletThread {
                     global_init: init.global_init,
                     global_scopes: FxHashMap::default(),
                     control_buffer: None,
-                    runtime: Runtime::new(None),
+                    runtime,
                     should_gc: false,
                     gc_threshold: MIN_GC_THRESHOLD,
                 });
-                thread.run(CanGc::note());
+                thread.run(&mut cx);
             })
             .expect("Couldn't start worklet thread");
         control_sender
     }
 
     /// The main event loop for a worklet thread
-    fn run(&mut self, can_gc: CanGc) {
+    fn run(&mut self, cx: &mut js::context::JSContext) {
         loop {
             // The handler for data messages
             let message = self.role.receiver.recv().unwrap();
@@ -574,12 +577,12 @@ impl WorkletThread {
             // try to become the cold backup.
             if self.role.is_cold_backup {
                 if let Some(control) = self.control_buffer.take() {
-                    self.process_control(control, can_gc);
+                    self.process_control(control, CanGc::from_cx(cx));
                 }
                 while let Ok(control) = self.control_receiver.try_recv() {
-                    self.process_control(control, can_gc);
+                    self.process_control(control, CanGc::from_cx(cx));
                 }
-                self.gc();
+                self.gc(cx);
             } else if self.control_buffer.is_none() {
                 if let Ok(control) = self.control_receiver.try_recv() {
                     self.control_buffer = Some(control);
@@ -593,7 +596,7 @@ impl WorkletThread {
             if self.current_memory_usage() > self.gc_threshold {
                 if self.role.is_hot_backup || self.role.is_cold_backup {
                     self.should_gc = false;
-                    self.gc();
+                    self.gc(cx);
                 } else if !self.should_gc {
                     self.should_gc = true;
                     let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
@@ -611,13 +614,13 @@ impl WorkletThread {
 
     /// Perform a GC.
     #[expect(unsafe_code)]
-    fn gc(&mut self) {
+    fn gc(&mut self, cx: &mut js::context::JSContext) {
         debug!(
             "BEGIN GC (usage = {}, threshold = {}).",
             self.current_memory_usage(),
             self.gc_threshold
         );
-        unsafe { JS_GC(self.runtime.cx(), GCReason::API) };
+        unsafe { JS_GC(cx, GCReason::API) };
         self.gc_threshold = max(MIN_GC_THRESHOLD, self.current_memory_usage() * 2);
         debug!(
             "END GC (usage = {}, threshold = {}).",

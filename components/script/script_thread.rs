@@ -85,6 +85,7 @@ use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::script_runtime::JSContext;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -153,7 +154,7 @@ use crate::network_listener::FetchResponseListener;
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
-    CanGc, IntroductionType, JSContext, JSContextHelper, Runtime, ScriptThreadEventCategory,
+    CanGc, IntroductionType, JSContextHelper, Runtime, ScriptThreadEventCategory,
     ThreadSafeJSContext,
 };
 use crate::script_window_proxies::ScriptWindowProxies;
@@ -448,7 +449,7 @@ impl ScriptThreadFactory for ScriptThread {
                 ScriptEventLoopId::install(state.id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
                 let reporter_name = format!("script-reporter-{script_thread_id:?}");
-                let script_thread = ScriptThread::new(
+                let (script_thread, mut cx) = ScriptThread::new(
                     state,
                     layout_factory,
                     image_cache_factory,
@@ -458,12 +459,6 @@ impl ScriptThreadFactory for ScriptThread {
                     root.set(Some(Rc::as_ptr(&script_thread)));
                 });
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
-
-                // Safety: We ensure that only one JSContext exists in this thread.
-                // This is the first one and the only one
-                // (minus the ones created when reentering rust code through hooks,
-                // but such code was derived from this JSContext so it is okay).
-                let mut cx = unsafe { script_thread.get_safe_cx() };
 
                 memory_profiler_sender.run_with_memory_reporting(
                     || script_thread.start(&mut cx),
@@ -855,16 +850,17 @@ impl ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    ) -> Rc<Self> {
+    ) -> (Rc<ScriptThread>, js::context::JSContext) {
         let (self_sender, self_receiver) = unbounded();
-        let mut runtime =
-            Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
+        let runtime = Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
 
-        let cx = runtime.cx();
+        // SAFETY: We ensure that only one JSContext exists in this thread.
+        // This is the first one and the only one
+        let mut cx = unsafe { runtime.cx() };
 
         unsafe {
-            SetWindowProxyClass(cx, GetWindowProxyClass());
-            JS_AddInterruptCallback(cx, Some(interrupt_callback));
+            SetWindowProxyClass(&cx, GetWindowProxyClass());
+            JS_AddInterruptCallback(&cx, Some(interrupt_callback));
         }
 
         let constellation_receiver = state
@@ -948,7 +944,7 @@ impl ScriptThread {
             CanGc::note(),
         );
 
-        debugger_global.execute(CanGc::note());
+        debugger_global.execute(CanGc::from_cx(&mut cx));
 
         let user_contents_for_manager_id =
             FxHashMap::from_iter(state.user_contents_for_manager_id.into_iter().map(
@@ -957,62 +953,59 @@ impl ScriptThread {
                 },
             ));
 
-        Rc::new_cyclic(|weak_script_thread| Self {
-            documents: DomRefCell::new(DocumentCollection::default()),
-            last_render_opportunity_time: Default::default(),
-            window_proxies: Default::default(),
-            incomplete_loads: DomRefCell::new(vec![]),
-            incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
-            senders,
-            receivers,
-            image_cache_factory,
-            resource_threads: state.resource_threads,
-            storage_threads: state.storage_threads,
-            task_queue,
-            background_hang_monitor,
-            closing,
-            timer_scheduler: Default::default(),
-            microtask_queue,
-            js_runtime,
-            closed_pipelines: DomRefCell::new(FxHashSet::default()),
-            mutation_observers: Default::default(),
-            system_font_service: Arc::new(state.system_font_service.to_proxy()),
-            webgl_chan: state.webgl_chan,
-            #[cfg(feature = "webxr")]
-            webxr_registry: state.webxr_registry,
-            worklet_thread_pool: Default::default(),
-            docs_with_no_blocking_loads: Default::default(),
-            custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
-            paint_api: state.cross_process_paint_api,
-            profile_script_events: opts.debug.profile_script_events,
-            print_pwm: opts.print_pwm,
-            unminify_js: opts.unminify_js,
-            local_script_source: opts.local_script_source.clone(),
-            unminify_css: opts.unminify_css,
-            user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
-            player_context: state.player_context,
-            pipeline_to_node_ids: Default::default(),
-            is_user_interacting: Rc::new(Cell::new(false)),
-            #[cfg(feature = "webgpu")]
-            gpu_id_hub,
-            layout_factory,
-            scheduled_update_the_rendering: Default::default(),
-            needs_rendering_update: Arc::new(AtomicBool::new(false)),
-            debugger_global: debugger_global.as_traced(),
-            privileged_urls: state.privileged_urls,
-            this: weak_script_thread.clone(),
-        })
+        (
+            Rc::new_cyclic(|weak_script_thread| Self {
+                documents: DomRefCell::new(DocumentCollection::default()),
+                last_render_opportunity_time: Default::default(),
+                window_proxies: Default::default(),
+                incomplete_loads: DomRefCell::new(vec![]),
+                incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
+                senders,
+                receivers,
+                image_cache_factory,
+                resource_threads: state.resource_threads,
+                storage_threads: state.storage_threads,
+                task_queue,
+                background_hang_monitor,
+                closing,
+                timer_scheduler: Default::default(),
+                microtask_queue,
+                js_runtime,
+                closed_pipelines: DomRefCell::new(FxHashSet::default()),
+                mutation_observers: Default::default(),
+                system_font_service: Arc::new(state.system_font_service.to_proxy()),
+                webgl_chan: state.webgl_chan,
+                #[cfg(feature = "webxr")]
+                webxr_registry: state.webxr_registry,
+                worklet_thread_pool: Default::default(),
+                docs_with_no_blocking_loads: Default::default(),
+                custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
+                paint_api: state.cross_process_paint_api,
+                profile_script_events: opts.debug.profile_script_events,
+                print_pwm: opts.print_pwm,
+                unminify_js: opts.unminify_js,
+                local_script_source: opts.local_script_source.clone(),
+                unminify_css: opts.unminify_css,
+                user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
+                player_context: state.player_context,
+                pipeline_to_node_ids: Default::default(),
+                is_user_interacting: Rc::new(Cell::new(false)),
+                #[cfg(feature = "webgpu")]
+                gpu_id_hub,
+                layout_factory,
+                scheduled_update_the_rendering: Default::default(),
+                needs_rendering_update: Arc::new(AtomicBool::new(false)),
+                debugger_global: debugger_global.as_traced(),
+                privileged_urls: state.privileged_urls,
+                this: weak_script_thread.clone(),
+            }),
+            cx,
+        )
     }
 
     #[expect(unsafe_code)]
     pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
-    }
-
-    #[expect(unsafe_code)]
-    /// Users must ensure only one such JSContext exists in the current thread.
-    pub(crate) unsafe fn get_safe_cx(&self) -> js::context::JSContext {
-        unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) }
     }
 
     /// Check if we are closing.

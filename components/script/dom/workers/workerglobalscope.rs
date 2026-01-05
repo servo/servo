@@ -1005,14 +1005,18 @@ impl WorkerGlobalScope {
     /// Process a single event as if it were the next event
     /// in the queue for this worker event-loop.
     /// Returns a boolean indicating whether further events should be processed.
-    pub(crate) fn process_event(&self, msg: CommonScriptMsg) -> bool {
+    pub(crate) fn process_event(
+        &self,
+        msg: CommonScriptMsg,
+        cx: &mut js::context::JSContext,
+    ) -> bool {
         if self.is_closing() {
             return false;
         }
         match msg {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(),
             CommonScriptMsg::CollectReports(reports_chan) => {
-                let cx = self.get_cx();
+                let cx: JSContext = cx.into();
                 perform_memory_report(|ops| {
                     let reports = cx.get_reports(format!("url({})", self.get_url()), ops);
                     reports_chan.send(ProcessReports::new(reports));
