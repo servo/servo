@@ -361,7 +361,7 @@ impl GamepadHapticActuator {
             }),
         );
 
-        let callback = GenericCallback::new(|_msg| ()).expect("Could not create callback");
+        let callback = GenericCallback::new(|_| ()).expect("Could not create callback");
 
         let document = self.global().as_window().Document();
         let event = EmbedderMsg::StopGamepadHapticEffect(
