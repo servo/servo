@@ -83,7 +83,6 @@ invalid_data = [
         {"page load": 10},
         {" pageLoad": 10},
         {"pageLoad ": 10},
-        {"pageLoad": None},
         {"pageLoad": False},
         {"pageLoad": []},
         {"pageLoad": "10"},
