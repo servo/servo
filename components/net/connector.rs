@@ -538,24 +538,6 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 
-fn create_maybe_proxy_connector() -> MaybeProxyConnector {
-    let network_http_proxy_uri = servo_config::pref!(network_http_proxy_uri);
-    if !network_http_proxy_uri.is_empty() {
-        if let Ok(http_proxy_uri) = network_http_proxy_uri.parse() {
-            log::info!("Using proxy specified via {:?}", http_proxy_uri);
-            return MaybeProxyConnector::Right(TunnelErrorMasker(Tunnel::new(
-                http_proxy_uri,
-                ServoHttpConnector::new(),
-            )));
-        }
-    }
-
-    MaybeProxyConnector::Left(ServoHttpConnector::new())
-}
-
-/// Either a proxy tunnel or the ServoHttpConnector
-pub type MaybeProxyConnector = tower::util::Either<ServoHttpConnector, TunnelErrorMasker>;
-
 #[derive(Debug)]
 /// The error type for the MaybeProxyConnector
 pub enum ConnectionError {
@@ -573,35 +555,69 @@ impl std::fmt::Display for ConnectionError {
 impl std::error::Error for ConnectionError {}
 
 #[derive(Clone)]
-/// This is just used to give us control over the error types 'Tunnel<>' returns.
-pub struct TunnelErrorMasker(Tunnel<ServoHttpConnector>);
+/// A proxy connector. This will automatically open a proxy connection if the uri matches the proxy uri.
+/// Also respects 'no_proxy'.
+pub struct ProxyConnector {
+    /// A client without proxy for `no_proxy` matches.
+    client: ServoHttpConnector,
+    /// Matcher to see if we should forward to the proxy or not.
+    matcher: std::sync::Arc<hyper_util::client::proxy::matcher::Matcher>,
+}
+
+impl ProxyConnector {
+    fn new() -> Self {
+        let mut matcher_builder = hyper_util::client::proxy::matcher::Matcher::builder();
+        let network_http_proxy_uri = servo_config::pref!(network_http_proxy_uri);
+        if !network_http_proxy_uri.is_empty() {
+            log::info!("Using proxy specified via {:?}", network_http_proxy_uri);
+            matcher_builder = matcher_builder
+                .http(network_http_proxy_uri.clone())
+                .https(network_http_proxy_uri);
+
+            if !servo_config::pref!(network_http_no_proxy).is_empty() {
+                matcher_builder = matcher_builder.no(servo_config::pref!(network_http_no_proxy));
+            }
+        }
+        ProxyConnector {
+            client: ServoHttpConnector::new(),
+            matcher: std::sync::Arc::new(matcher_builder.build()),
+        }
+    }
+}
 
 // Just forward everything to the inner type except that we modify the errors returned.
-impl Service<Destination> for TunnelErrorMasker {
+impl Service<Destination> for ProxyConnector {
     type Response = TokioIo<TcpStream>;
     type Error = ConnectionError;
     type Future =
         std::pin::Pin<Box<dyn Future<Output = Result<TokioIo<TcpStream>, ConnectionError>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.0
+        self.client
             .poll_ready(cx)
             .map_err(|e| ConnectionError::ProxyError(format!("{e}")))
     }
 
     fn call(&mut self, req: Destination) -> Self::Future {
-        Box::pin(
-            self.0
-                .call(req)
-                .map_err(|e| ConnectionError::ProxyError(format!("{e}"))),
-        )
+        match self.matcher.intercept(&req) {
+            Some(intercept) => Box::pin(
+                Tunnel::new(intercept.uri().clone(), self.client.clone())
+                    .call(req)
+                    .map_err(|e| ConnectionError::ProxyError(format!("{e}"))),
+            ),
+            None => Box::pin(
+                self.client
+                    .call(req)
+                    .map_err(|e| ConnectionError::ProxyError(format!("{e}"))),
+            ),
+        }
     }
 }
 
-pub type ServoClient = Client<InstrumentedConnector<MaybeProxyConnector>, BoxedBody>;
+pub type ServoClient = Client<InstrumentedConnector<ProxyConnector>, BoxedBody>;
 
 pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
-    let maybe_proxy_connector = create_maybe_proxy_connector();
+    let maybe_proxy_connector = ProxyConnector::new();
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
