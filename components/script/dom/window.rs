@@ -265,6 +265,12 @@ struct PendingLayoutImageAncillaryData {
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
+
+    /// A weak handle to script thread
+    #[ignore_malloc_size_of = "Weak does not need to be accounted"]
+    #[no_trace]
+    weak_script_thread: Weak<ScriptThread>,
+
     /// The webview that contains this [`Window`].
     ///
     /// This may not be the top-level [`Window`], in the case of frames.
@@ -461,14 +467,14 @@ pub(crate) struct Window {
     /// Visual viewport interface that is associated to this [`Window`].
     /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
     visual_viewport: MutNullableDom<VisualViewport>,
-
-    /// A weak handle to script thread
-    #[ignore_malloc_size_of = "Weak does not need to be accounted"]
-    #[no_trace]
-    weak_script_thread: Weak<ScriptThread>,
 }
 
 impl Window {
+    pub(crate) fn script_thread(&self) -> Rc<ScriptThread> {
+        Weak::upgrade(&self.weak_script_thread)
+            .expect("Weak reference should always be upgradable when a ScriptThread is running")
+    }
+
     pub(crate) fn webview_id(&self) -> WebViewId {
         self.webview_id
     }
@@ -890,11 +896,7 @@ impl Window {
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
-        if let Some(script_thread) = self.weak_script_thread.upgrade() {
-            script_thread.perform_a_microtask_checkpoint(can_gc);
-        } else {
-            info!("Script Thread was already dropped");
-        }
+        self.script_thread().perform_a_microtask_checkpoint(can_gc);
     }
 
     pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {

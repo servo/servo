@@ -226,6 +226,10 @@ impl Drop for ScriptUserInteractingGuard {
 // ScriptThread instances are rooted on creation, so this is okay
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub struct ScriptThread {
+    /// Weak Rc to itself or None if not yet initialized
+    #[no_trace]
+    this: Weak<ScriptThread>,
+
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
     last_render_opportunity_time: Cell<Option<Instant>>,
 
@@ -371,10 +375,6 @@ pub struct ScriptThread {
     /// A list of URLs that can access privileged internal APIs.
     #[no_trace]
     privileged_urls: Vec<ServoUrl>,
-
-    /// Weak Rc to itself or None if not yet initialized
-    #[no_trace]
-    script_thread_handle: Weak<ScriptThread>,
 }
 
 struct BHMExitSignal {
@@ -447,15 +447,12 @@ impl ScriptThreadFactory for ScriptThread {
                 ScriptEventLoopId::install(state.id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
                 let reporter_name = format!("script-reporter-{script_thread_id:?}");
-                let script_thread = Rc::new_cyclic(|weak_script_thread| {
-                    ScriptThread::new(
-                        state,
-                        layout_factory,
-                        image_cache_factory,
-                        background_hang_monitor_register,
-                        weak_script_thread.clone(),
-                    )
-                });
+                let script_thread = ScriptThread::new(
+                    state,
+                    layout_factory,
+                    image_cache_factory,
+                    background_hang_monitor_register,
+                );
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(Rc::as_ptr(&script_thread)));
                 });
@@ -857,8 +854,7 @@ impl ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-        script_thread_weak: Weak<ScriptThread>,
-    ) -> ScriptThread {
+    ) -> Rc<ScriptThread> {
         let (self_sender, self_receiver) = unbounded();
         let mut runtime =
             Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
@@ -960,7 +956,7 @@ impl ScriptThread {
                 },
             ));
 
-        ScriptThread {
+        Rc::new_cyclic(|weak_script_thread| ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
             window_proxies: Default::default(),
@@ -1003,8 +999,8 @@ impl ScriptThread {
             needs_rendering_update: Arc::new(AtomicBool::new(false)),
             debugger_global: debugger_global.as_traced(),
             privileged_urls: state.privileged_urls,
-            script_thread_handle: script_thread_weak,
-        }
+            this: weak_script_thread.clone(),
+        })
     }
 
     #[expect(unsafe_code)]
@@ -3291,7 +3287,7 @@ impl ScriptThread {
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
-            self.script_thread_handle.clone(),
+            self.this.clone(),
         );
         self.debugger_global.fire_add_debuggee(
             can_gc,
