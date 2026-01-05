@@ -27,7 +27,7 @@ use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
-    RequestBuilder as NetRequestInit, RequestId,
+    RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
@@ -691,7 +691,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let request = NetRequestInit::new(
+            let request = RequestBuilder::new(
                 global_scope.webview_id(),
                 url.clone(),
                 global_scope.get_referrer(),
