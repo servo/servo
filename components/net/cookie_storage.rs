@@ -97,9 +97,30 @@ impl CookieStorage {
         }
     }
 
+    pub fn delete_cookies_for_sites(&mut self, sites: &Vec<String>) {
+        // Note: We assume the number of sites is smaller than the number of
+        // entries in the cookies map. If this assumption stops holding in
+        // practice, this implementation can be revised to use `retain`
+        // together with a temporary `HashSet` of sites.
+        for site in sites {
+            // TODO: We currently mark cookies as expired instead of removing
+            // them immediately (same behavior as in the functions below).
+            // This is safe because higher-level cookie accessors always call
+            // `remove_expired_cookies_for_url` / `remove_all_expired_cookies`.
+            // Consider whether we should instead delete the entries directly.
+            if let Some(cookies) = self.cookies_map.get_mut(site) {
+                for cookie in cookies.iter_mut() {
+                    cookie.set_expiry_time_in_past();
+                }
+            }
+        }
+    }
+
     pub fn clear_storage(&mut self, url: Option<&ServoUrl>) {
         if let Some(url) = url {
             let domain = reg_host(url.host_str().unwrap_or(""));
+            // TODO: This creates an empty cookie list if none existed? Should
+            // we just use `get_mut` here?
             let cookies = self.cookies_map.entry(domain).or_default();
             for cookie in cookies.iter_mut() {
                 cookie.set_expiry_time_in_past();
@@ -111,6 +132,8 @@ impl CookieStorage {
 
     pub fn delete_cookie_with_name(&mut self, url: &ServoUrl, name: String) {
         let domain = reg_host(url.host_str().unwrap_or(""));
+        // TODO: This creates an empty cookie list if none existed? Should we
+        // just use `get_mut` here?
         let cookies = self.cookies_map.entry(domain).or_default();
         for cookie in cookies.iter_mut() {
             if cookie.cookie.name() == name {
