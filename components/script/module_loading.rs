@@ -11,10 +11,10 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
-    GetModuleRequestSpecifier, GetRequestedModuleSpecifier, GetRequestedModulesCount, Handle,
-    HandleObject, HandleValue, Heap, JSObject,
+    GetRequestedModuleSpecifier, GetRequestedModulesCount, Handle, HandleObject, Heap, JSObject,
 };
-use js::jsval::JSVal;
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::rust::IntoHandle;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{Destination, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
@@ -100,6 +100,10 @@ fn InnerModuleLoading(state: &GraphLoadingState, module: ModuleObject) {
     let cx = GlobalScope::get_cx();
     let module_handle = module.handle();
 
+    rooted!(&in(cx) let mut referrer = UndefinedValue());
+    referrer.handle_mut().set(ObjectValue(module.0.get()));
+    let referrer_handle = referrer.handle().into_handle();
+
     // Step 1. Assert: state.[[IsLoading]] is true.
     assert!(state.is_loading.get());
 
@@ -130,12 +134,21 @@ fn InnerModuleLoading(state: &GraphLoadingState, module: ModuleObject) {
 
                 // Step 2. Perform ContinueModuleLoading(state, error).
                 ContinueModuleLoading(state, Err(error));
-            } else if false {
+            } else if let Some(private_data) =
+                unsafe { private_module_data_from_reference(&referrer_handle) }
+            {
+                let specifier =
+                    unsafe { jsstr_to_string(*cx, std::ptr::NonNull::new(jsstr).unwrap()) };
+
                 // ii. Else if module.[[LoadedModules]] contains a LoadedModuleRequest Record record
                 // such that ModuleRequestsEqual(record, request) is true, then
-                // 1. Perform InnerModuleLoading(state, record.[[Module]]).
-            } else {
-                // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
+                if let Some(module) = private_data.loaded_modules.borrow().get(&specifier) {
+                    // 1. Perform InnerModuleLoading(state, record.[[Module]]).
+                    InnerModuleLoading(state, ModuleObject::new(module.handle()));
+                } else {
+                    // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
+                    HostLoadImportedModule(referrer_handle, specifier, state);
+                }
             }
 
             // iv. If state.[[IsLoading]] is false, return unused.
@@ -197,9 +210,9 @@ fn ContinueModuleLoading(
 /// <https://tc39.es/ecma262/#sec-FinishLoadingImportedModule>
 /// We should use a map whose keys are module requests, for now we use module request's specifier
 fn FinishLoadingImportedModule(
-    referrer: HandleValue,
+    referrer: Handle<JSVal>,
     module_request_specifier: String,
-    payload: GraphLoadingState,
+    payload: &GraphLoadingState,
     result: Result<ModuleObject, RethrowError>,
 ) {
     // Step 1. If result is a normal completion, then
@@ -225,7 +238,7 @@ fn FinishLoadingImportedModule(
 
     // Step 2. If payload is a GraphLoadingState Record, then
     // a. Perform ContinueModuleLoading(payload, result).
-    ContinueModuleLoading(&payload, result);
+    ContinueModuleLoading(payload, result);
 
     // TODO Step 3. Else,
     // a. Perform ContinueDynamicImport(payload, result).
@@ -235,9 +248,9 @@ fn FinishLoadingImportedModule(
 
 /// <https://html.spec.whatwg.org/multipage/webappapis.html#hostloadimportedmodule>
 fn HostLoadImportedModule(
-    referrer: HandleValue,
-    module_request: Handle<*mut JSObject>,
-    /* loadState, */ payload: GraphLoadingState,
+    referrer: Handle<JSVal>,
+    specifier: String,
+    /* loadState, */ payload: &GraphLoadingState,
 ) {
     let cx = GlobalScope::get_cx();
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
@@ -267,11 +280,6 @@ fn HostLoadImportedModule(
 
     // TODO It seems that Gecko doesn't implement this step, and currently we don't handle module types.
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
-
-    let specifier = unsafe {
-        let jsstr = std::ptr::NonNull::new(GetModuleRequestSpecifier(*cx, module_request)).unwrap();
-        jsstr_to_string(*cx, jsstr)
-    };
 
     // Step 8 Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
