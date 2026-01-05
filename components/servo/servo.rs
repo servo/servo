@@ -548,7 +548,7 @@ impl ServoInner {
                         webview,
                         gamepad_index,
                         gamepad_haptic_effect_type,
-                        Box::new(move |msg| {
+                        Box::new(move |success| {
                             callback
                                 .send(msg)
                                 .expect("Could not send message via callback")
