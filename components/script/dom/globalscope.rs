@@ -2599,6 +2599,12 @@ impl GlobalScope {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#nested-browsing-context>
+    pub(crate) fn is_nested_browsing_context(&self) -> bool {
+        self.downcast::<Window>()
+            .is_some_and(|window| !window.is_top_level())
+    }
+
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
     pub(crate) fn request_client(&self) -> RequestClient {
         // Step 1.2.2. If global is a Window object and global’s navigable is not null,

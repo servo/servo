@@ -17,10 +17,10 @@ use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::image_cache::ImageCache;
-use net_traits::policy_container::PolicyContainer;
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
-    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
-    RequestMode,
+    CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
+    PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
@@ -370,6 +370,7 @@ impl DedicatedWorkerGlobalScope {
         let current_global_https_state = current_global.get_https_state();
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_secure_context = current_global.is_secure_context();
+        let is_nested_browsing_context = current_global.is_nested_browsing_context();
 
         thread::Builder::new()
             .name(format!("WW:{}", worker_url.debug_compact()))
@@ -385,6 +386,16 @@ impl DedicatedWorkerGlobalScope {
 
                 let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
+                let request_client = RequestClient {
+                    preloaded_resources: PreloadedResources::default(),
+                    policy_container: RequestPolicyContainer::PolicyContainer(
+                        policy_container.clone(),
+                    ),
+                    origin: Origin::Origin(origin.clone()),
+                    is_nested_browsing_context,
+                    insecure_requests_policy,
+                };
+
                 let request = RequestBuilder::new(Some(webview_id), worker_url.clone(), referrer)
                     .destination(Destination::Worker)
                     .mode(RequestMode::SameOrigin)
@@ -396,7 +407,8 @@ impl DedicatedWorkerGlobalScope {
                     .insecure_requests_policy(insecure_requests_policy)
                     .has_trustworthy_ancestor_origin(current_global_ancestor_trustworthy)
                     .policy_container(policy_container.clone())
-                    .origin(origin);
+                    .origin(origin)
+                    .client(request_client);
 
                 let event_loop_sender = ScriptEventLoopSender::DedicatedWorker {
                     sender: own_sender.clone(),
