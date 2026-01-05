@@ -813,7 +813,9 @@ class MachCommands(CommandBase):
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
-        return PostBuildCommands(self.context)._run(servo_binary, params + ["-f", "tests/html/close-on-load.html"])
+        return PostBuildCommands(self.context)._run(
+            servo_binary, params + ["-f", "tests/html/close-on-load.html", "-M"]
+        )
 
     @Command("try", description="Runs try jobs by force pushing to try branch", category="testing")
     @CommandArgument("--remote", "-r", default="origin", help="A git remote to run the try job on")

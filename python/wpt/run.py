@@ -78,7 +78,7 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
         # TODO: Delete rr traces from green test runs?
 
     prefs = kwargs.pop("prefs")
-    kwargs.setdefault("binary_args", [])
+    kwargs.setdefault("binary_args", ["-M"])
 
     given_http_proxy_uri = False
     if prefs:
