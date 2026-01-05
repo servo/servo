@@ -957,7 +957,7 @@ impl ScriptThread {
                 },
             ));
 
-        Rc::new_cyclic(|weak_script_thread| ScriptThread {
+        Rc::new_cyclic(|weak_script_thread| Self {
             documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
             window_proxies: Default::default(),
