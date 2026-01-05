@@ -16,7 +16,7 @@ use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use http::{Error as HttpError, HeaderMap, HeaderValue, StatusCode, header};
+use http::{HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
@@ -1133,8 +1133,6 @@ pub struct CookieAsyncResponse {
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum NetworkError {
-    /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
-    Internal(String),
     LoadCancelled,
     /// SSL validation error, to be converted to Resource::BadCertHTML in the HTML parser.
     SslValidation(String, Vec<u8>),
@@ -1161,13 +1159,17 @@ pub enum NetworkError {
     MixedContent,
     CacheError,
     InvalidPort,
+    WebsocketConnectionFailure(String),
     LocalDirectoryError,
+    PartialResponseToNonRangeRequestError,
+    ProtocolHandlerSubstitutionError,
+    BlobURLStoreError(String),
+    HttpError(String),
 }
 
 impl fmt::Debug for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            NetworkError::Internal(s) => write!(f, "{}", s),
             NetworkError::UnsupportedScheme => write!(f, "Unsupported scheme"),
             NetworkError::CorsGeneral => write!(f, "CORS check failed"),
             NetworkError::CrossOriginResponse => write!(f, "Cross-origin response"),
@@ -1195,6 +1197,18 @@ impl fmt::Debug for NetworkError {
             NetworkError::LoadCancelled => write!(f, "Load cancelled"),
             NetworkError::SslValidation(s, _) => write!(f, "SSL validation error: {}", s),
             NetworkError::Crash(s) => write!(f, "Crash: {}", s),
+            NetworkError::PartialResponseToNonRangeRequestError => write!(
+                f,
+                "Refusing to provide partial response from earlier ranged request to API that did not make a range request"
+            ),
+            NetworkError::ProtocolHandlerSubstitutionError => {
+                write!(f, "Failed to parse substituted protocol handler url")
+            },
+            NetworkError::BlobURLStoreError(s) => write!(f, "Blob URL store error: {}", s),
+            NetworkError::WebsocketConnectionFailure(s) => {
+                write!(f, "Websocket connection failure: {}", s)
+            },
+            NetworkError::HttpError(s) => write!(f, "HTTP failure: {}", s),
         }
     }
 }
@@ -1214,12 +1228,8 @@ impl NetworkError {
         let error_string = error.to_string();
         match certificate {
             Some(certificate) => NetworkError::SslValidation(error_string, certificate.to_vec()),
-            _ => NetworkError::Internal(error_string),
+            _ => NetworkError::HttpError(error_string),
         }
-    }
-
-    pub fn from_http_error(error: &HttpError) -> Self {
-        NetworkError::Internal(error.to_string())
     }
 }
 

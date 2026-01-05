@@ -1310,7 +1310,9 @@ impl FetchResponseListener for ParserContext {
                     let page = page.replace("${bytes}", encoded_bytes.as_str());
                     page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string())
                 },
-                NetworkError::Internal(reason) |
+                NetworkError::BlobURLStoreError(reason) |
+                NetworkError::WebsocketConnectionFailure(reason) |
+                NetworkError::HttpError(reason) |
                 NetworkError::ResourceLoadError(reason) |
                 NetworkError::MimeType(reason) => {
                     let page = resources::read_string(Resource::NetErrorHTML);
@@ -1339,7 +1341,9 @@ impl FetchResponseListener for ParserContext {
                 NetworkError::MixedContent |
                 NetworkError::CacheError |
                 NetworkError::InvalidPort |
-                NetworkError::LocalDirectoryError => {
+                NetworkError::LocalDirectoryError |
+                NetworkError::PartialResponseToNonRangeRequestError |
+                NetworkError::ProtocolHandlerSubstitutionError => {
                     let page = resources::read_string(Resource::NetErrorHTML);
                     page.replace("${reason}", &format!("{:?}", error))
                 },

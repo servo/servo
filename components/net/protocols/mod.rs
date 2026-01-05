@@ -213,7 +213,7 @@ impl ProtocolHandler for WebPageContentProtocolHandler {
         // Step 8. Let resultURL be the result of parsing handlerURLString.
         let Ok(result_url) = ServoUrl::parse(&handler_url_string) else {
             return Box::pin(future::ready(Response::network_error(
-                NetworkError::Internal("Failed to parse substituted protocol handler url".into()),
+                NetworkError::ProtocolHandlerSubstitutionError,
             )));
         };
         // Ensure we did a proper substitution with a HTTP result

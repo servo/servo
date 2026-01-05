@@ -14,8 +14,8 @@ use std::pin::Pin;
 
 use headers::{ContentType, HeaderMapExt};
 use servo::protocol_handler::{
-    DoneChannel, FILE_CHUNK_SIZE, FetchContext, ProtocolHandler, RelativePos, Request,
-    ResourceFetchTiming, Response, ResponseBody,
+    DoneChannel, FILE_CHUNK_SIZE, FetchContext, NetworkError, ProtocolHandler, RelativePos,
+    Request, ResourceFetchTiming, Response, ResponseBody,
 };
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -30,16 +30,16 @@ impl ResourceProtocolHandler {
         path: &str,
     ) -> Pin<Box<dyn Future<Output = Response> + Send>> {
         if path.contains("..") || !path.starts_with("/") {
-            return Box::pin(std::future::ready(Response::network_internal_error(
-                "Invalid path",
+            return Box::pin(std::future::ready(Response::network_error(
+                NetworkError::ResourceLoadError("Invalid path".to_owned()),
             )));
         }
 
         let path = if let Some(path) = path.strip_prefix("/") {
             path
         } else {
-            return Box::pin(std::future::ready(Response::network_internal_error(
-                "Invalid path",
+            return Box::pin(std::future::ready(Response::network_error(
+                NetworkError::ResourceLoadError("Invalid path".to_owned()),
             )));
         };
 
@@ -48,8 +48,8 @@ impl ResourceProtocolHandler {
             .join(path);
 
         if !file_path.exists() || file_path.is_dir() {
-            return Box::pin(std::future::ready(Response::network_internal_error(
-                "Invalid path",
+            return Box::pin(std::future::ready(Response::network_error(
+                NetworkError::ResourceLoadError("Invalid path".to_owned()),
             )));
         }
 
@@ -81,7 +81,9 @@ impl ResourceProtocolHandler {
 
             response
         } else {
-            Response::network_internal_error("Opening file failed")
+            Response::network_error(NetworkError::ResourceLoadError(
+                "Opening file failed".to_owned(),
+            ))
         };
 
         Box::pin(std::future::ready(response))

@@ -844,7 +844,7 @@ async fn obtain_response(
 
         let mut request = match request {
             Ok(request) => request,
-            Err(e) => return Err(NetworkError::from_http_error(&e)),
+            Err(error) => return Err(NetworkError::HttpError(error.to_string())),
         };
         *request.headers_mut() = headers.clone();
 
@@ -2044,8 +2044,10 @@ async fn http_network_fetch(
             .await
             {
                 Ok(response) => response,
-                Err(e) => {
-                    return Response::network_internal_error(e.to_string());
+                Err(error) => {
+                    return Response::network_error(NetworkError::WebsocketConnectionFailure(
+                        format!("{error:?}"),
+                    ));
                 },
             };
 
