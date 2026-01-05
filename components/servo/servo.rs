@@ -562,7 +562,7 @@ impl ServoInner {
                     webview.delegate().stop_gamepad_haptic_effect(
                         webview,
                         gamepad_index,
-                        Box::new(move |msg| {
+                        Box::new(move |success| {
                             callback
                                 .send(msg)
                                 .expect("Could not send message via callback")
