@@ -188,6 +188,8 @@ tikv-jemallocator = "0.6.1"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
 tokio = "1"
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
+tokio-stream = "0.1"
+tokio-util = { version = "0.7.12", default-features = false }
 tower = { version = "0.5", default-features = false, features = ["util"] }
 tracing = "0.1.44"
 tracing-perfetto = "0.1.5"

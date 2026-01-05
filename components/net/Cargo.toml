@@ -73,8 +73,8 @@ sha2 = "0.10"
 time = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }
-tokio-stream = "0.1"
-tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true, features = ["codec", "io"] }
 tower = { workspace = true }
 tungstenite = { workspace = true }
 url = { workspace = true }
