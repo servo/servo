@@ -158,7 +158,7 @@ impl GamepadSupport {
         &mut self,
         index: usize,
         effect_type: GamepadHapticEffectType,
-        effect_complete_sender: Box<dyn Fn(bool)>,
+        callback: Box<dyn Fn(bool)>,
     ) {
         let GamepadHapticEffectType::DualRumble(params) = effect_type;
         if let Some(connected_gamepad) = self
@@ -191,13 +191,8 @@ impl GamepadSupport {
                 .add_gamepad(&connected_gamepad.1)
                 .finish(&mut self.handle)
                 .expect("Failed to create haptic effect, ensure connected gamepad supports force feedback.");
-            self.haptic_effects.insert(
-                index,
-                HapticEffect {
-                    effect,
-                    callback,
-                },
-            );
+            self.haptic_effects
+                .insert(index, HapticEffect { effect, callback });
             self.haptic_effects[&index]
                 .effect
                 .play()

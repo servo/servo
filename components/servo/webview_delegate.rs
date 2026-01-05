@@ -941,7 +941,9 @@ pub trait WebViewDelegate {
     /// After this point, any further responses to that request will be ignored.
     fn hide_embedder_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
 
-    /// Request to play a haptic effect on a connected gamepad.
+    /// Request to play a haptic effect on a connected gamepad. The embedder is expected to
+    /// call the provided callback when the effect is complete with `true` for success
+    /// and `false` for failure.
     #[cfg(feature = "gamepad")]
     fn play_gamepad_haptic_effect(
         &self,
