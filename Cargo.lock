@@ -5557,8 +5557,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.14.4"
-source = "git+https://github.com/Taym95/mozjs?branch=fix-WebIDL-conversion-to-clamped-i64#0fea848d51e69b3d1476531a1a680cd590d100a0"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "617dd52981f630de01897f5a4014153efb6b9fcab1c5fd14f3e39f334f2d2939"
 dependencies = [
  "bindgen",
  "cc",
@@ -5566,12 +5567,14 @@ dependencies = [
  "libc",
  "log",
  "mozjs_sys",
+ "num-traits",
 ]
 
 [[package]]
 name = "mozjs_sys"
 version = "0.140.5-7"
-source = "git+https://github.com/Taym95/mozjs?branch=fix-WebIDL-conversion-to-clamped-i64#0fea848d51e69b3d1476531a1a680cd590d100a0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb69af2717202d31083deaeac10e38fd0f43c5cce07f2a067316e6a764517fa7"
 dependencies = [
  "bindgen",
  "cc",
