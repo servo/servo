@@ -266,7 +266,9 @@ struct PendingLayoutImageAncillaryData {
 pub(crate) struct Window {
     globalscope: GlobalScope,
 
-    /// A weak handle to script thread
+    /// A `Weak` reference to this [`ScriptThread`] used to give to child [`Window`]s so
+    /// they can more easily call methods on the [`ScriptThread`] without constantly having
+    /// to pass it everywhere.
     #[ignore_malloc_size_of = "Weak does not need to be accounted"]
     #[no_trace]
     weak_script_thread: Weak<ScriptThread>,
