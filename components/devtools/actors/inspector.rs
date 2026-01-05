@@ -5,22 +5,19 @@
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 
-use base::generic_channel::{self, GenericSender};
+use base::generic_channel::GenericSender;
+use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
-use devtools_traits::DevtoolScriptControlMsg::GetRootNode;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::inspector::highlighter::{HighlighterActor, HighlighterMsg};
-use crate::actors::inspector::node::NodeInfoToProtocol;
+use crate::actors::inspector::highlighter::HighlighterActor;
 use crate::actors::inspector::page_style::{PageStyleActor, PageStyleMsg};
 use crate::actors::inspector::walker::{WalkerActor, WalkerMsg};
 use crate::protocol::ClientRequest;
+use crate::{ActorMsg, StreamId};
 
 pub mod accessibility;
 pub mod css_properties;
@@ -30,6 +27,12 @@ pub mod node;
 pub mod page_style;
 pub mod style_rule;
 pub mod walker;
+
+#[derive(Serialize)]
+struct GetHighlighterReply {
+    from: String,
+    highlighter: ActorMsg,
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,19 +53,11 @@ struct SupportsHighlightersReply {
     value: bool,
 }
 
-#[derive(Serialize)]
-struct GetHighlighterReply {
-    from: String,
-    highlighter: HighlighterMsg,
-}
-
 pub struct InspectorActor {
     pub name: String,
-    pub walker: RefCell<Option<String>>,
-    pub page_style: RefCell<Option<String>>,
-    pub highlighter: RefCell<Option<String>>,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub browsing_context: String,
+    pub highlighter: String,
+    pub page_style: String,
+    pub walker: String,
 }
 
 impl Actor for InspectorActor {
@@ -78,69 +73,27 @@ impl Actor for InspectorActor {
         _msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
-        let pipeline = browsing_context.active_pipeline_id.get();
         match msg_type {
-            "getWalker" => {
-                let (tx, rx) = generic_channel::channel().unwrap();
-                self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
-                let root_info = rx.recv().unwrap().ok_or(ActorError::Internal)?;
-
-                let name = self
-                    .walker
-                    .borrow()
-                    .clone()
-                    .unwrap_or_else(|| registry.new_name("walker"));
-
-                let root =
-                    root_info.encode(registry, self.script_chan.clone(), pipeline, name.clone());
-
-                if self.walker.borrow().is_none() {
-                    let walker = WalkerActor {
-                        name,
-                        script_chan: self.script_chan.clone(),
-                        pipeline,
-                        root_node: root.clone(),
-                        mutations: RefCell::new(vec![]),
-                    };
-                    let mut walker_name = self.walker.borrow_mut();
-                    *walker_name = Some(walker.name());
-                    registry.register_later(walker);
-                }
-
-                let msg = GetWalkerReply {
+            "getPageStyle" => {
+                let msg = GetPageStyleReply {
                     from: self.name(),
-                    walker: WalkerMsg {
-                        actor: self.walker.borrow().clone().unwrap(),
-                        root,
-                    },
+                    page_style: registry.encode::<PageStyleActor, _>(&self.page_style),
                 };
                 request.reply_final(&msg)?
             },
 
-            "getPageStyle" => {
-                if self.page_style.borrow().is_none() {
-                    let style = PageStyleActor {
-                        name: registry.new_name("page-style"),
-                        script_chan: self.script_chan.clone(),
-                        pipeline,
-                    };
-                    let mut page_style = self.page_style.borrow_mut();
-                    *page_style = Some(style.name());
-                    registry.register_later(style);
-                }
-
-                let msg = GetPageStyleReply {
+            "getHighlighterByType" => {
+                let msg = GetHighlighterReply {
                     from: self.name(),
-                    page_style: PageStyleMsg {
-                        actor: self.page_style.borrow().clone().unwrap(),
-                        traits: HashMap::from([
-                            ("fontStretchLevel4".into(), true),
-                            ("fontStyleLevel4".into(), true),
-                            ("fontVariations".into(), true),
-                            ("fontWeightLevel4".into(), true),
-                        ]),
-                    },
+                    highlighter: registry.encode::<HighlighterActor, _>(&self.highlighter),
+                };
+                request.reply_final(&msg)?
+            },
+
+            "getWalker" => {
+                let msg = GetWalkerReply {
+                    from: self.name(),
+                    walker: registry.encode::<WalkerActor, _>(&self.walker),
                 };
                 request.reply_final(&msg)?
             },
@@ -153,28 +106,52 @@ impl Actor for InspectorActor {
                 request.reply_final(&msg)?
             },
 
-            "getHighlighterByType" => {
-                if self.highlighter.borrow().is_none() {
-                    let highlighter_actor = HighlighterActor {
-                        name: registry.new_name("highlighter"),
-                        pipeline,
-                        script_sender: self.script_chan.clone(),
-                    };
-                    let mut highlighter = self.highlighter.borrow_mut();
-                    *highlighter = Some(highlighter_actor.name());
-                    registry.register_later(highlighter_actor);
-                }
-
-                let msg = GetHighlighterReply {
-                    from: self.name(),
-                    highlighter: HighlighterMsg {
-                        actor: self.highlighter.borrow().clone().unwrap(),
-                    },
-                };
-                request.reply_final(&msg)?
-            },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
+    }
+}
+
+impl InspectorActor {
+    // TODO: Passing the pipeline id here isn't correct. We should query the browsing
+    // context for the active pipeline, otherwise reloading or navigating will break the inspector.
+    pub fn register(
+        registry: &mut ActorRegistry,
+        pipeline: PipelineId,
+        script_chan: GenericSender<DevtoolScriptControlMsg>,
+    ) -> String {
+        let highlighter = HighlighterActor {
+            name: registry.new_name("highlighter"),
+            script_sender: script_chan.clone(),
+            pipeline,
+        };
+
+        let page_style = PageStyleActor {
+            name: registry.new_name("page-style"),
+            script_chan: script_chan.clone(),
+            pipeline,
+        };
+
+        let walker = WalkerActor {
+            name: registry.new_name("walker"),
+            mutations: RefCell::new(vec![]),
+            script_chan,
+            pipeline,
+        };
+
+        let actor = Self {
+            name: registry.new_name("inspector"),
+            highlighter: highlighter.name(),
+            page_style: page_style.name(),
+            walker: walker.name(),
+        };
+        let name = actor.name();
+
+        registry.register(highlighter);
+        registry.register(page_style);
+        registry.register(walker);
+        registry.register(actor);
+
+        name
     }
 }

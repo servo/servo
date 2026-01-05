@@ -17,7 +17,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
 use crate::actors::inspector::walker::{WalkerActor, find_child};
@@ -148,7 +148,7 @@ impl PageStyleActor {
             node.pipeline,
             target,
             registry,
-            &walker.root_node.actor,
+            &walker.root(registry)?.actor,
             vec![],
             |msg| msg.actor == target,
         )
@@ -358,5 +358,19 @@ impl PageStyleActor {
             value: false,
         };
         request.reply_final(&msg)
+    }
+}
+
+impl ActorEncode<PageStyleMsg> for PageStyleActor {
+    fn encode(&self, _: &ActorRegistry) -> PageStyleMsg {
+        PageStyleMsg {
+            actor: self.name(),
+            traits: HashMap::from([
+                ("fontStretchLevel4".into(), true),
+                ("fontStyleLevel4".into(), true),
+                ("fontVariations".into(), true),
+                ("fontWeightLevel4".into(), true),
+            ]),
+        }
     }
 }

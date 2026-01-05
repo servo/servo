@@ -229,14 +229,7 @@ impl BrowsingContextActor {
         .unwrap_or_default();
         let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"), properties);
 
-        let inspector = InspectorActor {
-            name: actors.new_name("inspector"),
-            walker: RefCell::new(None),
-            page_style: RefCell::new(None),
-            highlighter: RefCell::new(None),
-            script_chan: script_sender.clone(),
-            browsing_context: name.clone(),
-        };
+        let inspector = InspectorActor::register(actors, pipeline_id, script_sender.clone());
 
         let reflow = ReflowActor::new(actors.new_name("reflow"));
 
@@ -264,7 +257,7 @@ impl BrowsingContextActor {
             accessibility: accessibility.name(),
             console,
             css_properties: css_properties.name(),
-            inspector: inspector.name(),
+            inspector,
             reflow: reflow.name(),
             streams: RefCell::new(HashMap::new()),
             style_sheets: style_sheets.name(),
@@ -275,7 +268,6 @@ impl BrowsingContextActor {
 
         actors.register(accessibility);
         actors.register(css_properties);
-        actors.register(inspector);
         actors.register(reflow);
         actors.register(style_sheets);
         actors.register(tabdesc);

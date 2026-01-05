@@ -8,7 +8,7 @@ use std::cell::RefCell;
 
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement};
+use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -27,10 +27,9 @@ pub struct WalkerMsg {
 
 pub struct WalkerActor {
     pub name: String,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
-    pub root_node: NodeActorMsg,
     pub mutations: RefCell<Vec<(AttrModification, String)>>,
+    pub pipeline: PipelineId,
+    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(Serialize)]
@@ -267,7 +266,7 @@ impl Actor for WalkerActor {
                 let msg = WatchRootNodeNotification {
                     type_: "root-available".into(),
                     from: self.name(),
-                    node: self.root_node.clone(),
+                    node: self.root(registry)?,
                 };
                 let _ = request.write_json_packet(&msg);
 
@@ -295,6 +294,23 @@ impl WalkerActor {
             from: self.name(),
             type_: "newMutations".into(),
         });
+    }
+
+    pub(crate) fn root(&self, registry: &ActorRegistry) -> Result<NodeActorMsg, ActorError> {
+        let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
+        self.script_chan
+            .send(GetRootNode(self.pipeline, tx))
+            .map_err(|_| ActorError::Internal)?;
+        let root_node = rx
+            .recv()
+            .map_err(|_| ActorError::Internal)?
+            .ok_or(ActorError::Internal)?;
+        Ok(root_node.encode(
+            registry,
+            self.script_chan.clone(),
+            self.pipeline,
+            self.name(),
+        ))
     }
 }
 
@@ -350,4 +366,13 @@ pub fn find_child(
         }
     }
     Err(hierarchy)
+}
+
+impl ActorEncode<WalkerMsg> for WalkerActor {
+    fn encode(&self, registry: &ActorRegistry) -> WalkerMsg {
+        WalkerMsg {
+            actor: self.name(),
+            root: self.root(registry).unwrap(),
+        }
+    }
 }

@@ -11,14 +11,9 @@ use devtools_traits::DevtoolScriptControlMsg;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
-use crate::{EmptyReplyMsg, StreamId};
-
-#[derive(Serialize)]
-pub struct HighlighterMsg {
-    pub actor: String,
-}
+use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 pub struct HighlighterActor {
     pub name: String,
@@ -107,5 +102,11 @@ impl HighlighterActor {
                 node_id,
             ))
             .unwrap();
+    }
+}
+
+impl ActorEncode<ActorMsg> for HighlighterActor {
+    fn encode(&self, _: &ActorRegistry) -> ActorMsg {
+        ActorMsg { actor: self.name() }
     }
 }
