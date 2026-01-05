@@ -84,7 +84,7 @@ impl phf_shared::PhfHash for Bytes<'_> {
 ///
 /// More details: <https://book.servo.org/hacking/setting-up-your-environment.html#check-tools>
 ///
-/// Note: This function should be kept in sync with the version in `components/script/build.rs`
+/// Note: This function should be kept in sync with the version in `components/servo/build.rs`
 fn find_python() -> Command {
     let mut command = Command::new("uv");
     command.args(["run", "--no-project", "python"]);

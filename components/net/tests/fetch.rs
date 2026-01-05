@@ -92,10 +92,7 @@ fn test_fetch_on_bad_port_is_network_error() {
     let fetch_response = fetch(request, None);
     assert!(fetch_response.is_network_error());
     let fetch_error = fetch_response.get_network_error().unwrap();
-    assert_eq!(
-        fetch_error,
-        &NetworkError::Internal("Request attempted on bad port".into())
-    )
+    assert_eq!(fetch_error, &NetworkError::InvalidPort)
 }
 
 #[test]
@@ -770,6 +767,7 @@ fn test_fetch_with_hsts() {
         websocket_chan: None,
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
+        preloaded_resources: Default::default(),
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -834,6 +832,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         websocket_chan: None,
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
+        preloaded_resources: Default::default(),
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -903,6 +902,7 @@ fn test_fetch_self_signed() {
         websocket_chan: None,
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
+        preloaded_resources: Default::default(),
     };
 
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
@@ -1554,6 +1554,7 @@ fn test_fetch_request_intercepted() {
         websocket_chan: None,
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
+        preloaded_resources: Default::default(),
     };
 
     let url = ServoUrl::parse("http://www.example.org").unwrap();

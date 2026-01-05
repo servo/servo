@@ -11,6 +11,8 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
+use base::generic_channel::GenericSender;
+use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
@@ -18,7 +20,6 @@ use embedder_traits::{
 };
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
-use ipc_channel::ipc::IpcSender;
 use itertools::Itertools;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
@@ -91,7 +92,6 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::textinput::Lines::Single;
 use crate::textinput::{
     ClipboardEventFlags, Direction, IsComposing, KeyReaction, SelectionDirection, TextInput,
-    UTF8Bytes, UTF16CodeUnits,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -1135,7 +1135,7 @@ impl HTMLInputElement {
         }
 
         let mut failed_flags = ValidationFlags::empty();
-        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let Utf16CodeUnitLength(value_len) = textinput.len_utf16();
         let min_length = self.MinLength();
         let max_length = self.MaxLength();
 
@@ -1486,7 +1486,7 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         self.unsafe_get().input_type.get()
     }
 
-    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+    fn textinput_sorted_selection_offsets_range(self) -> Range<Utf8CodeUnitLength> {
         unsafe {
             self.unsafe_get()
                 .textinput
@@ -1569,7 +1569,7 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         match self.input_type() {
             InputType::Password => {
                 let text = self.get_raw_textinput_value();
-                let sel = UTF8Bytes::unwrap_range(sorted_selection_offsets_range);
+                let sel = Utf8CodeUnitLength::unwrap_range(sorted_selection_offsets_range);
 
                 // Translate indices from the raw value to indices in the replacement value.
                 let char_start = text.str()[..sel.start].chars().count();
@@ -1578,9 +1578,9 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
                 Some(char_start * bytes_per_char..char_end * bytes_per_char)
             },
-            input_type if input_type.is_textual() => {
-                Some(UTF8Bytes::unwrap_range(sorted_selection_offsets_range))
-            },
+            input_type if input_type.is_textual() => Some(Utf8CodeUnitLength::unwrap_range(
+                sorted_selection_offsets_range,
+            )),
             _ => None,
         }
     }
@@ -2019,22 +2019,24 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start()
+        self.selection().dom_start().map(|start| start.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_start(start)
+        self.selection()
+            .set_dom_start(start.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end()
+        self.selection().dom_end().map(|end| end.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_end(end)
+        self.selection()
+            .set_dom_end(end.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
@@ -2049,7 +2051,11 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_range(start, end, direction)
+        self.selection().set_dom_range(
+            Utf16CodeUnitLength::from(start),
+            Utf16CodeUnitLength::from(end),
+            direction,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
@@ -2066,8 +2072,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+        self.selection().set_dom_range_text(
+            replacement,
+            Some(Utf16CodeUnitLength::from(start)),
+            Some(Utf16CodeUnitLength::from(end)),
+            selection_mode,
+        )
     }
 
     /// Select the files based on filepaths passed in, enabled by
@@ -2398,7 +2408,7 @@ impl HTMLInputElement {
     pub(crate) fn select_files_for_webdriver(
         &self,
         test_paths: Vec<DOMString>,
-        response_sender: IpcSender<Result<bool, ErrorStatus>>,
+        response_sender: GenericSender<Result<bool, ErrorStatus>>,
     ) {
         let mut stored_sender = self.pending_webdriver_response.borrow_mut();
         assert!(stored_sender.is_none());
@@ -3097,7 +3107,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_max_length(Some(Utf16CodeUnitLength(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -3109,7 +3119,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_min_length(Some(Utf16CodeUnitLength(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -3255,7 +3265,7 @@ impl VirtualMethods for HTMLInputElement {
                         // Position the caret at the click position or at the end of the current value.
                         let edit_point_index = window
                             .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped())
-                            .unwrap_or_else(|| self.textinput.borrow().char_count());
+                            .unwrap_or_else(|| self.textinput.borrow().chars().count());
                         self.textinput.borrow_mut().clear_selection();
                         self.textinput
                             .borrow_mut()
@@ -3799,7 +3809,7 @@ fn matches_js_regex(
 #[derive(MallocSizeOf)]
 struct PendingWebDriverResponse {
     /// An [`IpcSender`] to use to send the reply when the response is ready.
-    response_sender: IpcSender<Result<bool, ErrorStatus>>,
+    response_sender: GenericSender<Result<bool, ErrorStatus>>,
     /// The number of files expected to be selected when the selection process is done.
     expected_file_count: usize,
 }

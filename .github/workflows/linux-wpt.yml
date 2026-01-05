@@ -17,6 +17,10 @@ on:
         default: 20
         required: false
         type: number
+      binary-path:
+        required: true
+        default: ""
+        type: string
 
 env:
   RUST_BACKTRACE: 1
@@ -61,7 +65,7 @@ jobs:
           name: ${{ inputs.profile }}-binary-linux
           path: ${{ inputs.profile }}-binary-linux
       - name: unPackage binary
-        run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
+        run: tar -xzf ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Change Mirror Priorities
@@ -80,6 +84,7 @@ jobs:
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
           ./mach test-wpt \
+            --bin ${{ inputs.binary-path }} \
             $WPT_ALWAYS_SUCCEED_ARG \
             --profile ${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \

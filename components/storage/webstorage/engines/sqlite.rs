@@ -9,7 +9,7 @@ use base::threadpool::ThreadPool;
 use log::error;
 use rusqlite::Connection;
 
-use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
+use crate::shared::{DB_IN_MEMORY_INIT_PRAGMAS, DB_IN_MEMORY_PRAGMAS, DB_INIT_PRAGMAS, DB_PRAGMAS};
 use crate::webstorage::OriginEntry;
 use crate::webstorage::engines::WebStorageEngine;
 
@@ -22,25 +22,39 @@ impl SqliteEngine {
         let connection = match db_dir {
             Some(path) => {
                 let path = path.join("webstorage.sqlite");
-                Self::init_db(&path)?
+                Self::init_db(Some(&path))?
             },
-            None => Connection::open_in_memory()?,
+            None => Self::init_db(None)?,
         };
-        // Initialize the database with necessary pragmas
-        for pragma in DB_PRAGMAS.iter() {
-            let _ = connection.execute(pragma, []);
-        }
         Ok(SqliteEngine { connection })
     }
 
-    pub fn init_db(path: &PathBuf) -> rusqlite::Result<Connection> {
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let connection = Connection::open(path)?;
-        for pragma in DB_INIT_PRAGMAS.iter() {
-            let _ = connection.execute(pragma, []);
-        }
+    pub fn init_db(db_path: Option<&PathBuf>) -> rusqlite::Result<Connection> {
+        let connection = if let Some(path) = db_path {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let conn = Connection::open(path)?;
+            for pragma in DB_INIT_PRAGMAS.iter() {
+                let _ = conn.execute(pragma, []);
+            }
+            for pragma in DB_PRAGMAS.iter() {
+                let _ = conn.execute(pragma, []);
+            }
+            conn
+        } else {
+            // TODO We probably don't need an in memory implementation at all.
+            // WebStorageEnvironment already keeps all key value pairs in memory via its data field.
+            // A future refactoring could avoid creating a WebStorageEngine entirely when config_dir is None.
+            let conn = Connection::open_in_memory()?;
+            for pragma in DB_IN_MEMORY_INIT_PRAGMAS.iter() {
+                let _ = conn.execute(pragma, []);
+            }
+            for pragma in DB_IN_MEMORY_PRAGMAS.iter() {
+                let _ = conn.execute(pragma, []);
+            }
+            conn
+        };
         connection.execute("CREATE TABLE IF NOT EXISTS data (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT);", [])?;
         Ok(connection)
     }
@@ -78,10 +92,15 @@ impl WebStorageEngine for SqliteEngine {
 
     fn set(&mut self, key: &str, value: &str) -> Result<(), Self::Error> {
         // update or insert
-        self.connection.execute(
-            "INSERT INTO data (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value;",
-            [key, value],
-        )?;
+        //
+        // TODO: Replace this with an UPSERT once the schema guarantees a
+        // UNIQUE/PRIMARY KEY constraint on `key`.
+        let tx = self.connection.transaction()?;
+        let rows = tx.execute("UPDATE data SET value = ? WHERE key = ?", [value, key])?;
+        if rows == 0 {
+            tx.execute("INSERT INTO data (key, value) VALUES (?, ?)", [key, value])?;
+        }
+        tx.commit()?;
         Ok(())
     }
 

@@ -995,4 +995,18 @@ var browserTests = [
     "<div style=\"display:inline-grid;white-space:pre\"><span>abc\n<br></span></div>",
     [true],
     {}],
+
+// The following tests are ported by Mozilla from their old test and the
+// expectations are based on Chrome's behavior unless the behavior does not
+// make sense.
+[' <span contenteditable="false">A</span>[] ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> ',
+    [["insertlinebreak",""]],
+    ' <span contenteditable="false">A</span><br>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> ',
+    [true],
+    {}],
+[' <span contenteditable="false">A</span><br>[]&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> ',
+    [["insertlinebreak",""]],
+    ' <span contenteditable="false">A</span><br><br>&nbsp;; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> ',
+    [true],
+    {}],
 ]

@@ -60,7 +60,7 @@ use crate::window::{
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 
-pub struct Window {
+pub struct HeadedWindow {
     /// The egui interface that is responsible for showing the user interface elements of
     /// this headed `Window`.
     gui: RefCell<Gui>,
@@ -103,7 +103,7 @@ pub struct Window {
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
 }
 
-impl Window {
+impl HeadedWindow {
     pub(crate) fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
@@ -143,7 +143,7 @@ impl Window {
         let window_handle = winit_window
             .window_handle()
             .expect("winit window did not have a window handle");
-        Window::force_srgb_color_space(window_handle.as_raw());
+        HeadedWindow::force_srgb_color_space(window_handle.as_raw());
 
         let monitor = winit_window
             .current_monitor()
@@ -192,7 +192,7 @@ impl Window {
         ));
 
         debug!("Created window {:?}", winit_window.id());
-        Rc::new(Window {
+        Rc::new(HeadedWindow {
             gui,
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
@@ -535,7 +535,10 @@ impl Window {
     }
 }
 
-impl PlatformWindow for Window {
+impl PlatformWindow for HeadedWindow {
+    fn has_winit_window(&self) -> bool {
+        true
+    }
     fn screen_geometry(&self) -> ScreenGeometry {
         let hidpi_factor = self.hidpi_scale_factor();
         let toolbar_size = Size2D::new(0.0, (self.toolbar_height() * self.hidpi_scale_factor()).0);
@@ -594,14 +597,14 @@ impl PlatformWindow for Window {
     fn handle_winit_window_event(
         &self,
         state: Rc<RunningAppState>,
-        window: &ServoShellWindow,
+        window: Rc<ServoShellWindow>,
         event: WindowEvent,
     ) {
         if event == WindowEvent::RedrawRequested {
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
             let mut gui = self.gui.borrow_mut();
-            gui.update(&state, window, self);
+            gui.update(&state, &window, self);
             gui.paint(&self.winit_window);
         }
 
@@ -629,6 +632,7 @@ impl PlatformWindow for Window {
         // Handle the event
         let mut consumed = false;
         match event {
+            WindowEvent::Focused(true) => state.handle_focused(window.clone()),
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                 // we can use our own logic for calculating the scale factor and set egui’s
@@ -682,7 +686,7 @@ impl PlatformWindow for Window {
                     .on_window_event(&self.winit_window, event);
 
                 if let WindowEvent::Resized(_) = event {
-                    self.rebuild_user_interface(&state, window);
+                    self.rebuild_user_interface(&state, &window);
                 }
 
                 if response.repaint && *event != WindowEvent::RedrawRequested {
@@ -710,7 +714,7 @@ impl PlatformWindow for Window {
             if let Some(webview) = window.active_webview() {
                 match event {
                     WindowEvent::KeyboardInput { event, .. } => {
-                        self.handle_keyboard_input(state.clone(), window, event)
+                        self.handle_keyboard_input(state.clone(), &window, event)
                     },
                     WindowEvent::ModifiersChanged(modifiers) => {
                         self.modifiers_state.set(modifiers.state())

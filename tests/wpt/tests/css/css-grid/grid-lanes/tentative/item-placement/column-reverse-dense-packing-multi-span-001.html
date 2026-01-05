@@ -9,11 +9,12 @@
   item-tolerance: 0;
   grid-auto-flow: dense;
   grid-lanes-direction: column-reverse;
+  grid-template-columns: repeat(4, 50px);
 }
 </style>
 <body>
 <p>Ensure that dense-packing places multi-spanning item into highest eligible track opening. The yellow item should be placed in track opening.</p>
-<div class="grid-lanes" style="grid-template-columns: repeat(4, 50px);">
+<div class="grid-lanes">
   <div style="background: lightskyblue; height: 70px;" >
     1
   </div>

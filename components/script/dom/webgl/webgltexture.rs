@@ -172,7 +172,7 @@ impl WebGLTexture {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn initialize(
         &self,
         target: TexImageTarget,

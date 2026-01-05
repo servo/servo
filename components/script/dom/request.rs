@@ -21,7 +21,7 @@ use net_traits::request::{
 };
 use servo_url::ServoUrl;
 
-use crate::body::{BodyMixin, BodyType, Extractable, consume_body};
+use crate::body::{BodyMixin, BodyType, Extractable, clone_body_stream_for_dom_body, consume_body};
 use crate::conversions::Convert;
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::cell::DomRefCell;
@@ -452,7 +452,8 @@ impl Request {
         // Step 37. If init["body"] exists and is non-null, then:
         if let Some(Some(ref input_init_body)) = init.body {
             // Step 37.1. Let bodyWithType be the result of extracting init["body"], with keepalive set to request’s keepalive.
-            let mut body_with_type = input_init_body.extract(global, can_gc)?;
+            let mut body_with_type =
+                input_init_body.extract(global, r.request.borrow().keep_alive, can_gc)?;
 
             // Step 37.3. Let type be bodyWithType’s type.
             if let Some(contents) = body_with_type.content_type.take() {
@@ -534,23 +535,30 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-clone>
     fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
-        // Step 1. Let newRequest be a copy of request, except for its body.
         let req = r.request.borrow();
         let url = req.url();
         let headers_guard = r.Headers(can_gc).get_guard();
+
+        // Step 1. Let newRequest be a copy of request, except for its body.
+        let mut new_req_inner = req.clone();
+        let body = new_req_inner.body.take();
+
         let r_clone = Request::new(&r.global(), None, url, can_gc);
-        r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
-        {
-            let mut borrowed_r_request = r_clone.request.borrow_mut();
-            borrowed_r_request.origin = req.origin.clone();
+        *r_clone.request.borrow_mut() = new_req_inner;
+
+        // Step 2. If request’s body is non-null, set newRequest’s body
+        // to the result of cloning request’s body.
+        if let Some(body) = body {
+            r_clone.request.borrow_mut().body = Some(body);
         }
-        *r_clone.request.borrow_mut() = req.clone();
+
         r_clone
             .Headers(can_gc)
             .copy_from_headers(r.Headers(can_gc))?;
         r_clone.Headers(can_gc).set_guard(headers_guard);
-        // Step 2. If request’s body is non-null, set newRequest’s body to the result of cloning request’s body.
-        // TODO
+
+        clone_body_stream_for_dom_body(&r.body_stream, &r_clone.body_stream, can_gc)?;
+
         // Step 3. Return newRequest.
         Ok(r_clone)
     }
@@ -568,6 +576,7 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
         .insecure_requests_policy(global.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
         .policy_container(global.policy_container())
+        .client(global.request_client())
         .build()
 }
 
@@ -681,6 +690,11 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     fn Integrity(&self) -> DOMString {
         let r = self.request.borrow();
         DOMString::from_string(r.integrity_metadata.clone())
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-request-keepalive>
+    fn Keepalive(&self) -> bool {
+        self.request.borrow().keep_alive
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>

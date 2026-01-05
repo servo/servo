@@ -27,12 +27,12 @@ pub mod viewport_description;
 
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{self, GenericCallback, GenericSender};
+use base::generic_channel::{self, GenericCallback, GenericSender, GenericSharedMemory};
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
 use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 pub use webrender_api::ExternalImageSource;
@@ -158,7 +158,7 @@ pub enum PaintMessage {
         PainterId,
     ),
     /// Add a font with the given data and font key.
-    AddFont(PainterId, FontKey, Arc<IpcSharedMemory>, u32),
+    AddFont(PainterId, FontKey, Arc<GenericSharedMemory>, u32),
     /// Add a system font with the given font key and handle.
     AddSystemFont(PainterId, FontKey, NativeFontHandle),
     /// Add an instance of a font with the given instance key.
@@ -458,7 +458,7 @@ impl CrossProcessPaintApi {
         ));
     }
 
-    pub fn add_font(&self, font_key: FontKey, data: Arc<IpcSharedMemory>, index: u32) {
+    pub fn add_font(&self, font_key: FontKey, data: Arc<GenericSharedMemory>, index: u32) {
         let _ = self.0.send(PaintMessage::AddFont(
             font_key.into(),
             font_key,
@@ -735,7 +735,7 @@ impl Debug for ImageUpdate {
 pub enum SerializableImageData {
     /// A simple series of bytes, provided by the embedding and owned by WebRender.
     /// The format is stored out-of-band, currently in ImageDescriptor.
-    Raw(IpcSharedMemory),
+    Raw(GenericSharedMemory),
     /// An image owned by the embedding, and referenced by WebRender. This may
     /// take the form of a texture or a heap-allocated buffer.
     External(ExternalImageData),

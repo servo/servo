@@ -340,20 +340,19 @@ impl OutsideMarker {
             &containing_block_for_children,
         );
 
-        let max_inline_size =
-            flow_layout
-                .fragments
-                .iter()
-                .fold(Au::zero(), |current_max, fragment| {
-                    current_max.max(
-                        fragment
-                            .base()
-                            .map(|base| base.rect)
-                            .unwrap_or_default()
-                            .to_logical(&containing_block_for_children)
-                            .max_inline_position(),
-                    )
-                });
+        let max_inline_size = flow_layout
+            .fragments
+            .iter()
+            .map(|fragment| {
+                fragment
+                    .base()
+                    .map(|base| base.rect)
+                    .unwrap_or_default()
+                    .to_logical(&containing_block_for_children)
+                    .max_inline_position()
+            })
+            .max()
+            .unwrap_or_default();
 
         // Position the marker beyond the inline start of the border box list item. This needs to
         // take into account the border and padding of the item.
@@ -501,14 +500,16 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                 ))
             },
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
+                let is_anonymous_block =
+                    matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox));
                 let inline_content_sizes_result = sizing::outer_inline(
                     base,
                     &contents.layout_style(base),
                     containing_block,
                     &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
-                    false, /* is_replaced */
-                    !matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox)),
+                    false,               /* auto_block_size_stretches_to_containing_block */
+                    false,               /* is_replaced */
+                    !is_anonymous_block, /* establishes_containing_block */
                     |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
                     |constraint_space| {
                         base.inline_content_sizes(layout_context, constraint_space, contents)
@@ -517,8 +518,18 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                 );
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
-                // Instead, we treat it like an independent block with 'clear: both'.
-                Some((inline_content_sizes_result, None, Clear::Both))
+                // Instead, we treat it like an independent block with 'clear: both',
+                // except if it's an anonymous block.
+                // Presumably, the exception is because an anonymous block will always have
+                // inline-level contents, which don't overlap floats. However, the same might
+                // also happen with a non-anonymous block, so the logic is a bit arbitrary,
+                // but matches other browsers (see #41280).
+                let clear = if is_anonymous_block {
+                    Clear::None
+                } else {
+                    Clear::Both
+                };
+                Some((inline_content_sizes_result, None, clear))
             },
             BlockLevelBox::Independent(independent) => {
                 let inline_content_sizes_result = independent.outer_inline_content_sizes(
@@ -547,32 +558,28 @@ fn compute_inline_content_sizes_for_block_level_boxes(
         depends_on_block_constraints: bool,
         /// The maximum size seen so far, not including trailing uncleared floats.
         max_size: ContentSizes,
-        /// The size of the trailing uncleared floats on the inline-start side
-        /// of the containing block.
-        start_floats: ContentSizes,
-        /// The size of the trailing uncleared floats on the inline-end side
-        /// of the containing block.
-        end_floats: ContentSizes,
+        /// The size of the trailing uncleared floats on the inline-start and
+        /// inline-end sides of the containing block.
+        floats: LogicalSides1D<ContentSizes>,
     }
 
     impl AccumulatedData {
         fn max_size_including_uncleared_floats(&self) -> ContentSizes {
-            self.max_size.max(self.start_floats.union(&self.end_floats))
+            self.max_size.max(self.floats.start.union(&self.floats.end))
         }
         fn clear_floats(&mut self, clear: Clear) {
             match clear {
                 Clear::InlineStart => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.start_floats = ContentSizes::zero();
+                    self.floats.start = ContentSizes::default();
                 },
                 Clear::InlineEnd => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.end_floats = ContentSizes::zero();
+                    self.floats.end = ContentSizes::default();
                 },
                 Clear::Both => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.start_floats = ContentSizes::zero();
-                    self.end_floats = ContentSizes::zero();
+                    self.floats = LogicalSides1D::default();
                 },
                 Clear::None => {},
             };
@@ -588,14 +595,12 @@ fn compute_inline_content_sizes_for_block_level_boxes(
             data.depends_on_block_constraints |= depends_on_block_constraints;
             data.clear_floats(clear);
             match float {
-                Some(FloatSide::InlineStart) => data.start_floats = data.start_floats.union(&size),
-                Some(FloatSide::InlineEnd) => data.end_floats = data.end_floats.union(&size),
+                Some(FloatSide::InlineStart) => data.floats.start.union_assign(&size),
+                Some(FloatSide::InlineEnd) => data.floats.end.union_assign(&size),
                 None => {
-                    data.max_size = data
-                        .max_size
-                        .max(data.start_floats.union(&data.end_floats).union(&size));
-                    data.start_floats = ContentSizes::zero();
-                    data.end_floats = ContentSizes::zero();
+                    data.max_size
+                        .max_assign(data.floats.start.union(&data.floats.end).union(&size));
+                    data.floats = LogicalSides1D::default();
                 },
             }
             data
@@ -911,7 +916,7 @@ impl BlockLevelBox {
 /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
 /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
 #[allow(clippy::too_many_arguments)]
-fn layout_in_flow_non_replaced_block_level_same_formatting_context(
+pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
@@ -1155,7 +1160,12 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     };
 
     let mut base_fragment_info = base.base_fragment_info;
-    if depends_on_block_constraints {
+
+    // An anonymous block doesn't establish a containing block for its contents. Therefore,
+    // if its contents depend on block constraints, its block size (which is intrinsic) also
+    // depends on block constraints.
+    let is_anonymous = matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox));
+    if depends_on_block_constraints || (is_anonymous && flow_layout.depends_on_block_constraints) {
         base_fragment_info
             .flags
             .insert(FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM);

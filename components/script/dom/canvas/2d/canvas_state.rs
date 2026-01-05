@@ -33,11 +33,9 @@ use range::Range;
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
-use style::context::QuirksMode;
-use style::parser::ParserContext;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::CssRuleType;
 use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
@@ -48,6 +46,7 @@ use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
 use crate::conversions::Convert;
+use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -459,7 +458,7 @@ impl CanvasState {
     /// is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
     ///
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn draw_image_internal(
         &self,
         htmlcanvas: Option<&HTMLCanvasElement>,
@@ -542,7 +541,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn draw_html_image_element(
         &self,
         image: &HTMLImageElement,
@@ -591,7 +590,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn draw_html_video_element(
         &self,
         video: &HTMLVideoElement,
@@ -639,7 +638,7 @@ impl CanvasState {
         self.mark_as_dirty(canvas);
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn draw_offscreen_canvas(
         &self,
         canvas: &OffscreenCanvas,
@@ -718,7 +717,7 @@ impl CanvasState {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn draw_html_canvas_element(
         &self,
         canvas: &HTMLCanvasElement,             // source canvas
@@ -832,7 +831,7 @@ impl CanvasState {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn fetch_and_draw_image_data(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -881,7 +880,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn draw_image_bitmap(
         &self,
         bitmap: &ImageBitmap,
@@ -939,7 +938,7 @@ impl CanvasState {
     /// on the drawImage call arguments
     /// source rectangle = area of the original image to be copied
     /// destination rectangle = area of the destination canvas where the source image is going to be drawn
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn adjust_source_dest_rects(
         &self,
         image_size: Size2D<u32>,
@@ -1206,7 +1205,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn create_radial_gradient(
         &self,
         global: &GlobalScope,
@@ -1495,11 +1494,10 @@ impl CanvasState {
 
         let font_style = self.font_style();
         let font_group = font_context.font_group(font_style.clone());
-        let mut font_group = font_group.write();
         let font = font_group.first(font_context).expect("couldn't find font");
         let ascent = font.metrics.ascent.to_f64_px();
         let descent = font.metrics.descent.to_f64_px();
-        let runs = self.build_unshaped_text_runs(font_context, &text, &mut font_group);
+        let runs = self.build_unshaped_text_runs(font_context, &text, &font_group);
 
         let mut total_advance = 0.0;
         let shaped_runs: Vec<_> = runs
@@ -1765,7 +1763,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn get_image_data(
         &self,
         canvas_size: Size2D<u32>,
@@ -1836,7 +1834,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn put_image_data_(
         &self,
         canvas_size: Size2D<u32>,
@@ -1935,7 +1933,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn draw_image__(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -2230,7 +2228,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(super) fn ellipse(
         &self,
         x: f64,
@@ -2273,13 +2271,12 @@ impl CanvasState {
         // > attribute.
         let font_style = self.font_style();
         let font_group = font_context.font_group_with_size(font_style, Au::from_f64_px(size));
-        let mut font_group = font_group.write();
         let Some(first_font) = font_group.first(font_context) else {
             warn!("Could not render canvas text, because there was no first font.");
             return None;
         };
 
-        let runs = self.build_unshaped_text_runs(font_context, &text, &mut font_group);
+        let runs = self.build_unshaped_text_runs(font_context, &text, &font_group);
 
         // TODO: This doesn't do any kind of line layout at all. In particular, there needs
         // to be some alignment along a baseline and also support for bidi text.
@@ -2340,7 +2337,7 @@ impl CanvasState {
         &self,
         font_context: &FontContext,
         text: &'text str,
-        font_group: &mut FontGroup,
+        font_group: &FontGroup,
     ) -> Vec<UnshapedTextRun<'text>> {
         let mut runs = Vec::new();
         let mut current_text_run = UnshapedTextRun::default();
@@ -2518,16 +2515,8 @@ pub(super) fn parse_color(
     let mut input = ParserInput::new(&string);
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
-    let context = ParserContext::new(
-        Origin::Author,
-        &url,
-        Some(CssRuleType::Style),
-        ParsingMode::DEFAULT,
-        QuirksMode::NoQuirks,
-        /* namespaces = */ Default::default(),
-        None,
-        None,
-    );
+    let context =
+        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
     match Color::parse_and_compute(&context, &mut parser, None) {
         Some(color) => {
             // TODO: https://github.com/whatwg/html/issues/1099

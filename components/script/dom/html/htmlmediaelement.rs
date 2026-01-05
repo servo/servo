@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
+use base::generic_channel::GenericSharedMemory;
 use base::id::WebViewId;
 use compositing_traits::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -19,7 +20,7 @@ use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use layout_api::MediaFrame;
@@ -345,7 +346,9 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     updates.push(ImageUpdate::UpdateImage(
                         current_frame.image_key,
                         descriptor,
-                        SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data())),
+                        SerializableImageData::Raw(GenericSharedMemory::from_bytes(
+                            &frame.get_data(),
+                        )),
                         None,
                     ));
                 }
@@ -386,7 +389,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         normalized_uvs: false,
                     })
                 } else {
-                    SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))
+                    SerializableImageData::Raw(GenericSharedMemory::from_bytes(&frame.get_data()))
                 };
 
                 self.current_frame_holder
@@ -421,7 +424,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                         normalized_uvs: false,
                     })
                 } else {
-                    SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data()))
+                    SerializableImageData::Raw(GenericSharedMemory::from_bytes(&frame.get_data()))
                 };
 
                 self.current_frame_holder = Some(FrameHolder::new(frame));
@@ -521,7 +524,7 @@ pub(crate) struct HTMLMediaElement {
     #[conditional_malloc_size_of]
     pending_play_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// Play promises which are soon to be fulfilled by a queued task.
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     #[conditional_malloc_size_of]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     #[ignore_malloc_size_of = "servo_media"]
@@ -1433,6 +1436,7 @@ impl HTMLMediaElement {
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
             global.policy_container(),
+            global.request_client(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())
@@ -1446,6 +1450,7 @@ impl HTMLMediaElement {
 
         *current_fetch_context = Some(HTMLMediaElementFetchContext::new(
             request.id,
+            request.keep_alive,
             global.core_resource_thread(),
         ));
         let listener =
@@ -3618,6 +3623,7 @@ pub(crate) struct HTMLMediaElementFetchContext {
 impl HTMLMediaElementFetchContext {
     fn new(
         request_id: RequestId,
+        keep_alive: bool,
         core_resource_thread: CoreResourceThread,
     ) -> HTMLMediaElementFetchContext {
         HTMLMediaElementFetchContext {
@@ -3626,7 +3632,11 @@ impl HTMLMediaElementFetchContext {
             is_seekable: false,
             origin_clean: true,
             data_source: RefCell::new(BufferedDataSource::new()),
-            fetch_canceller: FetchCanceller::new(request_id, core_resource_thread.clone()),
+            fetch_canceller: FetchCanceller::new(
+                request_id,
+                keep_alive,
+                core_resource_thread.clone(),
+            ),
         }
     }
 
@@ -3660,7 +3670,7 @@ impl HTMLMediaElementFetchContext {
         }
         self.cancel_reason = Some(reason);
         self.data_source.borrow_mut().reset();
-        self.fetch_canceller.cancel();
+        self.fetch_canceller.abort();
     }
 
     fn cancel_reason(&self) -> &Option<CancelReason> {

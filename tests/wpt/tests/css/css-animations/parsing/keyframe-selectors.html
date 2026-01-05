@@ -34,12 +34,12 @@
   test_valid_keyframe_selector("to");
   test_valid_keyframe_selector("entry 10%");
   test_valid_keyframe_selector("exit 60%");
+  test_valid_keyframe_selector("calc(10%)");
+  test_valid_keyframe_selector("calc(10% * sibling-index())");
+  test_valid_keyframe_selector("calc(10% * sign(1em - 1px))");
+  test_valid_keyframe_selector("entry calc(10%)");
+  test_valid_keyframe_selector("exit calc(60%)");
 
   test_invalid_keyframe_selector("-10%");
   test_invalid_keyframe_selector("120%");
-  test_invalid_keyframe_selector("calc(10%)");
-  test_invalid_keyframe_selector("calc(10% * sibling-index())");
-  test_invalid_keyframe_selector("calc(10% * sign(1em - 1px))");
-  test_invalid_keyframe_selector("entry calc(10%)");
-  test_invalid_keyframe_selector("exit calc(60%)");
 </script>

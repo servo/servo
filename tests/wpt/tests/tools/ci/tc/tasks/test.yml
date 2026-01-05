@@ -17,7 +17,7 @@ components:
 
   wpt-testharness:
     chunks: 16
-    maxRunTime: 10800
+    maxRunTime: 14400
     vars:
       test-type: testharness
 

@@ -17,10 +17,12 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use compositing_traits::CrossProcessPaintApi;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
 };
+use encoding_rs::Encoding;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts_traits::SystemFontServiceProxySender;
 use http::{HeaderMap, Method};
@@ -35,7 +37,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use storage_traits::webstorage_thread::StorageType;
+use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
@@ -126,6 +128,9 @@ pub struct LoadData {
     /// The "creation sandboxing flag set" that this Pipeline should use when it is created.
     /// See <https://html.spec.whatwg.org/multipage/#determining-the-creation-sandboxing-flags>.
     pub creation_sandboxing_flag_set: SandboxingFlagSet,
+    /// If this is a load operation for an `<iframe>` whose origin is same-origin with its
+    /// container documents origin then this is the encoding of the container document.
+    pub container_document_encoding: Option<&'static Encoding>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -140,7 +145,7 @@ pub enum JsEvalResult {
 
 impl LoadData {
     /// Create a new `LoadData` object.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         load_origin: LoadOrigin,
         url: ServoUrl,
@@ -170,6 +175,7 @@ impl LoadData {
             has_trustworthy_ancestor_origin,
             destination: Destination::Document,
             creation_sandboxing_flag_set,
+            container_document_encoding: None,
         }
     }
 
@@ -407,6 +413,8 @@ pub struct AuxiliaryWebViewCreationResponse {
     pub new_webview_id: WebViewId,
     /// The new pipeline ID.
     pub new_pipeline_id: PipelineId,
+    /// The [`UserContentManagerId`] for this new auxiliary browsing context.
+    pub user_content_manager_id: Option<UserContentManagerId>,
 }
 
 /// Specifies the information required to load an iframe.
@@ -469,8 +477,6 @@ pub struct WorkerGlobalScopeInit {
     pub pipeline_id: PipelineId,
     /// The origin
     pub origin: ImmutableOrigin,
-    /// The creation URL
-    pub creation_url: ServoUrl,
     /// True if secure context
     pub inherited_secure_context: Option<bool>,
     /// Unminify Javascript.
@@ -580,7 +586,7 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
-        StorageType,
+        WebStorageType,
         ServoUrl,
         Option<String>,
         Option<String>,

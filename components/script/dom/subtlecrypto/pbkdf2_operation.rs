@@ -44,7 +44,7 @@ pub(crate) fn derive_bits(
 
     // Step 4. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1] using
     // the hash function described by the hash member of normalizedAlgorithm.
-    let prf = match normalized_algorithm.hash.name.as_str() {
+    let prf = match normalized_algorithm.hash.name() {
         ALG_SHA1 => pbkdf2::PBKDF2_HMAC_SHA1,
         ALG_SHA256 => pbkdf2::PBKDF2_HMAC_SHA256,
         ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,

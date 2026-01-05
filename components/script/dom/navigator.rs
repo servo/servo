@@ -38,7 +38,9 @@ use crate::dom::bluetooth::Bluetooth;
 use crate::dom::clipboard::Clipboard;
 use crate::dom::credentialmanagement::credentialscontainer::CredentialsContainer;
 use crate::dom::csp::{GlobalCspReporting, Violation};
+#[cfg(feature = "gamepad")]
 use crate::dom::gamepad::Gamepad;
+#[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::geolocation::Geolocation;
 use crate::dom::globalscope::GlobalScope;
@@ -114,6 +116,7 @@ pub(crate) struct Navigator {
     xr: MutNullableDom<XRSystem>,
     mediadevices: MutNullableDom<MediaDevices>,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepads>
+    #[cfg(feature = "gamepad")]
     gamepads: DomRefCell<Vec<MutNullableDom<Gamepad>>>,
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
@@ -121,6 +124,7 @@ pub(crate) struct Navigator {
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
+    #[cfg(feature = "gamepad")]
     has_gamepad_gesture: Cell<bool>,
     servo_internals: MutNullableDom<ServoInternals>,
 }
@@ -138,12 +142,14 @@ impl Navigator {
             #[cfg(feature = "webxr")]
             xr: Default::default(),
             mediadevices: Default::default(),
+            #[cfg(feature = "gamepad")]
             gamepads: Default::default(),
             permissions: Default::default(),
             mediasession: Default::default(),
             clipboard: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
+            #[cfg(feature = "gamepad")]
             has_gamepad_gesture: Cell::new(false),
             servo_internals: Default::default(),
         }
@@ -158,10 +164,12 @@ impl Navigator {
         self.xr.get()
     }
 
+    #[cfg(feature = "gamepad")]
     pub(crate) fn get_gamepad(&self, index: usize) -> Option<DomRoot<Gamepad>> {
         self.gamepads.borrow().get(index).and_then(|g| g.get())
     }
 
+    #[cfg(feature = "gamepad")]
     pub(crate) fn set_gamepad(&self, index: usize, gamepad: &Gamepad, can_gc: CanGc) {
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
             gamepad_to_set.set(Some(gamepad));
@@ -174,6 +182,7 @@ impl Navigator {
         }
     }
 
+    #[cfg(feature = "gamepad")]
     pub(crate) fn remove_gamepad(&self, index: usize) {
         if let Some(gamepad_to_remove) = self.gamepads.borrow_mut().get(index) {
             gamepad_to_remove.set(None);
@@ -182,6 +191,7 @@ impl Navigator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
+    #[cfg(feature = "gamepad")]
     pub(crate) fn select_gamepad_index(&self) -> u32 {
         let mut gamepad_list = self.gamepads.borrow_mut();
         if let Some(index) = gamepad_list.iter().position(|g| g.get().is_none()) {
@@ -193,6 +203,7 @@ impl Navigator {
         }
     }
 
+    #[cfg(feature = "gamepad")]
     fn shrink_gamepads_list(&self) {
         let mut gamepad_list = self.gamepads.borrow_mut();
         for i in (0..gamepad_list.len()).rev() {
@@ -204,10 +215,12 @@ impl Navigator {
         }
     }
 
+    #[cfg(feature = "gamepad")]
     pub(crate) fn has_gamepad_gesture(&self) -> bool {
         self.has_gamepad_gesture.get()
     }
 
+    #[cfg(feature = "gamepad")]
     pub(crate) fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
         self.has_gamepad_gesture.set(has_gamepad_gesture);
     }
@@ -384,6 +397,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads>
+    #[cfg(feature = "gamepad")]
     fn GetGamepads(&self) -> Vec<Option<DomRoot<Gamepad>>> {
         let global = self.global();
         let window = global.as_window();
@@ -473,7 +487,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         if let Some(data) = data {
             // Step 6.1. Set transmittedData and contentType to the result of extracting data's byte stream
             // with the keepalive flag set.
-            let extracted_body = data.extract(&global, can_gc)?;
+            let extracted_body = data.extract(&global, true, can_gc)?;
             // Step 6.2. If the amount of data that can be queued to be sent by keepalive enabled requests
             // is exceeded by the size of transmittedData (as defined in HTTP-network-or-cache fetch),
             // set the return value to false and terminate these steps.
@@ -512,7 +526,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             .method(http::Method::POST)
             .body(request_body)
             .origin(origin)
-            // TODO: Set keep-alive flag
+            .keep_alive(true)
             .credentials_mode(CredentialsMode::Include)
             .headers(headers);
         // Step 7.2. Fetch req.

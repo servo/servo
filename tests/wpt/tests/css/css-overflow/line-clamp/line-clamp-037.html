@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: a phantom line box after the last non-phantom line box in a container doesn't introduce a clamp point</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#invisible-line-boxes">
+<link rel="match" href="reference/webkit-line-clamp-001-ref.html">
+<meta name="assert" content="Phantom line boxes are defined to be treated as not existing for any layout or rendering purpose other than determining the positions of any descendant, so if a regular line box is followed by a phantom line box, there's not a clamp point between them.">
+<style>
+.clamp {
+  line-clamp: 5;
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+</style>
+<div class="clamp">
+  Line 1 <br>
+  Line 2 <br>
+  Line 3 <br>
+  Line 4 <br>
+  Line 5 <br>
+  <span></span> <!-- phantom line box -->
+</div>

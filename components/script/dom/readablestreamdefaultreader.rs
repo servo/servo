@@ -10,6 +10,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use super::bindings::reflector::reflect_dom_object;
@@ -52,10 +53,11 @@ struct ContinueReadMicrotask {
 }
 
 impl Callback for ContinueReadMicrotask {
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // https://streams.spec.whatwg.org/#ref-for-read-loop%E2%91%A0
         // Note: continuing the read-loop from inside a micro-task to break recursion.
-        self.reader.read(cx, &self.request, can_gc);
+        self.reader.read(cx.into(), &self.request, can_gc);
     }
 }
 
@@ -278,7 +280,8 @@ struct ByteTeeClosedPromiseRejectionHandler {
 impl Callback for ByteTeeClosedPromiseRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
     /// Upon rejection of reader.[[closedPromise]] with reason r,
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // If thisReader is not the current `reader`, return.
         if self.reader_version.get() != self.expected_version {
             return;
@@ -315,7 +318,8 @@ struct DefaultTeeClosedPromiseRejectionHandler {
 impl Callback for DefaultTeeClosedPromiseRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Upon rejection of reader.[[closedPromise]] with reason r,
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], r).
         self.branch_1_controller.error(v, can_gc);
         // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], r).

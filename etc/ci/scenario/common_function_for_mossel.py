@@ -12,6 +12,26 @@
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium import webdriver
+from time import sleep
+
+
+def load_mossel(driver: webdriver.Remote):
+    PAGE_URL = "https://m.huaweimossel.com"
+    driver.set_page_load_timeout(30)
+    while True:
+        try:
+            driver.get(PAGE_URL)
+            try:
+                driver.find_element(By.CSS_SELECTOR, ".uni-async-error")
+                print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
+            except NoSuchElementException:
+                break
+        except Exception as e:
+            print(f"\033[31mPage load failed: {e}\033[0m")
+            print("Retrying...")
+            continue
+
+    print("\033[32mPage loaded.\033[0m")
 
 
 # Click to close the pop-up
@@ -30,6 +50,7 @@ def close_popup(driver: webdriver.Remote):
         birthday_element = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
         birthday_element.click()
         print("Closed the popup")
+        sleep(1)
     except NoSuchElementException:
         print(f"Failed to find pop_up element with selector `{popup_css_selector}`. Skip it.")
 
@@ -43,3 +64,23 @@ def click_category(driver: webdriver.Remote):
         raise NoSuchElementException("Category element not found. Test failed.")
 
     category_element.click()
+
+
+def identify_element_in_category(driver: webdriver.Remote):
+    driver.implicitly_wait(30)
+    target_css_selector = "#goodsGroup"
+    while True:
+        try:
+            print("Finding components ...")
+            driver.find_element(By.CSS_SELECTOR, target_css_selector)
+            break
+        except NoSuchElementException:
+            # We hit the timeout JS, reload and try again.
+            print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
+            try:
+                driver.refresh()
+            except Exception as e:
+                print(f"\033[31mPage refresh failed: {e}\033[0m")
+                print("Retrying...")
+                continue
+    print("\033[32mComponents found!\033[0m")

@@ -12,6 +12,9 @@ features:
   files:
   - WorkerNavigator_userAgentData.http.html
   - WorkerNavigator_userAgentData.https.html
+- name: online
+  files:
+  - WorkerNavigator_onLine.htm
 - name: postmessage
   files:
   - Worker-postMessage-happens-in-parallel.https.html
@@ -19,3 +22,23 @@ features:
 - name: user-agent-sniffing
   files:
   - WorkerNavigator_userAgent.htm
+- name: shared-workers
+  files:
+  - data-url-shared.html
+  - SharedWorker-*
+  - shared-worker-*
+- name: dedicated-workers
+  files:
+  - '*'
+  - '!WorkerGlobalScope_requestAnimationFrame.worker.js'
+  - '!WorkerGlobalScope_setInterval.htm'
+  - '!WorkerGlobalScope_setTimeout.htm'
+  - '!WorkerNavigator_userAgentData.http.html'
+  - '!WorkerNavigator_userAgentData.https.html'
+  - '!Worker-postMessage-happens-in-parallel.https.html'
+  - '!postMessage_*'
+  - '!WorkerNavigator_userAgent.htm'
+  - '!data-url-shared.html'
+  - '!SharedWorker-*'
+  - '!shared-worker-*'
+  - '!*.any.*'

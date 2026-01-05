@@ -81,6 +81,7 @@ mod from_embedder {
                 },
                 Self::RequestScreenshotReadiness(..) => target!("RequestScreenshotReadiness"),
                 Self::EmbedderControlResponse(..) => target!("EmbedderControlResponse"),
+                Self::UserContentManagerAction(..) => target!("UserContentManagerAction"),
             }
         }
     }
@@ -94,6 +95,7 @@ mod from_embedder {
             }
             match self.event {
                 InputEvent::EditingAction(..) => target_variant!("EditingAction"),
+                #[cfg(feature = "gamepad")]
                 InputEvent::Gamepad(..) => target_variant!("Gamepad"),
                 InputEvent::Ime(..) => target_variant!("Ime"),
                 InputEvent::Keyboard(..) => target_variant!("Keyboard"),

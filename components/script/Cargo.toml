@@ -16,6 +16,7 @@ path = "lib.rs"
 bluetooth = ['bluetooth_traits', 'script_bindings/bluetooth']
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
+gamepad = ["script_bindings/gamepad", "embedder_traits/gamepad"]
 jitspew = ['js/jitspew']
 js_backtrace = []
 js_jit = ["js/jit"]
@@ -25,7 +26,7 @@ testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
-webxr = ["webxr-api", "script_bindings/webxr"]
+webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
@@ -52,6 +53,7 @@ brotli = { workspace = true }
 canvas_traits = { workspace = true }
 cbc = { workspace = true }
 chacha20poly1305 = { workspace = true }
+chardetng = { workspace = true }
 chrono = { workspace = true }
 cipher = { workspace = true }
 compositing_traits = { workspace = true }
@@ -63,6 +65,7 @@ cssparser = { workspace = true }
 ctr = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
+der = { workspace = true }
 devtools_traits = { workspace = true }
 digest = { workspace = true }
 dom_struct = { path = "../dom_struct" }
@@ -99,6 +102,8 @@ media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
 mime_guess = { workspace = true }
+ml-dsa = { workspace = true }
+ml-kem = { workspace = true }
 net_traits = { workspace = true }
 nom = { workspace = true }
 nom-rfc8288 = { workspace = true }
@@ -143,7 +148,7 @@ stylo_malloc_size_of = { workspace = true }
 stylo_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"
-tendril = { version = "0.4.1", features = ["encoding_rs"] }
+tendril = { workspace = true }
 time = { workspace = true }
 timers = { path = "../timers" }
 tracing = { workspace = true, optional = true }

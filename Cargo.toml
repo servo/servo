@@ -54,6 +54,7 @@ canvas_traits = { path = "components/shared/canvas" }
 cbc = "0.1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
+chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
 compositing_traits = { path = "components/shared/compositing" }
@@ -64,6 +65,7 @@ crossbeam-channel = "0.5"
 cssparser = { version = "0.36", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
+der = { version = "0.7", features = ["alloc", "derive"] }
 devtools_traits = { path = "components/shared/devtools" }
 digest = "0.10"
 dpi = "0.1"
@@ -71,7 +73,7 @@ dwrote = "0.11.5"
 ecdsa = "0.16"
 elliptic-curve = "0.13"
 embedder_traits = { path = "components/shared/embedder" }
-encoding_rs = "0.8"
+encoding_rs = { version = "0.8", features = ["serde"] }
 env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"
@@ -103,7 +105,7 @@ imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
 ipc-channel = "0.20.2"
 itertools = "0.14"
-js = { package = "mozjs", version = "0.14.2", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.14.4", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 layout_api = { path = "components/shared/layout" }
@@ -116,6 +118,8 @@ markup5ever = "0.36.1"
 memmap2 = "0.9.9"
 mime = "0.3.13"
 mime_guess = "2.0.5"
+ml-dsa = "0.0.4"
+ml-kem = { version = "0.2", features = ["deterministic"] }
 mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
 nix = "0.30"
@@ -124,7 +128,7 @@ nom-rfc8288 = "0.4.0"
 num-bigint-dig = "0.8"
 num-traits = "0.2"
 num_cpus = "1.17.0"
-openxr = "0.19"
+openxr = "0.20"
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }
@@ -147,6 +151,8 @@ rustls = { version = "0.23", default-features = false, features = ["logging", "s
 rustls-pki-types = "1.13"
 rustls-platform-verifier = "0.6.2"
 script_traits = { path = "components/shared/script" }
+sea-query = { version = "1.0.0-rc.29", default-features = false, features = ["backend-sqlite", "derive"] }
+sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
 selectors = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
 serde = "1.0.228"
@@ -176,13 +182,16 @@ surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.9.2", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
+tendril = { version = "0.4.1", features = ["encoding_rs"] }
 tikv-jemalloc-sys = "0.6.1"
 tikv-jemallocator = "0.6.1"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
 tokio = "1"
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
+tokio-stream = "0.1"
+tokio-util = { version = "0.7.18", default-features = false }
 tower = { version = "0.5", default-features = false, features = ["util"] }
-tracing = "0.1.43"
+tracing = "0.1.44"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.22"
 tungstenite = "0.28"

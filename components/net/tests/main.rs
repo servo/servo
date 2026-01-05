@@ -36,7 +36,9 @@ use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
 use net::test::HttpState;
-use net::test_util::{create_embedder_proxy, make_body, make_server, make_ssl_server};
+use net::test_util::{
+    create_embedder_proxy, make_body, make_server, make_ssl_server, replace_host_table,
+};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
@@ -143,6 +145,7 @@ fn new_fetch_context(
         websocket_chan: None,
         ca_certificates: CACertificates::Default,
         ignore_certificate_errors: false,
+        preloaded_resources: Default::default(),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

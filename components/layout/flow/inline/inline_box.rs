@@ -31,12 +31,6 @@ pub(crate) struct InlineBox {
     pub(super) shared_inline_styles: SharedInlineStyles,
     /// The identifier of this inline box in the containing [`super::InlineFormattingContext`].
     pub(super) identifier: InlineBoxIdentifier,
-    /// Whether or not this is the first instance of an [`InlineBox`] before a possible
-    /// block-in-inline split. When no split occurs, this is always true.
-    pub is_first_split: bool,
-    /// Whether or not this is the last instance of an [`InlineBox`] before a possible
-    /// block-in-inline split. When no split occurs, this is always true.
-    pub is_last_split: bool,
     /// The index of the default font in the [`super::InlineFormattingContext`]'s font metrics store.
     /// This is initialized during IFC shaping.
     pub default_font: Option<FontRef>,
@@ -49,20 +43,7 @@ impl InlineBox {
             shared_inline_styles: info.into(),
             // This will be assigned later, when the box is actually added to the IFC.
             identifier: InlineBoxIdentifier::default(),
-            is_first_split: true,
-            is_last_split: false,
             default_font: None,
-        }
-    }
-
-    pub(crate) fn split_around_block(&self) -> Self {
-        Self {
-            base: LayoutBoxBase::new(self.base.base_fragment_info, self.base.style.clone()),
-            shared_inline_styles: self.shared_inline_styles.clone(),
-            is_first_split: false,
-            is_last_split: false,
-            default_font: self.default_font.clone(),
-            ..*self
         }
     }
 
@@ -228,11 +209,6 @@ pub(super) struct InlineBoxContainerState {
 
     /// The [`PaddingBorderMargin`] of the [`InlineBox`] that this state tracks.
     pub pbm: PaddingBorderMargin,
-
-    /// Whether this is the last fragment of this InlineBox. This may not be the case if
-    /// the InlineBox is split due to an block-in-inline-split and this is not the last of
-    /// that split.
-    pub is_last_fragment: bool,
 }
 
 impl InlineBoxContainerState {
@@ -241,7 +217,6 @@ impl InlineBoxContainerState {
         containing_block: &ContainingBlock,
         layout_context: &LayoutContext,
         parent_container: &InlineContainerState,
-        is_last_fragment: bool,
         font_metrics: Option<&FontMetrics>,
     ) -> Self {
         let style = inline_box.base.style.clone();
@@ -259,7 +234,6 @@ impl InlineBoxContainerState {
             identifier: inline_box.identifier,
             base_fragment_info: inline_box.base.base_fragment_info,
             pbm,
-            is_last_fragment,
         }
     }
 

@@ -10,6 +10,7 @@ use js::jsapi::{
     ExceptionStackBehavior, Heap, JS_IsExceptionPending, JS_SetPendingException, JSObject,
 };
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use super::bindings::cell::DomRefCell;
@@ -51,7 +52,9 @@ struct TransformTransformPromiseRejection {
 
 impl Callback for TransformTransformPromiseRejection {
     /// Reacting to transformPromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // Perform ! TransformStreamError(controller.[[stream]], r).
         self.controller
             .error(cx, &self.controller.global(), v, can_gc);

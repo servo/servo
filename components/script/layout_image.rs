@@ -9,7 +9,7 @@
 use std::sync::Arc;
 
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
+use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 
@@ -96,17 +96,15 @@ pub(crate) fn fetch_image_for_layout(
         url: url.clone(),
     };
 
-    let request = FetchRequestInit::new(
-        Some(document.webview_id()),
-        url,
-        document.global().get_referrer(),
-    )
-    .origin(document.origin().immutable().clone())
-    .destination(Destination::Image)
-    .pipeline_id(Some(document.global().pipeline_id()))
-    .insecure_requests_policy(document.insecure_requests_policy())
-    .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
-    .policy_container(document.policy_container().to_owned());
+    let global = node.owner_global();
+    let request = RequestBuilder::new(Some(document.webview_id()), url, global.get_referrer())
+        .origin(document.origin().immutable().clone())
+        .destination(Destination::Image)
+        .pipeline_id(Some(global.pipeline_id()))
+        .insecure_requests_policy(document.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
+        .policy_container(document.policy_container().to_owned())
+        .client(global.request_client());
 
     // Layout image loads do not delay the document load event.
     document.fetch_background(request, context);

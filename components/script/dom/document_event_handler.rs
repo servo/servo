@@ -11,11 +11,14 @@ use std::time::{Duration, Instant};
 
 use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, GamepadEvent as EmbedderGamepadEvent,
-    GamepadSupportedHapticEffects, GamepadUpdateType, ImeEvent, InputEvent, InputEventAndId,
+    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventAndId,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent,
     TouchEventType, TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+};
+#[cfg(feature = "gamepad")]
+use embedder_traits::{
+    GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
 use ipc_channel::ipc;
@@ -46,7 +49,9 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::{FireMouseEventType, FocusInitiator};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
+#[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
+#[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
@@ -195,6 +200,7 @@ impl DocumentEventHandler {
                     self.handle_keyboard_event(keyboard_event, can_gc)
                 },
                 InputEvent::Ime(ime_event) => self.handle_ime_event(ime_event, can_gc),
+                #[cfg(feature = "gamepad")]
                 InputEvent::Gamepad(gamepad_event) => {
                     self.handle_gamepad_event(gamepad_event);
                     InputEventResult::default()
@@ -684,6 +690,9 @@ impl DocumentEventHandler {
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
 
+        // For nodes inside a text input UA shadow DOM, dispatch dblclick at the shadow host.
+        let delegated = element.find_focusable_shadow_host_if_necessary();
+        let element = delegated.as_deref().unwrap_or(element);
         self.most_recently_clicked_element.set(Some(element));
 
         element.set_click_in_progress(true);
@@ -1160,6 +1169,7 @@ impl DocumentEventHandler {
         dom_event.flags().into()
     }
 
+    #[cfg(feature = "gamepad")]
     fn handle_gamepad_event(&self, gamepad_event: EmbedderGamepadEvent) {
         match gamepad_event {
             EmbedderGamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
@@ -1181,6 +1191,7 @@ impl DocumentEventHandler {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
+    #[cfg(feature = "gamepad")]
     fn handle_gamepad_connect(
         &self,
         // As the spec actually defines how to set the gamepad index, the GilRs index
@@ -1220,6 +1231,7 @@ impl DocumentEventHandler {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
+    #[cfg(feature = "gamepad")]
     fn handle_gamepad_disconnect(&self, index: usize) {
         let trusted_window = Trusted::new(&*self.window);
         self.window
@@ -1239,6 +1251,7 @@ impl DocumentEventHandler {
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    #[cfg(feature = "gamepad")]
     fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
         let trusted_window = Trusted::new(&*self.window);
 

@@ -28,7 +28,7 @@ pub(crate) enum PageLoadStrategy {
 }
 
 // Need a different implementation for ToString than Display
-#[allow(clippy::to_string_trait_impl)]
+#[expect(clippy::to_string_trait_impl)]
 impl ToString for PageLoadStrategy {
     fn to_string(&self) -> String {
         match self {
@@ -230,7 +230,7 @@ impl Handler {
         // and value serialize the timeouts configuration with session's session timeouts.
         capabilities.insert(
             "timeouts".to_string(),
-            json!(serialize_timeouts_configuration(&session.timeouts)),
+            serialize_timeouts_configuration(&session.timeouts),
         );
 
         // Step 10. Process any extension capabilities in capabilities in an implementation-defined manner

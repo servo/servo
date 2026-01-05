@@ -480,6 +480,7 @@ impl ElementStylesheetLoader<'_> {
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
             global.policy_container(),
+            global.request_client(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(element.global().pipeline_id()))

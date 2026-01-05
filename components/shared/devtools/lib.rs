@@ -96,6 +96,8 @@ pub enum ScriptToDevtoolsControlMsg {
     Navigate(BrowsingContextId, NavigationState),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
+    /// Request to clear the console for a given pipeline.
+    ClearConsole(PipelineId, Option<WorkerId>),
     /// An animation frame with the given timestamp was processed in a script thread.
     /// The actor with the provided name should be notified.
     FramerateTick(String, f64),
@@ -402,7 +404,6 @@ impl From<ConsoleMessage> for ConsoleLog {
             ConsoleLogLevel::Info => "info",
             ConsoleLogLevel::Warn => "warn",
             ConsoleLogLevel::Error => "error",
-            ConsoleLogLevel::Clear => "clear",
             ConsoleLogLevel::Trace => "trace",
             ConsoleLogLevel::Log => "log",
         }
@@ -423,6 +424,11 @@ impl From<ConsoleMessage> for ConsoleLog {
             stacktrace: value.stacktrace,
         }
     }
+}
+
+#[derive(Serialize)]
+pub struct ConsoleClearMessage {
+    pub level: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

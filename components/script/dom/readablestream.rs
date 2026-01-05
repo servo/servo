@@ -10,9 +10,10 @@ use std::rc::Rc;
 use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSharedMemory;
+use base::generic_channel::GenericSharedMemory;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
@@ -213,7 +214,11 @@ impl Callback for PipeTo {
     /// - the type of `result`.
     /// - the state of a stored promise(in some cases).
     #[expect(unsafe_code)]
-    fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, result: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let in_realm_proof = cx.into();
+        let realm = InRealm::Already(&in_realm_proof);
+        let cx = cx.into();
         let global = self.reader.global();
 
         // Note: we only care about the result of writes when they are rejected,
@@ -816,7 +821,8 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     /// The fulfillment handler for the reacting to sourceCancelPromise part of
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         self.result.resolve_native(&(), can_gc);
     }
 }
@@ -833,7 +839,8 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// The rejection handler for the reacting to sourceCancelPromise part of
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         self.result.reject_native(&v, can_gc);
     }
 }
@@ -1272,14 +1279,14 @@ impl ReadableStream {
 
     /// Return bytes for synchronous use, if the stream has all data in memory.
     /// Useful for native source integration only.
-    pub(crate) fn get_in_memory_bytes(&self) -> Option<IpcSharedMemory> {
+    pub(crate) fn get_in_memory_bytes(&self) -> Option<GenericSharedMemory> {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .get_in_memory_bytes()
                 .as_deref()
-                .map(IpcSharedMemory::from_bytes),
+                .map(GenericSharedMemory::from_bytes),
             _ => {
                 unreachable!("Getting in-memory bytes for a stream with a non-default controller")
             },
@@ -1994,7 +2001,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>
-    fn tee(
+    pub(crate) fn tee(
         &self,
         clone_for_branch_2: bool,
         can_gc: CanGc,

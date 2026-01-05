@@ -1,0 +1,8 @@
+features:
+- name: shared-workers
+  files:
+  - importScripts-in-sharedworker.html
+- name: dedicated-workers
+  files:
+  - "*"
+  - "!importScripts-in-sharedworker.html"

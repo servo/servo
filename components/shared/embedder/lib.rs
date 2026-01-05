@@ -11,7 +11,7 @@
 pub mod embedder_controls;
 pub mod input_events;
 pub mod resources;
-pub mod user_content_manager;
+pub mod user_contents;
 pub mod webdriver;
 
 use std::collections::HashMap;
@@ -22,12 +22,12 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::generic_channel::{GenericCallback, GenericSender, SendResult};
+use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -48,6 +48,7 @@ use webrender_api::units::{
 
 pub use crate::embedder_controls::*;
 pub use crate::input_events::*;
+use crate::user_contents::UserContentManagerId;
 pub use crate::webdriver::*;
 
 /// A point in a `WebView`, either expressed in device pixels or page pixels.
@@ -331,7 +332,7 @@ pub struct ScreenMetrics {
 pub struct TraversalId(String);
 
 impl TraversalId {
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
     }
@@ -358,7 +359,7 @@ pub struct Image {
     pub height: u32,
     pub format: PixelFormat,
     /// A shared memory block containing the data of one or more image frames.
-    data: Arc<IpcSharedMemory>,
+    data: Arc<GenericSharedMemory>,
     range: Range<usize>,
 }
 
@@ -366,7 +367,7 @@ impl Image {
     pub fn new(
         width: u32,
         height: u32,
-        data: Arc<IpcSharedMemory>,
+        data: Arc<GenericSharedMemory>,
         range: Range<usize>,
         format: PixelFormat,
     ) -> Self {
@@ -392,7 +393,6 @@ pub enum ConsoleLogLevel {
     Info,
     Warn,
     Error,
-    Clear,
     Trace,
 }
 
@@ -400,7 +400,6 @@ impl From<ConsoleLogLevel> for log::Level {
     fn from(value: ConsoleLogLevel) -> Self {
         match value {
             ConsoleLogLevel::Log => log::Level::Info,
-            ConsoleLogLevel::Clear => log::Level::Info,
             ConsoleLogLevel::Debug => log::Level::Debug,
             ConsoleLogLevel::Info => log::Level::Info,
             ConsoleLogLevel::Warn => log::Level::Warn,
@@ -441,10 +440,7 @@ pub enum EmbedderMsg {
         GenericSender<AllowOrDeny>,
     ),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(
-        WebViewId,
-        GenericSender<Option<(WebViewId, ViewportDetails)>>,
-    ),
+    AllowOpeningWebView(WebViewId, GenericSender<Option<NewWebViewDetails>>),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview potentially gained focus for keyboard events.
@@ -503,8 +499,10 @@ pub enum EmbedderMsg {
     /// Ask the user to allow a devtools client to connect.
     RequestDevtoolsConnection(GenericSender<AllowOrDeny>),
     /// Request to play a haptic effect on a connected gamepad.
+    #[cfg(feature = "gamepad")]
     PlayGamepadHapticEffect(WebViewId, usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
+    #[cfg(feature = "gamepad")]
     StopGamepadHapticEffect(WebViewId, usize, IpcSender<bool>),
     /// Informs the embedder that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
@@ -635,6 +633,7 @@ pub enum InputMethodType {
     Week,
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// <https://w3.org/TR/gamepad/#dom-gamepadhapticeffecttype-dual-rumble>
 pub struct DualRumbleEffectParams {
@@ -644,6 +643,7 @@ pub struct DualRumbleEffectParams {
     pub weak_magnitude: f64,
 }
 
+#[cfg(feature = "gamepad")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// <https://w3.org/TR/gamepad/#dom-gamepadhapticeffecttype>
 pub enum GamepadHapticEffectType {
@@ -1118,4 +1118,13 @@ impl ScriptToEmbedderChan {
     pub fn send(&self, msg: EmbedderMsg) -> SendResult {
         self.0.send(msg)
     }
+}
+
+/// Used for communicating the details of a new `WebView` created by the embedder
+/// back to the constellation.
+#[derive(Deserialize, Serialize)]
+pub struct NewWebViewDetails {
+    pub webview_id: WebViewId,
+    pub viewport_details: ViewportDetails,
+    pub user_content_manager_id: Option<UserContentManagerId>,
 }

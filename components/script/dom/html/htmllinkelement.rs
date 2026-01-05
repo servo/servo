@@ -6,9 +6,9 @@ use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
 
+use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
@@ -421,6 +421,7 @@ impl HTMLLinkElement {
 
         // Step 1. Let document be el's node document.
         let document = self.upcast::<Node>().owner_doc();
+        let global = document.owner_global();
 
         // Step 2. Let options be a new link processing options
         let mut options = LinkProcessingOptions {
@@ -437,6 +438,8 @@ impl HTMLLinkElement {
             base_url: document.borrow().base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
+            request_client: global.request_client(),
+            referrer: global.get_referrer(),
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
@@ -739,7 +742,7 @@ impl HTMLLinkElement {
             let embedder_image = embedder_traits::Image::new(
                 frame.width,
                 frame.height,
-                std::sync::Arc::new(IpcSharedMemory::from_bytes(&raster_image.bytes)),
+                std::sync::Arc::new(GenericSharedMemory::from_bytes(&raster_image.bytes)),
                 raster_image.frames[0].byte_range.clone(),
                 format,
             );

@@ -3,6 +3,8 @@
 <link rel=author href="mailto:falken@chromium.org">
 <link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-dialog-element">
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=242848">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -32,6 +34,9 @@ window.onload = frameLoaded;
 
 promise_test(async () => {
   await framesLoadedPromise;
+  // Chrome and edge auto-focus the URL bar when the browser is launched.
+  // This is needed to ensure the 'focus' events fire below.
+  await test_driver.click(document.documentElement);
 
   function testFocus(element, expectFocus) {
     let focusedElement = null;

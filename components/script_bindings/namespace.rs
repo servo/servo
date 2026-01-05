@@ -37,7 +37,7 @@ impl NamespaceObjectClass {
 }
 
 /// Create a new namespace object.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn create_namespace_object<D: DomTypes>(
     cx: JSContext,
     global: HandleObject,

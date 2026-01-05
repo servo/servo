@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base64ct::{Base64UrlUnpadded, Encoding};
 use pkcs8::der::asn1::BitString;
 use pkcs8::der::{AnyRef, Decode};
 use pkcs8::rand_core::OsRng;
@@ -29,7 +28,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
     ALG_RSA_PSS, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    KeyAlgorithmAndDerivatives, Operation, SubtleRsaHashedImportParams,
+    JwkStringField, KeyAlgorithmAndDerivatives, Operation, SubtleRsaHashedImportParams,
     SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams, SubtleRsaPssParams,
     normalize_algorithm,
 };
@@ -405,7 +404,7 @@ pub(crate) fn import_key(
             //     Perform any key import steps defined by other applicable specifications, passing
             //     format, jwk and obtaining hash.
             //     If an error occurred or there are no applicable specifications, throw a DataError.
-            let hash = match jwk.alg {
+            let hash = match &jwk.alg {
                 None => None,
                 Some(alg) => match &*alg.str() {
                     "PS1" => Some(ALG_SHA1),
@@ -422,7 +421,7 @@ pub(crate) fn import_key(
                 // set to hash and op set to digest.
                 let normalized_hash = normalize_algorithm(
                     cx,
-                    &Operation::Digest,
+                    Operation::Digest,
                     &AlgorithmIdentifier::String(DOMString::from(hash)),
                     can_gc,
                 )?;
@@ -438,164 +437,79 @@ pub(crate) fn import_key(
             }
 
             // Step 2.9.
-            match jwk.d {
-                // If the d field of jwk is present:
-                Some(d) => {
-                    // Step 2.9.1. If jwk does not meet the requirements of Section 6.3.2 of JSON
-                    // Web Algorithms [JWA], then throw a DataError.
-                    let n = Base64UrlUnpadded::decode_vec(
-                        &jwk.n
-                            .ok_or(Error::Data(Some(
-                                "The n field does not exist in jwk".to_string(),
-                            )))?
-                            .str(),
-                    )
-                    .map_err(|_| Error::Data(Some("Fail to decode n field of jwk".to_string())))?;
-                    let e = Base64UrlUnpadded::decode_vec(
-                        &jwk.e
-                            .ok_or(Error::Data(Some(
-                                "The e field does not exist in jwk".to_string(),
-                            )))?
-                            .str(),
-                    )
-                    .map_err(|_| Error::Data(Some("Fail to decode e field of jwk".to_string())))?;
-                    let d = Base64UrlUnpadded::decode_vec(&d.str()).map_err(|_| {
-                        Error::Data(Some("Fail to decode d field of jwk".to_string()))
-                    })?;
-                    let p = jwk
-                        .p
-                        .map(|p| Base64UrlUnpadded::decode_vec(&p.str()))
-                        .transpose()
-                        .map_err(|_| {
-                            Error::Data(Some("Fail to decode p field of jwk".to_string()))
-                        })?;
-                    let q = jwk
-                        .q
-                        .map(|q| Base64UrlUnpadded::decode_vec(&q.str()))
-                        .transpose()
-                        .map_err(|_| {
-                            Error::Data(Some("Fail to decode q field of jwk".to_string()))
-                        })?;
-                    let dp = jwk
-                        .dp
-                        .map(|dp| Base64UrlUnpadded::decode_vec(&dp.str()))
-                        .transpose()
-                        .map_err(|_| {
-                            Error::Data(Some("Fail to decode dp field of jwk".to_string()))
-                        })?;
-                    let dq = jwk
-                        .dq
-                        .map(|dq| Base64UrlUnpadded::decode_vec(&dq.str()))
-                        .transpose()
-                        .map_err(|_| {
-                            Error::Data(Some("Fail to decode dq field of jwk".to_string()))
-                        })?;
-                    let qi = jwk
-                        .qi
-                        .map(|qi| Base64UrlUnpadded::decode_vec(&qi.str()))
-                        .transpose()
-                        .map_err(|_| {
-                            Error::Data(Some("Fail to decode qi field of jwk".to_string()))
-                        })?;
-                    let mut primes = match (p, q, dp, dq, qi) {
-                        (Some(p), Some(q), Some(_dp), Some(_dq), Some(_qi)) => vec![p, q],
-                        (None, None, None, None, None) => Vec::new(),
-                        _ => return Err(Error::Data(Some(
-                            "The p, q, dp, dq, qi fields of jwk must be either all-present or all-absent"
-                                .to_string()
-                        ))),
-                    };
-                    if let Some(oth) = jwk.oth {
-                        if primes.is_empty() {
-                            return Err(Error::Data(Some(
-                                "The oth field exists in jwk but one of p, q, dp, dq, qi is missing".to_string()
-                            )));
-                        }
-                        for other_prime in oth {
-                            let r = Base64UrlUnpadded::decode_vec(
-                                &other_prime
-                                    .r
-                                    .ok_or(Error::Data(Some(
-                                        "The e field does not exist in oth field of jwk"
-                                            .to_string(),
-                                    )))?
-                                    .str(),
-                            )
-                            .map_err(|_| {
-                                Error::Data(Some(
-                                    "Fail to decode r field of oth field of jwk".to_string(),
-                                ))
-                            })?;
-                            primes.push(r);
-                        }
-                    }
+            // If the d field of jwk is present:
+            if jwk.d.is_some() {
+                // Step 2.9.1. If jwk does not meet the requirements of Section 6.3.2 of JSON Web
+                // Algorithms [JWA], then throw a DataError.
+                let n = jwk.decode_required_string_field(JwkStringField::N)?;
+                let e = jwk.decode_required_string_field(JwkStringField::E)?;
+                let d = jwk.decode_required_string_field(JwkStringField::D)?;
+                let p = jwk.decode_optional_string_field(JwkStringField::P)?;
+                let q = jwk.decode_optional_string_field(JwkStringField::Q)?;
+                let dp = jwk.decode_optional_string_field(JwkStringField::DP)?;
+                let dq = jwk.decode_optional_string_field(JwkStringField::DQ)?;
+                let qi = jwk.decode_optional_string_field(JwkStringField::QI)?;
+                let mut primes = match (p, q, dp, dq, qi) {
+                    (Some(p), Some(q), Some(_dp), Some(_dq), Some(_qi)) => vec![p, q],
+                    (None, None, None, None, None) => Vec::new(),
+                    _ => return Err(Error::Data(Some(
+                        "The p, q, dp, dq, qi fields of jwk must be either all-present or all-absent"
+                            .to_string()
+                    ))),
+                };
+                jwk.decode_primes_from_oth_field(&mut primes)?;
 
-                    // Step 2.9.2. Let privateKey represents the RSA private key identified by
-                    // interpreting jwk according to Section 6.3.2 of JSON Web Algorithms [JWA].
-                    // Step 2.9.3. If privateKey is not a valid RSA private key according to
-                    // [RFC3447], then throw a DataError.
-                    let private_key = RsaPrivateKey::from_components(
-                        BigUint::from_bytes_be(&n),
-                        BigUint::from_bytes_be(&e),
-                        BigUint::from_bytes_be(&d),
-                        primes
-                            .into_iter()
-                            .map(|prime| BigUint::from_bytes_be(&prime))
-                            .collect(),
-                    )
-                    .map_err(|_| {
-                        Error::Data(Some(
-                            "Fail to construct RSA private key from values in jwk".to_string(),
-                        ))
-                    })?;
+                // Step 2.9.2. Let privateKey represents the RSA private key identified by
+                // interpreting jwk according to Section 6.3.2 of JSON Web Algorithms [JWA].
+                // Step 2.9.3. If privateKey is not a valid RSA private key according to [RFC3447],
+                // then throw a DataError.
+                let private_key = RsaPrivateKey::from_components(
+                    BigUint::from_bytes_be(&n),
+                    BigUint::from_bytes_be(&e),
+                    BigUint::from_bytes_be(&d),
+                    primes
+                        .into_iter()
+                        .map(|prime| BigUint::from_bytes_be(&prime))
+                        .collect(),
+                )
+                .map_err(|_| {
+                    Error::Data(Some(
+                        "Failed to construct RSA private key from values in jwk".to_string(),
+                    ))
+                })?;
 
-                    // Step 2.9.4. Let key be a new CryptoKey object that represents privateKey.
-                    // Step 2.9.5. Set the [[type]] internal slot of key to "private"
-                    // NOTE: Done in Step 3-8.
-                    let key_handle = Handle::RsaPrivateKey(private_key);
-                    let key_type = KeyType::Private;
-                    (key_handle, key_type)
-                },
-                // Otherwise:
-                None => {
-                    // Step 2.9.1. If jwk does not meet the requirements of Section 6.3.1 of JSON
-                    // Web Algorithms [JWA], then throw a DataError.
-                    let n = Base64UrlUnpadded::decode_vec(
-                        &jwk.n
-                            .ok_or(Error::Data(Some(
-                                "The n field does not exist in jwk".to_string(),
-                            )))?
-                            .str(),
-                    )
-                    .map_err(|_| Error::Data(Some("Fail to decode n field of jwk".to_string())))?;
-                    let e = Base64UrlUnpadded::decode_vec(
-                        &jwk.e
-                            .ok_or(Error::Data(Some(
-                                "The e field does not exist in jwk".to_string(),
-                            )))?
-                            .str(),
-                    )
-                    .map_err(|_| Error::Data(Some("Fail to decode e field of jwk".to_string())))?;
+                // Step 2.9.4. Let key be a new CryptoKey object that represents privateKey.
+                // Step 2.9.5. Set the [[type]] internal slot of key to "private"
+                // NOTE: Done in Step 3-8.
+                let key_handle = Handle::RsaPrivateKey(private_key);
+                let key_type = KeyType::Private;
+                (key_handle, key_type)
+            }
+            // Otherwise:
+            else {
+                // Step 2.9.1. If jwk does not meet the requirements of Section 6.3.1 of JSON Web
+                // Algorithms [JWA], then throw a DataError.
+                let n = jwk.decode_required_string_field(JwkStringField::N)?;
+                let e = jwk.decode_required_string_field(JwkStringField::E)?;
 
-                    // Step 2.9.2. Let publicKey represent the RSA public key identified by
-                    // interpreting jwk according to Section 6.3.1 of JSON Web Algorithms [JWA].
-                    // Step 2.9.3. If publicKey can be determined to not be a valid RSA public key
-                    // according to [RFC3447], then throw a DataError.
-                    let public_key =
-                        RsaPublicKey::new(BigUint::from_bytes_be(&n), BigUint::from_bytes_be(&e))
-                            .map_err(|_| {
+                // Step 2.9.2. Let publicKey represent the RSA public key identified by
+                // interpreting jwk according to Section 6.3.1 of JSON Web Algorithms [JWA].
+                // Step 2.9.3. If publicKey can be determined to not be a valid RSA public key
+                // according to [RFC3447], then throw a DataError.
+                let public_key =
+                    RsaPublicKey::new(BigUint::from_bytes_be(&n), BigUint::from_bytes_be(&e))
+                        .map_err(|_| {
                             Error::Data(Some(
-                                "Fail to construct RSA public key from values in jwk".to_string(),
+                                "Failed to construct RSA public key from values in jwk".to_string(),
                             ))
                         })?;
 
-                    // Step 2.9.4. Let key be a new CryptoKey representing publicKey.
-                    // Step 2.9.5. Set the [[type]] internal slot of key to "public"
-                    // NOTE: Done in Step 3-8.
-                    let key_handle = Handle::RsaPublicKey(public_key);
-                    let key_type = KeyType::Public;
-                    (key_handle, key_type)
-                },
+                // Step 2.9.4. Let key be a new CryptoKey representing publicKey.
+                // Step 2.9.5. Set the [[type]] internal slot of key to "public"
+                // NOTE: Done in Step 3-8.
+                let key_handle = Handle::RsaPublicKey(public_key);
+                let key_type = KeyType::Public;
+                (key_handle, key_type)
             }
         },
         // Otherwise:

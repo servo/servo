@@ -17,6 +17,7 @@ promise_test(async () => {
   let unsanitized = ' foo@bar   ';
   let sanitized = unsanitized.trim();
   await test_driver.send_keys(input, unsanitized);
+  assert_true(input.validity.valid, "unsanitized input is valid");
   input.select();
   assert_equals(input.value, sanitized, "value is sanitized");
   assert_equals(window.getSelection().toString(), unsanitized,

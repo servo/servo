@@ -67,11 +67,6 @@ partial interface Navigator {
   [Pref="dom_permissions_enabled"] readonly attribute Permissions permissions;
 };
 
-// https://w3c.github.io/gamepad/#navigator-interface-extension
-partial interface Navigator {
-  [Pref="dom_gamepad_enabled"] sequence<Gamepad?> getGamepads();
-};
-
 // https://html.spec.whatwg.org/multipage/#navigatorconcurrenthardware
 interface mixin NavigatorConcurrentHardware {
   readonly attribute unsigned long long hardwareConcurrency;

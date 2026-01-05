@@ -242,6 +242,10 @@ impl DevtoolsInstance {
                     console_message,
                     worker_id,
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ClearConsole(
+                    pipeline_id,
+                    worker_id,
+                )) => self.handle_clear_console(pipeline_id, worker_id),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateSourceActor(
                     script_sender,
                     pipeline_id,
@@ -449,6 +453,19 @@ impl DevtoolsInstance {
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
         for stream in self.connections.values_mut() {
             console_actor.handle_console_api(console_message.clone(), id.clone(), &actors, stream);
+        }
+    }
+
+    fn handle_clear_console(&mut self, pipeline_id: PipelineId, worker_id: Option<WorkerId>) {
+        let console_actor_name = match self.find_console_actor(pipeline_id, worker_id) {
+            Some(name) => name,
+            None => return,
+        };
+        let actors = self.actors.lock().unwrap();
+        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
+        let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
+        for stream in self.connections.values_mut() {
+            console_actor.send_clear_message(id.clone(), &actors, stream);
         }
     }
 

@@ -4155,8 +4155,8 @@ class CGCallGenerator(CGThing):
                 args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
             if nativeMethodName in descriptor.inRealmMethods:
                 args.append(CGGeneric("InRealm::already(&AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx())))"))
-        if nativeMethodName in descriptor.canGcMethods:
-            args.append(CGGeneric("CanGc::note()"))
+            if nativeMethodName in descriptor.canGcMethods:
+                args.append(CGGeneric("CanGc::note()"))
         if rootType:
             args.append(CGGeneric("retval.handle_mut()"))
 
@@ -6223,12 +6223,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     if !proxyhandler::cross_origin_get_own_property_helper(
-                        SafeJSContext::from_ptr(cx.raw_cx()), proxy, CROSS_ORIGIN_PROPERTIES.get(), id, desc, &mut *is_none
+                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, desc, &mut *is_none
                     ) {
                         return false;
                     }
                     if *is_none {
-                        return proxyhandler::cross_origin_property_fallback::<D>(SafeJSContext::from_ptr(cx.raw_cx()), proxy, id, desc, &mut *is_none);
+                        return proxyhandler::cross_origin_property_fallback::<D>(cx, proxy, id, desc, &mut *is_none);
                     }
                     return true;
                 }
@@ -6348,7 +6348,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             set += dedent(
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::report_cross_origin_denial::<D>(SafeJSContext::from_ptr(cx.raw_cx()), id, "define");
+                    return proxyhandler::report_cross_origin_denial::<D>(cx, id, "define");
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6410,7 +6410,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
             set += dedent(
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::report_cross_origin_denial::<D>(SafeJSContext::from_ptr(cx.raw_cx()), id, "delete");
+                    return proxyhandler::report_cross_origin_denial::<D>(cx, id, "delete");
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6658,7 +6658,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
             maybeCrossOriginGet = dedent(
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_get::<D>(SafeJSContext::from_ptr(cx.raw_cx()), proxy, receiver, id, vp);
+                    return proxyhandler::cross_origin_get::<D>(cx, proxy, receiver, id, vp);
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6961,7 +6961,7 @@ class CGInterfaceTrait(CGThing):
             if inRealm and not safe_cx:
                 yield "_comp", "InRealm"
 
-            if canGc:
+            if canGc and not safe_cx:
                 yield "_can_gc", "CanGc"
 
             if retval and returnTypeNeedsOutparam(attribute_type):
@@ -7472,7 +7472,7 @@ class CGNonNamespacedEnum(CGThing):
         entries = [f"{names[0]} = {first}"] + names[1:]
 
         # Append a Last.
-        entries.append(f'#[allow(dead_code)] Last = {first + len(entries)}')
+        entries.append(f'Last = {first + len(entries)}')
 
         # Indent.
         entries = [f'    {e}' for e in entries]
@@ -7900,7 +7900,7 @@ class CGRegisterProxyHandlers(CGThing):
         )
         self.root = CGList([
             CGGeneric(
-                "#[allow(non_upper_case_globals)]\n"
+                "#[expect(non_upper_case_globals)]\n"
                 "pub(crate) mod proxy_handlers {\n"
                 f"{body}}}\n"
             ),
@@ -8315,7 +8315,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
     if inRealm and not safe_cx:
         yield "_comp", "InRealm"
 
-    if canGc:
+    if canGc and not safe_cx:
         yield "_can_gc", "CanGc"
 
     if returnTypeNeedsOutparam(returnType):

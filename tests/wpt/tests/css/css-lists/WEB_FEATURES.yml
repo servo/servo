@@ -5,3 +5,29 @@ features:
 - name: text-stroke-fill
   files:
   - marker-webkit-text-fill-color.html
+- name: counter-reset-reversed
+  files:
+  - counter-reset-reversed-*
+  - foo-counter-reversed-*
+  - li-value-reversed-006b.html
+- name: counters
+  files:
+  - before-after-selectors-on-code-element-crash.html
+  - counter-*
+  - "!counter-set-*"
+  - "!counter-slot-*"
+  - "!counter-reset-reversed-*"
+  - counters-*
+  - "!counters-container-crash.html"
+  - deep-pseudo-element-remove-update.html
+  - inherit-overwrites.html
+  - li-counter-increment-computed-style.html
+  - li-list-item-counter-*
+  - li-value-reversed-*
+  - "!li-value-reversed-001.html"
+  - "!li-value-reversed-002.html"
+  - "!li-value-reversed-006b.html"
+  - "!li-value-reversed-011.html"
+  - "!li-value-reversed-022.html"
+  - ol-change-display-type.html
+  - pseudo-element-remove-update.html

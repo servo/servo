@@ -4,6 +4,18 @@ features:
   - font-palette.html
   - font-palette-*
   - palette-values-rule-*
+- name: font-size
+  files:
+  - font-size-zero-*
+  - font-size-relative-across-calc-ff-bug-001.html
+  - font-size-sign-function.html
+  - font-size-xxx-large.html
+  - rcap-in-monospace.html
+  - rch-in-monospace.html
+  - rem-in-monospace.html
+  - rex-in-monospace.html
+  - ric-in-monospace.html
+  - rlh-in-monospace.html
 - name: font-size-adjust
   files:
   - font-size-adjust-*
@@ -64,6 +76,26 @@ features:
 - name: font-family-ui
   files:
   - standard-font-family-*
+- name: font-face
+  files:
+  - font-face-*
+  - downloadable-font-*
+  - idlharness.html
+  - font-family-src-quoted.html
+  - crash-font-face-invalid-descriptor.html
+  - web-font-no-longer-accessible-when-stylesheet-removed.html
+  - test_datafont_same_origin.html
+- name: font-feature-settings
+  files:
+  - font-feature-settings-*
+  - font-default-03.html
+  - font-default-04.html
+  - variable-in-feature-crash.html
+- name: font-kerning
+  files:
+  - font-kerning-*
+  - cjk-kerning.html
+  - hiragana-katakana-kerning.html
 - name: font-weight
   files:
   - font-weight-*

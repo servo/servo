@@ -431,7 +431,6 @@ impl ByteTeeUnderlyingSource {
     /// Let cancel1Algorithm be the following steps, taking a reason argument
     /// and
     /// Let cancel2Algorithm be the following steps, taking a reason argument
-    #[allow(unsafe_code)]
     pub(crate) fn cancel_algorithm(
         &self,
         reason: SafeHandleValue,
@@ -470,7 +469,7 @@ impl ByteTeeUnderlyingSource {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn resolve_cancel_promise(&self, can_gc: CanGc) {
         // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
         let cx = GlobalScope::get_cx();

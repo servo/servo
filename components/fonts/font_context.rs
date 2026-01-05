@@ -5,7 +5,6 @@
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -21,8 +20,8 @@ use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestMode,
-    ServiceWorkersMode,
+    CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestClient,
+    RequestMode, ServiceWorkersMode,
 };
 use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
 use parking_lot::{Mutex, RwLock};
@@ -60,15 +59,7 @@ pub(crate) struct FontParameters {
     pub(crate) flags: FontInstanceFlags,
 }
 
-#[derive(MallocSizeOf)]
-struct FontGroupRef(#[conditional_malloc_size_of] Arc<RwLock<FontGroup>>);
-
-impl Deref for FontGroupRef {
-    type Target = Arc<RwLock<FontGroup>>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+pub type FontGroupRef = Arc<FontGroup>;
 
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
@@ -91,6 +82,7 @@ pub struct FontContext {
     /// A caching map between the specification of a font in CSS style and
     /// resolved [`FontGroup`] which contains information about all fonts that
     /// can be selected with that style.
+    #[conditional_malloc_size_of]
     resolved_font_groups: RwLock<HashMap<FontGroupCacheKey, FontGroupRef>>,
 
     web_fonts: CrossThreadFontStore,
@@ -122,6 +114,7 @@ pub trait CspViolationHandler: Send + std::fmt::Debug {
 #[derive(Debug)]
 pub struct WebFontDocumentContext {
     pub policy_container: PolicyContainer,
+    pub request_client: RequestClient,
     pub document_url: ServoUrl,
     pub has_trustworthy_ancestor_origin: bool,
     pub insecure_requests_policy: InsecureRequestsPolicy,
@@ -132,6 +125,7 @@ impl Clone for WebFontDocumentContext {
     fn clone(&self) -> WebFontDocumentContext {
         Self {
             policy_container: self.policy_container.clone(),
+            request_client: self.request_client.clone(),
             document_url: self.document_url.clone(),
             has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_origin,
             insecure_requests_policy: self.insecure_requests_policy,
@@ -146,7 +140,6 @@ impl FontContext {
         paint_api: CrossProcessPaintApi,
         resource_threads: ResourceThreads,
     ) -> Self {
-        #[allow(clippy::default_constructed_unit_structs)]
         Self {
             system_font_service_proxy,
             resource_threads: Mutex::new(resource_threads.core_thread),
@@ -175,7 +168,7 @@ impl FontContext {
     /// Returns a `FontGroup` representing fonts which can be used for layout, given the `style`.
     /// Font groups are cached, so subsequent calls with the same `style` will return a reference
     /// to an existing `FontGroup`.
-    pub fn font_group(&self, style: ServoArc<FontStyleStruct>) -> Arc<RwLock<FontGroup>> {
+    pub fn font_group(&self, style: ServoArc<FontStyleStruct>) -> FontGroupRef {
         let font_size = style.font_size.computed_size().into();
         self.font_group_with_size(style, font_size)
     }
@@ -186,19 +179,19 @@ impl FontContext {
         &self,
         style: ServoArc<FontStyleStruct>,
         size: Au,
-    ) -> Arc<RwLock<FontGroup>> {
+    ) -> Arc<FontGroup> {
         let cache_key = FontGroupCacheKey { size, style };
         if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
-            return font_group.0.clone();
+            return font_group.clone();
         }
 
         let mut descriptor = FontDescriptor::from(&*cache_key.style);
         descriptor.pt_size = size;
 
-        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
+        let font_group = Arc::new(FontGroup::new(&cache_key.style, descriptor));
         self.resolved_font_groups
             .write()
-            .insert(cache_key, FontGroupRef(font_group.clone()));
+            .insert(cache_key, font_group.clone());
         font_group
     }
 
@@ -209,6 +202,13 @@ impl FontContext {
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
     ) -> Option<FontRef> {
+        let font_descriptor = if servo_config::pref!(layout_variable_fonts_enabled) {
+            let variation_settings = font_template.borrow().compute_variations(font_descriptor);
+            &font_descriptor.with_variation_settings(variation_settings)
+        } else {
+            font_descriptor
+        };
+
         self.get_font_maybe_synthesizing_small_caps(
             font_template,
             font_descriptor,
@@ -905,6 +905,7 @@ impl RemoteWebFontDownloader {
         .credentials_mode(CredentialsMode::CredentialsSameOrigin)
         .service_workers_mode(ServiceWorkersMode::All)
         .policy_container(document_context.policy_container.clone())
+        .client(document_context.request_client.clone())
         .insecure_requests_policy(document_context.insecure_requests_policy)
         .has_trustworthy_ancestor_origin(document_context.has_trustworthy_ancestor_origin);
 

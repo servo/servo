@@ -71,7 +71,7 @@ impl KeyboardEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
         type_: DOMString,
@@ -109,7 +109,7 @@ impl KeyboardEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

@@ -238,28 +238,16 @@ mod font_context {
 
         assert!(
             std::ptr::eq(
-                &*context
-                    .context
-                    .font_group(ServoArc::new(style1.clone()))
-                    .read(),
-                &*context
-                    .context
-                    .font_group(ServoArc::new(style1.clone()))
-                    .read()
+                &*context.context.font_group(ServoArc::new(style1.clone())),
+                &*context.context.font_group(ServoArc::new(style1.clone())),
             ),
             "the same font group should be returned for two styles with the same hash"
         );
 
         assert!(
             !std::ptr::eq(
-                &*context
-                    .context
-                    .font_group(ServoArc::new(style1.clone()))
-                    .read(),
-                &*context
-                    .context
-                    .font_group(ServoArc::new(style2.clone()))
-                    .read()
+                &*context.context.font_group(ServoArc::new(style1.clone())),
+                &*context.context.font_group(ServoArc::new(style2.clone())),
             ),
             "different font groups should be returned for two styles with different hashes"
         )
@@ -275,7 +263,6 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .write()
             .find_by_codepoint(&mut context.context, 'a', None, None, None)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
@@ -289,7 +276,6 @@ mod font_context {
         );
 
         let font = group
-            .write()
             .find_by_codepoint(&mut context.context, 'a', None, None, None)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
@@ -303,7 +289,6 @@ mod font_context {
         );
 
         let font = group
-            .write()
             .find_by_codepoint(&mut context.context, 'á', None, None, None)
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-basic-regular");
@@ -327,7 +312,6 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .write()
             .find_by_codepoint(&mut context.context, 'a', None, None, None)
             .unwrap();
         assert_eq!(
@@ -337,7 +321,6 @@ mod font_context {
         );
 
         let font = group
-            .write()
             .find_by_codepoint(&mut context.context, 'á', None, None, None)
             .unwrap();
         assert_eq!(

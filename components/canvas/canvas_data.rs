@@ -48,7 +48,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn draw_image(
         &mut self,
         snapshot: Snapshot,

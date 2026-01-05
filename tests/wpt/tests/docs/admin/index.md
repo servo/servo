@@ -46,8 +46,8 @@ explicitly-managed secret.
 - [Google Domains](https://domains.google/): https://wpt.fyi
   - danielrsmith@google.com
   - foolip@google.com
-  - kyleju@google.com
-  - pastithas@google.com
+  - jamescscott@google.com
+  - jstenback@google.com
 - [GitHub](https://github.com/): web-platform-tests
   - [@foolip](https://github.com/foolip)
   - [@jgraham](https://github.com/jgraham)
@@ -61,20 +61,20 @@ explicitly-managed secret.
 - [Google Cloud Platform](https://cloud.google.com/): wptdashboard{-staging}
   - danielrsmith@google.com
   - foolip@google.com
-  - kyleju@google.com
-  - pastithas@google.com
+  - jamescscott@google.com
+  - jstenback@google.com
 - [Google Cloud Platform](https://cloud.google.com/): wpt-live
-  - danielrsmith@chromium.org
+  - danielrsmith@google.com
   - foolip@chromium.org
-  - kyleju@chromium.org
+  - jamescscott@google.com
+  - jstenback@google.com
   - mike@bocoup.com
-  - pastithas@chromium.org
   - The DNS for wpt.live, not-wpt.live, wptpr.live, and not-wptpr.live are also managed in this project, while the domains are registered with a Google-internal mechanism.
 - [Google Cloud Platform](https://cloud.google.com/): wpt-pr-bot
   - danielrsmith@google.com
   - foolip@google.com
-  - kyleju@google.com
-  - pastithas@google.com
+  - jamescscott@google.com
+  - jstenback@google.com
 - E-mail address: wpt.pr.bot@gmail.com
   - jamescscott@google.com
   - boaz@bocoup.com

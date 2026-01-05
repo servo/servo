@@ -85,7 +85,8 @@ enum RequestRedirect { "follow", "error", "manual" };
 enum RequestDuplex { "half" };
 enum RequestPriority { "high", "low", "auto" };
 
-[Exposed=(Window,Worker)]interface Response {
+[Exposed=(Window,Worker)]
+interface Response {
   constructor(optional BodyInit? body = null, optional ResponseInit init = {});
 
   [NewObject] static Response error();

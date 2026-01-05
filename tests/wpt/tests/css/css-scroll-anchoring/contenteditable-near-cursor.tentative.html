@@ -27,7 +27,8 @@ async_test((t) => {
   let range = document.createRange();
   range.setStart(three, 0);
   range.setEnd(three, 1);
-  document.getSelection().addRange(range);
+  getSelection().removeAllRanges();
+  getSelection().addRange(range);
 
   document.scrollingElement.scrollBy(0, 2200);
 

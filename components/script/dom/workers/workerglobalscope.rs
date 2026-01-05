@@ -21,12 +21,12 @@ use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::jsapi::JS_AddInterruptCallback;
+use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
-    RequestBuilder as NetRequestInit, RequestId,
+    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
@@ -105,7 +105,6 @@ pub(crate) fn prepare_workerscope_init(
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
-        creation_url: global.creation_url().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
         unminify_js: global.unminify_js(),
     }
@@ -179,19 +178,22 @@ impl FetchResponseListener for ScriptFetchContext {
         // The processResponseConsumeBody steps defined inside
         // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
 
-        // Step 1 Set worker global scope's url to response's url.
+        let global_scope = scope.upcast::<GlobalScope>();
+
+        // Step 1. Set worker global scope's url to response's url.
         scope.set_url(metadata.final_url.clone());
 
-        // Step 2 Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+        // Step 2. Set inside settings's creation URL to response's url.
+        global_scope.set_creation_url(metadata.final_url.clone());
+
+        // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
         scope
             .initialize_policy_container_for_worker_global_scope(&metadata, &self.policy_container);
         scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
             &metadata.final_url.clone(),
             &metadata.headers,
         ));
-        scope
-            .upcast::<GlobalScope>()
-            .set_https_state(metadata.https_state);
+        global_scope.set_https_state(metadata.https_state);
 
         // The processResponseConsumeBody steps defined inside
         // [fetch a classic worker script](https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script)
@@ -225,10 +227,10 @@ impl FetchResponseListener for ScriptFetchContext {
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
-        let script = scope.globalscope.create_a_classic_script(
+        let script = global_scope.create_a_classic_script(
             source,
             scope.worker_url.borrow().clone(),
-            ScriptFetchOptions::default_classic_script(&scope.globalscope),
+            ScriptFetchOptions::default_classic_script(global_scope),
             ErrorReporting::Unmuted,
             Some(IntroductionType::WORKER),
             1,
@@ -362,7 +364,7 @@ impl WorkerGlobalScope {
                 init.resource_threads,
                 init.storage_threads,
                 MutableOrigin::new(init.origin),
-                init.creation_url,
+                worker_url.clone(),
                 None,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
@@ -688,7 +690,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let request = NetRequestInit::new(
+            let request = RequestBuilder::new(
                 global_scope.webview_id(),
                 url.clone(),
                 global_scope.get_referrer(),
@@ -903,23 +905,23 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap(
         &self,
+        realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, can_gc)
+        ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
     fn CreateImageBitmap_(
         &self,
+        realm: &mut CurrentRealm,
         image: ImageBitmapSource,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
         options: &ImageBitmapOptions,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         ImageBitmap::create_image_bitmap(
             self.upcast(),
@@ -929,7 +931,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             Some(sw),
             Some(sh),
             options,
-            can_gc,
+            realm,
         )
     }
 

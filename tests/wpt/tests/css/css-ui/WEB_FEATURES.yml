@@ -19,3 +19,6 @@ features:
   files:
   - caret-color-*
   - caret-eol-*
+- name: cross-fade
+  files:
+  - cursor-image-016-manual.html

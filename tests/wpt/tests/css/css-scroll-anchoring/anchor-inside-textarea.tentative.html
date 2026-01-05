@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+
+#container {
+  height: 300px;
+  width: 300px;
+  overflow-y: scroll;
+  scrollbar-width: none;
+}
+
+textarea {
+  /* twice the height of the container so that the container is scrollable */
+  height: 600px;
+  width: 300px;
+  padding: 0px;
+  border: none;
+  /* This textarea has visible 10 lines in the scroll container */
+  font-size: 30px;
+  line-height: 30px;
+}
+
+</style>
+
+<div id="container">
+  <textarea rows="20"></textarea>
+</div>
+<script>
+
+setup(() => {
+  let lines = [];
+  for (let i = 1; i <= 20; i++) {
+    lines.push(`Paragraph ${i}`);
+  }
+  const textarea = document.querySelector("textarea");
+  textarea.value += lines.join("\n");
+});
+
+promise_test(async t => {
+  const textarea = document.querySelector("textarea");
+  textarea.focus();
+
+  // Scroll down to the bottom.
+  let scrollPromise = new Promise(resolve => {
+    container.addEventListener("scroll", () => resolve(), { once: true });
+  });
+  container.scrollTo(0, 300);
+  await scrollPromise;
+
+  assert_approx_equals(container.scrollTop, 300, 1);
+  const lastScrollPosition = container.scrollTop;
+
+  // Wait two frames to settle the scroll anchor position.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  // Now the "Paragraph 11" should be positioned at the top of the scroll
+  // container (since the half of the textarea has been scrolled out),
+  // it will be an anchor.
+
+  // Insert a new 10px height element before the textarea so that
+  // the text area moves 10px down.
+  const beforeContent = document.createElement("div");
+  beforeContent.style.height = "10px";
+  container.insertBefore(beforeContent, textarea);
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_equals(container.scrollTop, lastScrollPosition + 10,
+    "The scroll position should be adjusted");
+
+  // Append a new 10px height element at the bottom textarea so that
+  // the text area moves 10px up.
+  const afterContent = document.createElement("div");
+  afterContent.style.height = "10px";
+  container.insertBefore(afterContent, textarea);
+  container.appendChild(afterContent);
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(container.scrollTop, lastScrollPosition + 10,
+    "The scroll position should be unchanged");
+}, "Scroll anchoring works on textarea");
+
+</script>

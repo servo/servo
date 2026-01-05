@@ -97,7 +97,7 @@ pub(crate) struct HTMLFormElement {
     controls: DomRefCell<Vec<Dom<Element>>>,
 
     /// It is safe to use FxBuildHasher here as `Atom` is in the string_cache.
-    #[allow(clippy::type_complexity)]
+    #[expect(clippy::type_complexity)]
     past_names_map:
         DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<usize>), FxBuildHasher>>,
 
@@ -995,7 +995,7 @@ impl HTMLFormElement {
         let global = self.global();
 
         let request_body = bytes
-            .extract(&global, can_gc)
+            .extract(&global, false, can_gc)
             .expect("Couldn't extract body.")
             .into_net_request_body()
             .0;

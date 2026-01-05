@@ -35,6 +35,7 @@ use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_traits::DocumentActivity;
+use selectors::bloom::BloomFilter;
 use selectors::matching::{
     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags,
     matches_selector_list,
@@ -88,7 +89,9 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
-use crate::dom::customelementregistry::{CallbackReaction, try_upgrade_element};
+use crate::dom::customelementregistry::{
+    CallbackReaction, CustomElementRegistry, try_upgrade_element,
+};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -598,19 +601,22 @@ impl Iterator for QuerySelectorIterator {
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let selectors = &self.selectors;
 
+        let (quirks_mode, filter) = match self.iterator.by_ref().peek() {
+            Some(node) => (node.owner_doc().quirks_mode(), BloomFilter::default()),
+            None => return None,
+        };
+
         self.iterator.by_ref().find_map(|node| {
-            // TODO(cgaebel): Is it worth it to build a bloom filter here
-            // (instead of passing `None`)? Probably.
-            let mut nth_index_cache = Default::default();
-            let mut ctx = MatchingContext::new(
-                MatchingMode::Normal,
-                None,
-                &mut nth_index_cache,
-                node.owner_doc().quirks_mode(),
-                NeedsSelectorFlags::No,
-                MatchingForInvalidation::No,
-            );
             if let Some(element) = DomRoot::downcast(node) {
+                let mut nth_index_cache = Default::default();
+                let mut ctx = MatchingContext::new(
+                    MatchingMode::Normal,
+                    Some(&filter),
+                    &mut nth_index_cache,
+                    quirks_mode,
+                    NeedsSelectorFlags::No,
+                    MatchingForInvalidation::No,
+                );
                 if matches_selector_list(selectors, &SelectorWrapper::Borrowed(&element), &mut ctx)
                 {
                     return Some(DomRoot::upcast(element));
@@ -1155,12 +1161,15 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
     pub(crate) fn replace_children(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        // Step 1.
+        // Step 1. Let node be the result of converting nodes into a node given nodes and this’s
+        // node document.
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
-        // Step 2.
+
+        // Step 2. Ensure pre-insert validity of node into this before null.
         Node::ensure_pre_insertion_validity(&node, self, None)?;
-        // Step 3.
+
+        // Step 3. Replace all with node within this.
         Node::replace_all(Some(&node), self, can_gc);
         Ok(())
     }
@@ -1181,9 +1190,10 @@ impl Node {
             // Step 3.
             Ok(selectors) => {
                 let mut nth_index_cache = Default::default();
+                let filter = BloomFilter::default();
                 let mut ctx = MatchingContext::new(
                     MatchingMode::Normal,
-                    None,
+                    Some(&filter),
                     &mut nth_index_cache,
                     doc.quirks_mode(),
                     NeedsSelectorFlags::No,
@@ -2257,6 +2267,16 @@ pub(crate) enum CloneChildrenFlag {
     DoNotCloneChildren,
 }
 
+impl From<bool> for CloneChildrenFlag {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            CloneChildrenFlag::CloneChildren
+        } else {
+            CloneChildrenFlag::DoNotCloneChildren
+        }
+    }
+}
+
 fn as_uintptr<T>(t: &T) -> uintptr_t {
     t as *const T as uintptr_t
 }
@@ -2715,13 +2735,13 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
     pub(crate) fn replace_all(node: Option<&Node>, parent: &Node, can_gc: CanGc) {
         parent.owner_doc().add_script_and_layout_blocker();
-        // Step 1.
-        if let Some(node) = node {
-            Node::adopt(node, &parent.owner_doc(), can_gc);
-        }
-        // Step 2.
-        rooted_vec!(let removed_nodes <- parent.children().map(|c| DomRoot::as_traced(&c)));
-        // Step 3.
+
+        // Step 1. Let removedNodes be parent’s children.
+        rooted_vec!(let removed_nodes <- parent.children().map(|child| DomRoot::as_traced(&child)));
+
+        // Step 2. Let addedNodes be the empty set.
+        // Step 3. If node is a DocumentFragment node, then set addedNodes to node’s children.
+        // Step 4. Otherwise, if node is non-null, set addedNodes to « node ».
         rooted_vec!(let mut added_nodes);
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment(_) = node.type_id() {
@@ -2733,20 +2753,24 @@ impl Node {
         } else {
             &[] as &[&Node]
         };
-        // Step 4.
+
+        // Step 5. Remove all parent’s children, in tree order, with suppressObservers set to true.
         for child in &*removed_nodes {
             Node::remove(child, parent, SuppressObserver::Suppressed, can_gc);
         }
-        // Step 5.
+
+        // Step 6. If node is non-null, then insert node into parent before null with suppressObservers set to true.
         if let Some(node) = node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed, can_gc);
         }
-        // Step 6.
+
         vtable_for(parent).children_changed(
             &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes),
             can_gc,
         );
 
+        // Step 7. If either addedNodes or removedNodes is not empty, then queue a tree mutation record
+        // for parent with addedNodes, removedNodes, null, and null.
         if !removed_nodes.is_empty() || !added_nodes.is_empty() {
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(added_nodes),
@@ -2918,6 +2942,7 @@ impl Node {
         node: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        registry: Option<DomRoot<CustomElementRegistry>>,
         can_gc: CanGc,
     ) -> DomRoot<Node> {
         // Step 1. If document is not given, let document be node’s node document.
@@ -2996,8 +3021,23 @@ impl Node {
                 );
                 DomRoot::upcast::<Node>(document)
             },
+            // Step 2. If node is an element:
             NodeTypeId::Element(..) => {
                 let element = node.downcast::<Element>().unwrap();
+                // Step 2.1. Let registry be node’s custom element registry.
+                // Step 2.2. If registry is null, then set registry to fallbackRegistry.
+                let registry = element.custom_element_registry().or(registry);
+                // Step 2.3. If registry is a global custom element registry, then
+                // set registry to document’s effective global custom element registry.
+                let registry =
+                    if CustomElementRegistry::is_a_global_element_registry(registry.as_deref()) {
+                        Some(document.custom_element_registry())
+                    } else {
+                        registry
+                    };
+                // Step 2.4. Set copy to the result of creating an element,
+                // given document, node’s local name, node’s namespace,
+                // node’s namespace prefix, node’s is value, false, and registry.
                 let name = QualName {
                     prefix: element.prefix().as_ref().map(|p| Prefix::from(&**p)),
                     ns: element.namespace().clone(),
@@ -3012,6 +3052,8 @@ impl Node {
                     None,
                     can_gc,
                 );
+                // TODO: Move this into `Element::create`
+                element.set_custom_element_registry(registry);
                 DomRoot::upcast::<Node>(element)
             },
         };
@@ -3036,9 +3078,12 @@ impl Node {
                 let node_elem = node.downcast::<Element>().unwrap();
                 let copy_elem = copy.downcast::<Element>().unwrap();
 
+                // Step 2.5. For each attribute of node’s attribute list:
                 for attr in node_elem.attrs().iter() {
+                    // Step 2.5.1. Let copyAttribute be the result of cloning a single node given attribute, document, and null.
                     let new_value =
                         Node::compute_attribute_value_with_style_fast_path(attr, node_elem);
+                    // Step 2.5.2. Append copyAttribute to copy.
                     copy_elem.push_new_attribute(
                         attr.local_name().clone(),
                         new_value,
@@ -3061,7 +3106,7 @@ impl Node {
         // result of cloning child with document and the clone children flag set, to copy.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(&child, Some(&document), clone_children, can_gc);
+                let child_copy = Node::clone(&child, Some(&document), clone_children, None, can_gc);
                 let _inserted_node = Node::pre_insert(&child_copy, &copy, None, can_gc);
             }
         }
@@ -3101,6 +3146,7 @@ impl Node {
                         &child,
                         Some(&document),
                         CloneChildrenFlag::CloneChildren,
+                        None,
                         can_gc,
                     );
 
@@ -3752,6 +3798,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             } else {
                 CloneChildrenFlag::DoNotCloneChildren
             },
+            None,
             can_gc,
         );
         Ok(result)

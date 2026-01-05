@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
 /// Initial script timeout from
@@ -68,9 +68,12 @@ pub(crate) fn deserialize_as_timeouts_configuration(
             //  - "implicit": Set configuration's implicit wait timeout to value.
             *target = match value {
                 Value::Null => None,
-                _ => Some(value.as_f64().ok_or_else(|| {
-                    WebDriverError::new(ErrorStatus::InvalidArgument, "Invalid value for {key}")
-                })? as u64),
+                Value::Number(num) => Some(
+                    num.as_f64()
+                        .expect("Number already validated when parsing requests")
+                        as u64,
+                ),
+                _ => unreachable!("This has been validated when parsing requests"),
             };
         }
 
@@ -83,10 +86,11 @@ pub(crate) fn deserialize_as_timeouts_configuration(
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-serialize-the-timeouts-configuration>
 pub(crate) fn serialize_timeouts_configuration(timeouts: &TimeoutsConfiguration) -> Value {
-    let mut map = serde_json::Map::new();
-    map.insert("script".to_string(), Value::from(timeouts.script));
-    map.insert("pageLoad".to_string(), Value::from(timeouts.page_load));
-    map.insert("implicit".to_string(), Value::from(timeouts.implicit_wait));
-    Value::Object(map)
+    json!({
+        "script": timeouts.script,
+        "pageLoad": timeouts.page_load,
+        "implicit": timeouts.implicit_wait,
+    })
 }

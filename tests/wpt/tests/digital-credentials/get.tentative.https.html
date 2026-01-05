@@ -29,7 +29,7 @@
   });
 
   promise_test(async (t) => {
-    const invalidData = [null, undefined, "", 123, true, false];
+    const invalidData = [null, "", 123, true, false];
     for (const data of invalidData) {
       const options = makeGetOptions({ data });
       await test_driver.bless("user activation");

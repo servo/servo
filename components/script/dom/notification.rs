@@ -753,11 +753,11 @@ impl FetchResponseListener for ResourceFetchListener {
             if status.is_success() {
                 Ok(())
             } else if status.is_error() {
-                Err(NetworkError::Internal(
+                Err(NetworkError::ResourceLoadError(
                     "No http status code received".to_owned(),
                 ))
             } else {
-                Err(NetworkError::Internal(format!(
+                Err(NetworkError::ResourceLoadError(format!(
                     "HTTP error code {}",
                     status.code()
                 )))
@@ -817,6 +817,7 @@ impl Notification {
             global.insecure_requests_policy(),
             global.has_trustworthy_ancestor_or_current_origin(),
             global.policy_container(),
+            global.request_client(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()))

@@ -22,6 +22,7 @@ extern crate stylo_atoms;
 
 mod animation_timeline;
 mod animations;
+mod css;
 mod script_window_proxies;
 #[macro_use]
 mod task;

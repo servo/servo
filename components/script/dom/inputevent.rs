@@ -30,7 +30,7 @@ pub(crate) struct InputEvent {
 }
 
 impl InputEvent {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,

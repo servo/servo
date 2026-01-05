@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aws_lc_rs::hmac;
-use base64ct::{Base64UrlUnpadded, Encoding};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
@@ -17,7 +16,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
+    JwkStringField, KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
     SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
 };
 use crate::script_runtime::CanGc;
@@ -90,7 +89,7 @@ pub(crate) fn generate_key(
         None => {
             // Let length be the block size in bits of the hash function identified by the
             // hash member of normalizedAlgorithm.
-            normalized_algorithm.hash.block_size_in_bits()?
+            hash_function_block_size_in_bits(normalized_algorithm.hash.name())?
         },
         // Otherwise, if the length member of normalizedAlgorithm is non-zero:
         Some(length) if length != 0 => {
@@ -119,7 +118,7 @@ pub(crate) fn generate_key(
     // normalizedAlgorithm.
     // Step 11. Set the hash attribute of algorithm to hash.
     let hash = SubtleKeyAlgorithm {
-        name: normalized_algorithm.hash.name.clone(),
+        name: normalized_algorithm.hash.name().to_string(),
     };
     let algorithm = SubtleHmacKeyAlgorithm {
         name: ALG_HMAC.to_string(),
@@ -157,6 +156,7 @@ pub(crate) fn import_key(
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
+
     // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
     // Note: This is not explicitly spec'ed, but also throw a SyntaxError if usages is empty
     if usages
@@ -179,7 +179,7 @@ pub(crate) fn import_key(
             data = key_data.to_vec();
 
             // Step 4.2. Set hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.clone();
+            hash = normalized_algorithm.hash.as_ref();
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -198,14 +198,13 @@ pub(crate) fn import_key(
             // NOTE: Done by Step 2.4 and 2.6.
 
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
-            data = Base64UrlUnpadded::decode_vec(&jwk.k.as_ref().ok_or(Error::Data(None))?.str())
-                .map_err(|_| Error::Data(None))?;
+            data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.clone();
+            hash = normalized_algorithm.hash.as_ref();
 
             // Step 2.6.
-            match hash.name.as_str() {
+            match hash.name() {
                 // If the name attribute of hash is "SHA-1":
                 ALG_SHA1 => {
                     // If the alg field of jwk is present and is not "HS1", then throw a DataError.
@@ -296,7 +295,9 @@ pub(crate) fn import_key(
     // Step 13. Set the hash attribute of algorithm to hash.
     let algorithm = SubtleHmacKeyAlgorithm {
         name: ALG_HMAC.to_string(),
-        hash,
+        hash: SubtleKeyAlgorithm {
+            name: hash.name().to_string(),
+        },
         length,
     };
 
@@ -327,10 +328,34 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             _ => Err(Error::Operation(None)),
         },
         KeyFormat::Jwk => {
+            // Step 4.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 4.2. Set the kty attribute of jwk to the string "oct".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("oct")),
+                ..Default::default()
+            };
+
+            // Step 4.3. Set the k attribute of jwk to be a string containing data, encoded according
+            // to Section 6.4 of JSON Web Algorithms [JWA].
             let key_data = key.handle().as_bytes();
-            // Step 3. Set the k attribute of jwk to be a string containing data
-            let k = Base64UrlUnpadded::encode_string(key_data);
-            // Step 6.
+            jwk.encode_string_field(JwkStringField::K, key_data);
+
+            // Step 4.4. Let algorithm be the [[algorithm]] internal slot of key.
+            // Step 4.5. Let hash be the hash attribute of algorithm.
+            // Step 4.6.
+            // If the name attribute of hash is "SHA-1":
+            //     Set the alg attribute of jwk to the string "HS1".
+            // If the name attribute of hash is "SHA-256":
+            //     Set the alg attribute of jwk to the string "HS256".
+            // If the name attribute of hash is "SHA-384":
+            //     Set the alg attribute of jwk to the string "HS384".
+            // If the name attribute of hash is "SHA-512":
+            //     Set the alg attribute of jwk to the string "HS512".
+            // Otherwise, the name attribute of hash is defined in another applicable
+            // specification:
+            //     Perform any key export steps defined by other applicable specifications, passing
+            //     format and key and obtaining alg.
+            //     Set the alg attribute of jwk to alg.
             let hash_algorithm = match key.algorithm() {
                 KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(alg) => match &*alg.hash.name {
                     ALG_SHA1 => "HS1",
@@ -341,27 +366,15 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 },
                 _ => return Err(Error::NotSupported(None)),
             };
+            jwk.alg = Some(DOMString::from(hash_algorithm));
 
-            // Step 7. Set the key_ops attribute of jwk to the usages attribute of key.
-            let key_ops = key
-                .usages()
-                .iter()
-                .map(|usage| DOMString::from(usage.as_str()))
-                .collect::<Vec<DOMString>>();
+            // Step 4.7. Set the key_ops attribute of jwk to the usages attribute of key.
+            jwk.set_key_ops(key.usages());
 
-            // Step 1. Let jwk be a new JsonWebKey dictionary.
-            let jwk = JsonWebKey {
-                // Step 2. Set the kty attribute of jwk to the string "oct".
-                kty: Some(DOMString::from("oct")),
-                k: Some(DOMString::from(k)),
-                alg: Some(DOMString::from(hash_algorithm.to_string())),
-                // Step 7. Set the key_ops attribute of jwk to equal the usages attribute of key.
-                key_ops: Some(key_ops),
-                // Step 8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
-                ext: Some(key.Extractable()),
-                ..Default::default()
-            };
+            // Step 4.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+            jwk.ext = Some(key.Extractable());
 
+            // Step 4.9. Let result be jwk.
             Ok(ExportedKey::Jwk(Box::new(jwk)))
         },
         // Otherwise:
@@ -382,15 +395,7 @@ pub(crate) fn get_key_length(
         None => {
             // Let length be the block size in bits of the hash function identified by the hash
             // member of normalizedDerivedKeyAlgorithm.
-            match normalized_derived_key_algorithm.hash.name.as_str() {
-                ALG_SHA1 => 160,
-                ALG_SHA256 => 256,
-                ALG_SHA384 => 384,
-                ALG_SHA512 => 512,
-                _ => {
-                    return Err(Error::Type("Unidentified hash member".to_string()));
-                },
-            }
+            hash_function_block_size_in_bits(normalized_derived_key_algorithm.hash.name())?
         },
         // Otherwise, if the length member of normalizedDerivedKeyAlgorithm is non-zero:
         Some(length) if length != 0 => {
@@ -406,4 +411,18 @@ pub(crate) fn get_key_length(
 
     // Step 2. Return length.
     Ok(Some(length))
+}
+
+/// Return the block size in bits of a hash function, according to Figure 1 of
+/// <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf>.
+fn hash_function_block_size_in_bits(hash: &str) -> Result<u32, Error> {
+    match hash {
+        ALG_SHA1 => Ok(512),
+        ALG_SHA256 => Ok(512),
+        ALG_SHA384 => Ok(1024),
+        ALG_SHA512 => Ok(1024),
+        _ => Err(Error::NotSupported(Some(
+            "Unidentified hash member".to_string(),
+        ))),
+    }
 }

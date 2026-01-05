@@ -32,13 +32,12 @@ use rustc_hash::FxHashSet;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
-use style::context::QuirksMode;
-use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::CssRuleType;
 use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::ParsingMode;
 use url::Url;
 
+use crate::css::parser_context_for_anonymous_content;
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -282,13 +281,13 @@ impl FetchResponseListener for ImageContext {
 
         self.status = {
             if status.is_error() {
-                Err(NetworkError::Internal(
+                Err(NetworkError::ResourceLoadError(
                     "No http status code received".to_owned(),
                 ))
             } else if status.is_success() {
                 Ok(())
             } else {
-                Err(NetworkError::Internal(format!(
+                Err(NetworkError::ResourceLoadError(format!(
                     "HTTP error code {}",
                     status.code()
                 )))
@@ -447,6 +446,7 @@ impl HTMLImageElement {
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
             global.policy_container(),
+            global.request_client(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))
@@ -1739,18 +1739,10 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
     let url_data = Url::parse("about:blank").unwrap().into();
-    let context = ParserContext::new(
-        Origin::Author,
-        &url_data,
-        Some(CssRuleType::Style),
-        // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
-        // browsers do regarding quirks-mode in a media list?
-        ParsingMode::empty(),
-        QuirksMode::NoQuirks,
-        /* namespaces = */ Default::default(),
-        None,
-        None,
-    );
+    // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
+    // browsers do regarding quirks-mode in a media list?
+    let context =
+        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::empty(), &url_data);
     SourceSizeList::parse(&context, &mut parser)
 }
 

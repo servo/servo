@@ -428,4 +428,12 @@ var browserTests = [
     "foo<sub>[bar]</sub>baz",
     [true,true],
     {"stylewithcss":[false,true,"",false,false,""],"subscript":[false,false,"",false,true,""]}],
+
+// Should not change the style of the non-editable nodes so that only the
+// visible and editable nodes are wrapped into the <sub> elements.
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["subscript",""]],
+    ' <span contenteditable="false">A</span><sub> ; </sub><span contenteditable="false">B</span><sub> ; </sub><span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

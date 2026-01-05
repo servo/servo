@@ -13,17 +13,20 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use log::{error, info, warn};
+#[cfg(feature = "gamepad")]
+use servo::GamepadHapticEffectType;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
     DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GamepadHapticEffectType, GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender,
-    JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError,
-    Servo, ServoDelegate, ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
+    GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus,
+    MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
+    ServoError, TraversalId, UserContentManager, WebDriverCommandMsg, WebDriverJSResult,
     WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
     WebViewId, pref,
 };
 use url::Url;
 
+#[cfg(feature = "gamepad")]
 use crate::GamepadSupport;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
@@ -146,6 +149,7 @@ pub(crate) enum UserInterfaceCommand {
 
 pub(crate) struct RunningAppState {
     /// Gamepad support, which may be `None` if it failed to initialize.
+    #[cfg(feature = "gamepad")]
     gamepad_support: RefCell<Option<GamepadSupport>>,
 
     /// The [`WebDriverSenders`] used to reply to pending WebDriver requests.
@@ -175,6 +179,9 @@ pub(crate) struct RunningAppState {
     /// for the `exit_after_stable_image` option.
     pub(crate) achieved_stable_image: Rc<Cell<bool>>,
 
+    /// The [`UserContentManager`] for all `WebView`s created.
+    pub(crate) user_content_manager: Rc<UserContentManager>,
+
     /// Whether or not program exit has been triggered. This means that all windows
     /// will be destroyed and shutdown will start at the end of the current event loop.
     exit_scheduled: Cell<bool>,
@@ -197,9 +204,11 @@ impl RunningAppState {
         servo: Servo,
         servoshell_preferences: ServoShellPreferences,
         event_loop_waker: Box<dyn EventLoopWaker>,
+        user_content_manager: Rc<UserContentManager>,
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
+        #[cfg(feature = "gamepad")]
         let gamepad_support = if pref!(dom_gamepad_enabled) {
             GamepadSupport::maybe_new()
         } else {
@@ -218,6 +227,7 @@ impl RunningAppState {
         Self {
             windows: Default::default(),
             focused_window: Default::default(),
+            #[cfg(feature = "gamepad")]
             gamepad_support: RefCell::new(gamepad_support),
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
@@ -227,6 +237,7 @@ impl RunningAppState {
             servo,
             achieved_stable_image: Default::default(),
             exit_scheduled: Default::default(),
+            user_content_manager,
             experimental_preferences_enabled,
         }
     }
@@ -236,7 +247,14 @@ impl RunningAppState {
         platform_window: Rc<dyn PlatformWindow>,
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
+        let has_winit_window = platform_window.has_winit_window();
         let window = Rc::new(ServoShellWindow::new(platform_window));
+
+        // For [`HeadedWindow`], it is up to the `winit::event::WindowEvent::Focused`.
+        // Otherwise, newly created windows are automatically focused.
+        if !has_winit_window {
+            self.focus_window(window.clone());
+        }
         window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()
@@ -338,6 +356,7 @@ impl RunningAppState {
 
         self.handle_webdriver_messages(create_platform_window);
 
+        #[cfg(feature = "gamepad")]
         if pref!(dom_gamepad_enabled) {
             self.handle_gamepad_events();
         }
@@ -456,7 +475,10 @@ impl RunningAppState {
             .remove(&webview_id);
     }
 
-    fn set_script_command_interrupt_sender(&self, sender: Option<IpcSender<WebDriverJSResult>>) {
+    fn set_script_command_interrupt_sender(
+        &self,
+        sender: Option<GenericSender<WebDriverJSResult>>,
+    ) {
         self.webdriver_senders
             .borrow_mut()
             .script_evaluation_interrupt_sender = sender;
@@ -539,6 +561,7 @@ impl RunningAppState {
         webview.load(url);
     }
 
+    #[cfg(feature = "gamepad")]
     pub(crate) fn handle_gamepad_events(&self) {
         let Some(active_webview) = self
             .focused_window()
@@ -549,6 +572,10 @@ impl RunningAppState {
         if let Some(gamepad_support) = self.gamepad_support.borrow_mut().as_mut() {
             gamepad_support.handle_gamepad_events(active_webview);
         }
+    }
+
+    pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {
+        *self.focused_window.borrow_mut() = Some(window.clone());
     }
 
     /// Interrupt any ongoing WebDriver-based script evaluation.
@@ -707,6 +734,7 @@ impl WebViewDelegate for RunningAppState {
         self.window_for_webview_id(webview.id()).set_needs_repaint();
     }
 
+    #[cfg(feature = "gamepad")]
     fn play_gamepad_haptic_effect(
         &self,
         _webview: WebView,
@@ -724,6 +752,7 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
+    #[cfg(feature = "gamepad")]
     fn stop_gamepad_haptic_effect(
         &self,
         _webview: WebView,

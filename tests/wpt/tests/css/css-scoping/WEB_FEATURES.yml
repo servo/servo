@@ -2,3 +2,7 @@ features:
 - name: has-slotted
   files:
   - has-slotted-*
+- name: host-context
+  files:
+  - host-context-*
+  - host-in-host-context-selector.html

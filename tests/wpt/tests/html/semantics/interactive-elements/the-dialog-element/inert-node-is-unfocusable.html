@@ -3,6 +3,8 @@
 <head>
 <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#blocked-by-a-modal-dialog">
 <meta name="assert" content="Checks that, when opening modal dialogs, inert nodes are not focusable.">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -33,7 +35,7 @@ dialog {
 // The test passses if only the topmost dialog and its button are focusable.
 
 function testFocus(element, expectFocus) {
-    test(function() {
+    promise_test(async function() {
         var focusedElement = null;
         element.addEventListener('focus', function() { focusedElement = element; }, false);
         element.focus();
@@ -56,7 +58,8 @@ function testTree(element, expectFocus) {
 
 var bottomDialog = document.getElementById('bottom-dialog');
 var topDialog = document.getElementById('top-dialog');
-setup(function() {
+promise_setup(async function() {
+    await test_driver.click(document.documentElement);
     bottomDialog.showModal();
     topDialog.showModal();
     add_completion_callback(function() {

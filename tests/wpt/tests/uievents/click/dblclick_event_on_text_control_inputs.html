@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>dblclick event on a text input</title>
+    <link rel="author" href="haddadi.taym@gmail.com>">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+      #target {
+        width: 200px;
+        height: 32px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Double click on the input with the left mouse button.</p>
+    <input id="target" type="text" value="abc">
+    <script>
+      promise_test(async (t) => {
+        const target = document.getElementById("target");
+        const event_watcher = new EventWatcher(t, target, ["click", "dblclick"]);
+
+        const actions_promise = new test_driver.Actions()
+          .pointerMove(5, 5, { origin: target })
+          .pointerDown()
+          .pointerUp()
+          .pointerDown()
+          .pointerUp()
+          .send();
+
+        t.add_cleanup(() => actions_promise);
+
+        const event = await event_watcher.wait_for(["click", "click", "dblclick"]);
+        assert_equals(event.type, "dblclick");
+        assert_equals(event.target, target);
+        assert_equals(event.detail, 2);
+      });
+    </script>
+  </body>
+</html>

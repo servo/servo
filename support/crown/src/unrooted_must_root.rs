@@ -268,7 +268,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             parent_item.hir_id().expect_owner(),
             &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
         ) {
-            #[allow(clippy::single_match)]
+            #[expect(clippy::single_match)]
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {

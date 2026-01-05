@@ -6,6 +6,7 @@
 mod common;
 
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use dpi::PhysicalSize;
@@ -13,15 +14,16 @@ use euclid::{Point2D, Size2D};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
-use net::test_util::{make_body, make_server};
+use net::test_util::{make_body, make_server, replace_host_table};
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
     JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, SimpleDialog,
-    Theme, WebView, WebViewBuilder, WebViewDelegate,
+    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, Servo,
+    SimpleDialog, Theme, UserContentManager, WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
+use servo_url::ServoUrl;
 use url::Url;
 use webrender_api::units::{DeviceIntSize, DevicePoint};
 
@@ -141,6 +143,47 @@ fn test_create_webview_http() {
     let host = url.host_str();
     assert!(host.is_some());
     assert_eq!(host.unwrap(), "localhost");
+}
+
+#[test]
+fn test_create_webview_http_custom_host() {
+    let servo_test = ServoTest::new();
+
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\n<title>Hello</title>";
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let port = url.port().unwrap();
+
+    let ip = "127.0.0.1".parse().unwrap();
+    let mut host_table = HashMap::new();
+    host_table.insert("www.example.com".to_owned(), ip);
+
+    replace_host_table(host_table);
+
+    let custom_url = ServoUrl::parse(&format!("http://www.example.com:{}", port)).unwrap();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(custom_url.clone().into_url())
+        .build();
+
+    servo_test.spin(move || !delegate.load_status_changed.get());
+
+    let _ = server.close();
+
+    let page_title = webview.page_title();
+    assert!(page_title.is_some());
+    assert_eq!(page_title.unwrap(), "Hello");
+
+    let url = webview.url();
+    assert!(url.is_some());
+    assert_eq!(url.unwrap(), custom_url.into_url());
 }
 
 #[test]
@@ -882,4 +925,173 @@ fn test_can_go_forward_and_can_go_back() {
 
     assert!(webview.can_go_forward());
     assert!(!webview.can_go_back());
+}
+
+#[test]
+fn test_user_content_manager_empty() {
+    let servo_test = ServoTest::new();
+    let user_content_manager = UserContentManager::new(servo_test.servo());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .user_content_manager(Rc::new(user_content_manager))
+        .url(Url::parse("data:text/html,Hello World").unwrap())
+        .build();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
+    assert_eq!(result, Ok(JSValue::Undefined));
+}
+
+#[test]
+fn test_user_content_manager() {
+    let servo_test = ServoTest::new();
+
+    // Use a http server instead of a data url to allow the `webview.reload()` call below to reuse
+    // the exisitng script thread. This is necessary to test that mutations on a `UserContentManager`
+    // take effect on script threads created before the mutation.
+    let (_, url) = make_server(move |_, response| {
+        *response.body_mut() = make_body(b"<!DOCTYPE html>\nHello".to_vec());
+    });
+
+    let user_content_manager = Rc::new(UserContentManager::new(servo_test.servo()));
+    user_content_manager.add_script("window.fromUserContentScript = 42;".into());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .user_content_manager(user_content_manager.clone())
+        .url(url.into_url())
+        .build();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
+    assert_eq!(result, Ok(JSValue::Number(42.0)));
+
+    // Add a second user script to the `UserContentManager`.
+    user_content_manager.add_script("window.fromSecondUserContentScript = 32;".into());
+
+    // The second user script must immediately take effect in any new WebViews.
+    let new_webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .user_content_manager(user_content_manager)
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+    let load_webview = new_webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    let result = evaluate_javascript(
+        &servo_test,
+        new_webview,
+        "window.fromSecondUserContentScript",
+    );
+    assert_eq!(result, Ok(JSValue::Number(32.0)));
+
+    // The existing page in the first webview must not be affected since we haven't reloaded yet.
+    let result = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "window.fromSecondUserContentScript",
+    );
+    assert_eq!(result, Ok(JSValue::Undefined));
+
+    // Now trigger a reload and ensure the second user script has effect on the page.
+    webview.reload();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    let result = evaluate_javascript(&servo_test, webview, "window.fromSecondUserContentScript");
+
+    assert_eq!(result, Ok(JSValue::Number(32.0)));
+}
+
+#[test]
+fn test_user_content_manager_for_auxiliary_webviews() {
+    let servo_test = ServoTest::new();
+    struct WebViewAuxiliaryTestDelegate {
+        servo: Servo,
+        rendering_context: Rc<dyn RenderingContext>,
+        auxiliary_webview: RefCell<Option<WebView>>,
+    }
+
+    impl WebViewDelegate for WebViewAuxiliaryTestDelegate {
+        fn request_create_new(&self, _parent_webview: WebView, request: CreateNewWebViewRequest) {
+            let user_content_manager_for_auxiliary_webview = UserContentManager::new(&self.servo);
+            // Add a different user script to the `UserContentManager` of auxiliary webview.
+            user_content_manager_for_auxiliary_webview
+                .add_script("window.fromAuxiliaryUserContentScript = 32;".into());
+            let auxiliary_webview = request
+                .builder(self.rendering_context.clone())
+                .user_content_manager(Rc::new(user_content_manager_for_auxiliary_webview))
+                .build();
+            self.auxiliary_webview
+                .borrow_mut()
+                .replace(auxiliary_webview.clone());
+        }
+    }
+
+    let delegate = Rc::new(WebViewAuxiliaryTestDelegate {
+        servo: servo_test.servo.clone(),
+        rendering_context: servo_test.rendering_context.clone(),
+        auxiliary_webview: RefCell::new(None),
+    });
+
+    let user_content_manager = UserContentManager::new(servo_test.servo());
+    user_content_manager.add_script("window.fromUserContentScript = 42;".into());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .user_content_manager(Rc::new(user_content_manager))
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html>\
+                <script>\
+                    onload = () => window.open('data:text/html,<title>Auxiliary WebView</title>')\
+                </script>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    let load_webview = webview.clone();
+    let delegate_clone = delegate.clone();
+    let _ = servo_test.spin(move || {
+        load_webview.load_status() != LoadStatus::Complete ||
+            delegate_clone
+                .auxiliary_webview
+                .borrow()
+                .as_ref()
+                .is_none_or(|auxiliary_webview| {
+                    auxiliary_webview.page_title() != Some("Auxiliary WebView".into())
+                })
+    });
+
+    let result = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "[ window.fromUserContentScript, window.fromAuxiliaryUserContentScript ]",
+    );
+    assert_eq!(
+        result,
+        Ok(JSValue::Array(vec![
+            JSValue::Number(42.0),
+            JSValue::Undefined
+        ]))
+    );
+
+    let auxiliary_webview = delegate
+        .auxiliary_webview
+        .borrow_mut()
+        .take()
+        .expect("Gauranteed by spin");
+
+    let result = evaluate_javascript(
+        &servo_test,
+        auxiliary_webview.clone(),
+        "[ window.fromUserContentScript, window.fromAuxiliaryUserContentScript ]",
+    );
+
+    assert_eq!(
+        result,
+        Ok(JSValue::Array(vec![
+            JSValue::Undefined,
+            JSValue::Number(32.0),
+        ]))
+    );
 }

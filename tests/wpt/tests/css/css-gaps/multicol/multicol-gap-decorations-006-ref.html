@@ -3,10 +3,11 @@
 <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
 <style>
     .outer-container {
+        position: relative;
         columns: 3;
         column-fill: auto;
         height: 100px;
-        width: 600px;
+        width: 620px;
         gap: 10px;
         background: yellow;
     }
@@ -22,7 +23,6 @@
     .inner-column {
         height: 250px;
         background: hotpink;
-        width: 80px;
     }
 
     #col-gap1 {
@@ -30,16 +30,16 @@
         height: 80px;
         width: 1px;
         background: green;
-        top: 18px;
-        left: 104px;
+        top: 10px;
+        left: 100px;
     }
 
     #col-gap2 {
         position: absolute;
         width: 1px;
         background: green;
-        top: 18px;
-        left: 307px;
+        top: 10px;
+        left: 310px;
         height: 45px;
     }
 </style>
@@ -47,6 +47,6 @@
     <div class="nested-container">
         <div class="inner-column"></div>
     </div>
+    <div id="col-gap1"></div>
+    <div id="col-gap2"></div>
 </div>
-<div id="col-gap1"></div>
-<div id="col-gap2"></div>

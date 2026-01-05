@@ -346,7 +346,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    #[allow(clippy::neg_cmp_op_on_partial_ord)]
+    #[expect(clippy::neg_cmp_op_on_partial_ord)]
     fn set_the_start_or_end(
         &self,
         node: &Node,

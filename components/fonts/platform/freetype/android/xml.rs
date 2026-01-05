@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use log::error;
 pub(super) use xml::attribute::OwnedAttribute as Attribute;
-use xml::reader::XmlEvent;
+use xml::reader::{Result as XmlResult, XmlEvent};
 
 pub(super) enum Node {
     Element {
@@ -14,7 +15,7 @@ pub(super) enum Node {
     Text(String),
 }
 
-pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
+pub(super) fn parse(bytes: &[u8]) -> XmlResult<Vec<Node>> {
     let mut stack = Vec::new();
     let mut nodes = Vec::new();
     for result in xml::EventReader::new(bytes) {
@@ -26,28 +27,35 @@ pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
                 nodes = Vec::new();
             },
             XmlEvent::EndElement { .. } => {
-                let (name, attributes, mut parent_nodes) = stack.pop().unwrap();
-                parent_nodes.push(Node::Element {
-                    name,
-                    attributes,
-                    children: nodes,
-                });
-                nodes = parent_nodes;
-            },
-            XmlEvent::CData(s) | XmlEvent::Characters(s) | XmlEvent::Whitespace(s) => {
-                if let Some(Node::Text(text)) = nodes.last_mut() {
-                    text.push_str(&s)
-                } else {
-                    nodes.push(Node::Text(s))
+                if let Some((name, attributes, mut parent_nodes)) = stack.pop() {
+                    parent_nodes.push(Node::Element {
+                        name,
+                        attributes,
+                        children: nodes,
+                    });
+                    nodes = parent_nodes;
                 }
             },
-            XmlEvent::Comment(..) |
+            XmlEvent::CData(characters) |
+            XmlEvent::Characters(characters) |
+            XmlEvent::Whitespace(characters) => {
+                if let Some(Node::Text(text)) = nodes.last_mut() {
+                    text.push_str(&characters)
+                } else {
+                    nodes.push(Node::Text(characters))
+                }
+            },
+            XmlEvent::EndDocument => break,
             XmlEvent::Doctype { .. } |
-            XmlEvent::EndDocument |
+            XmlEvent::StartDocument { .. } |
             XmlEvent::ProcessingInstruction { .. } |
-            XmlEvent::StartDocument { .. } => {},
+            XmlEvent::Comment(..) => {},
         }
     }
-    assert!(stack.is_empty());
+
+    if !stack.is_empty() {
+        error!("Disregarding unclosed XML tag at the end of file.");
+    }
+
     Ok(nodes)
 }

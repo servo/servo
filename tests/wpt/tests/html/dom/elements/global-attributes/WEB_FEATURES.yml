@@ -10,3 +10,8 @@ features:
 - name: title-attr
   files:
   - title-manual.html
+- name: dataset
+  files:
+  - dataset-*
+  - custom-attrs.html
+  - data_unicode_attr.html

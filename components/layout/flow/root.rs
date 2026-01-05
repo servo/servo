@@ -103,11 +103,11 @@ impl BoxTree {
             // See https://github.com/w3c/csswg-drafts/issues/12643
             let body_layout_data = body.inner_layout_data()?;
             let mut body_box = body_layout_data.self_box.borrow_mut();
-            body_box.as_mut()?.with_base_mut_fold(None, |accum, base| {
+            body_box.as_mut()?.with_base_mut(|base| {
                 base.base_fragment_info
                     .flags
                     .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);
-                accum.or_else(|| Some(AxesOverflow::from(&*base.style)))
+                AxesOverflow::from(&*base.style)
             })
         };
 
@@ -362,8 +362,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
                     },
                     _ => return None,
                 },
-                LayoutBox::InlineLevel(inline_level_items) => {
-                    let inline_level_box = inline_level_items.first()?;
+                LayoutBox::InlineLevel(inline_level_box) => {
                     let InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index) =
                         &*inline_level_box.borrow()
                     else {

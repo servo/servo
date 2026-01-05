@@ -22,7 +22,7 @@ interface Request {
   readonly attribute RequestCache cache;
   readonly attribute RequestRedirect redirect;
   readonly attribute DOMString integrity;
-  // readonly attribute boolean keepalive;
+  readonly attribute boolean keepalive;
   // readonly attribute boolean isReloadNavigation;
   // readonly attribute boolean isHistoryNavigation;
   readonly attribute AbortSignal signal;

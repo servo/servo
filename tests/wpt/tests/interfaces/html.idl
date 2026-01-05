@@ -1624,7 +1624,7 @@ interface CustomElementRegistry {
   DOMString? getName(CustomElementConstructor constructor);
   Promise<CustomElementConstructor> whenDefined(DOMString name);
   [CEReactions] undefined upgrade(Node root);
-  undefined initialize(Node root);
+  [CEReactions] undefined initialize(Node root);
 };
 
 callback CustomElementConstructor = HTMLElement ();
@@ -1807,6 +1807,18 @@ interface mixin PopoverTargetAttributes {
   [CEReactions] attribute DOMString popoverTargetAction;
 };
 
+[Exposed=*]
+interface Origin {
+  constructor();
+
+  static Origin from(any value);
+
+  readonly attribute boolean opaque;
+
+  boolean isSameOrigin(Origin other);
+  boolean isSameSite(Origin other);
+};
+
 [Global=Window,
  Exposed=Window,
  LegacyUnenumerableNamedProperties]
@@ -1985,6 +1997,7 @@ interface NavigationHistoryEntry : EventTarget {
 interface NavigationTransition {
   readonly attribute NavigationType navigationType;
   readonly attribute NavigationHistoryEntry from;
+  readonly attribute NavigationDestination to;
   readonly attribute Promise<undefined> committed;
   readonly attribute Promise<undefined> finished;
 };
@@ -2052,6 +2065,7 @@ callback NavigationInterceptHandler = Promise<undefined> ();
 [Exposed=Window]
 interface NavigationPrecommitController {
   undefined redirect(USVString url, optional NavigationNavigateOptions options = {});
+  undefined addHandler(NavigationInterceptHandler handler);
 };
 
 callback NavigationPrecommitHandler = Promise<undefined> (NavigationPrecommitController controller);

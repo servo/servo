@@ -7,7 +7,9 @@
 use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::time::Duration;
 
+use crossbeam_channel::RecvTimeoutError;
 use ipc_channel::ipc::IpcError;
 use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -18,6 +20,9 @@ use servo_config::opts;
 mod callback;
 pub use callback::GenericCallback;
 mod oneshot;
+/// We want to discourage anybody from using the ipc_channel crate in servo and use 'GenericChannels' instead.
+/// 'GenericSharedMemory' is, however, still useful so we reexport it under a different name for future optimization.
+pub use ipc_channel::ipc::IpcSharedMemory as GenericSharedMemory;
 pub use oneshot::{GenericOneshotReceiver, GenericOneshotSender, oneshot};
 
 /// Abstraction of the ability to send a particular type of message cross-process.
@@ -249,6 +254,17 @@ pub enum TryReceiveError {
     ReceiveError(ReceiveError),
 }
 
+impl From<crossbeam_channel::RecvTimeoutError> for TryReceiveError {
+    fn from(value: crossbeam_channel::RecvTimeoutError) -> Self {
+        match value {
+            RecvTimeoutError::Timeout => TryReceiveError::Empty,
+            RecvTimeoutError::Disconnected => {
+                TryReceiveError::ReceiveError(ReceiveError::Disconnected)
+            },
+        }
+    }
+}
+
 impl From<ipc_channel::ipc::TryRecvError> for TryReceiveError {
     fn from(e: ipc_channel::ipc::TryRecvError) -> Self {
         match e {
@@ -322,6 +338,26 @@ where
             GenericReceiverVariants::Crossbeam(ref receiver) => {
                 let msg = receiver.try_recv()?;
                 Ok(msg.expect("Infallible"))
+            },
+        }
+    }
+
+    /// Blocks up to the specific duration attempting to receive a message.
+    #[inline]
+    pub fn try_recv_timeout(&self, timeout: Duration) -> Result<T, TryReceiveError> {
+        match self.0 {
+            GenericReceiverVariants::Ipc(ref ipc_receiver) => {
+                ipc_receiver.try_recv_timeout(timeout).map_err(|e| e.into())
+            },
+            GenericReceiverVariants::Crossbeam(ref receiver) => {
+                match receiver.recv_timeout(timeout) {
+                    Ok(Ok(value)) => Ok(value),
+                    Ok(Err(_)) => unreachable!("Infallable"),
+                    Err(RecvTimeoutError::Disconnected) => {
+                        Err(TryReceiveError::ReceiveError(ReceiveError::Disconnected))
+                    },
+                    Err(RecvTimeoutError::Timeout) => Err(TryReceiveError::Empty),
+                }
             },
         }
     }
@@ -581,5 +617,29 @@ mod single_process_channel_tests {
                 assert_eq!(res, 42);
             });
         });
+    }
+
+    #[test]
+    fn test_timeout_ipc() {
+        let (tx, rx) = new_generic_channel_ipc().unwrap();
+        let timeout_duration = std::time::Duration::from_secs(3);
+        std::thread::spawn(move || {
+            std::thread::sleep(timeout_duration - std::time::Duration::from_secs(1));
+            assert!(tx.send(()).is_ok());
+        });
+        let received = rx.try_recv_timeout(timeout_duration);
+        assert!(received.is_ok());
+    }
+
+    #[test]
+    fn test_timeout_crossbeam() {
+        let (tx, rx) = new_generic_channel_crossbeam();
+        let timeout_duration = std::time::Duration::from_secs(3);
+        std::thread::spawn(move || {
+            std::thread::sleep(timeout_duration - std::time::Duration::from_secs(1));
+            assert!(tx.send(()).is_ok());
+        });
+        let received = rx.try_recv_timeout(timeout_duration);
+        assert!(received.is_ok());
     }
 }

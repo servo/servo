@@ -9,6 +9,7 @@ use constellation_traits::BlobImpl;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
+use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
 
 use crate::dom::bindings::codegen::Bindings::ClipboardBinding::{
@@ -28,7 +29,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::realms::{InRealm, enter_realm};
 use crate::routed_promise::{RoutedPromiseListener, route_promise};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
@@ -41,11 +42,11 @@ struct RepresentationDataPromiseFulfillmentHandler {
 impl Callback for RepresentationDataPromiseFulfillmentHandler {
     /// The fulfillment case of Step 3.4.1.1.4.3 of
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
         // If v is a DOMString, then follow the below steps:
         // Resolve p with v.
         // Return p.
-        self.promise.resolve(cx, v, can_gc);
+        self.promise.resolve(cx.into(), v, CanGc::from_cx(cx));
 
         // NOTE: Since we ask text from arboard, v can't be a Blob
         // If v is a Blob, then follow the below steps:
@@ -66,10 +67,11 @@ struct RepresentationDataPromiseRejectionHandler {
 impl Callback for RepresentationDataPromiseRejectionHandler {
     /// The rejection case of Step 3.4.1.1.4.3 of
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // Reject p with "NotFoundError" DOMException in realm.
         // Return p.
-        self.promise.reject_error(Error::NotFound(None), can_gc);
+        self.promise
+            .reject_error(Error::NotFound(None), CanGc::from_cx(cx));
     }
 }
 

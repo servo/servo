@@ -4,11 +4,12 @@
 
 #![deny(unsafe_code)]
 
-use std::fmt::Display;
+use std::fmt::{self, Debug, Display};
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::{self, GenericSender};
 use base::id::{CookieStoreId, HistoryStateId};
 use base::{IpcSend, IpcSendResult};
 use content_security_policy::{self as csp};
@@ -32,7 +33,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
-use crate::request::{Request, RequestBuilder};
+use crate::request::{PreloadId, Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
 
 pub mod blob_url_store;
@@ -503,8 +504,41 @@ impl ResourceThreads {
         ResourceThreads { core_thread }
     }
 
+    pub fn cache_entries(&self) -> Vec<CacheEntryDescriptor> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::GetCacheEntries(sender));
+        receiver.recv().unwrap()
+    }
+
     pub fn clear_cache(&self) {
-        let _ = self.core_thread.send(CoreResourceMsg::ClearCache);
+        // NOTE: Messages used in these methods are currently handled
+        // synchronously on the backend without consulting other threads, so
+        // waiting for the response here cannot deadlock. If the backend
+        // handling ever becomes asynchronous or involves sending messages
+        // back to the originating thread, this code will need to be revisited
+        // to avoid potential deadlocks.
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::ClearCache(Some(sender)));
+        let _ = receiver.recv();
+    }
+
+    pub fn cookies(&self) -> Vec<SiteDescriptor> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self.core_thread.send(CoreResourceMsg::ListCookies(sender));
+        receiver.recv().unwrap()
+    }
+
+    pub fn clear_cookies_for_sites(&self, sites: &[&str]) {
+        let sites = sites.iter().map(|site| site.to_string()).collect();
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::DeleteCookiesForSites(sites, sender));
+        let _ = receiver.recv();
     }
 
     pub fn clear_cookies(&self) {
@@ -595,26 +629,53 @@ pub enum CoreResourceMsg {
     ),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
+    DeleteCookiesForSites(Vec<String>, GenericSender<()>),
     DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
     RemoveCookieListener(CookieStoreId),
+    ListCookies(GenericSender<Vec<SiteDescriptor>>),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
     SetHistoryState(HistoryStateId, Vec<u8>),
     /// Removes history states for the given ids
     RemoveHistoryStates(Vec<HistoryStateId>),
+    /// Gets a list of origin descriptors derived from entries in the cache
+    GetCacheEntries(GenericSender<Vec<CacheEntryDescriptor>>),
     /// Clear the network cache.
-    ClearCache,
+    ClearCache(Option<GenericSender<()>>),
     /// Send the service worker network mediator for an origin to CoreResourceThread
     NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
+    StorePreloadedResponse(PreloadId, Response),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
     Exit(IpcSender<()>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SiteDescriptor {
+    pub name: String,
+}
+
+impl SiteDescriptor {
+    pub fn new(name: String) -> Self {
+        SiteDescriptor { name }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CacheEntryDescriptor {
+    pub key: String,
+}
+
+impl CacheEntryDescriptor {
+    pub fn new(key: String) -> Self {
+        Self { key }
+    }
 }
 
 // FIXME: https://github.com/servo/servo/issues/34591
@@ -815,6 +876,7 @@ pub struct ResourceFetchTiming {
     pub connect_start: Option<CrossProcessInstant>,
     pub connect_end: Option<CrossProcessInstant>,
     pub start_time: Option<CrossProcessInstant>,
+    pub preloaded: bool,
 }
 
 pub enum RedirectStartValue {
@@ -876,6 +938,7 @@ impl ResourceFetchTiming {
             connect_end: None,
             response_end: None,
             start_time: None,
+            preloaded: false,
         }
     }
 
@@ -1068,7 +1131,7 @@ pub struct CookieAsyncResponse {
 }
 
 /// Network errors that have to be exported out of the loaders
-#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum NetworkError {
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
@@ -1077,9 +1140,76 @@ pub enum NetworkError {
     SslValidation(String, Vec<u8>),
     /// Crash error, to be converted to Resource::Crash in the HTML parser.
     Crash(String),
+    UnsupportedScheme,
+    CorsGeneral,
+    CrossOriginResponse,
+    CorsCredentials,
+    CorsAllowMethods,
+    CorsAllowHeaders,
+    CorsMethod,
+    CorsAuthorization,
+    CorsHeaders,
+    ConnectionFailure,
+    RedirectError,
+    TooManyRedirects,
+    InvalidMethod,
+    ResourceLoadError(String),
+    ContentSecurityPolicy,
+    Nosniff,
+    MimeType(String),
+    SubresourceIntegrity,
+    MixedContent,
+    CacheError,
+    InvalidPort,
+    LocalDirectoryError,
+}
+
+impl fmt::Debug for NetworkError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NetworkError::Internal(s) => write!(f, "{}", s),
+            NetworkError::UnsupportedScheme => write!(f, "Unsupported scheme"),
+            NetworkError::CorsGeneral => write!(f, "CORS check failed"),
+            NetworkError::CrossOriginResponse => write!(f, "Cross-origin response"),
+            NetworkError::CorsCredentials => write!(f, "Cross-origin credentials check failed"),
+            NetworkError::CorsAllowMethods => write!(f, "CORS ACAM check failed"),
+            NetworkError::CorsAllowHeaders => write!(f, "CORS ACAH check failed"),
+            NetworkError::CorsMethod => write!(f, "CORS method check failed"),
+            NetworkError::CorsAuthorization => write!(f, "CORS authorization check failed"),
+            NetworkError::CorsHeaders => write!(f, "CORS headers check failed"),
+            NetworkError::ConnectionFailure => write!(f, "Request failed"),
+            NetworkError::RedirectError => write!(f, "Redirect failed"),
+            NetworkError::TooManyRedirects => write!(f, "Too many redirects"),
+            NetworkError::InvalidMethod => write!(f, "Unexpected method"),
+            NetworkError::ResourceLoadError(s) => write!(f, "{}", s),
+            NetworkError::ContentSecurityPolicy => write!(f, "Blocked by Content-Security-Policy"),
+            NetworkError::Nosniff => write!(f, "Blocked by nosniff"),
+            NetworkError::MimeType(s) => write!(f, "{}", s),
+            NetworkError::SubresourceIntegrity => {
+                write!(f, "Subresource integrity validation failed")
+            },
+            NetworkError::MixedContent => write!(f, "Blocked as mixed content"),
+            NetworkError::CacheError => write!(f, "Couldn't find response in cache"),
+            NetworkError::InvalidPort => write!(f, "Request attempted on bad port"),
+            NetworkError::LocalDirectoryError => write!(f, "Local directory access failed"),
+            NetworkError::LoadCancelled => write!(f, "Load cancelled"),
+            NetworkError::SslValidation(s, _) => write!(f, "SSL validation error: {}", s),
+            NetworkError::Crash(s) => write!(f, "Crash: {}", s),
+        }
+    }
 }
 
 impl NetworkError {
+    pub fn is_permanent_failure(&self) -> bool {
+        matches!(
+            self,
+            NetworkError::InvalidPort |
+                NetworkError::MixedContent |
+                NetworkError::ContentSecurityPolicy |
+                NetworkError::UnsupportedScheme
+        )
+    }
+
     pub fn from_hyper_error(error: &HyperError, certificate: Option<CertificateDer>) -> Self {
         let error_string = error.to_string();
         match certificate {

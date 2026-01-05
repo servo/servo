@@ -285,7 +285,6 @@ impl IndependentFormattingContext {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn layout_without_caching(
         &self,
         layout_context: &LayoutContext,
@@ -343,7 +342,6 @@ impl IndependentFormattingContext {
     }
 
     #[servo_tracing::instrument(name = "IndependentFormattingContext::layout", skip_all)]
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,

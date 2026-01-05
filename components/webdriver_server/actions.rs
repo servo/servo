@@ -32,7 +32,8 @@ use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_oneshot_r
 static POINTERMOVE_INTERVAL: u64 = 17;
 static WHEELSCROLL_INTERVAL: u64 = 17;
 
-// https://262.ecma-international.org/6.0/#sec-number.max_safe_integer
+/// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
+/// 2^53 - 1
 static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 // A single action, corresponding to an `action object` in the spec.
@@ -484,7 +485,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn perform_pointer_move(
         &mut self,
         source_id: &str,
@@ -651,7 +652,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-perform-a-scroll>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn perform_scroll(
         &self,
         duration: u64,

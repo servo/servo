@@ -1,7 +1,7 @@
 [package]
 name = "servoshell"
 build = "build.rs"
-version = "0.0.3"
+version = "0.0.4"
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
@@ -35,9 +35,10 @@ OriginalFilename = "servo.exe"
 ProductName = "Servo"
 
 [features]
-default = ["libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+default = ["gamepad", "libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
 crown = ["libservo/crown"]
 debugmozjs = ["libservo/debugmozjs"]
+gamepad = ["libservo/gamepad"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 js_jit = ["libservo/js_jit"]
@@ -91,11 +92,11 @@ euclid = { workspace = true }
 hilog = "0.2.2"
 # force inprocess until we add multi-process support for ohos
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
-napi-derive-ohos = "1.1.4"
-napi-ohos = "1.1.4"
+napi-derive-ohos = "1.1.5"
+napi-ohos = "1.1.5"
 ohos-abilitykit-sys = { version = "0.1.4", features = ["api-14"] }
 ohos-deviceinfo = "0.1.0"
-ohos-ime = "0.4.0"
+ohos-ime = "0.4.2"
 ohos-ime-sys = "0.2.3"
 ohos-vsync = "0.1.3"
 ohos-window-manager-sys = { version = "0.1", features = ["api-14"] }

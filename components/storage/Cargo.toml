@@ -22,8 +22,8 @@ log = { workspace = true }
 profile_traits = { workspace = true }
 rusqlite = { version = "0.37", features = ["bundled"] }
 rustc-hash = { workspace = true }
-sea-query = { version = "1.0.0-rc.9", default-features = false, features = ["backend-sqlite", "derive"] }
-sea-query-rusqlite = { version = "0.8.0-rc.8" }
+sea-query = { workspace = true }
+sea-query-rusqlite = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
@@ -32,8 +32,8 @@ storage_traits = { workspace = true }
 tempfile = "3"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }
-tokio-stream = "0.1"
-tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true, features = ["codec", "io"] }
 uuid = { workspace = true }
 
 [dev-dependencies]

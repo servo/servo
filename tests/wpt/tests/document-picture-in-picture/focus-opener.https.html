@@ -9,16 +9,19 @@
   <iframe></iframe>
 <script>
 promise_test(async (t) => {
+  // Ensure this window is blurred so that we can detect that the
+  // document PiP window has focused us.
+  const blurPromise = new Promise(async (resolve) => {
+    window.addEventListener('blur', resolve, { once: true });
+  });
+
   await test_driver.bless('request PiP window from top window');
   const pipWindow = await documentPictureInPicture.requestWindow();
 
-  // Blur this window by focusing the iframe. This will allow us to detect that
-  // the document picture-in-picture window has focused us.
-  const blurPromise = new Promise(async (resolve) => {
-    window.addEventListener('blur', resolve, { once: true });
-    await test_driver.bless('focus inner iframe to blur window');
-    document.getElementsByTagName('iframe')[0].focus();
-  });
+  // The PiP might be focused automatically.
+  // But to be safe that this window is blured, focus the iframe.
+  await test_driver.bless('focus inner iframe to blur window');
+  document.getElementsByTagName('iframe')[0].focus();
   await blurPromise;
 
   // Now focus this window from the document picture-in-picture window's

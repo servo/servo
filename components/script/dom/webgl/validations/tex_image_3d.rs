@@ -128,7 +128,7 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
 }
 
 impl<'a> CommonTexImage3DValidator<'a> {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,
@@ -161,7 +161,7 @@ pub(crate) struct TexImage3DValidator<'a> {
 
 impl<'a> TexImage3DValidator<'a> {
     /// TODO: Move data validation logic here.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         context: &'a WebGLRenderingContext,
         target: u32,

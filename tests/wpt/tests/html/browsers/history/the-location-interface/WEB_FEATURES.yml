@@ -1,0 +1,12 @@
+features:
+- name: location
+  files:
+  - assign-*
+  - document_location.html
+  - location-*
+  - location_*
+  - no-browsing-context.window.js
+  - reload_*
+  - replace-with-nested-iframe.html
+  - same-hash.html
+  - scripted_*

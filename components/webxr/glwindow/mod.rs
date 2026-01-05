@@ -155,7 +155,7 @@ impl DeviceAPI for GlWindowDevice {
     fn viewports(&self) -> Viewports {
         let size = self.viewport_size();
         let viewports = match self.window.get_mode() {
-            #[allow(clippy::erasing_op, clippy::identity_op)]
+            #[expect(clippy::erasing_op, clippy::identity_op)]
             GlWindowMode::Cubemap | GlWindowMode::Spherical => vec![
                 Rect::new(Point2D::new(size.width * 1, size.height * 1), size),
                 Rect::new(Point2D::new(size.width * 0, size.height * 1), size),

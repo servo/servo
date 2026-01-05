@@ -9,6 +9,7 @@ use std::str::FromStr;
 use constellation_traits::BlobImpl;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, MutableHandleValue};
 use script_bindings::record::Record;
 
@@ -42,15 +43,20 @@ struct RepresentationDataPromiseFulfillmentHandler {
 
 impl Callback for RepresentationDataPromiseFulfillmentHandler {
     /// Substeps of 8.1.2.1 If representationDataPromise was fulfilled with value v, then:
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // 1. If v is a DOMString, then follow the below steps:
         if v.get().is_string() {
             // 1.1 Let dataAsBytes be the result of UTF-8 encoding v.
-            let data_as_bytes =
-                match DOMString::safe_from_jsval(cx, v, StringificationBehavior::Default, can_gc) {
-                    Ok(ConversionResult::Success(s)) => s.as_bytes().to_owned(),
-                    _ => return,
-                };
+            let data_as_bytes = match DOMString::safe_from_jsval(
+                cx.into(),
+                v,
+                StringificationBehavior::Default,
+                can_gc,
+            ) {
+                Ok(ConversionResult::Success(s)) => s.as_bytes().to_owned(),
+                _ => return,
+            };
 
             // 1.2 Let blobData be a Blob created using dataAsBytes with its type set to mimeType, serialized.
             let blob_data = Blob::new(
@@ -63,11 +69,11 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             self.promise.resolve_native(&blob_data, can_gc);
         }
         // 2. If v is a Blob, then follow the below steps:
-        else if DomRoot::<Blob>::safe_from_jsval(cx, v, (), can_gc)
+        else if DomRoot::<Blob>::safe_from_jsval(cx.into(), v, (), can_gc)
             .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.
-            self.promise.resolve(cx, v, can_gc);
+            self.promise.resolve(cx.into(), v, can_gc);
         }
     }
 }
@@ -82,7 +88,8 @@ struct RepresentationDataPromiseRejectionHandler {
 
 impl Callback for RepresentationDataPromiseRejectionHandler {
     /// Substeps of 8.1.2.2 If representationDataPromise was rejected, then:
-    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // 1. Reject p with "NotFoundError" DOMException in realm.
         self.promise.reject_error(Error::NotFound(None), can_gc);
     }

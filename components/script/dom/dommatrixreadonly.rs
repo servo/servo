@@ -18,9 +18,11 @@ use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
 use js::typedarray::{Float32Array, Float64Array, HeapFloat32Array, HeapFloat64Array};
 use rustc_hash::FxHashMap;
 use script_bindings::trace::RootedTraceableBox;
-use style::parser::ParserContext;
+use style::stylesheets::CssRuleType;
+use style_traits::ParsingMode;
 use url::Url;
 
+use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{
@@ -1213,16 +1215,8 @@ pub(crate) fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<
     let mut input = ParserInput::new(&value);
     let mut parser = Parser::new(&mut input);
     let url_data = Url::parse("about:blank").unwrap().into();
-    let context = ParserContext::new(
-        ::style::stylesheets::Origin::Author,
-        &url_data,
-        Some(::style::stylesheets::CssRuleType::Style),
-        ::style_traits::ParsingMode::DEFAULT,
-        ::style::context::QuirksMode::NoQuirks,
-        /* namespaces = */ Default::default(),
-        None,
-        None,
-    );
+    let context =
+        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url_data);
 
     let transform = match parser.parse_entirely(|t| transform::parse(&context, t)) {
         Ok(result) => result,

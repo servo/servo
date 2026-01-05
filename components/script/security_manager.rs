@@ -118,6 +118,7 @@ impl CSPViolationReportTask {
                 global.insecure_requests_policy(),
                 global.has_trustworthy_ancestor_or_current_origin(),
                 global.policy_container(),
+                global.request_client(),
             )
             .method(http::Method::POST)
             .body(request_body)

@@ -1164,5 +1164,21 @@ var browserTests = [
     [["defaultparagraphseparator","p"],["justifyfull",""]],
     "<div align=\"justify\"><p>foo</p> <p>[bar]</p> <p>baz</p></div>",
     [true,true],
-    {"defaultparagraphseparator":[false,false,"div",false,false,"p"],"justifyfull":[false,false,"left",false,true,"justify"]}]
+    {"defaultparagraphseparator":[false,false,"div",false,false,"p"],"justifyfull":[false,false,"left",false,true,"justify"]}],
+
+// Firefox puts the new <div> at first editable/visible point and Chrome puts the
+// new <div> at start of the selection first.
+// Then, Firefox moves all editable nodes in the range into the new block.  However,
+// Chrome does not move anything.  Safari just deletes editable nodes in the range.
+// For here, these test expects that browsers wrap all selected things into the new
+// block since non-editable nodes are removable, so, they should be movable too and
+// Firefox and Chrome behave so for "insertOrderedList" and "insertUnorderedList".
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","true"],["defaultparagraphseparator","div"],["justifyfull",""]],
+    ['<div style="text-align:justify"> <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> </div>',
+     // It's fine to ignore or delete the invisible whitespaces.
+     ' <div style="text-align:justify"><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div> ',
+     '<div style="text-align:justify"><span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span></div>'],
+    [true,true,true],
+    {}],
 ]

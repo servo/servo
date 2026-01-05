@@ -262,6 +262,49 @@ dictionary JsonWebKey {
   DOMString k;
 };
 
+// https://wicg.github.io/webcrypto-modern-algos/#partial-subtlecrypto-interface
+
+[SecureContext,Exposed=(Window,Worker)]
+partial interface SubtleCrypto {
+  Promise<EncapsulatedKey> encapsulateKey(
+    AlgorithmIdentifier encapsulationAlgorithm,
+    CryptoKey encapsulationKey,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence<KeyUsage> keyUsages
+  );
+  Promise<EncapsulatedBits> encapsulateBits(
+    AlgorithmIdentifier encapsulationAlgorithm,
+    CryptoKey encapsulationKey
+  );
+
+  Promise<CryptoKey> decapsulateKey(
+    AlgorithmIdentifier decapsulationAlgorithm,
+    CryptoKey decapsulationKey,
+    BufferSource ciphertext,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence<KeyUsage> keyUsages
+  );
+  Promise<ArrayBuffer> decapsulateBits(
+    AlgorithmIdentifier decapsulationAlgorithm,
+    CryptoKey decapsulationKey,
+    BufferSource ciphertext
+  );
+
+  // Promise<CryptoKey> getPublicKey(
+  //   CryptoKey key,
+  //   sequence<KeyUsage> keyUsages
+  // );
+
+  // static boolean supports(DOMString operation,
+  //                  AlgorithmIdentifier algorithm,
+  //                  optional unsigned long? length = null);
+  // static boolean supports(DOMString operation,
+  //                  AlgorithmIdentifier algorithm,
+  //                  AlgorithmIdentifier additionalAlgorithm);
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#subtlecrypto-interface-keyformat
 // * For all existing symmetric algorithms in [webcrypto], "raw-secret"
 //   acts as an alias of "raw".
@@ -271,6 +314,12 @@ dictionary JsonWebKey {
 //   must be used as the format instead of "raw".
 
 enum KeyFormat { "raw-public", "raw-private", "raw-seed", "raw-secret", "raw", "spki", "pkcs8", "jwk" };
+
+// https://wicg.github.io/webcrypto-modern-algos/#context-params
+
+dictionary ContextParams : Algorithm {
+  BufferSource context;
+};
 
 // https://wicg.github.io/webcrypto-modern-algos/#aead-params
 
@@ -298,4 +347,24 @@ dictionary Argon2Params : Algorithm {
   [EnforceRange] octet version;
   BufferSource secretValue;
   BufferSource associatedData;
+};
+
+// https://wicg.github.io/webcrypto-modern-algos/#encapsulation
+
+dictionary EncapsulatedKey {
+  CryptoKey sharedKey;
+  ArrayBuffer ciphertext;
+};
+
+dictionary EncapsulatedBits {
+  ArrayBuffer sharedKey;
+  ArrayBuffer ciphertext;
+};
+
+// https://wicg.github.io/webcrypto-modern-algos/#partial-JsonWebKey-dictionary
+
+partial dictionary JsonWebKey {
+  // The following fields are defined in draft-ietf-cose-dilithium-08
+  DOMString pub;
+  DOMString priv;
 };

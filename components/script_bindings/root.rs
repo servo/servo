@@ -388,7 +388,7 @@ pub struct RootCollection {
 
 impl RootCollection {
     /// Create an empty collection of roots
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default)]
     pub const fn new() -> RootCollection {
         RootCollection {
             roots: UnsafeCell::new(vec![]),

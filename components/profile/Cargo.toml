@@ -13,7 +13,6 @@ path = "lib.rs"
 
 [dependencies]
 base = { workspace = true }
-ipc-channel = { workspace = true }
 log = { workspace = true }
 profile_traits = { workspace = true }
 serde = { workspace = true }

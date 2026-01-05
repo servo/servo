@@ -346,7 +346,18 @@ pub enum OpenDatabaseResult {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct DatabaseInfo {
+    pub name: String,
+    pub version: u64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum SyncOperation {
+    /// Gets existing databases.
+    GetDatabases(
+        GenericCallback<BackendResult<Vec<DatabaseInfo>>>,
+        ImmutableOrigin,
+    ),
     /// Upgrades the version of the database
     UpgradeVersion(
         /// Sender to send new version as the result of the operation
@@ -432,7 +443,7 @@ pub enum SyncOperation {
 
     /// Deletes the database
     DeleteDatabase(
-        GenericCallback<BackendResult<()>>,
+        GenericCallback<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
     ),

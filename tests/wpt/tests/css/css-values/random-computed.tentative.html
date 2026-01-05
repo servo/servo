@@ -9,12 +9,37 @@
   <div id="target"></div>
 </div>
 <style>
+  @property --x {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 3;
+  }
+  @property --y {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 3;
+  }
+  @property --random-length-1 {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 3px;
+  }
+  @property --random-length-2 {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 3px;
+  }
   .randomNoIdentifier {
     width: random(0px, 100px);
     height: random(0px, 100px);
     left: random(0px, 100000px);
     right: random(0px, 100000px);
     margin: random(0px, 100000px) random(0px, 100000px);
+    --x: random(0, 100);
+    --y: random(0, 100);
+    --random-length-1: random(fixed random(0, 1), 10px, 100px);
+    --random-length-2: random(fixed random(0, 1), 10px, 100px);
+    view-transition-name: ident("myident" random(1, 100));
   }
   .randomMatchElement {
     width: random(element-shared, 0px, 100px);
@@ -22,7 +47,11 @@
     left: random(element-shared, 0px, 100000px);
     right: random(element-shared, 0px, 100000px);
     margin: random(element-shared 0px, 100000px) random(element-shared 0px, 100000px);
-    translate: random(10%, 30%);
+    translate: random(element-shared, 10%, 30%);
+    scale: random(element-shared, 1, 3) random(element-shared, 3, 9);
+    math-depth: add(random(element-shared, 1, 100));
+    color: color-mix(in srgb, rgb(from blue random(51, 10) random(g + 51, g) random(b, b)), rgb(random(21, 10) 0 0));
+    view-transition-name: ident("myident" random(element-shared, 1, 100));
   }
   .randomIdentifier {
     width: random(--identifier, 0px, 100px);
@@ -298,6 +327,14 @@ test_random_computed_value('font-size', 'random(10px * 10% / 1%, 0%)', '100px');
 test_random_base_is_not_1('width', 'random(fixed random(1, 2), 10px, 100px)');
 test_random_computed_value_has_fixed('translate', 'random(fixed random(-2, -1), 10%, 100%)', '10%', '100%', 0);
 
+// Random inside function
+test_random_computed_value('color', 'rgb(random(30, 10) random(60, 10) random(90, 10))', 'rgb(30, 60, 90)');
+test_random_computed_value('color', 'rgb(from blue random(51, 10) random(g + 51, g) random(b, b))', 'color(srgb 0.2 0.2 1)');
+test_random_computed_value('color', 'color-mix(in srgb, rgb(random(30, 10) 0 0), rgb(random(21, 10) 0 0))', 'color(srgb 0.1 0 0)');
+test_random_computed_value('math-depth', 'add(random(30, 10))', '30');
+test_random_computed_value('view-transition-name', 'ident("myident" random(30, 10))', 'myident30');
+test_random_computed_value('background-image', 'image-set(url("http://example.com/image.png") calc(random(fixed 0.3, 0, 10) * 1x))', 'image-set(url("http://example.com/image.png") 3dppx)');
+
 // Test random value sharing
 test(() => {
   const holder = document.createElement('div');
@@ -338,22 +375,145 @@ test(() => {
 
   try {
     var allHaveSameMarginTopAndMarginLeft = true;
+    var allHaveSameMarginTopAndMarginBottom = true;
     for (i = 0; i < iterations; ++i) {
       const other = document.createElement('div');
       other.className = 'randomNoIdentifier';
       holder.appendChild(other);
       const otherComputedMarginLeft = getComputedStyle(other)['margin-left'];
       const otherComputedMarginTop = getComputedStyle(other)['margin-top'];
+      const otherComputedMarginBottom = getComputedStyle(other)['margin-bottom'];
       if (otherComputedMarginLeft != otherComputedMarginTop) {
         allHaveSameMarginTopAndMarginLeft = false;
+      }
+      if (otherComputedMarginBottom != otherComputedMarginTop) {
+        allHaveSameMarginTopAndMarginBottom = false;
       }
     }
 
     assert_false(allHaveSameMarginTopAndMarginLeft);
+    assert_true(allHaveSameMarginTopAndMarginBottom);
   } finally {
     document.body.removeChild(holder);
   }
 }, `Maximum random - shorthand: random(a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    for (let i = 0; i < iterations; ++i) {
+      const other1 = document.createElement('div');
+      other1.style.animationIterationCount = 'random(element-shared, 0, 100), random(element-shared, 0, 100)';
+      holder.appendChild(other1);
+      let [computed11, computed12] = getComputedStyle(other1)['animation-iteration-count'].split(', ');
+      const other2 = document.createElement('div');
+      other2.style.animationIterationCount = '300, random(element-shared, 0, 100)';
+      holder.appendChild(other2);
+      let [computed21, computed22] = getComputedStyle(other2)['animation-iteration-count'].split(', ');
+      assert_false(computed11 == computed12, "Random values for same property name but different value indexes should differ");
+      test_random_equals(computed11, computed22);
+    }
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Shared by property name and value index: random(element-shared, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.className = 'randomMatchElement';
+    holder.appendChild(el);
+    const elScale = getComputedStyle(el)['scale'];
+
+    var allHaveSameScaleXAndScaleY = true;
+    var allSame = true;
+    for (i = 0; i < iterations; ++i) {
+      const other = document.createElement('div');
+      other.className = 'randomMatchElement';
+      holder.appendChild(other);
+      const otherScale = getComputedStyle(other)['scale'];
+      if (elScale != otherScale) {
+        allSame = false;
+      }
+      let [scaleX, scaleY] = otherScale.split(' ');
+      if (scaleX != scaleY) {
+        allHaveSameScaleXAndScaleY = false;
+      }
+    }
+
+    assert_false(allHaveSameScaleXAndScaleY);
+    assert_true(allSame);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Maximum random - list: random(a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    for (i = 0; i < iterations; ++i) {
+      const el = document.createElement('div');
+      el.className = 'randomNoIdentifier';
+      holder.appendChild(el);
+      const elComputedLength1 = getComputedStyle(el).getPropertyValue('--random-length-1');
+      const elComputedLength2 = getComputedStyle(el).getPropertyValue('--random-length-2');
+      assert_false(elComputedLength1 == elComputedLength2,
+                   "Different custom properties on the same element should not have equal values");
+    }
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Nested random inside custom property: 'random(a, b)'`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    for (i = 0; i < iterations; ++i) {
+      const el = document.createElement('div');
+      el.className = 'randomNoIdentifier';
+      holder.appendChild(el);
+      const elComputedX = getComputedStyle(el).getPropertyValue('--x');
+      const elComputedY = getComputedStyle(el).getPropertyValue('--y');
+      assert_false(elComputedX == elComputedY,
+                   "Different custom properties on the same element should not have equal values");
+    }
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Maximum random custom property: 'random(a, b)'`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    for (i = 0; i < iterations; ++i) {
+      const t1 = document.createElement('div');
+      t1.className = 'randomNoIdentifier';
+      holder.appendChild(t1);
+      const t2 = document.createElement('div');
+      t2.className = 'randomNoIdentifier';
+      holder.appendChild(t2);
+
+      let t1ComputedViewTransitionName = getComputedStyle(t1)['view-transition-name'];
+      let t2ComputedViewTransitionName= getComputedStyle(t2)['view-transition-name'];
+
+      assert_false(t1ComputedViewTransitionName == t2ComputedViewTransitionName,
+                   "view-transition-name values on different elements should be equal");
+    }
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Shared by property, random inside ident(): random(a, b)`);
 
 test(() => {
   const holder = document.createElement('div');
@@ -436,6 +596,77 @@ test(() => {
       t2.className = 'randomMatchElement';
       holder.appendChild(t2);
 
+      let t1ComputedMathDepth = getComputedStyle(t1)['math-depth'];
+      let t2ComputedMathDepth = getComputedStyle(t2)['math-depth'];
+
+      test_random_equals(t1ComputedMathDepth, t2ComputedMathDepth,
+                         "math-depth values on different elements should be equal");
+    }
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Shared between elements within a property, random inside function: random(element-shared, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    for (i = 0; i < iterations; ++i) {
+      const t1 = document.createElement('div');
+      t1.className = 'randomMatchElement';
+      holder.appendChild(t1);
+      const t2 = document.createElement('div');
+      t2.className = 'randomMatchElement';
+      holder.appendChild(t2);
+
+      let t1ComputedViewTransitionName = getComputedStyle(t1)['view-transition-name'];
+      let t2ComputedViewTransitionName= getComputedStyle(t2)['view-transition-name'];
+
+      test_random_equals(t1ComputedViewTransitionName, t2ComputedViewTransitionName,
+                         "view-transition-name values on different elements should be equal");
+    }
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Shared between elements within a property, random inside ident(): random(element-shared, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    for (i = 0; i < iterations; ++i) {
+      const t1 = document.createElement('div');
+      t1.className = 'randomMatchElement';
+      holder.appendChild(t1);
+      const t2 = document.createElement('div');
+      t2.className = 'randomMatchElement';
+      holder.appendChild(t2);
+
+      let t1ComputedColor = getComputedStyle(t1)['color'];
+      let t2ComputedColor = getComputedStyle(t2)['color'];
+      test_random_equals(t1ComputedColor, t2ComputedColor,
+                         "color values on different elements should be equal");
+    }
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Shared between elements within a property, random inside color functions: random(element-shared, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    for (i = 0; i < iterations; ++i) {
+      const t1 = document.createElement('div');
+      t1.className = 'randomMatchElement';
+      holder.appendChild(t1);
+      const t2 = document.createElement('div');
+      t2.className = 'randomMatchElement';
+      holder.appendChild(t2);
+
       let t1ComputedWidth = getComputedStyle(t1)['translate'];
       let t2ComputedWidth = getComputedStyle(t2)['translate'];
 
@@ -468,7 +699,7 @@ test(() => {
   } finally {
     document.body.removeChild(holder);
   }
-}, `Shared between elements within a property - shorthand: random(element-shared, a, b))`);
+}, `Shared between elements within a property - shorthand: random(element-shared, a, b)`);
 
 test(() => {
   const holder = document.createElement('div');
@@ -515,7 +746,7 @@ test(() => {
   } finally {
     document.body.removeChild(holder);
   }
-}, `Shared globally - shorthand: random(element-shared, a, b))`);
+}, `Shared globally - shorthand: random(element-shared, a, b)`);
 
 test(() => {
   const holder = document.createElement('div');
@@ -535,5 +766,32 @@ test(() => {
     document.body.removeChild(holder);
   }
 }, `Fixed: random(fixed <number>, a, b)`);
+
+// Test random value sharing
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.className = 'randomIdentifier';
+    holder.appendChild(el);
+    const elComputedHeight = getComputedStyle(el)['height'];
+
+    var allSame = true;
+    for (i = 0; i < iterations; ++i) {
+      const other = document.createElement('div');
+      other.className = 'randomIdentifier';
+      holder.appendChild(other);
+      const otherComputedHeight = getComputedStyle(other)['height'];
+      if (elComputedHeight != otherComputedHeight) {
+        allSame = false;
+      }
+    }
+    assert_false(allSame);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Different between elements with same identifier random(--identifier, a, b)`);
 
 </script>

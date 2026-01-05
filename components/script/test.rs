@@ -72,7 +72,12 @@ pub mod timeranges {
 pub mod textinput {
     pub use crate::clipboard_provider::ClipboardProvider;
     pub use crate::textinput::{
-        Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF8Bytes,
-        UTF16CodeUnits,
+        Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint,
+    };
+}
+
+pub mod encoding_detection {
+    pub use crate::dom::servoparser::encoding::{
+        get_xml_encoding, prescan_the_byte_stream_to_determine_the_encoding,
     };
 }

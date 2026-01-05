@@ -13,7 +13,6 @@ use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
 use crate::{ClientStorageThreadFactory, IndexedDBThreadFactory, WebStorageThreadFactory};
 
-#[allow(clippy::too_many_arguments)]
 pub fn new_storage_threads(
     mem_profiler_chan: MemProfilerChan,
     config_dir: Option<PathBuf>,

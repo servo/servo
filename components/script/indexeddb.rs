@@ -16,7 +16,7 @@ use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
 use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
 use script_bindings::script_runtime::CanGc;
-use storage_traits::indexeddb::{IndexedDBKeyRange, IndexedDBKeyType};
+use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
@@ -286,6 +286,19 @@ pub fn convert_value_to_key_range(
 
     // Step 5. Return a key range containing only key.
     Ok(IndexedDBKeyRange::only(key))
+}
+
+pub(crate) fn map_backend_error_to_dom_error(error: BackendError) -> Error {
+    match error {
+        BackendError::QuotaExceeded => Error::QuotaExceeded {
+            quota: None,
+            requested: None,
+        },
+        BackendError::DbErr(details) => {
+            Error::Operation(Some(format!("IndexedDB open failed: {details}")))
+        },
+        other => Error::Operation(Some(format!("IndexedDB open failed: {other:?}"))),
+    }
 }
 
 /// The result of steps in

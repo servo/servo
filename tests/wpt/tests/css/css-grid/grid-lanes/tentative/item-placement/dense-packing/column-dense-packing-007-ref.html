@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 50px);
+    gap: 10px;
+    grid-auto-flow: dense;
+}
+</style>
+<body>
+<p>Test that we always prioritize the highest position in "open" tracks even if there is a track opening available that is lower.</p>
+<div class="grid">
+  <div style="background: lavender; height: 60px; grid-column: 3;">
+    1
+  </div>
+  <div style="background: lightpink; grid-column: 2 / span 3; height: 10px;">
+    2
+  </div>
+  <div style="background: lightgreen; height: 15px; grid-row: 1;">
+    3
+  </div>
+  <div style="background: yellow; height: 20px;">
+    5
+  </div>
+  <div style="background: yellow; height: 20px;">
+    4
+  </div>
+  <div style="background: lightblue; height: 15px; transform: translateY(-45px);">
+    6
+  </div>
+  <div style="background: lightcoral; height: 15px; transform: translateY(-65px); grid-column: 2;">
+    7
+  </div>
+</div>
+</body>
+</html>

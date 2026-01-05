@@ -22,7 +22,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
-use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
+use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, DefaultLifecycle, PlaceholderGuard};
 use quick_cache::{DefaultHashBuilder, UnitWeighter};
@@ -805,6 +805,14 @@ impl HttpCache {
                 let _ = done_sender.send(to_send.clone());
             }
         }
+    }
+
+    /// Returns descriptors for cache entries currently stored in this cache.
+    pub fn cache_entry_descriptors(&self) -> Vec<CacheEntryDescriptor> {
+        self.entries
+            .iter()
+            .map(|(key, _)| CacheEntryDescriptor::new(key.url.to_string()))
+            .collect()
     }
 
     /// Clear the contents of this cache.

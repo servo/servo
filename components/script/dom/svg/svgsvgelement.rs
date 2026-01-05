@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
-
 use base64::Engine as _;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -15,6 +13,7 @@ use style::str::char_is_whitespace;
 use xml5ever::serialize::TraversalScope;
 
 use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -34,7 +33,7 @@ pub(crate) struct SVGSVGElement {
     // a base64 encoded `data:` url. This is cached to avoid recomputation
     // on each layout and must be invalidated when the subtree changes.
     #[no_trace]
-    cached_serialized_data_url: RefCell<Option<Result<ServoUrl, ()>>>,
+    cached_serialized_data_url: DomRefCell<Option<Result<ServoUrl, ()>>>,
 }
 
 impl SVGSVGElement {
@@ -128,6 +127,7 @@ impl SVGSVGElement {
             referenced_node,
             None,
             CloneChildrenFlag::CloneChildren,
+            None,
             can_gc,
         );
         let root_node = self.upcast::<Node>();
@@ -174,6 +174,7 @@ fn ratio_from_view_box(view_box: &AttrValue) -> Option<f32> {
 }
 
 impl LayoutSVGSVGElementHelpers for LayoutDom<'_, SVGSVGElement> {
+    #[expect(unsafe_code)]
     fn data(self) -> SVGElementData {
         let element = self.upcast::<Element>();
         let get_size = |attr| {
@@ -193,11 +194,12 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<'_, SVGSVGElement> {
                 .and_then(ratio_from_view_box),
         };
         SVGElementData {
-            source: self
-                .unsafe_get()
-                .cached_serialized_data_url
-                .borrow()
-                .clone(),
+            source: unsafe {
+                self.unsafe_get()
+                    .cached_serialized_data_url
+                    .borrow_for_layout()
+                    .clone()
+            },
             width,
             height,
             ratio,

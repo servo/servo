@@ -63,6 +63,11 @@ impl ContentSizes {
         }
     }
 
+    pub fn union_assign(&mut self, other: &Self) {
+        self.min_content.max_assign(other.min_content);
+        self.max_content += other.max_content;
+    }
+
     pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
         Self {
             min_content: f(self.min_content),
@@ -120,7 +125,7 @@ impl From<Au> for ContentSizes {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn outer_inline(
     base: &LayoutBoxBase,
     layout_style: &LayoutStyle,
@@ -184,6 +189,10 @@ pub(crate) fn outer_inline(
                 };
             ConstraintSpace::new(block_size, style, aspect_ratio)
         } else {
+            // Even if the size doesn't directly depend on block constraints, since this box
+            // doesn't establish a containing block, its contents can depend on its block
+            // constraints. And thus have a dependency via the intrinsic size.
+            depends_on_block_constraints = true;
             // This assumes that there is no preferred aspect ratio, or that there is no
             // block size constraint to be transferred so the ratio is irrelevant.
             // We only get into here for anonymous blocks, for which the assumption holds.

@@ -88,6 +88,7 @@ impl ServoShellWindow {
         let webview = WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
             .url(url)
             .hidpi_scale_factor(self.platform_window.hidpi_scale_factor())
+            .user_content_manager(state.user_content_manager.clone())
             .delegate(state.clone())
             .build();
 
@@ -374,7 +375,7 @@ pub(crate) trait PlatformWindow {
     fn handle_winit_window_event(
         &self,
         _: Rc<RunningAppState>,
-        _: &ServoShellWindow,
+        _: Rc<ServoShellWindow>,
         _: winit::event::WindowEvent,
     ) {
     }
@@ -437,4 +438,7 @@ pub(crate) trait PlatformWindow {
     fn notify_media_session_event(&self, _: MediaSessionEvent) {}
     fn notify_crashed(&self, _: WebView, _reason: String, _backtrace: Option<String>) {}
     fn show_console_message(&self, _level: ConsoleLogLevel, _message: &str) {}
+    fn has_winit_window(&self) -> bool {
+        false
+    }
 }

@@ -17,6 +17,12 @@ test_invalid_value("alignment-baseline", "auto");
 
 test_invalid_value("alignment-baseline", "none");
 test_invalid_value("alignment-baseline", "baseline text-bottom");
+
+// These values were moved to `baseline-shift`
+// https://github.com/w3c/csswg-drafts/issues/5180
+test_invalid_value("alignment-baseline", "top");
+test_invalid_value("alignment-baseline", "center");
+test_invalid_value("alignment-baseline", "bottom");
 </script>
 </body>
 </html>

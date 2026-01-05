@@ -227,7 +227,6 @@ impl Path {
         self.0.current_position()
     }
 
-    #[allow(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-arc>
     pub fn arc(
         &mut self,
@@ -251,7 +250,7 @@ impl Path {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
     pub fn ellipse(
         &mut self,

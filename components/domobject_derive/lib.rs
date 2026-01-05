@@ -112,7 +112,7 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
         proc_macro2::Span::call_site(),
     );
     let tokens = quote! {
-        #[allow(non_upper_case_globals)]
+        #[expect(non_upper_case_globals)]
         const #dummy_const: () = { #dummy_items };
         #items
     };

@@ -2,3 +2,6 @@ features:
 - name: background-blend-mode
   files:
   - background-blend-mode-*
+- name: isolation
+  files:
+  - isolation-*

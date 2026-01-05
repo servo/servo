@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
+use std::mem;
 use std::rc::Rc;
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -14,10 +15,9 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
-use encoding_rs::Encoding;
+use encoding_rs::{Encoding, UTF_8};
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::fmt::UTF8;
-use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
+use html5ever::tendril::StrTendril;
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
@@ -38,6 +38,7 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
 use tendril::stream::LossyDecoder;
+use tendril::{ByteTendril, TendrilSink};
 
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::bindings::cell::DomRefCell;
@@ -89,10 +90,12 @@ use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 
 mod async_html;
+pub(crate) mod encoding;
 pub(crate) mod html;
 mod prefetch;
 mod xml;
 
+use encoding::{NetworkDecoderState, NetworkSink};
 pub(crate) use html::serialize_html_fragment;
 
 #[dom_struct]
@@ -112,14 +115,8 @@ pub(crate) struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: Dom<Document>,
-    /// The BOM sniffing state.
-    ///
-    /// `None` means we've found the BOM, we've found there isn't one, or
-    /// we're not parsing from a byte stream. `Some` contains the BOM bytes
-    /// found so far.
-    bom_sniff: DomRefCell<Option<Vec<u8>>>,
     /// The decoder used for the network input.
-    network_decoder: DomRefCell<Option<NetworkDecoder>>,
+    network_decoder: DomRefCell<NetworkDecoderState>,
     /// Input received from network.
     #[ignore_malloc_size_of = "Defined in html5ever"]
     #[no_trace]
@@ -140,6 +137,12 @@ pub(crate) struct ServoParser {
     aborted: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#script-created-parser>
     script_created_parser: bool,
+    /// A decoder exclusively for input to the prefetch tokenizer.
+    ///
+    /// Unlike the actual decoder, this one takes a best guess at the encoding and starts
+    /// decoding immediately.
+    #[no_trace]
+    prefetch_decoder: RefCell<LossyDecoder<NetworkSink>>,
     /// We do a quick-and-dirty parse of the input looking for resources to prefetch.
     // TODO: if we had speculative parsing, we could do this when speculatively
     // building the DOM. https://github.com/servo/servo/pull/19203
@@ -179,18 +182,23 @@ impl ServoParser {
         document: &Document,
         input: Option<DOMString>,
         url: ServoUrl,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+        encoding_of_container_document: Option<&'static Encoding>,
         can_gc: CanGc,
     ) {
         // Step 1. Set document's type to "html".
         //
         // Set by callers of this function and asserted here
         assert!(document.is_html_document());
+
         // Step 2. Create an HTML parser parser, associated with document.
         let parser = if pref!(dom_servoparser_async_html_tokenizer_enabled) {
             ServoParser::new(
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
                 ParserKind::Normal,
+                encoding_hint_from_content_type,
+                encoding_of_container_document,
                 can_gc,
             )
         } else {
@@ -203,6 +211,8 @@ impl ServoParser {
                     ParsingAlgorithm::Normal,
                 )),
                 ParserKind::Normal,
+                encoding_hint_from_content_type,
+                encoding_of_container_document,
                 can_gc,
             )
         };
@@ -288,6 +298,8 @@ impl ServoParser {
                 ParsingAlgorithm::Fragment,
             )),
             ParserKind::Normal,
+            None,
+            None,
             can_gc,
         );
         parser.parse_complete_string_chunk(String::from(input), can_gc);
@@ -309,9 +321,10 @@ impl ServoParser {
                 ParsingAlgorithm::Normal,
             )),
             ParserKind::ScriptCreated,
+            None,
+            None,
             CanGc::note(),
         );
-        *parser.bom_sniff.borrow_mut() = None;
         document.set_current_parser(Some(&parser));
     }
 
@@ -319,12 +332,15 @@ impl ServoParser {
         document: &Document,
         input: Option<DOMString>,
         url: ServoUrl,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
         can_gc: CanGc,
     ) {
         let parser = ServoParser::new(
             document,
             Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
             ParserKind::Normal,
+            encoding_hint_from_content_type,
+            None,
             can_gc,
         );
 
@@ -492,7 +508,13 @@ impl ServoParser {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_inherited(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> Self {
+    fn new_inherited(
+        document: &Document,
+        tokenizer: Tokenizer,
+        kind: ParserKind,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+        encoding_of_container_document: Option<&'static Encoding>,
+    ) -> Self {
         // Store the whole input for the devtools Sources panel, if the devtools server is running
         // and we are parsing for a document load (not just things like innerHTML).
         // TODO: check if a devtools client is actually connected and/or wants the sources?
@@ -503,8 +525,10 @@ impl ServoParser {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
-            bom_sniff: DomRefCell::new(Some(Vec::with_capacity(3))),
-            network_decoder: DomRefCell::new(Some(NetworkDecoder::new(document.encoding()))),
+            network_decoder: DomRefCell::new(NetworkDecoderState::new(
+                encoding_hint_from_content_type,
+                encoding_of_container_document,
+            )),
             network_input: BufferQueue::default(),
             script_input: BufferQueue::default(),
             tokenizer,
@@ -513,6 +537,10 @@ impl ServoParser {
             script_nesting_level: Default::default(),
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
+            prefetch_decoder: RefCell::new(LossyDecoder::new_encoding_rs(
+                encoding_hint_from_content_type.unwrap_or(UTF_8),
+                Default::default(),
+            )),
             prefetch_tokenizer: prefetch::Tokenizer::new(document),
             prefetch_input: BufferQueue::default(),
             content_for_devtools,
@@ -524,10 +552,18 @@ impl ServoParser {
         document: &Document,
         tokenizer: Tokenizer,
         kind: ParserKind,
+        encoding_hint_from_content_type: Option<&'static Encoding>,
+        encoding_of_container_document: Option<&'static Encoding>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(ServoParser::new_inherited(document, tokenizer, kind)),
+            Box::new(ServoParser::new_inherited(
+                document,
+                tokenizer,
+                kind,
+                encoding_hint_from_content_type,
+                encoding_of_container_document,
+            )),
             document.window(),
             can_gc,
         )
@@ -546,6 +582,38 @@ impl ServoParser {
         if chunk.is_empty() {
             return;
         }
+
+        // Push the chunk into the network input stream,
+        // which is tokenized lazily.
+        self.network_input.push_back(chunk);
+    }
+
+    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+        // For byte input, we convert it to text using the network decoder.
+        if let Some(decoded_chunk) = self
+            .network_decoder
+            .borrow_mut()
+            .push(&chunk, &self.document)
+        {
+            self.push_tendril_input_chunk(decoded_chunk);
+        }
+
+        if self.should_prefetch() {
+            // Push the chunk into the prefetch input stream,
+            // which is tokenized eagerly, to scan for resources
+            // to prefetch. If the user script uses `document.write()`
+            // to overwrite the network input, this prefetching may
+            // have been wasted, but in most cases it won't.
+            let mut prefetch_decoder = self.prefetch_decoder.borrow_mut();
+            prefetch_decoder.process(ByteTendril::from(&*chunk));
+
+            self.prefetch_input
+                .push_back(mem::take(&mut prefetch_decoder.inner_sink_mut().output));
+            self.prefetch_tokenizer.feed(&self.prefetch_input);
+        }
+    }
+
+    fn should_prefetch(&self) -> bool {
         // Per https://github.com/whatwg/html/issues/1495
         // stylesheets should not be loaded for documents
         // without browsing contexts.
@@ -553,56 +621,10 @@ impl ServoParser {
         // suggests that no content should be preloaded in such a case.
         // We're conservative, and only prefetch for documents
         // with browsing contexts.
-        if self.document.browsing_context().is_some() {
-            // Push the chunk into the prefetch input stream,
-            // which is tokenized eagerly, to scan for resources
-            // to prefetch. If the user script uses `document.write()`
-            // to overwrite the network input, this prefetching may
-            // have been wasted, but in most cases it won't.
-            self.prefetch_input.push_back(chunk.clone());
-            self.prefetch_tokenizer.feed(&self.prefetch_input);
-        }
-        // Push the chunk into the network input stream,
-        // which is tokenized lazily.
-        self.network_input.push_back(chunk);
-    }
-
-    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
-        // BOM sniff. This is needed because NetworkDecoder will switch the
-        // encoding based on the BOM, but it won't change
-        // `self.document.encoding` in the process.
-        {
-            let mut bom_sniff = self.bom_sniff.borrow_mut();
-            if let Some(partial_bom) = bom_sniff.as_mut() {
-                if partial_bom.len() + chunk.len() >= 3 {
-                    partial_bom.extend(chunk.iter().take(3 - partial_bom.len()).copied());
-                    if let Some((encoding, _)) = Encoding::for_bom(partial_bom) {
-                        self.document.set_encoding(encoding);
-                    }
-                    drop(bom_sniff);
-                    *self.bom_sniff.borrow_mut() = None;
-                } else {
-                    partial_bom.extend(chunk.iter().copied());
-                }
-            }
-        }
-
-        // For byte input, we convert it to text using the network decoder.
-        let chunk = self
-            .network_decoder
-            .borrow_mut()
-            .as_mut()
-            .unwrap()
-            .decode(chunk);
-        self.push_tendril_input_chunk(chunk);
+        self.document.browsing_context().is_some()
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
-        // If the input is a string, we don't have a BOM.
-        if self.bom_sniff.borrow().is_some() {
-            *self.bom_sniff.borrow_mut() = None;
-        }
-
         // The input has already been decoded as a string, so doesn't need
         // to be decoded by the network decoder again.
         let chunk = StrTendril::from(chunk);
@@ -616,11 +638,9 @@ impl ServoParser {
         // the parser remains unsuspended.
 
         if self.last_chunk_received.get() {
-            if let Some(decoder) = self.network_decoder.borrow_mut().take() {
-                let chunk = decoder.finish();
-                if !chunk.is_empty() {
-                    self.network_input.push_back(chunk);
-                }
+            let chunk = self.network_decoder.borrow_mut().finish(&self.document);
+            if !chunk.is_empty() {
+                self.network_input.push_back(chunk);
             }
         }
 
@@ -731,7 +751,7 @@ impl ServoParser {
         assert!(self.last_chunk_received.get());
         assert!(self.script_input.is_empty());
         assert!(self.network_input.is_empty());
-        assert!(self.network_decoder.borrow().is_none());
+        assert!(self.network_decoder.borrow().is_finished());
 
         // Step 1.
         self.document
@@ -1062,6 +1082,9 @@ impl ParserContext {
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-text>
     fn load_text_document(&mut self, parser: &ServoParser) {
+        // Step 1. Let document be the result of creating and initializing a Document
+        // object given "html", type, and navigationParams.
+        self.initialize_document_object(&parser.document);
         // Step 4. Create an HTML parser and associate it with the document.
         // Act as if the tokenizer had emitted a start tag token with the tag name "pre" followed by
         // a single U+000A LINE FEED (LF) character, and switch the HTML parser's tokenizer to the PLAINTEXT state.
@@ -1085,6 +1108,9 @@ impl ParserContext {
         media_type: MediaType,
         mime_type: &Mime,
     ) {
+        // Step 1. Let document be the result of creating and initializing a Document
+        // object given "html", type, and navigationParams.
+        self.initialize_document_object(&parser.document);
         // Step 8. Act as if the user agent had stopped parsing document.
         self.is_synthesized_document = true;
         // Step 3. Populate with html/head/body given document.
@@ -1195,15 +1221,15 @@ impl FetchResponseListener for ParserContext {
             Err(error) => (
                 // Check variant without moving
                 match &error {
-                    NetworkError::SslValidation(..) |
-                    NetworkError::Internal(..) |
-                    NetworkError::Crash(..) => {
+                    NetworkError::LoadCancelled => {
+                        return;
+                    },
+                    _ => {
                         let mut meta = Metadata::default(self.url.clone());
                         let mime: Option<Mime> = "text/html".parse().ok();
                         meta.set_content_type(mime.as_ref());
                         Some(meta)
                     },
-                    _ => None,
                 },
                 Some(error),
             ),
@@ -1284,13 +1310,38 @@ impl FetchResponseListener for ParserContext {
                     let page = page.replace("${bytes}", encoded_bytes.as_str());
                     page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string())
                 },
-                NetworkError::Internal(reason) => {
+                NetworkError::Internal(reason) |
+                NetworkError::ResourceLoadError(reason) |
+                NetworkError::MimeType(reason) => {
                     let page = resources::read_string(Resource::NetErrorHTML);
                     page.replace("${reason}", &reason)
                 },
                 NetworkError::Crash(details) => {
                     let page = resources::read_string(Resource::CrashHTML);
                     page.replace("${details}", &details)
+                },
+                NetworkError::UnsupportedScheme |
+                NetworkError::CorsGeneral |
+                NetworkError::CrossOriginResponse |
+                NetworkError::CorsCredentials |
+                NetworkError::CorsAllowMethods |
+                NetworkError::CorsAllowHeaders |
+                NetworkError::CorsMethod |
+                NetworkError::CorsAuthorization |
+                NetworkError::CorsHeaders |
+                NetworkError::ConnectionFailure |
+                NetworkError::RedirectError |
+                NetworkError::TooManyRedirects |
+                NetworkError::InvalidMethod |
+                NetworkError::ContentSecurityPolicy |
+                NetworkError::Nosniff |
+                NetworkError::SubresourceIntegrity |
+                NetworkError::MixedContent |
+                NetworkError::CacheError |
+                NetworkError::InvalidPort |
+                NetworkError::LocalDirectoryError => {
+                    let page = resources::read_string(Resource::NetErrorHTML);
+                    page.replace("${reason}", &format!("{:?}", error))
                 },
                 NetworkError::LoadCancelled => {
                     // The next load will show a page
@@ -1817,54 +1868,6 @@ fn create_element_for_token(
 
     // Step 13.
     element
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct NetworkDecoder {
-    #[ignore_malloc_size_of = "Defined in tendril"]
-    #[custom_trace]
-    decoder: LossyDecoder<NetworkSink>,
-}
-
-impl NetworkDecoder {
-    fn new(encoding: &'static Encoding) -> Self {
-        Self {
-            decoder: LossyDecoder::new_encoding_rs(encoding, Default::default()),
-        }
-    }
-
-    fn decode(&mut self, chunk: Vec<u8>) -> StrTendril {
-        self.decoder.process(ByteTendril::from(&*chunk));
-        std::mem::take(&mut self.decoder.inner_sink_mut().output)
-    }
-
-    fn finish(self) -> StrTendril {
-        self.decoder.finish()
-    }
-}
-
-#[derive(Default, JSTraceable)]
-struct NetworkSink {
-    #[no_trace]
-    output: StrTendril,
-}
-
-impl TendrilSink<UTF8> for NetworkSink {
-    type Output = StrTendril;
-
-    fn process(&mut self, t: StrTendril) {
-        if self.output.is_empty() {
-            self.output = t;
-        } else {
-            self.output.push_tendril(&t);
-        }
-    }
-
-    fn error(&mut self, _desc: Cow<'static, str>) {}
-
-    fn finish(self) -> Self::Output {
-        self.output
-    }
 }
 
 fn attach_declarative_shadow_inner(host: &Node, template: &Node, attributes: &[Attribute]) -> bool {

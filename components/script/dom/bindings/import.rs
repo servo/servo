@@ -5,9 +5,9 @@
 pub(crate) mod base {
     pub(crate) use std::ptr;
 
-    #[allow(unused_imports)]
+    #[expect(unused_imports)]
     pub(crate) use js::context::JSContext;
-    #[allow(unused_imports)]
+    #[expect(unused_imports)]
     pub(crate) use js::realm::CurrentRealm;
     pub(crate) use js::rust::{HandleObject, MutableHandleObject};
 

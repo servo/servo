@@ -66,7 +66,7 @@ impl DroppableEventSource {
     }
 
     pub(crate) fn cancel(&self) {
-        self.canceller.borrow_mut().cancel();
+        self.canceller.borrow_mut().abort();
     }
 
     pub(crate) fn set_canceller(&self, data: FetchCanceller) {
@@ -387,15 +387,14 @@ impl FetchResponseListener for EventSourceContext {
                 // Step 15.4 announce the connection and interpret res's body line by line.
                 self.announce_the_connection();
             },
-            Err(_) => {
+            Err(error) => {
                 // Step 15.2 if res is a network error, then reestablish the connection, unless
                 // the user agent knows that to be futile, in which case the user agent may
                 // fail the connection.
-
-                // WPT tests consider a non-http(s) scheme to be futile.
-                match self.event_source.root().url.scheme() {
-                    "http" | "https" => self.reestablish_the_connection(),
-                    _ => self.fail_the_connection(),
+                if error.is_permanent_failure() {
+                    self.fail_the_connection()
+                } else {
+                    self.reestablish_the_connection()
                 }
             },
         }
@@ -581,6 +580,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             global.insecure_requests_policy(),
             global.has_trustworthy_ancestor_or_current_origin(),
             global.policy_container(),
+            global.request_client(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));
@@ -600,6 +600,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
 
         event_source.droppable.set_canceller(FetchCanceller::new(
             request.id,
+            request.keep_alive,
             global.core_resource_thread(),
         ));
 

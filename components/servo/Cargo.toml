@@ -29,6 +29,11 @@ clipboard = ["dep:arboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
+gamepad = [
+    "script/gamepad",
+    "constellation/gamepad",
+    "embedder_traits/gamepad",
+]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
@@ -72,6 +77,7 @@ webxr = [
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
 bincode = { workspace = true }
+bitflags = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
@@ -152,13 +158,16 @@ tracing = { workspace = true }
 winit = { workspace = true }
 
 [[test]]
+name = "network_manager"
+
+[[test]]
 name = "webview"
 
 [[test]]
 name = "servo"
 
 [[test]]
-name = "site_data"
+name = "site_data_manager"
 
 [[test]]
 name = "multiprocess"

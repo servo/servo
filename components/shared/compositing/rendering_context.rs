@@ -201,7 +201,11 @@ impl SurfmanRenderingContext {
         let device = &self.device.borrow();
         let context = &mut self.context.borrow_mut();
 
-        let mut surface = device.unbind_surface_from_context(context)?.unwrap();
+        let mut surface = device
+            .unbind_surface_from_context(context)?
+            // todo: proper error type. This probably should be done in surfman.
+            .ok_or(Error::Failed)
+            .inspect_err(|_| log::error!("Unable to present bound surface: no surface bound"))?;
         device.present_surface(context, &mut surface)?;
         device
             .bind_surface_to_context(context, surface)

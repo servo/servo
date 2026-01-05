@@ -11,10 +11,10 @@ mod system_font_service_proxy;
 
 use std::sync::Arc;
 
+use base::generic_channel::GenericSharedMemory;
 pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;
-use ipc_channel::ipc::IpcSharedMemory;
 use malloc_size_of_derive::MallocSizeOf;
 use range::{RangeIndex, int_range_index};
 use serde::{Deserialize, Serialize};
@@ -30,17 +30,17 @@ int_range_index! {
 pub type StylesheetWebFontLoadFinishedCallback = Arc<dyn Fn(bool) + Send + Sync + 'static>;
 
 /// A data structure to store data for fonts. Data is stored internally in an
-/// [`IpcSharedMemory`] handle, so that it can be sent without serialization
+/// [`GenericSharedMemory`] handle, so that it can be sent without serialization
 /// across IPC channels.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<IpcSharedMemory>);
+pub struct FontData(#[conditional_malloc_size_of] pub(crate) Arc<GenericSharedMemory>);
 
 impl FontData {
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self(Arc::new(IpcSharedMemory::from_bytes(bytes)))
+        Self(Arc::new(GenericSharedMemory::from_bytes(bytes)))
     }
 
-    pub fn as_ipc_shared_memory(&self) -> Arc<IpcSharedMemory> {
+    pub fn as_ipc_shared_memory(&self) -> Arc<GenericSharedMemory> {
         self.0.clone()
     }
 }

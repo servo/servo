@@ -170,22 +170,19 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     crate::init_crypto();
     servo::resources::set(Box::new(ResourceReaderInstance::new()));
 
-    // `parse_command_line_arguments` expects the first argument to be the binary name.
-    let mut args = mem::take(&mut init_opts.args);
-    args.insert(0, "servo".to_string());
-
-    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
-        ArgumentParsingResult::ContentProcess(..) => {
-            unreachable!("Android does not have support for multiprocess yet.")
-        },
-        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
-            (opts, preferences, servoshell_preferences)
-        },
-        ArgumentParsingResult::Exit => {
-            std::process::exit(0);
-        },
-        ArgumentParsingResult::ErrorParsing => std::process::exit(1),
-    };
+    let (opts, mut preferences, servoshell_preferences) =
+        match parse_command_line_arguments(init_opts.args.as_slice()) {
+            ArgumentParsingResult::ContentProcess(..) => {
+                unreachable!("Android does not have support for multiprocess yet.")
+            },
+            ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+                (opts, preferences, servoshell_preferences)
+            },
+            ArgumentParsingResult::Exit => {
+                std::process::exit(0);
+            },
+            ArgumentParsingResult::ErrorParsing => std::process::exit(1),
+        };
 
     preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
 

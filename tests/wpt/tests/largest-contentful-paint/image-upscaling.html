@@ -20,15 +20,15 @@
         t.add_cleanup(() => popup.close());
       });
 
-      // Per spec, we should end up with a pagereveal event once the
-      // window is open. However, Gecko seems to load the initial
-      // about:blank synchronously and then asynchronously load the
-      // about:blank requested above, thus we also accept pageshow
-      // here as a sign the popup is ready.
-      await Promise.any([
-        new Promise(resolve => popup.addEventListener('pagereveal', () => resolve(), {'once': true})),
-        new Promise(resolve => popup.addEventListener('pageshow', () => resolve(), {'once': true})),
-      ]);
+      // Ensure the popup document is ready before manipulating it.
+      // Per spec, about:blank should load synchronously and should be
+      // immediately ready. In older Gecko versions this may not be the case,
+      // so we wait for pageshow if needed.
+      if (popup.document.readyState !== 'complete') {
+        await new Promise((resolve) =>
+          popup.addEventListener('pageshow', resolve, { once: true })
+        );
+      }
 
       const image = popup.document.createElement('img');
       image.src = imageURL;

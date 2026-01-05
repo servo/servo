@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const script = document.querySelector("script");
+  script.appendChild(
+    document.createElement("iframe")
+  );
+  document.documentElement.innerHTML =
+    `<body contenteditable><iframe onload="document.execCommand('selectAll')"></iframe>`;
+}, {once: true});
+</script>
+</head>
+<body>
+  <div contenteditable></div>
+</body>
+</html>

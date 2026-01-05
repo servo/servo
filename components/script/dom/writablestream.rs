@@ -13,6 +13,7 @@ use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
@@ -59,7 +60,9 @@ struct AbortAlgorithmFulfillmentHandler {
 }
 
 impl Callback for AbortAlgorithmFulfillmentHandler {
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // Resolve abortRequest’s promise with undefined.
         self.abort_request_promise.resolve_native(&(), can_gc);
 
@@ -83,7 +86,9 @@ struct AbortAlgorithmRejectionHandler {
 }
 
 impl Callback for AbortAlgorithmRejectionHandler {
-    fn callback(&self, cx: SafeJSContext, reason: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
+        let cx: SafeJSContext = cx.into();
         // Reject abortRequest’s promise with reason.
         self.abort_request_promise.reject_native(&reason, can_gc);
 

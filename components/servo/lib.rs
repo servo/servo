@@ -20,6 +20,7 @@ mod responders;
 mod servo;
 mod servo_delegate;
 mod site_data_manager;
+mod user_content_manager;
 mod webview;
 mod webview_delegate;
 
@@ -31,7 +32,7 @@ pub use compositing::WebRenderDebugOption;
 pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
-pub use embedder_traits::user_content_manager::{UserContentManager, UserScript};
+pub use embedder_traits::user_contents::UserScript;
 pub use embedder_traits::*;
 pub use image::RgbaImage;
 pub use ipc_channel::ipc::IpcSender;
@@ -60,8 +61,11 @@ pub use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 
+pub use crate::network_manager::{CacheEntry, NetworkManager};
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
+pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};
+pub use crate::user_content_manager::UserContentManager;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, ColorPicker, ConfirmDialog,
@@ -70,7 +74,6 @@ pub use crate::webview_delegate::{
     WebResourceLoad, WebViewDelegate,
 };
 
-// Since WebXR is guarded by conditional compilation it is exported via submodule.
 #[cfg(feature = "webxr")]
 pub mod webxr {
     #[cfg(not(any(target_os = "android", target_env = "ohos")))]

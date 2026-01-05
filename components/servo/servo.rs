@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::cmp::max;
-use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
@@ -35,7 +34,6 @@ use constellation::{
 };
 use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use fonts::SystemFontService;
@@ -48,8 +46,7 @@ use fonts::SystemFontService;
     not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
-use ipc_channel::ipc::{self, IpcSender, channel};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::{self, IpcSender};
 use layout::LayoutFactoryImpl;
 use layout_api::ScriptThreadFactory;
 use log::{Log, Metadata, Record, debug, warn};
@@ -72,6 +69,7 @@ use servo_geometry::{
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use storage::new_storage_threads;
+use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
@@ -538,6 +536,7 @@ impl ServoInner {
                         self.servo_errors.sender(),
                     ));
             },
+            #[cfg(feature = "gamepad")]
             EmbedderMsg::PlayGamepadHapticEffect(
                 webview_id,
                 gamepad_index,
@@ -553,6 +552,7 @@ impl ServoInner {
                     );
                 }
             },
+            #[cfg(feature = "gamepad")]
             EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, ipc_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().stop_gamepad_haptic_effect(
@@ -751,20 +751,23 @@ impl Servo {
                 protocols.clone(),
             );
 
+        let (private_storage_threads, public_storage_threads) =
+            new_storage_threads(mem_profiler_chan.clone(), opts.config_dir.clone());
+
         create_constellation(
             embedder_to_constellation_receiver,
             &paint.borrow(),
-            opts.config_dir.clone(),
             embedder_proxy,
             paint_proxy.clone(),
             time_profiler_chan,
             mem_profiler_chan,
             devtools_sender,
             protocols,
-            builder.user_content_manager,
             public_resource_threads.clone(),
             private_resource_threads.clone(),
             async_runtime,
+            public_storage_threads.clone(),
+            private_storage_threads.clone(),
         );
 
         if opts::get().multiprocess {
@@ -781,6 +784,8 @@ impl Servo {
             site_data_manager: Rc::new(RefCell::new(SiteDataManager::new(
                 public_resource_threads,
                 private_resource_threads,
+                public_storage_threads,
+                private_storage_threads,
             ))),
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
@@ -922,21 +927,21 @@ fn create_paint_channel(
     (paint_proxy, receiver)
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn create_constellation(
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
     paint: &Paint,
-    config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
     paint_proxy: PaintProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     protocols: Arc<ProtocolRegistry>,
-    user_content_manager: UserContentManager,
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
     async_runtime: Box<dyn net_traits::AsyncRuntime>,
+    public_storage_threads: StorageThreads,
+    private_storage_threads: StorageThreads,
 ) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -946,9 +951,6 @@ fn create_constellation(
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let privileged_urls = protocols.privileged_urls();
-
-    let (private_storage_threads, public_storage_threads) =
-        new_storage_threads(mem_profiler_chan.clone(), config_dir);
 
     let system_font_service = Arc::new(
         SystemFontService::spawn(
@@ -979,7 +981,6 @@ fn create_constellation(
         webrender_external_image_id_manager: paint.webrender_external_image_id_manager(),
         #[cfg(feature = "webgpu")]
         wgpu_image_map: paint.webgpu_image_map(),
-        user_content_manager,
         async_runtime,
         privileged_urls,
     };
@@ -1150,7 +1151,6 @@ pub struct ServoBuilder {
     opts: Option<Box<Opts>>,
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
-    user_content_manager: UserContentManager,
     protocol_registry: ProtocolRegistry,
     #[cfg(feature = "webxr")]
     webxr_registry: Box<dyn webxr::WebXrRegistry>,
@@ -1162,7 +1162,6 @@ impl Default for ServoBuilder {
             opts: Default::default(),
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
-            user_content_manager: Default::default(),
             protocol_registry: Default::default(),
             #[cfg(feature = "webxr")]
             webxr_registry: Box::new(DefaultWebXrRegistry),
@@ -1190,11 +1189,6 @@ impl ServoBuilder {
         self
     }
 
-    pub fn user_content_manager(mut self, user_content_manager: UserContentManager) -> Self {
-        self.user_content_manager = user_content_manager;
-        self
-    }
-
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
         self
@@ -1213,21 +1207,17 @@ fn register_system_memory_reporter_for_event_loop(
     // Register the system memory reporter, which will run on its own thread. It never needs to
     // be unregistered, because as long as the memory profiler is running the system memory
     // reporter can make measurements.
-    let (system_reporter_sender, system_reporter_receiver) =
-        channel().expect("failed to create ipc channel");
-    ROUTER.add_typed_route(
-        system_reporter_receiver,
-        Box::new(|message| {
-            if let Ok(request) = message {
-                system_reporter::collect_reports(request);
-            }
-        }),
-    );
+    let callback = GenericCallback::new(|message| {
+        if let Ok(request) = message {
+            system_reporter::collect_reports(request);
+        }
+    })
+    .expect("Could not create memory reporter callback");
     new_event_loop_info
         .initial_script_state
         .memory_profiler_sender
         .send(ProfilerMsg::RegisterReporter(
             format!("system-content-{}", std::process::id()),
-            Reporter(system_reporter_sender),
+            Reporter(callback),
         ));
 }

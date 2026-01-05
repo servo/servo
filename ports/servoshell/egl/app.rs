@@ -15,7 +15,8 @@ use servo::{
     KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Opts, Preferences, RefreshDriver,
     RenderingContext, ScreenGeometry, Scroll, Servo, ServoBuilder, SimpleDialog, TouchEvent,
-    TouchEventType, TouchId, WebView, WebViewId, WindowRenderingContext, convert_rect_to_css_pixel,
+    TouchEventType, TouchId, UserContentManager, WebView, WebViewId, WindowRenderingContext,
+    convert_rect_to_css_pixel,
 };
 use url::Url;
 
@@ -260,7 +261,7 @@ pub struct App {
     platform_window: Rc<EmbeddedPlatformWindow>,
 }
 
-#[allow(unused)]
+#[expect(unused)]
 impl App {
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
         let mut servo_builder = ServoBuilder::default()
@@ -278,10 +279,12 @@ impl App {
             .or_else(|| Url::parse("about:blank").ok())
             .expect("Failed to parse initial URL");
 
+        let user_content_manager = Rc::new(UserContentManager::new(&servo));
         let state = Rc::new(RunningAppState::new(
             servo,
             init.servoshell_preferences,
             init.event_loop_waker,
+            user_content_manager,
         ));
 
         let platform_window = Rc::new(EmbeddedPlatformWindow {
@@ -615,7 +618,6 @@ pub(crate) struct XrDiscoveryWebXrRegistry {
 }
 
 #[cfg(feature = "webxr")]
-#[cfg_attr(target_env = "ohos", allow(dead_code))]
 impl XrDiscoveryWebXrRegistry {
     pub(crate) fn new(xr_discovery: Option<servo::webxr::Discovery>) -> Self {
         Self {

@@ -388,7 +388,7 @@ where
         }
     }
     /// <https://streams.spec.whatwg.org/#abstract-opdef-cloneasuint8array>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub(crate) fn clone_as_uint8_array(
         &self,
         cx: JSContext,
@@ -961,7 +961,7 @@ impl DataBlock {
             // Clippy warns about "creating a `Arc` from a void raw pointer" here, but suggests
             // the exact same line to fix it. Doing the cast is tricky because of the use of
             // a generic type in this parameter.
-            #[allow(clippy::from_raw_with_void_ptr)]
+            #[expect(clippy::from_raw_with_void_ptr)]
             drop(unsafe { Arc::from_raw(free_user_data as *const _) });
         }
         let raw: *mut Box<[u8]> = Arc::into_raw(Arc::clone(&self.data)) as _;

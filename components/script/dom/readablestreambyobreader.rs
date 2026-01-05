@@ -11,6 +11,7 @@ use dom_struct::dom_struct;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::root::Dom;
@@ -155,7 +156,8 @@ struct ByteTeeClosedPromiseRejectionHandler {
 impl Callback for ByteTeeClosedPromiseRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
     /// Upon rejection of `reader.closedPromise` with reason `r``,
-    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
+        let can_gc = CanGc::from_cx(cx);
         // If thisReader is not reader, return.
         if self.reader_version.get() != self.expected_version {
             return;

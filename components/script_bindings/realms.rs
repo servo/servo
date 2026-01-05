@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr::NonNull;
+
 use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
-use js::realm::CurrentRealm;
+use js::realm::{AutoRealm, CurrentRealm};
 
 use crate::DomTypes;
 use crate::interfaces::GlobalScopeHelpers;
@@ -67,5 +69,15 @@ pub fn enter_realm<D: DomTypes>(object: &impl DomObject) -> JSAutoRealm {
     JSAutoRealm::new(
         *D::GlobalScope::get_cx(),
         object.reflector().get_jsobject().get(),
+    )
+}
+
+pub fn enter_auto_realm<'cx, D: DomTypes>(
+    cx: &'cx mut js::context::JSContext,
+    object: &impl DomObject,
+) -> AutoRealm<'cx> {
+    AutoRealm::new(
+        cx,
+        NonNull::new(object.reflector().get_jsobject().get()).unwrap(),
     )
 }

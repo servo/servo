@@ -1072,4 +1072,12 @@ var browserTests = [
     "abc<i><b>def</b></i>ghi",
     [true,true],
     {}],
+
+// Should not change the style of the non-editable nodes so that only the
+// visible and editable nodes are wrapped into the <b> elements.
+['{ <span contenteditable="false">A</span> ; <span contenteditable="false">B</span> ; <span contenteditable="false">C</span> }',
+    [["stylewithcss","false"],["bold",""]],
+    ' <span contenteditable="false">A</span><b> ; </b><span contenteditable="false">B</span><b> ; </b><span contenteditable="false">C</span> ',
+    [true,true],
+    {}],
 ]

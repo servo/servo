@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base::id::WebViewId;
@@ -16,15 +15,19 @@ use js::rust::wrappers::JS_SetPendingException;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
-    Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
+    Request as NetTraitsRequest, RequestBuilder, RequestClient, RequestId, RequestMode,
+    ServiceWorkersMode,
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
     FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
     cancel_async_fetch,
 };
+use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
+use uuid::Uuid;
 
 use crate::body::BodyMixin;
 use crate::dom::abortsignal::AbortAlgorithm;
@@ -59,10 +62,8 @@ use crate::network_listener::{
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
-/// RAII fetch canceller object.
-/// By default initialized to having a
-/// request associated with it, which can be manually cancelled with `cancel`,
-/// or automatically cancelled on drop.
+/// Fetch canceller object. By default initialized to having a
+/// request associated with it, which can be aborted or terminated.
 /// Calling `ignore` will sever the relationship with the request,
 /// meaning it cannot be cancelled through this canceller from that point on.
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -71,23 +72,29 @@ pub(crate) struct FetchCanceller {
     request_id: Option<RequestId>,
     #[no_trace]
     core_resource_thread: Option<CoreResourceThread>,
+    keep_alive: bool,
 }
 
 impl FetchCanceller {
     /// Create a FetchCanceller associated with a request,
     /// and a particular(public vs private) resource thread.
-    pub(crate) fn new(request_id: RequestId, core_resource_thread: CoreResourceThread) -> Self {
+    pub(crate) fn new(
+        request_id: RequestId,
+        keep_alive: bool,
+        core_resource_thread: CoreResourceThread,
+    ) -> Self {
         Self {
             request_id: Some(request_id),
             core_resource_thread: Some(core_resource_thread),
+            keep_alive,
         }
     }
 
-    /// Step 1 of <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
-    pub(crate) fn cancel(&mut self) {
-        // Step 1. For each fetch record record of fetchGroup’s fetch records,
-        // if record’s controller is non-null and record’s request’s done flag
-        // is unset and keepalive is false, terminate record’s controller.
+    pub(crate) fn keep_alive(&self) -> bool {
+        self.keep_alive
+    }
+
+    fn cancel(&mut self) {
         if let Some(request_id) = self.request_id.take() {
             // stop trying to make fetch happen
             // it's not going to happen
@@ -105,12 +112,36 @@ impl FetchCanceller {
     pub(crate) fn ignore(&mut self) {
         let _ = self.request_id.take();
     }
+
+    /// <https://fetch.spec.whatwg.org/#fetch-controller-abort>
+    pub(crate) fn abort(&mut self) {
+        self.cancel();
+    }
+
+    /// <https://fetch.spec.whatwg.org/#fetch-controller-terminate>
+    pub(crate) fn terminate(&mut self) {
+        self.cancel();
+    }
 }
 
-impl Drop for FetchCanceller {
-    fn drop(&mut self) {
-        self.cancel()
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+/// An id to differentiate one deferred fetch record from another.
+pub(crate) struct DeferredFetchRecordId(Uuid);
+
+impl Default for DeferredFetchRecordId {
+    fn default() -> Self {
+        Self(Uuid::new_v4())
     }
+}
+
+pub(crate) type QueuedDeferredFetchRecord = Rc<DeferredFetchRecord>;
+
+/// <https://fetch.spec.whatwg.org/#concept-fetch-group>
+#[derive(Default, MallocSizeOf)]
+pub(crate) struct FetchGroup {
+    /// <https://fetch.spec.whatwg.org/#fetch-group-deferred-fetch-records>
+    #[conditional_malloc_size_of]
+    pub(crate) deferred_fetch_records: FxHashMap<DeferredFetchRecordId, QueuedDeferredFetchRecord>,
 }
 
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
@@ -226,6 +257,7 @@ pub(crate) fn Fetch(
         return promise;
     }
 
+    let keep_alive = request.keep_alive;
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
     let mut request_init = request_init_from_request(request, global);
@@ -248,7 +280,8 @@ pub(crate) fn Fetch(
         request: Trusted::new(&*request_object),
         global: Trusted::new(global),
         locally_aborted: false,
-        canceller: FetchCanceller::new(request_id, global.core_resource_thread()),
+        canceller: FetchCanceller::new(request_id, keep_alive, global.core_resource_thread()),
+        url: request_init.url.clone(),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
@@ -267,59 +300,56 @@ pub(crate) fn Fetch(
     promise
 }
 
-pub(crate) type QueuedDeferredFetchRecord = Arc<Mutex<DeferredFetchRecord>>;
-
 /// <https://fetch.spec.whatwg.org/#queue-a-deferred-fetch>
 fn queue_deferred_fetch(
     request: NetTraitsRequest,
     activate_after: Finite<f64>,
     global: &GlobalScope,
-) -> QueuedDeferredFetchRecord {
+) -> DeferredFetchRecordId {
     let trusted_global = Trusted::new(global);
+    let mut request = request;
     // Step 1. Populate request from client given request.
-    // TODO
+    request.client = Some(global.request_client());
+    request.populate_request_from_client();
     // Step 2. Set request’s service-workers mode to "none".
-    // TODO
+    request.service_workers_mode = ServiceWorkersMode::None;
     // Step 3. Set request’s keepalive to true.
-    // TODO
+    request.keep_alive = true;
     // Step 4. Let deferredRecord be a new deferred fetch record whose request is request, and whose notify invoked is onActivatedWithoutTermination.
-    let deferred_record = Arc::new(Mutex::new(DeferredFetchRecord {
+    let deferred_record = Rc::new(DeferredFetchRecord {
         request,
-        global: trusted_global.clone(),
         invoke_state: Cell::new(DeferredFetchRecordInvokeState::Pending),
         activated: Cell::new(false),
-    }));
+    });
     // Step 5. Append deferredRecord to request’s client’s fetch group’s deferred fetch records.
-    global.append_deferred_fetch(deferred_record.clone());
+    let deferred_fetch_record_id = global.append_deferred_fetch(deferred_record);
     // Step 6. If activateAfter is non-null, then run the following steps in parallel:
-    let deferred_record_clone = deferred_record.clone();
     global.schedule_timer(TimerEventRequest {
         callback: Box::new(move || {
             // Step 6.2. Process deferredRecord.
-            deferred_record_clone.lock().unwrap().process();
+            let global = trusted_global.root();
+            global.deferred_fetch_record_for_id(&deferred_fetch_record_id).process(&global);
 
             // Last step of https://fetch.spec.whatwg.org/#process-a-deferred-fetch
             //
             // Step 4. Queue a global task on the deferred fetch task source with
             // deferredRecord’s request’s client’s global object to run deferredRecord’s notify invoked.
-            let deferred_record_clone = deferred_record_clone.clone();
-            trusted_global
-                .root()
-                .task_manager()
-                .deferred_fetch_task_source()
-                .queue(task!(notify_deferred_record: move || {
-                    deferred_record_clone.lock().unwrap().activate();
-                }));
+            let trusted_global = trusted_global.clone();
+            global.task_manager().deferred_fetch_task_source().queue(
+                task!(notify_deferred_record: move || {
+                    trusted_global.root().deferred_fetch_record_for_id(&deferred_fetch_record_id).activate();
+                }),
+            );
         }),
         // Step 6.1. The user agent should wait until any of the following conditions is met:
         duration: Duration::from_millis(*activate_after as u64),
     });
     // Step 7. Return deferredRecord.
-    deferred_record
+    deferred_fetch_record_id
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
-#[allow(non_snake_case, unsafe_code)]
+#[expect(non_snake_case, unsafe_code)]
 pub(crate) fn FetchLater(
     window: &Window,
     input: RequestInfo,
@@ -327,6 +357,7 @@ pub(crate) fn FetchLater(
     can_gc: CanGc,
 ) -> Fallible<DomRoot<FetchLaterResult>> {
     let global_scope = window.upcast();
+    let document = window.Document();
     // Step 1. Let requestObject be the result of invoking the initial value
     // of Request as constructor with input and init as arguments.
     let request_object = Request::constructor(global_scope, None, can_gc, input, &init.parent)?;
@@ -356,7 +387,7 @@ pub(crate) fn FetchLater(
         return Err(Error::Range("activateAfter must be at least 0".to_owned()));
     }
     // Step 7. If this’s relevant global object’s associated document is not fully active, then throw a TypeError.
-    if !window.Document().is_fully_active() {
+    if !document.is_fully_active() {
         return Err(Error::Type("Document is not fully active".to_owned()));
     }
     let url = request.url();
@@ -376,15 +407,22 @@ pub(crate) fn FetchLater(
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
     // origin is less than request’s total request length, then throw a "QuotaExceededError" DOMException.
-    // TODO
+    let quota = document.available_deferred_fetch_quota(request.url().origin());
+    let requested = request.total_request_length() as isize;
+    if quota < requested {
+        return Err(Error::QuotaExceeded {
+            quota: Some(Finite::wrap(quota as f64)),
+            requested: Some(Finite::wrap(requested as f64)),
+        });
+    }
     // Step 12. Let activated be false.
     // Step 13. Let deferredRecord be the result of calling queue a deferred fetch given request,
     // activateAfter, and the following step: set activated to true.
-    let deferred_record = queue_deferred_fetch(request, activate_after, global_scope);
+    let deferred_record_id = queue_deferred_fetch(request, activate_after, global_scope);
     // Step 14. Add the following abort steps to requestObject’s signal: Set deferredRecord’s invoke state to "aborted".
-    signal.add(&AbortAlgorithm::FetchLater(deferred_record.clone()));
+    signal.add(&AbortAlgorithm::FetchLater(deferred_record_id));
     // Step 15. Return a new FetchLaterResult whose activated getter steps are to return activated.
-    Ok(FetchLaterResult::new(window, deferred_record, can_gc))
+    Ok(FetchLaterResult::new(window, deferred_record_id, can_gc))
 }
 
 /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
@@ -399,10 +437,9 @@ enum DeferredFetchRecordInvokeState {
 #[derive(MallocSizeOf)]
 pub(crate) struct DeferredFetchRecord {
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-request>
-    request: NetTraitsRequest,
+    pub(crate) request: NetTraitsRequest,
     /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
     invoke_state: Cell<DeferredFetchRecordInvokeState>,
-    global: Trusted<GlobalScope>,
     activated: Cell<bool>,
 }
 
@@ -424,7 +461,7 @@ impl DeferredFetchRecord {
         self.activated.get()
     }
     /// <https://fetch.spec.whatwg.org/#process-a-deferred-fetch>
-    pub(crate) fn process(&self) {
+    pub(crate) fn process(&self, global: &GlobalScope) {
         // Step 1. If deferredRecord’s invoke state is not "pending", then return.
         if self.invoke_state.get() != DeferredFetchRecordInvokeState::Pending {
             return;
@@ -435,10 +472,9 @@ impl DeferredFetchRecord {
         let url = self.request.url().clone();
         let fetch_later_listener = FetchLaterListener {
             url,
-            global: self.global.clone(),
+            global: Trusted::new(global),
         };
-        let global = self.global.root();
-        let request_init = request_init_from_request(self.request.clone(), &global);
+        let request_init = request_init_from_request(self.request.clone(), global);
         global.fetch(
             request_init,
             fetch_later_listener,
@@ -457,6 +493,8 @@ pub(crate) struct FetchContext {
     global: Trusted<GlobalScope>,
     locally_aborted: bool,
     canceller: FetchCanceller,
+    #[no_trace]
+    url: ServoUrl,
 }
 
 impl FetchContext {
@@ -474,7 +512,7 @@ impl FetchContext {
         // N/a, that's self
 
         // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
-        self.canceller.cancel();
+        self.canceller.abort();
 
         // Step 11.4. Abort the fetch() call with p, request, responseObject,
         // and requestObject’s signal’s abort reason.
@@ -525,9 +563,9 @@ impl FetchResponseListener for FetchContext {
         match fetch_metadata {
             // Step 12.3. If response is a network error, then reject
             // p with a TypeError and abort these steps.
-            Err(_) => {
+            Err(error) => {
                 promise.reject_error(
-                    Error::Type("Network error occurred".to_string()),
+                    Error::Type(format!("Network error: {:?}", error)),
                     CanGc::note(),
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
@@ -612,10 +650,7 @@ impl FetchResponseListener for FetchContext {
 
 impl ResourceTimingListener for FetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (
-            InitiatorType::Fetch,
-            self.resource_timing_global().get_url().clone(),
-        )
+        (InitiatorType::Fetch, self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
@@ -745,6 +780,7 @@ pub(crate) fn create_a_potential_cors_request(
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
     policy_container: PolicyContainer,
+    client: RequestClient,
 ) -> RequestBuilder {
     RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -766,4 +802,5 @@ pub(crate) fn create_a_potential_cors_request(
         .insecure_requests_policy(insecure_requests_policy)
         .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
         .policy_container(policy_container)
+        .client(client)
 }

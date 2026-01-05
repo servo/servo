@@ -11,10 +11,10 @@ use fonts::{FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontF
 use js::rust::HandleObject;
 use style::error_reporting::ParseErrorReporter;
 use style::font_face::SourceList;
-use style::parser::ParserContext;
-use style::stylesheets::{CssRuleType, FontFaceRule, Origin, UrlExtraData};
+use style::stylesheets::{CssRuleType, FontFaceRule, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
+use crate::css::parser_context_for_document_with_reporter;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FontFaceBinding::{
     FontFaceDescriptors, FontFaceLoadStatus, FontFaceMethods,
@@ -29,6 +29,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::node::NodeTraits;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -76,20 +77,17 @@ fn parse_font_face_descriptors(
     input_descriptors: &FontFaceDescriptors,
 ) -> Fallible<FontFaceRule> {
     let window = global.as_window(); // TODO: Support calling FontFace APIs from Worker
-    let quirks_mode = window.Document().quirks_mode();
-    let url_data = UrlExtraData(window.get_url().get_arc());
+    let document = window.Document();
+    let url_data = UrlExtraData(document.owner_global().api_base_url().get_arc());
     let error_reporter = FontFaceErrorReporter {
         not_encountered_error: Cell::new(true),
     };
-    let parser_context = ParserContext::new(
-        Origin::Author,
-        &url_data,
-        Some(CssRuleType::FontFace),
+    let parser_context = parser_context_for_document_with_reporter(
+        &document,
+        CssRuleType::FontFace,
         ParsingMode::DEFAULT,
-        quirks_mode,
-        /* namespaces = */ Default::default(),
-        Some(&error_reporter as &dyn ParseErrorReporter),
-        None,
+        &url_data,
+        &error_reporter,
     );
 
     let FontFaceDescriptors {

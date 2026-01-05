@@ -129,16 +129,16 @@ impl FetchResponseListener for XHRContext {
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
+        if let Ok(ref response) = response {
+            network_listener::submit_timing(&self, response, CanGc::note());
+        }
+
         let rv = self.xhr.root().process_response_complete(
             self.gen_id,
-            response.clone().map(|_| ()),
+            response.map(|_| ()),
             CanGc::note(),
         );
         *self.sync_status.borrow_mut() = Some(rv);
-
-        if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -530,7 +530,12 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-send()-method>
-    fn Send(&self, data: Option<DocumentOrXMLHttpRequestBodyInit>, can_gc: CanGc) -> ErrorResult {
+    fn Send(
+        &self,
+        cx: &mut js::context::JSContext,
+        data: Option<DocumentOrXMLHttpRequestBodyInit>,
+    ) -> ErrorResult {
+        let can_gc = CanGc::from_cx(cx);
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState(None));
@@ -562,7 +567,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             },
             Some(DocumentOrXMLHttpRequestBodyInit::Blob(ref b)) => {
                 let extracted_body = b
-                    .extract(&self.global(), can_gc)
+                    .extract(&self.global(), false, can_gc)
                     .expect("Couldn't extract body.");
                 if !extracted_body.in_memory() && self.sync.get() {
                     warn!("Sync XHR with not in-memory Blob as body not supported");
@@ -573,16 +578,16 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             },
             Some(DocumentOrXMLHttpRequestBodyInit::FormData(ref formdata)) => Some(
                 formdata
-                    .extract(&self.global(), can_gc)
+                    .extract(&self.global(), false, can_gc)
                     .expect("Couldn't extract body."),
             ),
             Some(DocumentOrXMLHttpRequestBodyInit::String(ref str)) => Some(
-                str.extract(&self.global(), can_gc)
+                str.extract(&self.global(), false, can_gc)
                     .expect("Couldn't extract body."),
             ),
             Some(DocumentOrXMLHttpRequestBodyInit::URLSearchParams(ref urlsp)) => Some(
                 urlsp
-                    .extract(&self.global(), can_gc)
+                    .extract(&self.global(), false, can_gc)
                     .expect("Couldn't extract body."),
             ),
             Some(DocumentOrXMLHttpRequestBodyInit::ArrayBuffer(ref typedarray)) => {
@@ -691,6 +696,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .referrer_policy(self.referrer_policy)
         .insecure_requests_policy(global.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .client(global.request_client())
         .policy_container(global.policy_container())
         .pipeline_id(Some(global.pipeline_id()));
 
@@ -756,7 +762,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
         self.fetch_time.set(Instant::now());
 
-        let rv = self.fetch(request, &self.global(), can_gc);
+        let rv = self.fetch(cx, request, &self.global());
         // Step 10
         if self.sync.get() {
             return rv;
@@ -1220,7 +1226,7 @@ impl XMLHttpRequest {
     }
 
     fn terminate_ongoing_fetch(&self) {
-        self.canceller.borrow_mut().cancel();
+        self.canceller.borrow_mut().abort();
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         self.response_status.set(Ok(()));
@@ -1494,6 +1500,8 @@ impl XMLHttpRequest {
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
+            None,
+            None,
             can_gc,
         );
         document
@@ -1510,6 +1518,7 @@ impl XMLHttpRequest {
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
+            None,
             can_gc,
         );
         document
@@ -1562,9 +1571,9 @@ impl XMLHttpRequest {
 
     fn fetch(
         &self,
+        cx: &mut js::context::JSContext,
         request_builder: RequestBuilder,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let xhr = Trusted::new(self);
 
@@ -1594,14 +1603,17 @@ impl XMLHttpRequest {
             )
         };
 
-        *self.canceller.borrow_mut() =
-            FetchCanceller::new(request_builder.id, global.core_resource_thread());
+        *self.canceller.borrow_mut() = FetchCanceller::new(
+            request_builder.id,
+            request_builder.keep_alive,
+            global.core_resource_thread(),
+        );
 
         global.fetch(request_builder, context, task_source);
 
         if let Some(script_port) = script_port {
             loop {
-                if !global.process_event(script_port.recv().unwrap(), can_gc) {
+                if !global.process_event(script_port.recv().unwrap(), cx) {
                     // We're exiting.
                     return Err(Error::Abort(None));
                 }
@@ -1696,7 +1708,7 @@ fn serialize_document(doc: &Document) -> Fallible<DOMString> {
 pub(crate) fn is_field_value(slice: &[u8]) -> bool {
     // Classifications of characters necessary for the [CRLF] (SP|HT) rule
     #[derive(PartialEq)]
-    #[allow(clippy::upper_case_acronyms)]
+    #[expect(clippy::upper_case_acronyms)]
     enum PreviousCharacter {
         Other,
         CR,

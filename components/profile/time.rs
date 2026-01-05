@@ -11,7 +11,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::thread;
 
-use ipc_channel::ipc::{self, IpcReceiver};
+use base::generic_channel::{self, GenericReceiver};
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, ProfilerData, ProfilerMsg, TimerMetadata,
     TimerMetadataFrameType, TimerMetadataReflowType,
@@ -73,7 +73,7 @@ type ProfilerBuckets = BTreeMap<(ProfilerCategory, Option<TimerMetadata>), Vec<D
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
-    pub port: IpcReceiver<ProfilerMsg>,
+    pub port: GenericReceiver<ProfilerMsg>,
     buckets: ProfilerBuckets,
     output: Option<OutputOptions>,
     pub last_msg: Option<ProfilerMsg>,
@@ -85,7 +85,7 @@ impl Profiler {
     pub fn create(output: &Option<OutputOptions>, file_path: Option<String>) -> ProfilerChan {
         match *output {
             Some(ref option) => {
-                let (chan, port) = ipc::channel().unwrap();
+                let (chan, port) = generic_channel::channel().unwrap();
                 // Spawn the time profiler thread
                 let outputoption = option.clone();
                 thread::Builder::new()
@@ -121,7 +121,7 @@ impl Profiler {
             None => {
                 match file_path {
                     Some(path) => {
-                        let (chan, port) = ipc::channel().unwrap();
+                        let (chan, port) = generic_channel::channel().unwrap();
                         // Spawn the time profiler
                         thread::Builder::new()
                             .name("TimeProfiler".to_owned())
@@ -141,7 +141,7 @@ impl Profiler {
     }
 
     pub fn new(
-        port: IpcReceiver<ProfilerMsg>,
+        port: GenericReceiver<ProfilerMsg>,
         trace: Option<TraceDump>,
         output: Option<OutputOptions>,
     ) -> Profiler {

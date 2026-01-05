@@ -17,8 +17,8 @@ use devtools_traits::EvaluateJSReply::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
 use devtools_traits::{
-    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleLog, ConsoleMessage,
-    DevtoolScriptControlMsg, PageError,
+    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleClearMessage, ConsoleLog,
+    ConsoleMessage, DevtoolScriptControlMsg, PageError,
 };
 use log::debug;
 use serde::Serialize;
@@ -31,7 +31,7 @@ use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{StreamId, UniqueId};
+use crate::{EmptyReplyMsg, StreamId, UniqueId};
 
 trait EncodableConsoleMessage {
     fn encode(&self) -> serde_json::Result<String>;
@@ -295,6 +295,26 @@ impl ConsoleActor {
             };
         }
     }
+
+    pub(crate) fn send_clear_message(
+        &self,
+        id: UniqueId,
+        registry: &ActorRegistry,
+        stream: &mut TcpStream,
+    ) {
+        if id == self.current_unique_id(registry) {
+            if let Root::BrowsingContext(bc) = &self.root {
+                registry.find::<BrowsingContextActor>(bc).resource_array(
+                    ConsoleClearMessage {
+                        level: "clear".to_owned(),
+                    },
+                    "console-message".into(),
+                    ResourceArrayType::Available,
+                    stream,
+                )
+            };
+        }
+    }
 }
 
 impl Actor for ConsoleActor {
@@ -456,6 +476,14 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     updated: vec![],
                 };
+                request.reply_final(&msg)?
+            },
+
+            "clearMessagesCacheAsync" => {
+                self.cached_events
+                    .borrow_mut()
+                    .remove(&self.current_unique_id(registry));
+                let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
             },
 

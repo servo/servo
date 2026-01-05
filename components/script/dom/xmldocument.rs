@@ -34,7 +34,7 @@ pub(crate) struct XMLDocument {
 }
 
 impl XMLDocument {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_inherited(
         window: &Window,
         has_browsing_context: HasBrowsingContext,
@@ -75,7 +75,7 @@ impl XMLDocument {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
         has_browsing_context: HasBrowsingContext,

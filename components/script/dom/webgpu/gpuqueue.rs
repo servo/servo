@@ -4,8 +4,8 @@
 
 use std::rc::Rc;
 
+use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
@@ -135,7 +135,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         }
 
         // Step 5&6
-        let contents = IpcSharedMemory::from_bytes(
+        let contents = GenericSharedMemory::from_bytes(
             &data[(data_offset as usize) * sizeof_element..
                 ((data_offset + content_size) as usize) * sizeof_element],
         );
@@ -174,7 +174,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         let texture_cv = destination.try_convert()?;
         let texture_layout = data_layout.convert();
         let write_size = (&size).try_convert()?;
-        let final_data = IpcSharedMemory::from_bytes(&bytes);
+        let final_data = GenericSharedMemory::from_bytes(&bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
             device_id: self.device.borrow().as_ref().unwrap().id().0,

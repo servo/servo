@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::ops::Range;
 
+use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -47,7 +48,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
     ClipboardEventFlags, Direction, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
-    UTF8Bytes, UTF16CodeUnits,
 };
 
 #[dom_struct]
@@ -81,7 +81,7 @@ impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
         }
     }
 
-    fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
+    fn textinput_sorted_selection_offsets_range(self) -> Range<Utf8CodeUnitLength> {
         unsafe {
             self.unsafe_get()
                 .textinput
@@ -111,7 +111,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
         if !self.upcast::<Element>().focus_state() {
             return None;
         }
-        Some(UTF8Bytes::unwrap_range(
+        Some(Utf8CodeUnitLength::unwrap_range(
             self.textinput_sorted_selection_offsets_range(),
         ))
     }
@@ -394,8 +394,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-textlength>
     fn TextLength(&self) -> u32 {
-        let UTF16CodeUnits(num_units) = self.textinput.borrow().utf16_len();
-        num_units as u32
+        self.textinput.borrow().len_utf16().0 as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -408,22 +407,24 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start()
+        self.selection().dom_start().map(|start| start.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_start(start)
+        self.selection()
+            .set_dom_start(start.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end()
+        self.selection().dom_end().map(|end| end.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
-        self.selection().set_dom_end(end)
+        self.selection()
+            .set_dom_end(end.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
@@ -438,7 +439,11 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_range(start, end, direction)
+        self.selection().set_dom_range(
+            Utf16CodeUnitLength::from(start),
+            Utf16CodeUnitLength::from(end),
+            direction,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
@@ -455,8 +460,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
+        self.selection().set_dom_range_text(
+            replacement,
+            Some(Utf16CodeUnitLength::from(start)),
+            Some(Utf16CodeUnitLength::from(end)),
+            selection_mode,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
@@ -574,7 +583,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_max_length(Some(Utf16CodeUnitLength(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -586,7 +595,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(UTF16CodeUnits(value as usize)))
+                        textinput.set_min_length(Some(Utf16CodeUnitLength(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -823,7 +832,7 @@ impl Validatable for HTMLTextAreaElement {
         let mut failed_flags = ValidationFlags::empty();
 
         let textinput = self.textinput.borrow();
-        let UTF16CodeUnits(value_len) = textinput.utf16_len();
+        let Utf16CodeUnitLength(value_len) = textinput.len_utf16();
         let last_edit_by_user = !textinput.was_last_change_by_set_content();
         let value_dirty = self.value_dirty.get();
 

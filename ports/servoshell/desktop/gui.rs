@@ -253,7 +253,7 @@ impl Gui {
         &mut self,
         state: &RunningAppState,
         window: &ServoShellWindow,
-        headed_window: &headed_window::Window,
+        headed_window: &headed_window::HeadedWindow,
     ) {
         self.rendering_context
             .make_current()

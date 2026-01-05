@@ -136,7 +136,7 @@ impl SourceActor {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new_registered(
         actors: &mut ActorRegistry,
         pipeline_id: PipelineId,

@@ -8,11 +8,12 @@ use std::borrow::Cow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
+use base::generic_channel::GenericSharedMemory;
 use base::id::PipelineId;
 use compositing_traits::{
     CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
 };
-use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{info, warn};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
@@ -92,7 +93,7 @@ impl<P> Pass<P> {
     }
 }
 
-#[allow(clippy::upper_case_acronyms)] // Name of the library
+#[expect(clippy::upper_case_acronyms)] // Name of the library
 pub(crate) struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
     sender: IpcSender<WebGPURequest>,
@@ -192,7 +193,7 @@ impl WGPU {
                                 };
 
                                 Ok(Mapping {
-                                    data: IpcSharedMemory::from_bytes(data),
+                                    data: GenericSharedMemory::from_bytes(data),
                                     range: offset..offset + range_size,
                                     mode: host_map,
                                 })

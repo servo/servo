@@ -156,15 +156,10 @@ fn init_app(
     debug!("Resources are located at: {:?}", resource_dir);
     servo::resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
 
-    // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
-    // Then again, this code could and maybe even should be disabled in production builds.
-    let mut args = vec!["servoshell".to_string()];
-    args.extend(
-        options
-            .commandline_args
-            .split("\u{1f}")
-            .map(|arg| arg.to_string()),
-    );
+    let args = options
+        .commandline_args
+        .split("\u{1f}")
+        .collect::<Vec<&str>>();
     debug!("Servo commandline args: {:?}", args);
 
     let config_dir = PathBuf::from(&native_values.cache_dir).join("servo");
@@ -199,16 +194,17 @@ fn init_app(
         });
     }
 
-    let (opts, mut preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
-        ArgumentParsingResult::ContentProcess(..) => {
-            unreachable!("OHOS does not have support for multiprocess yet.")
-        },
-        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
-            (opts, preferences, servoshell_preferences)
-        },
-        ArgumentParsingResult::Exit => std::process::exit(0),
-        ArgumentParsingResult::ErrorParsing => std::process::exit(1),
-    };
+    let (opts, mut preferences, servoshell_preferences) =
+        match parse_command_line_arguments(args.as_slice()) {
+            ArgumentParsingResult::ContentProcess(..) => {
+                unreachable!("OHOS does not have support for multiprocess yet.")
+            },
+            ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+                (opts, preferences, servoshell_preferences)
+            },
+            ArgumentParsingResult::Exit => std::process::exit(0),
+            ArgumentParsingResult::ErrorParsing => std::process::exit(1),
+        };
 
     if native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone {
         preferences.set_value("viewport_meta_enabled", PrefValue::Bool(true));
@@ -469,6 +465,56 @@ unsafe extern "C" fn on_vsync_cb(
     }
 }
 
+fn main_thread(xc: XComponentWrapper, window: WindowWrapper) {
+    let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
+
+    SERVO_CHANNEL
+        .set(tx.clone())
+        .expect("Servo channel already initialized");
+
+    let wakeup = Box::new(WakeupCallback::new(tx));
+    let callbacks = Box::new(HostCallbacks::new());
+
+    let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
+        init_opts
+    } else {
+        panic!("Servos GL thread received another event before it was initialized")
+    };
+    let servo = init_app(*init_opts, window.0, xc.0, wakeup, callbacks)
+        .expect("Servo initialization failed");
+    let id = servo
+        .active_or_newest_webview()
+        .expect("Should always start with at least one WebView")
+        .id();
+    NATIVE_WEBVIEWS
+        .lock()
+        .unwrap()
+        .push(NativeWebViewComponents {
+            id,
+            xcomponent: xc,
+            window,
+        });
+
+    info!("Surface created!");
+    let native_vsync =
+        ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
+    // get_period() returns an error - perhaps we need to wait until the first callback?
+    // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
+    unsafe {
+        native_vsync
+            .request_raw_callback_with_self(Some(on_vsync_cb))
+            .expect("Failed to request vsync callback")
+    }
+    info!("Enabled Vsync!");
+
+    while let Ok(action) = rx.recv() {
+        trace!("Wakeup message received!");
+        action.do_action(&servo);
+    }
+
+    info!("Sender disconnected - Terminating main surface thread");
+}
+
 #[unsafe(no_mangle)]
 extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("on_surface_created_cb");
@@ -484,56 +530,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
         //
         // Each thread will send its id via the channel
         let _main_surface_thread = thread::spawn(move || {
-            let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
-
-            SERVO_CHANNEL
-                .set(tx.clone())
-                .expect("Servo channel already initialized");
-
-            let wakeup = Box::new(WakeupCallback::new(tx));
-            let callbacks = Box::new(HostCallbacks::new());
-
-            let xc = xc_wrapper;
-            let window = window_wrapper;
-
-            let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
-                init_opts
-            } else {
-                panic!("Servos GL thread received another event before it was initialized")
-            };
-            let servo = init_app(*init_opts, window.0, xc.0, wakeup, callbacks)
-                .expect("Servo initialization failed");
-            let id = servo
-                .active_or_newest_webview()
-                .expect("Should always start with at least one WebView")
-                .id();
-            NATIVE_WEBVIEWS
-                .lock()
-                .unwrap()
-                .push(NativeWebViewComponents {
-                    id,
-                    xcomponent: xc,
-                    window,
-                });
-
-            info!("Surface created!");
-            let native_vsync =
-                ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
-            // get_period() returns an error - perhaps we need to wait until the first callback?
-            // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
-            unsafe {
-                native_vsync
-                    .request_raw_callback_with_self(Some(on_vsync_cb))
-                    .expect("Failed to request vsync callback")
-            }
-            info!("Enabled Vsync!");
-
-            while let Ok(action) = rx.recv() {
-                trace!("Wakeup message received!");
-                action.do_action(&servo);
-            }
-
-            info!("Sender disconnected - Terminating main surface thread");
+            main_thread(xc_wrapper, window_wrapper);
         });
     } else {
         call(ServoAction::NewWebview(xc_wrapper, window_wrapper))
@@ -815,7 +812,7 @@ fn register_xcomponent_callbacks(env: &Env, xcomponent: &Object) -> napi_ohos::R
     Ok(())
 }
 
-#[allow(unused)]
+#[expect(unused)]
 fn debug_jsobject(obj: &Object, obj_name: &str) -> napi_ohos::Result<()> {
     let names = obj.get_property_names()?;
     error!("Getting property names of object {obj_name}");
@@ -1056,7 +1053,7 @@ impl Ime for ServoIme {
     }
 }
 
-#[allow(unused)]
+#[expect(unused)]
 impl HostTrait for HostCallbacks {
     fn show_alert(&self, message: String) {
         // forward it to tracing

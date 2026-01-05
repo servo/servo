@@ -43,7 +43,9 @@ use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::{InsecureRequestsPolicy, PreloadedResources, RequestBuilder};
+use net_traits::request::{
+    InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
+};
 use net_traits::response::HttpsState;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
@@ -83,6 +85,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ScrollLogicalPositi
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
+#[cfg(any(feature = "webxr", feature = "gamepad"))]
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
@@ -94,7 +97,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::codegen::UnionTypes::{
-    NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
+    BooleanOrImportNodeOptions, NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
 };
 use crate::dom::bindings::domname::{
     self, is_valid_attribute_local_name, is_valid_element_local_name, namespace_from_domstring,
@@ -116,7 +119,9 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::fontfaceset::FontFaceSet;
 use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
-use crate::dom::customelementregistry::{CustomElementDefinition, CustomElementReactionStack};
+use crate::dom::customelementregistry::{
+    CustomElementDefinition, CustomElementReactionStack, CustomElementRegistry,
+};
 use crate::dom::customevent::CustomEvent;
 use crate::dom::document_embedder_controls::DocumentEmbedderControls;
 use crate::dom::document_event_handler::DocumentEventHandler;
@@ -155,9 +160,7 @@ use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::{Location, NavigationType};
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{
-    CloneChildrenFlag, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
-};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -185,7 +188,7 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::dom::xpathexpression::XPathExpression;
-use crate::fetch::{FetchCanceller, QueuedDeferredFetchRecord};
+use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
@@ -429,8 +432,7 @@ pub(crate) struct Document {
     policy_container: DomRefCell<PolicyContainer>,
     /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
     #[no_trace]
-    #[conditional_malloc_size_of]
-    preloaded_resources: PreloadedResources,
+    preloaded_resources: DomRefCell<PreloadedResources>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
@@ -1893,8 +1895,14 @@ impl Document {
         self.policy_container.borrow().csp_list.clone()
     }
 
-    pub(crate) fn preloaded_resources(&self) -> PreloadedResources {
-        self.preloaded_resources.clone()
+    pub(crate) fn preloaded_resources(&self) -> std::cell::Ref<'_, PreloadedResources> {
+        self.preloaded_resources.borrow()
+    }
+
+    pub(crate) fn insert_preloaded_resource(&self, key: PreloadKey, preload_id: PreloadId) {
+        self.preloaded_resources
+            .borrow_mut()
+            .insert(key, preload_id);
     }
 
     /// Add the policy container and HTTPS state to a given request.
@@ -1948,8 +1956,84 @@ impl Document {
         self.loader_mut().fetch_async_background(request, callback);
     }
 
-    pub(crate) fn append_deferred_fetch(&self, request: QueuedDeferredFetchRecord) {
-        self.loader_mut().append_deferred_fetch(request);
+    /// <https://fetch.spec.whatwg.org/#deferred-fetch-control-document>
+    fn deferred_fetch_control_document(&self) -> DomRoot<Document> {
+        match self.window().window_proxy().frame_element() {
+            // Step 1. If document’ node navigable’s container document is null
+            // or a document whose origin is not same origin with document, then return document;
+            None => DomRoot::from_ref(self),
+            // otherwise, return the deferred-fetch control document given document’s node navigable’s container document.
+            Some(container) => container.owner_document().deferred_fetch_control_document(),
+        }
+    }
+
+    /// <https://fetch.spec.whatwg.org/#available-deferred-fetch-quota>
+    pub(crate) fn available_deferred_fetch_quota(&self, origin: ImmutableOrigin) -> isize {
+        // Step 1. Let controlDocument be document’s deferred-fetch control document.
+        let control_document = self.deferred_fetch_control_document();
+        // Step 2. Let navigable be controlDocument’s node navigable.
+        let navigable = control_document.window();
+        // Step 3. Let isTopLevel be true if controlDocument’s node navigable
+        // is a top-level traversable; otherwise false.
+        let is_top_level = navigable.is_top_level();
+        // Step 4. Let deferredFetchAllowed be true if controlDocument is allowed
+        // to use the policy-controlled feature "deferred-fetch"; otherwise false.
+        // TODO
+        let deferred_fetch_allowed = true;
+        // Step 5. Let deferredFetchMinimalAllowed be true if controlDocument
+        // is allowed to use the policy-controlled feature "deferred-fetch-minimal"; otherwise false.
+        // TODO
+        let deferred_fetch_minimal_allowed = true;
+        // Step 6. Let quota be the result of the first matching statement:
+        let mut quota = match is_top_level {
+            // isTopLevel is true and deferredFetchAllowed is false
+            true if !deferred_fetch_allowed => 0,
+            // isTopLevel is true and deferredFetchMinimalAllowed is false
+            true if !deferred_fetch_minimal_allowed => 640 * 1024,
+            // isTopLevel is true
+            true => 512 * 1024,
+            // deferredFetchAllowed is true, and navigable’s navigable container’s
+            // reserved deferred-fetch quota is normal quota
+            // TODO
+            _ if deferred_fetch_allowed => 0,
+            // deferredFetchMinimalAllowed is true, and navigable’s navigable container’s
+            // reserved deferred-fetch quota is minimal quota
+            // TODO
+            _ if deferred_fetch_minimal_allowed => 8 * 1024,
+            // Otherwise
+            _ => 0,
+        } as isize;
+        // Step 7. Let quotaForRequestOrigin be 64 kibibytes.
+        let mut quota_for_request_origin = 64 * 1024_isize;
+        // Step 8. For each navigable in controlDocument’s node navigable’s
+        // inclusive descendant navigables whose active document’s deferred-fetch control document is controlDocument:
+        // TODO
+        // Step 8.1. For each container in navigable’s active document’s shadow-including inclusive descendants
+        // which is a navigable container, decrement quota by container’s reserved deferred-fetch quota.
+        // TODO
+        // Step 8.2. For each deferred fetch record deferredRecord of navigable’s active document’s
+        // relevant settings object’s fetch group’s deferred fetch records:
+        for deferred_fetch in navigable.as_global_scope().deferred_fetches() {
+            // Step 8.2.1. Let requestLength be the total request length of deferredRecord’s request.
+            let request_length = deferred_fetch.request.total_request_length();
+            // Step 8.2.2. Decrement quota by requestLength.
+            quota -= request_length as isize;
+            // Step 8.2.3. If deferredRecord’s request’s URL’s origin is same origin with origin,
+            // then decrement quotaForRequestOrigin by requestLength.
+            if deferred_fetch.request.url().origin() == origin {
+                quota_for_request_origin -= request_length as isize;
+            }
+        }
+        // Step 9. If quota is equal or less than 0, then return 0.
+        if quota <= 0 {
+            return 0;
+        }
+        // Step 10. If quota is less than quotaForRequestOrigin, then return quota.
+        if quota < quota_for_request_origin {
+            return quota;
+        }
+        // Step 11. Return quotaForRequestOrigin.
+        quota_for_request_origin
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
@@ -2005,8 +2089,12 @@ impl Document {
         ScriptThread::mark_document_with_no_blocked_loads(self);
     }
 
-    // https://html.spec.whatwg.org/multipage/#prompt-to-unload-a-document
-    pub(crate) fn prompt_to_unload(&self, recursive_flag: bool, can_gc: CanGc) -> bool {
+    /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
+    pub(crate) fn check_if_unloading_is_cancelled(
+        &self,
+        recursive_flag: bool,
+        can_gc: CanGc,
+    ) -> bool {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2045,13 +2133,13 @@ impl Document {
         }
         // Step 9
         if !recursive_flag {
-            // `prompt_to_unload` might cause futher modifications to the DOM so collecting here prevents
+            // `check_if_unloading_is_cancelled` might cause futher modifications to the DOM so collecting here prevents
             // a double borrow if the `IFrameCollection` needs to be validated again.
             let iframes: Vec<_> = self.iframes().iter().collect();
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
                 let document = iframe.owner_document();
-                can_unload = document.prompt_to_unload(true, can_gc);
+                can_unload = document.check_if_unloading_is_cancelled(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2136,6 +2224,9 @@ impl Document {
 
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
+
+        // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
+        // TODO
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
@@ -2152,14 +2243,16 @@ impl Document {
         // See https://github.com/servo/servo/issues/22507
         let not_ready_for_load = self.loader.borrow().is_blocked() ||
             !self.is_fully_active() ||
-            is_in_delaying_load_events_mode;
+            is_in_delaying_load_events_mode ||
+            // In case we have already aborted this document and receive a
+            // a subsequent message to load the document
+            self.loader.borrow().events_inhibited();
 
         if not_ready_for_load {
             // Step 6.
             return;
         }
 
-        assert!(!self.loader.borrow().events_inhibited());
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
@@ -2463,7 +2556,104 @@ impl Document {
         // TODO: client message queue.
     }
 
-    // https://html.spec.whatwg.org/multipage/#abort-a-document
+    /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
+    pub(crate) fn destroy_document_and_its_descendants(&self, can_gc: CanGc) {
+        // Step 1. If document is not fully active, then:
+        if !self.is_fully_active() {
+            // Step 1.1. Let reason be a string from user-agent specific blocking reasons.
+            // If none apply, then let reason be "masked".
+            // TODO
+            // Step 1.2. Make document unsalvageable given document and reason.
+            self.salvageable.set(false);
+            // Step 1.3. If document's node navigable is a top-level traversable,
+            // build not restored reasons for a top-level traversable and its descendants given document's node navigable.
+            // TODO
+        }
+        // TODO(#31973): all of the steps below are implemented synchronously at the moment.
+        // They need to become asynchronous later, at which point the counting of
+        // numberDestroyed becomes relevant.
+
+        // Step 2. Let childNavigables be document's child navigables.
+        // Step 3. Let numberDestroyed be 0.
+        // Step 4. For each childNavigable of childNavigables, queue a global task on
+        // the navigation and traversal task source given childNavigable's active
+        // window to perform the following steps:
+        // Step 4.1. Let incrementDestroyed be an algorithm step which increments numberDestroyed.
+        // Step 4.2. Destroy a document and its descendants given childNavigable's active document and incrementDestroyed.
+        // Step 5. Wait until numberDestroyed equals childNavigable's size.
+        for exited_iframe in self.iframes().iter() {
+            debug!("Destroying nested iframe document");
+            exited_iframe.destroy_document_and_its_descendants(can_gc);
+        }
+        // Step 6. Queue a global task on the navigation and traversal task source
+        // given document's relevant global object to perform the following steps:
+        // TODO
+        // Step 6.1. Destroy document.
+        self.destroy(can_gc);
+        // Step 6.2. If afterAllDestruction was given, then run it.
+        // TODO
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#destroy-a-document>
+    pub(crate) fn destroy(&self, can_gc: CanGc) {
+        let exited_window = self.window();
+        // Step 2. Abort document.
+        self.abort(can_gc);
+        // Step 3. Set document's salvageable state to false.
+        self.salvageable.set(false);
+        // Step 4. Let ports be the list of MessagePorts whose relevant
+        // global object's associated Document is document.
+        // TODO
+
+        // Step 5. For each port in ports, disentangle port.
+        // TODO
+
+        // Step 6. Run any unloading document cleanup steps for document that
+        // are defined by this specification and other applicable specifications.
+        self.unloading_cleanup_steps();
+
+        // Step 7. Remove any tasks whose document is document from any task queue
+        // (without running those tasks).
+        exited_window
+            .as_global_scope()
+            .task_manager()
+            .cancel_all_tasks_and_ignore_future_tasks();
+
+        // Step 8. Set document's browsing context to null.
+        exited_window.discard_browsing_context();
+
+        // Step 9. Set document's node navigable's active session history entry's
+        // document state's document to null.
+        // TODO
+
+        // Step 10. Remove document from the owner set of each WorkerGlobalScope
+        // object whose set contains document.
+        // TODO
+
+        // Step 11. For each workletGlobalScope in document's worklet global scopes,
+        // terminate workletGlobalScope.
+        // TODO
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
+    fn terminate_fetch_group(&self) -> bool {
+        let mut load_cancellers = self.loader.borrow_mut().cancel_all_loads();
+
+        // Step 1. For each fetch record record of fetchGroup’s fetch records,
+        // if record’s controller is non-null and record’s request’s done flag
+        // is unset and keepalive is false, terminate record’s controller.
+        for canceller in &mut load_cancellers {
+            if !canceller.keep_alive() {
+                canceller.terminate();
+            }
+        }
+        // Step 2. Process deferred fetches for fetchGroup.
+        self.owner_global().process_deferred_fetches();
+
+        !load_cancellers.is_empty()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
     pub(crate) fn abort(&self, can_gc: CanGc) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
@@ -2471,9 +2661,7 @@ impl Document {
         // Step 1.
         for iframe in self.iframes().iter() {
             if let Some(document) = iframe.GetContentDocument() {
-                // TODO: abort the active documents of every child browsing context.
                 document.abort(can_gc);
-                // TODO: salvageable flag.
             }
         }
 
@@ -2487,7 +2675,7 @@ impl Document {
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
         self.deferred_scripts.clear();
-        let loads_cancelled = self.loader.borrow_mut().cancel_all_loads();
+        let loads_cancelled = self.terminate_fetch_group();
         let event_sources_canceled = self.window.as_global_scope().close_event_sources();
         if loads_cancelled || event_sources_canceled {
             // If any loads were canceled.
@@ -2677,6 +2865,11 @@ impl Document {
         let registry = self.window.CustomElements();
 
         registry.lookup_definition(local_name, is)
+    }
+
+    /// <https://dom.spec.whatwg.org/#document-custom-element-registry>
+    pub(crate) fn custom_element_registry(&self) -> DomRoot<CustomElementRegistry> {
+        self.window.CustomElements()
     }
 
     pub(crate) fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
@@ -4516,6 +4709,7 @@ impl Document {
         // state and document. Any other specs' visibility steps will go here.
 
         // <https://www.w3.org/TR/gamepad/#handling-visibility-change>
+        #[cfg(feature = "gamepad")]
         if visibility_state == DocumentVisibilityState::Hidden {
             self.window
                 .Navigator()
@@ -4688,7 +4882,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             can_gc,
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, can_gc);
+        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, can_gc);
         // Step 5. Return document.
         document.set_ready_state(DocumentReadyState::Complete, can_gc);
         Ok(document)
@@ -5118,20 +5312,41 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-importnode>
-    fn ImportNode(&self, node: &Node, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        // Step 1.
+    fn ImportNode(
+        &self,
+        node: &Node,
+        options: BooleanOrImportNodeOptions,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Node>> {
+        // Step 1. If node is a document or shadow root, then throw a "NotSupportedError" DOMException.
         if node.is::<Document>() || node.is::<ShadowRoot>() {
             return Err(Error::NotSupported(None));
         }
-
-        // Step 2.
-        let clone_children = if deep {
-            CloneChildrenFlag::CloneChildren
-        } else {
-            CloneChildrenFlag::DoNotCloneChildren
+        // Step 2. Let subtree be false.
+        let (subtree, registry) = match options {
+            // Step 3. Let registry be null.
+            // Step 4. If options is a boolean, then set subtree to options.
+            BooleanOrImportNodeOptions::Boolean(boolean) => (boolean.into(), None),
+            // Step 5. Otherwise:
+            BooleanOrImportNodeOptions::ImportNodeOptions(options) => {
+                // Step 5.1. Set subtree to the negation of options["selfOnly"].
+                let subtree = (!options.selfOnly).into();
+                // Step 5.2. If options["customElementRegistry"] exists, then set registry to it.
+                let registry = options.customElementRegistry;
+                // Step 5.3. If registry’s is scoped is false and registry
+                // is not this’s custom element registry, then throw a "NotSupportedError" DOMException.
+                // TODO
+                (subtree, registry)
+            },
         };
+        // Step 6. If registry is null, then set registry to the
+        // result of looking up a custom element registry given this.
+        let registry = registry
+            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(self.upcast()));
 
-        Ok(Node::clone(node, Some(self), clone_children, can_gc))
+        // Step 7. Return the result of cloning a node given node with
+        // document set to this, subtree set to subtree, and fallbackRegistry set to registry.
+        Ok(Node::clone(node, Some(self), subtree, registry, can_gc))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-adoptnode>

@@ -27,7 +27,7 @@ test_valid_value("animation-range", "exit-crossing 0% exit-crossing 100%",
 test_valid_value("animation-range", "cover 0% cover 100%", "cover");
 test_valid_value("animation-range", "contain 0% contain 100%", "contain");
 test_valid_value("animation-range",
-                 "entry calc(10% - 10%) entry calc(50% + 50%)", "entry");
+                 "entry calc(10% - 10%) entry calc(50% + 50%)", "entry calc(0%) entry calc(100%)");
 test_valid_value("animation-range", "cover 50%");
 test_valid_value("animation-range", "contain 50%");
 test_valid_value("animation-range", "entry 50%");

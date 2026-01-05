@@ -2,6 +2,12 @@ features:
 - name: speak
   files:
   - speak.html
+- name: font-feature-settings
+  files:
+  - font-feature-settings.html
+- name: font-kerning
+  files:
+  - font-kerning.html
 - name: font-variant
   files:
   - font-variant.html
@@ -17,3 +23,9 @@ features:
 - name: font-variant-numeric
   files:
   - font-variant-numeric.html
+- name: dominant-baseline
+  files:
+  - dominant-baseline.html
+- name: filter
+  files:
+  - filter.html

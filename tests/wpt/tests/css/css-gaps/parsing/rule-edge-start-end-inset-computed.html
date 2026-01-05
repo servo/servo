@@ -19,7 +19,7 @@
     </style>
     <script>
         // TODO(javiercon): Add shorthand support and test here.
-        const properties = ["column-rule-edge-start-inset", "row-rule-edge-start-inset", "column-rule-edge-end-inset", "row-rule-edge-end-inset"];
+        const properties = ["column-rule-edge-inset-start", "row-rule-edge-inset-start", "column-rule-edge-inset-end", "row-rule-edge-inset-end"];
         for (const property of properties) {
             test_computed_value(property, "10px");
             test_computed_value(property, "-20px");

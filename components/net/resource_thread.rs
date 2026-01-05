@@ -24,7 +24,7 @@ use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
-use net_traits::request::{Destination, RequestBuilder, RequestId};
+use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::{
     AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
@@ -53,7 +53,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::fetch_params::FetchParams;
+use crate::fetch::fetch_params::{FetchParams, SharedPreloadedResources};
 use crate::fetch::methods::{CancellationListener, FetchContext, WebSocketChannel, fetch};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::{self, HstsList};
@@ -77,7 +77,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub fn new_resource_threads(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
@@ -117,7 +117,7 @@ pub fn new_resource_threads(
 }
 
 /// Create a CoreResourceThread
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
@@ -399,6 +399,13 @@ impl ResourceChannelManager {
                     cancellation_listener.cancel();
                 }
             },
+            CoreResourceMsg::DeleteCookiesForSites(sites, sender) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .delete_cookies_for_sites(&sites);
+                let _ = sender.send(());
+            },
             CoreResourceMsg::DeleteCookies(request, sender) => {
                 http_state
                     .cookie_jar
@@ -505,6 +512,11 @@ impl ResourceChannelManager {
                     .collect();
                 consumer.send(cookies).unwrap();
             },
+            CoreResourceMsg::ListCookies(sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_all_expired_cookies();
+                let _ = sender.send(cookie_jar.cookie_site_descriptors());
+            },
             CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
                 let history_states = http_state.history_states.read();
                 consumer
@@ -521,10 +533,19 @@ impl ResourceChannelManager {
                     history_states.remove(&history_state);
                 }
             },
-            CoreResourceMsg::ClearCache => {
+            CoreResourceMsg::GetCacheEntries(sender) => {
+                let _ = sender.send(http_state.http_cache.cache_entry_descriptors());
+            },
+            CoreResourceMsg::ClearCache(sender) => {
                 http_state.http_cache.clear();
+                if let Some(sender) = sender {
+                    let _ = sender.send(());
+                }
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
+            CoreResourceMsg::StorePreloadedResponse(preload_id, response) => self
+                .resource_manager
+                .handle_preloaded_response(preload_id, response),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     let auth_cache = http_state.auth_cache.read();
@@ -572,6 +593,7 @@ pub struct CoreResourceManager {
     thread_pool: Arc<ThreadPool>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
+    preloaded_resources: SharedPreloadedResources,
 }
 
 impl CoreResourceManager {
@@ -596,6 +618,14 @@ impl CoreResourceManager {
             thread_pool: pool_handle,
             ca_certificates,
             ignore_certificate_errors,
+            preloaded_resources: Default::default(),
+        }
+    }
+
+    fn handle_preloaded_response(&self, preload_id: PreloadId, response: Response) {
+        let mut preloaded_resources = self.preloaded_resources.lock().unwrap();
+        if let Some(entry) = preloaded_resources.get_mut(&preload_id) {
+            entry.with_response(response);
         }
     }
 
@@ -667,6 +697,12 @@ impl CoreResourceManager {
 
         let ca_certificates = self.ca_certificates.clone();
         let ignore_certificate_errors = self.ignore_certificate_errors;
+        let preloaded_resources = self.preloaded_resources.clone();
+        if let Some(ref preload_id) = request.preload_id {
+            let mut preloaded_resources = self.preloaded_resources.lock().unwrap();
+            let entry = PreloadEntry::new(request.integrity_metadata.clone());
+            preloaded_resources.insert(preload_id.clone(), entry);
+        }
 
         spawn_task(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
@@ -686,6 +722,7 @@ impl CoreResourceManager {
                 websocket_chan: None,
                 ca_certificates,
                 ignore_certificate_errors,
+                preloaded_resources,
             };
 
             match res_init_ {
@@ -736,6 +773,7 @@ impl CoreResourceManager {
 
         let ca_certificates = self.ca_certificates.clone();
         let ignore_certificate_errors = self.ignore_certificate_errors;
+        let preloaded_resources = self.preloaded_resources.clone();
 
         spawn_task(async move {
             let mut event_sender = event_sender;
@@ -772,6 +810,7 @@ impl CoreResourceManager {
                         )))),
                         ca_certificates,
                         ignore_certificate_errors,
+                        preloaded_resources,
                     };
                     fetch(request, &mut event_sender, &context).await;
                 },

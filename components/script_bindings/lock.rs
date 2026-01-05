@@ -13,7 +13,7 @@ use std::sync::OnceLock;
 pub struct ThreadUnsafeOnceLock<T>(OnceLock<T>);
 
 impl<T> ThreadUnsafeOnceLock<T> {
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default)]
     pub const fn new() -> Self {
         Self(OnceLock::new())
     }
