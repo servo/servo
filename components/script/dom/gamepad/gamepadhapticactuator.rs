@@ -282,7 +282,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
         };
 
         let callback = GenericCallback::new(move |message| match message {
-            Ok(msg) => listener.handle_stopped(msg),
+            Ok(success) => listener.handle_stopped(success),
             Err(error) => warn!("Error receiving a GamepadMsg: {error:?}"),
         })
         .expect("Could not create callback");
