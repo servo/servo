@@ -1550,7 +1550,10 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
         let style = self.fragment.style();
         let outline = style.get_outline();
-        let width = outline.outline_width.to_f32_px();
+        if outline.outline_style.none_or_hidden() {
+            return;
+        }
+        let width = outline.outline_width.0.to_f32_px();
         if width == 0.0 {
             return;
         }
