@@ -34,7 +34,7 @@ static WHEELSCROLL_INTERVAL: u64 = 17;
 
 /// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
 /// 2^53 - 1
-pub(crate) static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 // A single action, corresponding to an `action object` in the spec.
 // In the spec, `action item` refers to a plain JSON object.

@@ -69,8 +69,9 @@ pub(crate) fn deserialize_as_timeouts_configuration(
             *target = match value {
                 Value::Null => None,
                 Value::Number(num) => Some(
-                    num.as_u64()
-                        .expect("Number already validated when parsing requests"),
+                    num.as_f64()
+                        .expect("Number already validated when parsing requests")
+                        as u64,
                 ),
                 _ => unreachable!("This has been validated when parsing requests"),
             };
