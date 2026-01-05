@@ -4,22 +4,32 @@
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::{ByteIndex, FontMetrics, GlyphStore};
+use euclid::Point2D;
+use fonts::{ByteIndex, FontMetrics, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
 use itertools::Either;
+use log::error;
 use range::Range;
 use style::Zero;
+use style::computed_values::overflow_x::T as Overflow_X;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::computed_values::writing_mode::T as WritingMode;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
+use style::values::generics::length::GenericMargin;
 use style::values::specified::align::AlignFlags;
-use style::values::specified::box_::DisplayOutside;
+use style::values::specified::box_::{DisplayInside, DisplayOutside};
+use style::values::specified::text::TextOverflowSide;
 use unicode_bidi::{BidiInfo, Level};
+use unicode_script::Script;
 use webrender_api::FontInstanceKey;
 
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
 use crate::cell::ArcRefCell;
-use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
+use crate::flow::inline::text_run::TextRunSegment;
+use crate::fragment_tree::{
+    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, OverflowIndicatorData, TextFragment,
+};
 use crate::geom::{
     LogicalRect, LogicalVec2, PhysicalRect, ToLogical, ToLogicalWithContainingBlock,
 };
@@ -152,6 +162,11 @@ pub(super) struct LineItemLayout<'layout_data, 'layout> {
     /// Whether this is a phantom line box.
     /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
     is_phantom_line: bool,
+
+    /// A boolean value that checks whether an overflow indicator (e.g. ellipsis) has been added.
+    /// This field is used for an optimization during `LineItemLayout::layout_text_run()`,
+    /// where an early return will happen if an overflow indicator has been added.
+    overflow_indicator_added: bool,
 }
 
 impl LineItemLayout<'_, '_> {
@@ -178,6 +193,7 @@ impl LineItemLayout<'_, '_> {
             },
             justification_adjustment,
             is_phantom_line,
+            overflow_indicator_added: false,
         }
         .layout(line_items)
     }
@@ -209,11 +225,22 @@ impl LineItemLayout<'_, '_> {
 
     pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
         let mut last_level = Level::ltr();
+        let mut total_text_run = 0;
         let levels: Vec<_> = line_items
             .iter()
             .map(|item| {
                 let level = match item {
-                    LineItem::TextRun(_, text_run) => text_run.bidi_level,
+                    LineItem::TextRun(_, text_run) => {
+                        let total_advance: Au = text_run
+                            .text
+                            .iter()
+                            .map(|glyph_store| glyph_store.total_advance())
+                            .sum();
+                        if total_advance > Au(0) {
+                            total_text_run += 1;
+                        }
+                        text_run.bidi_level
+                    },
                     // TODO: This level needs either to be last_level, or if there were
                     // unicode characters inserted for the inline box, we need to get the
                     // level from them.
@@ -250,6 +277,7 @@ impl LineItemLayout<'_, '_> {
             Either::Right(line_items.into_iter().rev())
         };
 
+        let mut current_text_run = 0;
         for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
             // inline box state reflects the item's parent. Items in the line are not necessarily in tree
@@ -271,7 +299,17 @@ impl LineItemLayout<'_, '_> {
                         .flags
                         .insert(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
                 },
-                LineItem::TextRun(_, text_run) => self.layout_text_run(text_run),
+                LineItem::TextRun(_, text_run) => {
+                    let total_advance: Au = text_run
+                        .text
+                        .iter()
+                        .map(|glyph_store| glyph_store.total_advance())
+                        .sum();
+                    if total_advance > Au(0) {
+                        current_text_run += 1;
+                    }
+                    self.layout_text_run(text_run, current_text_run == total_text_run)
+                },
                 LineItem::Atomic(_, atomic) => self.layout_atomic(atomic),
                 LineItem::AbsolutelyPositioned(_, absolute) => self.layout_absolute(absolute),
                 LineItem::Float(_, float) => self.layout_float(float),
@@ -526,9 +564,33 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    fn layout_text_run(&mut self, text_item: TextRunLineItem) {
-        if text_item.text.is_empty() {
+    fn layout_text_run(&mut self, text_item: TextRunLineItem, is_last_text_run: bool) {
+        if text_item.text.is_empty() || self.overflow_indicator_added {
             return;
+        }
+
+        // Check if current text fragment to be generated will be the first of the line.
+        let original_inline_advance = self.current_state.inline_advance;
+        let first_text_item_of_the_line = original_inline_advance == Au(0);
+
+        // Check if we can elide the current `TextRunLineItem`
+        // 1. Check the parent style's text-overflow property.
+        let parent_style = self.layout.ifc.shared_inline_styles.style.borrow();
+        let overflow_indicator = match &parent_style.get_text().text_overflow.second {
+            TextOverflowSide::Clip => None,
+            TextOverflowSide::Ellipsis => Some("\u{2026}".to_string()),
+            TextOverflowSide::String(s) => Some(s.to_string()),
+        }
+        .filter(|_| {
+            (parent_style.get_inherited_box().writing_mode == WritingMode::HorizontalTb) &&
+                (parent_style.get_box().overflow_x != Overflow_X::Visible) &&
+                (parent_style.get_box().display.inside() == DisplayInside::Flow)
+        });
+
+        let mut can_be_elided: bool;
+        match overflow_indicator {
+            Some(ref _s) => can_be_elided = true,
+            None => can_be_elided = false,
         }
 
         let mut number_of_justification_opportunities = 0;
@@ -565,22 +627,338 @@ impl LineItemLayout<'_, '_> {
         };
 
         self.current_state.inline_advance += inline_advance;
-        self.current_state.fragments.push((
-            Fragment::Text(ArcRefCell::new(TextFragment {
-                base: BaseFragment::new(
-                    text_item.base_fragment_info,
-                    text_item.inline_styles.style.clone().into(),
-                    PhysicalRect::zero(),
-                ),
-                selected_style: text_item.inline_styles.selected.clone(),
-                font_metrics: text_item.font_metrics,
-                font_key: text_item.font_key,
-                glyphs: text_item.text,
-                justification_adjustment: self.justification_adjustment,
-                selection_range: text_item.selection_range,
-            })),
-            content_rect,
-        ));
+
+        if can_be_elided {
+            // Create overflow marker
+            let overflow_indicator_string = match overflow_indicator {
+                Some(s) => s,
+                None => "\u{2026}".to_string(),
+            };
+            let mut overflow_indicator_total_advance = Au(0);
+            let mut overflow_indicator_glyphs = vec![];
+
+            let Some((overflow_indicator_textrun_segment, font, font_instance_key)) =
+                self.form_overflow_indicator(&overflow_indicator_string)
+            else {
+                error!("Ellipsis Glyph not found, and no fallback has been implemented yet!");
+                return;
+            };
+
+            overflow_indicator_glyphs.push(
+                overflow_indicator_textrun_segment.runs[0]
+                    .glyph_store
+                    .clone(),
+            );
+            let overflow_indicator_font = font;
+            let overflow_font_instance_key = font_instance_key;
+            overflow_indicator_total_advance += overflow_indicator_textrun_segment.runs[0]
+                .glyph_store
+                .total_advance();
+
+            // Create overflow marker bounding box
+            let mut max_inline_advance = self.layout.containing_block().size.inline -
+                text_item
+                    .inline_styles
+                    .style
+                    .borrow()
+                    .clone_border_left_width();
+            let margin_left = text_item.inline_styles.style.borrow().clone_margin_left();
+            match margin_left {
+                GenericMargin::LengthPercentage(val) => match val.to_length() {
+                    Some(margin_left_value) => {
+                        max_inline_advance -= Au(margin_left_value.to_i32_au())
+                    },
+                    _ => max_inline_advance -= Au(0),
+                },
+                _ => max_inline_advance -= Au(0),
+            }
+
+            let (overflow_indicator_content_rect, text_item) = self
+                .form_overflow_indicator_bounding_box(
+                    text_item,
+                    original_inline_advance,
+                    overflow_indicator_font.clone(),
+                    overflow_indicator_total_advance,
+                    max_inline_advance - overflow_indicator_total_advance,
+                );
+
+            // According to https://drafts.csswg.org/css-overflow-4/,
+            // the first character must be clipped instead.
+            // "[...] The first character or atomic inline-level element on a line must be clipped rather than ellipsed."
+            if overflow_indicator_content_rect.start_corner.inline == Au(0) {
+                can_be_elided = false;
+            }
+
+            // Create & insert text fragment to vector
+            if can_be_elided &&
+                ((self.current_state.inline_advance > max_inline_advance &&
+                    original_inline_advance < max_inline_advance) ||
+                    ((self.current_state.inline_advance >=
+                        max_inline_advance - overflow_indicator_total_advance) &&
+                        !is_last_text_run))
+            {
+                // With the current implementation, `ellipsis_textrun_segment.runs` is never empty since it is the glyph store of the ellipsis glyph.
+                let containing_block_bounds =
+                    (Au(0), max_inline_advance - overflow_indicator_total_advance);
+
+                // 1. Insert the text fragment.
+                // But before that, we need to check if the entire text will be elided.
+                // For example, let's say we have "中文中文english". Then there will be two `TextFragment`s, "中文中文" & "english".
+                // Let's say that the elided text will be "中文中文..."
+                // Then that would mean the entire "english" `TextFragment` will be elided, so we don't need to push it.
+                // An exception is if "english" is the first `TextFragment`, in which case we cannot elide.
+                // "The first character or atomic inline-level element on a line must be clipped rather than ellipsed.""
+                // <https://www.w3.org/TR/css-ui-3/#text-overflow>
+                if !(overflow_indicator_content_rect.start_corner.inline == original_inline_advance &&
+                    original_inline_advance != Au(0))
+                {
+                    let text_metadata = OverflowIndicatorData::new(
+                        containing_block_bounds,
+                        first_text_item_of_the_line,
+                        original_inline_advance,
+                        true,
+                    );
+
+                    self.current_state.fragments.push((
+                        Fragment::Text(ArcRefCell::new(TextFragment {
+                            base: BaseFragment::new(
+                                text_item.base_fragment_info,
+                                text_item.inline_styles.style.clone().into(),
+                                PhysicalRect::zero(),
+                            ),
+                            selected_style: text_item.inline_styles.selected.clone(),
+                            font_metrics: text_item.font_metrics,
+                            font_key: text_item.font_key,
+                            glyphs: text_item.text.clone(),
+                            justification_adjustment: self.justification_adjustment,
+                            selection_range: text_item.selection_range,
+                            overflow_metadata: text_metadata,
+                        })),
+                        content_rect,
+                    ));
+                }
+
+                // 2. Insert ellipsis fragment
+                let ellipsis_metadata = OverflowIndicatorData::new(
+                    (Au(0), max_inline_advance),
+                    first_text_item_of_the_line,
+                    original_inline_advance,
+                    true,
+                );
+                self.current_state.fragments.push((
+                    Fragment::Text(ArcRefCell::new(TextFragment {
+                        base: BaseFragment::new(
+                            text_item.base_fragment_info,
+                            self.layout.ifc.shared_inline_styles.style.clone().into(),
+                            PhysicalRect::zero(),
+                        ),
+                        selected_style: self.layout.ifc.shared_inline_styles.selected.clone(),
+                        font_metrics: overflow_indicator_font.metrics.clone(),
+                        font_key: overflow_font_instance_key,
+                        glyphs: overflow_indicator_glyphs,
+                        justification_adjustment: self.justification_adjustment,
+                        selection_range: text_item.selection_range,
+                        overflow_metadata: ellipsis_metadata,
+                    })),
+                    overflow_indicator_content_rect,
+                ));
+
+                // After inserting the overflow marker, don't create anymore TextFragments.
+                self.current_state.inline_advance = self.layout.containing_block().size.inline;
+
+                // Overflow marker has been added. This will be used to optimize the function `layout_text_run`
+                self.overflow_indicator_added = true;
+            } else {
+                // Insert text fragment
+                let text_metadata = OverflowIndicatorData::new(
+                    (Au(0), self.layout.containing_block().size.inline),
+                    first_text_item_of_the_line,
+                    original_inline_advance,
+                    false,
+                );
+
+                self.current_state.fragments.push((
+                    Fragment::Text(ArcRefCell::new(TextFragment {
+                        base: BaseFragment::new(
+                            text_item.base_fragment_info,
+                            text_item.inline_styles.style.clone().into(),
+                            PhysicalRect::zero(),
+                        ),
+                        selected_style: text_item.inline_styles.selected.clone(),
+                        font_metrics: text_item.font_metrics,
+                        font_key: text_item.font_key,
+                        glyphs: text_item.text.clone(),
+                        justification_adjustment: self.justification_adjustment,
+                        selection_range: text_item.selection_range,
+                        overflow_metadata: text_metadata,
+                    })),
+                    content_rect,
+                ));
+            }
+        } else {
+            // Insert text fragment
+            let text_metadata = OverflowIndicatorData::new(
+                (Au(0), self.layout.containing_block().size.inline),
+                first_text_item_of_the_line,
+                original_inline_advance,
+                false,
+            );
+
+            self.current_state.fragments.push((
+                Fragment::Text(ArcRefCell::new(TextFragment {
+                    base: BaseFragment::new(
+                        text_item.base_fragment_info,
+                        text_item.inline_styles.style.clone().into(),
+                        PhysicalRect::zero(),
+                    ),
+                    selected_style: text_item.inline_styles.selected.clone(),
+                    font_metrics: text_item.font_metrics,
+                    font_key: text_item.font_key,
+                    glyphs: text_item.text.clone(),
+                    justification_adjustment: self.justification_adjustment,
+                    selection_range: text_item.selection_range,
+                    overflow_metadata: text_metadata,
+                })),
+                content_rect,
+            ));
+        }
+    }
+
+    fn form_overflow_indicator_bounding_box(
+        &mut self,
+        text_item: TextRunLineItem,
+        original_inline_advance: Au,
+        overflow_indicator_font: FontRef,
+        overflow_indicator_total_advance: Au,
+        inline_target: Au,
+    ) -> (LogicalRect<Au>, TextRunLineItem) {
+        // 1. Find the inline start corner (if horizontal, then starting x pos), denoted as `inline_start`.
+        // `inline_target` is the minimum value for `inline_start`.
+        // The inline start corner of the ellipsis bounding box must be between
+        // `inline_target` & `self.layout.containing_block.size.inline`.
+        // With the current implementation,
+        // `overflow_textrun_segment.runs` is never empty since it is the glyph store of the ellipsis glyph.
+        let mut inline_start = original_inline_advance;
+        let mut found = false;
+
+        for store in &text_item.text {
+            for glyph in store.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), store.len())) {
+                if !found &&
+                    inline_start + glyph.advance() + glyph.offset().unwrap_or(Point2D::zero()).x <=
+                        inline_target
+                {
+                    inline_start += glyph.advance();
+                    inline_start += glyph.offset().unwrap_or(Point2D::zero()).x;
+                } else {
+                    found = true;
+                }
+            }
+        }
+
+        // 2. Create the bounding box of the ellipsis text fragment.
+        // When computing `start_corner.block`,
+        // This uses the same logic used in `LineItemLayout::layout_text_run`,
+        // the difference is that I am using the `ascent` of the IFC.
+        let start_corner = LogicalVec2 {
+            inline: inline_start,
+            block: self.current_state.baseline_offset -
+                overflow_indicator_font.metrics.ascent -
+                self.current_state.parent_offset.block,
+        };
+        let content_rect = LogicalRect {
+            start_corner,
+            size: LogicalVec2 {
+                block: overflow_indicator_font.metrics.line_gap,
+                inline: overflow_indicator_total_advance,
+            },
+        };
+
+        // return
+        (content_rect, text_item)
+    }
+
+    fn form_overflow_indicator(
+        &mut self,
+        overflow_indicator_text: &str,
+    ) -> Option<(TextRunSegment, FontRef, FontInstanceKey)> {
+        // CSS specs (for `text-overflow: ellipsis`):
+        // 1. The ellipsis is styled and baseline-aligned according to the block.
+        // 2. Render an ellipsis character (U+2026) to represent clipped inline content.
+        // Implementations may substitute a more language, script,
+        // or writing-mode appropriate ellipsis character, or three dots "..."
+        // if the ellipsis character is unavailable.
+        // <https://www.w3.org/TR/css-ui-3/#text-overflow>
+        // TODO: add the fallback three dots.
+
+        // 1. Create the arguments needed to create a `TextRunSegment`
+        let overflow_indicator_char = overflow_indicator_text.chars().next().unwrap();
+
+        let overflow_indicator_script = Script::from(overflow_indicator_char);
+        let overflow_indicator_bidi = BidiInfo::new(overflow_indicator_text, None);
+        let overflow_indicator_bidi_level = overflow_indicator_bidi.levels[0];
+        let overflow_indicator_start_byte_index: usize = 0;
+
+        // According to spec # 1, we should use the styling of the block.
+        // In the context of Servo, this corresponds to the IFC of current `TextRunSegment`.
+        let overflow_indicator_font_context = &self.layout.layout_context.font_context;
+        let overflow_indicator_painter_id = self.layout.layout_context.painter_id;
+
+        let overflow_indicator_font_group = overflow_indicator_font_context
+            .font_group(self.layout.containing_block().style.clone().clone_font());
+
+        let overflow_indicator_font = match overflow_indicator_font_group.find_by_codepoint(
+            overflow_indicator_font_context,
+            overflow_indicator_char,
+            None,
+            None,
+            None,
+        ) {
+            Some(font) => font,
+            None => overflow_indicator_font_group.first(overflow_indicator_font_context)?,
+        };
+
+        let overflow_font_instance_key = overflow_indicator_font.key(
+            overflow_indicator_painter_id,
+            overflow_indicator_font_context,
+        );
+
+        // 2. Create the `TextRunSegment`
+        let mut overflow_indicator_textrun_segment = TextRunSegment::new(
+            overflow_indicator_font.clone(),
+            overflow_indicator_script,
+            overflow_indicator_bidi_level,
+            overflow_indicator_start_byte_index,
+        );
+
+        // 3. Create arguments for shaping, which will be done by `shape_and_push_range()`
+        // one possible concern is RTL for `text-overflow: string`. However, this won't be an issue,
+        // because RTL won't affect the ordering of the glyph.
+        // For example, if text-overflow: '123', then RTL won't reverse it to '321'
+        let overflow_indicator_flags = ShapingFlags::empty();
+
+        let overflow_indicator_shaping_options = ShapingOptions {
+            // CSS specs doesn't mention anything, but for Firefox, even for `text-overflow: <string>`,
+            // any string with more than one character is considered as one, so `letter-spacing`
+            // is irrelevant.
+            letter_spacing: None,
+            word_spacing: Au(0), // No word spacing.
+            script: overflow_indicator_textrun_segment.script,
+            flags: overflow_indicator_flags,
+        };
+
+        // 4. Shape text
+        overflow_indicator_textrun_segment.shape_and_push_range(
+            &(0..overflow_indicator_text.len()),
+            overflow_indicator_text,
+            &overflow_indicator_shaping_options,
+        );
+
+        // Return
+        Some((
+            overflow_indicator_textrun_segment,
+            overflow_indicator_font,
+            overflow_font_instance_key,
+        ))
     }
 
     fn layout_atomic(&mut self, atomic: AtomicLineItem) {
