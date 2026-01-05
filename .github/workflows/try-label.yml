@@ -139,37 +139,29 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() && needs.parse-comment.outputs.try_string }}
     steps:
-      - name: Success
-        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-              const url = context.serverUrl +
-                "/" + context.repo.owner +
-                "/" + context.repo.repo +
-                "/actions/runs/" + context.runId;
-              const formattedURL = "[#" + context.runId + "](" + url + ")";
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: "✨ Try run (" + formattedURL + ") " + "succeeded.",
-              });
-      - name: Failure
-        if: ${{ contains(needs.*.result, 'failure') }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-              const url = context.serverUrl +
-                "/" + context.repo.owner +
-                "/" + context.repo.repo +
-                "/actions/runs/" + context.runId;
-              const formattedURL = "[#" + context.runId + "](" + url + ")";
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: "⚠️ Try run (" + formattedURL + ") " + "failed.",
-              });
-
-
+      - name: Post PR Comment with results
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          ACTIONS_RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REQUIRED_MQ_JOBS_SUCCEEDED=${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+          # Using `contains()` on the output object doesn't seem to work, so we convert to JSON and use
+          # jq at runtime to check the fields of the optional jobs.
+          OPTIONAL_JOB_STATUS_JSON="${{toJSON(needs.run-try.outputs.ohos_optional_job_status)}}"
+          OPTIONAL_JOBS_SUCCEEDED=$(echo "${OPTIONAL_JOB_STATUS_JSON}" | jq 'all(.[].result == "success"; .)')
+          # The variables expand to `true` or `false`, which can be directly run to evaluate the condition.
+          if ${REQUIRED_MQ_JOBS_SUCCEEDED} && ${OPTIONAL_JOBS_SUCCEEDED} ; then
+            RESULT_EMOJI="✨"
+            TRY_RESULT="succeeded."
+          elif ${REQUIRED_MQ_JOBS_SUCCEEDED} ; then
+            RESULT_EMOJI="⚠️"
+            TRY_RESULT="succeeded with failures of jobs that don't block the Merge Queue. Please check the workflow run for details."
+          elif ${{ contains(needs.*.result, 'failure') }} ; then
+            RESULT_EMOJI="⚠️"
+            TRY_RESULT="failed!"
+          else
+            RESULT_EMOJI="⚠️"
+            TRY_RESULT="cancelled."
+          fi  
+          gh pr comment ${PR_NUMBER} --repo ${{ github.repository }} --body "${RESULT_EMOJI} Try run ([#${{ github.run_id }}](${ACTIONS_RUN_URL})) ${TRY_RESULT}"
