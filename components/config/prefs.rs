@@ -137,8 +137,6 @@ pub struct Preferences {
     pub dom_mutation_observer_enabled: bool,
     // feature: Navigator.registerProtocolHandler() | #40615 | Web/API/Navigator/registerProtocolHandler
     pub dom_navigator_protocol_handlers_enabled: bool,
-    // feature: Navigator.sendBeacon() | #38302 | Web/API/Navigator/sendBeacon
-    pub dom_navigator_sendbeacon_enabled: bool,
     // feature: Notification API | #34841 | Web/API/Notifications_API
     pub dom_notification_enabled: bool,
     // feature: OffscreenCanvas | #34111 | Web/API/OffscreenCanvas
@@ -351,7 +349,6 @@ impl Preferences {
             dom_uievent_which_enabled: true,
             dom_mutation_observer_enabled: true,
             dom_navigator_protocol_handlers_enabled: false,
-            dom_navigator_sendbeacon_enabled: false,
             dom_notification_enabled: false,
             dom_parallel_css_parsing_enabled: true,
             dom_offscreen_canvas_enabled: false,
