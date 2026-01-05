@@ -195,7 +195,7 @@ impl GamepadSupport {
                 index,
                 HapticEffect {
                     effect,
-                    callback: effect_complete_sender,
+                    callback,
                 },
             );
             self.haptic_effects[&index]
