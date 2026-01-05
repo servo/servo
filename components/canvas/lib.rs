@@ -7,6 +7,12 @@
 
 mod backend;
 
+#[cfg(any(
+    not(any(feature = "vello", feature = "vello_cpu")),
+    all(feature = "vello", feature = "vello_cpu")
+))]
+compile_error!("Either feature \"vello\" or \"vello_cpu\" must be enabled for this crate.");
+
 #[cfg(any(feature = "vello", feature = "vello_cpu"))]
 mod peniko_conversions;
 
