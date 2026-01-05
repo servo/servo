@@ -855,7 +855,7 @@ impl ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         image_cache_factory: Arc<dyn ImageCacheFactory>,
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    ) -> Rc<ScriptThread> {
+    ) -> Rc<Self> {
         let (self_sender, self_receiver) = unbounded();
         let mut runtime =
             Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
