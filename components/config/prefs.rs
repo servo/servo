@@ -282,6 +282,8 @@ pub struct Preferences {
     pub network_http_cache_disabled: bool,
     /// A url for a http proxy. We treat an empty string as no proxy.
     pub network_http_proxy_uri: String,
+    /// A url for a https proxy. We treat an empty string as no proxy.
+    pub network_https_proxy_uri: String,
     /// The domains for which we will not have a proxy. No effect if `network_http_proxy_uri` is not set.
     pub network_http_no_proxy: String,
     /// The weight of the http memory cache
@@ -476,6 +478,7 @@ impl Preferences {
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
             network_http_proxy_uri: String::new(),
+            network_https_proxy_uri: String::new(),
             network_http_no_proxy: String::new(),
             network_http_cache_size: 5000,
             network_local_directory_listing_enabled: true,
@@ -505,9 +508,14 @@ impl Default for Preferences {
         if let Ok(proxy_uri) = std::env::var("http_proxy").or_else(|_| std::env::var("HTTP_PROXY"))
         {
             preferences.network_http_proxy_uri = proxy_uri;
-            if let Ok(no_proxy) = std::env::var("no_proxy").or_else(|_| std::env::var("NO_PROXY")) {
-                preferences.network_http_no_proxy = no_proxy
-            }
+        }
+        if let Ok(proxy_uri) =
+            std::env::var("https_proxy").or_else(|_| std::env::var("HTTPS_PROXY"))
+        {
+            preferences.network_https_proxy_uri = proxy_uri;
+        }
+        if let Ok(no_proxy) = std::env::var("no_proxy").or_else(|_| std::env::var("NO_PROXY")) {
+            preferences.network_http_no_proxy = no_proxy
         }
 
         preferences

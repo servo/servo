@@ -566,18 +566,10 @@ pub struct ProxyConnector {
 
 impl ProxyConnector {
     fn new() -> Self {
-        let mut matcher_builder = hyper_util::client::proxy::matcher::Matcher::builder();
-        let network_http_proxy_uri = servo_config::pref!(network_http_proxy_uri);
-        if !network_http_proxy_uri.is_empty() {
-            log::info!("Using proxy specified via {:?}", network_http_proxy_uri);
-            matcher_builder = matcher_builder
-                .http(network_http_proxy_uri.clone())
-                .https(network_http_proxy_uri);
-
-            if !servo_config::pref!(network_http_no_proxy).is_empty() {
-                matcher_builder = matcher_builder.no(servo_config::pref!(network_http_no_proxy));
-            }
-        }
+        let matcher_builder = hyper_util::client::proxy::matcher::Matcher::builder()
+            .http(servo_config::pref!(network_http_proxy_uri))
+            .https(servo_config::pref!(network_https_proxy_uri))
+            .no(servo_config::pref!(network_http_no_proxy));
         ProxyConnector {
             client: ServoHttpConnector::new(),
             matcher: std::sync::Arc::new(matcher_builder.build()),
@@ -617,13 +609,12 @@ impl Service<Destination> for ProxyConnector {
 pub type ServoClient = Client<InstrumentedConnector<ProxyConnector>, BoxedBody>;
 
 pub fn create_http_client(tls_config: TlsConfig) -> ServoClient {
-    let maybe_proxy_connector = ProxyConnector::new();
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
         .enable_http2()
-        .wrap_connector(maybe_proxy_connector);
+        .wrap_connector(ProxyConnector::new());
 
     Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
