@@ -18,18 +18,9 @@ use servo::GamepadHapticEffectType;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
     DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GenericSender, InputEvent, InputEventId, InputEventResult, IpcSender, JSValue, LoadStatus,
+    GenericSender, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
     MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
     ServoError, TraversalId, UserContentManager, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
-    WebViewId, pref,
-};
-use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
-    DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GamepadHapticEffectType, GenericSender, InputEvent, InputEventId, InputEventResult, JSValue,
-    LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo,
-    ServoDelegate, ServoError, TraversalId, WebDriverCommandMsg, WebDriverJSResult,
     WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
     WebViewId, pref,
 };
