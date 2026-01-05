@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::mem;
+use std::cell::RefCell;
 
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
@@ -16,7 +16,7 @@ pub struct FramerateActor {
     pipeline_id: PipelineId,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     is_recording: bool,
-    ticks: Vec<HighResolutionStamp>,
+    ticks: RefCell<Vec<HighResolutionStamp>>,
 }
 
 impl Actor for FramerateActor {
@@ -38,7 +38,7 @@ impl FramerateActor {
             pipeline_id,
             script_sender,
             is_recording: false,
-            ticks: Vec::new(),
+            ticks: Default::default(),
         };
 
         actor.start_recording();
@@ -46,8 +46,10 @@ impl FramerateActor {
         actor_name
     }
 
-    pub fn add_tick(&mut self, tick: f64) {
-        self.ticks.push(HighResolutionStamp::wrap(tick));
+    pub fn add_tick(&self, tick: f64) {
+        self.ticks
+            .borrow_mut()
+            .push(HighResolutionStamp::wrap(tick));
 
         if self.is_recording {
             let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name());
@@ -55,8 +57,8 @@ impl FramerateActor {
         }
     }
 
-    pub fn take_pending_ticks(&mut self) -> Vec<HighResolutionStamp> {
-        mem::take(&mut self.ticks)
+    pub fn take_pending_ticks(&self) -> Vec<HighResolutionStamp> {
+        self.ticks.take()
     }
 
     fn start_recording(&mut self) {

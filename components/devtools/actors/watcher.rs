@@ -250,7 +250,7 @@ impl Actor for WatcherActor {
 
                     target.frame_update(&mut request);
                 } else if target_type == "worker" {
-                    for worker_name in &root.workers {
+                    for worker_name in &*root.workers.borrow() {
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),
@@ -317,7 +317,7 @@ impl Actor for WatcherActor {
                                 &mut request,
                             );
 
-                            for worker_name in &root.workers {
+                            for worker_name in &*root.workers.borrow() {
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);
 
