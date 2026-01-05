@@ -155,7 +155,7 @@ where
         } else {
             let (sender, receiver) = crossbeam_channel::bounded(1);
             let callback = Arc::new(Mutex::new(move |msg| {
-                if let Err(_) = sender.send(msg) {
+                if sender.send(msg).is_err() {
                     log::error!("Error in callback");
                 }
             }));

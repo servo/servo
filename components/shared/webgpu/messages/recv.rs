@@ -7,8 +7,7 @@
 
 use arrayvec::ArrayVec;
 use base::Epoch;
-use base::generic_channel::GenericSharedMemory;
-use base::generic_channel::GenericCallback;
+use base::generic_channel::{GenericCallback, GenericSharedMemory};
 use base::id::PipelineId;
 use ipc_channel::ipc::IpcSender;
 use pixels::SharedSnapshot;

@@ -28,16 +28,8 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::realms::{InRealm, enter_realm};
-<<<<<<< HEAD
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
-use crate::script_runtime::CanGc;
-||||||| parent of 0a403623201 (routed_promise to GenericCallback)
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-=======
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
->>>>>>> 0a403623201 (routed_promise to GenericCallback)
+use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
