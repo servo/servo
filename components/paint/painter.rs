@@ -9,8 +9,7 @@ use std::sync::Arc;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericSharedMemory;
-use base::generic_channel::GenericReceiver;
+use base::generic_channel::{GenericReceiver, GenericSharedMemory};
 use base::id::{PainterId, PipelineId, WebViewId};
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
@@ -22,7 +21,6 @@ use embedder_traits::{
 use euclid::{Point2D, Rect, Scale, Size2D};
 use gleam::gl::RENDERER;
 use image::RgbaImage;
-use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
 use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
