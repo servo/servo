@@ -22,7 +22,7 @@ impl GamepadSupport {
         &mut self,
         _index: usize,
         _effect_type: GamepadHapticEffectType,
-        _effect_complete_sender: Box<dyn Fn(bool)>,
+        _effect_complete_callback: Box<dyn Fn(bool)>,
     ) {
         unreachable!("Dummy gamepad support should never be called.");
     }
