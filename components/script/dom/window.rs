@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -187,7 +187,7 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
-use crate::script_thread::{ScriptThread, with_script_thread};
+use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
@@ -265,6 +265,14 @@ struct PendingLayoutImageAncillaryData {
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
+
+    /// A `Weak` reference to this [`ScriptThread`] used to give to child [`Window`]s so
+    /// they can more easily call methods on the [`ScriptThread`] without constantly having
+    /// to pass it everywhere.
+    #[ignore_malloc_size_of = "Weak does not need to be accounted"]
+    #[no_trace]
+    weak_script_thread: Weak<ScriptThread>,
+
     /// The webview that contains this [`Window`].
     ///
     /// This may not be the top-level [`Window`], in the case of frames.
@@ -464,6 +472,11 @@ pub(crate) struct Window {
 }
 
 impl Window {
+    pub(crate) fn script_thread(&self) -> Rc<ScriptThread> {
+        Weak::upgrade(&self.weak_script_thread)
+            .expect("Weak reference should always be upgradable when a ScriptThread is running")
+    }
+
     pub(crate) fn webview_id(&self) -> WebViewId {
         self.webview_id
     }
@@ -885,7 +898,7 @@ impl Window {
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
-        with_script_thread(|script_thread| script_thread.perform_a_microtask_checkpoint(can_gc));
+        self.script_thread().perform_a_microtask_checkpoint(can_gc);
     }
 
     pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
@@ -3510,6 +3523,7 @@ impl Window {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         theme: Theme,
+        weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3600,6 +3614,7 @@ impl Window {
             script_window_proxies: ScriptThread::window_proxies(),
             has_pending_screenshot_readiness_request: Default::default(),
             visual_viewport: Default::default(),
+            weak_script_thread,
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
