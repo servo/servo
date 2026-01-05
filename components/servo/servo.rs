@@ -550,7 +550,7 @@ impl ServoInner {
                         gamepad_haptic_effect_type,
                         Box::new(move |success| {
                             callback
-                                .send(msg)
+                                .send(success)
                                 .expect("Could not send message via callback")
                         }),
                     );
@@ -564,7 +564,7 @@ impl ServoInner {
                         gamepad_index,
                         Box::new(move |success| {
                             callback
-                                .send(msg)
+                                .send(success)
                                 .expect("Could not send message via callback")
                         }),
                     );
