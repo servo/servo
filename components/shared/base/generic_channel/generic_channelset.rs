@@ -62,7 +62,7 @@ pub enum GenericSelectionResult<T> {
     /// The channel has been closed for the [GenericReceiver] identified by the `u64` value.
     ChannelClosed(u64),
     /// An error occured decoding the message.
-    Error,
+    Error(String),
 }
 
 impl<T: Serialize + for<'de> serde::Deserialize<'de>> From<IpcSelectionResult>
@@ -73,7 +73,7 @@ impl<T: Serialize + for<'de> serde::Deserialize<'de>> From<IpcSelectionResult>
             IpcSelectionResult::MessageReceived(channel_id, ipc_message) => {
                 match ipc_message.to() {
                     Ok(value) => GenericSelectionResult::MessageReceived(channel_id, value),
-                    Err(_) => GenericSelectionResult::Error,
+                    Err(error) => GenericSelectionResult::Error(error.to_string()),
                 }
             },
             IpcSelectionResult::ChannelClosed(channel_id) => {
@@ -132,10 +132,7 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
                         .map(|selection_result| selection_result.into())
                         .collect()
                 })
-                .unwrap_or_else(|e| {
-                    log::info!("GenericError {:?}", e);
-                    vec![GenericSelectionResult::Error]
-                }),
+                .unwrap_or_else(|e| vec![GenericSelectionResult::Error(e.to_string())]),
             GenericReceiverSetVariants::Crossbeam(receivers) => {
                 let mut sel = crossbeam_channel::Select::new();
                 // we need to add all the receivers to the set

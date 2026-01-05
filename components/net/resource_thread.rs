@@ -260,7 +260,9 @@ impl ResourceChannelManager {
                 // Handles case where profiler thread shuts down before resource thread.
                 match received {
                     GenericSelectionResult::ChannelClosed(_) => continue,
-                    GenericSelectionResult::Error => log::error!("Found selection error"),
+                    GenericSelectionResult::Error(error) => {
+                        log::error!("Found selection error: {error}")
+                    },
                     GenericSelectionResult::MessageReceived(id, msg) => {
                         if id == reporter_id {
                             if let CoreResourceMsg::CollectMemoryReport(report_chan) = msg {
