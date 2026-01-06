@@ -285,6 +285,8 @@ pub struct Preferences {
     /// A url for a https proxy. We treat an empty string as no proxy.
     pub network_https_proxy_uri: String,
     /// The domains for which we will not have a proxy. No effect if `network_http_proxy_uri` is not set.
+    /// The exact behavior is given by
+    /// <https://docs.rs/hyper-util/latest/hyper_util/client/proxy/matcher/struct.Builder.html#method.no>
     pub network_http_no_proxy: String,
     /// The weight of the http memory cache
     /// Notice that this is not equal to the number of different urls in the cache.
