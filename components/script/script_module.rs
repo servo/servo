@@ -94,7 +94,7 @@ pub(crate) fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc
 pub(crate) struct ModuleObject(RootedTraceableBox<Heap<*mut JSObject>>);
 
 impl ModuleObject {
-    fn new(obj: RustHandleObject) -> ModuleObject {
+    pub(crate) fn new(obj: RustHandleObject) -> ModuleObject {
         ModuleObject(RootedTraceableBox::from_box(Heap::boxed(obj.get())))
     }
 
@@ -1867,6 +1867,38 @@ fn fetch_single_module_script(
         },
         None => global.fetch_with_network_listener(request, network_listener),
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/webappapis.html#creating-a-javascript-module-script>
+#[expect(unsafe_code)]
+pub(crate) fn create_a_javascript_module_script(
+    source_text: &str,
+    base_url: ServoUrl,
+    options: ScriptFetchOptions,
+    mut module_script: RustMutableHandleObject,
+    introduction_type: Option<&'static CStr>,
+) -> Result<(), RethrowError> {
+    let cx = GlobalScope::get_cx();
+
+    let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, base_url.as_str(), 1) };
+    if let Some(introduction_type) = introduction_type {
+        compile_options.set_introduction_type(introduction_type);
+    }
+
+    unsafe {
+        module_script.set(CompileModule1(
+            *cx,
+            compile_options.ptr,
+            &mut transform_str_to_source_text(source_text),
+        ));
+    }
+
+    if module_script.is_null() {
+        warn!("Module script compilation failed {}", base_url);
+        return Err(RethrowError::from_pending_exception(cx));
+    }
+
+    Ok(())
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
