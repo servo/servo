@@ -185,8 +185,8 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage, can_gc: CanGc) -> bool {
-        self.handle_mixed_message(event, can_gc)
+    fn handle_event(&self, event: MixedMessage, cx: &mut js::context::JSContext) -> bool {
+        self.handle_mixed_message(event, cx)
     }
 
     fn handle_worker_post_event(
@@ -318,6 +318,11 @@ impl ServiceWorkerGlobalScope {
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
                 let runtime = Runtime::new(None);
+                // SAFETY: We are in a new thread, so this first cx.
+                // It is OK to have it separated of runtime here,
+                // because it will never outlive it (runtime destruction happens at the end of this function
+                let mut cx = unsafe { runtime.cx() };
+                let cx = &mut cx;
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
 
@@ -374,7 +379,7 @@ impl ServiceWorkerGlobalScope {
                     &resource_threads_sender,
                     global.upcast(),
                     &ServiceWorkerCspProcessor {},
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 ) {
                     Err(_) => {
                         error!("error loading script {}", serialized_worker_url);
@@ -386,7 +391,7 @@ impl ServiceWorkerGlobalScope {
 
                 unsafe {
                     // Handle interrupt requests
-                    JS_AddInterruptCallback(*worker_scope.get_cx(), Some(interrupt_callback));
+                    JS_AddInterruptCallback(cx.raw_cx(), Some(interrupt_callback));
                 }
 
                 {
@@ -395,7 +400,7 @@ impl ServiceWorkerGlobalScope {
                     define_all_exposed_interfaces(
                         global_scope,
                         InRealm::entered(&realm),
-                        CanGc::note(),
+                        CanGc::from_cx(cx),
                     );
 
                     let script = global_scope.create_a_classic_script(
@@ -407,8 +412,12 @@ impl ServiceWorkerGlobalScope {
                         1,
                         true,
                     );
-                    _ = global_scope.run_a_classic_script(script, RethrowErrors::No, CanGc::note());
-                    global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
+                    _ = global_scope.run_a_classic_script(
+                        script,
+                        RethrowErrors::No,
+                        CanGc::from_cx(cx),
+                    );
+                    global.dispatch_activate(CanGc::from_cx(cx), InRealm::entered(&realm));
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -421,7 +430,7 @@ impl ServiceWorkerGlobalScope {
                         // which happens after the closing flag is set to true,
                         // or until the worker has run beyond its allocated time.
                         while !worker_scope.is_closing() && !global.has_timed_out() {
-                            run_worker_event_loop(&*global, None, CanGc::note());
+                            run_worker_event_loop(&*global, None, cx);
                         }
                     },
                     reporter_name,
@@ -434,11 +443,11 @@ impl ServiceWorkerGlobalScope {
             .expect("Thread spawning failed")
     }
 
-    fn handle_mixed_message(&self, msg: MixedMessage, can_gc: CanGc) -> bool {
+    fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender, can_gc)
+                    devtools::handle_evaluate_js(self.upcast(), string, sender, CanGc::from_cx(cx))
                 },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
                     devtools::handle_wants_live_notifications(self.upcast(), bool_val)
@@ -446,7 +455,7 @@ impl ServiceWorkerGlobalScope {
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },
             MixedMessage::ServiceWorker(msg) => {
-                self.handle_script_event(msg, can_gc);
+                self.handle_script_event(msg, cx);
             },
             MixedMessage::Control(ServiceWorkerControlMsg::Exit) => {
                 return false;
@@ -461,7 +470,7 @@ impl ServiceWorkerGlobalScope {
         false
     }
 
-    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg, can_gc: CanGc) {
+    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg, cx: &mut js::context::JSContext) {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
@@ -469,30 +478,37 @@ impl ServiceWorkerGlobalScope {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = enter_realm(scope);
-                rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                if let Ok(ports) =
-                    structuredclone::read(scope.upcast(), *msg.data, message.handle_mut(), can_gc)
-                {
+                rooted!(&in(cx) let mut message = UndefinedValue());
+                if let Ok(ports) = structuredclone::read(
+                    scope.upcast(),
+                    *msg.data,
+                    message.handle_mut(),
+                    CanGc::from_cx(cx),
+                ) {
                     ExtendableMessageEvent::dispatch_jsval(
                         target,
                         scope.upcast(),
                         message.handle(),
                         ports,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 } else {
-                    ExtendableMessageEvent::dispatch_error(target, scope.upcast(), can_gc);
+                    ExtendableMessageEvent::dispatch_error(
+                        target,
+                        scope.upcast(),
+                        CanGc::from_cx(cx),
+                    );
                 }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {
-                self.upcast::<WorkerGlobalScope>().process_event(msg);
+                self.upcast::<WorkerGlobalScope>().process_event(msg, cx);
             },
             Response(mediator) => {
                 // TODO XXXcreativcoder This will eventually use a FetchEvent interface to fire event
                 // when we have the Request and Response dom api's implemented
                 // https://w3c.github.io/ServiceWorker/#fetchevent-interface
                 self.upcast::<EventTarget>()
-                    .fire_event(atom!("fetch"), can_gc);
+                    .fire_event(atom!("fetch"), CanGc::from_cx(cx));
                 let _ = mediator.response_chan.send(None);
             },
             WakeUp => {},

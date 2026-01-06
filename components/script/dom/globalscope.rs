@@ -3095,7 +3095,7 @@ impl GlobalScope {
             return ScriptThread::process_event(msg, cx);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.process_event(msg);
+            return worker.process_event(msg, cx);
         }
         unreachable!();
     }

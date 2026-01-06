@@ -21,7 +21,7 @@ pub(crate) trait WorkerEventLoopMethods {
     type ControlMsg;
     type Event;
     fn task_queue(&self) -> &TaskQueue<Self::WorkerMsg>;
-    fn handle_event(&self, event: Self::Event, can_gc: CanGc) -> bool;
+    fn handle_event(&self, event: Self::Event, cx: &mut js::context::JSContext) -> bool;
     fn handle_worker_post_event(
         &self,
         worker: &TrustedWorkerAddress,
@@ -37,7 +37,7 @@ pub(crate) trait WorkerEventLoopMethods {
 pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     worker_scope: &T,
     worker: Option<&TrustedWorkerAddress>,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) where
     WorkerMsg: QueuedTaskConversion + Send,
     T: WorkerEventLoopMethods<WorkerMsg = WorkerMsg, Event = Event>
@@ -86,7 +86,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     // Step 3
     for event in sequential {
         let _realm = enter_realm(worker_scope);
-        if !worker_scope.handle_event(event, can_gc) {
+        if !worker_scope.handle_event(event, cx) {
             // Shutdown
             return;
         }
@@ -95,7 +95,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
             Some(worker) => worker_scope.handle_worker_post_event(worker),
             None => None,
         };
-        scope.perform_a_microtask_checkpoint(can_gc);
+        scope.perform_a_microtask_checkpoint(CanGc::from_cx(cx));
     }
     worker_scope
         .upcast::<GlobalScope>()

@@ -210,8 +210,8 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage, can_gc: CanGc) -> bool {
-        self.handle_mixed_message(event, can_gc)
+    fn handle_event(&self, event: MixedMessage, cx: &mut js::context::JSContext) -> bool {
+        self.handle_mixed_message(event, cx)
     }
 
     fn handle_worker_post_event(
@@ -418,6 +418,11 @@ impl DedicatedWorkerGlobalScope {
                 let runtime = unsafe {
                     Runtime::new_with_parent(Some(parent), Some(event_loop_sender.clone()))
                 };
+                // SAFETY: We are in a new thread, so this first cx.
+                // It is OK to have it separated of runtime here,
+                // because it will never outlive it (runtime destruction happens at the end of this function)
+                let mut cx = unsafe { runtime.cx() };
+                let cx = &mut cx;
                 let debugger_global = DebuggerGlobalScope::new(
                     pipeline_id,
                     init.to_devtools_sender.clone(),
@@ -432,9 +437,9 @@ impl DedicatedWorkerGlobalScope {
                     init.storage_threads.clone(),
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub.clone(),
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 );
-                debugger_global.execute(CanGc::note());
+                debugger_global.execute(CanGc::from_cx(cx));
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
@@ -479,7 +484,7 @@ impl DedicatedWorkerGlobalScope {
                     font_context,
                 );
                 debugger_global.fire_add_debuggee(
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                     global.upcast(),
                     pipeline_id,
                     Some(worker_id),
@@ -516,7 +521,7 @@ impl DedicatedWorkerGlobalScope {
                             // until the event loop is destroyed,
                             // which happens after the closing flag is set to true.
                             while !scope.is_closing() {
-                                run_worker_event_loop(&*global, Some(&worker), CanGc::note());
+                                run_worker_event_loop(&*global, Some(&worker), cx);
                             }
                         },
                         reporter_name,
@@ -609,22 +614,22 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    fn handle_script_event(&self, msg: WorkerScriptMsg, can_gc: CanGc) {
+    fn handle_script_event(&self, msg: WorkerScriptMsg, cx: &mut js::context::JSContext) {
         match msg {
             WorkerScriptMsg::DOMMessage(message_data) => {
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
-                    self.dispatch_message_event(message_data, can_gc);
+                    self.dispatch_message_event(message_data, CanGc::from_cx(cx));
                 } else {
                     self.queued_worker_tasks.borrow_mut().push(message_data);
                 }
             },
             WorkerScriptMsg::Common(msg) => {
-                self.upcast::<WorkerGlobalScope>().process_event(msg);
+                self.upcast::<WorkerGlobalScope>().process_event(msg, cx);
             },
         }
     }
 
-    fn handle_mixed_message(&self, msg: MixedMessage, can_gc: CanGc) -> bool {
+    fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
         if self.upcast::<WorkerGlobalScope>().is_closing() {
             return false;
         }
@@ -632,7 +637,7 @@ impl DedicatedWorkerGlobalScope {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender, can_gc)
+                    devtools::handle_evaluate_js(self.upcast(), string, sender, CanGc::from_cx(cx))
                 },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
                     devtools::handle_wants_live_notifications(self.upcast(), bool_val)
@@ -641,7 +646,7 @@ impl DedicatedWorkerGlobalScope {
             },
             MixedMessage::Worker(DedicatedWorkerScriptMsg::CommonWorker(linked_worker, msg)) => {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
-                self.handle_script_event(msg, can_gc);
+                self.handle_script_event(msg, cx);
             },
             MixedMessage::Worker(DedicatedWorkerScriptMsg::WakeUp) => {},
             MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
