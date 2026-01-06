@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cfg_if::cfg_if;
+use tracing::Event;
+use tracing_subscriber::layer::Context; 
 
 #[cfg(test)]
 mod test;
@@ -190,6 +192,16 @@ cfg_if! {
                     }
                 }
             }
+
+            fn on_event(&self, event: &Event<'_>, _ctx: Context<'_, S>) {
+                log::info!("hitrace on_event: {event:?}");
+                hitrace::start_trace(
+                    &std::ffi::CString::new(event.metadata().name())
+                        .expect("Failed to convert str to CString"),
+                );
+                hitrace::finish_trace();
+            }
+
 
             fn on_exit(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
                 if let Some(metadata) = ctx.metadata(id) {
