@@ -77,19 +77,19 @@ pub(crate) trait NonSendTaskOnce: crate::JSTraceable {
 pub(crate) trait TaskBox: Send {
     fn name(&self) -> &'static str;
 
-    fn run_box(self: Box<Self>);
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext);
 }
 
 /// A boxed version of `NonSendTaskOnce`.
 pub(crate) trait NonSendTaskBox: crate::JSTraceable {
-    fn run_box(self: Box<Self>);
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext);
 }
 
 impl<T> NonSendTaskBox for T
 where
     T: NonSendTaskOnce,
 {
-    fn run_box(self: Box<Self>) {
+    fn run_box(self: Box<Self>, _cx: &mut js::context::JSContext) {
         self.run_once()
     }
 }
@@ -102,7 +102,7 @@ where
         TaskOnce::name(self)
     }
 
-    fn run_box(self: Box<Self>) {
+    fn run_box(self: Box<Self>, _cx: &mut js::context::JSContext) {
         self.run_once()
     }
 }

@@ -1028,9 +1028,9 @@ impl ModuleHandler {
 }
 
 impl Callback for ModuleHandler {
-    fn callback(&self, _cx: &mut CurrentRealm, _v: HandleValue) {
+    fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
         let task = self.task.borrow_mut().take().unwrap();
-        task.run_box();
+        task.run_box(cx);
     }
 }
 

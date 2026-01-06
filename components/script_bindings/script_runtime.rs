@@ -68,6 +68,18 @@ pub fn mark_runtime_dead() {
     THREAD_ACTIVE.with(|t| t.set(false));
 }
 
+/// Get the current JSContext for the running thread.
+///
+/// ## Safety
+/// Using this function is unsafe because no other JSContext may be constructed apart from initial ones,
+/// but because we are still working on passing down &mut SafeJSContext references,
+/// this function is provided as temporary workaround/placeholder.
+///
+/// As such all it's usages will need to be eventually replaced with proper &mut SafeJSContext references.
+pub unsafe fn temp_cx() -> SafeJSContext {
+    unsafe { SafeJSContext::from_ptr(js::rust::Runtime::get().unwrap()) }
+}
+
 #[derive(Clone, Copy, Debug)]
 /// A compile-time marker that there are operations that could trigger a JS garbage collection
 /// operation within the current stack frame. It is trivially copyable, so it should be passed
