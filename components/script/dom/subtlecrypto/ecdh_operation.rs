@@ -708,85 +708,73 @@ pub(crate) fn import_key(
                     let y = jwk.decode_required_string_field(JwkStringField::Y)?;
                     let d = jwk.decode_required_string_field(JwkStringField::D)?;
 
-                        // Step 2.10.2. Let key be a new CryptoKey object that represents the
-                        // Elliptic Curve private key identified by interpreting jwk according to
-                        // Section 6.2.2 of JSON Web Algorithms [JWA].
-                        // NOTE: CryptoKey is created in Step 2.12 - 2.15.
-                        let handle = match named_curve.as_str() {
-                            NAMED_CURVE_P256 => {
-                                let private_key =
-                                    p256::SecretKey::from_slice(&d).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to parse P-256 private key".to_string(),
-                                        ))
-                                    })?;
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point =
-                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to encode curve point".to_string(),
-                                        ))
-                                    })?;
-                                NistP256::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to validate P-256 public key".to_string(),
-                                        ))
-                                    })?;
-                                Handle::P256PrivateKey(private_key)
-                            },
-                            NAMED_CURVE_P384 => {
-                                let private_key =
-                                    p384::SecretKey::from_slice(&d).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to parse P-384 private key".to_string(),
-                                        ))
-                                    })?;
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point =
-                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to encode curve point".to_string(),
-                                        ))
-                                    })?;
-                                NistP384::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to validate P-384 public key".to_string(),
-                                        ))
-                                    })?;
-                                Handle::P384PrivateKey(private_key)
-                            },
-                            NAMED_CURVE_P521 => {
-                                let private_key =
-                                    p521::SecretKey::from_slice(&d).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to parse P-521 private key".to_string(),
-                                        ))
-                                    })?;
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point =
-                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to encode curve point".to_string(),
-                                        ))
-                                    })?;
-                                NistP521::validate_public_key(&private_key, &encoded_point)
-                                    .map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to validate P-521 public key".to_string(),
-                                        ))
-                                    })?;
-                                Handle::P521PrivateKey(private_key)
-                            },
-                            _ => unreachable!(),
-                        };
+                    // Step 2.10.2. Let key be a new CryptoKey object that represents the
+                    // Elliptic Curve private key identified by interpreting jwk according to
+                    // Section 6.2.2 of JSON Web Algorithms [JWA].
+                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    let handle = match named_curve.as_str() {
+                        NAMED_CURVE_P256 => {
+                            let private_key = p256::SecretKey::from_slice(&d).map_err(|_| {
+                                Error::Data(Some("Failed to parse P-256 private key".to_string()))
+                            })?;
+                            let mut sec1_bytes = vec![4u8];
+                            sec1_bytes.extend_from_slice(&x);
+                            sec1_bytes.extend_from_slice(&y);
+                            let encoded_point =
+                                EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                    Error::Data(Some("Failed to encode curve point".to_string()))
+                                })?;
+                            NistP256::validate_public_key(&private_key, &encoded_point).map_err(
+                                |_| {
+                                    Error::Data(Some(
+                                        "Failed to validate P-256 public key".to_string(),
+                                    ))
+                                },
+                            )?;
+                            Handle::P256PrivateKey(private_key)
+                        },
+                        NAMED_CURVE_P384 => {
+                            let private_key = p384::SecretKey::from_slice(&d).map_err(|_| {
+                                Error::Data(Some("Failed to parse P-384 private key".to_string()))
+                            })?;
+                            let mut sec1_bytes = vec![4u8];
+                            sec1_bytes.extend_from_slice(&x);
+                            sec1_bytes.extend_from_slice(&y);
+                            let encoded_point =
+                                EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                    Error::Data(Some("Failed to encode curve point".to_string()))
+                                })?;
+                            NistP384::validate_public_key(&private_key, &encoded_point).map_err(
+                                |_| {
+                                    Error::Data(Some(
+                                        "Failed to validate P-384 public key".to_string(),
+                                    ))
+                                },
+                            )?;
+                            Handle::P384PrivateKey(private_key)
+                        },
+                        NAMED_CURVE_P521 => {
+                            let private_key = p521::SecretKey::from_slice(&d).map_err(|_| {
+                                Error::Data(Some("Failed to parse P-521 private key".to_string()))
+                            })?;
+                            let mut sec1_bytes = vec![4u8];
+                            sec1_bytes.extend_from_slice(&x);
+                            sec1_bytes.extend_from_slice(&y);
+                            let encoded_point =
+                                EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                    Error::Data(Some("Failed to encode curve point".to_string()))
+                                })?;
+                            NistP521::validate_public_key(&private_key, &encoded_point).map_err(
+                                |_| {
+                                    Error::Data(Some(
+                                        "Failed to validate P-521 public key".to_string(),
+                                    ))
+                                },
+                            )?;
+                            Handle::P521PrivateKey(private_key)
+                        },
+                        _ => unreachable!(),
+                    };
 
                     // Step 2.10.3. Set the [[type]] internal slot of Key to "private".
                     // NOTE: CryptoKey is created in Step 2.12 - 2.15.
@@ -801,67 +789,58 @@ pub(crate) fn import_key(
                     let x = jwk.decode_required_string_field(JwkStringField::X)?;
                     let y = jwk.decode_required_string_field(JwkStringField::Y)?;
 
-                        // Step 2.10.2. Let key be a new CryptoKey object that represents the
-                        // Elliptic Curve public key identified by interpreting jwk according to
-                        // Section 6.2.1 of JSON Web Algorithms [JWA].
-                        // NOTE: CryptoKey is created in Step 2.12 - 2.15.
-                        let handle = match named_curve.as_str() {
-                            NAMED_CURVE_P256 => {
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point =
-                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to encode curve point".to_string(),
-                                        ))
-                                    })?;
-                                let public_key =
-                                    p256::PublicKey::from_encoded_point(&encoded_point)
-                                        .into_option()
-                                        .ok_or(Error::Data(Some(
-                                            "Failed to decode P-256 public key".to_string(),
-                                        )))?;
-                                Handle::P256PublicKey(public_key)
-                            },
-                            NAMED_CURVE_P384 => {
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point =
-                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to encode curve point".to_string(),
-                                        ))
-                                    })?;
-                                let public_key =
-                                    p384::PublicKey::from_encoded_point(&encoded_point)
-                                        .into_option()
-                                        .ok_or(Error::Data(Some(
-                                            "Failed to decode P-384 public key".to_string(),
-                                        )))?;
-                                Handle::P384PublicKey(public_key)
-                            },
-                            NAMED_CURVE_P521 => {
-                                let mut sec1_bytes = vec![4u8];
-                                sec1_bytes.extend_from_slice(&x);
-                                sec1_bytes.extend_from_slice(&y);
-                                let encoded_point =
-                                    EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
-                                        Error::Data(Some(
-                                            "Failed to encode curve point".to_string(),
-                                        ))
-                                    })?;
-                                let public_key =
-                                    p521::PublicKey::from_encoded_point(&encoded_point)
-                                        .into_option()
-                                        .ok_or(Error::Data(Some(
-                                            "Failed to decode P-521 public key".to_string(),
-                                        )))?;
-                                Handle::P521PublicKey(public_key)
-                            },
-                            _ => unreachable!(),
-                        };
+                    // Step 2.10.2. Let key be a new CryptoKey object that represents the
+                    // Elliptic Curve public key identified by interpreting jwk according to
+                    // Section 6.2.1 of JSON Web Algorithms [JWA].
+                    // NOTE: CryptoKey is created in Step 2.12 - 2.15.
+                    let handle = match named_curve.as_str() {
+                        NAMED_CURVE_P256 => {
+                            let mut sec1_bytes = vec![4u8];
+                            sec1_bytes.extend_from_slice(&x);
+                            sec1_bytes.extend_from_slice(&y);
+                            let encoded_point =
+                                EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                    Error::Data(Some("Failed to encode curve point".to_string()))
+                                })?;
+                            let public_key = p256::PublicKey::from_encoded_point(&encoded_point)
+                                .into_option()
+                                .ok_or(Error::Data(Some(
+                                    "Failed to decode P-256 public key".to_string(),
+                                )))?;
+                            Handle::P256PublicKey(public_key)
+                        },
+                        NAMED_CURVE_P384 => {
+                            let mut sec1_bytes = vec![4u8];
+                            sec1_bytes.extend_from_slice(&x);
+                            sec1_bytes.extend_from_slice(&y);
+                            let encoded_point =
+                                EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                    Error::Data(Some("Failed to encode curve point".to_string()))
+                                })?;
+                            let public_key = p384::PublicKey::from_encoded_point(&encoded_point)
+                                .into_option()
+                                .ok_or(Error::Data(Some(
+                                    "Failed to decode P-384 public key".to_string(),
+                                )))?;
+                            Handle::P384PublicKey(public_key)
+                        },
+                        NAMED_CURVE_P521 => {
+                            let mut sec1_bytes = vec![4u8];
+                            sec1_bytes.extend_from_slice(&x);
+                            sec1_bytes.extend_from_slice(&y);
+                            let encoded_point =
+                                EncodedPoint::from_bytes(&sec1_bytes).map_err(|_| {
+                                    Error::Data(Some("Failed to encode curve point".to_string()))
+                                })?;
+                            let public_key = p521::PublicKey::from_encoded_point(&encoded_point)
+                                .into_option()
+                                .ok_or(Error::Data(Some(
+                                    "Failed to decode P-521 public key".to_string(),
+                                )))?;
+                            Handle::P521PublicKey(public_key)
+                        },
+                        _ => unreachable!(),
+                    };
 
                     // Step 2.10.3. Set the [[type]] internal slot of Key to "public".
                     // NOTE: CryptoKey is created in Step 2.12 - 2.15.
@@ -1005,15 +984,11 @@ pub(crate) fn import_key(
 }
 
 fn create_public_key_export_error() -> Error {
-    Error::Operation(Some(
-        "Failed to export public key".to_string(),
-    ))
+    Error::Operation(Some("Failed to export public key".to_string()))
 }
 
 fn create_private_key_export_error() -> Error {
-    Error::Operation(Some(
-        "Failed to export private key".to_string(),
-    ))
+    Error::Operation(Some("Failed to export private key".to_string()))
 }
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-export-key>
@@ -1182,46 +1157,82 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                     Handle::P256PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(create_public_key_export_error())?.to_vec(),
-                            encoded_point.y().ok_or(create_public_key_export_error())?.to_vec(),
+                            encoded_point
+                                .x()
+                                .ok_or(create_public_key_export_error())?
+                                .to_vec(),
+                            encoded_point
+                                .y()
+                                .ok_or(create_public_key_export_error())?
+                                .to_vec(),
                         )
                     },
                     Handle::P384PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(create_public_key_export_error())?.to_vec(),
-                            encoded_point.y().ok_or(create_public_key_export_error())?.to_vec(),
+                            encoded_point
+                                .x()
+                                .ok_or(create_public_key_export_error())?
+                                .to_vec(),
+                            encoded_point
+                                .y()
+                                .ok_or(create_public_key_export_error())?
+                                .to_vec(),
                         )
                     },
                     Handle::P521PublicKey(public_key) => {
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(create_public_key_export_error())?.to_vec(),
-                            encoded_point.y().ok_or(create_public_key_export_error())?.to_vec(),
+                            encoded_point
+                                .x()
+                                .ok_or(create_public_key_export_error())?
+                                .to_vec(),
+                            encoded_point
+                                .y()
+                                .ok_or(create_public_key_export_error())?
+                                .to_vec(),
                         )
                     },
                     Handle::P256PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(create_private_key_export_error())?.to_vec(),
-                            encoded_point.y().ok_or(create_private_key_export_error())?.to_vec(),
+                            encoded_point
+                                .x()
+                                .ok_or(create_private_key_export_error())?
+                                .to_vec(),
+                            encoded_point
+                                .y()
+                                .ok_or(create_private_key_export_error())?
+                                .to_vec(),
                         )
                     },
                     Handle::P384PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(create_private_key_export_error())?.to_vec(),
-                            encoded_point.y().ok_or(create_private_key_export_error())?.to_vec(),
+                            encoded_point
+                                .x()
+                                .ok_or(create_private_key_export_error())?
+                                .to_vec(),
+                            encoded_point
+                                .y()
+                                .ok_or(create_private_key_export_error())?
+                                .to_vec(),
                         )
                     },
                     Handle::P521PrivateKey(private_key) => {
                         let public_key = private_key.public_key();
                         let encoded_point = public_key.to_encoded_point(false);
                         (
-                            encoded_point.x().ok_or(create_private_key_export_error())?.to_vec(),
-                            encoded_point.y().ok_or(create_private_key_export_error())?.to_vec(),
+                            encoded_point
+                                .x()
+                                .ok_or(create_private_key_export_error())?
+                                .to_vec(),
+                            encoded_point
+                                .y()
+                                .ok_or(create_private_key_export_error())?
+                                .to_vec(),
                         )
                     },
                     _ => {
