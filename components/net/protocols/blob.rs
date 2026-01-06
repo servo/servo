@@ -77,7 +77,9 @@ impl ProtocolHandler for BlobProtocolHander {
                 },
                 _ => format!("{:?}", err),
             };
-            return Box::pin(ready(Response::network_error(NetworkError::Internal(err))));
+            return Box::pin(ready(Response::network_error(
+                NetworkError::BlobURLStoreError(err),
+            )));
         };
 
         Box::pin(ready(response))

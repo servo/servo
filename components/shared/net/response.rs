@@ -190,10 +190,6 @@ impl Response {
         }
     }
 
-    pub fn network_internal_error<T: Into<String>>(msg: T) -> Response {
-        Self::network_error(NetworkError::Internal(msg.into()))
-    }
-
     pub fn url(&self) -> Option<&ServoUrl> {
         self.url.as_ref()
     }

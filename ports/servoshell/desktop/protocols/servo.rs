@@ -15,8 +15,8 @@ use std::pin::Pin;
 use headers::{ContentType, HeaderMapExt};
 use servo::UserAgentPlatform;
 use servo::protocol_handler::{
-    DoneChannel, FetchContext, ProtocolHandler, Request, ResourceFetchTiming, Response,
-    ResponseBody,
+    DoneChannel, FetchContext, NetworkError, ProtocolHandler, Request, ResourceFetchTiming,
+    Response, ResponseBody,
 };
 
 use crate::desktop::protocols::resource::ResourceProtocolHandler;
@@ -78,8 +78,8 @@ impl ProtocolHandler for ServoProtocolHandler {
                 json_response(request, format!("\"{user_agent}\""))
             },
 
-            _ => Box::pin(std::future::ready(Response::network_internal_error(
-                "Invalid shortcut",
+            _ => Box::pin(std::future::ready(Response::network_error(
+                NetworkError::ResourceLoadError("Invalid shortcut".to_owned()),
             ))),
         }
     }

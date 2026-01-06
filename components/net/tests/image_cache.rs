@@ -276,18 +276,12 @@ fn test_notify_pending_response_network_error() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponse(
-            create_request_id(),
-            Err(NetworkError::Internal("Network error".into())),
-        ),
+        FetchResponseMsg::ProcessResponse(create_request_id(), Err(NetworkError::InvalidMethod)),
     );
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(
-            create_request_id(),
-            Err(NetworkError::Internal("Network error".into())),
-        ),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Err(NetworkError::InvalidMethod)),
     );
 
     let result = cache.get_cached_image_status(url, origin, None);
@@ -356,18 +350,12 @@ fn test_image_listener_on_network_error() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponse(
-            create_request_id(),
-            Err(NetworkError::Internal("Network error".into())),
-        ),
+        FetchResponseMsg::ProcessResponse(create_request_id(), Err(NetworkError::InvalidMethod)),
     );
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(
-            create_request_id(),
-            Err(NetworkError::Internal("Network error".into())),
-        ),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Err(NetworkError::InvalidMethod)),
     );
 
     match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
