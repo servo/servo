@@ -29,7 +29,7 @@ macro_rules! task {
         where
             F: ::std::ops::FnOnce($($field_type,)*),
         {
-            fn run_once(self) {
+            fn run_once(self, _cx: &mut js::context::JSContext) {
                 (self.task)($(self.$field,)*);
             }
         }
@@ -50,7 +50,7 @@ macro_rules! task {
                 stringify!($name)
             }
 
-            fn run_once(self) {
+            fn run_once(self, _cx: &mut js::context::JSContext) {
                 (self.0)();
             }
         }
@@ -65,12 +65,12 @@ pub(crate) trait TaskOnce: Send {
         ::std::any::type_name::<Self>()
     }
 
-    fn run_once(self);
+    fn run_once(self, cx: &mut js::context::JSContext);
 }
 
 /// A task that must be run on the same thread it originated in.
 pub(crate) trait NonSendTaskOnce: crate::JSTraceable {
-    fn run_once(self);
+    fn run_once(self, cx: &mut js::context::JSContext);
 }
 
 /// A boxed version of `TaskOnce`.
@@ -89,8 +89,8 @@ impl<T> NonSendTaskBox for T
 where
     T: NonSendTaskOnce,
 {
-    fn run_box(self: Box<Self>, _cx: &mut js::context::JSContext) {
-        self.run_once()
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext) {
+        self.run_once(cx)
     }
 }
 
@@ -102,8 +102,8 @@ where
         TaskOnce::name(self)
     }
 
-    fn run_box(self: Box<Self>, _cx: &mut js::context::JSContext) {
-        self.run_once()
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext) {
+        self.run_once(cx)
     }
 }
 
@@ -150,9 +150,9 @@ impl<T: TaskOnce> TaskOnce for CancellableTask<T> {
         self.inner.name()
     }
 
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         if !self.canceller.cancelled() {
-            self.inner.run_once()
+            self.inner.run_once(cx)
         }
     }
 }

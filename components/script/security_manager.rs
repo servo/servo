@@ -138,11 +138,11 @@ impl CSPViolationReportTask {
 /// <https://w3c.github.io/webappsec-csp/#report-violation>
 /// > Queue a task to run the following steps:
 impl TaskOnce for CSPViolationReportTask {
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         // > If target implements EventTarget, fire an event named securitypolicyviolation
         // > that uses the SecurityPolicyViolationEvent interface
         // > at target with its attributes initialized as follows:
-        self.fire_violation_event(CanGc::note());
+        self.fire_violation_event(CanGc::from_cx(cx));
         // Step 3.4. If violation’s policy’s directive set contains a directive named "report-uri" directive:
         if let Some(report_uri_directive) = self
             .violation_policy
