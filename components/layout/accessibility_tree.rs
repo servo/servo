@@ -61,7 +61,14 @@ impl AccessibilityTreeCalculator {
             if dom_next.is_text_node() {
                 let text_content = dom_next.to_threadsafe().text_content();
                 trace!("node text content = {:?}", text_content);
-                ax_next.set_value(text_content);
+                ax_next.set_value(&*text_content);
+                // FIXME: this should take into account editing selection units (grapheme clusters?)
+                ax_next.set_character_lengths(
+                    text_content
+                        .chars()
+                        .map(|c| c.len_utf8() as u8)
+                        .collect::<Box<[u8]>>(),
+                );
                 ax_next.set_role(Role::TextRun);
             } else if let Some(element) = dom_next.as_element() {
                 if element.is_html_element() {
