@@ -24,7 +24,8 @@ use style::values::CSSFloat;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{
-    BorderStyle, Color, Inset, ItemPlacement, LengthPercentage, Margin, SelfAlignment,
+    BorderSideWidth, BorderStyle, Color, Inset, ItemPlacement, LengthPercentage, Margin,
+    SelfAlignment,
 };
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
@@ -1195,11 +1196,18 @@ impl LayoutStyle<'_> {
                 .to_physical(self.style().writing_mode),
             _ => {
                 let border = self.style().get_border();
+                let resolve = |width: &BorderSideWidth, style: BorderStyle| {
+                    if style.none_or_hidden() {
+                        Au::zero()
+                    } else {
+                        width.0
+                    }
+                };
                 PhysicalSides::new(
-                    border.border_top_width,
-                    border.border_right_width,
-                    border.border_bottom_width,
-                    border.border_left_width,
+                    resolve(&border.border_top_width, border.border_top_style),
+                    resolve(&border.border_right_width, border.border_right_style),
+                    resolve(&border.border_bottom_width, border.border_bottom_style),
+                    resolve(&border.border_left_width, border.border_left_style),
                 )
             },
         };

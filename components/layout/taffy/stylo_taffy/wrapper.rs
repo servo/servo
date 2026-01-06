@@ -6,8 +6,9 @@ use std::ops::Deref;
 
 use style::properties::ComputedValues;
 use style::values::CustomIdent;
-use style::values::computed::{GridTemplateAreas, LengthPercentage};
+use style::values::computed::{BorderSideWidth, GridTemplateAreas, LengthPercentage};
 use style::values::generics::grid::{TrackListValue, TrackRepeat, TrackSize};
+use style::values::specified::BorderStyle;
 use style::values::specified::position::NamedArea;
 use style::{Atom, OwnedSlice};
 use taffy::prelude::TaffyAuto;
@@ -152,12 +153,19 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
 
     #[inline]
     fn border(&self) -> taffy::Rect<taffy::LengthPercentage> {
-        let border_styles = self.style.get_border();
+        let border = self.style.get_border();
+        let resolve = |width: &BorderSideWidth, style: BorderStyle| {
+            taffy::LengthPercentage::length(if style.none_or_hidden() {
+                0.0
+            } else {
+                width.0.to_f32_px()
+            })
+        };
         taffy::Rect {
-            left: taffy::LengthPercentage::length(border_styles.border_left_width.to_f32_px()),
-            right: taffy::LengthPercentage::length(border_styles.border_right_width.to_f32_px()),
-            top: taffy::LengthPercentage::length(border_styles.border_top_width.to_f32_px()),
-            bottom: taffy::LengthPercentage::length(border_styles.border_bottom_width.to_f32_px()),
+            left: resolve(&border.border_left_width, border.border_left_style),
+            right: resolve(&border.border_right_width, border.border_right_style),
+            top: resolve(&border.border_top_width, border.border_top_style),
+            bottom: resolve(&border.border_bottom_width, border.border_bottom_style),
         }
     }
 }

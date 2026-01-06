@@ -559,9 +559,10 @@ fn shorthand_to_css_string(
         block.push(
             style.computed_or_resolved_declaration(
                 longhand,
-                Some(&Context {
+                Some(&mut Context {
                     style,
                     for_property: longhand.into(),
+                    current_longhand: None,
                 }),
             ),
             Importance::Normal,

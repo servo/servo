@@ -5,8 +5,8 @@
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use malloc_size_of_derive::MallocSizeOf;
+use style::values::computed::LengthPercentage;
 use style::values::computed::basic_shape::{BasicShape, ClipPath};
-use style::values::computed::length_percentage::NonNegativeLengthPercentage;
 use style::values::computed::position::Position;
 use style::values::generics::basic_shape::{GenericShapeRadius, ShapeBox, ShapeGeometryBox};
 use style::values::generics::position::GenericPositionOrAuto;
@@ -256,7 +256,7 @@ impl StackingContextTreeClipStore {
 
 fn compute_shape_radius(
     center: f32,
-    radius: &GenericShapeRadius<NonNegativeLengthPercentage>,
+    radius: &GenericShapeRadius<LengthPercentage>,
     min_edge: f32,
     max_edge: f32,
 ) -> f32 {
@@ -266,7 +266,6 @@ fn compute_shape_radius(
         GenericShapeRadius::FarthestSide => distance_from_min_edge.max(distance_from_max_edge),
         GenericShapeRadius::ClosestSide => distance_from_min_edge.min(distance_from_max_edge),
         GenericShapeRadius::Length(length) => length
-            .0
             .to_used_value(Au::from_f32_px(max_edge - min_edge))
             .to_f32_px(),
     }

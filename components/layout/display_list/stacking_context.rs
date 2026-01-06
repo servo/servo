@@ -351,11 +351,12 @@ impl StackingContextContent {
     fn has_outline(&self) -> bool {
         match self {
             StackingContextContent::Fragment { fragment, .. } => match fragment {
-                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment
-                    .borrow()
-                    .style()
-                    .get_outline()
-                    .outline_has_nonzero_width(),
+                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                    let box_fragment = box_fragment.borrow();
+                    let style = box_fragment.style();
+                    let outline = style.get_outline();
+                    !outline.outline_style.none_or_hidden() && !outline.outline_width.0.is_zero()
+                },
                 _ => false,
             },
             StackingContextContent::AtomicInlineStackingContainer { .. } => false,
