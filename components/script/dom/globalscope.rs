@@ -21,7 +21,7 @@ use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
-use base::{IpcSend, generic_channel};
+use base::generic_channel;
 use constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
