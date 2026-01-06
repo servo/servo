@@ -274,6 +274,8 @@ pub struct Preferences {
     pub media_glvideo_enabled: bool,
     /// Enable a non-standard event handler for verifying behavior of media elements during tests.
     pub media_testing_enabled: bool,
+    /// The default timeout set for the connection in seconds. This will be evenly divided to all resolved ip addresses.
+    pub network_connection_timeout: u64,
     pub network_enforce_tls_enabled: bool,
     pub network_enforce_tls_localhost: bool,
     pub network_enforce_tls_onion: bool,
@@ -466,6 +468,7 @@ impl Preferences {
             layout_writing_mode_enabled: false,
             media_glvideo_enabled: false,
             media_testing_enabled: false,
+            network_connection_timeout: 15,
             network_enforce_tls_enabled: false,
             network_enforce_tls_localhost: false,
             network_enforce_tls_onion: false,
