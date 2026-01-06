@@ -34,12 +34,26 @@ impl StorageThreads {
         }
     }
 
+    // TODO: Consider changing to `webstorage_sites`
     pub fn webstorage_origins(&self, storage_type: WebStorageType) -> Vec<OriginDescriptor> {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let _ = self
             .web_storage_thread
             .send(WebStorageThreadMsg::ListOrigins(sender, storage_type));
         receiver.recv().unwrap()
+    }
+
+    pub fn clear_webstorage_for_sites(&self, storage_type: WebStorageType, sites: &[&str]) {
+        let sites = sites.iter().map(|site| site.to_string()).collect();
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .web_storage_thread
+            .send(WebStorageThreadMsg::ClearDataForSites(
+                sender,
+                storage_type,
+                sites,
+            ));
+        let _ = receiver.recv();
     }
 }
 

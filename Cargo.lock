@@ -8766,6 +8766,7 @@ dependencies = [
  "libc",
  "log",
  "malloc_size_of_derive",
+ "net_traits",
  "profile",
  "profile_traits",
  "rusqlite",

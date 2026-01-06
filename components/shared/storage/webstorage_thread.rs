@@ -89,7 +89,12 @@ pub enum WebStorageThreadMsg {
     },
 
     /// gets the list of origin descriptors for given storage type
+    ///
+    /// TODO: Consider returning `Vec<SiteDescriptor>`
     ListOrigins(GenericSender<Vec<OriginDescriptor>>, WebStorageType),
+
+    /// clears storage data for given storage type and sites, affecting all matching origins
+    ClearDataForSites(GenericSender<()>, WebStorageType, Vec<String>),
 
     /// send a reply when done cleaning up thread resources and then shut it down
     Exit(GenericSender<()>),
