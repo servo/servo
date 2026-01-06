@@ -7,6 +7,9 @@
 /components/fonts/platform/freetype/ohos/   @jschwe
 /.github/workflows/ohos.yml                 @jschwe
 
+# Reviewers for CI WebDriver scenario tests related code
+/etc/ci/scenario                            @jschwe @yezhizhen
+
 # Reviewers for compositing-related code
 /components/compositing @mrobinson
 
