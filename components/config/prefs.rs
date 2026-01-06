@@ -280,6 +280,12 @@ pub struct Preferences {
     pub network_http_cache_disabled: bool,
     /// A url for a http proxy. We treat an empty string as no proxy.
     pub network_http_proxy_uri: String,
+    /// A url for a https proxy. We treat an empty string as no proxy.
+    pub network_https_proxy_uri: String,
+    /// The domains for which we will not have a proxy. No effect if `network_http_proxy_uri` is not set.
+    /// The exact behavior is given by
+    /// <https://docs.rs/hyper-util/latest/hyper_util/client/proxy/matcher/struct.Builder.html#method.no>
+    pub network_http_no_proxy: String,
     /// The weight of the http memory cache
     /// Notice that this is not equal to the number of different urls in the cache.
     pub network_http_cache_size: u64,
@@ -471,6 +477,8 @@ impl Preferences {
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
             network_http_proxy_uri: String::new(),
+            network_https_proxy_uri: String::new(),
+            network_http_no_proxy: String::new(),
             network_http_cache_size: 5000,
             network_local_directory_listing_enabled: true,
             network_mime_sniff: false,
@@ -496,11 +504,19 @@ impl Default for Preferences {
     fn default() -> Self {
         let mut preferences = Self::const_default();
         preferences.user_agent = UserAgentPlatform::default().to_user_agent_string();
-        if let Ok(proxy_uri) = std::env::var("http_proxy") {
-            preferences.network_http_proxy_uri = proxy_uri;
-        } else if let Ok(proxy_uri) = std::env::var("HTTP_PROXY") {
+        if let Ok(proxy_uri) = std::env::var("http_proxy").or_else(|_| std::env::var("HTTP_PROXY"))
+        {
             preferences.network_http_proxy_uri = proxy_uri;
         }
+        if let Ok(proxy_uri) =
+            std::env::var("https_proxy").or_else(|_| std::env::var("HTTPS_PROXY"))
+        {
+            preferences.network_https_proxy_uri = proxy_uri;
+        }
+        if let Ok(no_proxy) = std::env::var("no_proxy").or_else(|_| std::env::var("NO_PROXY")) {
+            preferences.network_http_no_proxy = no_proxy
+        }
+
         preferences
     }
 }
