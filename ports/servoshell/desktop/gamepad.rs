@@ -14,7 +14,7 @@ use servo::{
 
 pub struct HapticEffect {
     pub effect: Effect,
-    pub callback: Box<dyn Fn(bool)>,
+    pub callback: Option<Box<dyn FnOnce(bool)>>,
 }
 
 pub(crate) struct GamepadSupport {
@@ -113,11 +113,13 @@ impl GamepadSupport {
                     gamepad_event = Some(GamepadEvent::Disconnected(index));
                 },
                 EventType::ForceFeedbackEffectCompleted => {
-                    let Some(effect) = self.haptic_effects.get(&event.id.into()) else {
+                    let Some(effect) = self.haptic_effects.get_mut(&event.id.into()) else {
                         warn!("Failed to find haptic effect for id {}", event.id);
                         return;
                     };
-                    (effect.callback)(true);
+                    if let Some(callback) = effect.callback.take() {
+                        callback(true);
+                    }
                     self.haptic_effects.remove(&event.id.into());
                 },
                 _ => {},
@@ -158,7 +160,7 @@ impl GamepadSupport {
         &mut self,
         index: usize,
         effect_type: GamepadHapticEffectType,
-        callback: Box<dyn Fn(bool)>,
+        callback: Box<dyn FnOnce(bool)>,
     ) {
         let GamepadHapticEffectType::DualRumble(params) = effect_type;
         if let Some(connected_gamepad) = self
@@ -191,8 +193,13 @@ impl GamepadSupport {
                 .add_gamepad(&connected_gamepad.1)
                 .finish(&mut self.handle)
                 .expect("Failed to create haptic effect, ensure connected gamepad supports force feedback.");
-            self.haptic_effects
-                .insert(index, HapticEffect { effect, callback });
+            self.haptic_effects.insert(
+                index,
+                HapticEffect {
+                    effect,
+                    callback: Some(callback),
+                },
+            );
             self.haptic_effects[&index]
                 .effect
                 .play()

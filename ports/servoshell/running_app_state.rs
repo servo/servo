@@ -740,7 +740,7 @@ impl WebViewDelegate for RunningAppState {
         _webview: WebView,
         index: usize,
         effect_type: GamepadHapticEffectType,
-        effect_complete_callback: Box<dyn Fn(bool)>,
+        effect_complete_callback: Box<dyn FnOnce(bool)>,
     ) {
         match self.gamepad_support.borrow_mut().as_mut() {
             Some(gamepad_support) => {
@@ -757,7 +757,7 @@ impl WebViewDelegate for RunningAppState {
         &self,
         _webview: WebView,
         index: usize,
-        haptic_stop_callback: Box<dyn Fn(bool)>,
+        haptic_stop_callback: Box<dyn FnOnce(bool)>,
     ) {
         let stopped = match self.gamepad_support.borrow_mut().as_mut() {
             Some(gamepad_support) => gamepad_support.stop_haptic_effect(index),

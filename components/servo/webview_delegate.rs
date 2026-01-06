@@ -950,14 +950,14 @@ pub trait WebViewDelegate {
         _webview: WebView,
         _: usize,
         _: GamepadHapticEffectType,
-        _: Box<dyn Fn(bool)>,
+        _: Box<dyn FnOnce(bool)>,
     ) {
     }
     /// Request to stop a haptic effect on a connected gamepad. The embedder is expected to
     /// call the provided callback when the effect is complete with `true` for success
     /// and `false` for failure.
     #[cfg(feature = "gamepad")]
-    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: Box<dyn Fn(bool)>) {}
+    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: Box<dyn FnOnce(bool)>) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling
