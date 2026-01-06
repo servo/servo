@@ -209,7 +209,7 @@ def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
             focused_window = int(line.split(":")[1].strip())
         if line.lower().startswith("servo"):
             # The table format is as follows:
-            # WindowName  DisplayId Pid WinId
+            # WindowName DisplayId Pid WinId
             servo_window_id = int(line.split()[3])
         if line.lower().startswith("windowname"):
             table_headers = line.split()
