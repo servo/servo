@@ -198,6 +198,47 @@ def element_screenshot(element: WebElement, filename: str):
         print(f"Element Screenshot failed with error: {e}")
 
 
+def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
+    completed_process = hdc.cmd("hidumper -s WindowManagerService -a '-a'", capture_output=True, encoding="utf-8")
+    output = str(completed_process.stdout)
+    lines = output.splitlines()
+    focused_window = None
+    servo_window_id = None
+    for line in lines:
+        if line.lower().startswith("focus window:"):
+            focused_window = int(line.split(":")[1].strip())
+        if line.lower().startswith("servo"):
+            # The table format is as follows:
+            # WindowName DisplayId Pid WinId
+            servo_window_id = int(line.split()[3])
+        if line.lower().startswith("windowname"):
+            table_headers = line.split()
+            assert table_headers[0].lower() == "windowname"
+            assert table_headers[3].lower() == "winid"
+        if focused_window is not None and servo_window_id is not None:
+            break
+    if focused_window is None or servo_window_id is None:
+        raise RuntimeError("Could not find focused window or servo window id.")
+    return focused_window == servo_window_id
+
+
+def close_usb_popup(hdc: HarmonyDeviceConnector):
+    """
+    When connecting an OpenHarmony device, a system pop-up will be opened on the device,
+    asking the user to confirm which USB mode should be used for the connection.
+    This pop-up overlays servo, and will hence disturb some inputs, and affect screenshots.
+    """
+    try:
+        if not is_servo_window_focused(hdc):
+            print("The focused window does not belong to servo. Sending back-event to try and close the window.")
+            # The USB pop-up can be dismissed by simulating the back key-event.
+            hdc.cmd("uitest uiInput keyEvent Back")
+        if not is_servo_window_focused(hdc):
+            print("The focused window still isn't servo. Giving up.")
+    except Exception as e:
+        print(f"Internal error trying to close the USB pop-up overlay: {e}. Ignoring...")
+
+
 # We always load "about:blank" first, and then use
 # WebDriver to load target url so that it is blocked until fully loaded.
 def run_test(test_fn, test_name: str):
@@ -208,6 +249,7 @@ def run_test(test_fn, test_name: str):
         print("Starting new servo instance...")
         hdc.cmd(f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn --webdriver", timeout=10)
         setup_hdc_forward()
+        close_usb_popup(hdc)
     except Exception as e:
         print(f"Scenario test setup failed with error: {e} (exception: {type(e)})")
         stop_servo()
