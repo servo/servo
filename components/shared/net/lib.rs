@@ -9,8 +9,8 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use base::generic_channel::{self, GenericSend, GenericSender, SendResult};
+use base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
