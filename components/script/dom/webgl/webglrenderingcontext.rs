@@ -173,11 +173,21 @@ pub(crate) enum Operation {
     Infallible,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLRenderingContext {
+    #[no_trace]
+    webgl_sender: WebGLMsgSender,
+}
+
+impl Drop for DroppableWebGLRenderingContext {
+    fn drop(&mut self) {
+        let _ = self.webgl_sender.send_remove();
+    }
+}
+
 #[dom_struct]
 pub(crate) struct WebGLRenderingContext {
     reflector_: Reflector,
-    #[no_trace]
-    webgl_sender: WebGLMsgSender,
     #[no_trace]
     webgl_version: WebGLVersion,
     #[no_trace]
@@ -216,6 +226,7 @@ pub(crate) struct WebGLRenderingContext {
     textures: Textures,
     #[no_trace]
     api_type: GlType,
+    droppable: DroppableWebGLRenderingContext,
 }
 
 impl WebGLRenderingContext {
@@ -253,7 +264,6 @@ impl WebGLRenderingContext {
             let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
             Self {
                 reflector_: Reflector::new(),
-                webgl_sender: ctx_data.sender,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
                 limits: ctx_data.limits,
@@ -287,6 +297,9 @@ impl WebGLRenderingContext {
                 current_vao_webgl2: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
                 api_type: ctx_data.api_type,
+                droppable: DroppableWebGLRenderingContext {
+                    webgl_sender: ctx_data.sender,
+                },
             }
         })
     }
@@ -332,7 +345,7 @@ impl WebGLRenderingContext {
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
-        self.webgl_sender.set_image_key(image_key);
+        self.droppable.webgl_sender.set_image_key(image_key);
     }
 
     pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
@@ -396,12 +409,15 @@ impl WebGLRenderingContext {
 
     #[inline]
     pub(crate) fn sender(&self) -> &WebGLMsgSender {
-        &self.webgl_sender
+        &self.droppable.webgl_sender
     }
 
     #[inline]
     pub(crate) fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
-        let result = self.webgl_sender.send(command, capture_webgl_backtrace());
+        let result = self
+            .droppable
+            .webgl_sender
+            .send(command, capture_webgl_backtrace());
         if matches!(fallibility, Operation::Infallible) {
             result.expect("Operation failed");
         }
@@ -1975,7 +1991,7 @@ impl CanvasContext for WebGLRenderingContext {
     type ID = WebGLContextId;
 
     fn context_id(&self) -> Self::ID {
-        self.webgl_sender.context_id()
+        self.droppable.webgl_sender.context_id()
     }
 
     fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
@@ -1985,7 +2001,10 @@ impl CanvasContext for WebGLRenderingContext {
     fn resize(&self) {
         let size = self.size().cast();
         let (sender, receiver) = webgl_channel().unwrap();
-        self.webgl_sender.send_resize(size, sender).unwrap();
+        self.droppable
+            .webgl_sender
+            .send_resize(size, sender)
+            .unwrap();
         // FIXME(#21718) The backend is allowed to choose a size smaller than
         // what was requested
         self.size.set(size);
@@ -2102,12 +2121,6 @@ pub(crate) fn capture_webgl_backtrace() -> WebGLCommandBacktrace {
             backtrace: format!("{:?}", bt),
             js_backtrace: stack.and_then(|s| s.as_string(None, js::jsapi::StackFormat::Default)),
         }
-    }
-}
-
-impl Drop for WebGLRenderingContext {
-    fn drop(&mut self) {
-        let _ = self.webgl_sender.send_remove();
     }
 }
 
@@ -2527,6 +2540,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         // If the send does not succeed, assume context lost
         let backtrace = capture_webgl_backtrace();
         if self
+            .droppable
             .webgl_sender
             .send(WebGLCommand::GetContextAttributes(sender), backtrace)
             .is_err()
