@@ -64,7 +64,6 @@ dpi = { workspace = true }
 euclid = { workspace = true }
 hitrace = { workspace = true, optional = true }
 image = { workspace = true }
-ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
 libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding", "vello_cpu"], default-features = false }

@@ -541,24 +541,32 @@ impl ServoInner {
                 webview_id,
                 gamepad_index,
                 gamepad_haptic_effect_type,
-                ipc_sender,
+                callback,
             ) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().play_gamepad_haptic_effect(
                         webview,
                         gamepad_index,
                         gamepad_haptic_effect_type,
-                        ipc_sender,
+                        Box::new(move |success| {
+                            callback
+                                .send(success)
+                                .expect("Could not send message via callback")
+                        }),
                     );
                 }
             },
             #[cfg(feature = "gamepad")]
-            EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, ipc_sender) => {
+            EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, callback) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().stop_gamepad_haptic_effect(
                         webview,
                         gamepad_index,
-                        ipc_sender,
+                        Box::new(move |success| {
+                            callback
+                                .send(success)
+                                .expect("Could not send message via callback")
+                        }),
                     );
                 }
             },

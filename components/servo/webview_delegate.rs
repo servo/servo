@@ -20,7 +20,6 @@ use embedder_traits::{
     SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
-use ipc_channel::ipc::IpcSender;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -942,19 +941,23 @@ pub trait WebViewDelegate {
     /// After this point, any further responses to that request will be ignored.
     fn hide_embedder_control(&self, _webview: WebView, _control_id: EmbedderControlId) {}
 
-    /// Request to play a haptic effect on a connected gamepad.
+    /// Request to play a haptic effect on a connected gamepad. The embedder is expected to
+    /// call the provided callback when the effect is complete with `true` for success
+    /// and `false` for failure.
     #[cfg(feature = "gamepad")]
     fn play_gamepad_haptic_effect(
         &self,
         _webview: WebView,
         _: usize,
         _: GamepadHapticEffectType,
-        _: IpcSender<bool>,
+        _: Box<dyn FnOnce(bool)>,
     ) {
     }
-    /// Request to stop a haptic effect on a connected gamepad.
+    /// Request to stop a haptic effect on a connected gamepad. The embedder is expected to
+    /// call the provided callback when the effect is complete with `true` for success
+    /// and `false` for failure.
     #[cfg(feature = "gamepad")]
-    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
+    fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: Box<dyn FnOnce(bool)>) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling

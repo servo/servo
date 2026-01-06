@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::{GamepadHapticEffectType, IpcSender, WebView};
+use servo::{GamepadHapticEffectType, WebView};
 
 /// A dummy version of [`crate::desktop::GamepadSupport`] used to avoid conditional compilation in
 /// servoshell and as a skeleton to implement gamepad support for platforms that do not
@@ -22,7 +22,7 @@ impl GamepadSupport {
         &mut self,
         _index: usize,
         _effect_type: GamepadHapticEffectType,
-        _effect_complete_sender: IpcSender<bool>,
+        _effect_complete_callback: Box<dyn FnOnce(bool)>,
     ) {
         unreachable!("Dummy gamepad support should never be called.");
     }

@@ -35,7 +35,6 @@ pub use compositing_traits::rendering_context::{
 pub use embedder_traits::user_contents::UserScript;
 pub use embedder_traits::*;
 pub use image::RgbaImage;
-pub use ipc_channel::ipc::IpcSender;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
 };
