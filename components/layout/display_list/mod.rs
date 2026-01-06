@@ -1102,7 +1102,12 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.fragment.style().get_inherited_ui().pointer_events !=
                 style::computed_values::pointer_events::T::None
         {
-            self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
+            self.build_hit_test(
+                builder,
+                self.fragment
+                    .offset_by_containing_block(&self.fragment.scrollable_overflow())
+                    .to_webrender(),
+            );
             return;
         }
         if self.is_collapsed_table_borders {
