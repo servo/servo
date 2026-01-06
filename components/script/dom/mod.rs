@@ -348,6 +348,7 @@ pub(crate) mod nodeiterator;
 #[expect(dead_code)]
 pub(crate) mod nodelist;
 pub(crate) mod notification;
+pub(crate) mod origin;
 pub(crate) mod pagetransitionevent;
 pub(crate) mod paintsize;
 pub(crate) mod paintworkletglobalscope;
