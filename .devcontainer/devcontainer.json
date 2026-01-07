@@ -13,11 +13,21 @@
 			"version": "latest"
 		}
 	},
-	// Uncomment the following when using podman (rootless docker)
+	// Uncomment the following when using podman (rootless)
 	// Update the uid and gid, to your local users uid and gid (run `echo $UID` and `echo $GID`)
 	// "runArgs": ["--userns=keep-id:uid=1000,gid=1000"],
 	// "containerUser": "vscode",
-	// "updateRemoteUserUID": true,
+	
+	// Uncomment the following when using rootless docker 
+	// "containerUser": "root",
+	// "remoteUser": "root",
+	// "updateRemoteUserUID": false,
+
+	// Mount a volume for the virtual environment, to avoid the container venv conflicting with the
+	// host venv, if users build both inside and outside the container.
+	"mounts":  [
+		"source=${localWorkspaceFolderBasename}-venv,target=${containerWorkspaceFolder}/.venv,type=volume"
+	],
 
 
 	// Use 'postCreateCommand' to run commands after the container is created.
@@ -28,9 +38,6 @@
 
 	"containerEnv": {
 		"CC": "clang",
-		"CXX": "clang++",
-		// The default `.venv` directory is mapped into both the host and container, so
-		// using it in the container would be problematic.
-		"UV_PYTHON_INSTALL_DIR": "/home/vscode/.servo_venv"
+		"CXX": "clang++"
 	}
 }
