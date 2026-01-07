@@ -137,6 +137,7 @@ pub(crate) struct ModuleScript {
     pub(crate) options: ScriptFetchOptions,
     owner: Option<ModuleOwner>,
     pub(crate) loaded_modules: DomRefCell<IndexMap<String, module_loading::ModuleObject>>,
+    is_inline: bool,
 }
 
 impl ModuleScript {
@@ -144,12 +145,14 @@ impl ModuleScript {
         base_url: ServoUrl,
         options: ScriptFetchOptions,
         owner: Option<ModuleOwner>,
+        is_inline: bool,
     ) -> Self {
         ModuleScript {
             base_url,
             options,
             owner,
             loaded_modules: DomRefCell::new(IndexMap::new()),
+            is_inline,
         }
     }
 }
@@ -522,7 +525,8 @@ impl ModuleTree {
                 ))));
             }
 
-            let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
+            let module_script_data =
+                Rc::new(ModuleScript::new(url.clone(), options, Some(owner), inline));
 
             SetModulePrivate(
                 module_script.get(),
@@ -1584,6 +1588,18 @@ unsafe extern "C" fn HostResolveImportedModule(
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
     let jsstr =
         std::ptr::NonNull::new(unsafe { GetModuleRequestSpecifier(cx, specifier) }).unwrap();
+    let string = unsafe { jsstr_to_string(cx, jsstr) };
+
+    // Simply return the module that we previously inserted
+    // Assert that there is always a module?
+    if let Some(ref script) = module_data {
+        if script.is_inline {
+            if let Some(module) = script.loaded_modules.borrow().get(&string) {
+                return module.handle().get();
+            }
+        }
+    }
+
     let specifier = DOMString::from_string(unsafe { jsstr_to_string(cx, jsstr) });
     let url =
         ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier, CanGc::note());
@@ -1880,6 +1896,7 @@ pub(crate) fn create_a_javascript_module_script(
     mut module_script: RustMutableHandleObject,
     owner: Option<ModuleOwner>,
     introduction_type: Option<&'static CStr>,
+    inline: bool,
     line_number: u32,
 ) -> Result<(), RethrowError> {
     let cx = GlobalScope::get_cx();
@@ -1903,7 +1920,7 @@ pub(crate) fn create_a_javascript_module_script(
         return Err(RethrowError::from_pending_exception(cx));
     }
 
-    let module_script_data = Rc::new(ModuleScript::new(base_url.clone(), options, owner));
+    let module_script_data = Rc::new(ModuleScript::new(base_url.clone(), options, owner, inline));
 
     unsafe {
         SetModulePrivate(
@@ -1935,6 +1952,7 @@ pub(crate) fn fetch_inline_module_script(
         compiled_module.handle_mut(),
         Some(owner.clone()),
         Some(IntroductionType::INLINE_SCRIPT),
+        true,
         line_number as u32,
     );
     let module_tree = ModuleTree::new(url.clone(), false, HashSet::new());

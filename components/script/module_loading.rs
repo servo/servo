@@ -595,6 +595,7 @@ impl FetchResponseListener for ModuleContext {
                 compiled_module.handle_mut(),
                 None,
                 self.introduction_type,
+                true,
                 1,
             );
 
