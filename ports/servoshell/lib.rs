@@ -207,7 +207,7 @@ cfg_if! {
                     &std::ffi::CString::new(key_value_string)
                         .expect("Failed to convert str to CString"),
                 );
-                
+
                 hitrace::finish_trace();
             }
 
