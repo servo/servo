@@ -13,6 +13,7 @@ use crossbeam_channel::RecvTimeoutError;
 use ipc_channel::ipc::IpcError;
 use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
@@ -308,10 +309,12 @@ pub fn to_receive_result<T>(receive_result: RoutedReceiverReceiveResult<T>) -> R
     }
 }
 
+#[derive(MallocSizeOf)]
 pub struct GenericReceiver<T>(GenericReceiverVariants<T>)
 where
     T: for<'de> Deserialize<'de> + Serialize;
 
+#[derive(MallocSizeOf)]
 enum GenericReceiverVariants<T>
 where
     T: for<'de> Deserialize<'de> + Serialize,

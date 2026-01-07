@@ -4,8 +4,8 @@
 
 use std::collections::HashMap;
 
+use base::generic_channel::{self, GenericSender};
 use base::id::PainterId;
-use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -18,12 +18,12 @@ use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 use crate::{FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef};
 
 /// Commands that the `FontContext` sends to the `SystemFontService`.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SystemFontServiceMessage {
     GetFontTemplates(
         Option<FontDescriptor>,
         SingleFontFamily,
-        IpcSender<Vec<FontTemplate>>,
+        GenericSender<Vec<FontTemplate>>,
     ),
     GetFontInstance(
         PainterId,
@@ -31,18 +31,18 @@ pub enum SystemFontServiceMessage {
         Au,
         FontInstanceFlags,
         Vec<FontVariation>,
-        IpcSender<FontInstanceKey>,
+        GenericSender<FontInstanceKey>,
     ),
     PrefetchFontKeys(PainterId),
-    GetFontKey(PainterId, IpcSender<FontKey>),
-    GetFontInstanceKey(PainterId, IpcSender<FontInstanceKey>),
+    GetFontKey(PainterId, GenericSender<FontKey>),
+    GetFontInstanceKey(PainterId, GenericSender<FontInstanceKey>),
     CollectMemoryReport(ReportsChan),
-    Exit(IpcSender<()>),
+    Exit(GenericSender<()>),
     Ping,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct SystemFontServiceProxySender(pub IpcSender<SystemFontServiceMessage>);
+pub struct SystemFontServiceProxySender(pub GenericSender<SystemFontServiceMessage>);
 
 impl SystemFontServiceProxySender {
     pub fn to_proxy(&self) -> SystemFontServiceProxy {
@@ -63,13 +63,13 @@ struct FontTemplateCacheKey {
 /// `FontContext` instances.
 #[derive(Debug, MallocSizeOf)]
 pub struct SystemFontServiceProxy {
-    sender: IpcSender<SystemFontServiceMessage>,
+    sender: GenericSender<SystemFontServiceMessage>,
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
 }
 
 impl SystemFontServiceProxy {
     pub fn exit(&self) {
-        let (response_chan, response_port) = ipc::channel().unwrap();
+        let (response_chan, response_port) = generic_channel::channel().unwrap();
         self.sender
             .send(SystemFontServiceMessage::Exit(response_chan))
             .expect("Couldn't send SystemFontService exit message");
@@ -90,7 +90,8 @@ impl SystemFontServiceProxy {
         variations: Vec<FontVariation>,
         painter_id: PainterId,
     ) -> FontInstanceKey {
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
+        let (response_chan, response_port) =
+            generic_channel::channel().expect("failed to create IPC channel");
         self.sender
             .send(SystemFontServiceMessage::GetFontInstance(
                 painter_id,
@@ -132,7 +133,8 @@ impl SystemFontServiceProxy {
             descriptor_to_match, family_descriptor
         );
 
-        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
+        let (response_chan, response_port) =
+            generic_channel::channel().expect("failed to create IPC channel");
         self.sender
             .send(SystemFontServiceMessage::GetFontTemplates(
                 descriptor_to_match.cloned(),
@@ -158,7 +160,7 @@ impl SystemFontServiceProxy {
 
     pub fn generate_font_key(&self, painter_id: PainterId) -> FontKey {
         let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
+            generic_channel::channel().expect("failed to create IPC channel");
         self.sender
             .send(SystemFontServiceMessage::GetFontKey(
                 painter_id,
@@ -172,7 +174,7 @@ impl SystemFontServiceProxy {
 
     pub fn generate_font_instance_key(&self, painter_id: PainterId) -> FontInstanceKey {
         let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
+            generic_channel::channel().expect("failed to create IPC channel");
         self.sender
             .send(SystemFontServiceMessage::GetFontInstanceKey(
                 painter_id,

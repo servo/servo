@@ -16,6 +16,7 @@ use crossbeam_channel::Sender;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of::MallocSizeOfOps;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 /// A trait to abstract away the various kinds of message senders we use.
@@ -210,7 +211,7 @@ impl ProcessReports {
 }
 
 /// A channel through which memory reports can be sent.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ReportsChan(pub GenericSender<ProcessReports>);
 
 impl ReportsChan {
