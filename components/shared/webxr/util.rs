@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::Transform3D;
+use serde::{Deserialize, Serialize};
 
 use crate::{FrameUpdateEvent, HitTestId, HitTestSource};
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct ClipPlanes {
     pub near: f32,
     pub far: f32,
@@ -43,8 +43,7 @@ impl ClipPlanes {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 /// Holds on to hit tests
 pub struct HitTestList {
     tests: Vec<HitTestSource>,

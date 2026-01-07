@@ -7,7 +7,6 @@ use std::time::Duration;
 
 use euclid::{Point2D, Rect, RigidTransform3D, Size2D};
 use log::warn;
-#[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -20,8 +19,7 @@ use crate::{
 static TIMEOUT: Duration = Duration::from_millis(5);
 
 /// <https://www.w3.org/TR/webxr/#xrsessionmode-enum>
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SessionMode {
     Inline,
     ImmersiveVR,
@@ -29,8 +27,7 @@ pub enum SessionMode {
 }
 
 /// <https://immersive-web.github.io/webxr/#dictdef-xrsessioninit>
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SessionInit {
     pub required_features: Vec<String>,
     pub optional_features: Vec<String>,
@@ -77,8 +74,7 @@ impl SessionInit {
 }
 
 /// <https://immersive-web.github.io/webxr-ar-module/#xrenvironmentblendmode-enum>
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum EnvironmentBlendMode {
     Opaque,
     AlphaBlend,
@@ -86,8 +82,7 @@ pub enum EnvironmentBlendMode {
 }
 
 // The messages that are sent from the content thread to the session thread.
-#[derive(Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Debug, Serialize, Deserialize)]
 enum SessionMsg {
     CreateLayer(ContextId, LayerInit, WebXrSender<Result<LayerId, Error>>),
     DestroyLayer(ContextId, LayerId),
@@ -103,8 +98,7 @@ enum SessionMsg {
     GetBoundsGeometry(WebXrSender<Option<Vec<Point2D<f32, Floor>>>>),
 }
 
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Quitter {
     sender: WebXrSender<SessionMsg>,
 }
@@ -118,7 +112,7 @@ impl Quitter {
 /// An object that represents an XR session.
 /// This is owned by the content thread.
 /// <https://www.w3.org/TR/webxr/#xrsession-interface>
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Serialize, Deserialize)]
 pub struct Session {
     floor_transform: Option<RigidTransform3D<f32, Native, Floor>>,
     viewports: Viewports,
@@ -130,8 +124,7 @@ pub struct Session {
     supported_frame_rates: Vec<f32>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
 pub struct SessionId(pub(crate) u32);
 
 impl Session {

@@ -7,15 +7,12 @@ use std::num::NonZeroU32;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use euclid::{Rect, Size2D};
+use serde::{Deserialize, Serialize};
 
 use crate::{Error, Viewport, Viewports};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
 pub struct ContextId(pub u64);
-
-#[cfg(feature = "ipc")]
-use serde::{Deserialize, Serialize};
 
 pub trait GLTypes {
     type Device;
@@ -198,8 +195,7 @@ impl<GL: GLTypes> LayerManagerFactory<GL> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
 pub struct LayerId(usize);
 
 static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
@@ -210,8 +206,7 @@ impl Default for LayerId {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum LayerInit {
     /// <https://www.w3.org/TR/webxr/#dictdef-xrwebgllayerinit>
     WebGLLayer {
@@ -255,8 +250,7 @@ impl LayerInit {
 }
 
 /// <https://immersive-web.github.io/layers/#enumdef-xrlayerlayout>
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum LayerLayout {
     // TODO: Default
     // Allocates one texture
@@ -267,8 +261,7 @@ pub enum LayerLayout {
     StereoTopBottom,
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SubImages {
     pub layer_id: LayerId,
     pub sub_image: Option<SubImage>,
@@ -276,8 +269,7 @@ pub struct SubImages {
 }
 
 /// <https://immersive-web.github.io/layers/#xrsubimagetype>
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SubImage {
     pub color_texture: Option<NonZeroU32>,
     pub depth_stencil_texture: Option<NonZeroU32>,

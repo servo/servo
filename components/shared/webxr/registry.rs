@@ -4,7 +4,6 @@
 
 use embedder_traits::EventLoopWaker;
 use log::warn;
-#[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -13,8 +12,7 @@ use crate::{
     WebXrReceiver, WebXrSender,
 };
 
-#[derive(Clone)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Registry {
     sender: WebXrSender<RegistryMsg>,
     waker: MainThreadWakerImpl,
@@ -31,16 +29,11 @@ pub struct MainThreadRegistry<GL> {
     next_session_id: u32,
 }
 
-#[derive(Clone)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Serialize, Deserialize)]
 struct MainThreadWakerImpl {
-    #[cfg(feature = "ipc")]
     sender: WebXrSender<()>,
-    #[cfg(not(feature = "ipc"))]
-    waker: Box<dyn EventLoopWaker>,
 }
 
-#[cfg(feature = "ipc")]
 impl MainThreadWakerImpl {
     fn new(waker: Box<dyn EventLoopWaker>) -> Result<MainThreadWakerImpl, Error> {
         let (sender, receiver) = crate::webxr_channel().or(Err(Error::CommunicationError))?;
@@ -50,17 +43,6 @@ impl MainThreadWakerImpl {
 
     fn wake(&self) {
         let _ = self.sender.send(());
-    }
-}
-
-#[cfg(not(feature = "ipc"))]
-impl MainThreadWakerImpl {
-    fn new(waker: Box<dyn EventLoopWaker>) -> Result<MainThreadWakerImpl, Error> {
-        Ok(MainThreadWakerImpl { waker })
-    }
-
-    pub fn wake(&self) {
-        self.waker.wake()
     }
 }
 
@@ -227,7 +209,7 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
     }
 }
 
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Serialize, Deserialize)]
 #[expect(clippy::large_enum_variant)]
 enum RegistryMsg {
     RequestSession(

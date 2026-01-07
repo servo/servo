@@ -5,11 +5,11 @@
 use std::iter::FromIterator;
 
 use euclid::{Point3D, RigidTransform3D, Rotation3D, Vector3D};
+use serde::{Deserialize, Serialize};
 
 use crate::{ApiSpace, Native, Space};
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 /// <https://immersive-web.github.io/hit-test/#xrray>
 pub struct Ray<Space> {
     /// The origin of the ray
@@ -18,8 +18,7 @@ pub struct Ray<Space> {
     pub direction: Vector3D<f32, Space>,
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 /// <https://immersive-web.github.io/hit-test/#enumdef-xrhittesttrackabletype>
 pub enum EntityType {
     Point,
@@ -27,8 +26,7 @@ pub enum EntityType {
     Mesh,
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 /// <https://immersive-web.github.io/hit-test/#dictdef-xrhittestoptionsinit>
 pub struct HitTestSource {
     pub id: HitTestId,
@@ -37,12 +35,10 @@ pub struct HitTestSource {
     pub types: EntityTypes,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct HitTestId(pub u32);
 
-#[derive(Clone, Copy, Debug, Default)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 /// Vec<EntityType>, but better
 pub struct EntityTypes {
     pub point: bool,
@@ -50,20 +46,17 @@ pub struct EntityTypes {
     pub mesh: bool,
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct HitTestResult {
     pub id: HitTestId,
     pub space: RigidTransform3D<f32, HitTestSpace, Native>,
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 /// The coordinate space of a hit test result
 pub struct HitTestSpace;
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Triangle {
     pub first: Point3D<f32, Native>,
     pub second: Point3D<f32, Native>,

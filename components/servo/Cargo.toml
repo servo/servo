@@ -139,13 +139,13 @@ webxr = { path = "../webxr", optional = true }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 arboard = { workspace = true, optional = true }
-webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless"] }
+webxr = { path = "../webxr", features = ["glwindow", "headless"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
+webxr = { path = "../webxr", features = ["glwindow", "headless", "openxr-api"] }
 
 [dev-dependencies]
 http = { workspace = true }
