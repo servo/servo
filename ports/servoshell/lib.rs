@@ -191,6 +191,15 @@ cfg_if! {
                 }
             }
 
+            fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
+                hitrace::start_trace(
+                    &std::ffi::CString::new(event.metadata().name())
+                        .expect("Failed to convert str to CString"),
+                );
+                hitrace::finish_trace();
+            }
+
+
             fn on_exit(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
                 if let Some(metadata) = ctx.metadata(id) {
                     if metadata.fields().field("servo_profiling").is_some() {
