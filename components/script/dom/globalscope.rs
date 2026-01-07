@@ -16,12 +16,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use base::generic_channel::GenericCallback;
+use base::generic_channel;
+use base::generic_channel::{GenericCallback, GenericSend};
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
-use base::{IpcSend, generic_channel};
 use constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
