@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cfg_if::cfg_if;
+#[cfg(feature = "tracing")]
 use tracing::Event;
-use tracing_subscriber::layer::Context; 
+#[cfg(feature = "tracing")]
+use tracing_subscriber::layer::Context;
 
 #[cfg(test)]
 mod test;
