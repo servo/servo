@@ -34,7 +34,7 @@ use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::user_contents::{UserContents, UserScript};
+use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
     ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
@@ -433,10 +433,11 @@ pub(crate) struct Window {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// The [`UserContents`] that is potentially shared with other `WebView`s in this `ScriptThread`.
+    /// The [`UserScript`]s added via `UserContentManager`. These are potentially shared with other
+    /// `WebView`s in this `ScriptThread`.
     #[no_trace]
     #[conditional_malloc_size_of]
-    user_contents: Option<Rc<UserContents>>,
+    user_scripts: Rc<Vec<UserScript>>,
 
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
@@ -781,10 +782,7 @@ impl Window {
     }
 
     pub(crate) fn userscripts(&self) -> &[UserScript] {
-        self.user_contents
-            .as_ref()
-            .map(|user_contents| user_contents.scripts.as_slice())
-            .unwrap_or(&[])
+        &self.user_scripts
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
@@ -3743,7 +3741,7 @@ impl Window {
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
-        user_contents: Option<Rc<UserContents>>,
+        user_scripts: Rc<Vec<UserScript>>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -3826,7 +3824,7 @@ impl Window {
             paint_api,
             has_sent_idle_message: Cell::new(false),
             unminify_css,
-            user_contents,
+            user_scripts,
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),

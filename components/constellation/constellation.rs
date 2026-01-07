@@ -1553,6 +1553,27 @@ where
         }
     }
 
+    fn mutate_user_contents_for_manager_id_and_notify_script_threads(
+        &mut self,
+        user_content_manager_id: UserContentManagerId,
+        callback: impl FnOnce(&mut UserContents),
+    ) {
+        let event_loops = self.event_loops();
+        let user_contents = self
+            .user_contents_for_manager_id
+            .entry(user_content_manager_id)
+            .or_default();
+
+        callback(user_contents);
+
+        for event_loop in event_loops {
+            let _ = event_loop.send(ScriptThreadMessage::SetUserContents(
+                user_content_manager_id,
+                user_contents.clone(),
+            ));
+        }
+    }
+
     fn handle_user_content_manager_action(
         &mut self,
         user_content_manager_id: UserContentManagerId,
@@ -1560,20 +1581,40 @@ where
     ) {
         match action {
             UserContentManagerAction::AddUserScript(user_script) => {
-                let event_loops = self.event_loops();
-                let user_contents = self
-                    .user_contents_for_manager_id
-                    .entry(user_content_manager_id)
-                    .or_default();
-
-                user_contents.scripts.push(user_script);
-
-                for event_loop in event_loops {
-                    let _ = event_loop.send(ScriptThreadMessage::SetUserContents(
-                        user_content_manager_id,
-                        user_contents.clone(),
-                    ));
-                }
+                self.mutate_user_contents_for_manager_id_and_notify_script_threads(
+                    user_content_manager_id,
+                    |user_contents| {
+                        user_contents.scripts.push(user_script);
+                    },
+                );
+            },
+            UserContentManagerAction::RemoveUserScript(user_script_id) => {
+                self.mutate_user_contents_for_manager_id_and_notify_script_threads(
+                    user_content_manager_id,
+                    |user_contents| {
+                        user_contents
+                            .scripts
+                            .retain(|user_script| user_script.id() != user_script_id);
+                    },
+                );
+            },
+            UserContentManagerAction::AddUserStyleSheet(user_stylesheet) => {
+                self.mutate_user_contents_for_manager_id_and_notify_script_threads(
+                    user_content_manager_id,
+                    |user_contents| {
+                        user_contents.stylesheets.push(user_stylesheet);
+                    },
+                );
+            },
+            UserContentManagerAction::RemoveUserStyleSheet(user_stylesheet_id) => {
+                self.mutate_user_contents_for_manager_id_and_notify_script_threads(
+                    user_content_manager_id,
+                    |user_contents| {
+                        user_contents
+                            .stylesheets
+                            .retain(|user_stylesheet| user_stylesheet.id() != user_stylesheet_id);
+                    },
+                );
             },
             UserContentManagerAction::DestroyUserContentManager => {
                 self.user_contents_for_manager_id

@@ -18,7 +18,9 @@ use std::time::Duration;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::GenericCallback;
 use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
-use embedder_traits::user_contents::{UserContentManagerId, UserScript};
+use embedder_traits::user_contents::{
+    UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
+};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
     MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId,
@@ -120,6 +122,9 @@ pub enum EmbedderToConstellationMessage {
 pub enum UserContentManagerAction {
     AddUserScript(UserScript),
     DestroyUserContentManager,
+    RemoveUserScript(UserScriptId),
+    AddUserStyleSheet(UserStyleSheet),
+    RemoveUserStyleSheet(UserStyleSheetId),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
