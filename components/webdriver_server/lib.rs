@@ -50,12 +50,10 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use time::OffsetDateTime;
 use uuid::Uuid;
-#[cfg(not(any(target_env = "ohos", target_os = "android")))]
-use webdriver::actions::PointerMoveAction;
 use webdriver::actions::{
     ActionSequence, ActionsType, KeyAction, KeyActionItem, KeyDownAction, KeyUpAction,
-    PointerAction, PointerActionItem, PointerActionParameters, PointerDownAction, PointerOrigin,
-    PointerType, PointerUpAction,
+    PointerAction, PointerActionItem, PointerActionParameters, PointerDownAction,
+    PointerMoveAction, PointerOrigin, PointerType, PointerUpAction,
 };
 use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
@@ -2301,7 +2299,6 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#element-click>
     /// Step 8 for elements other than <option>,
-    #[cfg(not(any(target_env = "ohos", target_os = "android")))]
     fn perform_element_click(&mut self, element: String) -> WebDriverResult<WebDriverResponse> {
         // Step 8.1 - 8.4: Create UUID, create input source "pointer".
         let id = Uuid::new_v4().to_string();
