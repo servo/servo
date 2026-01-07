@@ -76,6 +76,7 @@ use crate::dom::types::Console;
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
+use crate::module_loading::{self, LoadRequestedModules};
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
@@ -135,6 +136,7 @@ pub(crate) struct ModuleScript {
     pub(crate) base_url: ServoUrl,
     pub(crate) options: ScriptFetchOptions,
     owner: Option<ModuleOwner>,
+    pub(crate) loaded_modules: DomRefCell<IndexMap<String, module_loading::ModuleObject>>,
 }
 
 impl ModuleScript {
@@ -147,6 +149,7 @@ impl ModuleScript {
             base_url,
             options,
             owner,
+            loaded_modules: DomRefCell::new(IndexMap::new()),
         }
     }
 }
@@ -540,8 +543,7 @@ impl ModuleTree {
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// Step 5-2.
-    pub(crate) fn instantiate_module_tree(
-        &self,
+    fn instantiate_module_tree(
         global: &GlobalScope,
         module_record: HandleObject,
     ) -> Result<(), RethrowError> {
@@ -1003,7 +1005,7 @@ impl ModuleTree {
             (None, None) => {
                 let module_record = self.get_record().borrow();
                 if let Some(record) = &*module_record {
-                    let instantiated = self.instantiate_module_tree(global, record.handle());
+                    let instantiated = ModuleTree::instantiate_module_tree(global, record.handle());
 
                     if let Err(exception) = instantiated {
                         self.set_rethrow_error(exception);
@@ -1876,11 +1878,14 @@ pub(crate) fn create_a_javascript_module_script(
     base_url: ServoUrl,
     options: ScriptFetchOptions,
     mut module_script: RustMutableHandleObject,
+    owner: Option<ModuleOwner>,
     introduction_type: Option<&'static CStr>,
+    line_number: u32,
 ) -> Result<(), RethrowError> {
     let cx = GlobalScope::get_cx();
 
-    let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, base_url.as_str(), 1) };
+    let mut compile_options =
+        unsafe { CompileOptionsWrapper::new_raw(*cx, base_url.as_str(), line_number) };
     if let Some(introduction_type) = introduction_type {
         compile_options.set_introduction_type(introduction_type);
     }
@@ -1898,6 +1903,15 @@ pub(crate) fn create_a_javascript_module_script(
         return Err(RethrowError::from_pending_exception(cx));
     }
 
+    let module_script_data = Rc::new(ModuleScript::new(base_url.clone(), options, owner));
+
+    unsafe {
+        SetModulePrivate(
+            module_script.get(),
+            &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+        );
+    }
+
     Ok(())
 }
 
@@ -1911,56 +1925,114 @@ pub(crate) fn fetch_inline_module_script(
     line_number: u64,
     can_gc: CanGc,
 ) {
-    let global = owner.global();
-    let is_external = false;
-    let module_tree = ModuleTree::new(url.clone(), is_external, HashSet::new());
-
+    // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let mut compiled_module: *mut JSObject = ptr::null_mut());
-    let compiled_module_result = module_tree.compile_module_script(
-        &global,
-        owner.clone(),
-        module_script_text,
-        &url,
-        options.clone(),
+    rooted!(in(*cx) let mut compiled_module: *mut JSObject = std::ptr::null_mut());
+    let result = create_a_javascript_module_script(
+        &module_script_text.str(),
+        url.clone(),
+        options,
         compiled_module.handle_mut(),
-        true,
-        line_number,
+        Some(owner.clone()),
         Some(IntroductionType::INLINE_SCRIPT),
+        line_number as u32,
+    );
+    let module_tree = ModuleTree::new(url.clone(), false, HashSet::new());
+
+    if let Err(exception) = result {
+        module_tree.set_rethrow_error(exception);
+    } else {
+        module_tree.set_record(ModuleObject::new(compiled_module.handle()));
+    }
+    owner.global().set_inline_module_map(script_id, module_tree);
+
+    // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
+    fetch_the_descendants_and_link_module_script(
+        Destination::Script,
+        owner,
+        ModuleIdentity::ScriptId(script_id),
+        can_gc,
+    );
+}
+
+/// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-the-descendants-of-and-link-a-module-script>
+fn fetch_the_descendants_and_link_module_script(
+    destination: Destination,
+    owner: ModuleOwner,
+    identity: ModuleIdentity,
+    can_gc: CanGc,
+) {
+    let global = owner.global();
+    let module_tree = identity.get_module_tree(&global);
+
+    // Step 1. Let record be moduleScript's record.
+    // Step 2. If record is null, then:
+    let Some(ref record) = *module_tree.get_record().borrow() else {
+        // Step 2.1. Set moduleScript's error to rethrow to moduleScript's parse error.
+        // Step 2.2. Run onComplete given moduleScript.
+        owner.notify_owner_to_finish(identity, can_gc);
+
+        // Step 2.3. Return.
+        return;
+    };
+
+    let module = module_loading::ModuleObject::new(record.handle());
+
+    // TODO Step 3. Let state be Record
+    // { [[ErrorToRethrow]]: null, [[Destination]]: destination, [[PerformFetch]]: null, [[FetchClient]]: fetchClient }.
+
+    // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
+
+    // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
+    let loading_promise = LoadRequestedModules(&global, module);
+
+    let fulfillment_owner = owner.clone();
+    let fulfillment_identity = identity.clone();
+
+    let loading_promise_fulfillment =
+        ModuleHandler::new_boxed(Box::new(task!(fetched_resolve: move || {
+            let global = fulfillment_owner.global();
+
+            let module_tree = fulfillment_identity.get_module_tree(&global);
+            let module_record = module_tree.get_record().borrow();
+            if let Some(record) = &*module_record {
+                // Step 1. Perform record.Link().
+                let instantiated = ModuleTree::instantiate_module_tree(&global, record.handle());
+
+                // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
+                if let Err(exception) = instantiated {
+                    module_tree.set_rethrow_error(exception);
+                }
+            }
+
+            // Step 2. Run onComplete given moduleScript.
+            fulfillment_owner.notify_owner_to_finish(fulfillment_identity, CanGc::note());
+        })));
+
+    let rejection_owner = owner.clone();
+    let rejection_identity = identity.clone();
+
+    let loading_promise_rejection =
+        ModuleHandler::new_boxed(Box::new(task!(fetched_resolve: move || {
+            // TODO Step 1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
+            // and run onComplete given moduleScript.
+
+            // Step 2. Otherwise, run onComplete given null.
+            rejection_owner.notify_owner_to_finish(rejection_identity, CanGc::note());
+        })));
+
+    let handler = PromiseNativeHandler::new(
+        &global,
+        Some(loading_promise_fulfillment),
+        Some(loading_promise_rejection),
         can_gc,
     );
 
-    match compiled_module_result {
-        Ok(_) => {
-            module_tree.append_handler(owner.clone(), ModuleIdentity::ScriptId(script_id), can_gc);
-            module_tree.set_record(ModuleObject::new(compiled_module.handle()));
+    let realm = enter_realm(&*global);
+    let comp = InRealm::Entered(&realm);
+    let _ais = AutoIncumbentScript::new(&global);
 
-            // We need to set `module_tree` into inline module map in case
-            // of that the module descendants finished right after the
-            // fetch module descendants step.
-            global.set_inline_module_map(script_id, module_tree);
-
-            // Due to needed to set `module_tree` to inline module_map first,
-            // we will need to retrieve it again so that we can do the fetch
-            // module descendants step.
-            let inline_module_map = global.get_inline_module_map().borrow();
-            let module_tree = inline_module_map.get(&script_id).unwrap().clone();
-
-            module_tree.fetch_module_descendants(
-                &owner,
-                Destination::Script,
-                &options,
-                ModuleIdentity::ScriptId(script_id),
-                can_gc,
-            );
-        },
-        Err(exception) => {
-            module_tree.set_rethrow_error(exception);
-            module_tree.set_status(ModuleStatus::Finished);
-            global.set_inline_module_map(script_id, module_tree);
-            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), can_gc);
-        },
-    }
+    loading_promise.append_native_handler(&handler, comp, can_gc);
 }
 
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;

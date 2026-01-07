@@ -12,7 +12,6 @@ use std::rc::Rc;
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper_serde::Serde;
-use indexmap::IndexMap;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     GetRequestedModuleSpecifier, GetRequestedModulesCount, Handle, HandleObject, Heap, JSObject,
@@ -28,7 +27,6 @@ use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
 use crate::document_loader::LoadType;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
@@ -48,29 +46,16 @@ use crate::script_module::{
 use crate::script_runtime::{CanGc, IntroductionType};
 
 #[derive(PartialEq, Debug)]
-struct ModuleObject(Box<Heap<*mut JSObject>>);
+pub(crate) struct ModuleObject(Box<Heap<*mut JSObject>>);
 
 impl ModuleObject {
-    fn new(obj: HandleObject) -> ModuleObject {
+    pub(crate) fn new(obj: HandleObject) -> ModuleObject {
         ModuleObject(Heap::boxed(obj.get()))
     }
 
     pub(crate) fn handle(&self) -> HandleObject {
         unsafe { self.0.handle().into() }
     }
-}
-
-unsafe fn private_module_data_from_reference(
-    reference_private: &Handle<JSVal>,
-) -> Option<&PrivateModuleData> {
-    if reference_private.get().is_undefined() {
-        return None;
-    }
-    unsafe { (reference_private.get().to_private() as *const PrivateModuleData).as_ref() }
-}
-
-struct PrivateModuleData {
-    loaded_modules: DomRefCell<IndexMap<String, ModuleObject>>,
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
@@ -82,7 +67,7 @@ struct GraphLoadingState {
 }
 
 /// <https://tc39.es/ecma262/#sec-LoadRequestedModules>
-fn LoadRequestedModules(global: &GlobalScope, module: ModuleObject) {
+pub(crate) fn LoadRequestedModules(global: &GlobalScope, module: ModuleObject) -> Rc<Promise> {
     // Step 1. If hostDefined is not present, let hostDefined be empty.
 
     // Step 2. Let pc be ! NewPromiseCapability(%Promise%).
@@ -91,7 +76,7 @@ fn LoadRequestedModules(global: &GlobalScope, module: ModuleObject) {
     // Step 3. Let state be the GraphLoadingState Record
     // { [[IsLoading]]: true, [[PendingModulesCount]]: 1, [[Visited]]: « », [[PromiseCapability]]: pc, [[HostDefined]]: hostDefined }.
     let state = GraphLoadingState {
-        promise,
+        promise: promise.clone(),
         is_loading: Cell::new(true),
         pending_modules_count: Cell::new(1),
         visited: RefCell::new(Vec::new()),
@@ -101,6 +86,7 @@ fn LoadRequestedModules(global: &GlobalScope, module: ModuleObject) {
     InnerModuleLoading(global, &state, module);
 
     // Step 5. Return pc.[[Promise]].
+    promise
 }
 
 /// <https://tc39.es/ecma262/#sec-InnerModuleLoading>
@@ -143,7 +129,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: M
                 // Step 2. Perform ContinueModuleLoading(state, error).
                 ContinueModuleLoading(global, state, Err(error));
             } else if let Some(private_data) =
-                unsafe { private_module_data_from_reference(&referrer_handle) }
+                unsafe { module_script_from_reference_private(&referrer_handle) }
             {
                 let specifier =
                     unsafe { jsstr_to_string(*cx, std::ptr::NonNull::new(jsstr).unwrap()) };
@@ -183,6 +169,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: M
         // }
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
+        state.promise.resolve_native(&(), CanGc::note());
     }
 
     // Step 6. Return unused.
@@ -206,11 +193,14 @@ fn ContinueModuleLoading(
         Ok(module) => InnerModuleLoading(global, state, module),
 
         // Step 3. Else,
-        Err(_) => {
+        Err(exception) => {
             // a. Set state.[[IsLoading]] to false.
             state.is_loading.set(false);
 
-            // TODO b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
+            // b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
+            state
+                .promise
+                .reject(GlobalScope::get_cx(), exception.handle(), CanGc::note());
         },
     }
     // Step 4. Return unused.
@@ -227,7 +217,7 @@ fn FinishLoadingImportedModule(
 ) {
     // Step 1. If result is a normal completion, then
     if let Ok(ref module) = result {
-        if let Some(private_data) = unsafe { private_module_data_from_reference(&referrer) } {
+        if let Some(private_data) = unsafe { module_script_from_reference_private(&referrer) } {
             let mut loaded_modules = private_data.loaded_modules.borrow_mut();
 
             // a. If referrer.[[LoadedModules]] contains a LoadedModuleRequest Record record such that
@@ -467,7 +457,6 @@ fn fetch_a_single_module_script(
         data: vec![],
         metadata: None,
         url: url.clone(),
-        destination,
         options,
         status: Ok(()),
         introduction_type,
@@ -488,8 +477,6 @@ struct ModuleContext {
     metadata: Option<Metadata>,
     /// The initial URL requested.
     url: ServoUrl,
-    /// Destination of current module context
-    destination: Destination,
     /// Options for the current script fetch
     options: ScriptFetchOptions,
     /// Indicates whether the request failed, and why
@@ -606,7 +593,9 @@ impl FetchResponseListener for ModuleContext {
                 final_url,
                 self.options,
                 compiled_module.handle_mut(),
+                None,
                 self.introduction_type,
+                1,
             );
 
             // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
