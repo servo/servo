@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Should be able to scroll an element that is offset by the ancestor's margin</title>
+<link rel="help" href="https://github.com/servo/servo/pull/41707">
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+#scroller {
+  display: block;
+  margin-top: 200px;
+  margin-left: 200px;
+  width: 50px;
+  height: 50px;
+  background-color: red;
+  overflow: auto;
+  scrollbar-width: none;
+}
+#target {
+  position: relative;
+  top: 50px;
+  left: 50px;
+  width: 50px;
+  height: 50px;
+  background-color: green;
+}
+</style>
+<div id="scroller">
+  <div id="target">
+  </div>
+</div>
+
+<script>
+  promise_test(async (t) => {
+    await waitForCompositorCommit();
+    let rect = scroller.getBoundingClientRect();
+    const actions = new test_driver.Actions().scroll(rect.left+10, rect.top+10, 1000, 1000);
+    actions.send();
+
+    let scroll_delta_promise = new Promise((resolve) => {
+      let onscroll = (evt) => {
+        resolve([scroller.scrollLeft, scroller.scrollTop]);
+      }
+      scroller.addEventListener("scroll", onscroll);
+    });
+
+    let [horizontal_delta, vertical_delta] = await scroll_delta_promise;
+    assert_not_equals(horizontal_delta, 0, "Element horizontally scrolled");
+    assert_not_equals(vertical_delta, 0, "Element vertically scrolled");
+  }, "Element that is offset by the margin of it's ancestor should be able to be scrolled");
+</script>
