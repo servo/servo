@@ -899,7 +899,6 @@ impl RemoteWebFontDownloader {
             url.clone().into(),
             Referrer::ReferrerUrl(document_context.document_url.clone()),
         )
-        .origin(document_context.document_url.origin())
         .destination(Destination::Font)
         .mode(RequestMode::CorsMode)
         .credentials_mode(CredentialsMode::CredentialsSameOrigin)
