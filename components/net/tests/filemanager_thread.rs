@@ -5,11 +5,9 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use base::Epoch;
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
-use base::threadpool::ThreadPool;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FilePickerRequest, FilterPattern,
 };
@@ -29,10 +27,8 @@ fn test_filemanager() {
     preferences.dom_testing_html_input_element_select_files_enabled = true;
     servo_config::prefs::set(preferences);
 
-    let pool = ThreadPool::new(1, "CoreResourceTestPool".to_string());
-    let pool_handle = Arc::new(pool);
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
-    let filemanager = FileManager::new(embedder_proxy, Arc::downgrade(&pool_handle));
+    let filemanager = FileManager::new(embedder_proxy);
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
     let mut handler = File::open("tests/test.jpeg").expect("test.jpeg is stolen");

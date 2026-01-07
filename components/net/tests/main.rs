@@ -11,7 +11,7 @@ mod data_loader;
 mod fetch;
 
 fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch_with_context(request, &mut new_fetch_context(dc, None, None))
+    fetch_with_context(request, &mut new_fetch_context(dc, None))
 }
 mod file_loader;
 mod filemanager_thread;
@@ -21,9 +21,8 @@ mod http_loader;
 mod image_cache;
 mod resource_thread;
 mod subresource_integrity;
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 
-use base::threadpool::ThreadPool;
 use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
@@ -123,7 +122,6 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
 fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
-    pool_handle: Option<Weak<ThreadPool>>,
 ) -> FetchContext {
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
@@ -131,10 +129,7 @@ fn new_fetch_context(
         state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
-        filemanager: Arc::new(Mutex::new(FileManager::new(
-            sender.clone(),
-            pool_handle.unwrap_or_else(|| Weak::new()),
-        ))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(sender.clone()))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(sender))),
         cancellation_listener: Arc::new(Default::default()),
@@ -177,7 +172,7 @@ fn fetch_with_cors_cache(request: Request, cache: &mut CorsCache) -> Response {
     let mut target = FetchResponseCollector {
         sender: Some(sender),
     };
-    let mut fetch_context = new_fetch_context(None, None, None);
+    let mut fetch_context = new_fetch_context(None, None);
     spawn_blocking_task::<_, Response>(async move {
         methods::fetch_with_cors_cache(request, cache, &mut target, &mut fetch_context).await;
         receiver.await.unwrap()
