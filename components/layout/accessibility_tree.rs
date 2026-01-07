@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::LazyLock;
 
 pub(crate) use accessibility_traits::AccessibilityTree;
-use accesskit::{Node as AxNode, NodeId as AxNodeId, Role, Tree as AxTree};
+use accesskit::{Action, Node as AxNode, NodeId as AxNodeId, Role, Tree as AxTree};
 use html5ever::{LocalName, local_name};
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use log::trace;
@@ -77,6 +77,7 @@ impl AccessibilityTreeCalculator {
                     }
                 }
             }
+            ax_next.add_action(Action::Click);
             ax_nodes.insert(ax_next_id, ax_next);
         }
         AccessibilityTree {

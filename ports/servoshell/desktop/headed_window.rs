@@ -758,8 +758,21 @@ impl HeadedWindow {
         }
     }
 
-    pub(crate) fn handle_winit_app_event(&self, app_event: AppEvent) {
+    pub(crate) fn handle_winit_app_event(&self, _window: &ServoShellWindow, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
+            match &event.window_event {
+                egui_winit::accesskit_winit::WindowEvent::InitialTreeRequested => {
+                    // TODO get the initial tree from servo
+                },
+                egui_winit::accesskit_winit::WindowEvent::ActionRequested(req) => {
+                    // TODO use window to get active webview, then do something with action request.
+                    if req.target_tree != TreeId::ROOT {
+                        println!("{:?}", req);
+                    }
+                },
+                _ => {},
+            }
+
             if self
                 .gui
                 .borrow_mut()
