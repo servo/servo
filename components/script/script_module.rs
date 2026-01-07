@@ -75,6 +75,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::Console;
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
+use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
@@ -1825,17 +1826,13 @@ fn fetch_single_module_script(
     // Step 7-8.
     let request = RequestBuilder::new(webview_id, url.clone(), global.get_referrer())
         .destination(destination)
-        .origin(global.origin().immutable().clone())
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
         .credentials_mode(options.credentials_mode)
         .referrer_policy(options.referrer_policy)
         .mode(mode)
-        .insecure_requests_policy(global.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_origin())
-        .policy_container(global.policy_container().to_owned())
-        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-        .client(global.request_client());
+        .with_global_scope(&global)
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
     let context = ModuleContext {
         owner,
@@ -1854,7 +1851,6 @@ fn fetch_single_module_script(
     );
     match document {
         Some(document) => {
-            let request = document.prepare_request(request);
             document.loader_mut().fetch_async_with_callback(
                 LoadType::Script(url),
                 request,

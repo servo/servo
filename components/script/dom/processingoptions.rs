@@ -209,11 +209,11 @@ impl LinkProcessingOptions {
             self.cross_origin,
             None,
             self.referrer,
-            self.insecure_requests_policy,
-            self.has_trustworthy_ancestor_origin,
-            self.policy_container,
-            self.request_client,
         )
+        .insecure_requests_policy(self.insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
+        .policy_container(self.policy_container)
+        .client(self.request_client)
         .initiator(Initiator::Link)
         .origin(self.origin)
         .integrity_metadata(self.integrity)

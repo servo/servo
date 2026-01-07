@@ -25,7 +25,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
@@ -115,14 +115,10 @@ impl CSPViolationReportTask {
                 None,
                 None,
                 global.get_referrer(),
-                global.insecure_requests_policy(),
-                global.has_trustworthy_ancestor_or_current_origin(),
-                global.policy_container(),
-                global.request_client(),
             )
+            .with_global_scope(&global)
             .method(http::Method::POST)
             .body(request_body)
-            .origin(global.origin().immutable().clone())
             .credentials_mode(CredentialsMode::CredentialsSameOrigin)
             .headers(headers);
             // Step 3.4.2.4. Fetch request. The result will be ignored.

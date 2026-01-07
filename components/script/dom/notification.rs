@@ -55,7 +55,7 @@ use crate::dom::permissions::{PermissionAlgorithm, Permissions, descriptor_permi
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::fetch::create_a_potential_cors_request;
+use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -814,13 +814,8 @@ impl Notification {
             None, // TODO: check which CORS should be used
             None,
             global.get_referrer(),
-            global.insecure_requests_policy(),
-            global.has_trustworthy_ancestor_or_current_origin(),
-            global.policy_container(),
-            global.request_client(),
         )
-        .origin(global.origin().immutable().clone())
-        .pipeline_id(Some(global.pipeline_id()))
+        .with_global_scope(global)
     }
 
     /// <https://notifications.spec.whatwg.org/#fetch-steps>

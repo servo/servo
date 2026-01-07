@@ -101,7 +101,7 @@ use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
+use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::{InRealm, enter_realm};
@@ -1433,14 +1433,9 @@ impl HTMLMediaElement {
             cors_setting,
             None,
             global.get_referrer(),
-            document.insecure_requests_policy(),
-            document.has_trustworthy_ancestor_or_current_origin(),
-            global.policy_container(),
-            global.request_client(),
         )
+        .with_global_scope(&global)
         .headers(headers)
-        .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(self.global().pipeline_id()))
         .referrer_policy(document.get_referrer_policy());
 
         let mut current_fetch_context = self.current_fetch_context.borrow_mut();

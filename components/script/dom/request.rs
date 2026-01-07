@@ -39,6 +39,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
+use crate::fetch::RequestWithGlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -570,13 +571,7 @@ impl Request {
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
     RequestBuilder::new(global.webview_id(), url, global.get_referrer())
-        .origin(global.get_url().origin())
-        .pipeline_id(Some(global.pipeline_id()))
-        .https_state(global.get_https_state())
-        .insecure_requests_policy(global.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
-        .policy_container(global.policy_container())
-        .client(global.request_client())
+        .with_global_scope(global)
         .build()
 }
 

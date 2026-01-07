@@ -36,7 +36,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
+use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
@@ -577,13 +577,8 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             Some(cors_attribute_state),
             Some(true),
             global.get_referrer(),
-            global.insecure_requests_policy(),
-            global.has_trustworthy_ancestor_or_current_origin(),
-            global.policy_container(),
-            global.request_client(),
         )
-        .origin(global.origin().immutable().clone())
-        .pipeline_id(Some(global.pipeline_id()));
+        .with_global_scope(global);
 
         // Step 10 User agents may set (`Accept`, `text/event-stream`) in request's header list.
         // TODO(eijebong): Replace once typed headers allow it
