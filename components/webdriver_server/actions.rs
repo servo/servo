@@ -531,6 +531,7 @@ impl Handler {
             let PointerInputState {
                 x: current_x,
                 y: current_y,
+                subtype,
                 ..
             } = *self.get_pointer_input_state(source_id);
 
@@ -541,11 +542,22 @@ impl Handler {
                 // Step 7.2. Perform implementation-specific action dispatch steps
                 let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
 
-                let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
-                if last {
-                    self.send_blocking_input_event_to_embedder(input_event);
-                } else {
-                    self.send_input_event_to_embedder(input_event);
+                // For a pointer of type "mouse"
+                // this will always produce events including at least a pointerMove event.
+                match subtype {
+                    PointerType::Mouse => {
+                        let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
+                        if last {
+                            self.send_blocking_input_event_to_embedder(input_event);
+                        } else {
+                            self.send_input_event_to_embedder(input_event);
+                        }
+                    },
+                    // In the case where the pointerType is "pen" or "touch", and buttons is empty,
+                    // this may be a no-op.
+                    PointerType::Touch | PointerType::Pen => {
+                        // TODO: Handle the case where buttons is non-empty.
+                    },
                 }
 
                 // Step 7.3. Let input state's x property equal x and y property equal y.

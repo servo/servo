@@ -2300,78 +2300,6 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#element-click>
-    /// Step 8 for elements other than <option>
-    /// There is currently no spec for touchscreen webdriver support.
-    /// There is an ongoing discussion in W3C:
-    /// <https://github.com/w3c/webdriver/issues/1925>
-    #[cfg(any(target_env = "ohos", target_os = "android"))]
-    fn perform_element_click(&mut self, element: String) -> WebDriverResult<WebDriverResponse> {
-        // Step 8.1 - 8.4: Create UUID, create input source "pointer".
-        let id = Uuid::new_v4().to_string();
-
-        let pointer_ids = self.session()?.pointer_ids();
-        let (x, y) = self
-            .get_origin_relative_coordinates(
-                &PointerOrigin::Element(WebElement(element.clone())),
-                0.0,
-                0.0,
-                &id,
-            )
-            .map_err(|err| WebDriverError::new(err, ""))?;
-
-        // Difference with Desktop: Create an input source with coordinates directly at the
-        // element centre.
-        self.session_mut()?.input_state_table.insert(
-            id.clone(),
-            InputSourceState::Pointer(PointerInputState::new(
-                PointerType::Touch,
-                pointer_ids,
-                x,
-                y,
-            )),
-        );
-
-        // Step 8.11. Construct pointer down action.
-        // Step 8.12. Set a property button to 0 on pointer down action.
-        let pointer_down_action = PointerDownAction {
-            button: i16::from(MouseButton::Left) as u64,
-            ..Default::default()
-        };
-
-        // Step 8.13. Construct pointer up action.
-        // Step 8.14. Set a property button to 0 on pointer up action.
-        let pointer_up_action = PointerUpAction {
-            button: i16::from(MouseButton::Left) as u64,
-            ..Default::default()
-        };
-
-        // Difference with Desktop: We only need pointerdown and pointerup for touchscreen.
-        let action_sequence = ActionSequence {
-            id: id.clone(),
-            actions: ActionsType::Pointer {
-                parameters: PointerActionParameters {
-                    pointer_type: PointerType::Touch,
-                },
-                actions: vec![
-                    PointerActionItem::Pointer(PointerAction::Down(pointer_down_action)),
-                    PointerActionItem::Pointer(PointerAction::Up(pointer_up_action)),
-                ],
-            },
-        };
-
-        // Step 8.16. Dispatch a list of actions with session's current browsing context
-        let actions_by_tick = self.extract_an_action_sequence(vec![action_sequence]);
-        if let Err(e) = self.dispatch_actions(actions_by_tick, self.browsing_context_id()?) {
-            log::error!("handle_element_click: dispatch_actions failed: {:?}", e);
-        }
-
-        // Step 8.17 Remove an input source with input state and input id.
-        self.session_mut()?.input_state_table.remove(&id);
-
-        Ok(WebDriverResponse::Void)
-    }
-
-    /// <https://w3c.github.io/webdriver/#element-click>
     /// Step 8 for elements other than <option>,
     #[cfg(not(any(target_env = "ohos", target_os = "android")))]
     fn perform_element_click(&mut self, element: String) -> WebDriverResult<WebDriverResponse> {
@@ -2379,14 +2307,19 @@ impl Handler {
         let id = Uuid::new_v4().to_string();
 
         let pointer_ids = self.session()?.pointer_ids();
+        #[cfg(not(any(target_env = "ohos", target_os = "android")))]
+        let pointer_type = PointerType::Mouse;
+
+        // There is currently no spec for touchscreen element click support,
+        // which assumes mouse event.
+        // There is an ongoing discussion in W3C:
+        // <https://github.com/w3c/webdriver/issues/1925>
+        #[cfg(any(target_env = "ohos", target_os = "android"))]
+        let pointer_type = PointerType::Touch;
+
         self.session_mut()?.input_state_table.insert(
             id.clone(),
-            InputSourceState::Pointer(PointerInputState::new(
-                PointerType::Mouse,
-                pointer_ids,
-                0.0,
-                0.0,
-            )),
+            InputSourceState::Pointer(PointerInputState::new(pointer_type, pointer_ids, 0.0, 0.0)),
         );
 
         // Step 8.7. Construct a pointer move action.
