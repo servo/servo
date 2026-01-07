@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::RigidTransform3D;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     ApiSpace, BaseSpace, Frame, InputFrame, InputId, InputSource, SelectEvent, SelectKind,
     WebXrSender,
 };
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[expect(clippy::large_enum_variant)]
 pub enum Event {
     /// Input source connected
@@ -31,8 +31,7 @@ pub enum Event {
     ReferenceSpaceChanged(BaseSpace, RigidTransform3D<f32, ApiSpace, ApiSpace>),
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Visibility {
     /// Session fully displayed to user
     Visible,

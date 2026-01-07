@@ -162,7 +162,7 @@ uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
-webxr-api = { workspace = true, features = ["ipc"], optional = true }
+webxr-api = { workspace = true, optional = true }
 wgpu-core = { workspace = true }
 wgpu-types = { workspace = true }
 x25519-dalek = { workspace = true }

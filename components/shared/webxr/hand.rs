@@ -3,15 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::RigidTransform3D;
+use serde::{Deserialize, Serialize};
 
 use crate::Native;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct HandSpace;
 
-#[derive(Clone, Debug, Default)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Hand<J> {
     pub wrist: Option<J>,
     pub thumb_metacarpal: Option<J>,
@@ -24,8 +23,7 @@ pub struct Hand<J> {
     pub little: Finger<J>,
 }
 
-#[derive(Clone, Debug, Default)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Finger<J> {
     pub metacarpal: Option<J>,
     pub phalanx_proximal: Option<J>,
@@ -34,8 +32,7 @@ pub struct Finger<J> {
     pub phalanx_tip: Option<J>,
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct JointFrame {
     pub pose: RigidTransform3D<f32, HandSpace, Native>,
     pub radius: f32,
@@ -102,8 +99,7 @@ impl<J> Finger<J> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum FingerJoint {
     Metacarpal,
     PhalanxProximal,
@@ -112,8 +108,7 @@ pub enum FingerJoint {
     PhalanxTip,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Joint {
     Wrist,
     ThumbMetacarpal,

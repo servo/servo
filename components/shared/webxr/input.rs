@@ -3,23 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::RigidTransform3D;
+use serde::{Deserialize, Serialize};
 
 use crate::{Hand, Input, JointFrame, Native};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct InputId(pub u32);
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Handedness {
     None,
     Left,
     Right,
 }
 
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum TargetRayMode {
     Gaze,
     TrackedPointer,
@@ -27,8 +25,7 @@ pub enum TargetRayMode {
     TransientPointer,
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InputSource {
     pub handedness: Handedness,
     pub target_ray_mode: TargetRayMode,
@@ -38,8 +35,7 @@ pub struct InputSource {
     pub profiles: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InputFrame {
     pub id: InputId,
     pub target_ray_origin: Option<RigidTransform3D<f32, Input, Native>>,
@@ -52,8 +48,7 @@ pub struct InputFrame {
     pub input_changed: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SelectEvent {
     /// Selection started
     Start,
@@ -63,8 +58,7 @@ pub enum SelectEvent {
     Select,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "ipc", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SelectKind {
     Select,
     Squeeze,
