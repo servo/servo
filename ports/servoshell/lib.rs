@@ -3,10 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cfg_if::cfg_if;
-#[cfg(feature = "tracing")]
-use tracing::Event;
-#[cfg(feature = "tracing")]
-use tracing_subscriber::layer::Context;
 
 #[cfg(test)]
 mod test;
@@ -195,8 +191,7 @@ cfg_if! {
                 }
             }
 
-            fn on_event(&self, event: &Event<'_>, _ctx: Context<'_, S>) {
-                log::info!("hitrace on_event: {event:?}");
+            fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
                 hitrace::start_trace(
                     &std::ffi::CString::new(event.metadata().name())
                         .expect("Failed to convert str to CString"),
