@@ -1990,7 +1990,7 @@ pub(crate) fn encode_multipart_form_data(
                     .parse()
                     .unwrap_or(mime::TEXT_PLAIN);
                 let mut type_bytes = format!(
-                    "Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
+                    "Content-Disposition: {}\r\nContent-Type: {}\r\n\r\n",
                     content_disposition, content_type
                 )
                 .into_bytes();
