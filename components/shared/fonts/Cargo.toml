@@ -14,7 +14,6 @@ path = "lib.rs"
 [dependencies]
 atomic_refcell = { workspace = true }
 base = { workspace = true }
-ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
