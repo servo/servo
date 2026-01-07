@@ -21,7 +21,7 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::long_string::LongStringActor;
 use crate::network_handler::Cause;
 use crate::protocol::ClientRequest;
@@ -64,7 +64,7 @@ pub struct NetworkEventResource {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EventActor {
+pub struct NetworkEventMsg {
     pub actor: String,
     pub resource_id: u64,
     pub url: String,
@@ -629,36 +629,6 @@ impl NetworkEventActor {
         self.security_info = security_info;
     }
 
-    pub fn event_actor(&self) -> EventActor {
-        // TODO: Send the correct values for startedDateTime, isXHR, private
-
-        let started_datetime_rfc3339 = match Local.timestamp_millis_opt(
-            self.request_started
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as i64,
-        ) {
-            LocalResult::None => "".to_owned(),
-            LocalResult::Single(date_time) => date_time.to_rfc3339().to_string(),
-            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339().to_string(),
-        };
-
-        EventActor {
-            actor: self.name(),
-            resource_id: self.resource_id,
-            url: self.request_url.clone(),
-            method: format!("{}", self.request_method),
-            started_date_time: started_datetime_rfc3339,
-            time_stamp: self.request_time_stamp,
-            is_xhr: self.is_xhr,
-            private: false,
-            cause: Cause {
-                type_: self.request_destination.as_str().to_string(),
-                loading_document_uri: None, // Set if available
-            },
-        }
-    }
-
     pub fn response_start(response: &DevtoolsHttpResponse) -> ResponseStartMsg {
         // TODO: Send the correct values for all these fields.
         let h_size = response.headers.as_ref().map(|h| h.len()).unwrap_or(0);
@@ -874,6 +844,38 @@ impl NetworkEventActor {
             resource_updates,
             browsing_context_id: 0,
             inner_window_id: 0,
+        }
+    }
+}
+
+impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
+    fn encode(&self, _: &ActorRegistry) -> NetworkEventMsg {
+        // TODO: Send the correct values for startedDateTime, isXHR, private
+
+        let started_datetime_rfc3339 = match Local.timestamp_millis_opt(
+            self.request_started
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as i64,
+        ) {
+            LocalResult::None => "".to_owned(),
+            LocalResult::Single(date_time) => date_time.to_rfc3339().to_string(),
+            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339().to_string(),
+        };
+
+        NetworkEventMsg {
+            actor: self.name(),
+            resource_id: self.resource_id,
+            url: self.request_url.clone(),
+            method: format!("{}", self.request_method),
+            started_date_time: started_datetime_rfc3339,
+            time_stamp: self.request_time_stamp,
+            is_xhr: self.is_xhr,
+            private: false,
+            cause: Cause {
+                type_: self.request_destination.as_str().to_string(),
+                loading_document_uri: None, // Set if available
+            },
         }
     }
 }

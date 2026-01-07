@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use devtools_traits::NetworkEvent;
 use serde::Serialize;
 
-use crate::actor::ActorRegistry;
+use crate::actor::{ActorEncode, ActorRegistry};
 use crate::actors::network_event::NetworkEventActor;
 use crate::actors::watcher::WatcherActor;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
@@ -34,13 +34,14 @@ pub(crate) fn handle_network_event(
         NetworkEvent::HttpRequest(httprequest) => {
             actor.add_request(httprequest);
 
-            let event_actor = actor.event_actor();
             let resource_updates = actor.resource_updates();
+            let actor = actors.find::<NetworkEventActor>(&netevent_actor_name);
+            let msg = actor.encode(&actors);
             let watcher_actor = actors.find::<WatcherActor>(&watcher_name);
 
             for stream in &mut connections {
                 watcher_actor.resource_array(
-                    event_actor.clone(),
+                    msg.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Available,
                     stream,
