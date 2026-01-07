@@ -10533,7 +10533,6 @@ dependencies = [
  "log",
  "openxr",
  "raw-window-handle",
- "serde",
  "surfman",
  "webxr-api",
  "winapi",

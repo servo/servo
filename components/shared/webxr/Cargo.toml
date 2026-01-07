@@ -15,12 +15,9 @@ but adapted to Rust design patterns.'''
 [lib]
 path = "lib.rs"
 
-[features]
-ipc = ["serde", "ipc-channel", "euclid/serde"]
-
 [dependencies]
 embedder_traits = { workspace = true }
+ipc-channel = { workspace = true }
 euclid = { workspace = true }
-ipc-channel = { workspace = true, optional = true }
+serde = { workspace = true }
 log = { workspace = true }
-serde = { workspace = true, optional = true }

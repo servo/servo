@@ -7,61 +7,50 @@
 use std::marker::PhantomData;
 
 use euclid::{Rect, RigidTransform3D, Transform3D};
-#[cfg(feature = "ipc")]
 use serde::{Deserialize, Serialize};
 
 /// The coordinate space of the viewer
 /// <https://immersive-web.github.io/webxr/#dom-xrreferencespacetype-viewer>
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Viewer {}
 
 /// The coordinate space of the floor
 /// <https://immersive-web.github.io/webxr/#dom-xrreferencespacetype-local-floor>
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Floor {}
 
 /// The coordinate space of the left eye
 /// <https://immersive-web.github.io/webxr/#dom-xreye-left>
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum LeftEye {}
 
 /// The coordinate space of the right eye
 /// <https://immersive-web.github.io/webxr/#dom-xreye-right>
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum RightEye {}
 
 /// The coordinate space of the left frustrum of a cubemap
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum CubeLeft {}
 
 /// The coordinate space of the right frustrum of a cubemap
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum CubeRight {}
 
 /// The coordinate space of the top frustrum of a cubemap
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum CubeTop {}
 
 /// The coordinate space of the bottom frustrum of a cubemap
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum CubeBottom {}
 
 /// The coordinate space of the back frustrum of a cubemap
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum CubeBack {}
 
 /// Pattern-match on eyes
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct SomeEye<Eye>(u8, PhantomData<Eye>);
 pub const LEFT_EYE: SomeEye<LeftEye> = SomeEye(0, PhantomData);
 pub const RIGHT_EYE: SomeEye<RightEye> = SomeEye(1, PhantomData);
@@ -80,32 +69,27 @@ impl<Eye1, Eye2> PartialEq<SomeEye<Eye2>> for SomeEye<Eye1> {
 
 /// The native 3D coordinate space of the device
 /// This is not part of the webvr specification.
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Native {}
 
 /// The normalized device coordinate space, where the display
 /// is from (-1,-1) to (1,1).
 // TODO: are we OK assuming that we can use the same coordinate system for all displays?
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Display {}
 
 /// The unnormalized device coordinate space, where the display
 /// is from (0,0) to (w,h), measured in pixels.
 // TODO: are we OK assuming that we can use the same coordinate system for all displays?
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Viewport {}
 
 /// The coordinate space of an input device
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Input {}
 
 /// The coordinate space of a secondary capture view
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Capture {}
 
 /// For each eye, the pose of that eye,
@@ -113,8 +97,7 @@ pub enum Capture {}
 /// For stereo displays, we have a `View<LeftEye>` and a `View<RightEye>`.
 /// For mono displays, we hagve a `View<Viewer>`
 /// <https://immersive-web.github.io/webxr/#xrview>
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct View<Eye> {
     pub transform: RigidTransform3D<f32, Eye, Native>,
     pub projection: Transform3D<f32, Eye, Display>,
@@ -139,8 +122,7 @@ impl<Eye> View<Eye> {
 }
 
 /// Whether a device is mono or stereo, and the views it supports.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[expect(clippy::large_enum_variant)]
 pub enum Views {
     /// Mono view for inline VR, viewport and projection matrices are calculated by client
@@ -161,8 +143,7 @@ pub enum Views {
 /// A list of viewports per-eye in the order of fields in Views.
 ///
 /// Not all must be in active use.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "ipc", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Viewports {
     pub viewports: Vec<Rect<i32, Viewport>>,
 }

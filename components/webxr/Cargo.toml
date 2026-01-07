@@ -20,7 +20,6 @@ default = ["x11"]
 angle = ["surfman/sm-angle"]
 glwindow = []
 headless = []
-ipc = ["webxr-api/ipc", "serde"]
 openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
 x11 = ["surfman/sm-x11"]
 
@@ -31,7 +30,6 @@ glow = { workspace = true }
 log = { workspace = true }
 openxr = { workspace = true, optional = true }
 raw-window-handle = { workspace = true }
-serde = { workspace = true, optional = true }
 surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }
 webxr-api = { workspace = true }
 

@@ -5,11 +5,12 @@
 //! Traits to be implemented by backends
 
 use euclid::{Point2D, RigidTransform3D};
+use ipc_channel::ipc::IpcSender;
 
 use crate::{
     ContextId, EnvironmentBlendMode, Error, Event, Floor, Frame, HitTestId, HitTestSource,
     InputSource, LayerId, LayerInit, Native, Quitter, Session, SessionBuilder, SessionInit,
-    SessionMode, Viewports, WebXrSender,
+    SessionMode, Viewports,
 };
 
 /// A trait for discovering XR devices
@@ -47,7 +48,7 @@ pub trait DeviceAPI: 'static {
     fn initial_inputs(&self) -> Vec<InputSource>;
 
     /// Sets the event handling channel
-    fn set_event_dest(&mut self, dest: WebXrSender<Event>);
+    fn set_event_dest(&mut self, dest: IpcSender<Event>);
 
     /// Quit the session
     fn quit(&mut self);
