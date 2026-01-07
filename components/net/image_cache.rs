@@ -705,6 +705,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
                 key_cache: KeyCache::new(),
             })),
             svg_id_image_id_map: Arc::new(Mutex::new(FxHashMap::default())),
+            image_id_size_map: Arc::new(Mutex::new(FxHashMap::default())),
             broken_image_icon_data: self.broken_image_icon_data.clone(),
             thread_pool: self.thread_pool.clone(),
             fontdb: self.fontdb.clone(),
@@ -717,6 +718,8 @@ pub struct ImageCacheImpl {
     store: Arc<Mutex<ImageCacheStore>>,
     /// Maps an SVGSVGElement uuid to a pending image id in the store
     svg_id_image_id_map: Arc<Mutex<FxHashMap<String, PendingImageId>>>,
+    /// Maps a pending image id to a set of sizes for which that image was requested
+    image_id_size_map: Arc<Mutex<FxHashMap<PendingImageId, Vec<DeviceIntSize>>>>,
     /// The data to use for the broken image icon used when images cannot load.
     broken_image_icon_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding. This is shared with other [`ImageCache`]s in the
@@ -926,6 +929,13 @@ impl ImageCache for ImageCacheImpl {
                     .remove(&(old_mapped_image_id, requested_size));
             }
         }
+        if let Some(requested_sizes_for_id) = self.image_id_size_map.lock().get_mut(&image_id) {
+            requested_sizes_for_id.push(requested_size);
+        } else {
+            self.image_id_size_map
+                .lock()
+                .insert(image_id, vec![requested_size]);
+        }
 
         let store = self.store.clone();
         self.thread_pool.spawn(move || {
@@ -997,7 +1007,16 @@ impl ImageCache for ImageCacheImpl {
         let mut store = self.store.lock();
         if let Some(mapped_image_id) = self.svg_id_image_id_map.lock().get(svg_id) {
             store.vector_images.remove(mapped_image_id);
+            if let Some(requested_sizes) = self.image_id_size_map.lock().get(mapped_image_id) {
+                for requested_size in requested_sizes.iter() {
+                    store
+                        .rasterized_vector_images
+                        .remove(&(*mapped_image_id, *requested_size));
+                }
+            }
+            self.image_id_size_map.lock().remove(mapped_image_id);
         }
+        self.svg_id_image_id_map.lock().remove(svg_id);
     }
 
     /// Inform the image cache about a response for a pending request.
