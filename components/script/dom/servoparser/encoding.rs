@@ -217,8 +217,8 @@ impl NetworkDecoderState {
                     document.set_encoding(encoding);
                     let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
                     *self = Self::Decoding(DecodingState {
-                        decoder: Some(LossyDecoder::new_encoding_rs(
-                            encoding,
+                        decoder: Some(LossyDecoder::new_from_encoding_rs_decoder(
+                            encoding.new_decoder_without_bom_handling(),
                             NetworkSink::default(),
                         )),
                         encoding,
@@ -245,7 +245,10 @@ impl NetworkDecoderState {
                 let encoding = encoding_detector.finish(document);
                 document.set_encoding(encoding);
                 let buffered_bytes = mem::take(&mut encoding_detector.buffered_bytes);
-                let mut decoder = LossyDecoder::new_encoding_rs(encoding, NetworkSink::default());
+                let mut decoder = LossyDecoder::new_from_encoding_rs_decoder(
+                    encoding.new_decoder_without_bom_handling(),
+                    NetworkSink::default(),
+                );
                 decoder.process(ByteTendril::from(&*buffered_bytes));
                 *self = Self::Decoding(DecodingState {
                     // Important to set `None` here to indicate that we're done decoding
