@@ -5,7 +5,7 @@
 //! Traits to be implemented by backends
 
 use euclid::{Point2D, RigidTransform3D};
-use ipc_channel::ipc::IpcSender;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 
 use crate::{
     ContextId, EnvironmentBlendMode, Error, Event, Floor, Frame, HitTestId, HitTestSource,
@@ -48,7 +48,7 @@ pub trait DeviceAPI: 'static {
     fn initial_inputs(&self) -> Vec<InputSource>;
 
     /// Sets the event handling channel
-    fn set_event_dest(&mut self, dest: IpcSender<Event>);
+    fn set_event_dest(&mut self, dest: ProfileGenericCallback<Event>);
 
     /// Quit the session
     fn quit(&mut self);

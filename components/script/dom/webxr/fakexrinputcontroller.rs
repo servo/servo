@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use webxr_api::{
     Handedness, InputId, MockButton, MockButtonType, MockDeviceMsg, MockInputMsg, SelectEvent,
     SelectKind, TargetRayMode,
@@ -28,9 +28,8 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct FakeXRInputController {
     reflector: Reflector,
-    #[ignore_malloc_size_of = "defined in ipc-channel"]
     #[no_trace]
-    sender: IpcSender<MockDeviceMsg>,
+    sender: GenericSender<MockDeviceMsg>,
     #[ignore_malloc_size_of = "defined in webxr-api"]
     #[no_trace]
     id: InputId,
@@ -38,7 +37,7 @@ pub(crate) struct FakeXRInputController {
 
 impl FakeXRInputController {
     pub(crate) fn new_inherited(
-        sender: IpcSender<MockDeviceMsg>,
+        sender: GenericSender<MockDeviceMsg>,
         id: InputId,
     ) -> FakeXRInputController {
         FakeXRInputController {
@@ -50,7 +49,7 @@ impl FakeXRInputController {
 
     pub(crate) fn new(
         global: &GlobalScope,
-        sender: IpcSender<MockDeviceMsg>,
+        sender: GenericSender<MockDeviceMsg>,
         id: InputId,
         can_gc: CanGc,
     ) -> DomRoot<FakeXRInputController> {

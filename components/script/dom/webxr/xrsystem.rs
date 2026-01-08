@@ -9,6 +9,7 @@ use base::id::PipelineId;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -122,10 +123,9 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        ROUTER.add_typed_route(
-            receiver.to_ipc_receiver(),
-            Box::new(move |message| {
+
+        let callback =
+            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
                 // router doesn't know this is only called once
                 let trusted = if let Some(trusted) = trusted.take() {
                     trusted
@@ -144,10 +144,11 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                 } else {
                     task_source.queue(trusted.resolve_task(false));
                 };
-            }),
-        );
+            })
+            .expect("Could not create callback");
+
         if let Some(mut r) = global.as_window().webxr_registry() {
-            r.supports_session(mode.convert(), sender);
+            r.supports_session(mode.convert(), callback);
         }
 
         promise

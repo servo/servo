@@ -5,9 +5,11 @@
 use std::thread;
 use std::time::Duration;
 
+use base::generic_channel::{self, GenericReceiver, GenericSender};
 use euclid::{Point2D, Rect, RigidTransform3D, Size2D};
-use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -82,25 +84,25 @@ pub enum EnvironmentBlendMode {
 }
 
 // The messages that are sent from the content thread to the session thread.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum SessionMsg {
-    CreateLayer(ContextId, LayerInit, IpcSender<Result<LayerId, Error>>),
+    CreateLayer(ContextId, LayerInit, GenericSender<Result<LayerId, Error>>),
     DestroyLayer(ContextId, LayerId),
     SetLayers(Vec<(ContextId, LayerId)>),
-    SetEventDest(IpcSender<Event>),
+    SetEventDest(ProfileGenericCallback<Event>),
     UpdateClipPlanes(/* near */ f32, /* far */ f32),
     StartRenderLoop,
     RenderAnimationFrame,
     RequestHitTest(HitTestSource),
     CancelHitTest(HitTestId),
-    UpdateFrameRate(f32, IpcSender<f32>),
+    UpdateFrameRate(f32, ProfileGenericCallback<f32>),
     Quit,
-    GetBoundsGeometry(IpcSender<Option<Vec<Point2D<f32, Floor>>>>),
+    GetBoundsGeometry(GenericSender<Option<Vec<Point2D<f32, Floor>>>>),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Quitter {
-    sender: IpcSender<SessionMsg>,
+    sender: GenericSender<SessionMsg>,
 }
 
 impl Quitter {
@@ -116,7 +118,7 @@ impl Quitter {
 pub struct Session {
     floor_transform: Option<RigidTransform3D<f32, Native, Floor>>,
     viewports: Viewports,
-    sender: IpcSender<SessionMsg>,
+    sender: GenericSender<SessionMsg>,
     environment_blend_mode: EnvironmentBlendMode,
     initial_inputs: Vec<InputSource>,
     granted_features: Vec<String>,
@@ -137,7 +139,7 @@ impl Session {
     }
 
     pub fn reference_space_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
-        let (sender, receiver) = channel().ok()?;
+        let (sender, receiver) = generic_channel::channel()?;
         let _ = self.sender.send(SessionMsg::GetBoundsGeometry(sender));
         receiver.recv().ok()?
     }
@@ -168,7 +170,9 @@ impl Session {
     }
 
     pub fn create_layer(&self, context_id: ContextId, init: LayerInit) -> Result<LayerId, Error> {
-        let (sender, receiver) = channel().map_err(|_| Error::CommunicationError)?;
+        let Some((sender, receiver)) = generic_channel::channel() else {
+            return Err(Error::CommunicationError);
+        };
         let _ = self
             .sender
             .send(SessionMsg::CreateLayer(context_id, init, sender));
@@ -194,7 +198,7 @@ impl Session {
         let _ = self.sender.send(SessionMsg::UpdateClipPlanes(near, far));
     }
 
-    pub fn set_event_dest(&mut self, dest: IpcSender<Event>) {
+    pub fn set_event_dest(&mut self, dest: ProfileGenericCallback<Event>) {
         let _ = self.sender.send(SessionMsg::SetEventDest(dest));
     }
 
@@ -226,7 +230,7 @@ impl Session {
         let _ = self.sender.send(SessionMsg::CancelHitTest(id));
     }
 
-    pub fn update_frame_rate(&mut self, rate: f32, sender: IpcSender<f32>) {
+    pub fn update_frame_rate(&mut self, rate: f32, sender: ProfileGenericCallback<f32>) {
         let _ = self.sender.send(SessionMsg::UpdateFrameRate(rate, sender));
     }
 
@@ -244,8 +248,8 @@ enum RenderState {
 
 /// For devices that want to do their own thread management, the `SessionThread` type is exposed.
 pub struct SessionThread<Device> {
-    receiver: IpcReceiver<SessionMsg>,
-    sender: IpcSender<SessionMsg>,
+    receiver: GenericReceiver<SessionMsg>,
+    sender: GenericSender<SessionMsg>,
     layers: Vec<(ContextId, LayerId)>,
     pending_layers: Option<Vec<(ContextId, LayerId)>>,
     frame_count: u64,
@@ -265,7 +269,9 @@ where
         frame_sender: IpcSender<Frame>,
         id: SessionId,
     ) -> Result<Self, Error> {
-        let (sender, receiver) = channel().or(Err(Error::CommunicationError))?;
+        let Some((sender, receiver)) = generic_channel::channel() else {
+            return Err(Error::CommunicationError);
+        };
         device.set_quitter(Quitter {
             sender: sender.clone(),
         });
@@ -417,8 +423,8 @@ where
     fn run_one_frame(&mut self) {
         let frame_count = self.frame_count;
         while frame_count == self.frame_count && self.running {
-            if let Ok(msg) = &self.receiver.try_recv_timeout(TIMEOUT) {
-                self.running = self.handle_msg((*msg).clone());
+            if let Ok(msg) = self.receiver.try_recv_timeout(TIMEOUT) {
+                self.running = self.handle_msg(msg);
             } else {
                 break;
             }
@@ -463,7 +469,9 @@ impl<'a, GL: 'static> SessionBuilder<'a, GL> {
         Factory: 'static + FnOnce(LayerGrandManager<GL>) -> Result<Device, Error> + Send,
         Device: DeviceAPI,
     {
-        let (acks, ackr) = channel().or(Err(Error::CommunicationError))?;
+        let Some((acks, ackr)) = generic_channel::channel() else {
+            return Err(Error::CommunicationError);
+        };
         let frame_sender = self.frame_sender;
         let layer_grand_manager = self.layer_grand_manager;
         let id = self.id;
