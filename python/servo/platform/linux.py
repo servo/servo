@@ -18,14 +18,14 @@ from .base import Base
 from .build_target import BuildTarget
 
 # Please keep these in sync with the packages in the book, using the instructions below
-# https://book.servo.org/hacking/setting-up-your-environment.html
+# https://book.servo.org/building/linux.html
 
 # https://packages.debian.org
 # https://packages.ubuntu.com
 # 1. open devtools
 # 2. paste in the whole APT_PKGS = [...]
 # 3. copy(`sudo apt install ${APT_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/book/edit/main/src/hacking/setting-up-your-environment.md
+# 4. paste into https://github.com/servo/book/edit/main/src/building/linux.md
 APT_PKGS = [
     "build-essential",
     "ccache",
@@ -74,7 +74,7 @@ APT_PKGS = [
 # 1. open devtools
 # 2. paste in the whole DNF_PKGS = [...]
 # 3. copy(`sudo dnf install ${DNF_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/book/edit/main/src/hacking/setting-up-your-environment.md
+# 4. paste into https://github.com/servo/book/edit/main/src/building/linux.md
 DNF_PKGS = [
     "libtool",
     "gcc-c++",
@@ -120,7 +120,7 @@ DNF_PKGS = [
 # 1. open devtools
 # 2. paste in the whole XBPS_PKGS = [...]
 # 3. copy(`sudo xbps-install ${XBPS_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/book/edit/main/src/hacking/setting-up-your-environment.md
+# 4. paste into https://github.com/servo/book/edit/main/src/building/linux.md
 XBPS_PKGS = [
     "libtool",
     "gcc",
