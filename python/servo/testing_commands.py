@@ -427,14 +427,17 @@ class MachCommands(CommandBase):
     @Command(
         "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
     )
+    @CommandArgument(
+        "--multiprocess", "-m", default=False, action="store_true", help="Run in multiprocess mode"
+    )
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
-        return self._test_wpt(servo_binary, **kwargs)
+    def test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
+        return self._test_wpt(servo_binary, multiprocess, **kwargs)
 
     @CommandBase.allow_target_configuration
-    def _test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
+    def _test_wpt(self, servo_binary: str,multiprocess:bool,  **kwargs: Any) -> int:
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
-        return_value = wpt.run.run_tests(servo_binary, **kwargs)
+        return_value = wpt.run.run_tests(servo_binary, multiprocess, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
 
     @Command(
