@@ -156,7 +156,7 @@ impl DevtoolsInstance {
         };
 
         // Create basic actors
-        let mut registry = ActorRegistry::new();
+        let mut registry = ActorRegistry::default();
         RootActor::register(&mut registry);
 
         let instance = Self {
