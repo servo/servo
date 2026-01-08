@@ -157,14 +157,13 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn call_html_constructor<
         T: DerivedFrom<<crate::DomTypeHolder as DomTypes>::Element> + DomObject,
     >(
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         args: &CallArgs,
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         proto_id: PrototypeList::ID,
         creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
-        can_gc: CanGc,
     ) -> bool {
-        call_html_constructor::<T>(cx, args, global, proto_id, creator, can_gc)
+        call_html_constructor::<T>(cx, args, global, proto_id, creator)
     }
 
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<crate::DomTypeHolder>>>> {

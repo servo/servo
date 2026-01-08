@@ -8,7 +8,7 @@ use std::ops::Deref;
 
 use js::context::JSContext as SafeJSContext;
 use js::jsapi::JSContext as RawJSContext;
-use js::realm::CurrentRealm;
+use js::realm::{AutoRealm, CurrentRealm};
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
@@ -22,6 +22,12 @@ impl From<&mut SafeJSContext> for JSContext {
 
 impl<'a> From<&mut CurrentRealm<'a>> for JSContext {
     fn from(safe_cx: &mut CurrentRealm<'a>) -> Self {
+        unsafe { JSContext(safe_cx.raw_cx()) }
+    }
+}
+
+impl<'a> From<&mut AutoRealm<'a>> for JSContext {
+    fn from(safe_cx: &mut AutoRealm<'a>) -> Self {
         unsafe { JSContext(safe_cx.raw_cx()) }
     }
 }

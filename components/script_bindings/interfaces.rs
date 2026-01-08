@@ -38,12 +38,11 @@ pub trait DomHelpers<D: DomTypes> {
     fn throw_dom_exception(cx: JSContext, global: &D::GlobalScope, result: Error, can_gc: CanGc);
 
     fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         args: &CallArgs,
         global: &D::GlobalScope,
         proto_id: PrototypeList::ID,
         creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
-        can_gc: CanGc,
     ) -> bool;
 
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
