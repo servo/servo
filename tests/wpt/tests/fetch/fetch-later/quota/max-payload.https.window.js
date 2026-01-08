@@ -25,6 +25,7 @@ promise_test(async _ => {
         activateAfter: 0,
         method: 'POST',
         bodySize: getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers),
+        referrer: '',
       },
       {
         targetUrl: requestUrl,
@@ -39,11 +40,12 @@ test(_ => {
 
   assert_throws_quotaexceedederror(() => {
     fetchLater(requestUrl, {
-          activateAfter: 0,
-          method: 'POST',
-          body: generatePayload(
-              getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers) + 1,
-              dataType),
-        });
-  }, null, null);
+      activateAfter: 0,
+      method: 'POST',
+      body: generatePayload(
+          getRemainingQuota(QUOTA_PER_ORIGIN, requestUrl, headers) + 1,
+          dataType),
+      referrer: '',
+    });
+  }, QUOTA_PER_ORIGIN + 1, QUOTA_PER_ORIGIN);
 }, `fetchLater() rejects max+1 payload in a POST request body of ${dataType}.`);

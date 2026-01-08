@@ -9,8 +9,10 @@ const {HTTPS_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN} = get_host_info();
 for (const dataType in BeaconDataType) {
   // Tests multiple request reporting origins within same document.
   test(
-      () => {
+      (t) => {
         const controller = new AbortController();
+        // Release quota taken by the pending requests for subsequent tests.
+        t.add_cleanup(() => controller.abort());
 
         // Makes the 1st call (POST) that sends max/2+1 quota to `HTTPS_ORIGIN`.
         fetchLater(`${HTTPS_ORIGIN}/`, {
@@ -34,9 +36,6 @@ for (const dataType in BeaconDataType) {
           method: 'GET',
           signal: controller.signal,
         });
-
-        // Release quota taken by the pending requests for subsequent tests.
-        controller.abort();
       },
       `fetchLater() has per-request-origin quota for its POST body of ${
           dataType}.`);
