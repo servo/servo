@@ -197,7 +197,7 @@ impl Actor for WalkerActor {
             },
             "getLayoutInspector" => {
                 // TODO: Create actual layout inspector actor
-                let layout = LayoutInspectorActor::new(registry.new_name("layout"));
+                let layout = LayoutInspectorActor::new(registry.new_name::<LayoutInspectorActor>());
                 let actor = layout.encode(registry);
                 registry.register_later(layout);
 

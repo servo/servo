@@ -74,7 +74,7 @@ impl Actor for FrameActor {
         match msg_type {
             "getEnvironment" => {
                 let environment = EnvironmentActor {
-                    name: registry.new_name("environment"),
+                    name: registry.new_name::<EnvironmentActor>(),
                     parent: None,
                 };
                 let msg = FrameEnvironmentReply {

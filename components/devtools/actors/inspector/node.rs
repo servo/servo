@@ -230,7 +230,7 @@ impl NodeInfoToProtocol for NodeInfo {
     ) -> NodeActorMsg {
         let get_or_register_node_actor = |id: &str| {
             if !actors.script_actor_registered(id.to_string()) {
-                let name = actors.new_name("node");
+                let name = actors.new_name::<NodeActor>();
                 actors.register_script_actor(id.to_string(), name.clone());
 
                 let node_actor = NodeActor {

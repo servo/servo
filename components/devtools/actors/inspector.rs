@@ -121,26 +121,26 @@ impl InspectorActor {
         script_chan: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
         let highlighter = HighlighterActor {
-            name: registry.new_name("highlighter"),
+            name: registry.new_name::<HighlighterActor>(),
             script_sender: script_chan.clone(),
             pipeline,
         };
 
         let page_style = PageStyleActor {
-            name: registry.new_name("page-style"),
+            name: registry.new_name::<PageStyleActor>(),
             script_chan: script_chan.clone(),
             pipeline,
         };
 
         let walker = WalkerActor {
-            name: registry.new_name("walker"),
+            name: registry.new_name::<WalkerActor>(),
             mutations: RefCell::new(vec![]),
             script_chan,
             pipeline,
         };
 
         let actor = Self {
-            name: registry.new_name("inspector"),
+            name: registry.new_name::<InspectorActor>(),
             highlighter: highlighter.name(),
             page_style: page_style.name(),
             walker: walker.name(),

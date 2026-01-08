@@ -393,15 +393,15 @@ impl WatcherActor {
         browsing_context_actor: String,
         session_context: SessionContext,
     ) -> Self {
-        let network_parent = NetworkParentActor::new(actors.new_name("network-parent"));
+        let network_parent = NetworkParentActor::new(actors.new_name::<NetworkParentActor>());
         let target_configuration =
-            TargetConfigurationActor::new(actors.new_name("target-configuration"));
+            TargetConfigurationActor::new(actors.new_name::<TargetConfigurationActor>());
         let thread_configuration =
-            ThreadConfigurationActor::new(actors.new_name("thread-configuration"));
-        let breakpoint_list = BreakpointListActor::new(actors.new_name("breakpoint-list"));
+            ThreadConfigurationActor::new(actors.new_name::<ThreadConfigurationActor>());
+        let breakpoint_list = BreakpointListActor::new(actors.new_name::<BreakpointListActor>());
 
         let watcher = Self {
-            name: actors.new_name("watcher"),
+            name: actors.new_name::<WatcherActor>(),
             browsing_context_actor,
             network_parent: network_parent.name(),
             target_configuration: target_configuration.name(),
