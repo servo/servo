@@ -22,7 +22,6 @@ http = "0.2"
 image = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
-pixels = { path = "../pixels" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -32,5 +31,4 @@ servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }
-webrender_api = { workspace = true }
 webdriver = { workspace = true }

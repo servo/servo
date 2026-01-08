@@ -35,12 +35,9 @@ euclid = { workspace = true }
 gleam = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
-libc = { workspace = true }
 log = { workspace = true }
 media = { path = "../media" }
 malloc_size_of = { workspace = true }
-parking_lot = { workspace = true }
-pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }

@@ -13,7 +13,6 @@ path = "lib.rs"
 
 [dependencies]
 base = { workspace = true }
-log = { workspace = true }
 malloc_size_of = { workspace = true }
 compositing_traits = { workspace = true }
 malloc_size_of_derive = { workspace = true }

@@ -19,7 +19,6 @@ path = "lib.rs"
 base = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
-cssparser = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
 dom_struct = { path = "../dom_struct" }
 domobject_derive = { path = "../domobject_derive" }

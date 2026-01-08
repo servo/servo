@@ -28,7 +28,6 @@ fonts_traits = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
-keyboard-types = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
