@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use base::generic_channel::GenericSend;
@@ -19,11 +20,9 @@ use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::promise::Promise;
 use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
@@ -38,14 +37,20 @@ pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
-    connections_pending_open: DomRefCell<HashMapTracedValues<DBName, Dom<IDBDatabase>>>,
+    /// TODO: remove names when connections close.
+    /// TODO: track not db names but open requests,
+    /// because by tracking db names, if any global at an
+    /// origin `abort_pending_upgrades`, it will abort open requests
+    /// for other globals within the same origin.
+    #[no_trace]
+    db_with_connections: DomRefCell<HashSet<DBName>>,
 }
 
 impl IDBFactory {
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
-            connections_pending_open: Default::default(),
+            db_with_connections: Default::default(),
         }
     }
 
@@ -53,17 +58,28 @@ impl IDBFactory {
         reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
     }
 
-    pub(crate) fn note_connection(&self, name: DBName, connection: &IDBDatabase) {
-        self.connections_pending_open
-            .borrow_mut()
-            .insert(name, Dom::from_ref(connection));
+    fn note_start_of_open(&self, name: DBName) {
+        self.db_with_connections.borrow_mut().insert(name);
     }
 
-    pub(crate) fn get_connection(&self, name: &DBName) -> Option<DomRoot<IDBDatabase>> {
-        self.connections_pending_open
-            .borrow()
-            .get(name)
-            .map(|db| db.as_rooted())
+    pub(crate) fn abort_pending_upgrades(&self) {
+        let global = self.global();
+        let names = self
+            .db_with_connections
+            .borrow_mut()
+            .drain()
+            .map(|name| name.0)
+            .collect();
+        let origin = global.origin().immutable().clone();
+        if global
+            .storage_threads()
+            .send(IndexedDBThreadMsg::Sync(
+                SyncOperation::AbortPendingUpgrades { names, origin },
+            ))
+            .is_err()
+        {
+            error!("Failed to send SyncOperation::AbortPendingUpgrade");
+        }
     }
 }
 
@@ -96,9 +112,11 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 5: Runs in parallel
-        if request.open_database(name, version).is_err() {
+        if request.open_database(name.clone(), version).is_err() {
             return Err(Error::Operation(None));
         }
+
+        self.note_start_of_open(DBName(name.to_string()));
 
         // Step 6: Return a new IDBOpenDBRequest object for request.
         Ok(request)
