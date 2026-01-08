@@ -113,10 +113,12 @@ impl TextValueShadowTree {
     }
 
     fn update(&self, input_element: &HTMLInputElement) {
-        self.value
-            .borrow_mut()
-            .upcast::<CharacterData>()
-            .SetData(input_element.value_for_shadow_dom());
+        let text = self.value.borrow_mut();
+        let character_data = text.upcast::<CharacterData>();
+        let value = input_element.value_for_shadow_dom();
+        if character_data.Data() != value {
+            character_data.SetData(value);
+        }
     }
 }
 
@@ -182,39 +184,59 @@ impl TextInputWidgetShadowTree {
 
     /// Initialize the placeholder container only when it is necessary. This would help the performance of input
     /// element with shadow dom that is quite bulky.
-    fn init_placeholder_container_if_necessary(&self, host: &HTMLInputElement, can_gc: CanGc) {
-        // If the container is already initialized or there is no placeholder then it is not necessary to
-        // initialize a new placeholder container.
-        if self.placeholder_container.borrow().is_some() || host.placeholder.borrow().is_empty() {
-            return;
+    fn init_placeholder_container_if_necessary(
+        &self,
+        host: &HTMLInputElement,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<Element>> {
+        if let Some(placeholder_container) = &*self.placeholder_container.borrow() {
+            return Some(placeholder_container.root_element());
+        }
+        // If there is no placeholder text and we haven't already created one then it is
+        // not necessary to initialize a new placeholder container.
+        if host.placeholder.borrow().is_empty() {
+            return None;
         }
 
-        *self.placeholder_container.borrow_mut() = Some(
-            create_ua_widget_div_with_text_node(
-                &host.owner_document(),
-                self.inner_container.upcast::<Node>(),
-                PseudoElement::Placeholder,
-                true,
-                can_gc,
-            )
-            .as_traced(),
+        let placeholder_container = create_ua_widget_div_with_text_node(
+            &host.owner_document(),
+            self.inner_container.upcast::<Node>(),
+            PseudoElement::Placeholder,
+            true,
+            can_gc,
         );
+        *self.placeholder_container.borrow_mut() = Some(placeholder_container.as_traced());
+        Some(placeholder_container)
+    }
+
+    fn placeholder_character_data(
+        &self,
+        input_element: &HTMLInputElement,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<CharacterData>> {
+        self.init_placeholder_container_if_necessary(input_element, can_gc)
+            .and_then(|placeholder_container| {
+                let first_child = placeholder_container.upcast::<Node>().GetFirstChild()?;
+                Some(DomRoot::from_ref(first_child.downcast::<CharacterData>()?))
+            })
     }
 
     fn update_placeholder(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
-        self.init_placeholder_container_if_necessary(input_element, can_gc);
-        let Some(ref placeholder_container) = *self.placeholder_container.borrow() else {
-            return;
-        };
+        if let Some(character_data) = self.placeholder_character_data(input_element, can_gc) {
+            let placeholder_value = input_element.placeholder.borrow().clone();
+            if character_data.Data() != placeholder_value {
+                character_data.SetData(placeholder_value.clone());
+            }
+        }
+    }
 
-        // We are finding and updating the CharacterData child directly to optimize the update.
-        placeholder_container
-            .upcast::<Node>()
-            .GetFirstChild()
-            .expect("UA widget text container without child")
-            .downcast::<CharacterData>()
-            .expect("First child is not a CharacterData node")
-            .SetData(input_element.placeholder.borrow().clone());
+    fn value_character_data(&self) -> Option<DomRoot<CharacterData>> {
+        Some(DomRoot::from_ref(
+            self.text_container
+                .upcast::<Node>()
+                .GetFirstChild()?
+                .downcast::<CharacterData>()?,
+        ))
     }
 
     // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
@@ -241,14 +263,11 @@ impl TextInputWidgetShadowTree {
             (true, _) => "\u{200B}".into(),
         };
 
-        // We are finding and updating the CharacterData child directly to optimize the update.
-        self.text_container
-            .upcast::<Node>()
-            .GetFirstChild()
-            .expect("UA widget text container without child")
-            .downcast::<CharacterData>()
-            .expect("First child is not a CharacterData node")
-            .SetData(value_text);
+        if let Some(character_data) = self.value_character_data() {
+            if character_data.Data() != value_text {
+                character_data.SetData(value_text);
+            }
+        }
     }
 }
 
@@ -325,11 +344,13 @@ impl InputElementShadowTree {
     }
 
     fn is_valid_for_element(&self, input_element: &HTMLInputElement) -> bool {
-        match self {
-            InputElementShadowTree::ColorInput(_) => input_element.input_type() == InputType::Color,
-            InputElementShadowTree::TextInput(_) => input_element.renders_as_text_input_widget(),
-            _ => true,
+        if input_element.input_type() == InputType::Color {
+            return matches!(self, InputElementShadowTree::ColorInput(_));
         }
+        if input_element.renders_as_text_input_widget() {
+            return matches!(self, InputElementShadowTree::TextInput(_));
+        }
+        matches!(self, InputElementShadowTree::TextValue(_))
     }
 
     fn update_placeholder_contents(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
@@ -2353,26 +2374,13 @@ impl HTMLInputElement {
 
     fn update_placeholder_shown_state(&self) {
         if !self.input_type().is_textual_or_password() {
-            return;
+            self.upcast::<Element>().set_placeholder_shown_state(false);
+        } else {
+            let has_placeholder = !self.placeholder.borrow().is_empty();
+            let has_value = !self.textinput.borrow().is_empty();
+            self.upcast::<Element>()
+                .set_placeholder_shown_state(has_placeholder && !has_value);
         }
-
-        let has_placeholder = !self.placeholder.borrow().is_empty();
-        let has_value = !self.textinput.borrow().is_empty();
-        let el = self.upcast::<Element>();
-
-        el.set_placeholder_shown_state(has_placeholder && !has_value);
-    }
-
-    // Update the placeholder text in the text shadow tree.
-    // To increase the performance, we would only do this when it is necessary.
-    fn update_placeholder_contents(&self, can_gc: CanGc) {
-        // This an optimization to not eagerly create input element shadow trees when
-        // the placeholder does not apply.
-        if !self.renders_as_text_input_widget() {
-            return;
-        }
-        self.get_or_create_shadow_tree(can_gc)
-            .update_placeholder_contents(self, can_gc);
     }
 
     pub(crate) fn select_files_for_webdriver(
@@ -3050,7 +3058,8 @@ impl VirtualMethods for HTMLInputElement {
                 }
 
                 self.update_placeholder_shown_state();
-                self.update_placeholder_contents(can_gc);
+                self.get_or_create_shadow_tree(can_gc)
+                    .update_placeholder_contents(self, can_gc);
             },
             // FIXME(stevennovaryo): This is only reachable by Default and DefaultOn value mode. While others
             //                       are being handled in [Self::SetValue]. Should we merge this two together?
@@ -3104,7 +3113,8 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
                 self.update_placeholder_shown_state();
-                self.update_placeholder_contents(can_gc);
+                self.get_or_create_shadow_tree(can_gc)
+                    .update_placeholder_contents(self, can_gc);
             },
             local_name!("readonly") => {
                 if self.input_type().is_textual() {

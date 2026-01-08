@@ -230,12 +230,13 @@ impl HTMLTextAreaElement {
         let shadow_root = element
             .shadow_root()
             .unwrap_or_else(|| element.attach_ua_shadow_root(true, can_gc));
-        let mut shadow_node = self.shadow_node.borrow_mut();
-        let shadow_node = shadow_node.get_or_insert_with(|| {
+        if self.shadow_node.borrow().is_none() {
             let shadow_node = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
             Node::replace_all(Some(shadow_node.upcast()), shadow_root.upcast(), can_gc);
-            shadow_node.as_traced()
-        });
+            self.shadow_node
+                .borrow_mut()
+                .replace(shadow_node.as_traced());
+        }
 
         let content = if placeholder_shown {
             // FIXME(nox): Would be cool to not allocate a new string if the
@@ -249,7 +250,11 @@ impl HTMLTextAreaElement {
             textinput_content
         };
 
-        let character_data = shadow_node.upcast::<CharacterData>();
+        let shadow_node = self.shadow_node.borrow_mut();
+        let character_data = shadow_node
+            .as_ref()
+            .expect("Should have always created a node at this point.")
+            .upcast::<CharacterData>();
         if character_data.Data() != content {
             character_data.SetData(content);
             self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
