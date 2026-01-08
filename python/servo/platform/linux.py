@@ -17,145 +17,48 @@ import distro
 from .base import Base
 from .build_target import BuildTarget
 
-# Please keep these in sync with the packages in the book, using the instructions below
-# https://book.servo.org/building/linux.html
 
-# https://packages.debian.org
-# https://packages.ubuntu.com
-# 1. open devtools
-# 2. paste in the whole APT_PKGS = [...]
-# 3. copy(`sudo apt install ${APT_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/book/edit/main/src/building/linux.md
-APT_PKGS = [
-    "build-essential",
-    "ccache",
-    "clang",
-    "cmake",
-    "curl",
-    "g++",
-    "git",
-    "gperf",
-    "libdbus-1-dev",
-    "libfreetype6-dev",
-    "libgl1-mesa-dri",
-    "libgles2-mesa-dev",
-    "libglib2.0-dev",
-    "gstreamer1.0-plugins-good",
-    "libgstreamer-plugins-good1.0-dev",
-    "gstreamer1.0-plugins-bad",
-    "libgstreamer-plugins-bad1.0-dev",
-    "gstreamer1.0-plugins-ugly",
-    "gstreamer1.0-plugins-base",
-    "libgstreamer-plugins-base1.0-dev",
-    "gstreamer1.0-libav",
-    "libgstrtspserver-1.0-dev",
-    "gstreamer1.0-tools",
-    "libges-1.0-dev",
-    "libharfbuzz-dev",
-    "liblzma-dev",
-    "libudev-dev",
-    "libunwind-dev",
-    "libvulkan1",
-    "libx11-dev",
-    "libxcb-render0-dev",
-    "libxcb-shape0-dev",
-    "libxcb-xfixes0-dev",
-    "libxmu-dev",
-    "libxmu6",
-    "libegl1-mesa-dev",
-    "llvm-dev",
-    "m4",
-    "xorg-dev",
-    "libxkbcommon0",
-    "libxkbcommon-x11-0",
-]
+def parse_pkg_file(filename: str) -> list[str]:
+    """Parse a file containing a list of packages, one per line, filtering out comments."""
+    with open(filename, "r") as f:
+        lines = [line.strip() for line in f.read().splitlines()]
+        packages = [line for line in lines if not line.startswith("#")]
+        return packages
 
-# https://packages.fedoraproject.org
-# 1. open devtools
-# 2. paste in the whole DNF_PKGS = [...]
-# 3. copy(`sudo dnf install ${DNF_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/book/edit/main/src/building/linux.md
-DNF_PKGS = [
-    "libtool",
-    "gcc-c++",
-    "libXi-devel",
-    "freetype-devel",
-    "libunwind-devel",
-    "mesa-libGL-devel",
-    "mesa-libEGL-devel",
-    "glib2-devel",
-    "libX11-devel",
-    "libXrandr-devel",
-    "gperf",
-    "fontconfig-devel",
-    "cabextract",
-    "ttmkfdir",
-    "expat-devel",
-    "rpm-build",
-    "cmake",
-    "libXcursor-devel",
-    "libXmu-devel",
-    "dbus-devel",
-    "ncurses-devel",
-    "harfbuzz-devel",
-    "ccache",
-    "clang",
-    "clang-libs",
-    "llvm",
-    "python3-devel",
-    "gstreamer1-devel",
-    "gstreamer1-plugins-base-devel",
-    "gstreamer1-plugins-good",
-    "gstreamer1-plugins-bad-free-devel",
-    "gstreamer1-plugins-ugly-free",
-    "libjpeg-turbo-devel",
-    "zlib-ng",
-    "libjpeg-turbo",
-    "vulkan-loader",
-    "libxkbcommon",
-    "libxkbcommon-x11",
-]
 
-# https://voidlinux.org/packages/
-# 1. open devtools
-# 2. paste in the whole XBPS_PKGS = [...]
-# 3. copy(`sudo xbps-install ${XBPS_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/book/edit/main/src/building/linux.md
-XBPS_PKGS = [
-    "libtool",
-    "gcc",
-    "libXi-devel",
-    "freetype-devel",
-    "libunwind-devel",
-    "MesaLib-devel",
-    "glib-devel",
-    "pkg-config",
-    "libX11-devel",
-    "libXrandr-devel",
-    "gperf",
-    "bzip2-devel",
-    "fontconfig-devel",
-    "cabextract",
-    "expat-devel",
-    "cmake",
-    "cmake",
-    "libXcursor-devel",
-    "libXmu-devel",
-    "dbus-devel",
-    "ncurses-devel",
-    "harfbuzz-devel",
-    "ccache",
-    "glu-devel",
-    "clang",
-    "gstreamer1-devel",
-    "gst-plugins-base1-devel",
-    "gst-plugins-good1",
-    "gst-plugins-bad1-devel",
-    "gst-plugins-ugly1",
-    "vulkan-loader",
-    "libxkbcommon",
-    "libxkbcommon-x11",
-]
+def apt_packages() -> list[str]:
+    basepath = os.path.dirname(__file__)
+    apt_pkgs: list[str] = []
+    for file in os.listdir(os.path.join(basepath, "linux_packages", "apt")):
+        # Note: For now we also include ubuntu-only packages, since not available packages
+        # will be filtered out automatically, since we check which packages are available.
+        if file.endswith(".txt") and file.startswith("apt_"):
+            apt_pkgs.extend(parse_pkg_file(file))
+    if len(apt_pkgs) == 0:
+        raise RuntimeError("No apt packages found.")
+    return apt_pkgs
+
+
+def dnf_packages() -> list[str]:
+    basepath = os.path.dirname(__file__)
+    dnf_pkgs: list[str] = []
+    for file in os.listdir(os.path.join(basepath, "linux_packages", "dnf")):
+        if file.endswith(".txt") and file.startswith("dnf_"):
+            dnf_pkgs.extend(parse_pkg_file(file))
+    if len(dnf_pkgs) == 0:
+        raise RuntimeError("No dnf packages found.")
+    return dnf_pkgs
+
+
+def xbps_packages() -> list[str]:
+    basepath = os.path.dirname(__file__)
+    pkgs: list[str] = []
+    for file in os.listdir(os.path.join(basepath, "linux_packages", "xbps")):
+        if file.endswith(".txt") and file.startswith("xbps_"):
+            pkgs.extend(parse_pkg_file(file))
+    if len(pkgs) == 0:
+        raise RuntimeError("No dnf packages found.")
+    return pkgs
 
 
 class Linux(Base):
@@ -226,7 +129,7 @@ class Linux(Base):
         command = []
         if self.distro in ["Ubuntu", "Debian GNU/Linux", "Raspbian GNU/Linux"]:
             command = ["apt-get", "install", "-m"]
-            pkgs = APT_PKGS
+            pkgs = apt_packages()
 
             # Skip 'clang' if 'clang' binary already exists.
             result = subprocess.run(["which", "clang"], capture_output=True)
@@ -255,7 +158,7 @@ class Linux(Base):
             installed_pkgs: list[str] = subprocess.check_output(
                 ["rpm", "--query", "--all", "--queryformat", "%{NAME}\n"], encoding="utf-8"
             ).splitlines()
-            pkgs = DNF_PKGS
+            pkgs = dnf_packages()
             for pkg in pkgs:
                 if pkg not in installed_pkgs:
                     install = True
@@ -263,7 +166,7 @@ class Linux(Base):
         elif self.distro == "void":
             command = ["xbps-install", "-A"]
             installed_pkgs = subprocess.check_output(["xbps-query", "-l"], text=True).splitlines()
-            pkgs = XBPS_PKGS
+            pkgs = xbps_packages()
             for pkg in pkgs:
                 if "ii {}-".format(pkg) not in installed_pkgs:
                     install = force = True
