@@ -31,9 +31,10 @@ pub struct TimelineActor {
     pipeline_id: PipelineId,
     is_recording: Arc<Mutex<bool>>,
     stream: RefCell<Option<TcpStream>>,
-
     framerate_actor: RefCell<Option<String>>,
     memory_actor: RefCell<Option<String>>,
+    registry: Arc<Mutex<ActorRegistry>>,
+    start_stamp: CrossProcessInstant,
 }
 
 struct Emitter {
@@ -132,6 +133,7 @@ impl TimelineActor {
         name: String,
         pipeline_id: PipelineId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
+        registry: Arc<Mutex<ActorRegistry>>,
     ) -> TimelineActor {
         let marker_types = vec![TimelineMarkerType::Reflow, TimelineMarkerType::DOMEvent];
 
@@ -142,9 +144,10 @@ impl TimelineActor {
             script_sender,
             is_recording: Arc::new(Mutex::new(false)),
             stream: RefCell::new(None),
-
             framerate_actor: RefCell::new(None),
             memory_actor: RefCell::new(None),
+            start_stamp: CrossProcessInstant::now(),
+            registry,
         }
     }
 
@@ -232,8 +235,8 @@ impl Actor for TimelineActor {
 
                 let emitter = Emitter::new(
                     self.name(),
-                    registry.shareable(),
-                    registry.start_stamp(),
+                    self.registry.clone(),
+                    self.start_stamp,
                     request.try_clone_stream().unwrap(),
                     self.memory_actor.borrow().clone(),
                     self.framerate_actor.borrow().clone(),
@@ -243,10 +246,7 @@ impl Actor for TimelineActor {
 
                 let msg = StartReply {
                     from: self.name(),
-                    value: HighResolutionStamp::new(
-                        registry.start_stamp(),
-                        CrossProcessInstant::now(),
-                    ),
+                    value: HighResolutionStamp::new(self.start_stamp, CrossProcessInstant::now()),
                 };
                 request.reply_final(&msg)?
             },
@@ -254,10 +254,7 @@ impl Actor for TimelineActor {
             "stop" => {
                 let msg = StopReply {
                     from: self.name(),
-                    value: HighResolutionStamp::new(
-                        registry.start_stamp(),
-                        CrossProcessInstant::now(),
-                    ),
+                    value: HighResolutionStamp::new(self.start_stamp, CrossProcessInstant::now()),
                 };
 
                 self.script_sender
