@@ -267,9 +267,9 @@ pub(crate) fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
             where
                 T: AsyncBluetoothListener + DomObject,
             {
-                fn run_once(self) {
+                fn run_once(self, cx: &mut js::context::JSContext) {
                     let mut context = self.context.lock().unwrap();
-                    context.response(self.action, CanGc::note());
+                    context.response(self.action, CanGc::from_cx(cx));
                 }
             }
 

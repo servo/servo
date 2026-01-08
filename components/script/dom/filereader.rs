@@ -48,8 +48,8 @@ pub(crate) enum FileReadingTask {
 }
 
 impl TaskOnce for FileReadingTask {
-    fn run_once(self) {
-        self.handle_task(CanGc::note());
+    fn run_once(self, cx: &mut js::context::JSContext) {
+        self.handle_task(CanGc::from_cx(cx));
     }
 }
 

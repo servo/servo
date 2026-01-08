@@ -2719,11 +2719,11 @@ impl Node {
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
         parent_document.add_delayed_task(
-            task!(PostConnectionSteps: |static_node_list: SmallVec<[DomRoot<Node>; 4]>| {
+            task!(PostConnectionSteps: |cx, static_node_list: SmallVec<[DomRoot<Node>; 4]>| {
                 // Step 12. For each node of staticNodeList, if node is connected, then run the
                 //          post-connection steps with node.
                 for node in static_node_list {
-                    vtable_for(&node).post_connection_steps(CanGc::note());
+                    vtable_for(&node).post_connection_steps(CanGc::from_cx(cx));
                 }
             }),
         );

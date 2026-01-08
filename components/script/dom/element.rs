@@ -5457,7 +5457,7 @@ impl ElementPerformFullscreenEnter {
 
 impl TaskOnce for ElementPerformFullscreenEnter {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
         let promise = self.promise.root();
         let document = element.owner_document();
@@ -5466,10 +5466,10 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         if self.error || !element.fullscreen_element_ready_check() {
             document
                 .upcast::<EventTarget>()
-                .fire_event(atom!("fullscreenerror"), CanGc::note());
+                .fire_event(atom!("fullscreenerror"), CanGc::from_cx(cx));
             promise.reject_error(
                 Error::Type(String::from("fullscreen is not connected")),
-                CanGc::note(),
+                CanGc::from_cx(cx),
             );
             return;
         }
@@ -5482,10 +5482,10 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         // Step 7.6
         document
             .upcast::<EventTarget>()
-            .fire_event(atom!("fullscreenchange"), CanGc::note());
+            .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
 
         // Step 7.7
-        promise.resolve_native(&(), CanGc::note());
+        promise.resolve_native(&(), CanGc::from_cx(cx));
     }
 }
 
@@ -5505,7 +5505,7 @@ impl ElementPerformFullscreenExit {
 
 impl TaskOnce for ElementPerformFullscreenExit {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
         let document = element.owner_document();
         // TODO Step 9.1-5
@@ -5516,10 +5516,10 @@ impl TaskOnce for ElementPerformFullscreenExit {
         // Step 9.8
         document
             .upcast::<EventTarget>()
-            .fire_event(atom!("fullscreenchange"), CanGc::note());
+            .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
 
         // Step 9.10
-        self.promise.root().resolve_native(&(), CanGc::note());
+        self.promise.root().resolve_native(&(), CanGc::from_cx(cx));
     }
 }
 

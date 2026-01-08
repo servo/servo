@@ -29,7 +29,7 @@ macro_rules! task {
         where
             F: ::std::ops::FnOnce($($field_type,)*),
         {
-            fn run_once(self) {
+            fn run_once(self, _cx: &mut js::context::JSContext) {
                 (self.task)($(self.$field,)*);
             }
         }
@@ -50,11 +50,59 @@ macro_rules! task {
                 stringify!($name)
             }
 
-            fn run_once(self) {
+            fn run_once(self, _cx: &mut js::context::JSContext) {
                 (self.0)();
             }
         }
         $name(move || $body)
+    }};
+
+    ($name:ident: |$cx: ident $(, $field:ident: $field_type:ty)*| $body:tt) => {{
+        #[allow(non_camel_case_types)]
+        struct $name<F> {
+            $($field: $field_type,)*
+            task: F,
+        }
+        #[expect(unsafe_code)]
+        unsafe impl<F> crate::JSTraceable for $name<F> {
+            #[expect(unsafe_code)]
+            unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
+                unsafe { $(self.$field.trace(tracer);)* }
+                // We cannot trace the actual task closure. This is safe because
+                // all referenced values from within the closure are either borrowed
+                // or moved into fields in the struct (and therefore traced).
+            }
+        }
+        impl<F> crate::task::NonSendTaskOnce for $name<F>
+        where
+            F: ::std::ops::FnOnce(&mut js::context::JSContext, $($field_type,)*),
+        {
+            fn run_once(self, cx: &mut js::context::JSContext) {
+                (self.task)(cx, $(self.$field,)*);
+            }
+        }
+        $name {
+            $($field,)*
+            task: |$cx: &mut js::context::JSContext, $($field: $field_type,)*| $body,
+        }
+    }};
+
+    ($name:ident: move |$cx: ident| $body:tt) => {{
+        #[allow(non_camel_case_types)]
+        struct $name<F>(F);
+        impl<F> crate::task::TaskOnce for $name<F>
+        where
+            F: ::std::ops::FnOnce(&mut js::context::JSContext) + Send,
+        {
+            fn name(&self) -> &'static str {
+                stringify!($name)
+            }
+
+            fn run_once(self, cx: &mut js::context::JSContext) {
+                (self.0)(cx);
+            }
+        }
+        $name(move |$cx: &mut js::context::JSContext| $body)
     }};
 }
 
@@ -65,32 +113,32 @@ pub(crate) trait TaskOnce: Send {
         ::std::any::type_name::<Self>()
     }
 
-    fn run_once(self);
+    fn run_once(self, cx: &mut js::context::JSContext);
 }
 
 /// A task that must be run on the same thread it originated in.
 pub(crate) trait NonSendTaskOnce: crate::JSTraceable {
-    fn run_once(self);
+    fn run_once(self, cx: &mut js::context::JSContext);
 }
 
 /// A boxed version of `TaskOnce`.
 pub(crate) trait TaskBox: Send {
     fn name(&self) -> &'static str;
 
-    fn run_box(self: Box<Self>);
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext);
 }
 
 /// A boxed version of `NonSendTaskOnce`.
 pub(crate) trait NonSendTaskBox: crate::JSTraceable {
-    fn run_box(self: Box<Self>);
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext);
 }
 
 impl<T> NonSendTaskBox for T
 where
     T: NonSendTaskOnce,
 {
-    fn run_box(self: Box<Self>) {
-        self.run_once()
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext) {
+        self.run_once(cx)
     }
 }
 
@@ -102,8 +150,8 @@ where
         TaskOnce::name(self)
     }
 
-    fn run_box(self: Box<Self>) {
-        self.run_once()
+    fn run_box(self: Box<Self>, cx: &mut js::context::JSContext) {
+        self.run_once(cx)
     }
 }
 
@@ -150,9 +198,9 @@ impl<T: TaskOnce> TaskOnce for CancellableTask<T> {
         self.inner.name()
     }
 
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         if !self.canceller.cancelled() {
-            self.inner.run_once()
+            self.inner.run_once(cx)
         }
     }
 }

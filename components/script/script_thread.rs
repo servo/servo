@@ -2009,7 +2009,7 @@ impl ScriptThread {
                     let global = self.documents.borrow().find_global(id);
                     global.map(|global| enter_realm(&*global))
                 });
-                task.run_box()
+                task.run_box(cx)
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(chan)

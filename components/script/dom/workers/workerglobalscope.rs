@@ -1007,7 +1007,7 @@ impl WorkerGlobalScope {
             return false;
         }
         match msg {
-            CommonScriptMsg::Task(_, task, _, _) => task.run_box(),
+            CommonScriptMsg::Task(_, task, _, _) => task.run_box(cx),
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx: JSContext = cx.into();
                 perform_memory_report(|ops| {

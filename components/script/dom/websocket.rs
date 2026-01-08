@@ -4,14 +4,15 @@
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::ptr;
+use std::ptr::{self, NonNull};
 
 use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSAutoRealm, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
+use js::realm::AutoRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
 use net_traits::request::{
@@ -493,7 +494,7 @@ struct ReportCSPViolationTask {
 }
 
 impl TaskOnce for ReportCSPViolationTask {
-    fn run_once(self) {
+    fn run_once(self, _cx: &mut js::context::JSContext) {
         let global = self.websocket.root().global();
         global.report_csp_violations(self.violations, None, None);
     }
@@ -508,7 +509,7 @@ struct ConnectionEstablishedTask {
 
 impl TaskOnce for ConnectionEstablishedTask {
     /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let ws = self.address.root();
 
         // Step 1.
@@ -523,7 +524,7 @@ impl TaskOnce for ConnectionEstablishedTask {
         };
 
         // Step 4.
-        ws.upcast().fire_event(atom!("open"), CanGc::note());
+        ws.upcast().fire_event(atom!("open"), CanGc::from_cx(cx));
     }
 }
 
@@ -537,7 +538,7 @@ impl TaskOnce for BufferedAmountTask {
     // To be compliant with standards, we need to reset bufferedAmount only when the event loop
     // reaches step 1.  In our implementation, the bytes will already have been sent on a background
     // thread.
-    fn run_once(self) {
+    fn run_once(self, _cx: &mut js::context::JSContext) {
         let ws = self.address.root();
 
         ws.buffered_amount.set(0);
@@ -553,7 +554,7 @@ struct CloseTask {
 }
 
 impl TaskOnce for CloseTask {
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let ws = self.address.root();
 
         if ws.ready_state.get() == WebSocketRequestState::Closed {
@@ -569,7 +570,7 @@ impl TaskOnce for CloseTask {
 
         // Step 2.
         if self.failed {
-            ws.upcast().fire_event(atom!("error"), CanGc::note());
+            ws.upcast().fire_event(atom!("error"), CanGc::from_cx(cx));
         }
 
         // Step 3.
@@ -584,11 +585,11 @@ impl TaskOnce for CloseTask {
             clean_close,
             code,
             reason,
-            CanGc::note(),
+            CanGc::from_cx(cx),
         );
         close_event
             .upcast::<Event>()
-            .fire(ws.upcast(), CanGc::note());
+            .fire(ws.upcast(), CanGc::from_cx(cx));
     }
 }
 
@@ -599,7 +600,7 @@ struct MessageReceivedTask {
 
 impl TaskOnce for MessageReceivedTask {
     #[expect(unsafe_code)]
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let ws = self.address.root();
         debug!(
             "MessageReceivedTask::handler({:p}): readyState={:?}",
@@ -614,27 +615,32 @@ impl TaskOnce for MessageReceivedTask {
 
         // Step 2-5.
         let global = ws.global();
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, ws.reflector().get_jsobject().get());
-        rooted!(in(*cx) let mut message = UndefinedValue());
+        let mut realm = AutoRealm::new(
+            cx,
+            NonNull::new(ws.reflector().get_jsobject().get()).unwrap(),
+        );
+        let cx = &mut *realm;
+        rooted!(&in(cx) let mut message = UndefinedValue());
         match self.message {
-            MessageData::Text(text) => text.safe_to_jsval(cx, message.handle_mut(), CanGc::note()),
+            MessageData::Text(text) => {
+                text.safe_to_jsval(cx.into(), message.handle_mut(), CanGc::from_cx(cx))
+            },
             MessageData::Binary(data) => match ws.binary_type.get() {
                 BinaryType::Blob => {
                     let blob = Blob::new(
                         &global,
                         BlobImpl::new_from_bytes(data, "".to_owned()),
-                        CanGc::note(),
+                        CanGc::from_cx(cx),
                     );
-                    blob.safe_to_jsval(cx, message.handle_mut(), CanGc::note());
+                    blob.safe_to_jsval(cx.into(), message.handle_mut(), CanGc::from_cx(cx));
                 },
                 BinaryType::Arraybuffer => {
-                    rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                    rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
                     // GlobalScope::get_cx() returns a valid `JSContext` pointer, so this is safe.
                     unsafe {
                         assert!(
                             ArrayBuffer::create(
-                                *cx,
+                                cx.raw_cx(),
                                 CreateWith::Slice(&data),
                                 array_buffer.handle_mut()
                             )
@@ -642,7 +648,11 @@ impl TaskOnce for MessageReceivedTask {
                         )
                     };
 
-                    (*array_buffer).safe_to_jsval(cx, message.handle_mut(), CanGc::note());
+                    (*array_buffer).safe_to_jsval(
+                        cx.into(),
+                        message.handle_mut(),
+                        CanGc::from_cx(cx),
+                    );
                 },
             },
         }
@@ -653,7 +663,7 @@ impl TaskOnce for MessageReceivedTask {
             Some(&ws.origin().ascii_serialization()),
             None,
             vec![],
-            CanGc::note(),
+            CanGc::from_cx(cx),
         );
     }
 }

@@ -164,7 +164,7 @@ impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
 
 impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn run_once(self) {
-        ServiceWorker::dispatch_simple_error(self.addr, CanGc::note());
+    fn run_once(self, cx: &mut js::context::JSContext) {
+        ServiceWorker::dispatch_simple_error(self.addr, CanGc::from_cx(cx));
     }
 }

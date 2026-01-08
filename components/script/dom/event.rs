@@ -1143,7 +1143,7 @@ pub(crate) struct EventTask {
 }
 
 impl TaskOnce for EventTask {
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let target = self.target.root();
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
@@ -1152,7 +1152,7 @@ impl TaskOnce for EventTask {
             bubbles,
             cancelable,
             EventComposed::NotComposed,
-            CanGc::note(),
+            CanGc::from_cx(cx),
         );
     }
 }
@@ -1164,9 +1164,9 @@ pub(crate) struct SimpleEventTask {
 }
 
 impl TaskOnce for SimpleEventTask {
-    fn run_once(self) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let target = self.target.root();
-        target.fire_event(self.name, CanGc::note());
+        target.fire_event(self.name, CanGc::from_cx(cx));
     }
 }
 
