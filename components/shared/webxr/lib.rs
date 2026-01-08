@@ -19,9 +19,6 @@ mod space;
 pub mod util;
 mod view;
 
-use std::thread;
-use std::time::Duration;
-
 pub use device::{DeviceAPI, DiscoveryAPI};
 pub use error::Error;
 pub use events::{Event, EventBuffer, Visibility};
@@ -32,9 +29,6 @@ pub use hittest::{
 };
 pub use input::{
     Handedness, InputFrame, InputId, InputSource, SelectEvent, SelectKind, TargetRayMode,
-};
-pub use ipc_channel::ipc::{
-    IpcReceiver as WebXrReceiver, IpcSender as WebXrSender, channel as webxr_channel,
 };
 pub use layer::{
     ContextId, GLContexts, GLTypes, LayerGrandManager, LayerGrandManagerAPI, LayerId, LayerInit,
@@ -55,22 +49,3 @@ pub use view::{
     CubeLeft, CubeRight, CubeTop, Display, Floor, Input, LEFT_EYE, LeftEye, Native, RIGHT_EYE,
     RightEye, SomeEye, VIEWER, View, Viewer, Viewport, Viewports, Views,
 };
-
-pub fn recv_timeout<T>(
-    receiver: &WebXrReceiver<T>,
-    timeout: Duration,
-) -> Result<T, ipc_channel::ipc::TryRecvError>
-where
-    T: serde::Serialize + for<'a> serde::Deserialize<'a>,
-{
-    // Sigh, polling, sigh.
-    let mut delay = timeout / 1000;
-    while delay < timeout {
-        if let Ok(msg) = receiver.try_recv() {
-            return Ok(msg);
-        }
-        thread::sleep(delay);
-        delay *= 2;
-    }
-    receiver.try_recv()
-}

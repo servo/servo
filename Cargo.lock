@@ -10530,6 +10530,7 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "glow",
+ "ipc-channel",
  "log",
  "openxr",
  "raw-window-handle",
