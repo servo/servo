@@ -6859,12 +6859,11 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
             assert len(signatures) == 1
             constructorCall = f"""
                 <D as DomHelpers<D>>::call_html_constructor::<D::{self.descriptor.name}>(
-                    SafeJSContext::from_ptr(cx.raw_cx()),
+                    &mut cx,
                     &args,
                     &global,
                     PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
                     CreateInterfaceObjects::<D>,
-                    CanGc::note()
                 )
                 """
         else:
