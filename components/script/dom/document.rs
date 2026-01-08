@@ -4956,16 +4956,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-domain>
     fn Domain(&self) -> DOMString {
-        // Step 1.
-        if !self.has_browsing_context {
-            return DOMString::new();
-        }
-
-        // Step 2.
+        // Step 1. Let effectiveDomain be this's origin's effective domain.
         match self.origin.effective_domain() {
-            // Step 3.
+            // Step 2. If effectiveDomain is null, then return the empty string.
             None => DOMString::new(),
-            // Step 4.
+            // Step 3. Return effectiveDomain, serialized.
             Some(Host::Domain(domain)) => DOMString::from(domain),
             Some(host) => DOMString::from(host.to_string()),
         }
@@ -4973,7 +4968,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-domain>
     fn SetDomain(&self, value: DOMString) -> ErrorResult {
-        // Step 1.
+        // Step 1. If this's browsing context is null, then throw a "SecurityError" DOMException.
         if !self.has_browsing_context {
             return Err(Error::Security(None));
         }
@@ -4986,19 +4981,23 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return Err(Error::Security(None));
         }
 
-        // Steps 3-4.
+        // Step 3. Let effectiveDomain be this's origin's effective domain.
         let effective_domain = match self.origin.effective_domain() {
             Some(effective_domain) => effective_domain,
+            // Step 4. If effectiveDomain is null, then throw a "SecurityError" DOMException.
             None => return Err(Error::Security(None)),
         };
 
-        // Step 5
+        // Step 5. If the given value is not a registrable domain suffix of and is not equal to effectiveDomain, then throw a "SecurityError" DOMException.
         let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain) {
             None => return Err(Error::Security(None)),
             Some(host) => host,
         };
 
-        // Step 6
+        // Step 6. If the surrounding agent's agent cluster's is origin-keyed is true, then return.
+        // TODO
+
+        // Step 7. Set this's origin's domain to the result of parsing the given value.
         self.origin.set_domain(host);
 
         Ok(())
