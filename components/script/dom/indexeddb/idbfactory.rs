@@ -38,6 +38,10 @@ pub struct IDBFactory {
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
     /// TODO: remove names when connections close.
+    /// TODO: track not db names but open requests,
+    /// because by tracking db names, if any global at an 
+    /// origin `abort_pending_upgrades`, it will abort open requests
+    /// for other globals within the same origin.
     #[no_trace]
     db_with_connections: DomRefCell<HashSet<DBName>>,
 }
