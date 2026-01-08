@@ -134,29 +134,16 @@ fn traverse_children_of<'dom>(
         traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
     }
 
-    // TODO(stevennovaryo): In the past we are rendering text input as a normal element,
-    //                      and the processing of text is happening here. Remove this
-    //                      special case after the implementation of UA Shadow DOM for
-    //                      all affected input elements.
-    if parent_element_info.node.is_text_input() {
-        let node_text_content = parent_element_info.node.node_text_content();
-        if node_text_content.is_empty() {
-            handler.handle_text(parent_element_info, "\u{200B}".into());
-        } else {
-            handler.handle_text(parent_element_info, node_text_content);
-        }
-    } else {
-        for child in parent_element_info.node.children() {
-            if child.is_text_node() {
-                let info = NodeAndStyleInfo::new(
-                    child,
-                    child.style(&context.style_context),
-                    child.take_restyle_damage(),
-                );
-                handler.handle_text(&info, child.node_text_content());
-            } else if child.is_element() {
-                traverse_element(child, context, handler);
-            }
+    for child in parent_element_info.node.children() {
+        if child.is_text_node() {
+            let info = NodeAndStyleInfo::new(
+                child,
+                child.style(&context.style_context),
+                child.take_restyle_damage(),
+            );
+            handler.handle_text(&info, child.text_content());
+        } else if child.is_element() {
+            traverse_element(child, context, handler);
         }
     }
 

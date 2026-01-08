@@ -1372,7 +1372,10 @@ impl HTMLFormElement {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLTextAreaElement,
                 )) => {
-                    child.downcast::<HTMLTextAreaElement>().unwrap().reset();
+                    child
+                        .downcast::<HTMLTextAreaElement>()
+                        .unwrap()
+                        .reset(can_gc);
                 },
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLOutputElement,

@@ -516,7 +516,7 @@ impl Node {
     fn as_text_input(&self) -> Option<DomRoot<Element>> {
         if let Some(input_element) = self
             .downcast::<HTMLInputElement>()
-            .filter(|input_element| input_element.is_textual_widget())
+            .filter(|input_element| input_element.renders_as_text_input_widget())
         {
             return Some(DomRoot::from_ref(input_element.upcast::<Element>()));
         }

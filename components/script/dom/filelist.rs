@@ -6,7 +6,6 @@ use std::slice::Iter;
 
 use dom_struct::dom_struct;
 
-use super::bindings::root::{LayoutDom, ToLayout};
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -68,25 +67,5 @@ impl FileListMethods<crate::DomTypeHolder> for FileList {
     // check-tidy: no specs after this line
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<File>> {
         self.Item(index)
-    }
-}
-
-pub(crate) trait LayoutFileListHelpers<'dom> {
-    fn file_for_layout(&self, index: u32) -> Option<&File>;
-    fn len(&self) -> usize;
-}
-
-#[expect(unsafe_code)]
-impl<'dom> LayoutFileListHelpers<'dom> for LayoutDom<'dom, FileList> {
-    fn len(&self) -> usize {
-        self.unsafe_get().list.len()
-    }
-    fn file_for_layout(&self, index: u32) -> Option<&File> {
-        let list = &self.unsafe_get().list;
-        if (index as usize) < list.len() {
-            Some(unsafe { list[index as usize].to_layout().unsafe_get() })
-        } else {
-            None
-        }
     }
 }
