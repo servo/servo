@@ -82,7 +82,7 @@ pub enum EnvironmentBlendMode {
 }
 
 // The messages that are sent from the content thread to the session thread.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 enum SessionMsg {
     CreateLayer(ContextId, LayerInit, IpcSender<Result<LayerId, Error>>),
     DestroyLayer(ContextId, LayerId),
@@ -417,8 +417,8 @@ where
     fn run_one_frame(&mut self) {
         let frame_count = self.frame_count;
         while frame_count == self.frame_count && self.running {
-            if let Ok(msg) = &self.receiver.try_recv_timeout(TIMEOUT) {
-                self.running = self.handle_msg((*msg).clone());
+            if let Ok(msg) = self.receiver.try_recv_timeout(TIMEOUT) {
+                self.running = self.handle_msg(msg);
             } else {
                 break;
             }
