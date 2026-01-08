@@ -23,7 +23,9 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestClient,
     RequestMode, ServiceWorkersMode,
 };
-use net_traits::{CoreResourceThread, FetchResponseMsg, ResourceThreads, fetch_async};
+use net_traits::{
+    CoreResourceThread, FetchResponseMsg, ResourceFetchTiming, ResourceThreads, fetch_async,
+};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
@@ -110,6 +112,13 @@ pub trait CspViolationHandler: Send + std::fmt::Debug {
     fn clone(&self) -> Box<dyn CspViolationHandler>;
 }
 
+/// A callback that will be invoked on the Fetch thread when a web font
+/// download succeeds, providing timing information about the request.
+pub trait NetworkTimingHandler: Send + std::fmt::Debug {
+    fn submit_timing(&self, url: ServoUrl, response: ResourceFetchTiming);
+    fn clone(&self) -> Box<dyn NetworkTimingHandler>;
+}
+
 /// Document-specific data required to fetch a web font.
 #[derive(Debug)]
 pub struct WebFontDocumentContext {
@@ -119,6 +128,7 @@ pub struct WebFontDocumentContext {
     pub has_trustworthy_ancestor_origin: bool,
     pub insecure_requests_policy: InsecureRequestsPolicy,
     pub csp_handler: Box<dyn CspViolationHandler>,
+    pub network_timing_handler: Box<dyn NetworkTimingHandler>,
 }
 
 impl Clone for WebFontDocumentContext {
@@ -130,6 +140,7 @@ impl Clone for WebFontDocumentContext {
             has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_origin,
             insecure_requests_policy: self.insecure_requests_policy,
             csp_handler: self.csp_handler.clone(),
+            network_timing_handler: self.network_timing_handler.clone(),
         }
     }
 }
@@ -1052,6 +1063,15 @@ impl RemoteWebFontDownloader {
                 if response.is_err() || !self.response_valid {
                     return DownloaderResponseResult::Failure;
                 }
+                self.state
+                    .as_ref()
+                    .expect("must have download state before termination")
+                    .document_context
+                    .network_timing_handler
+                    .submit_timing(
+                        ServoUrl::from_url(self.url.as_ref().clone()),
+                        response.unwrap(),
+                    );
                 DownloaderResponseResult::Finished
             },
         }

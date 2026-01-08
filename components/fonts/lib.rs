@@ -21,7 +21,8 @@ pub use font::{
     ShapingOptions,
 };
 pub use font_context::{
-    CspViolationHandler, FontContext, FontContextWebFontMethods, WebFontDocumentContext,
+    CspViolationHandler, FontContext, FontContextWebFontMethods, NetworkTimingHandler,
+    WebFontDocumentContext,
 };
 pub use font_store::FontTemplates;
 pub use fonts_traits::*;

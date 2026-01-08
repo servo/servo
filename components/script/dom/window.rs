@@ -43,7 +43,7 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
-use fonts::{CspViolationHandler, FontContext, WebFontDocumentContext};
+use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
 use js::glue::DumpJSStack;
 use js::jsapi::{
     GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
@@ -64,11 +64,11 @@ use layout_api::{
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
     ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
+use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -100,6 +100,7 @@ use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint}
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
+use super::performanceresourcetiming::InitiatorType;
 use super::types::SVGSVGElement;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -185,6 +186,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
@@ -916,6 +918,13 @@ impl Window {
                     .dom_manipulation_task_source()
                     .to_sendable(),
             }),
+            network_timing_handler: Box::new(FontNetworkTimingHandler {
+                global: Trusted::new(global),
+                task_source: global
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .to_sendable(),
+            }),
         }
     }
 }
@@ -939,6 +948,85 @@ impl CspViolationHandler for FontCspHandler {
             global: self.global.clone(),
             task_source: self.task_source.clone(),
         })
+    }
+}
+
+#[derive(Debug)]
+struct FontNetworkTimingHandler {
+    global: Trusted<GlobalScope>,
+    task_source: SendableTaskSource,
+}
+
+impl NetworkTimingHandler for FontNetworkTimingHandler {
+    fn submit_timing(&self, url: ServoUrl, response: ResourceFetchTiming) {
+        let global = self.global.clone();
+        self.task_source.queue(task!(network_timing: move || {
+            submit_timing(
+                &FontFetchListener {
+                    url,
+                    global
+                },
+                &response,
+                CanGc::note(),
+            );
+        }));
+    }
+
+    fn clone(&self) -> Box<dyn NetworkTimingHandler> {
+        Box::new(Self {
+            global: self.global.clone(),
+            task_source: self.task_source.clone(),
+        })
+    }
+}
+
+#[derive(Debug)]
+struct FontFetchListener {
+    global: Trusted<GlobalScope>,
+    url: ServoUrl,
+}
+
+impl FetchResponseListener for FontFetchListener {
+    fn process_request_body(&mut self, _request_id: net_traits::request::RequestId) {}
+
+    fn process_request_eof(&mut self, _request_id: net_traits::request::RequestId) {}
+
+    fn process_response(
+        &mut self,
+        _request_id: net_traits::request::RequestId,
+        _metadata: Result<net_traits::FetchMetadata, net_traits::NetworkError>,
+    ) {
+    }
+
+    fn process_response_chunk(
+        &mut self,
+        _request_id: net_traits::request::RequestId,
+        _chunk: Vec<u8>,
+    ) {
+    }
+
+    fn process_response_eof(
+        self,
+        _request_id: net_traits::request::RequestId,
+        _response: Result<ResourceFetchTiming, net_traits::NetworkError>,
+    ) {
+    }
+
+    fn process_csp_violations(
+        &mut self,
+        _request_id: net_traits::request::RequestId,
+        _violations: Vec<Violation>,
+    ) {
+    }
+}
+
+impl ResourceTimingListener for FontFetchListener {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::Other, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.global.root()
     }
 }
 
