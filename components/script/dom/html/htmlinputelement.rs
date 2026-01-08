@@ -100,7 +100,7 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TextValueShadowTree {
-    value: DomRefCell<Dom<Text>>,
+    value: Dom<Text>,
 }
 
 impl TextValueShadowTree {
@@ -108,13 +108,12 @@ impl TextValueShadowTree {
         let value = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
         Node::replace_all(Some(value.upcast()), shadow_root, can_gc);
         Self {
-            value: DomRefCell::new(value.as_traced()),
+            value: value.as_traced(),
         }
     }
 
     fn update(&self, input_element: &HTMLInputElement) {
-        let text = self.value.borrow_mut();
-        let character_data = text.upcast::<CharacterData>();
+        let character_data = self.value.upcast::<CharacterData>();
         let value = input_element.value_for_shadow_dom();
         if character_data.Data() != value {
             character_data.SetData(value);
