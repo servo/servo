@@ -246,6 +246,12 @@ impl HTMLTextAreaElement {
                 .replace("\r\n", "\n")
                 .replace('\r', "\n")
                 .into()
+        } else if textinput_content.is_empty() {
+            // The addition of zero-width space here forces the text input to have an inline formatting
+            // context that might otherwise be trimmed if there's no text. This is important to ensure
+            // that the input element is at least as tall as the line gap of the caret:
+            // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+            "\u{200B}".into()
         } else {
             textinput_content
         };
