@@ -90,7 +90,6 @@ deny = [
 skip = [
     "bitflags",
     "cookie",
-    "futures",
     "redox_syscall",
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
@@ -176,11 +175,6 @@ skip = [
     # Remove when cexpr updates its nom version
     # and bindgen updates the cexpr version
     "nom",
-
-    # duplicated by image 0.25
-    "cfg-expr",
-    "system-deps",
-    "target-lexicon",
 
     # duplicated by core-graphics
     "core-graphics-types",
