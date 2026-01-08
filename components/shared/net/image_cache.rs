@@ -220,6 +220,14 @@ pub trait ImageCache: Sync + Send {
     /// Removes the rasterized image from the image_cache, identified by the id of the SVG
     fn evict_rasterized_image(&self, svg_id: &str);
 
+    /// Removes the completed image from the image_cache, identified by url, origin, and cors
+    fn evict_completed_image(
+        &self,
+        url: &ServoUrl,
+        origin: &ImmutableOrigin,
+        cors_setting: &Option<CorsSettings>,
+    );
+
     /// Synchronously get the broken image icon for this [`ImageCache`]. This will
     /// allocate space for this icon and upload it to WebRender.
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>>;

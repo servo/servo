@@ -251,7 +251,21 @@ impl VirtualMethods for SVGSVGElement {
         self.invalidate_cached_serialized_subtree();
     }
 
-    fn unbind_from_tree(&self, _context: &UnbindContext<'_>, _can_gc: CanGc) {
+    fn unbind_from_tree(&self, context: &UnbindContext<'_>, can_gc: CanGc) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(context, can_gc);
+        }
+        let owner_window = self.owner_window();
+        let data_url = self.cached_serialized_data_url.borrow().clone();
+        if let Some(Ok(url)) = data_url {
+            owner_window.layout_mut().remove_cached_image(&url);
+            owner_window.image_cache().evict_completed_image(
+                &url,
+                owner_window.origin().immutable(),
+                &None,
+            );
+        }
+        self.invalidate_cached_serialized_subtree();
         self.owner_window()
             .image_cache()
             .evict_rasterized_image(&self.uuid);

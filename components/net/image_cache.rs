@@ -619,6 +619,16 @@ impl ImageCacheStore {
         }
     }
 
+    fn remove_loaded_image(
+        &mut self,
+        url: &ServoUrl,
+        origin: &ImmutableOrigin,
+        cors_setting: &Option<CorsSettings>,
+    ) {
+        self.completed_loads
+            .remove(&(url.clone(), origin.clone(), *cors_setting));
+    }
+
     /// Return a completed image if it exists, or None if there is no complete load
     /// or the complete load is not fully decoded or is unavailable.
     fn get_completed_image_if_available(
@@ -1001,6 +1011,16 @@ impl ImageCache for ImageCacheImpl {
     fn add_listener(&self, listener: ImageLoadListener) {
         let mut store = self.store.lock();
         self.add_listener_with_store(&mut store, listener);
+    }
+
+    fn evict_completed_image(
+        &self,
+        url: &ServoUrl,
+        origin: &ImmutableOrigin,
+        cors_setting: &Option<CorsSettings>,
+    ) {
+        let mut store = self.store.lock();
+        store.remove_loaded_image(url, origin, cors_setting);
     }
 
     fn evict_rasterized_image(&self, svg_id: &str) {

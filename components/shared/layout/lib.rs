@@ -305,6 +305,9 @@ pub trait Layout {
     /// Removes a stylesheet from the Layout.
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>);
 
+    /// Removes an image from the Layout image resolver cache.
+    fn remove_cached_image(&mut self, image_url: &ServoUrl);
+
     /// Requests a reflow.
     fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult>;
 
