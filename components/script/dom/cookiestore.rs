@@ -35,6 +35,27 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::task_source::SendableTaskSource;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableCookieStore {
+    // Store an id so that we can send it with requests and the resource thread knows who to respond to
+    #[no_trace]
+    store_id: CookieStoreId,
+    #[ignore_malloc_size_of = "Channels are hard"]
+    #[no_trace]
+    unregister_channel: GenericSender<CoreResourceMsg>,
+}
+
+impl Drop for DroppableCookieStore {
+    fn drop(&mut self) {
+        let res = self
+            .unregister_channel
+            .send(CoreResourceMsg::RemoveCookieListener(self.store_id));
+        if res.is_err() {
+            error!("Failed to send cookiestore message to resource threads");
+        }
+    }
+}
+
 /// <https://cookiestore.spec.whatwg.org/>
 /// CookieStore provides an async API for pages and service workers to access and modify cookies.
 /// This requires setting up communication with resource thread's cookie storage that allows for
@@ -44,12 +65,7 @@ pub(crate) struct CookieStore {
     eventtarget: EventTarget,
     #[conditional_malloc_size_of]
     in_flight: DomRefCell<VecDeque<Rc<Promise>>>,
-    // Store an id so that we can send it with requests and the resource thread knows who to respond to
-    #[no_trace]
-    store_id: CookieStoreId,
-    #[ignore_malloc_size_of = "Channels are hard"]
-    #[no_trace]
-    unregister_channel: GenericSender<CoreResourceMsg>,
+    droppable: DroppableCookieStore,
 }
 
 struct CookieListener {
@@ -100,8 +116,10 @@ impl CookieStore {
         CookieStore {
             eventtarget: EventTarget::new_inherited(),
             in_flight: Default::default(),
-            store_id: CookieStoreId::new(),
-            unregister_channel,
+            droppable: DroppableCookieStore {
+                store_id: CookieStoreId::new(),
+                unregister_channel,
+            },
         }
     }
 
@@ -142,7 +160,7 @@ impl CookieStore {
             .global()
             .resource_threads()
             .send(CoreResourceMsg::NewCookieListener(
-                self.store_id,
+                self.droppable.store_id,
                 cookie_sender,
                 self.global().creation_url().clone(),
             ));
@@ -191,7 +209,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .global()
             .resource_threads()
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
-                self.store_id,
+                self.droppable.store_id,
                 creation_url.clone(),
                 Some(name.into()),
             ));
@@ -275,7 +293,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .global()
             .resource_threads()
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
-                self.store_id,
+                self.droppable.store_id,
                 final_url.clone(),
                 options.name.clone().map(|val| val.0),
             ));
@@ -312,7 +330,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             self.global()
                 .resource_threads()
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
-                    self.store_id,
+                    self.droppable.store_id,
                     creation_url.clone(),
                     Some(name.to_string()),
                 ));
@@ -389,7 +407,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             self.global()
                 .resource_threads()
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
-                    self.store_id,
+                    self.droppable.store_id,
                     final_url.clone(),
                     options.name.clone().map(|val| val.0),
                 ));
@@ -438,7 +456,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .global()
             .resource_threads()
             .send(CoreResourceMsg::SetCookieForUrlAsync(
-                self.store_id,
+                self.droppable.store_id,
                 self.global().creation_url().clone(),
                 Serde(cookie.build()),
                 NonHTTP,
@@ -487,7 +505,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .global()
             .resource_threads()
             .send(CoreResourceMsg::SetCookieForUrlAsync(
-                self.store_id,
+                self.droppable.store_id,
                 creation_url.clone(),
                 Serde(cookie.build()),
                 NonHTTP,
@@ -524,7 +542,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let res = global
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
-                self.store_id,
+                self.droppable.store_id,
                 global.creation_url().clone(),
                 name.0,
             ));
@@ -560,7 +578,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let res = global
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
-                self.store_id,
+                self.droppable.store_id,
                 global.creation_url().clone(),
                 options.name.to_string(),
             ));
@@ -572,16 +590,5 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
         // 7. Return p.
         p
-    }
-}
-
-impl Drop for CookieStore {
-    fn drop(&mut self) {
-        let res = self
-            .unregister_channel
-            .send(CoreResourceMsg::RemoveCookieListener(self.store_id));
-        if res.is_err() {
-            error!("Failed to send cookiestore message to resource threads");
-        }
     }
 }
