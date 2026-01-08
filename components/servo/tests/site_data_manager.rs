@@ -356,6 +356,109 @@ fn test_clear_site_data_cookies() {
 }
 
 #[test]
+fn test_clear_site_data_local() {
+    let webview_test = WebViewTest::new();
+
+    let site_data_manager = webview_test.servo().site_data_manager();
+
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(sites.len(), 0);
+
+    let steps: &[TestSiteDataStep] = &[
+        (
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            None,
+        ),
+        (SiteData::new("site-data-1a.test", StorageType::Local), None),
+        (SiteData::new("site-data-1b.test", StorageType::Local), None),
+        (SiteData::new("site-data-1c.test", StorageType::Local), None),
+        (
+            SiteData::new("site-data-2.test", StorageType::Session),
+            None,
+        ),
+        (
+            SiteData::new(
+                "site-data-3.test",
+                StorageType::Cookies | StorageType::Local | StorageType::Session,
+            ),
+            None,
+        ),
+    ];
+
+    run_test_site_data_steps(&webview_test, steps);
+
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            SiteData::new("site-data-1a.test", StorageType::Local),
+            SiteData::new("site-data-1b.test", StorageType::Local),
+            SiteData::new("site-data-1c.test", StorageType::Local),
+            SiteData::new("site-data-2.test", StorageType::Session),
+            SiteData::new(
+                "site-data-3.test",
+                StorageType::Cookies | StorageType::Local | StorageType::Session
+            ),
+        ]
+    );
+
+    site_data_manager.clear_site_data(&["site-data-1.test"], StorageType::Local);
+
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            SiteData::new("site-data-1a.test", StorageType::Local),
+            SiteData::new("site-data-1b.test", StorageType::Local),
+            SiteData::new("site-data-1c.test", StorageType::Local),
+            SiteData::new("site-data-2.test", StorageType::Session),
+            SiteData::new(
+                "site-data-3.test",
+                StorageType::Cookies | StorageType::Local | StorageType::Session
+            ),
+        ]
+    );
+
+    site_data_manager.clear_site_data(&["site-data-1a.test"], StorageType::Local);
+
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            SiteData::new("site-data-1b.test", StorageType::Local),
+            SiteData::new("site-data-1c.test", StorageType::Local),
+            SiteData::new("site-data-2.test", StorageType::Session),
+            SiteData::new(
+                "site-data-3.test",
+                StorageType::Cookies | StorageType::Local | StorageType::Session
+            ),
+        ]
+    );
+
+    site_data_manager.clear_site_data(
+        &["site-data-1c.test", "site-data-3.test"],
+        StorageType::Local,
+    );
+
+    let sites = site_data_manager.site_data(StorageType::all());
+    assert_eq!(
+        &sites,
+        &[
+            SiteData::new("site-data-0.test", StorageType::Cookies),
+            SiteData::new("site-data-1b.test", StorageType::Local),
+            SiteData::new("site-data-2.test", StorageType::Session),
+            SiteData::new(
+                "site-data-3.test",
+                StorageType::Cookies | StorageType::Session
+            ),
+        ]
+    );
+}
+
+#[test]
 fn test_clear_site_data_session() {
     let webview_test = WebViewTest::new();
 

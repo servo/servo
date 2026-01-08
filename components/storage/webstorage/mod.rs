@@ -614,7 +614,28 @@ impl WebStorageManager {
                 });
             },
             WebStorageType::Local => {
-                // TODO: Implement clering site data for localStorage
+                let origins = self.local_storage_origins.take_origins_for_sites(sites);
+
+                if self.config_dir.is_some() {
+                    for origin in origins {
+                        self.environments.remove(&origin);
+
+                        let origin_location = self
+                            .get_origin_location(&origin)
+                            .expect("Should always be able to get origin location.");
+
+                        if let Err(e) = std::fs::remove_dir_all(&origin_location) {
+                            warn!("Failed to delete origin location: {:?}", e);
+                            self.local_storage_origins.ensure_origin_descriptor(&origin);
+                        }
+                    }
+
+                    self.save_local_storage_origins();
+                } else {
+                    for origin in origins {
+                        self.environments.remove(&origin);
+                    }
+                }
             },
         }
     }

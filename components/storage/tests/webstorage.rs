@@ -314,3 +314,83 @@ fn origin_descriptors_local() {
         /* survives_restart */ true,
     );
 }
+
+fn test_clear_data_for_sites(test: WebStorageTest, storage_type: WebStorageType) {
+    let threads = test.threads();
+    let url = ServoUrl::parse("https://example.com").unwrap();
+
+    // Set a value.
+    let _ = test.set_item(storage_type, &url, "foo", "bar");
+
+    // Verify length.
+    let result = test.length(storage_type, &url);
+    assert_eq!(result, 1);
+
+    // Verify descriptors.
+    let descriptors = threads.webstorage_origins(storage_type);
+    assert_eq!(descriptors.len(), 1);
+
+    // Clear site.
+    threads.clear_webstorage_for_sites(storage_type, &["example.com"]);
+
+    // Length should now be zero.
+    let result = test.length(storage_type, &url);
+    assert_eq!(result, 0);
+
+    // There should now be no descriptors.
+    let descriptors = threads.webstorage_origins(storage_type);
+    match storage_type {
+        WebStorageType::Session => assert_eq!(descriptors.len(), 0),
+        WebStorageType::Local =>
+        // TODO: Fix localStorage to not create origin descriptors for
+        // read only operations (the length check above).
+        {
+            assert_eq!(descriptors.len(), 1)
+        },
+    }
+
+    // Restart storage threads.
+    let test = test.restart();
+    let threads = test.threads();
+
+    // Length should still be zero.
+    let result = test.length(storage_type, &url);
+    assert_eq!(result, 0);
+
+    // There should still be no descriptors.
+    let descriptors = threads.webstorage_origins(storage_type);
+    match storage_type {
+        WebStorageType::Session => assert_eq!(descriptors.len(), 0),
+        WebStorageType::Local =>
+        // TODO: Fix localStorage to not create origin descriptors for
+        // read only operations (the length check above).
+        {
+            assert_eq!(descriptors.len(), 1)
+        },
+    }
+
+    // Set a different value.
+    let _ = test.set_item(storage_type, &url, "foo2", "bar2");
+
+    // Verify the original value doesn't exist.
+    let result = test.get_item(storage_type, &url, "foo");
+    assert_eq!(result, None);
+}
+
+#[test]
+fn clear_data_for_sites_session() {
+    let test = WebStorageTest::new();
+    test_clear_data_for_sites(test, WebStorageType::Session);
+}
+
+#[test]
+fn clear_data_for_sites_local() {
+    let test = WebStorageTest::new();
+    test_clear_data_for_sites(test, WebStorageType::Local);
+}
+
+#[test]
+fn clear_data_for_sites_local_in_memory() {
+    let test = WebStorageTest::new_in_memory();
+    test_clear_data_for_sites(test, WebStorageType::Local);
+}
