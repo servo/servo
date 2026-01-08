@@ -447,9 +447,9 @@ pub(crate) fn follow_hyperlink(
             document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
         let target = Trusted::new(target_window);
-        let task = task!(navigate_follow_hyperlink: move || {
+        let task = task!(navigate_follow_hyperlink: move |cx| {
             debug!("following hyperlink to {}", load_data.url);
-            target.root().load_url(history_handling, false, load_data, CanGc::note());
+            target.root().load_url(history_handling, false, load_data, CanGc::from_cx(cx));
         });
         target_document
             .owner_global()
