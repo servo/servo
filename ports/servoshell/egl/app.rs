@@ -25,7 +25,7 @@ use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
-pub(super) struct EmbeddedPlatformWindow {
+pub(crate) struct EmbeddedPlatformWindow {
     host: Box<dyn HostTrait>,
     rendering_context: Rc<WindowRenderingContext>,
     refresh_driver: Rc<VsyncRefreshDriver>,
@@ -47,6 +47,10 @@ pub(super) struct EmbeddedPlatformWindow {
 }
 
 impl PlatformWindow for EmbeddedPlatformWindow {
+    fn as_headed_window(&self) -> Option<&Self> {
+        Some(self)
+    }
+
     fn id(&self) -> ServoShellWindowId {
         0.into()
     }

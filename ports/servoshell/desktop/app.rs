@@ -28,7 +28,7 @@ use crate::desktop::tracing::trace_winit_event;
 use crate::parser::get_default_url;
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::RunningAppState;
-use crate::window::PlatformWindow;
+use crate::window::{PlatformWindow, ServoShellWindowId};
 
 pub(crate) enum AppState {
     Initializing,
@@ -186,17 +186,13 @@ impl ApplicationHandler<AppEvent> for App {
         );
         self.t = now;
 
-        {
-            let AppState::Running(state) = &self.state else {
-                return;
-            };
-            let window_id: u64 = window_id.into();
-            if let Some(window) = state.window(window_id.into()) {
-                window.platform_window().handle_winit_window_event(
-                    state.clone(),
-                    window,
-                    window_event,
-                );
+        let AppState::Running(state) = &self.state else {
+            return;
+        };
+
+        if let Some(window) = state.window(ServoShellWindowId::from(u64::from(window_id))) {
+            if let Some(headed_window) = window.platform_window().as_headed_window() {
+                headed_window.handle_winit_window_event(state.clone(), window, window_event);
             }
         }
 
@@ -208,15 +204,16 @@ impl ApplicationHandler<AppEvent> for App {
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, app_event: AppEvent) {
+        let AppState::Running(state) = &self.state else {
+            return;
+        };
+
+        if let Some(window) = app_event
+            .window_id()
+            .and_then(|window_id| state.window(ServoShellWindowId::from(u64::from(window_id))))
         {
-            let AppState::Running(state) = &self.state else {
-                return;
-            };
-            if let Some(window_id) = app_event.window_id() {
-                let window_id: u64 = window_id.into();
-                if let Some(window) = state.window(window_id.into()) {
-                    window.platform_window().handle_winit_app_event(app_event);
-                }
+            if let Some(headed_window) = window.platform_window().as_headed_window() {
+                headed_window.handle_winit_app_event(app_event);
             }
         }
 

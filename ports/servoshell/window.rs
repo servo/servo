@@ -366,26 +366,6 @@ pub(crate) trait PlatformWindow {
     fn update_user_interface_state(&self, _: &RunningAppState, _: &ServoShellWindow) -> bool {
         false
     }
-    /// Handle a winit [`WindowEvent`]. Returns `true` if the event loop should continue
-    /// and `false` otherwise.
-    ///
-    /// TODO: This should be handled internally in the winit window if possible so that it
-    /// makes more sense when we are mixing headed and headless windows.
-    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
-    fn handle_winit_window_event(
-        &self,
-        _: Rc<RunningAppState>,
-        _: Rc<ServoShellWindow>,
-        _: winit::event::WindowEvent,
-    ) {
-    }
-    /// Handle a winit [`AppEvent`]. Returns `true` if the event loop should continue and
-    /// `false` otherwise.
-    ///
-    /// TODO: This should be handled internally in the winit window if possible so that it
-    /// makes more sense when we are mixing headed and headless windows.
-    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
-    fn handle_winit_app_event(&self, _: crate::desktop::event_loop::AppEvent) {}
     /// Request that the window redraw itself. It is up to the window to do this
     /// once the windowing system is ready. If this is a headless window, the redraw
     /// will happen immediately.
@@ -413,6 +393,9 @@ pub(crate) trait PlatformWindow {
     fn window_rect(&self) -> DeviceIndependentIntRect;
     fn maximize(&self, _: &WebView) {}
     fn focus(&self) {}
+    fn has_platform_focus(&self) -> bool {
+        true
+    }
 
     fn show_embedder_control(&self, _: WebViewId, _: EmbedderControl) {}
     fn hide_embedder_control(&self, _: WebViewId, _: EmbedderControlId) {}
@@ -438,7 +421,16 @@ pub(crate) trait PlatformWindow {
     fn notify_media_session_event(&self, _: MediaSessionEvent) {}
     fn notify_crashed(&self, _: WebView, _reason: String, _backtrace: Option<String>) {}
     fn show_console_message(&self, _level: ConsoleLogLevel, _message: &str) {}
-    fn has_winit_window(&self) -> bool {
-        false
+
+    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
+    /// If this window is a headed window, access the concrete type.
+    fn as_headed_window(&self) -> Option<&crate::desktop::headed_window::HeadedWindow> {
+        None
+    }
+
+    #[cfg(any(target_os = "android", target_env = "ohos"))]
+    /// If this window is a headed window, access the concrete type.
+    fn as_headed_window(&self) -> Option<&crate::egl::app::EmbeddedPlatformWindow> {
+        None
     }
 }
