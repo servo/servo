@@ -8,12 +8,11 @@ use std::fs;
 use std::iter::FromIterator;
 use std::path::Path;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Weak};
 use std::time::{Duration, SystemTime};
 
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
-use base::threadpool::ThreadPool;
 use content_security_policy as csp;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
@@ -172,7 +171,7 @@ fn test_fetch_blob() {
         fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
     }
 
-    let context = new_fetch_context(None, None, None);
+    let context = new_fetch_context(None, None);
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
@@ -238,9 +237,7 @@ fn test_file() {
         .policy_container(Default::default())
         .build();
 
-    let pool = ThreadPool::new(1, "CoreResourceTestPool".to_string());
-    let pool_handle = Arc::new(pool);
-    let mut context = new_fetch_context(None, None, Some(Arc::downgrade(&pool_handle)));
+    let mut context = new_fetch_context(None, None);
     let fetch_response = fetch_with_context(request, &mut context);
 
     // We should see an opaque-filtered response.
@@ -753,10 +750,7 @@ fn test_fetch_with_hsts() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(
-            embedder_proxy.clone(),
-            Weak::new(),
-        ))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -819,10 +813,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(
-            embedder_proxy.clone(),
-            Weak::new(),
-        ))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -890,10 +881,7 @@ fn test_fetch_self_signed() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(
-            embedder_proxy.clone(),
-            Weak::new(),
-        ))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -1281,7 +1269,7 @@ fn test_response_cache_status_is_local() {
         .build();
 
     // Use the same HttpCache for both fetches.
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None);
 
     // Cold request - response should come from the server.
     let initial_response = fetch_with_context(request.clone(), &mut context);
@@ -1322,7 +1310,7 @@ fn test_response_cache_status_is_validated() {
         .build();
 
     // Use the same HttpCache for both fetches.
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None);
 
     // Cold request - response should come from the server.
     let initial_response = fetch_with_context(request.clone(), &mut context);
@@ -1543,10 +1531,7 @@ fn test_fetch_request_intercepted() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(
-            embedder_proxy.clone(),
-            Weak::new(),
-        ))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),

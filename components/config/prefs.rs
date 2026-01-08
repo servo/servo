@@ -310,8 +310,6 @@ pub struct Preferences {
     pub threadpools_webstorage_workers_max: i64,
     /// Maximum number of workers for the Networking async runtime thread pool
     pub threadpools_async_runtime_workers_max: i64,
-    /// Maximum number of workers for the Core Resource Manager
-    pub threadpools_resource_workers_max: i64,
     /// Maximum number of workers for webrender
     pub threadpools_webrender_workers_max: i64,
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
@@ -490,7 +488,6 @@ impl Preferences {
             threadpools_image_cache_workers_max: 4,
             threadpools_indexeddb_workers_max: 4,
             threadpools_webstorage_workers_max: 4,
-            threadpools_resource_workers_max: 4,
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),

@@ -14,7 +14,6 @@ use std::thread;
 
 use base::generic_channel::{self, GenericReceiver, GenericReceiverSet, GenericSelectionResult};
 use base::id::CookieStoreId;
-use base::threadpool::ThreadPool;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -617,7 +616,6 @@ pub struct CoreResourceManager {
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
-    thread_pool: Arc<ThreadPool>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     preloaded_resources: SharedPreloadedResources,
@@ -633,18 +631,11 @@ impl CoreResourceManager {
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
     ) -> CoreResourceManager {
-        let num_threads = thread::available_parallelism()
-            .map(|i| i.get())
-            .unwrap_or(servo_config::pref!(threadpools_fallback_worker_num) as usize)
-            .min(servo_config::pref!(threadpools_resource_workers_max).max(1) as usize);
-        let pool = ThreadPool::new(num_threads, "CoreResourceThreadPool".to_string());
-        let pool_handle = Arc::new(pool);
         CoreResourceManager {
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy.clone(), Arc::downgrade(&pool_handle)),
+            filemanager: FileManager::new(embedder_proxy.clone()),
             request_interceptor: RequestInterceptor::new(embedder_proxy),
-            thread_pool: pool_handle,
             ca_certificates,
             ignore_certificate_errors,
             preloaded_resources: Default::default(),
@@ -661,11 +652,6 @@ impl CoreResourceManager {
 
     /// Exit the core resource manager.
     pub fn exit(&mut self) {
-        // Prevents further work from being spawned on the pool,
-        // blocks until all workers in the pool are done,
-        // or a short timeout has been reached.
-        self.thread_pool.exit();
-
         debug!("Exited CoreResourceManager");
     }
 
