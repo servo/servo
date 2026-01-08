@@ -1350,9 +1350,7 @@ impl FetchResponseListener for ModuleContext {
             },
         }
 
-        if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
+        network_listener::submit_timing(&self, &response, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

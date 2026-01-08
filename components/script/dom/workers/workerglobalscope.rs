@@ -241,9 +241,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 6 Run onComplete given script.
         scope.on_complete(Some(script), self.worker.clone(), cx);
 
-        if let Ok(response) = response {
-            submit_timing(&self, &response, CanGc::from_cx(cx));
-        }
+        submit_timing(&self, &response, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(

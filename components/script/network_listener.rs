@@ -29,21 +29,48 @@ pub(crate) trait ResourceTimingListener {
 
 pub(crate) fn submit_timing<T: ResourceTimingListener>(
     listener: &T,
-    resource_timing: &ResourceFetchTiming,
+    resource_timing_result: &Result<ResourceFetchTiming, NetworkError>,
     can_gc: CanGc,
 ) {
+    let resource_timing = match resource_timing_result {
+        Ok(resource_timing) => resource_timing,
+        // https://www.w3.org/TR/resource-timing/#resources-included-in-the-performanceresourcetiming-interface
+        // If a resource fetch is aborted because it failed a fetch precondition
+        // (e.g. mixed content, CORS restriction, CSP policy, etc), then this resource
+        // will not be included as a PerformanceResourceTiming object in
+        // the Performance Timeline.
+        Err(
+            NetworkError::ContentSecurityPolicy |
+            NetworkError::MixedContent |
+            NetworkError::SubresourceIntegrity |
+            NetworkError::Nosniff |
+            NetworkError::InvalidPort |
+            NetworkError::CorsGeneral |
+            NetworkError::CrossOriginResponse |
+            NetworkError::CorsCredentials |
+            NetworkError::CorsAllowMethods |
+            NetworkError::CorsAllowHeaders |
+            NetworkError::CorsMethod |
+            NetworkError::CorsAuthorization |
+            NetworkError::CorsHeaders,
+        ) => {
+            return;
+        },
+        Err(_) => &ResourceFetchTiming::new(ResourceTimingType::Error),
+    };
+
     // Resource timings should only be submitted for the initial preload request,
     // not for the request that consumes the preload: https://github.com/whatwg/html/issues/12047
     if resource_timing.preloaded {
         return;
     }
-    // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
-    //
     // TODO Resources for which the fetch was initiated, but was later aborted
     // (e.g. due to a network error) MAY be included as PerformanceResourceTiming
     // objects in the Performance Timeline and MUST contain initialized attribute
     // values for processed substeps of the processing model.
-    if resource_timing.timing_type != ResourceTimingType::Resource {
+    if resource_timing.timing_type != ResourceTimingType::Resource &&
+        resource_timing.timing_type != ResourceTimingType::Error
+    {
         warn!(
             "Submitting non-resource ({:?}) timing as resource",
             resource_timing.timing_type

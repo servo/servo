@@ -3884,9 +3884,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             element.media_data_processing_failure_steps();
         }
 
-        if let Ok(response) = status {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
+        network_listener::submit_timing(&self, &status, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

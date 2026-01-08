@@ -447,10 +447,11 @@ impl FetchResponseListener for EventSourceContext {
         if self.incomplete_utf8.take().is_some() {
             self.parse("\u{FFFD}".chars(), CanGc::note());
         }
-        if let Ok(response) = response {
+        if response.is_ok() {
             self.reestablish_the_connection();
-            network_listener::submit_timing(&self, &response, CanGc::note());
         }
+
+        network_listener::submit_timing(&self, &response, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

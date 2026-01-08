@@ -966,7 +966,7 @@ impl NetworkTimingHandler for FontNetworkTimingHandler {
                     url,
                     global
                 },
-                &response,
+                &Ok(response),
                 CanGc::note(),
             );
         }));

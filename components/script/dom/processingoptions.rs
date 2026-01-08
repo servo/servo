@@ -518,9 +518,7 @@ impl FetchResponseListener for LinkFetchContext {
             );
         }
 
-        if let Ok(ref response) = response_result {
-            submit_timing(&self, response, CanGc::note());
-        }
+        submit_timing(&self, &response_result, CanGc::note());
 
         // Step 11.6. If processResponse is given, then call processResponse with response.
         //

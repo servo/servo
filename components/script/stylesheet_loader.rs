@@ -313,12 +313,12 @@ impl FetchResponseListener for StylesheetContext {
             .map(|metadata| metadata.status == http::StatusCode::OK)
             .unwrap_or(false);
 
-        let Ok(response) = status else {
+        network_listener::submit_timing(&self, &status, CanGc::note());
+
+        let Ok(_response) = status else {
             self.do_post_parse_tasks(successful, None);
             return;
         };
-
-        network_listener::submit_timing(&self, &response, CanGc::note());
 
         let Some(metadata) = self.metadata.as_ref() else {
             self.do_post_parse_tasks(successful, None);

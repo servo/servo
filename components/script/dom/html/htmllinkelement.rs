@@ -1038,9 +1038,7 @@ impl FetchResponseListener for FaviconFetchContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
         );
-        if let Ok(response) = response {
-            submit_timing(&self, &response, CanGc::note());
-        }
+        submit_timing(&self, &response, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

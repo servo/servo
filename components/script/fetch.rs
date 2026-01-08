@@ -18,8 +18,7 @@ use net_traits::request::{
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
-    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
-    cancel_async_fetch,
+    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch,
 };
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -631,11 +630,7 @@ impl FetchResponseListener for FetchContext {
         // ... trailerObject is not supported in Servo yet.
 
         // navigation submission is handled in servoparser/mod.rs
-        if let Ok(response) = response {
-            if response.timing_type == ResourceTimingType::Resource {
-                network_listener::submit_timing(&self, &response, CanGc::note());
-            }
-        }
+        network_listener::submit_timing(&self, &response, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -683,9 +678,7 @@ impl FetchResponseListener for FetchLaterListener {
         _: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
-        if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
+        network_listener::submit_timing(&self, &response, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
