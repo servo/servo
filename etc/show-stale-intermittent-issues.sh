@@ -8,7 +8,14 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-INTERMITTENT_ISSUES=$(gh api /repos/servo/servo/issues?labels="I-intermittent" --paginate | jq '.[] | .number')
+# Only check for issues with a `/` in the title. This is to avoid accidentally closing
+# intermittency issues that are not related to WPT (where we know that it always contains
+# a `/` at the start of the WPT test location).
+#
+# Additionally, any issue that was created in the last week is ignored. To give it some time
+# before intermittency shows up.
+INTERMITTENT_ISSUES=$(gh api /repos/servo/servo/issues?labels="I-intermittent" --paginate | \
+    jq '.[] | select(.title | test("/")) | select(.updated_at | fromdate | . < now - (60 * 60 * 24 * 7)) | .number')
 
 NOW=$(date -u "+%s")
 NOW_LAST_MONTH=$(( ${NOW} - (60 * 60 * 24 * 31)))
