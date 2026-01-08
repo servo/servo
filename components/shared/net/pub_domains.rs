@@ -141,6 +141,43 @@ pub fn is_reg_domain(domain: &str) -> bool {
     PUB_DOMAINS.is_registrable_suffix(domain)
 }
 
+/// <https://html.spec.whatwg.org/multipage/#same-site>
+pub fn is_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
+    // First steps are for
+    // https://html.spec.whatwg.org/multipage/#concept-site-same-site
+    //
+    // Step 1. If A and B are the same opaque origin, then return true.
+    if !site_a.is_tuple() && !site_b.is_tuple() && site_a == site_b {
+        return true;
+    }
+
+    // Step 2. If A or B is an opaque origin, then return false.
+    let ImmutableOrigin::Tuple(scheme_a, host_a, _) = site_a else {
+        return false;
+    };
+    let ImmutableOrigin::Tuple(scheme_b, host_b, _) = site_b else {
+        return false;
+    };
+
+    // Step 3. If A's and B's scheme values are different, then return false.
+    if scheme_a != scheme_b {
+        return false;
+    }
+
+    // Step 4. If A's and B's host values are not equal, then return false.
+    // Includes the steps of https://html.spec.whatwg.org/multipage/#obtain-a-site
+    if let (Host::Domain(domain_a), Host::Domain(domain_b)) = (host_a, host_b) {
+        if reg_suffix(domain_a) != reg_suffix(domain_b) {
+            return false;
+        }
+    } else if host_a != host_b {
+        return false;
+    }
+
+    // Step 5. Return true.
+    true
+}
+
 /// The registered domain name (aka eTLD+1) for a URL.
 /// Returns None if the URL has no host name.
 /// Returns the registered suffix for the host name if it is a domain.

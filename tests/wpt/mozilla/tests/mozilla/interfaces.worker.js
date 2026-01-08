@@ -89,6 +89,7 @@ test_interfaces([
   "Notification",
   "OffscreenCanvas",
   "OffscreenCanvasRenderingContext2D",
+  "Origin",
   "Path2D",
   "Performance",
   "PerformanceEntry",

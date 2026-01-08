@@ -11,7 +11,7 @@ use net_traits::CoreResourceMsg;
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::ipc;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -65,6 +65,10 @@ impl URL {
             .query_pairs()
             .into_owned()
             .collect()
+    }
+
+    pub(crate) fn origin(&self) -> ImmutableOrigin {
+        self.url.borrow().origin()
     }
 
     pub(crate) fn set_query_pairs(&self, pairs: &[(String, String)]) {

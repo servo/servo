@@ -46,7 +46,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::RequestPolicyContainer;
-use net_traits::pub_domains::reg_suffix;
+use net_traits::pub_domains::{is_same_site, reg_suffix};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
@@ -66,7 +66,7 @@ use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_arc::Arc;
-use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
@@ -233,43 +233,6 @@ fn strict_origin_when_cross_origin(
     }
     // Step 3
     strip_url_for_use_as_referrer(referrer_url, true)
-}
-
-/// <https://html.spec.whatwg.org/multipage/#same-site>
-fn is_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
-    // First steps are for
-    // https://html.spec.whatwg.org/multipage/#concept-site-same-site
-    //
-    // Step 1. If A and B are the same opaque origin, then return true.
-    if !site_a.is_tuple() && !site_b.is_tuple() && site_a == site_b {
-        return true;
-    }
-
-    // Step 2. If A or B is an opaque origin, then return false.
-    let ImmutableOrigin::Tuple(scheme_a, host_a, _) = site_a else {
-        return false;
-    };
-    let ImmutableOrigin::Tuple(scheme_b, host_b, _) = site_b else {
-        return false;
-    };
-
-    // Step 3. If A's and B's scheme values are different, then return false.
-    if scheme_a != scheme_b {
-        return false;
-    }
-
-    // Step 4. If A's and B's host values are not equal, then return false.
-    // Includes the steps of https://html.spec.whatwg.org/multipage/#obtain-a-site
-    if let (Host::Domain(domain_a), Host::Domain(domain_b)) = (host_a, host_b) {
-        if reg_suffix(domain_a) != reg_suffix(domain_b) {
-            return false;
-        }
-    } else if host_a != host_b {
-        return false;
-    }
-
-    // Step 5. Return true.
-    true
 }
 
 /// <https://html.spec.whatwg.org/multipage/#schemelessly-same-site>
