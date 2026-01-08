@@ -157,10 +157,6 @@ XBPS_PKGS = [
     "libxkbcommon-x11",
 ]
 
-GSTREAMER_URL = (
-    "https://github.com/servo/servo-build-deps/releases/download/linux/gstreamer-1.16-x86_64-linux-gnu.20190515.tar.gz"
-)
-
 
 class Linux(Base):
     def __init__(self, *args: str, **kwargs: Any) -> None:
