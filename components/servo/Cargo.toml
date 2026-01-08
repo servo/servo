@@ -92,7 +92,6 @@ embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
-gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }

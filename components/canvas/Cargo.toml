@@ -27,12 +27,10 @@ fonts = { path = "../fonts" }
 futures-intrusive = { version = "0.5", optional = true }
 kurbo = { workspace = true }
 log = { workspace = true }
-net_traits = { workspace = true }
 peniko = { workspace = true, optional = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 pollster = { version = "0.4", optional = true }
-range = { path = "../range" }
 rustc-hash = { workspace = true }
 servo-tracing = { workspace = true }
 servo_config = { path = "../config" }
