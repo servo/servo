@@ -1022,6 +1022,8 @@ impl Painter {
             .prepare_screenshot_requests_for_render(self)
     }
 
+
+    #[servo_tracing::instrument(skip_all)]
     pub(crate) fn update_images(&mut self, updates: SmallVec<[ImageUpdate; 1]>) {
         let mut txn = Transaction::new();
         for update in updates {

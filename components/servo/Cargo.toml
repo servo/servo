@@ -46,6 +46,7 @@ testbinding = ["script/testbinding"]
 tracing = [
     "dep:tracing",
     "compositing/tracing",
+    "compositing_traits/tracing",
     "constellation/tracing",
     "fonts/tracing",
     "layout/tracing",

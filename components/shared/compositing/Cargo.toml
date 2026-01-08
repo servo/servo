@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 no-wgl = ["surfman/sm-angle-default"]
+tracing = ["dep:tracing"]
 
 [dependencies]
 base = { workspace = true }
@@ -29,6 +30,8 @@ image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
+servo-tracing = { workspace = true }
+tracing = {workspace = true, optional = true}
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { path = '../profile' }
