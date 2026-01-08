@@ -536,11 +536,6 @@ class CommandBase(object):
                 print("Error: Cross-compiling servo on windows requires the Ninja tool to be installed and in PATH.")
                 print("Hint: Ninja-build is available on github at: https://github.com/ninja-build/ninja/releases")
                 exit(1)
-            # `tr` is also required by the CMake build rules of `aws-lc-rs`
-            if shutil.which("tr") is None:
-                print("Error: Cross-compiling servo on windows requires the `tr` tool, which was not found.")
-                print("Hint: Try running ./mach from `git bash` instead of powershell.")
-                exit(1)
 
         return env
 
