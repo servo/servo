@@ -4,7 +4,7 @@
 
 #[cfg(target_os = "android")]
 mod android;
-mod app;
+pub(crate) mod app;
 #[cfg(feature = "gamepad")]
 pub(crate) mod gamepad;
 mod host_trait;

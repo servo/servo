@@ -13,7 +13,7 @@ pub(crate) mod event_loop;
 pub(crate) mod gamepad;
 pub mod geometry;
 mod gui;
-mod headed_window;
+pub(crate) mod headed_window;
 mod headless_window;
 mod keyutils;
 mod protocols;

@@ -533,68 +533,8 @@ impl HeadedWindow {
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
         self.gui.borrow().toolbar_height()
     }
-}
 
-impl PlatformWindow for HeadedWindow {
-    fn has_winit_window(&self) -> bool {
-        true
-    }
-    fn screen_geometry(&self) -> ScreenGeometry {
-        let hidpi_factor = self.hidpi_scale_factor();
-        let toolbar_size = Size2D::new(0.0, (self.toolbar_height() * self.hidpi_scale_factor()).0);
-        let screen_size = self.screen_size.to_f32() * hidpi_factor;
-
-        // FIXME: In reality, this should subtract screen space used by the system interface
-        // elements, but it is difficult to get this value with `winit` currently. See:
-        // See https://github.com/rust-windowing/winit/issues/2494
-        let available_screen_size = screen_size - toolbar_size;
-
-        let window_rect = DeviceIntRect::from_origin_and_size(
-            winit_position_to_euclid_point(self.winit_window.outer_position().unwrap_or_default()),
-            winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32(),
-        );
-
-        ScreenGeometry {
-            size: screen_size.to_i32(),
-            available_size: available_screen_size.to_i32(),
-            window_rect,
-        }
-    }
-
-    fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        Scale::new(self.winit_window.scale_factor() as f32)
-    }
-
-    fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.device_pixel_ratio_override
-            .map(Scale::new)
-            .unwrap_or_else(|| self.device_hidpi_scale_factor())
-    }
-
-    fn rebuild_user_interface(&self, state: &RunningAppState, window: &ServoShellWindow) {
-        self.gui.borrow_mut().update(state, window, self);
-    }
-
-    fn update_user_interface_state(&self, _: &RunningAppState, window: &ServoShellWindow) -> bool {
-        let title = window
-            .active_webview()
-            .and_then(|webview| {
-                webview
-                    .page_title()
-                    .filter(|title| !title.is_empty())
-                    .map(|title| title.to_string())
-                    .or_else(|| webview.url().map(|url| url.to_string()))
-            })
-            .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
-        if title != *self.last_title.borrow() {
-            self.winit_window.set_title(&title);
-            *self.last_title.borrow_mut() = title;
-        }
-
-        self.gui.borrow_mut().update_webview_data(window)
-    }
-
-    fn handle_winit_window_event(
+    pub(crate) fn handle_winit_window_event(
         &self,
         state: Rc<RunningAppState>,
         window: Rc<ServoShellWindow>,
@@ -816,7 +756,7 @@ impl PlatformWindow for HeadedWindow {
         }
     }
 
-    fn handle_winit_app_event(&self, app_event: AppEvent) {
+    pub(crate) fn handle_winit_app_event(&self, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
             if self
                 .gui
@@ -826,6 +766,67 @@ impl PlatformWindow for HeadedWindow {
                 self.winit_window.request_redraw();
             }
         }
+    }
+}
+
+impl PlatformWindow for HeadedWindow {
+    fn as_headed_window(&self) -> Option<&Self> {
+        Some(self)
+    }
+
+    fn screen_geometry(&self) -> ScreenGeometry {
+        let hidpi_factor = self.hidpi_scale_factor();
+        let toolbar_size = Size2D::new(0.0, (self.toolbar_height() * self.hidpi_scale_factor()).0);
+        let screen_size = self.screen_size.to_f32() * hidpi_factor;
+
+        // FIXME: In reality, this should subtract screen space used by the system interface
+        // elements, but it is difficult to get this value with `winit` currently. See:
+        // See https://github.com/rust-windowing/winit/issues/2494
+        let available_screen_size = screen_size - toolbar_size;
+
+        let window_rect = DeviceIntRect::from_origin_and_size(
+            winit_position_to_euclid_point(self.winit_window.outer_position().unwrap_or_default()),
+            winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32(),
+        );
+
+        ScreenGeometry {
+            size: screen_size.to_i32(),
+            available_size: available_screen_size.to_i32(),
+            window_rect,
+        }
+    }
+
+    fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        Scale::new(self.winit_window.scale_factor() as f32)
+    }
+
+    fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        self.device_pixel_ratio_override
+            .map(Scale::new)
+            .unwrap_or_else(|| self.device_hidpi_scale_factor())
+    }
+
+    fn rebuild_user_interface(&self, state: &RunningAppState, window: &ServoShellWindow) {
+        self.gui.borrow_mut().update(state, window, self);
+    }
+
+    fn update_user_interface_state(&self, _: &RunningAppState, window: &ServoShellWindow) -> bool {
+        let title = window
+            .active_webview()
+            .and_then(|webview| {
+                webview
+                    .page_title()
+                    .filter(|title| !title.is_empty())
+                    .map(|title| title.to_string())
+                    .or_else(|| webview.url().map(|url| url.to_string()))
+            })
+            .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
+        if title != *self.last_title.borrow() {
+            self.winit_window.set_title(&title);
+            *self.last_title.borrow_mut() = title;
+        }
+
+        self.gui.borrow_mut().update_webview_data(window)
     }
 
     fn request_repaint(&self, window: &ServoShellWindow) {
@@ -1034,6 +1035,10 @@ impl PlatformWindow for HeadedWindow {
 
     fn focus(&self) {
         self.winit_window.focus_window();
+    }
+
+    fn has_platform_focus(&self) -> bool {
+        self.winit_window.has_focus()
     }
 
     fn show_embedder_control(&self, webview_id: WebViewId, embedder_control: EmbedderControl) {
