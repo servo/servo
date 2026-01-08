@@ -16,8 +16,9 @@ use js::conversions::jsstr_to_string;
 use js::jsapi::{
     GetRequestedModuleSpecifier, GetRequestedModulesCount, Handle, HandleObject, Heap, JSObject,
 };
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::IntoHandle;
+use js::rust::wrappers::JS_GetModulePrivate;
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{Destination, Referrer, RequestBuilder, RequestId, RequestMode};
@@ -36,6 +37,7 @@ use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_scrip
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
+use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
@@ -46,6 +48,7 @@ use crate::script_module::{
 use crate::script_runtime::{CanGc, IntroductionType};
 
 #[derive(PartialEq, Debug)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ModuleObject(Box<Heap<*mut JSObject>>);
 
 impl ModuleObject {
@@ -59,6 +62,8 @@ impl ModuleObject {
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
+// FIXME
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 struct GraphLoadingState {
     promise: Rc<Promise>,
     is_loading: Cell<bool>,
@@ -67,7 +72,7 @@ struct GraphLoadingState {
 }
 
 /// <https://tc39.es/ecma262/#sec-LoadRequestedModules>
-pub(crate) fn LoadRequestedModules(global: &GlobalScope, module: ModuleObject) -> Rc<Promise> {
+pub(crate) fn LoadRequestedModules(global: &GlobalScope, module: HandleObject) -> Rc<Promise> {
     // Step 1. If hostDefined is not present, let hostDefined be empty.
 
     // Step 2. Let pc be ! NewPromiseCapability(%Promise%).
@@ -90,26 +95,27 @@ pub(crate) fn LoadRequestedModules(global: &GlobalScope, module: ModuleObject) -
 }
 
 /// <https://tc39.es/ecma262/#sec-InnerModuleLoading>
-fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: ModuleObject) {
+fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: HandleObject) {
     let cx = GlobalScope::get_cx();
-    let module_handle = module.handle();
 
     rooted!(&in(cx) let mut referrer = UndefinedValue());
-    referrer.handle_mut().set(ObjectValue(module.0.get()));
+    unsafe {
+        JS_GetModulePrivate(module.get(), referrer.handle_mut());
+    }
     let referrer_handle = referrer.handle().into_handle();
 
     // Step 1. Assert: state.[[IsLoading]] is true.
     assert!(state.is_loading.get());
 
-    let visited_contains_module = state.visited.borrow().contains(&module);
+    let visited_contains_module = state.visited.borrow().contains(&ModuleObject::new(module));
 
     // Step 2. If module is a Cyclic Module Record, module.[[Status]] is new, and state.[[Visited]] does not contain module, then
     if !visited_contains_module {
         // a. Append module to state.[[Visited]].
-        state.visited.borrow_mut().push(module);
+        state.visited.borrow_mut().push(ModuleObject::new(module));
 
         // b. Let requestedModulesCount be the number of elements in module.[[RequestedModules]].
-        let requested_modules_count = unsafe { GetRequestedModulesCount(*cx, module_handle) };
+        let requested_modules_count = unsafe { GetRequestedModulesCount(*cx, module) };
 
         // c. Set state.[[PendingModulesCount]] to state.[[PendingModulesCount]] + requestedModulesCount.
         state
@@ -120,7 +126,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: M
         for index in 0..requested_modules_count {
             // Here Gecko will call hasFirstUnsupportedAttributeKey on each module request,
             // GetRequestedModuleSpecifier will do it for us.
-            let jsstr = unsafe { GetRequestedModuleSpecifier(*cx, module_handle, index) };
+            let jsstr = unsafe { GetRequestedModuleSpecifier(*cx, module, index) };
 
             if jsstr.is_null() {
                 // Step 1. Let error be ThrowCompletion(a newly created SyntaxError object).
@@ -138,7 +144,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: M
                 // such that ModuleRequestsEqual(record, request) is true, then
                 if let Some(module) = private_data.loaded_modules.borrow().get(&specifier) {
                     // 1. Perform InnerModuleLoading(state, record.[[Module]]).
-                    InnerModuleLoading(global, state, ModuleObject::new(module.handle()));
+                    InnerModuleLoading(global, state, module.handle());
                 } else {
                     // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
                     HostLoadImportedModule(global, referrer_handle, specifier, state);
@@ -179,7 +185,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: M
 fn ContinueModuleLoading(
     global: &GlobalScope,
     state: &GraphLoadingState,
-    module_completion: Result<ModuleObject, RethrowError>,
+    module_completion: Result<HandleObject, RethrowError>,
 ) {
     // Step 1. If state.[[IsLoading]] is false, return unused.
     if !state.is_loading.get() {
@@ -213,7 +219,7 @@ fn FinishLoadingImportedModule(
     referrer: Handle<JSVal>,
     module_request_specifier: String,
     payload: &GraphLoadingState,
-    result: Result<ModuleObject, RethrowError>,
+    result: Result<HandleObject, RethrowError>,
 ) {
     // Step 1. If result is a normal completion, then
     if let Ok(ref module) = result {
@@ -225,13 +231,12 @@ fn FinishLoadingImportedModule(
             loaded_modules
                 .get(&module_request_specifier)
                 // i. Assert: record.[[Module]] and result.[[Value]] are the same Module Record.
-                .map(|record| assert_eq!(record.handle(), module.handle()))
+                .map(|record| assert_eq!(record.handle(), *module))
                 // b. Else,
                 .unwrap_or_else(|| {
                     // i. Append the LoadedModuleRequest Record { [[Specifier]]: moduleRequest.[[Specifier]],
                     // [[Attributes]]: moduleRequest.[[Attributes]], [[Module]]: result.[[Value]] } to referrer.[[LoadedModules]].
-                    loaded_modules
-                        .insert(module_request_specifier, ModuleObject::new(module.handle()));
+                    loaded_modules.insert(module_request_specifier, ModuleObject::new(*module));
                 });
         }
     }
@@ -337,7 +342,7 @@ fn HostLoadImportedModule(
                     Err(error)
                 } else {
                     let module_handle = tree.get_record().borrow().as_ref().unwrap().handle();
-                    Ok(ModuleObject::new(module_handle))
+                    Ok(module_handle)
                 }
             },
         };
@@ -441,15 +446,12 @@ fn fetch_a_single_module_script(
     // Step 12. Set up the module script request given request and options.
     let request = RequestBuilder::new(None, url.clone(), referrer)
         .destination(destination)
-        .origin(global.origin().immutable().clone())
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
         .credentials_mode(options.credentials_mode)
         .referrer_policy(options.referrer_policy)
         .mode(mode)
-        .insecure_requests_policy(global.insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_origin())
-        .policy_container(global.policy_container().to_owned())
+        .with_global_scope(&global)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
     let context = ModuleContext {
@@ -506,13 +508,13 @@ impl FetchResponseListener for ModuleContext {
 
         self.status = {
             if status.is_error() {
-                Err(NetworkError::Internal(
+                Err(NetworkError::ResourceLoadError(
                     "No http status code received".to_owned(),
                 ))
             } else if status.is_success() {
                 Ok(())
             } else {
-                Err(NetworkError::Internal(format!(
+                Err(NetworkError::ResourceLoadError(format!(
                     "HTTP error code {}",
                     status.code()
                 )))

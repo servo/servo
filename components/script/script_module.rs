@@ -132,6 +132,8 @@ impl Clone for RethrowError {
     }
 }
 
+// FIXME
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) struct ModuleScript {
     pub(crate) base_url: ServoUrl,
     pub(crate) options: ScriptFetchOptions,
@@ -1994,15 +1996,13 @@ fn fetch_the_descendants_and_link_module_script(
         return;
     };
 
-    let module = module_loading::ModuleObject::new(record.handle());
-
     // TODO Step 3. Let state be Record
     // { [[ErrorToRethrow]]: null, [[Destination]]: destination, [[PerformFetch]]: null, [[FetchClient]]: fetchClient }.
 
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise = LoadRequestedModules(&global, module);
+    let loading_promise = LoadRequestedModules(&global, record.handle());
 
     let fulfillment_owner = owner.clone();
     let fulfillment_identity = identity.clone();
