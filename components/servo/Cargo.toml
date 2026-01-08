@@ -76,7 +76,6 @@ webxr = [
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
-bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
@@ -93,7 +92,6 @@ embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
-gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
@@ -108,7 +106,6 @@ net_traits = { workspace = true }
 parking_lot = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }
-rayon = { workspace = true }
 rustc-hash = { workspace = true }
 script = { path = "../script" }
 script_traits = { workspace = true }

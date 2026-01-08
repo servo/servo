@@ -31,7 +31,6 @@ keyboard-types = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-num-derive = "0.4"
 pixels = { path = "../../pixels" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
