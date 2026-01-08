@@ -35,7 +35,7 @@ pub struct NetworkEventActor {
     request: RefCell<Option<NetworkEventRequest>>,
     resource_id: u64,
     response: RefCell<Option<NetworkEventResponse>>,
-    security: RefCell<TlsSecurityInfo>,
+    security_info: RefCell<TlsSecurityInfo>,
     pub watcher: String,
 }
 
@@ -355,7 +355,7 @@ impl Actor for NetworkEventActor {
 
     fn handle_message(
         &self,
-        request: ClientRequest,
+        client_request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
@@ -363,10 +363,10 @@ impl Actor for NetworkEventActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "getRequestHeaders" => {
-                let req = self.request.borrow();
-                let req = req.as_ref().ok_or(ActorError::Internal)?;
+                let request = self.request.borrow();
+                let request = request.as_ref().ok_or(ActorError::Internal)?;
 
-                let headers = get_header_list(&req.request.headers);
+                let headers = get_header_list(&request.request.headers);
                 let raw_headers = get_raw_headers(&headers);
 
                 let msg = GetRequestHeadersReply {
@@ -375,38 +375,41 @@ impl Actor for NetworkEventActor {
                     header_size: raw_headers.len(),
                     raw_headers,
                 };
-                request.reply_final(&msg)?
+                client_request.reply_final(&msg)?
             },
 
             "getRequestCookies" => {
-                let req = self.request.borrow();
-                let req = req.as_ref().ok_or(ActorError::Internal)?;
+                let request = self.request.borrow();
+                let request = request.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetCookiesReply {
                     from: self.name(),
-                    cookies: get_cookies_from_headers(&req.request.headers, &req.request.url),
+                    cookies: get_cookies_from_headers(
+                        &request.request.headers,
+                        &request.request.url,
+                    ),
                 };
 
-                request.reply_final(&msg)?
+                client_request.reply_final(&msg)?
             },
 
             "getRequestPostData" => {
-                let req = self.request.borrow();
-                let req = req.as_ref().ok_or(ActorError::Internal)?;
+                let request = self.request.borrow();
+                let request = request.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetRequestPostDataReply {
                     from: self.name(),
-                    post_data: req.request.body.as_ref().map(|b| b.0.clone()),
-                    post_data_discarded: req.request.body.is_none(),
+                    post_data: request.request.body.as_ref().map(|b| b.0.clone()),
+                    post_data_discarded: request.request.body.is_none(),
                 };
-                request.reply_final(&msg)?
+                client_request.reply_final(&msg)?
             },
 
             "getResponseHeaders" => {
-                let res = self.response.borrow();
-                let res = res.as_ref().ok_or(ActorError::Internal)?;
+                let response = self.response.borrow();
+                let response = response.as_ref().ok_or(ActorError::Internal)?;
 
-                let list = res
+                let list = response
                     .response
                     .headers
                     .as_ref()
@@ -420,45 +423,49 @@ impl Actor for NetworkEventActor {
                     header_size: raw_headers.len(),
                     raw_headers,
                 };
-                request.reply_final(&msg)?;
+                client_request.reply_final(&msg)?;
             },
 
             "getResponseCookies" => {
-                let req = self.request.borrow();
-                let req = req.as_ref().ok_or(ActorError::Internal)?;
-                let res = self.response.borrow();
-                let res = res.as_ref().ok_or(ActorError::Internal)?;
+                let request = self.request.borrow();
+                let request = request.as_ref().ok_or(ActorError::Internal)?;
+                let response = self.response.borrow();
+                let response = response.as_ref().ok_or(ActorError::Internal)?;
 
                 let msg = GetCookiesReply {
                     from: self.name(),
                     cookies: get_cookies_from_headers(
-                        res.response.headers.as_ref().ok_or(ActorError::Internal)?,
-                        &req.request.url,
+                        response
+                            .response
+                            .headers
+                            .as_ref()
+                            .ok_or(ActorError::Internal)?,
+                        &request.request.url,
                     ),
                 };
-                request.reply_final(&msg)?
+                client_request.reply_final(&msg)?
             },
 
             "getResponseContent" => {
-                let res = self.response.borrow();
-                let res = res.as_ref().ok_or(ActorError::Internal)?;
+                let response = self.response.borrow();
+                let response = response.as_ref().ok_or(ActorError::Internal)?;
 
-                let headers = res.response.headers.as_ref();
+                let headers = response.response.headers.as_ref();
                 let list = headers.map(get_header_list).unwrap_or_default();
                 let raw_headers = get_raw_headers(&list);
 
                 let mime_type = headers
                     .and_then(extract_mime_type_as_dataurl_mime)
-                    .map(|m| m.to_string());
+                    .map(|url| url.to_string());
                 let transferred_size = headers
-                    .and_then(|h| h.typed_get::<ContentLength>())
-                    .map(|len| len.0);
+                    .and_then(|header| header.typed_get::<ContentLength>())
+                    .map(|content_length_header| content_length_header.0);
 
-                let content = res.response.body.as_ref().map(|body| {
+                let content = response.response.body.as_ref().map(|body| {
                     let (encoding, text) = if mime_type.is_some() {
                         // Queue a LongStringActor for this body
-                        let full_str = String::from_utf8_lossy(body).to_string();
-                        let long_string = LongStringActor::new(registry, full_str);
+                        let body_string = String::from_utf8_lossy(body).to_string();
+                        let long_string = LongStringActor::new(registry, body_string);
                         let value = long_string.long_string_obj();
                         registry.register_later(long_string);
                         (None, serde_json::to_value(value).unwrap())
@@ -485,17 +492,17 @@ impl Actor for NetworkEventActor {
                 let msg = GetResponseContentReply {
                     from: self.name(),
                     content,
-                    content_discarded: res.response.body.is_none(),
+                    content_discarded: response.response.body.is_none(),
                 };
-                request.reply_final(&msg)?
+                client_request.reply_final(&msg)?
             },
 
             "getEventTimings" => {
-                let req = self.request.borrow();
-                let req = req.as_ref().ok_or(ActorError::Internal)?;
+                let request = self.request.borrow();
+                let request = request.as_ref().ok_or(ActorError::Internal)?;
 
-                let offsets = req.offsets.clone();
-                let timings = req.timings.clone();
+                let offsets = request.offsets.clone();
+                let timings = request.timings.clone();
                 let total_time = timings.total();
 
                 let msg = GetEventTimingsReply {
@@ -505,17 +512,17 @@ impl Actor for NetworkEventActor {
                     timings,
                     total_time,
                 };
-                request.reply_final(&msg)?
+                client_request.reply_final(&msg)?
             },
 
             "getSecurityInfo" => {
-                let sec = &*self.security.borrow();
+                let security_info = &*self.security_info.borrow();
 
                 let msg = GetSecurityInfoReply {
                     from: self.name(),
-                    security_info: sec.into(),
+                    security_info: security_info.into(),
                 };
-                request.reply_final(&msg)?
+                client_request.reply_final(&msg)?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
@@ -562,36 +569,37 @@ impl NetworkEventActor {
     }
 
     pub fn add_security_info(&self, security_info: Option<TlsSecurityInfo>) {
-        self.security.replace(security_info.unwrap_or_default());
+        self.security_info
+            .replace(security_info.unwrap_or_default());
     }
 
     fn request_fields(&self) -> Option<RequestFields> {
-        let req = self.request.borrow();
-        let req = req.as_ref()?;
-        let url = req.request.url.as_url();
-        let cookies = get_cookies_from_headers(&req.request.headers, &req.request.url);
+        let request = self.request.borrow();
+        let request = request.as_ref()?;
+        let url = request.request.url.as_url();
+        let cookies = get_cookies_from_headers(&request.request.headers, &request.request.url);
 
         Some(RequestFields {
             event_timings_available: true,
             remote_address: url.host_str().map(|a| a.into()),
             remote_port: url.port(),
             request_cookies_available: !cookies.is_empty(),
-            request_headers_available: !req.request.headers.is_empty(),
-            total_time: req.total_time.as_secs_f64(),
+            request_headers_available: !request.request.headers.is_empty(),
+            total_time: request.total_time.as_secs_f64(),
         })
     }
 
     fn response_fields(&self) -> Option<ResponseFields> {
-        let res = self.response.borrow();
-        let res = res.as_ref()?;
+        let response = self.response.borrow();
+        let response = response.as_ref()?;
         let url = self.request.borrow().as_ref()?.request.url.clone();
-        let headers = res.response.headers.as_ref();
+        let headers = response.response.headers.as_ref();
         let cookies = headers.map(|headers| get_cookies_from_headers(headers, &url));
-        let status = &res.response.status;
+        let status = &response.response.status;
 
         Some(ResponseFields {
-            cache_details: res.cache_details.clone(),
-            response_content_available: res
+            cache_details: response.cache_details.clone(),
+            response_content_available: response
                 .response
                 .body
                 .as_ref()
@@ -605,10 +613,10 @@ impl NetworkEventActor {
     }
 
     fn security_fields(&self) -> SecurityFields {
-        let sec = self.security.borrow();
+        let security_info = self.security_info.borrow();
 
         SecurityFields {
-            security_state: sec.state.to_string(),
+            security_state: security_info.state.to_string(),
             security_info_available: true,
         }
     }
@@ -642,19 +650,19 @@ fn get_cookies_from_headers(headers: &HeaderMap, url: &ServoUrl) -> Vec<CookieWr
             ServoCookie::from_cookie_string(cookie_str, url, CookieSource::HTTP)
         })
         .map(|cookie| {
-            let c = &cookie.cookie;
+            let cookie = &cookie.cookie;
             CookieWrapper {
-                name: c.name().into(),
-                value: c.value().into(),
-                path: c.path().map(|p| p.into()),
-                domain: c.domain().map(|d| d.into()),
-                expires: c.expires().map(|e| format!("{e:?}")),
-                http_only: c.http_only(),
-                secure: c.secure(),
-                same_site: c.same_site().map(|s| s.to_string()),
+                name: cookie.name().into(),
+                value: cookie.value().into(),
+                path: cookie.path().map(|p| p.into()),
+                domain: cookie.domain().map(|d| d.into()),
+                expires: cookie.expires().map(|e| format!("{e:?}")),
+                http_only: cookie.http_only(),
+                secure: cookie.secure(),
+                same_site: cookie.same_site().map(|s| s.to_string()),
             }
         })
-        .collect::<Vec<_>>()
+        .collect()
 }
 
 fn get_header_list(headers: &HeaderMap) -> Vec<HeaderWrapper> {
@@ -664,22 +672,25 @@ fn get_header_list(headers: &HeaderMap) -> Vec<HeaderWrapper> {
             name: name.as_str().into(),
             value: value.to_str().unwrap_or_default().into(),
         })
-        .collect::<Vec<_>>()
+        .collect()
 }
 
 fn get_raw_headers(headers: &[HeaderWrapper]) -> String {
-    headers.iter().fold("".to_string(), |a, b| {
-        a + &format!("{}:{}\r\n", b.name, b.value)
-    })
+    headers
+        .iter()
+        .map(|header| format!("{}:{}", header.name, header.value))
+        .collect::<Vec<_>>()
+        .join("\r\n")
 }
 
 impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
     fn encode(&self, registry: &ActorRegistry) -> NetworkEventMsg {
-        let req = self.request.borrow();
-        let req = &req.as_ref().expect("There should be a request").request;
+        let request = self.request.borrow();
+        let request = &request.as_ref().expect("There should be a request").request;
 
         let started_datetime_rfc3339 = match Local.timestamp_millis_opt(
-            req.started_date_time
+            request
+                .started_date_time
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis() as i64,
@@ -697,16 +708,16 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
             actor: self.name(),
             browsing_context_id: browsing_context.browsing_context_id.value(),
             cause: Cause {
-                type_: req.destination.as_str().to_string(),
+                type_: request.destination.as_str().to_string(),
                 loading_document_uri: None, // Set if available
             },
-            is_xhr: req.is_xhr,
-            method: format!("{}", req.method),
+            is_xhr: request.is_xhr,
+            method: format!("{}", request.method),
             private: false,
             resource_id: self.resource_id,
             started_date_time: started_datetime_rfc3339,
-            time_stamp: req.time_stamp,
-            url: req.url.to_string(),
+            time_stamp: request.time_stamp,
+            url: request.url.to_string(),
         }
     }
 }
