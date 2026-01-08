@@ -56,6 +56,54 @@ macro_rules! task {
         }
         $name(move || $body)
     }};
+
+    ($name:ident: |$cx: ident $(, $field:ident: $field_type:ty)*| $body:tt) => {{
+        #[allow(non_camel_case_types)]
+        struct $name<F> {
+            $($field: $field_type,)*
+            task: F,
+        }
+        #[expect(unsafe_code)]
+        unsafe impl<F> crate::JSTraceable for $name<F> {
+            #[expect(unsafe_code)]
+            unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
+                unsafe { $(self.$field.trace(tracer);)* }
+                // We cannot trace the actual task closure. This is safe because
+                // all referenced values from within the closure are either borrowed
+                // or moved into fields in the struct (and therefore traced).
+            }
+        }
+        impl<F> crate::task::NonSendTaskOnce for $name<F>
+        where
+            F: ::std::ops::FnOnce(&mut js::context::JSContext, $($field_type,)*),
+        {
+            fn run_once(self, cx: &mut js::context::JSContext) {
+                (self.task)(cx, $(self.$field,)*);
+            }
+        }
+        $name {
+            $($field,)*
+            task: |$cx: &mut js::context::JSContext, $($field: $field_type,)*| $body,
+        }
+    }};
+
+    ($name:ident: move |$cx: ident| $body:tt) => {{
+        #[allow(non_camel_case_types)]
+        struct $name<F>(F);
+        impl<F> crate::task::TaskOnce for $name<F>
+        where
+            F: ::std::ops::FnOnce(&mut js::context::JSContext) + Send,
+        {
+            fn name(&self) -> &'static str {
+                stringify!($name)
+            }
+
+            fn run_once(self, cx: &mut js::context::JSContext) {
+                (self.0)(cx);
+            }
+        }
+        $name(move |$cx: &mut js::context::JSContext| $body)
+    }};
 }
 
 /// A task that can be sent between threads and run.
