@@ -199,9 +199,16 @@ impl MutableOrigin {
         (self.0).1.borrow().is_some()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-origin-effective-domain>
     pub fn effective_domain(&self) -> Option<Host> {
+        // Step 1. If origin is an opaque origin, then return null.
+        if !self.is_tuple() {
+            return None;
+        }
         self.immutable()
             .host()
+            // Step 2. If origin's domain is non-null, then return origin's domain.
+            // Step 3. Return origin's host.
             .map(|host| self.domain().unwrap_or_else(|| host.clone()))
     }
 }
