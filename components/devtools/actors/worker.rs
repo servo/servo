@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::GenericSender;
 use base::id::TEST_PIPELINE_ID;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
@@ -35,7 +35,7 @@ pub(crate) struct WorkerActor {
     pub url: ServoUrl,
     pub type_: WorkerType,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub streams: RefCell<HashMap<StreamId, TcpStream>>,
+    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
 }
 
 impl ResourceAvailable for WorkerActor {

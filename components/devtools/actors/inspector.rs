@@ -4,8 +4,7 @@
 
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-use std::cell::RefCell;
-
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
@@ -134,7 +133,7 @@ impl InspectorActor {
 
         let walker = WalkerActor {
             name: registry.new_name::<WalkerActor>(),
-            mutations: RefCell::new(vec![]),
+            mutations: AtomicRefCell::new(vec![]),
             script_chan,
             pipeline,
         };

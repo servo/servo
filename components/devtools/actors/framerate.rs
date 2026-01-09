@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::mem;
 
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
@@ -16,7 +17,7 @@ pub struct FramerateActor {
     pipeline_id: PipelineId,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     is_recording: bool,
-    ticks: RefCell<Vec<HighResolutionStamp>>,
+    ticks: AtomicRefCell<Vec<HighResolutionStamp>>,
 }
 
 impl Actor for FramerateActor {
@@ -58,7 +59,7 @@ impl FramerateActor {
     }
 
     pub fn take_pending_ticks(&self) -> Vec<HighResolutionStamp> {
-        self.ticks.take()
+        mem::take(&mut self.ticks.borrow_mut())
     }
 
     fn start_recording(&mut self) {

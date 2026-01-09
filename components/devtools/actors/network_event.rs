@@ -5,9 +5,9 @@
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webconsole.js).
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
-use std::cell::RefCell;
 use std::time::{Duration, UNIX_EPOCH};
 
+use atomic_refcell::AtomicRefCell;
 use base64::engine::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chrono::{Local, LocalResult, TimeZone};
@@ -32,10 +32,10 @@ use crate::protocol::ClientRequest;
 #[derive(Default)]
 pub struct NetworkEventActor {
     name: String,
-    request: RefCell<Option<NetworkEventRequest>>,
+    request: AtomicRefCell<Option<NetworkEventRequest>>,
     resource_id: u64,
-    response: RefCell<Option<NetworkEventResponse>>,
-    security_info: RefCell<TlsSecurityInfo>,
+    response: AtomicRefCell<Option<NetworkEventResponse>>,
+    security_info: AtomicRefCell<TlsSecurityInfo>,
     pub watcher: String,
 }
 
@@ -542,7 +542,7 @@ impl NetworkEventActor {
     }
 
     pub fn add_request(&self, request: HttpRequest) {
-        self.request.replace(Some(NetworkEventRequest {
+        *self.request.borrow_mut() = Some(NetworkEventRequest {
             // TODO: Fill the rest of the fields correctly for offsets and timings
             offsets: Default::default(),
             timings: Timings {
@@ -552,25 +552,24 @@ impl NetworkEventActor {
             },
             total_time: request.connect_time + request.send_time,
             request,
-        }));
+        });
     }
 
     pub fn add_response(&self, response: HttpResponse) {
         if response.body.is_none() {
             return;
         }
-        self.response.replace(Some(NetworkEventResponse {
+        *self.response.borrow_mut() = Some(NetworkEventResponse {
             cache_details: CacheDetails {
                 from_cache: response.from_cache,
                 from_service_worker: false,
             },
             response,
-        }));
+        });
     }
 
     pub fn add_security_info(&self, security_info: Option<TlsSecurityInfo>) {
-        self.security_info
-            .replace(security_info.unwrap_or_default());
+        *self.security_info.borrow_mut() = security_info.unwrap_or_default();
     }
 
     fn request_fields(&self) -> Option<RequestFields> {

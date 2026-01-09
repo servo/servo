@@ -4,8 +4,7 @@
 
 //! The walker actor is responsible for traversing the DOM tree in various ways to create new nodes
 
-use std::cell::RefCell;
-
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
@@ -27,7 +26,7 @@ pub struct WalkerMsg {
 
 pub struct WalkerActor {
     pub name: String,
-    pub mutations: RefCell<Vec<(AttrModification, String)>>,
+    pub mutations: AtomicRefCell<Vec<(AttrModification, String)>>,
     pub pipeline: PipelineId,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
 }

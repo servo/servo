@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{GenericSender, channel};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
@@ -40,7 +40,7 @@ pub(crate) struct SourcesReply {
 }
 
 pub(crate) struct SourceManager {
-    source_actor_names: RefCell<BTreeSet<String>>,
+    source_actor_names: AtomicRefCell<BTreeSet<String>>,
 }
 
 #[derive(Clone, Debug)]
@@ -55,7 +55,7 @@ pub struct SourceActor {
     /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#black-boxing-sources>
     pub is_black_boxed: bool,
 
-    pub content: RefCell<Option<String>>,
+    pub content: AtomicRefCell<Option<String>>,
     pub content_type: Option<String>,
 
     // TODO: use it in #37667, then remove this allow
@@ -95,7 +95,7 @@ struct GetBreakpointPositionsCompressedReply {
 impl SourceManager {
     pub fn new() -> Self {
         Self {
-            source_actor_names: RefCell::new(BTreeSet::default()),
+            source_actor_names: AtomicRefCell::new(BTreeSet::default()),
         }
     }
 
@@ -127,7 +127,7 @@ impl SourceActor {
         SourceActor {
             name,
             url,
-            content: RefCell::new(content),
+            content: AtomicRefCell::new(content),
             content_type,
             is_black_boxed: false,
             spidermonkey_id,

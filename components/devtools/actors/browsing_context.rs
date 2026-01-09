@@ -6,10 +6,10 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
-use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{
@@ -133,12 +133,13 @@ pub struct BrowsingContextActorMsg {
 /// as well as resource actors that each perform one debugging function.
 pub(crate) struct BrowsingContextActor {
     pub name: String,
-    pub title: RefCell<String>,
-    pub url: RefCell<String>,
+    pub title: AtomicRefCell<String>,
+    pub url: AtomicRefCell<String>,
     /// This corresponds to webview_id
     pub browser_id: DevtoolsBrowserId,
-    pub active_pipeline_id: Cell<PipelineId>,
-    pub active_outer_window_id: Cell<DevtoolsOuterWindowId>,
+    // TODO: Should these ids be atomic?
+    pub active_pipeline_id: AtomicRefCell<PipelineId>,
+    pub active_outer_window_id: AtomicRefCell<DevtoolsOuterWindowId>,
     pub browsing_context_id: DevtoolsBrowsingContextId,
     pub accessibility: String,
     pub console: String,
@@ -149,7 +150,7 @@ pub(crate) struct BrowsingContextActor {
     pub thread: String,
     pub _tab: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub streams: RefCell<HashMap<StreamId, TcpStream>>,
+    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
     pub watcher: String,
 }
 
@@ -194,7 +195,7 @@ impl Actor for BrowsingContextActor {
         self.streams.borrow_mut().remove(&id);
         if self.streams.borrow().is_empty() {
             self.script_chan
-                .send(WantsLiveNotifications(self.active_pipeline_id.get(), false))
+                .send(WantsLiveNotifications(self.pipeline_id(), false))
                 .unwrap();
         }
     }
@@ -249,10 +250,10 @@ impl BrowsingContextActor {
         let target = BrowsingContextActor {
             name,
             script_chan: script_sender,
-            title: RefCell::new(title),
-            url: RefCell::new(url.into_string()),
-            active_pipeline_id: Cell::new(pipeline_id),
-            active_outer_window_id: Cell::new(outer_window_id),
+            title: AtomicRefCell::new(title),
+            url: AtomicRefCell::new(url.into_string()),
+            active_pipeline_id: AtomicRefCell::new(pipeline_id),
+            active_outer_window_id: AtomicRefCell::new(outer_window_id),
             browser_id,
             browsing_context_id,
             accessibility: accessibility.name(),
@@ -260,7 +261,7 @@ impl BrowsingContextActor {
             css_properties: css_properties.name(),
             inspector,
             reflow: reflow.name(),
-            streams: RefCell::new(HashMap::new()),
+            streams: AtomicRefCell::new(HashMap::new()),
             style_sheets: style_sheets.name(),
             _tab: tabdesc.name(),
             thread: thread.name(),
@@ -287,8 +288,8 @@ impl BrowsingContextActor {
         };
         if let Some(pipeline_id) = pipeline_id {
             let outer_window_id = id_map.outer_window_id(pipeline_id);
-            self.active_outer_window_id.set(outer_window_id);
-            self.active_pipeline_id.set(pipeline_id);
+            *self.active_outer_window_id.borrow_mut() = outer_window_id;
+            *self.active_pipeline_id.borrow_mut() = pipeline_id;
         }
         url.as_str().clone_into(&mut self.url.borrow_mut());
         if let Some(ref t) = title {
@@ -311,7 +312,7 @@ impl BrowsingContextActor {
     }
 
     pub(crate) fn title_changed(&self, pipeline_id: PipelineId, title: String) {
-        if pipeline_id != self.active_pipeline_id.get() {
+        if pipeline_id != self.pipeline_id() {
             return;
         }
         *self.title.borrow_mut() = title;
@@ -332,8 +333,16 @@ impl BrowsingContextActor {
 
     pub fn simulate_color_scheme(&self, theme: Theme) -> Result<(), ()> {
         self.script_chan
-            .send(SimulateColorScheme(self.active_pipeline_id.get(), theme))
+            .send(SimulateColorScheme(self.pipeline_id(), theme))
             .map_err(|_| ())
+    }
+
+    pub fn pipeline_id(&self) -> PipelineId {
+        *self.active_pipeline_id.borrow()
+    }
+
+    pub fn outer_window_id(&self) -> DevtoolsOuterWindowId {
+        *self.active_outer_window_id.borrow()
     }
 }
 
@@ -353,7 +362,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             url: self.url.borrow().clone(),
             browser_id: self.browser_id.value(),
             browsing_context_id: self.browsing_context_id.value(),
-            outer_window_id: self.active_outer_window_id.get().value(),
+            outer_window_id: self.outer_window_id().value(),
             is_top_level_target: true,
             accessibility_actor: self.accessibility.clone(),
             console_actor: self.console.clone(),

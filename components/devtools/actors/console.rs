@@ -6,11 +6,11 @@
 //! Mediates interaction between the remote web console and equivalent functionality (object
 //! inspection, JS evaluation, autocompletion) in Servo.
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReply::{
@@ -134,7 +134,7 @@ pub(crate) enum Root {
 pub(crate) struct ConsoleActor {
     pub name: String,
     pub root: Root,
-    pub cached_events: RefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
+    pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
 }
 
 impl ConsoleActor {
@@ -152,12 +152,9 @@ impl ConsoleActor {
 
     fn current_unique_id(&self, registry: &ActorRegistry) -> UniqueId {
         match &self.root {
-            Root::BrowsingContext(bc) => UniqueId::Pipeline(
-                registry
-                    .find::<BrowsingContextActor>(bc)
-                    .active_pipeline_id
-                    .get(),
-            ),
+            Root::BrowsingContext(bc) => {
+                UniqueId::Pipeline(registry.find::<BrowsingContextActor>(bc).pipeline_id())
+            },
             Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).worker_id),
         }
     }

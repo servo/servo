@@ -4,12 +4,12 @@
 
 #![expect(dead_code)]
 
-use std::cell::RefCell;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
+use atomic_refcell::AtomicRefCell;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::PipelineId;
@@ -30,9 +30,9 @@ pub struct TimelineActor {
     marker_types: Vec<TimelineMarkerType>,
     pipeline_id: PipelineId,
     is_recording: Arc<Mutex<bool>>,
-    stream: RefCell<Option<TcpStream>>,
-    framerate_actor: RefCell<Option<String>>,
-    memory_actor: RefCell<Option<String>>,
+    stream: AtomicRefCell<Option<TcpStream>>,
+    framerate_actor: AtomicRefCell<Option<String>>,
+    memory_actor: AtomicRefCell<Option<String>>,
     registry: Arc<Mutex<ActorRegistry>>,
     start_stamp: CrossProcessInstant,
 }
@@ -143,9 +143,9 @@ impl TimelineActor {
             marker_types,
             script_sender,
             is_recording: Arc::new(Mutex::new(false)),
-            stream: RefCell::new(None),
-            framerate_actor: RefCell::new(None),
-            memory_actor: RefCell::new(None),
+            stream: AtomicRefCell::new(None),
+            framerate_actor: AtomicRefCell::new(None),
+            memory_actor: AtomicRefCell::new(None),
             start_stamp: CrossProcessInstant::now(),
             registry,
         }
