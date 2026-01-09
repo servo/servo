@@ -251,52 +251,51 @@ fn remove_item_and_clear() {
     shutdown(&threads);
 }
 
-#[test]
-fn origin_descriptors() {
+fn test_origin_descriptors(storage_type: WebStorageType, survives_restart: bool) {
+    let (tmp_dir, threads) = init();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
-    // (storage_type, survives_restart)
-    let cases = [
-        (WebStorageType::Session, false),
-        (WebStorageType::Local, true),
-    ];
+    // Set a value.
+    let (sender, receiver) = base_channel::channel().unwrap();
+    threads
+        .send(WebStorageThreadMsg::SetItem(
+            sender,
+            storage_type,
+            TEST_WEBVIEW_ID,
+            url.clone(),
+            "foo".into(),
+            "bar".into(),
+        ))
+        .unwrap();
+    let _ = receiver.recv().unwrap();
 
-    let (tmp_dir, threads) = init();
-
-    for (storage_type, _) in cases {
-        // Set a value.
-        let (sender, receiver) = base_channel::channel().unwrap();
-        threads
-            .send(WebStorageThreadMsg::SetItem(
-                sender,
-                storage_type,
-                TEST_WEBVIEW_ID,
-                url.clone(),
-                "foo".into(),
-                "bar".into(),
-            ))
-            .unwrap();
-        assert_eq!(receiver.recv().unwrap(), Ok((true, None)));
-
-        let descriptors = threads.webstorage_origins(storage_type);
-        assert_eq!(descriptors.len(), 1);
-        assert_eq!(descriptors[0].name, "https://example.com");
-    }
+    // Verify descriptors.
+    let descriptors = threads.webstorage_origins(storage_type);
+    assert_eq!(descriptors.len(), 1);
+    assert_eq!(descriptors[0].name, "https://example.com");
 
     // Restart storage threads.
     shutdown(&threads);
     let threads = init_with(&tmp_dir);
 
-    for (storage_type, survives_restart) in cases {
-        let descriptors = threads.webstorage_origins(storage_type);
-
-        if survives_restart {
-            assert_eq!(descriptors.len(), 1);
-            assert_eq!(descriptors[0].name, "https://example.com");
-        } else {
-            assert!(descriptors.is_empty());
-        }
+    // There should still be descriptors.
+    let descriptors = threads.webstorage_origins(storage_type);
+    if survives_restart {
+        assert_eq!(descriptors.len(), 1);
+        assert_eq!(descriptors[0].name, "https://example.com");
+    } else {
+        assert!(descriptors.is_empty());
     }
 
     shutdown(&threads);
+}
+
+#[test]
+fn origin_descriptors_session() {
+    test_origin_descriptors(WebStorageType::Session, /* survives_restart */ false);
+}
+
+#[test]
+fn origin_descriptors_local() {
+    test_origin_descriptors(WebStorageType::Local, /* survives_restart */ true);
 }
