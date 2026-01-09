@@ -273,10 +273,6 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
                 self.node.node.is_text_container_of_single_line_input())
     }
 
-    pub fn is_text_input(&self) -> bool {
-        self.node.node.is_text_input()
-    }
-
     pub fn selected_style(&self) -> Arc<ComputedValues> {
         let Some(element) = self.as_element() else {
             // TODO(stshine): What should the selected style be for text?
@@ -380,7 +376,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         self.node
     }
 
-    fn node_text_content(self) -> Cow<'dom, str> {
+    fn text_content(self) -> Cow<'dom, str> {
         unsafe { self.get_jsmanaged().text_content() }
     }
 

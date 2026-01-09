@@ -106,9 +106,7 @@ use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use crate::dom::html::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
-use crate::dom::html::htmlinputelement::{
-    HTMLInputElement, InputType, LayoutHTMLInputElementHelpers,
-};
+use crate::dom::html::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
@@ -1716,13 +1714,6 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// attempting to read or modify the opaque layout data of this node.
     unsafe fn clear_style_and_layout_data(self);
 
-    /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
-    /// This is used for the rendering of text control element in the past
-    /// where the necessities is being handled within layout. With the current
-    /// implementation of Shadow DOM, we are able to move and expand this kind
-    /// of behavior in the previous pipelines (i.e. DOM, style traversal).
-    fn is_text_input(&self) -> bool;
-
     /// Whether this element serve as a container of editable text for a text input
     /// that is implemented as an UA widget.
     fn is_single_line_text_inner_editor(&self) -> bool;
@@ -1910,27 +1901,6 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
     }
 
-    /// Whether this element should layout as a special case input element.
-    // TODO(#38251): With the implementation of Shadow DOM, we could implement the construction properly
-    //               in the DOM, instead of delegating it to layout.
-    fn is_text_input(&self) -> bool {
-        let type_id = self.type_id_for_layout();
-        if type_id ==
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            ))
-        {
-            let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
-
-            !input.is_textual_widget() && input.input_type() != InputType::Color
-        } else {
-            type_id ==
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLTextAreaElement,
-                ))
-        }
-    }
-
     fn is_single_line_text_inner_editor(&self) -> bool {
         matches!(
             self.unsafe_get().implemented_pseudo_element(),
@@ -1956,46 +1926,32 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     fn text_content(self) -> Cow<'dom, str> {
-        if let Some(text) = self.downcast::<Text>() {
-            return text.upcast().data_for_layout().into();
-        }
-
-        if let Some(input) = self.downcast::<HTMLInputElement>() {
-            return input.value_for_layout();
-        }
-
-        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return area.value_for_layout().into();
-        }
-
-        panic!("not text!")
+        self.downcast::<Text>()
+            .expect("Called LayoutDom::text_content on non-Text node!")
+            .upcast()
+            .data_for_layout()
+            .into()
     }
 
+    /// Get the selection for the given node. This only works for text nodes that are in
+    /// the shadow DOM of user agent widgets for form controls, specifically for `<input>`
+    /// and `<textarea>`.
+    ///
+    /// As we want to expose the selection on the inner text node of the widget's shadow
+    /// DOM, we must find the shadow root and then access the containing element itself.
     fn selection(self) -> Option<Range<usize>> {
-        // If this is a inner editor of an UA widget element, we should find
-        // the selection from its shadow host.
-        // FIXME(stevennovaryo): This should account for the multiline text input,
-        //                       but we are yet to support that input with UA widget.
-        if self.is_in_ua_widget() &&
-            self.is_text_node_for_layout() &&
-            self.parent_node_ref()
-                .is_some_and(|parent| parent.is_single_line_text_inner_editor())
-        {
-            let shadow_root = self.containing_shadow_root_for_layout();
-            if let Some(containing_shadow_host) = shadow_root.map(|root| root.get_host_for_layout())
-            {
-                if let Some(input) = containing_shadow_host.downcast::<HTMLInputElement>() {
-                    return input.selection_for_layout();
-                }
-            }
+        if !self.is_in_ua_widget() || !self.is_text_node_for_layout() {
+            return None;
         }
 
-        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return area.selection_for_layout();
-        }
-
-        if let Some(input) = self.downcast::<HTMLInputElement>() {
+        let shadow_root = self
+            .containing_shadow_root_for_layout()?
+            .get_host_for_layout();
+        if let Some(input) = shadow_root.downcast::<HTMLInputElement>() {
             return input.selection_for_layout();
+        }
+        if let Some(area) = shadow_root.downcast::<HTMLTextAreaElement>() {
+            return area.selection_for_layout();
         }
 
         None

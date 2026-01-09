@@ -201,7 +201,10 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// data flags, and we have this annoying trait separation between script and layout :-(
     fn unsafe_get(self) -> Self::ConcreteNode;
 
-    fn node_text_content(self) -> Cow<'dom, str>;
+    /// Get the text content of this node, if it is a text node.
+    ///
+    /// Note: This should only be called on text nodes.
+    fn text_content(self) -> Cow<'dom, str>;
 
     /// If selection intersects this node, return it. Otherwise, returns `None`.
     fn selection(&self) -> Option<Range<ByteIndex>>;

@@ -1050,7 +1050,7 @@ fn rendered_text_collection_steps(
                     }
                 }
 
-                let text_content = node.to_threadsafe().node_text_content();
+                let text_content = node.to_threadsafe().text_content();
 
                 let white_space_collapse = style.clone_white_space_collapse();
                 let preserve_whitespace = white_space_collapse == WhiteSpaceCollapseValue::Preserve;
@@ -1127,7 +1127,7 @@ fn rendered_text_collection_steps(
                 // If we don't have a parent element then there's no style data available,
                 // in this (pretty unlikely) case we just return the Text fragment as is.
                 items.push(InnerOrOuterTextItem::Text(
-                    node.to_threadsafe().node_text_content().into(),
+                    node.to_threadsafe().text_content().into(),
                 ));
             }
         },

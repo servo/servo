@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::ops::Range;
@@ -30,6 +29,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
+use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::domstring::parse_floating_point_number;
@@ -61,13 +61,11 @@ use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
-use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
-};
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::filelist::{FileList, LayoutFileListHelpers};
+use crate::dom::filelist::FileList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -82,7 +80,7 @@ use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::text::Text;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::types::{CharacterData, FocusEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
@@ -98,6 +96,30 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct TextValueShadowTree {
+    value: Dom<Text>,
+}
+
+impl TextValueShadowTree {
+    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+        let value = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
+        Node::replace_all(Some(value.upcast()), shadow_root, can_gc);
+        Self {
+            value: value.as_traced(),
+        }
+    }
+
+    fn update(&self, input_element: &HTMLInputElement) {
+        let character_data = self.value.upcast::<CharacterData>();
+        let value = input_element.value_for_shadow_dom();
+        if character_data.Data() != value {
+            character_data.SetData(value);
+        }
+    }
+}
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -120,32 +142,131 @@ const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 //                      they would try to vertically align <input> text baseline with the baseline of other
 //                      TextNode within an inline flow. Another example is the horizontal scroll.
 // FIXME(#38263): Refactor these logics into a TextControl wrapper that would decouple all textual input.
-struct InputTypeTextShadowTree {
+struct TextInputWidgetShadowTree {
     inner_container: Dom<Element>,
     text_container: Dom<Element>,
     placeholder_container: DomRefCell<Option<Dom<Element>>>,
 }
 
-impl InputTypeTextShadowTree {
+impl TextInputWidgetShadowTree {
+    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+        let document = shadow_root.owner_document();
+        let inner_container = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        Node::replace_all(Some(inner_container.upcast()), shadow_root.upcast(), can_gc);
+        inner_container
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoTextControlInnerContainer);
+
+        let text_container = create_ua_widget_div_with_text_node(
+            &document,
+            inner_container.upcast(),
+            PseudoElement::ServoTextControlInnerEditor,
+            false,
+            can_gc,
+        );
+
+        Self {
+            inner_container: inner_container.as_traced(),
+            text_container: text_container.as_traced(),
+            placeholder_container: DomRefCell::new(None),
+        }
+    }
+
     /// Initialize the placeholder container only when it is necessary. This would help the performance of input
     /// element with shadow dom that is quite bulky.
-    fn init_placeholder_container_if_necessary(&self, host: &HTMLInputElement, can_gc: CanGc) {
-        // If the container is already initialized or there is no placeholder then it is not necessary to
-        // initialize a new placeholder container.
-        if self.placeholder_container.borrow().is_some() || host.placeholder.borrow().is_empty() {
-            return;
+    fn init_placeholder_container_if_necessary(
+        &self,
+        host: &HTMLInputElement,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<Element>> {
+        if let Some(placeholder_container) = &*self.placeholder_container.borrow() {
+            return Some(placeholder_container.root_element());
+        }
+        // If there is no placeholder text and we haven't already created one then it is
+        // not necessary to initialize a new placeholder container.
+        if host.placeholder.borrow().is_empty() {
+            return None;
         }
 
-        *self.placeholder_container.borrow_mut() = Some(
-            create_ua_widget_div_with_text_node(
-                &host.owner_document(),
-                self.inner_container.upcast::<Node>(),
-                PseudoElement::Placeholder,
-                true,
-                can_gc,
-            )
-            .as_traced(),
+        let placeholder_container = create_ua_widget_div_with_text_node(
+            &host.owner_document(),
+            self.inner_container.upcast::<Node>(),
+            PseudoElement::Placeholder,
+            true,
+            can_gc,
         );
+        *self.placeholder_container.borrow_mut() = Some(placeholder_container.as_traced());
+        Some(placeholder_container)
+    }
+
+    fn placeholder_character_data(
+        &self,
+        input_element: &HTMLInputElement,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<CharacterData>> {
+        self.init_placeholder_container_if_necessary(input_element, can_gc)
+            .and_then(|placeholder_container| {
+                let first_child = placeholder_container.upcast::<Node>().GetFirstChild()?;
+                Some(DomRoot::from_ref(first_child.downcast::<CharacterData>()?))
+            })
+    }
+
+    fn update_placeholder(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+        if let Some(character_data) = self.placeholder_character_data(input_element, can_gc) {
+            let placeholder_value = input_element.placeholder.borrow().clone();
+            if character_data.Data() != placeholder_value {
+                character_data.SetData(placeholder_value.clone());
+            }
+        }
+    }
+
+    fn value_character_data(&self) -> Option<DomRoot<CharacterData>> {
+        Some(DomRoot::from_ref(
+            self.text_container
+                .upcast::<Node>()
+                .GetFirstChild()?
+                .downcast::<CharacterData>()?,
+        ))
+    }
+
+    // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
+    // like an exstension to this one.
+    fn update(&self, input_element: &HTMLInputElement) {
+        // The addition of zero-width space here forces the text input to have an inline formatting
+        // context that might otherwise be trimmed if there's no text. This is important to ensure
+        // that the input element is at least as tall as the line gap of the caret:
+        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+        //
+        // This is also used to ensure that the caret will still be rendered when the input is empty.
+        // TODO: Could append `<br>` element to prevent collapses and avoid this hack, but we would
+        //       need to fix the rendering of caret beforehand.
+        let value = input_element.Value();
+        let value_text = match (value.is_empty(), input_element.input_type()) {
+            // For a password input, we replace all of the character with its replacement char.
+            (false, InputType::Password) => value
+                .str()
+                .chars()
+                .map(|_| PASSWORD_REPLACEMENT_CHAR)
+                .collect::<String>()
+                .into(),
+            (false, _) => value,
+            (true, _) => "\u{200B}".into(),
+        };
+
+        if let Some(character_data) = self.value_character_data() {
+            if character_data.Data() != value_text {
+                character_data.SetData(value_text);
+            }
+        }
     }
 }
 
@@ -155,17 +276,97 @@ impl InputTypeTextShadowTree {
 ///
 /// The shadow tree consists of a single div with the currently selected color as
 /// the background.
-struct InputTypeColorShadowTree {
+struct ColorInputShadowTree {
     color_value: Dom<Element>,
+}
+
+impl ColorInputShadowTree {
+    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+        let color_value = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &shadow_root.owner_document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        Node::replace_all(Some(color_value.upcast()), shadow_root.upcast(), can_gc);
+        color_value
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ColorSwatch);
+
+        Self {
+            color_value: color_value.as_traced(),
+        }
+    }
+
+    fn update(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+        let mut value = input_element.Value();
+        if value.str().is_valid_simple_color_string() {
+            value.make_ascii_lowercase();
+        } else {
+            value = DOMString::from("#000000");
+        }
+        let style = format!("background-color: {value}");
+        self.color_value
+            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[non_exhaustive]
-enum ShadowTree {
-    Text(InputTypeTextShadowTree),
-    Color(InputTypeColorShadowTree),
+enum InputElementShadowTree {
+    ColorInput(ColorInputShadowTree),
+    TextInput(TextInputWidgetShadowTree),
+    TextValue(TextValueShadowTree),
     // TODO: Add shadow trees for other input types (range etc) here
+}
+
+impl InputElementShadowTree {
+    fn new(input_element: &HTMLInputElement, can_gc: CanGc) -> Self {
+        let element = input_element.upcast::<Element>();
+        let shadow_root = element
+            .shadow_root()
+            .unwrap_or_else(|| element.attach_ua_shadow_root(true, can_gc));
+        let shadow_root = shadow_root.upcast();
+
+        if input_element.input_type() == InputType::Color {
+            return Self::ColorInput(ColorInputShadowTree::new(shadow_root, can_gc));
+        }
+        if input_element.renders_as_text_input_widget() {
+            return Self::TextInput(TextInputWidgetShadowTree::new(shadow_root, can_gc));
+        }
+        Self::TextValue(TextValueShadowTree::new(shadow_root, can_gc))
+    }
+
+    fn is_valid_for_element(&self, input_element: &HTMLInputElement) -> bool {
+        if input_element.input_type() == InputType::Color {
+            return matches!(self, InputElementShadowTree::ColorInput(_));
+        }
+        if input_element.renders_as_text_input_widget() {
+            return matches!(self, InputElementShadowTree::TextInput(_));
+        }
+        matches!(self, InputElementShadowTree::TextValue(_))
+    }
+
+    fn update_placeholder_contents(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+        if let InputElementShadowTree::TextInput(shadow_tree) = self {
+            shadow_tree.update_placeholder(input_element, can_gc);
+        }
+    }
+
+    fn update(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+        match self {
+            InputElementShadowTree::ColorInput(shadow_tree) => {
+                shadow_tree.update(input_element, can_gc)
+            },
+            InputElementShadowTree::TextInput(shadow_tree) => shadow_tree.update(input_element),
+            InputElementShadowTree::TextValue(shadow_tree) => shadow_tree.update(input_element),
+        }
+    }
 }
 
 /// Create a div element with a text node within an UA Widget and either append or prepend it to
@@ -441,7 +642,7 @@ pub(crate) struct HTMLInputElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
-    shadow_tree: DomRefCell<Option<ShadowTree>>,
+    shadow_tree: DomRefCell<Option<InputElementShadowTree>>,
     #[no_trace]
     pending_webdriver_response: RefCell<Option<PendingWebDriverResponse>>,
 }
@@ -1207,141 +1408,27 @@ impl HTMLInputElement {
         failed_flags
     }
 
-    /// Return a reference to the ShadowRoot that this element is a host of,
-    /// or create one if none exists.
-    // FIXME(stevennovaryo): We should encapsulate the logics for the initiation and maintainance of
-    //                       form UA widget inside another struct.
-    fn shadow_root(&self, can_gc: CanGc) -> DomRoot<ShadowRoot> {
-        self.upcast::<Element>()
-            .shadow_root()
-            .unwrap_or_else(|| self.upcast::<Element>().attach_ua_shadow_root(true, can_gc))
-    }
-
-    fn create_text_shadow_tree(&self, can_gc: CanGc) {
-        let document = self.owner_document();
-        let shadow_root = self.shadow_root(can_gc);
-        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
-
-        let inner_container = Element::create(
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-            can_gc,
-        );
-        shadow_root
-            .upcast::<Node>()
-            .AppendChild(inner_container.upcast::<Node>(), can_gc)
-            .unwrap();
-        inner_container
-            .upcast::<Node>()
-            .set_implemented_pseudo_element(PseudoElement::ServoTextControlInnerContainer);
-
-        let text_container = create_ua_widget_div_with_text_node(
-            &document,
-            inner_container.upcast::<Node>(),
-            PseudoElement::ServoTextControlInnerEditor,
-            false,
-            can_gc,
-        );
-
-        let _ = self
-            .shadow_tree
-            .borrow_mut()
-            .insert(ShadowTree::Text(InputTypeTextShadowTree {
-                inner_container: inner_container.as_traced(),
-                text_container: text_container.as_traced(),
-                placeholder_container: DomRefCell::new(None),
-            }));
-    }
-
-    fn text_shadow_tree(&self, can_gc: CanGc) -> Ref<'_, InputTypeTextShadowTree> {
-        let has_text_shadow_tree = self
-            .shadow_tree
-            .borrow()
-            .as_ref()
-            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::Text(_)));
-        if !has_text_shadow_tree {
-            self.create_text_shadow_tree(can_gc);
-        }
-
-        let shadow_tree = self.shadow_tree.borrow();
-        Ref::filter_map(shadow_tree, |shadow_tree| {
-            let shadow_tree = shadow_tree.as_ref()?;
-            match shadow_tree {
-                ShadowTree::Text(text_tree) => Some(text_tree),
-                _ => None,
+    /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
+    /// recreate the shadow tree and return it.
+    fn get_or_create_shadow_tree(&self, can_gc: CanGc) -> Ref<'_, InputElementShadowTree> {
+        {
+            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
+                shadow_tree
+                    .as_ref()
+                    .filter(|shadow_tree| shadow_tree.is_valid_for_element(self))
+            }) {
+                return shadow_tree;
             }
-        })
-        .ok()
-        .expect("UA shadow tree was not created")
-    }
-
-    fn create_color_shadow_tree(&self, can_gc: CanGc) {
-        let document = self.owner_document();
-        let shadow_root = self.shadow_root(can_gc);
-        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
-
-        let color_value = Element::create(
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-            can_gc,
-        );
-        shadow_root
-            .upcast::<Node>()
-            .AppendChild(color_value.upcast::<Node>(), can_gc)
-            .unwrap();
-        color_value
-            .upcast::<Node>()
-            .set_implemented_pseudo_element(PseudoElement::ColorSwatch);
-
-        let _ = self
-            .shadow_tree
-            .borrow_mut()
-            .insert(ShadowTree::Color(InputTypeColorShadowTree {
-                color_value: color_value.as_traced(),
-            }));
-    }
-
-    /// Get a handle to the shadow tree for this input, assuming it's [InputType] is `Color`.
-    ///
-    /// If the input is not currently a shadow host, a new shadow tree will be created.
-    ///
-    /// If the input is a shadow host for a different kind of shadow tree then the old
-    /// tree will be removed and a new one will be created.
-    fn color_shadow_tree(&self, can_gc: CanGc) -> Ref<'_, InputTypeColorShadowTree> {
-        let has_color_shadow_tree = self
-            .shadow_tree
-            .borrow()
-            .as_ref()
-            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::Color(_)));
-        if !has_color_shadow_tree {
-            self.create_color_shadow_tree(can_gc);
         }
-
-        let shadow_tree = self.shadow_tree.borrow();
-        Ref::filter_map(shadow_tree, |shadow_tree| {
-            let shadow_tree = shadow_tree.as_ref()?;
-            match shadow_tree {
-                ShadowTree::Color(color_tree) => Some(color_tree),
-                _ => None,
-            }
-        })
-        .ok()
-        .expect("UA shadow tree was not created")
+        *self.shadow_tree.borrow_mut() = Some(InputElementShadowTree::new(self, can_gc));
+        self.get_or_create_shadow_tree(can_gc)
     }
 
-    /// Should this input type render as a basic text UA widget.
-    // TODO(#38251): Ideally, the most basic shadow dom should cover only `text`, `password`, `url`, `tel`,
-    //               and `email`. But we are leaving the others textual inputs here while tackling them one
-    //               by one.
-    pub(crate) fn is_textual_widget(&self) -> bool {
+    /// Whether this input type renders as a basic text input widget.
+    ///
+    /// TODO(#38251): This should eventually only include `text`, `password`, `url`, `tel`,
+    /// and `email`, but the others do not yet have a custom shadow DOM implementation.
+    pub(crate) fn renders_as_text_input_widget(&self) -> bool {
         matches!(
             self.input_type(),
             InputType::Date |
@@ -1358,74 +1445,6 @@ impl HTMLInputElement {
                 InputType::Url |
                 InputType::Week
         )
-    }
-
-    /// Construct the most basic shadow tree structure for textual input.
-    /// TODO(stevennovaryo): The rest of textual input shadow dom structure should act like an
-    ///                       exstension to this one.
-    fn update_textual_shadow_tree(&self, can_gc: CanGc) {
-        // Should only do this for textual input widget.
-        debug_assert!(self.is_textual_widget());
-
-        let text_shadow_tree = self.text_shadow_tree(can_gc);
-        let value = self.Value();
-
-        // The addition of zero-width space here forces the text input to have an inline formatting
-        // context that might otherwise be trimmed if there's no text. This is important to ensure
-        // that the input element is at least as tall as the line gap of the caret:
-        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-        //
-        // This is also used to ensure that the caret will still be rendered when the input is empty.
-        // TODO: Could append `<br>` element to prevent collapses and avoid this hack, but we would
-        //       need to fix the rendering of caret beforehand.
-        let value_text = match (value.is_empty(), self.input_type()) {
-            // For a password input, we replace all of the character with its replacement char.
-            (false, InputType::Password) => value
-                .str()
-                .chars()
-                .map(|_| PASSWORD_REPLACEMENT_CHAR)
-                .collect::<String>()
-                .into(),
-            (false, _) => value,
-            (true, _) => "\u{200B}".into(),
-        };
-
-        // We are finding and updating the CharacterData child directly to optimize the update.
-        text_shadow_tree
-            .text_container
-            .upcast::<Node>()
-            .GetFirstChild()
-            .expect("UA widget text container without child")
-            .downcast::<CharacterData>()
-            .expect("First child is not a CharacterData node")
-            .SetData(value_text);
-    }
-
-    fn update_color_shadow_tree(&self, can_gc: CanGc) {
-        // Should only do this for `type=color` input.
-        debug_assert_eq!(self.input_type(), InputType::Color);
-
-        let color_shadow_tree = self.color_shadow_tree(can_gc);
-        let mut value = self.Value();
-        if value.str().is_valid_simple_color_string() {
-            value.make_ascii_lowercase();
-        } else {
-            value = DOMString::from("#000000");
-        }
-        let style = format!("background-color: {value}");
-        color_shadow_tree.color_value.set_string_attribute(
-            &local_name!("style"),
-            style.into(),
-            can_gc,
-        );
-    }
-
-    fn update_shadow_tree(&self, can_gc: CanGc) {
-        match self.input_type() {
-            _ if self.is_textual_widget() => self.update_textual_shadow_tree(can_gc),
-            InputType::Color => self.update_color_shadow_tree(can_gc),
-            _ => {},
-        }
     }
 
     fn may_have_embedder_control(&self) -> bool {
@@ -1459,11 +1478,49 @@ impl HTMLInputElement {
             KeyReaction::Nothing => (),
         }
     }
+
+    /// Return a string that represents the contents of the element in its displayed shadow DOM.
+    fn value_for_shadow_dom(&self) -> DOMString {
+        let input_type = self.input_type();
+        match input_type {
+            InputType::Checkbox |
+            InputType::Radio |
+            InputType::Image |
+            InputType::Hidden |
+            InputType::Range => "".into(),
+            InputType::File => {
+                let Some(filelist) = self.filelist.get() else {
+                    return DEFAULT_FILE_INPUT_VALUE.into();
+                };
+                let length = filelist.Length();
+                if length > 1 {
+                    return format!("{length} files").into();
+                }
+
+                let Some(first_item) = filelist.Item(0) else {
+                    return DEFAULT_FILE_INPUT_VALUE.into();
+                };
+                first_item.name().to_string().into()
+            },
+            _ => {
+                if let Some(attribute_value) = self
+                    .upcast::<Element>()
+                    .get_attribute(&ns!(), &local_name!("value"))
+                    .map(|attribute| attribute.Value())
+                {
+                    return attribute_value;
+                }
+                match input_type {
+                    InputType::Submit => DEFAULT_SUBMIT_VALUE.into(),
+                    InputType::Reset => DEFAULT_RESET_VALUE.into(),
+                    _ => "".into(),
+                }
+            },
+        }
+    }
 }
 
 pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
-    /// Return a string that represents the contents of the element for layout.
-    fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
     fn selection_for_layout(self) -> Option<Range<usize>>;
 }
@@ -1477,9 +1534,6 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .borrow_for_layout()
                 .get_content()
         }
-    }
-    fn get_filelist(self) -> Option<LayoutDom<'dom, FileList>> {
-        unsafe { self.unsafe_get().filelist.get_inner_as_layout() }
     }
 
     fn input_type(self) -> InputType {
@@ -1497,55 +1551,6 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
 }
 
 impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElement> {
-    /// In the past, we are handling the display of <input> element inside the dom tree traversal.
-    /// With the introduction of shadow DOM, these implementations will be replaced one by one
-    /// and these will be obselete,
-    fn value_for_layout(self) -> Cow<'dom, str> {
-        fn get_raw_attr_value<'dom>(
-            input: LayoutDom<'dom, HTMLInputElement>,
-            default: &'static str,
-        ) -> Cow<'dom, str> {
-            input
-                .upcast::<Element>()
-                .get_attr_val_for_layout(&ns!(), &local_name!("value"))
-                .unwrap_or(default)
-                .into()
-        }
-
-        match self.input_type() {
-            InputType::Checkbox | InputType::Radio | InputType::Image | InputType::Hidden => {
-                "".into()
-            },
-            InputType::File => {
-                let filelist = self.get_filelist();
-                match filelist {
-                    Some(filelist) => {
-                        let length = filelist.len();
-                        if length == 0 {
-                            DEFAULT_FILE_INPUT_VALUE.into()
-                        } else if length == 1 {
-                            match filelist.file_for_layout(0) {
-                                Some(file) => file.name().to_string().into(),
-                                None => DEFAULT_FILE_INPUT_VALUE.into(),
-                            }
-                        } else {
-                            format!("{} files", length).into()
-                        }
-                    },
-                    None => DEFAULT_FILE_INPUT_VALUE.into(),
-                }
-            },
-            InputType::Button => get_raw_attr_value(self, ""),
-            InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
-            InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
-            // FIXME(#22728): input `type=range` has yet to be implemented.
-            InputType::Range => "".into(),
-            _ => {
-                unreachable!("Input with shadow tree should use internal shadow tree for layout");
-            },
-        }
-    }
-
     /// Textual input, specifically text entry and domain specific input has
     /// a default preferred size.
     ///
@@ -1607,7 +1612,7 @@ impl TextControlElement for HTMLInputElement {
     // Types omitted which could theoretically be included if they were
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
-        self.is_textual_widget() && !self.textinput.borrow().get_content().is_empty()
+        self.renders_as_text_input_widget() && !self.textinput.borrow().get_content().is_empty()
     }
 
     fn has_selection(&self) -> bool {
@@ -2368,41 +2373,13 @@ impl HTMLInputElement {
 
     fn update_placeholder_shown_state(&self) {
         if !self.input_type().is_textual_or_password() {
-            return;
+            self.upcast::<Element>().set_placeholder_shown_state(false);
+        } else {
+            let has_placeholder = !self.placeholder.borrow().is_empty();
+            let has_value = !self.textinput.borrow().is_empty();
+            self.upcast::<Element>()
+                .set_placeholder_shown_state(has_placeholder && !has_value);
         }
-
-        let has_placeholder = !self.placeholder.borrow().is_empty();
-        let has_value = !self.textinput.borrow().is_empty();
-        let el = self.upcast::<Element>();
-
-        el.set_placeholder_shown_state(has_placeholder && !has_value);
-    }
-
-    // Update the placeholder text in the text shadow tree.
-    // To increase the performance, we would only do this when it is necessary.
-    fn update_text_shadow_tree_placeholder(&self, can_gc: CanGc) {
-        if !self.is_textual_widget() {
-            return;
-        }
-
-        let text_shadow_tree = self.text_shadow_tree(can_gc);
-        text_shadow_tree.init_placeholder_container_if_necessary(self, can_gc);
-
-        let Some(ref placeholder_container) = *text_shadow_tree.placeholder_container.borrow()
-        else {
-            // No update is necesssary.
-            return;
-        };
-        let placeholder_text = self.placeholder.borrow().clone();
-
-        // We are finding and updating the CharacterData child directly to optimize the update.
-        placeholder_container
-            .upcast::<Node>()
-            .GetFirstChild()
-            .expect("UA widget text container without child")
-            .downcast::<CharacterData>()
-            .expect("First child is not a CharacterData node")
-            .SetData(placeholder_text);
     }
 
     pub(crate) fn select_files_for_webdriver(
@@ -2805,7 +2782,7 @@ impl HTMLInputElement {
 
     fn value_changed(&self, can_gc: CanGc) {
         self.update_related_validity_states(can_gc);
-        self.update_shadow_tree(can_gc);
+        self.get_or_create_shadow_tree(can_gc).update(self, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
@@ -2909,7 +2886,7 @@ impl HTMLInputElement {
         // The focus state can afect the selection (see `selection_for_layout()`),
         // thus dirty the node so that it is laid out again.
         // TODO: Selection changes shouldn't require a new layout.
-        if self.is_textual_widget() {
+        if self.renders_as_text_input_widget() {
             self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
         }
 
@@ -3080,7 +3057,8 @@ impl VirtualMethods for HTMLInputElement {
                 }
 
                 self.update_placeholder_shown_state();
-                self.update_text_shadow_tree_placeholder(can_gc);
+                self.get_or_create_shadow_tree(can_gc)
+                    .update_placeholder_contents(self, can_gc);
             },
             // FIXME(stevennovaryo): This is only reachable by Default and DefaultOn value mode. While others
             //                       are being handled in [Self::SetValue]. Should we merge this two together?
@@ -3134,7 +3112,8 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
                 self.update_placeholder_shown_state();
-                self.update_text_shadow_tree_placeholder(can_gc);
+                self.get_or_create_shadow_tree(can_gc)
+                    .update_placeholder_contents(self, can_gc);
             },
             local_name!("readonly") => {
                 if self.input_type().is_textual() {
