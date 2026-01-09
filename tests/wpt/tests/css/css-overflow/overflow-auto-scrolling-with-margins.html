@@ -1,6 +1,5 @@
 <!doctype html>
-<meta charset=utf-8>
-<title>Should be able to scroll an element that is offset by the ancestor's margin</title>
+<title>Should be able to interactively scroll an overflow: auto element with a margin</title>
 <link rel="help" href="https://github.com/servo/servo/pull/41707">
 <link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
 <script src=/resources/testharness.js></script>
@@ -20,7 +19,7 @@
   overflow: auto;
   scrollbar-width: none;
 }
-#target {
+#item {
   position: relative;
   top: 50px;
   left: 50px;
@@ -30,7 +29,7 @@
 }
 </style>
 <div id="scroller">
-  <div id="target">
+  <div id="item">
   </div>
 </div>
 
@@ -38,18 +37,15 @@
   promise_test(async (t) => {
     await waitForCompositorCommit();
     let rect = scroller.getBoundingClientRect();
-    const actions = new test_driver.Actions().scroll(rect.left+10, rect.top+10, 1000, 1000);
+    const actions = new test_driver.Actions().scroll(rect.left + 10, rect.top + 10, 1000, 1000);
     actions.send();
 
     let scroll_delta_promise = new Promise((resolve) => {
-      let onscroll = (evt) => {
-        resolve([scroller.scrollLeft, scroller.scrollTop]);
-      }
-      scroller.addEventListener("scroll", onscroll);
+      scroller.addEventListener("scroll", () => resolve([scroller.scrollLeft, scroller.scrollTop]));
     });
 
     let [horizontal_delta, vertical_delta] = await scroll_delta_promise;
-    assert_not_equals(horizontal_delta, 0, "Element horizontally scrolled");
-    assert_not_equals(vertical_delta, 0, "Element vertically scrolled");
-  }, "Element that is offset by the margin of it's ancestor should be able to be scrolled");
+    assert_equals(horizontal_delta, 50, "Element scrolled horizontally");
+    assert_equals(vertical_delta, 50, "Element scrolled vertically");
+  }, "Margins should not interfere with interactive scrolling of a scroll container");
 </script>
