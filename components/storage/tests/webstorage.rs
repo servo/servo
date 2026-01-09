@@ -55,6 +55,118 @@ impl WebStorageTest {
         self.threads.clone()
     }
 
+    pub fn length(&self, storage_type: WebStorageType, url: &ServoUrl) -> usize {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::Length(
+                sender,
+                storage_type,
+                TEST_WEBVIEW_ID,
+                url.clone(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub fn key(&self, storage_type: WebStorageType, url: &ServoUrl, index: u32) -> Option<String> {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::Key(
+                sender,
+                storage_type,
+                TEST_WEBVIEW_ID,
+                url.clone(),
+                index,
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub fn keys(&self, storage_type: WebStorageType, url: &ServoUrl) -> Vec<String> {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::Keys(
+                sender,
+                storage_type,
+                TEST_WEBVIEW_ID,
+                url.clone(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub fn get_item(
+        &self,
+        storage_type: WebStorageType,
+        url: &ServoUrl,
+        key: &str,
+    ) -> Option<String> {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::GetItem(
+                sender,
+                storage_type,
+                TEST_WEBVIEW_ID,
+                url.clone(),
+                key.into(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub fn set_item(
+        &self,
+        storage_type: WebStorageType,
+        url: &ServoUrl,
+        key: &str,
+        value: &str,
+    ) -> Result<(bool, Option<String>), ()> {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::SetItem(
+                sender,
+                storage_type,
+                TEST_WEBVIEW_ID,
+                url.clone(),
+                key.into(),
+                value.into(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub fn remove_item(
+        &self,
+        storage_type: WebStorageType,
+        url: &ServoUrl,
+        key: &str,
+    ) -> Option<String> {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::RemoveItem(
+                sender,
+                storage_type,
+                TEST_WEBVIEW_ID,
+                url.clone(),
+                key.into(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
+    pub fn clear(&self, storage_type: WebStorageType, url: &ServoUrl) -> bool {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::Clear(
+                sender,
+                storage_type,
+                TEST_WEBVIEW_ID,
+                url.clone(),
+            ))
+            .unwrap();
+        receiver.recv().unwrap()
+    }
+
     /// Gracefully shut down the webstorage thread to avoid dangling threads in tests.
     fn shutdown(&self) {
         let (sender, receiver) = base_channel::channel().unwrap();
@@ -75,226 +187,94 @@ impl Drop for WebStorageTest {
 #[test]
 fn set_and_get_item() {
     let test = WebStorageTest::new();
-    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::SetItem(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            "foo".into(),
-            "bar".into(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), Ok((true, None)));
+    let result = test.set_item(WebStorageType::Local, &url, "foo", "bar");
+    assert_eq!(result, Ok((true, None)));
 
     // Retrieve the value.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::GetItem(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            "foo".into(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), Some("bar".into()));
+    let result = test.get_item(WebStorageType::Local, &url, "foo");
+    assert_eq!(result, Some("bar".into()));
 }
 
 #[test]
 fn set_and_get_item_in_memory() {
     let test = WebStorageTest::new_in_memory();
-    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::SetItem(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            "foo".into(),
-            "bar".into(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), Ok((true, None)));
+    let result = test.set_item(WebStorageType::Local, &url, "foo", "bar");
+    assert_eq!(result, Ok((true, None)));
 
     // Retrieve the value.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::GetItem(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            "foo".into(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), Some("bar".into()));
+    let result = test.get_item(WebStorageType::Local, &url, "foo");
+    assert_eq!(result, Some("bar".into()));
 }
 
 #[test]
 fn length_key_and_keys() {
     let test = WebStorageTest::new();
-    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Insert two items.
     for (k, v) in [("foo", "v1"), ("bar", "v2")] {
-        let (sender, receiver) = base_channel::channel().unwrap();
-        threads
-            .send(WebStorageThreadMsg::SetItem(
-                sender,
-                WebStorageType::Local,
-                TEST_WEBVIEW_ID,
-                url.clone(),
-                k.into(),
-                v.into(),
-            ))
-            .unwrap();
-        let _ = receiver.recv().unwrap();
+        let _ = test.set_item(WebStorageType::Local, &url, k, v);
     }
 
     // Verify length.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::Length(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), 2);
+    let result = test.length(WebStorageType::Local, &url);
+    assert_eq!(result, 2);
 
     // Verify key(0) returns one of the inserted keys.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::Key(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            0,
-        ))
-        .unwrap();
-    let key0 = receiver.recv().unwrap().unwrap();
+    let result = test.key(WebStorageType::Local, &url, 0);
+    let key0 = result.unwrap();
     assert!(key0 == "foo" || key0 == "bar");
 
     // Verify keys vector contains both keys.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::Keys(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-        ))
-        .unwrap();
-    let keys = receiver.recv().unwrap();
-    assert_eq!(keys.len(), 2);
-    assert!(keys.contains(&"foo".to_string()));
-    assert!(keys.contains(&"bar".to_string()));
+    let result = test.keys(WebStorageType::Local, &url);
+    assert_eq!(result.len(), 2);
+    assert!(result.contains(&"foo".to_string()));
+    assert!(result.contains(&"bar".to_string()));
 }
 
 #[test]
 fn remove_item_and_clear() {
     let test = WebStorageTest::new();
-    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Insert items.
     for (k, v) in [("foo", "v1"), ("bar", "v2")] {
-        let (sender, receiver) = base_channel::channel().unwrap();
-        threads
-            .send(WebStorageThreadMsg::SetItem(
-                sender,
-                WebStorageType::Local,
-                TEST_WEBVIEW_ID,
-                url.clone(),
-                k.into(),
-                v.into(),
-            ))
-            .unwrap();
-        let _ = receiver.recv().unwrap();
+        let _ = test.set_item(WebStorageType::Local, &url, k, v);
     }
 
     // Remove one item and verify old value is returned.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::RemoveItem(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            "foo".into(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), Some("v1".into()));
+    let result = test.remove_item(WebStorageType::Local, &url, "foo");
+    assert_eq!(result, Some("v1".into()));
 
     // Removing again should return None.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::RemoveItem(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            "foo".into(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), None);
+    let result = test.remove_item(WebStorageType::Local, &url, "foo");
+    assert_eq!(result, None);
 
     // Clear storage and verify it reported change.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::Clear(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-        ))
-        .unwrap();
-    assert!(receiver.recv().unwrap());
+    let result = test.clear(WebStorageType::Local, &url);
+    assert!(result);
 
     // Length should now be zero.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::Length(
-            sender,
-            WebStorageType::Local,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-        ))
-        .unwrap();
-    assert_eq!(receiver.recv().unwrap(), 0);
+    let result = test.length(WebStorageType::Local, &url);
+    assert_eq!(result, 0);
 }
 
-fn test_origin_descriptors(storage_type: WebStorageType, survives_restart: bool) {
-    let test = WebStorageTest::new();
+fn test_origin_descriptors(
+    test: WebStorageTest,
+    storage_type: WebStorageType,
+    survives_restart: bool,
+) {
     let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::SetItem(
-            sender,
-            storage_type,
-            TEST_WEBVIEW_ID,
-            url.clone(),
-            "foo".into(),
-            "bar".into(),
-        ))
-        .unwrap();
-    let _ = receiver.recv().unwrap();
+    let _ = test.set_item(storage_type, &url, "foo", "bar");
 
     // Verify descriptors.
     let descriptors = threads.webstorage_origins(storage_type);
@@ -317,10 +297,20 @@ fn test_origin_descriptors(storage_type: WebStorageType, survives_restart: bool)
 
 #[test]
 fn origin_descriptors_session() {
-    test_origin_descriptors(WebStorageType::Session, /* survives_restart */ false);
+    let test = WebStorageTest::new();
+    test_origin_descriptors(
+        test,
+        WebStorageType::Session,
+        /* survives_restart */ false,
+    );
 }
 
 #[test]
 fn origin_descriptors_local() {
-    test_origin_descriptors(WebStorageType::Local, /* survives_restart */ true);
+    let test = WebStorageTest::new();
+    test_origin_descriptors(
+        test,
+        WebStorageType::Local,
+        /* survives_restart */ true,
+    );
 }
