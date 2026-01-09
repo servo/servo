@@ -210,6 +210,7 @@ pub struct ComputedNodeLayout {
     pub z_index: String,
     pub box_sizing: String,
 
+    #[serde(rename = "autoMargins")]
     pub auto_margins: AutoMargins,
     pub margin_top: String,
     pub margin_right: String,
