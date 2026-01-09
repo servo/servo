@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::any::{Any, type_name};
-use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::net::TcpStream;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
+use atomic_refcell::AtomicRefCell;
 use base::id::PipelineId;
 use log::{debug, warn};
 use serde::Serialize;
@@ -95,13 +96,13 @@ impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
 /// A list of known, owned actors.
 #[derive(Default)]
 pub struct ActorRegistry {
-    actors: RefCell<HashMap<String, Arc<dyn Actor>>>,
-    script_actors: RefCell<HashMap<String, String>>,
+    actors: AtomicRefCell<HashMap<String, Arc<dyn Actor>>>,
+    script_actors: AtomicRefCell<HashMap<String, String>>,
     /// Lookup table for SourceActor names associated with a given PipelineId.
-    source_actor_names: RefCell<HashMap<PipelineId, Vec<String>>>,
+    source_actor_names: AtomicRefCell<HashMap<PipelineId, Vec<String>>>,
     /// Lookup table for inline source content associated with a given PipelineId.
-    inline_source_content: RefCell<HashMap<PipelineId, String>>,
-    next: Cell<u32>,
+    inline_source_content: AtomicRefCell<HashMap<PipelineId, String>>,
+    next: AtomicU32,
 }
 
 impl ActorRegistry {
@@ -149,8 +150,7 @@ impl ActorRegistry {
     /// TODO: Merge this with `register/register_later` and don't allow to
     /// create new names without registering an actor.
     pub fn new_name<T: Actor>(&self) -> String {
-        let suffix = self.next.get();
-        self.next.set(suffix + 1);
+        let suffix = self.next.fetch_add(1, Ordering::Relaxed);
         format!("{}{}", Self::base_name::<T>(), suffix)
     }
 

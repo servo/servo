@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use devtools_traits::NetworkEvent;
 use serde::Serialize;
@@ -22,12 +22,11 @@ pub struct Cause {
 }
 
 pub(crate) fn handle_network_event(
-    actors: Arc<Mutex<ActorRegistry>>,
+    actors: Arc<ActorRegistry>,
     netevent_actor_name: String,
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
 ) {
-    let actors = actors.lock().unwrap();
     let actor = actors.find::<NetworkEventActor>(&netevent_actor_name);
     let watcher = actors.find::<WatcherActor>(&actor.watcher);
 
