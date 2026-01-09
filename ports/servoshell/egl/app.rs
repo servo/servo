@@ -129,7 +129,7 @@ impl PlatformWindow for EmbeddedPlatformWindow {
             if new_load_status == LoadStatus::Complete {
                 let (callback, receiver) =
                     GenericCallback::new_blocking().expect("Could not create channel");
-                state.servo().create_memory_report(sender);
+                state.servo().create_memory_report(callback);
                 std::thread::spawn(move || {
                     let result = receiver.recv().expect("Could not get memory report");
                     let reports = result
