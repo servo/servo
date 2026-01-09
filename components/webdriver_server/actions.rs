@@ -567,11 +567,9 @@ impl Handler {
                                 TouchId(*pointer_id as i32),
                                 point,
                             ));
-                            if last {
-                                self.send_blocking_input_event_to_embedder(input_event);
-                            } else {
-                                self.send_input_event_to_embedder(input_event);
-                            }
+                            // We should NOT block here. TouchMove is special, and may never
+                            // be forwarded to constellation and handled.
+                            self.send_input_event_to_embedder(input_event);
                         }
                     },
                 }
