@@ -8158,7 +8158,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "once_cell",
  "servo-media-audio",
@@ -8171,7 +8171,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "byte-slice-cast",
  "euclid",
@@ -8192,7 +8192,7 @@ dependencies = [
 [[package]]
 name = "servo-media-derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8202,7 +8202,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "ipc-channel",
  "servo-media",
@@ -8216,7 +8216,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -8249,7 +8249,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -8259,7 +8259,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8273,7 +8273,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8287,7 +8287,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -8299,7 +8299,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "uuid",
 ]
@@ -8307,12 +8307,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#0c7edc70be3141067bdaf38e8dc8e1bf6180e644"
+source = "git+https://github.com/servo/media#f384dbc4ff8b5c6f8db2c763306cbe2281d66391"
 dependencies = [
  "log",
  "servo-media-streams",
