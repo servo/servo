@@ -9978,9 +9978,9 @@ dependencies = [
 
 [[package]]
 name = "vello_common"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a235ba928b3109ad9e7696270edb09445a52ae1c7c08e6d31a19b1cdd6cbc24a"
+checksum = "2dc01cc9e1e2511e5e77024e8d4c2287b9272cafc05ba669ed1056579219dd73"
 dependencies = [
  "bytemuck",
  "fearless_simd",
@@ -9994,11 +9994,12 @@ dependencies = [
 
 [[package]]
 name = "vello_cpu"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0bd1fcf9c1814f17a491e07113623d44e3ec1125a9f3401f5e047d6d326da21"
+checksum = "9228d8ed0f1f030de9a09b66b4750012194c0f171030ec74214ba1ca3b9eed23"
 dependencies = [
  "bytemuck",
+ "hashbrown 0.15.5",
  "vello_common",
 ]
 
