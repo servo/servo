@@ -116,7 +116,7 @@ impl InspectorActor {
     // TODO: Passing the pipeline id here isn't correct. We should query the browsing
     // context for the active pipeline, otherwise reloading or navigating will break the inspector.
     pub fn register(
-        registry: &mut ActorRegistry,
+        registry: &ActorRegistry,
         pipeline: PipelineId,
         script_chan: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {

@@ -90,7 +90,7 @@ impl Actor for AccessibilityActor {
             "getSimulator" => {
                 // TODO: Create actual simulator
                 let actor = registry.new_name::<SimulatorActor>();
-                registry.register_later(SimulatorActor {
+                registry.register(SimulatorActor {
                     name: actor.clone(),
                 });
                 let msg = GetSimulatorReply {
@@ -111,7 +111,7 @@ impl Actor for AccessibilityActor {
             "getWalker" => {
                 // TODO: Create actual accessible walker
                 let actor = registry.new_name::<AccessibleWalkerActor>();
-                registry.register_later(AccessibleWalkerActor {
+                registry.register(AccessibleWalkerActor {
                     name: actor.clone(),
                 });
                 let msg = GetWalkerReply {

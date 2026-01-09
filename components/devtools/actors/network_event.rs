@@ -467,7 +467,7 @@ impl Actor for NetworkEventActor {
                         let body_string = String::from_utf8_lossy(body).to_string();
                         let long_string = LongStringActor::new(registry, body_string);
                         let value = long_string.long_string_obj();
-                        registry.register_later(long_string);
+                        registry.register(long_string);
                         (None, serde_json::to_value(value).unwrap())
                     } else {
                         let b64 = STANDARD.encode(&body.0);

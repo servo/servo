@@ -138,7 +138,7 @@ impl SourceActor {
 
     #[expect(clippy::too_many_arguments)]
     pub fn new_registered(
-        actors: &mut ActorRegistry,
+        actors: &ActorRegistry,
         pipeline_id: PipelineId,
         url: ServoUrl,
         content: Option<String>,
@@ -146,7 +146,7 @@ impl SourceActor {
         spidermonkey_id: u32,
         introduction_type: String,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> &SourceActor {
+    ) -> String {
         let source_actor_name = actors.new_name::<Self>();
 
         let source_actor = SourceActor::new(
@@ -161,7 +161,7 @@ impl SourceActor {
         actors.register(source_actor);
         actors.register_source_actor(pipeline_id, &source_actor_name);
 
-        actors.find(&source_actor_name)
+        source_actor_name
     }
 
     pub fn source_form(&self) -> SourceForm {

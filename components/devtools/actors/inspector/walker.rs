@@ -199,7 +199,7 @@ impl Actor for WalkerActor {
                 // TODO: Create actual layout inspector actor
                 let layout = LayoutInspectorActor::new(registry.new_name::<LayoutInspectorActor>());
                 let actor = layout.encode(registry);
-                registry.register_later(layout);
+                registry.register(layout);
 
                 let msg = GetLayoutInspectorReply {
                     from: self.name(),

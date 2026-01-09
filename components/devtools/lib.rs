@@ -327,7 +327,7 @@ impl DevtoolsInstance {
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         page_info: DevtoolsPageInfo,
     ) {
-        let mut actors = self.registry.lock().unwrap();
+        let actors = self.registry.lock().unwrap();
 
         let (browsing_context_id, pipeline_id, worker_id, webview_id) = ids;
         let id_map = &mut self.id_map.lock().expect("Mutex poisoned");
@@ -377,7 +377,7 @@ impl DevtoolsInstance {
                         pipeline_id,
                         devtools_outer_window_id,
                         script_sender,
-                        &mut actors,
+                        &actors,
                     );
                     let name = browsing_context_actor.name();
                     actors.register(browsing_context_actor);
@@ -527,7 +527,7 @@ impl DevtoolsInstance {
 
     /// Create a new NetworkEventActor for a given request ID and watcher name.
     fn create_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
-        let mut actors = self.registry.lock().unwrap();
+        let actors = self.registry.lock().unwrap();
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
@@ -546,13 +546,13 @@ impl DevtoolsInstance {
         pipeline_id: PipelineId,
         source_info: SourceInfo,
     ) {
-        let mut actors = self.registry.lock().unwrap();
+        let actors = self.registry.lock().unwrap();
 
         let source_content = source_info
             .content
             .or_else(|| actors.inline_source_content(pipeline_id));
         let source_actor = SourceActor::new_registered(
-            &mut actors,
+            &actors,
             pipeline_id,
             source_info.url,
             source_content,
@@ -561,8 +561,7 @@ impl DevtoolsInstance {
             source_info.introduction_type,
             script_sender,
         );
-        let source_actor_name = source_actor.name.clone();
-        let source_form = source_actor.source_form();
+        let source_form = actors.find::<SourceActor>(&source_actor).source_form();
 
         if let Some(worker_id) = source_info.worker_id {
             let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
@@ -572,7 +571,7 @@ impl DevtoolsInstance {
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
             let thread_actor = actors.find::<ThreadActor>(&thread_actor_name);
 
-            thread_actor.source_manager.add_source(&source_actor_name);
+            thread_actor.source_manager.add_source(&source_actor);
 
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
 
@@ -598,7 +597,7 @@ impl DevtoolsInstance {
             };
 
             let thread_actor = actors.find::<ThreadActor>(&thread_actor_name);
-            thread_actor.source_manager.add_source(&source_actor_name);
+            thread_actor.source_manager.add_source(&source_actor);
 
             // Notify browsing context about the new source
             let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
@@ -615,7 +614,7 @@ impl DevtoolsInstance {
     }
 
     fn handle_update_source_content(&mut self, pipeline_id: PipelineId, source_content: String) {
-        let mut actors = self.registry.lock().unwrap();
+        let actors = self.registry.lock().unwrap();
 
         for actor_name in actors.source_actor_names_for_pipeline(pipeline_id) {
             let source_actor = actors.find::<SourceActor>(&actor_name);

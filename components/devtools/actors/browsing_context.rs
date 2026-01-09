@@ -210,7 +210,7 @@ impl BrowsingContextActor {
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-        actors: &mut ActorRegistry,
+        actors: &ActorRegistry,
     ) -> BrowsingContextActor {
         let name = actors.new_name::<BrowsingContextActor>();
         let DevtoolsPageInfo {

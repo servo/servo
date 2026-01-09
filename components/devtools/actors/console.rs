@@ -138,13 +138,15 @@ pub(crate) struct ConsoleActor {
 }
 
 impl ConsoleActor {
-    fn script_chan<'a>(
-        &self,
-        registry: &'a ActorRegistry,
-    ) -> &'a GenericSender<DevtoolScriptControlMsg> {
+    fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
         match &self.root {
-            Root::BrowsingContext(bc) => &registry.find::<BrowsingContextActor>(bc).script_chan,
-            Root::DedicatedWorker(worker) => &registry.find::<WorkerActor>(worker).script_chan,
+            Root::BrowsingContext(bc) => registry
+                .find::<BrowsingContextActor>(bc)
+                .script_chan
+                .clone(),
+            Root::DedicatedWorker(worker) => {
+                registry.find::<WorkerActor>(worker).script_chan.clone()
+            },
         }
     }
 

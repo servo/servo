@@ -39,7 +39,7 @@ impl MemoryActor {
             name: actor_name.clone(),
         };
 
-        registry.register_later(actor);
+        registry.register(actor);
         actor_name
     }
 

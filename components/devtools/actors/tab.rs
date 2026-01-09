@@ -134,7 +134,7 @@ impl Actor for TabDescriptorActor {
 
 impl TabDescriptorActor {
     pub(crate) fn new(
-        actors: &mut ActorRegistry,
+        actors: &ActorRegistry,
         browsing_context_actor: String,
         is_top_level_global: bool,
     ) -> TabDescriptorActor {
