@@ -1022,7 +1022,7 @@ impl FetchResponseListener for FontFetchListener {
 
 impl ResourceTimingListener for FontFetchListener {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (InitiatorType::Other, self.url.clone())
+        (InitiatorType::Css, self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
