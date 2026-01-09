@@ -27,6 +27,7 @@ use crate::script_runtime::CanGc;
 #[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum InitiatorType {
     Beacon,
+    Css,
     LocalName(String),
     Navigation,
     XMLHttpRequest,
@@ -193,6 +194,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     fn InitiatorType(&self) -> DOMString {
         match self.initiator_type {
             InitiatorType::Beacon => DOMString::from("beacon"),
+            InitiatorType::Css => DOMString::from("css"),
             InitiatorType::LocalName(ref n) => DOMString::from(n.clone()),
             InitiatorType::Navigation => DOMString::from("navigation"),
             InitiatorType::XMLHttpRequest => DOMString::from("xmlhttprequest"),
