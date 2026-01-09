@@ -3168,42 +3168,45 @@ impl Window {
                 window_proxy.start_delaying_load_events_mode();
             }
 
-            // Step 11. If historyHandling is "auto", then:
-            let resolved_history_handling = if history_handling == NavigationHistoryBehavior::Auto {
-                // Step 11.1. If url equals navigable's active document's URL, and
+            // Step 12. If historyHandling is "auto", then:
+            let history_handling = if history_handling == NavigationHistoryBehavior::Auto {
+                // Step 12.1. If url equals navigable's active document's URL, and
                 // initiatorOriginSnapshot is same origin with targetNavigable's active document's
                 // origin, then set historyHandling to "replace".
+                //
                 // Note: `targetNavigable` is not actually defined in the spec, "active document" is
                 // assumed to be the correct reference based on WPT results
                 if let LoadOrigin::Script(initiator_origin) = initiator_origin_snapshot {
                     if load_data.url == doc.url() && initiator_origin.same_origin(doc.origin()) {
                         NavigationHistoryBehavior::Replace
                     } else {
+                        // Step 12.2. Otherwise, set historyHandling to "push".
                         NavigationHistoryBehavior::Push
                     }
                 } else {
-                    // Step 11.2. Otherwise, set historyHandling to "push".
+                    // Step 12.2. Otherwise, set historyHandling to "push".
                     NavigationHistoryBehavior::Push
                 }
-            // Step 12. If the navigation must be a replace given url and navigable's active
-            // document, then set historyHandling to "replace".
-            } else if load_data.url.scheme() == "javascript" || doc.is_initial_about_blank() {
-                NavigationHistoryBehavior::Replace
             } else {
                 history_handling
             };
+            // Step 13. If the navigation must be a replace given url and navigable's active
+            // document, then set historyHandling to "replace".
+            //
+            // Inlines implementation of https://html.spec.whatwg.org/multipage/#the-navigation-must-be-a-replace
+            let history_handling =
+                if load_data.url.scheme() == "javascript" || doc.is_initial_about_blank() {
+                    NavigationHistoryBehavior::Replace
+                } else {
+                    history_handling
+                };
 
             if let Some(sender) = self.webdriver_load_status_sender.borrow().as_ref() {
                 let _ = sender.send(WebDriverLoadStatus::NavigationStart);
             }
 
             // Step 13
-            ScriptThread::navigate(
-                self.webview_id,
-                pipeline_id,
-                load_data,
-                resolved_history_handling,
-            );
+            ScriptThread::navigate(self.webview_id, pipeline_id, load_data, history_handling);
         };
     }
 

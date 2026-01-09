@@ -344,21 +344,15 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
     fn Replace(&self, url: USVString, can_gc: CanGc) -> ErrorResult {
         // Step 1: If this Location object's relevant Document is null, then return.
         if self.has_document() {
-            // Step 2: Parse url relative to the entry settings object. If that failed,
-            // throw a "SyntaxError" DOMException.
+            // Step 2. Let urlRecord be the result of encoding-parsing a URL given url, relative to the entry settings object.
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&url.0) {
                 Ok(url) => url,
+                // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
                 Err(_) => return Err(Error::Syntax(None)),
             };
-            // Step 3: Location-object navigate to the resulting URL record with
-            // the replacement flag set.
-            self.navigate(
-                url,
-                NavigationHistoryBehavior::Replace,
-                NavigationType::Normal,
-                can_gc,
-            );
+            // Step 4. Location-object navigate this to urlRecord given "replace".
+            self.navigate_a_location(url, NavigationHistoryBehavior::Replace, can_gc);
         }
         Ok(())
     }
