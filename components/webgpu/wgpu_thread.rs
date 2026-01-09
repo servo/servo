@@ -168,7 +168,7 @@ impl WGPU {
                         image_key,
                     } => self.set_image_key(context_id, image_key),
                     WebGPURequest::BufferMapAsync {
-                        sender,
+                        callback: sender,
                         buffer_id,
                         device_id,
                         host_map,
@@ -469,7 +469,7 @@ impl WGPU {
                         program_id,
                         program,
                         label,
-                        sender,
+                        callback: sender,
                     } => {
                         let global = &self.global;
                         let source =
@@ -1164,7 +1164,10 @@ impl WGPU {
                     WebGPURequest::DispatchError { device_id, error } => {
                         self.dispatch_error(device_id, error);
                     },
-                    WebGPURequest::PopErrorScope { device_id, sender } => {
+                    WebGPURequest::PopErrorScope {
+                        device_id,
+                        callback: sender,
+                    } => {
                         // <https://www.w3.org/TR/webgpu/#dom-gpudevice-poperrorscope>
                         let mut devices = self.devices.lock().unwrap();
                         let device_scope = devices

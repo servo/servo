@@ -20,7 +20,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::GPUDevice;
 use crate::realms::InRealm;
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -95,7 +95,7 @@ impl GPUShaderModule {
             promise.clone(),
             can_gc,
         );
-        let sender = route_promise(
+        let callback = callback_promise(
             &promise,
             &*shader_module,
             device
@@ -111,7 +111,7 @@ impl GPUShaderModule {
                 program_id,
                 program: descriptor.code.0.clone(),
                 label: None,
-                sender,
+                callback,
             })
             .expect("Failed to create WebGPU ShaderModule");
         shader_module

@@ -16,6 +16,7 @@ use std::fmt;
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericCallback;
 use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use embedder_traits::user_contents::{UserContentManagerId, UserScript};
@@ -25,7 +26,6 @@ use embedder_traits::{
     ViewportDetails, WebDriverCommandMsg,
 };
 pub use from_script_message::*;
-use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
@@ -100,7 +100,7 @@ pub enum EmbedderToConstellationMessage {
     /// error is encountered, a correpsonding message will be sent to the embedding layer.
     EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
     /// Create a memory report and return it via the ipc sender
-    CreateMemoryReport(IpcSender<MemoryReportResult>),
+    CreateMemoryReport(GenericCallback<MemoryReportResult>),
     /// Sends the generated image key to the image cache associated with this pipeline.
     SendImageKeysForPipeline(PipelineId, Vec<ImageKey>),
     /// A set of preferences were updated with the given new values.

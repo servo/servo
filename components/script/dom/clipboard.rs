@@ -28,7 +28,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::realms::{InRealm, enter_realm};
-use crate::routed_promise::{RoutedPromiseListener, route_promise};
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
@@ -111,8 +111,8 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
 
         // Step 3.3 Let data be a copy of the system clipboard data.
         let window = global.as_window();
-        let sender = route_promise(&p, self, global.task_manager().clipboard_task_source());
-        window.send_to_embedder(EmbedderMsg::GetClipboardText(window.webview_id(), sender));
+        let callback = callback_promise(&p, self, global.task_manager().clipboard_task_source());
+        window.send_to_embedder(EmbedderMsg::GetClipboardText(window.webview_id(), callback));
 
         // Step 3.4 Queue a global task on the clipboard task source,
         // given realm’s global object, to perform the below steps:

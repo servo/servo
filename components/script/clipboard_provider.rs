@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericCallback;
 use base::id::WebViewId;
 use embedder_traits::{EmbedderMsg, ScriptToEmbedderChan};
-use ipc_channel::ipc::channel;
 use malloc_size_of_derive::MallocSizeOf;
 
 /// A trait which abstracts access to the embedder's clipboard in order to allow unit
@@ -24,9 +24,9 @@ pub(crate) struct EmbedderClipboardProvider {
 
 impl ClipboardProvider for EmbedderClipboardProvider {
     fn get_text(&mut self) -> Result<String, String> {
-        let (tx, rx) = channel().unwrap();
+        let (callback, rx) = GenericCallback::new_blocking().unwrap();
         self.embedder_sender
-            .send(EmbedderMsg::GetClipboardText(self.webview_id, tx))
+            .send(EmbedderMsg::GetClipboardText(self.webview_id, callback))
             .unwrap();
         rx.recv().unwrap()
     }

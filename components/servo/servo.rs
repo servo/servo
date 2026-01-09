@@ -843,7 +843,7 @@ impl Servo {
         log::set_max_level(filter);
     }
 
-    pub fn create_memory_report(&self, snd: IpcSender<MemoryReportResult>) {
+    pub fn create_memory_report(&self, snd: GenericCallback<MemoryReportResult>) {
         self.0
             .constellation_proxy
             .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
