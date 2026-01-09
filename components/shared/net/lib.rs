@@ -9,7 +9,7 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{self, GenericSend, GenericSender, SendResult};
+use base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender, SendResult};
 use base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
@@ -654,7 +654,7 @@ pub enum CoreResourceMsg {
     TotalSizeOfInFlightKeepAliveRecords(PipelineId, GenericSender<u64>),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
-    Exit(IpcSender<()>),
+    Exit(GenericOneshotSender<()>),
     CollectMemoryReport(ReportsChan),
 }
 

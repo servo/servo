@@ -1734,24 +1734,24 @@ impl GlobalScope {
 
         if let MessagePortState::UnManaged = &*current_state {
             // Setup a route for IPC, for messages from the constellation to our ports.
-            let (port_control_sender, port_control_receiver) =
-                ipc::channel().expect("ipc channel failure");
             let context = Trusted::new(self);
             let listener = MessageListener {
                 task_source: self.task_manager().port_message_queue().into(),
                 context,
             };
-            ROUTER.add_typed_route(
-                port_control_receiver,
-                Box::new(move |message| match message {
-                    Ok(msg) => listener.notify(msg),
-                    Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
-                }),
-            );
+
+            let port_control_callback = GenericCallback::new(move |message| match message {
+                Ok(msg) => listener.notify(msg),
+                Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
+            })
+            .expect("Could not create callback");
             let router_id = MessagePortRouterId::new();
             *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new_fx());
             let _ = self.script_to_constellation_chan().send(
-                ScriptToConstellationMessage::NewMessagePortRouter(router_id, port_control_sender),
+                ScriptToConstellationMessage::NewMessagePortRouter(
+                    router_id,
+                    port_control_callback,
+                ),
             );
         }
 

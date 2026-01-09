@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericSender;
 use constellation_traits::{SWManagerSenders, ServiceWorkerManagerFactory};
 use ipc_channel::Error;
-use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs;
@@ -22,14 +22,14 @@ pub struct ServiceWorkerUnprivilegedContent {
     pub prefs: Box<Preferences>,
     senders: SWManagerSenders,
     origin: ImmutableOrigin,
-    lifeline_sender: Option<IpcSender<()>>,
+    lifeline_sender: Option<GenericSender<()>>,
 }
 
 impl ServiceWorkerUnprivilegedContent {
     pub fn new(
         senders: SWManagerSenders,
         origin: ImmutableOrigin,
-        lifeline_sender: Option<IpcSender<()>>,
+        lifeline_sender: Option<GenericSender<()>>,
     ) -> ServiceWorkerUnprivilegedContent {
         ServiceWorkerUnprivilegedContent {
             opts: (*opts::get()).clone(),
