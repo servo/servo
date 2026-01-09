@@ -186,7 +186,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
-use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
+use crate::network_listener::{ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
@@ -984,40 +984,6 @@ impl NetworkTimingHandler for FontNetworkTimingHandler {
 struct FontFetchListener {
     global: Trusted<GlobalScope>,
     url: ServoUrl,
-}
-
-impl FetchResponseListener for FontFetchListener {
-    fn process_request_body(&mut self, _request_id: net_traits::request::RequestId) {}
-
-    fn process_request_eof(&mut self, _request_id: net_traits::request::RequestId) {}
-
-    fn process_response(
-        &mut self,
-        _request_id: net_traits::request::RequestId,
-        _metadata: Result<net_traits::FetchMetadata, net_traits::NetworkError>,
-    ) {
-    }
-
-    fn process_response_chunk(
-        &mut self,
-        _request_id: net_traits::request::RequestId,
-        _chunk: Vec<u8>,
-    ) {
-    }
-
-    fn process_response_eof(
-        self,
-        _request_id: net_traits::request::RequestId,
-        _response: Result<ResourceFetchTiming, net_traits::NetworkError>,
-    ) {
-    }
-
-    fn process_csp_violations(
-        &mut self,
-        _request_id: net_traits::request::RequestId,
-        _violations: Vec<Violation>,
-    ) {
-    }
 }
 
 impl ResourceTimingListener for FontFetchListener {
