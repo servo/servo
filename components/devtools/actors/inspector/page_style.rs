@@ -46,35 +46,10 @@ struct AppliedEntry {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "kebab-case")]
 struct GetLayoutReply {
     from: String,
-
-    display: String,
-    position: String,
-    z_index: String,
-    box_sizing: String,
-
-    // Would be nice to use a proper struct, blocked by
-    // https://github.com/serde-rs/serde/issues/43
-    auto_margins: serde_json::value::Value,
-    margin_top: String,
-    margin_right: String,
-    margin_bottom: String,
-    margin_left: String,
-
-    border_top_width: String,
-    border_right_width: String,
-    border_bottom_width: String,
-    border_left_width: String,
-
-    padding_top: String,
-    padding_right: String,
-    padding_bottom: String,
-    padding_left: String,
-
-    width: f32,
-    height: f32,
+    #[serde(flatten)]
+    layout: ComputedNodeLayout,
 }
 
 #[derive(Serialize)]
@@ -268,88 +243,22 @@ impl PageStyleActor {
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let Some((computed_node_sender, computed_node_receiver)) = generic_channel::channel()
-        else {
-            return Err(ActorError::Internal);
-        };
+        let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
         self.script_chan
             .send(GetLayout(
                 self.pipeline,
                 registry.actor_to_script(target.to_owned()),
-                computed_node_sender,
+                tx,
             ))
-            .unwrap();
-        let ComputedNodeLayout {
-            display,
-            position,
-            z_index,
-            box_sizing,
-            auto_margins,
-            margin_top,
-            margin_right,
-            margin_bottom,
-            margin_left,
-            border_top_width,
-            border_right_width,
-            border_bottom_width,
-            border_left_width,
-            padding_top,
-            padding_right,
-            padding_bottom,
-            padding_left,
-            width,
-            height,
-        } = computed_node_receiver
+            .map_err(|_| ActorError::Internal)?;
+        let layout = rx
             .recv()
             .map_err(|_| ActorError::Internal)?
             .ok_or(ActorError::Internal)?;
-        let msg_auto_margins = msg
-            .get("autoMargins")
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        let msg = GetLayoutReply {
+        request.reply_final(&GetLayoutReply {
             from: self.name(),
-            display,
-            position,
-            z_index,
-            box_sizing,
-            auto_margins: if msg_auto_margins {
-                let mut m = Map::new();
-                let auto = serde_json::value::Value::String("auto".to_owned());
-                if auto_margins.top {
-                    m.insert("top".to_owned(), auto.clone());
-                }
-                if auto_margins.right {
-                    m.insert("right".to_owned(), auto.clone());
-                }
-                if auto_margins.bottom {
-                    m.insert("bottom".to_owned(), auto.clone());
-                }
-                if auto_margins.left {
-                    m.insert("left".to_owned(), auto);
-                }
-                serde_json::value::Value::Object(m)
-            } else {
-                serde_json::value::Value::Null
-            },
-            margin_top,
-            margin_right,
-            margin_bottom,
-            margin_left,
-            border_top_width,
-            border_right_width,
-            border_bottom_width,
-            border_left_width,
-            padding_top,
-            padding_right,
-            padding_bottom,
-            padding_left,
-            width,
-            height,
-        };
-        let msg = serde_json::to_string(&msg).map_err(|_| ActorError::Internal)?;
-        let msg = serde_json::from_str::<Value>(&msg).map_err(|_| ActorError::Internal)?;
-        request.reply_final(&msg)
+            layout,
+        })
     }
 
     fn is_position_editable(&self, request: ClientRequest) -> Result<(), ActorError> {

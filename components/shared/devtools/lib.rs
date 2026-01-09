@@ -203,13 +203,14 @@ pub struct NodeStyle {
 
 /// The properties of a DOM node as computed by layout.
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "kebab-case")]
 pub struct ComputedNodeLayout {
     pub display: String,
     pub position: String,
     pub z_index: String,
     pub box_sizing: String,
 
+    #[serde(rename = "autoMargins")]
     pub auto_margins: AutoMargins,
     pub margin_top: String,
     pub margin_right: String,
@@ -230,12 +231,16 @@ pub struct ComputedNodeLayout {
     pub height: f32,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct AutoMargins {
-    pub top: bool,
-    pub right: bool,
-    pub bottom: bool,
-    pub left: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub right: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bottom: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub left: Option<String>,
 }
 
 /// Messages to process in a particular script thread, as instructed by a devtools client.
