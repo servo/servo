@@ -3655,6 +3655,7 @@ impl SupportedAlgorithm {
             (Self::MlDsa(_), Operation::ExportKey) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-registration>
+            (Self::AesOcb, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
             (Self::AesOcb, Operation::ImportKey) => ParameterType::None,
             (Self::AesOcb, Operation::ExportKey) => ParameterType::None,
 
@@ -4206,6 +4207,10 @@ impl NormalizedAlgorithm {
                 NormalizedAlgorithm::Algorithm(algo),
             ) => ml_dsa_operation::generate_key(global, algo, extractable, usages, can_gc)
                 .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair),
+            (ALG_AES_OCB, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
+                aes_ocb_operation::generate_key(global, algo, extractable, usages, can_gc)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
             (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
                 chacha20_poly1305_operation::generate_key(global, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)

@@ -13,9 +13,28 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ALG_AES_OCB, ExportedKey, KeyAlgorithmAndDerivatives, SubtleAesKeyAlgorithm, aes_common,
+    ALG_AES_OCB, ExportedKey, KeyAlgorithmAndDerivatives, SubtleAesKeyAlgorithm,
+    SubtleAesKeyGenParams, aes_common,
 };
 use crate::script_runtime::CanGc;
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-generate-key>
+pub(crate) fn generate_key(
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    aes_common::generate_key(
+        AesAlgorithm::AesOcb,
+        global,
+        normalized_algorithm,
+        extractable,
+        usages,
+        can_gc,
+    )
+}
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-import-key>
 pub(crate) fn import_key(

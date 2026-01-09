@@ -2,19 +2,115 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyMethods, KeyUsage};
+use aes::cipher::crypto_common::Key;
+use aes::{Aes128, Aes192, Aes256};
+use pkcs8::rand_core::{OsRng, RngCore};
+
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, KeyType, KeyUsage,
+};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives, SubtleAesKeyAlgorithm,
+    SubtleAesKeyGenParams,
 };
+use crate::script_runtime::CanGc;
 
 // TODO: Add AES-CTR, AES-CBC, AES-GCM, AES-KW
 pub(crate) enum AesAlgorithm {
     AesOcb,
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-generate-key>
+pub(crate) fn generate_key(
+    aes_algorithm: AesAlgorithm,
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleAesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    match aes_algorithm {
+        AesAlgorithm::AesOcb => {
+            // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt",
+            // "wrapKey" or "unwrapKey", then throw a SyntaxError.
+            if usages.iter().any(|usage| {
+                !matches!(
+                    usage,
+                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
+                )
+            }) {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \
+                    \"wrapKey\" or \"unwrapKey\""
+                        .to_string(),
+                )));
+            }
+        },
+    }
+
+    // Step 2. If the length member of normalizedAlgorithm is not equal to one of 128, 192 or 256,
+    // then throw an OperationError.
+    // Step 3. Generate an AES key of length equal to the length member of normalizedAlgorithm.
+    // Step 4. If the key generation step fails, then throw an OperationError.
+    let handle =
+        match normalized_algorithm.length {
+            128 => {
+                let mut key_bytes = vec![0; 16];
+                OsRng.fill_bytes(&mut key_bytes);
+                Handle::Aes128Key(Key::<Aes128>::clone_from_slice(&key_bytes))
+            },
+            192 => {
+                let mut key_bytes = vec![0; 24];
+                OsRng.fill_bytes(&mut key_bytes);
+                Handle::Aes192Key(Key::<Aes192>::clone_from_slice(&key_bytes))
+            },
+            256 => {
+                let mut key_bytes = vec![0; 32];
+                OsRng.fill_bytes(&mut key_bytes);
+                Handle::Aes256Key(Key::<Aes256>::clone_from_slice(&key_bytes))
+            },
+            _ => return Err(Error::Operation(Some(
+                "The length member of normalizedAlgorithm is not equal to one of 128, 192 or 256"
+                    .to_string(),
+            ))),
+        };
+
+    // Step 5. Let key be a new CryptoKey object representing the generated AES key.
+    // Step 6. Set the [[type]] internal slot of key to "secret".
+    // Step 7. Let algorithm be a new AesKeyAlgorithm.
+    // Step 9. Set the length attribute of algorithm to equal the length member of
+    // normalizedAlgorithm.
+    // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
+    // Step 11. Set the [[extractable]] internal slot of key to be extractable.
+    // Step 12. Set the [[usages]] internal slot of key to be usages.
+    let algorithm_name = match aes_algorithm {
+        AesAlgorithm::AesOcb => {
+            // Step 8. Set the name attribute of algorithm to "AES-OCB".
+            "AES-OCB"
+        },
+    };
+    let algorithm = SubtleAesKeyAlgorithm {
+        name: algorithm_name.to_string(),
+        length: normalized_algorithm.length,
+    };
+    let key = CryptoKey::new(
+        global,
+        KeyType::Secret,
+        extractable,
+        KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
+        usages,
+        handle,
+        can_gc,
+    );
+
+    // Step 13. Return key.
+    Ok(key)
 }
 
 /// Step 3 of <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-import-key>
