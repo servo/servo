@@ -144,7 +144,7 @@ use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
@@ -163,7 +163,6 @@ use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, NewPipelineInfo,
     ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
-use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -398,7 +397,7 @@ pub struct Constellation<STF, SWF> {
     message_ports: FxHashMap<MessagePortId, MessagePortInfo>,
 
     /// A map of router-id to ipc-sender, to route messages to ports.
-    message_port_routers: FxHashMap<MessagePortRouterId, IpcSender<MessagePortMsg>>,
+    message_port_routers: FxHashMap<MessagePortRouterId, GenericCallback<MessagePortMsg>>,
 
     /// Bookkeeping for BroadcastChannel functionnality.
     broadcast_channels: BroadcastChannels,
@@ -429,7 +428,7 @@ pub struct Constellation<STF, SWF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: Cell<PipelineNamespaceId>,
 
-    /// An [`IpcSender`] to notify navigation events to webdriver.
+    /// A [`GenericSender`] to notify navigation events to webdriver.
     webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
@@ -580,23 +579,6 @@ enum ExitPipelineMode {
 
 /// The number of warnings to include in each crash report.
 const WARNINGS_BUFFER_SIZE: usize = 32;
-
-/// Route an ipc receiver to an crossbeam receiver, preserving any errors.
-pub(crate) fn route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors<T>(
-    ipc_receiver: IpcReceiver<T>,
-) -> Receiver<Result<T, IpcError>>
-where
-    T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
-{
-    let (crossbeam_sender, crossbeam_receiver) = unbounded();
-    ROUTER.add_typed_route(
-        ipc_receiver,
-        Box::new(move |message| {
-            let _ = crossbeam_sender.send(message);
-        }),
-    );
-    crossbeam_receiver
-}
 
 impl<STF, SWF> Constellation<STF, SWF>
 where
@@ -1683,8 +1665,8 @@ where
             ScriptToConstellationMessage::MessagePortShipped(port_id) => {
                 self.handle_messageport_shipped(port_id);
             },
-            ScriptToConstellationMessage::NewMessagePortRouter(router_id, ipc_sender) => {
-                self.handle_new_messageport_router(router_id, ipc_sender);
+            ScriptToConstellationMessage::NewMessagePortRouter(router_id, callback) => {
+                self.handle_new_messageport_router(router_id, callback);
             },
             ScriptToConstellationMessage::RemoveMessagePortRouter(router_id) => {
                 self.handle_remove_messageport_router(router_id);
@@ -2364,10 +2346,10 @@ where
     fn handle_new_messageport_router(
         &mut self,
         router_id: MessagePortRouterId,
-        message_port_ipc_sender: IpcSender<MessagePortMsg>,
+        message_port_callbacks: GenericCallback<MessagePortMsg>,
     ) {
         self.message_port_routers
-            .insert(router_id, message_port_ipc_sender);
+            .insert(router_id, message_port_callbacks);
     }
 
     fn handle_remove_messageport_router(&mut self, router_id: MessagePortRouterId) {
@@ -2495,16 +2477,13 @@ where
                 };
 
                 if opts::get().multiprocess {
-                    let (sender, receiver) =
-                        ipc::channel().expect("Failed to create lifeline channel for sw");
+                    let (sender, receiver) = generic_channel::channel()
+                        .expect("Failed to create lifeline channel for sw");
                     let content =
                         ServiceWorkerUnprivilegedContent::new(sw_senders, origin, Some(sender));
 
                     if let Ok(process) = content.spawn_multiprocess() {
-                        let crossbeam_receiver =
-                            route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                                receiver,
-                            );
+                        let crossbeam_receiver = receiver.route_preserving_errors();
                         self.process_manager.add(crossbeam_receiver, process);
                     } else {
                         return warn!("Failed to spawn process for SW manager.");
@@ -2642,7 +2621,7 @@ where
         // so we can safely block on other threads, without worrying about deadlock.
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
-            ipc::channel().expect("Failed to create IPC channel!");
+            generic_channel::oneshot().expect("Failed to create IPC channel!");
         let (client_storage_generic_sender, client_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
         let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
@@ -4079,7 +4058,7 @@ where
     fn handle_joint_session_history_length(
         &self,
         webview_id: WebViewId,
-        response_sender: IpcSender<u32>,
+        response_sender: GenericSender<u32>,
     ) {
         let length = self
             .webviews
@@ -4485,7 +4464,7 @@ where
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
-        response_sender: IpcSender<Option<(GenericSender<CanvasMsg>, CanvasId)>>,
+        response_sender: GenericSender<Option<(GenericSender<CanvasMsg>, CanvasId)>>,
     ) {
         let (canvas_data_sender, canvas_data_receiver) = unbounded();
         let (canvas_sender, canvas_ipc_sender) = self

@@ -553,7 +553,7 @@ pub enum ScriptToConstellationMessage {
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortRouterId, MessagePortId),
     /// A global has started managing message-ports
-    NewMessagePortRouter(MessagePortRouterId, IpcSender<MessagePortMsg>),
+    NewMessagePortRouter(MessagePortRouterId, GenericCallback<MessagePortMsg>),
     /// A global has stopped managing message-ports
     RemoveMessagePortRouter(MessagePortRouterId),
     /// A task requires re-routing to an already shipped message-port.
@@ -598,7 +598,7 @@ pub enum ScriptToConstellationMessage {
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(
         UntypedSize2D<u64>,
-        IpcSender<Option<(GenericSender<CanvasMsg>, CanvasId)>>,
+        GenericSender<Option<(GenericSender<CanvasMsg>, CanvasId)>>,
     ),
     /// Notifies the constellation that this pipeline is requesting focus.
     ///
@@ -660,7 +660,7 @@ pub enum ScriptToConstellationMessage {
     /// Inform the constellation of a replaced history state.
     ReplaceHistoryState(HistoryStateId, ServoUrl),
     /// Gets the length of the joint session history from the constellation.
-    JointSessionHistoryLength(IpcSender<u32>),
+    JointSessionHistoryLength(GenericSender<u32>),
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
     RemoveIFrame(BrowsingContextId, IpcSender<Vec<PipelineId>>),

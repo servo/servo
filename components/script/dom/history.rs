@@ -15,8 +15,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::CoreResourceMsg;
-use profile_traits::ipc;
-use profile_traits::ipc::channel;
+use profile_traits::{generic_channel, ipc};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
@@ -347,8 +346,11 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
             return Err(Error::Security(None));
         }
 
-        let (sender, recv) = channel(self.global().time_profiler_chan().clone())
-            .map_err(|_| Error::InvalidState(None))?;
+        let Some((sender, recv)) =
+            generic_channel::channel(self.global().time_profiler_chan().clone())
+        else {
+            return Err(Error::InvalidState(None));
+        };
 
         let msg = ScriptToConstellationMessage::JointSessionHistoryLength(sender);
 

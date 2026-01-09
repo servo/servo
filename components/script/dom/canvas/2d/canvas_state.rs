@@ -28,7 +28,6 @@ use ipc_channel::ipc;
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
-use profile_traits::ipc as profiled_ipc;
 use range::Range;
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -222,7 +221,7 @@ impl CanvasState {
     pub(super) fn new(global: &GlobalScope, size: Size2D<u64>) -> Option<CanvasState> {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
-            profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
+            profile_traits::generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
         let size = adjust_canvas_size(size);

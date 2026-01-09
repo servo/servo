@@ -13,7 +13,7 @@ use servo_url::ImmutableOrigin;
 
 #[derive(Default)]
 pub(crate) struct BroadcastChannels {
-    /// A map of broadcast routers to their IPC sender.
+    /// A map of broadcast routers to their Generic sender.
     routers: FxHashMap<BroadcastChannelRouterId, IpcSender<BroadcastChannelMsg>>,
 
     /// A map of origin to a map of channel name to a list of relevant routers.

@@ -15,8 +15,7 @@ use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::ScriptEventLoopId;
 use constellation_traits::ServiceWorkerManagerFactory;
 use embedder_traits::ScriptToEmbedderChan;
-use ipc_channel::ipc::IpcSender;
-use ipc_channel::{Error, ipc};
+use ipc_channel::Error;
 use layout_api::ScriptThreadFactory;
 use log::error;
 use media::WindowGLContext;
@@ -25,7 +24,6 @@ use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
 
-use crate::constellation::route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors;
 use crate::sandboxing::spawn_multiprocess;
 use crate::{Constellation, UnprivilegedContent};
 
@@ -162,7 +160,7 @@ impl EventLoop {
         let (background_hand_monitor_sender, backgrond_hand_monitor_receiver) =
             generic_channel::channel().expect("Sampler chan");
         let (lifeline_sender, lifeline_receiver) =
-            ipc::channel().expect("Failed to create lifeline channel");
+            generic_channel::channel().expect("Failed to create lifeline channel");
 
         let process = spawn_multiprocess(UnprivilegedContent::ScriptEventLoop(
             NewScriptEventLoopProcessInfo {
@@ -176,8 +174,7 @@ impl EventLoop {
             },
         ))?;
 
-        let crossbeam_receiver =
-            route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(lifeline_receiver);
+        let crossbeam_receiver = lifeline_receiver.route_preserving_errors();
         constellation
             .process_manager
             .add(crossbeam_receiver, process);
@@ -221,7 +218,7 @@ pub struct NewScriptEventLoopProcessInfo {
     pub initial_script_state: InitialScriptState,
     pub constellation_to_bhm_receiver: GenericReceiver<BackgroundHangMonitorControlMsg>,
     pub bhm_to_constellation_sender: GenericSender<HangMonitorAlert>,
-    pub lifeline_sender: IpcSender<()>,
+    pub lifeline_sender: GenericSender<()>,
     pub opts: Opts,
     pub prefs: Box<Preferences>,
     /// The broken image icon data that is used to create an image to show in place of broken images.
