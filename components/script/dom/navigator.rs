@@ -617,9 +617,10 @@ impl FetchResponseListener for BeaconFetchListener {
     fn process_response_eof(
         self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
-        submit_timing(&self, &response, CanGc::note());
+        submit_timing(&self, &response, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

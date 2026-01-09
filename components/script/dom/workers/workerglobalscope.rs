@@ -158,7 +158,8 @@ impl FetchResponseListener for ScriptFetchContext {
     fn process_response_eof(
         mut self,
         _request_id: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         #[expect(unsafe_code)]
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
@@ -241,7 +242,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 6 Run onComplete given script.
         scope.on_complete(Some(script), self.worker.clone(), cx);
 
-        submit_timing(&self, &response, CanGc::from_cx(cx));
+        submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(

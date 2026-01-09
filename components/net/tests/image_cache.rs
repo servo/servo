@@ -243,7 +243,7 @@ fn test_notify_pending_response_complete() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(create_timing())),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
     );
 
     loop {
@@ -281,7 +281,11 @@ fn test_notify_pending_response_network_error() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Err(NetworkError::InvalidMethod)),
+        FetchResponseMsg::ProcessResponseEOF(
+            create_request_id(),
+            Err(NetworkError::InvalidMethod),
+            create_timing(),
+        ),
     );
 
     let result = cache.get_cached_image_status(url, origin, None);
@@ -317,7 +321,7 @@ fn test_image_listener_on_complete_response() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(create_timing())),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
     );
 
     loop {
@@ -355,7 +359,11 @@ fn test_image_listener_on_network_error() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Err(NetworkError::InvalidMethod)),
+        FetchResponseMsg::ProcessResponseEOF(
+            create_request_id(),
+            Err(NetworkError::InvalidMethod),
+            create_timing(),
+        ),
     );
 
     match receiver.recv_timeout(std::time::Duration::from_millis(100)) {
@@ -446,7 +454,7 @@ fn test_multiple_listeners_same_image() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(create_timing())),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
     );
 
     loop {
@@ -492,7 +500,7 @@ fn test_cached_image_reuse() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(create_timing())),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
     );
 
     loop {
@@ -532,7 +540,7 @@ fn test_svg_rasterization() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(create_timing())),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
     );
 
     let vec_img = loop {
@@ -584,7 +592,7 @@ fn test_rasterization_listener() {
 
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(create_timing())),
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
     );
 
     let vec_img = loop {

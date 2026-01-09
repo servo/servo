@@ -307,13 +307,14 @@ impl FetchResponseListener for ImageContext {
     fn process_response_eof(
         self,
         request_id: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone()),
+            FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(&self, &response, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

@@ -442,7 +442,8 @@ impl FetchResponseListener for EventSourceContext {
     fn process_response_eof(
         mut self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         if self.incomplete_utf8.take().is_some() {
             self.parse("\u{FFFD}".chars(), CanGc::note());
@@ -451,7 +452,7 @@ impl FetchResponseListener for EventSourceContext {
             self.reestablish_the_connection();
         }
 
-        network_listener::submit_timing(&self, &response, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

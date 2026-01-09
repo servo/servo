@@ -127,9 +127,10 @@ impl FetchResponseListener for XHRContext {
     fn process_response_eof(
         self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &response, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
 
         let rv = self.xhr.root().process_response_complete(
             self.gen_id,

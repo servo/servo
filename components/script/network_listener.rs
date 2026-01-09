@@ -29,35 +29,33 @@ pub(crate) trait ResourceTimingListener {
 
 pub(crate) fn submit_timing<T: ResourceTimingListener>(
     listener: &T,
-    resource_timing_result: &Result<ResourceFetchTiming, NetworkError>,
+    result: &Result<(), NetworkError>,
+    resource_timing: &ResourceFetchTiming,
     can_gc: CanGc,
 ) {
-    let resource_timing = match resource_timing_result {
-        Ok(resource_timing) => resource_timing,
-        // https://www.w3.org/TR/resource-timing/#resources-included-in-the-performanceresourcetiming-interface
-        // If a resource fetch is aborted because it failed a fetch precondition
-        // (e.g. mixed content, CORS restriction, CSP policy, etc), then this resource
-        // will not be included as a PerformanceResourceTiming object in
-        // the Performance Timeline.
-        Err(
-            NetworkError::ContentSecurityPolicy |
-            NetworkError::MixedContent |
-            NetworkError::SubresourceIntegrity |
-            NetworkError::Nosniff |
-            NetworkError::InvalidPort |
-            NetworkError::CorsGeneral |
-            NetworkError::CrossOriginResponse |
-            NetworkError::CorsCredentials |
-            NetworkError::CorsAllowMethods |
-            NetworkError::CorsAllowHeaders |
-            NetworkError::CorsMethod |
-            NetworkError::CorsAuthorization |
-            NetworkError::CorsHeaders,
-        ) => {
-            return;
-        },
-        Err(_) => &ResourceFetchTiming::new(ResourceTimingType::Error),
-    };
+    // https://www.w3.org/TR/resource-timing/#resources-included-in-the-performanceresourcetiming-interface
+    // If a resource fetch is aborted because it failed a fetch precondition
+    // (e.g. mixed content, CORS restriction, CSP policy, etc), then this resource
+    // will not be included as a PerformanceResourceTiming object in
+    // the Performance Timeline.
+    if let Err(
+        NetworkError::ContentSecurityPolicy |
+        NetworkError::MixedContent |
+        NetworkError::SubresourceIntegrity |
+        NetworkError::Nosniff |
+        NetworkError::InvalidPort |
+        NetworkError::CorsGeneral |
+        NetworkError::CrossOriginResponse |
+        NetworkError::CorsCredentials |
+        NetworkError::CorsAllowMethods |
+        NetworkError::CorsAllowHeaders |
+        NetworkError::CorsMethod |
+        NetworkError::CorsAuthorization |
+        NetworkError::CorsHeaders,
+    ) = &result
+    {
+        return;
+    }
 
     // Resource timings should only be submitted for the initial preload request,
     // not for the request that consumes the preload: https://github.com/whatwg/html/issues/12047
@@ -126,7 +124,8 @@ pub(crate) trait FetchResponseListener: Send + 'static {
     fn process_response_eof(
         self,
         request_id: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     );
     fn process_csp_violations(&mut self, request_id: RequestId, violations: Vec<Violation>);
 }
@@ -172,9 +171,9 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                     FetchResponseMsg::ProcessResponseChunk(request_id, data) => {
                         fetch_listener.process_response_chunk(request_id, data.0)
                     },
-                    FetchResponseMsg::ProcessResponseEOF(request_id, resource_timing_result) => {
+                    FetchResponseMsg::ProcessResponseEOF(request_id, result, timing) => {
                         if let Some(fetch_listener) = context.take() {
-                            fetch_listener.process_response_eof(request_id, resource_timing_result);
+                            fetch_listener.process_response_eof(request_id, result, timing);
                         };
                     },
                     FetchResponseMsg::ProcessCspViolations(request_id, violations) => {

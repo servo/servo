@@ -375,7 +375,8 @@ impl FetchResponseListener for ClassicContext {
     fn process_response_eof(
         mut self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         match (response.as_ref(), self.status.as_ref()) {
             (Err(error), _) | (_, Err(error)) => {
@@ -389,7 +390,7 @@ impl FetchResponseListener for ClassicContext {
                 );
 
                 // Resource timing is expected to be available before "error" or "load" events are fired.
-                network_listener::submit_timing(&self, &response, CanGc::note());
+                network_listener::submit_timing(&self, &response, &timing, CanGc::note());
                 return;
             },
             _ => {},
@@ -470,7 +471,7 @@ impl FetchResponseListener for ClassicContext {
         );
         // }
 
-        network_listener::submit_timing(&self, &response, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
