@@ -7,9 +7,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::mem;
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
 
-use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use log::{debug, warn};
 use serde::Serialize;
@@ -95,9 +93,7 @@ pub struct ActorRegistry {
     /// Lookup table for inline source content associated with a given PipelineId.
     inline_source_content: RefCell<HashMap<PipelineId, String>>,
 
-    shareable: Option<Arc<Mutex<ActorRegistry>>>,
     next: Cell<u32>,
-    start_stamp: CrossProcessInstant,
 }
 
 impl ActorRegistry {
@@ -110,9 +106,7 @@ impl ActorRegistry {
             script_actors: RefCell::new(HashMap::new()),
             source_actor_names: RefCell::new(HashMap::new()),
             inline_source_content: RefCell::new(HashMap::new()),
-            shareable: None,
             next: Cell::new(0),
-            start_stamp: CrossProcessInstant::now(),
         }
     }
 
@@ -120,31 +114,6 @@ impl ActorRegistry {
         for actor in self.actors.values() {
             actor.cleanup(stream_id);
         }
-    }
-
-    /// Creating shareable registry
-    pub fn create_shareable(self) -> Arc<Mutex<ActorRegistry>> {
-        if let Some(shareable) = self.shareable {
-            return shareable;
-        }
-
-        let shareable = Arc::new(Mutex::new(self));
-        {
-            let mut lock = shareable.lock();
-            let registry = lock.as_mut().unwrap();
-            registry.shareable = Some(shareable.clone());
-        }
-        shareable
-    }
-
-    /// Get shareable registry through threads
-    pub fn shareable(&self) -> Arc<Mutex<ActorRegistry>> {
-        self.shareable.as_ref().unwrap().clone()
-    }
-
-    /// Get start stamp when registry was started
-    pub fn start_stamp(&self) -> CrossProcessInstant {
-        self.start_stamp
     }
 
     pub fn register_script_actor(&self, script_id: String, actor: String) {
