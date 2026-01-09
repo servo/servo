@@ -11,40 +11,71 @@ use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use tempfile::TempDir;
 
-fn init() -> (TempDir, StorageThreads) {
-    let dir = tempfile::tempdir().unwrap();
-    let config_dir = dir.path().to_path_buf();
-    let mem_profiler_chan = profile_mem::Profiler::create();
-    let threads = storage::new_storage_threads(mem_profiler_chan, Some(config_dir));
-    (dir, threads.0)
+pub struct WebStorageTest {
+    tmp_dir: Option<TempDir>,
+    threads: StorageThreads,
 }
 
-fn init_with(dir: &tempfile::TempDir) -> StorageThreads {
-    let config_dir = dir.path().to_path_buf();
-    let mem_profiler_chan = profile_mem::Profiler::create();
-    let threads = storage::new_storage_threads(mem_profiler_chan, Some(config_dir));
-    threads.0
+impl WebStorageTest {
+    pub fn new() -> Self {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let config_dir = tmp_dir.path().to_path_buf();
+        let mem_profiler_chan = profile_mem::Profiler::create();
+        let threads = storage::new_storage_threads(mem_profiler_chan, Some(config_dir));
+
+        Self {
+            tmp_dir: Some(tmp_dir),
+            threads: threads.0,
+        }
+    }
+
+    pub fn new_in_memory() -> Self {
+        let mem_profiler_chan = profile_mem::Profiler::create();
+        let threads = storage::new_storage_threads(mem_profiler_chan, None);
+
+        Self {
+            tmp_dir: None,
+            threads: threads.0,
+        }
+    }
+
+    pub fn restart(mut self) -> Self {
+        let tmp_dir = self.tmp_dir.take();
+        let config_dir = tmp_dir.as_ref().map(|d| d.path().to_path_buf());
+        let mem_profiler_chan = profile_mem::Profiler::create();
+        let threads = storage::new_storage_threads(mem_profiler_chan, config_dir);
+
+        Self {
+            tmp_dir: tmp_dir,
+            threads: threads.0,
+        }
+    }
+
+    pub fn threads(&self) -> StorageThreads {
+        self.threads.clone()
+    }
+
+    /// Gracefully shut down the webstorage thread to avoid dangling threads in tests.
+    fn shutdown(&self) {
+        let (sender, receiver) = base_channel::channel().unwrap();
+        self.threads
+            .send(WebStorageThreadMsg::Exit(sender))
+            .expect("failed to send Exit");
+        // Wait for acknowledgement so the thread terminates before the test ends.
+        let _ = receiver.recv();
+    }
 }
 
-fn init_in_memory() -> StorageThreads {
-    let mem_profiler_chan = profile_mem::Profiler::create();
-    let threads = storage::new_storage_threads(mem_profiler_chan, None);
-    threads.0
-}
-
-/// Gracefully shut down the webstorage thread to avoid dangling threads in tests.
-fn shutdown(threads: &StorageThreads) {
-    let (sender, receiver) = base_channel::channel().unwrap();
-    threads
-        .send(WebStorageThreadMsg::Exit(sender))
-        .expect("failed to send Exit");
-    // Wait for acknowledgement so the thread terminates before the test ends.
-    let _ = receiver.recv();
+impl Drop for WebStorageTest {
+    fn drop(&mut self) {
+        self.shutdown();
+    }
 }
 
 #[test]
 fn set_and_get_item() {
-    let (_tmp_dir, threads) = init();
+    let test = WebStorageTest::new();
+    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
@@ -73,13 +104,12 @@ fn set_and_get_item() {
         ))
         .unwrap();
     assert_eq!(receiver.recv().unwrap(), Some("bar".into()));
-
-    shutdown(&threads);
 }
 
 #[test]
 fn set_and_get_item_in_memory() {
-    let threads = init_in_memory();
+    let test = WebStorageTest::new_in_memory();
+    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
@@ -108,13 +138,12 @@ fn set_and_get_item_in_memory() {
         ))
         .unwrap();
     assert_eq!(receiver.recv().unwrap(), Some("bar".into()));
-
-    shutdown(&threads);
 }
 
 #[test]
 fn length_key_and_keys() {
-    let (_tmp_dir, threads) = init();
+    let test = WebStorageTest::new();
+    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Insert two items.
@@ -173,13 +202,12 @@ fn length_key_and_keys() {
     assert_eq!(keys.len(), 2);
     assert!(keys.contains(&"foo".to_string()));
     assert!(keys.contains(&"bar".to_string()));
-
-    shutdown(&threads);
 }
 
 #[test]
 fn remove_item_and_clear() {
-    let (_tmp_dir, threads) = init();
+    let test = WebStorageTest::new();
+    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Insert items.
@@ -247,12 +275,11 @@ fn remove_item_and_clear() {
         ))
         .unwrap();
     assert_eq!(receiver.recv().unwrap(), 0);
-
-    shutdown(&threads);
 }
 
 fn test_origin_descriptors(storage_type: WebStorageType, survives_restart: bool) {
-    let (tmp_dir, threads) = init();
+    let test = WebStorageTest::new();
+    let threads = test.threads();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
@@ -275,8 +302,8 @@ fn test_origin_descriptors(storage_type: WebStorageType, survives_restart: bool)
     assert_eq!(descriptors[0].name, "https://example.com");
 
     // Restart storage threads.
-    shutdown(&threads);
-    let threads = init_with(&tmp_dir);
+    let test = test.restart();
+    let threads = test.threads();
 
     // There should still be descriptors.
     let descriptors = threads.webstorage_origins(storage_type);
@@ -286,8 +313,6 @@ fn test_origin_descriptors(storage_type: WebStorageType, survives_restart: bool)
     } else {
         assert!(descriptors.is_empty());
     }
-
-    shutdown(&threads);
 }
 
 #[test]
