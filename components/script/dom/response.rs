@@ -548,7 +548,25 @@ impl Response {
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {
+            if self.is_body_empty.get() {
+                stream_consumer.consume_chunk(&[]);
+            }
             stream_consumer.stream_end();
+        }
+    }
+
+    pub(crate) fn is_in_memory(&self) -> bool {
+        self.fetch_body_stream
+            .get()
+            .is_some_and(|body| body.in_memory())
+    }
+
+    pub(crate) fn consume_in_memory_stream(&self, can_gc: CanGc) {
+        if let Some(body) = self.fetch_body_stream.get() {
+            if let Some(bytes) = body.get_in_memory_bytes() {
+                self.stream_chunk(bytes.to_vec(), can_gc);
+                self.finish(can_gc);
+            }
         }
     }
 }

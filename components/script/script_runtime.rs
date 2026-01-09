@@ -1353,6 +1353,15 @@ unsafe extern "C" fn consume_stream(
             return false;
         }
         unwrapped_source.set_stream_consumer(Some(StreamConsumer(_consumer)));
+        if unwrapped_source.is_in_memory() {
+            let unwrapped_source = Trusted::new(&*unwrapped_source);
+            global
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(consume_stream: move || {
+                    unwrapped_source.root().consume_in_memory_stream(CanGc::note());
+                }));
+        }
     } else {
         // Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(
