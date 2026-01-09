@@ -654,18 +654,20 @@ impl LineItemLayout<'_, '_> {
         // absolutely positioned element. If it's `inline` it would be placed inline
         // at the top of the line, but if it's block it would be placed in a new
         // block position after the linebox established by this line.
+        let block_position = self.layout.placement_state.current_margin.solve() -
+            self.current_state.parent_offset.block;
         let initial_start_corner =
             if style.get_box().original_display.outside() == DisplayOutside::Inline {
                 // Top of the line at the current inline position.
                 LogicalVec2 {
                     inline: self.current_state.inline_advance,
-                    block: -self.current_state.parent_offset.block,
+                    block: block_position,
                 }
             } else {
                 // After the bottom of the line at the start of the inline formatting context.
                 LogicalVec2 {
                     inline: -self.current_state.parent_offset.inline,
-                    block: self.line_metrics.block_size - self.current_state.parent_offset.block,
+                    block: block_position + self.line_metrics.block_size,
                 }
             };
 
