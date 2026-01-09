@@ -437,7 +437,7 @@ impl DedicatedWorkerGlobalScope {
                     init.storage_threads.clone(),
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub.clone(),
-                    CanGc::from_cx(cx),
+                    cx,
                 );
                 debugger_global.execute(CanGc::from_cx(cx));
 

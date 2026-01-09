@@ -52,7 +52,7 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
     CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
@@ -395,12 +395,9 @@ impl ServiceWorkerGlobalScope {
 
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
-                    let realm = enter_realm(worker_scope);
-                    define_all_exposed_interfaces(
-                        global_scope,
-                        InRealm::entered(&realm),
-                        CanGc::from_cx(cx),
-                    );
+                    let mut realm = enter_auto_realm(cx, worker_scope);
+                    let mut realm = realm.current_realm();
+                    define_all_exposed_interfaces(&mut realm, global_scope);
 
                     let script = global_scope.create_a_classic_script(
                         String::from_utf8_lossy(&source),
@@ -414,9 +411,13 @@ impl ServiceWorkerGlobalScope {
                     _ = global_scope.run_a_classic_script(
                         script,
                         RethrowErrors::No,
-                        CanGc::from_cx(cx),
+                        CanGc::from_cx(&mut realm),
                     );
-                    global.dispatch_activate(CanGc::from_cx(cx), InRealm::entered(&realm));
+                    let in_realm_proof = (&mut realm).into();
+                    global.dispatch_activate(
+                        CanGc::from_cx(&mut realm),
+                        InRealm::Already(&in_realm_proof),
+                    );
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());

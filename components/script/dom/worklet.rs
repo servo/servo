@@ -577,10 +577,10 @@ impl WorkletThread {
             // try to become the cold backup.
             if self.role.is_cold_backup {
                 if let Some(control) = self.control_buffer.take() {
-                    self.process_control(control, CanGc::from_cx(cx));
+                    self.process_control(control, cx);
                 }
                 while let Ok(control) = self.control_receiver.try_recv() {
-                    self.process_control(control, CanGc::from_cx(cx));
+                    self.process_control(control, cx);
                 }
                 self.gc(cx);
             } else if self.control_buffer.is_none() {
@@ -629,6 +629,7 @@ impl WorkletThread {
         );
     }
 
+    #[expect(clippy::too_many_arguments)]
     /// Get the worklet global scope for a given worklet.
     /// Creates the worklet global scope if it doesn't exist.
     fn get_worklet_global_scope(
@@ -639,6 +640,7 @@ impl WorkletThread {
         inherited_secure_context: Option<bool>,
         global_type: WorkletGlobalScopeType,
         base_url: ServoUrl,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<WorkletGlobalScope> {
         match self.global_scopes.entry(worklet_id) {
             hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
@@ -653,6 +655,7 @@ impl WorkletThread {
                     inherited_secure_context,
                     executor,
                     &self.global_init,
+                    cx,
                 );
                 entry.insert(Dom::from_ref(&*result));
                 result
@@ -673,7 +676,7 @@ impl WorkletThread {
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         debug!("Fetching from {}.", script_url);
         // Step 1.
@@ -697,7 +700,7 @@ impl WorkletThread {
             &resource_fetcher,
             global,
             &WorkletCspProcessor {},
-            can_gc,
+            CanGc::from_cx(cx),
         )
         .ok()
         .and_then(|(_, bytes, _)| String::from_utf8(bytes).ok());
@@ -708,7 +711,11 @@ impl WorkletThread {
         // Also, the spec currently doesn't allow exceptions to be propagated
         // to the main script thread.
         // https://github.com/w3c/css-houdini-drafts/issues/407
-        let ok = script.is_some_and(|s| global_scope.evaluate_js(s.into(), can_gc).is_ok());
+        let ok = script.is_some_and(|s| {
+            global_scope
+                .evaluate_js(s.into(), CanGc::from_cx(cx))
+                .is_ok()
+        });
 
         if !ok {
             // Step 3.
@@ -742,7 +749,7 @@ impl WorkletThread {
     }
 
     /// Process a control message.
-    fn process_control(&mut self, control: WorkletControl, can_gc: CanGc) {
+    fn process_control(&mut self, control: WorkletControl, cx: &mut js::context::JSContext) {
         match control {
             WorkletControl::ExitWorklet(worklet_id) => {
                 self.global_scopes.remove(&worklet_id);
@@ -768,6 +775,7 @@ impl WorkletThread {
                     inherited_secure_context,
                     global_type,
                     base_url,
+                    cx,
                 );
                 self.fetch_and_invoke_a_worklet_script(
                     &global,
@@ -778,7 +786,7 @@ impl WorkletThread {
                     credentials,
                     pending_tasks_struct,
                     promise,
-                    can_gc,
+                    cx,
                 )
             },
         }

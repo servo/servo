@@ -599,7 +599,8 @@ pub(crate) unsafe extern "C" fn enumerate_window<D: DomTypes>(
     props: RawMutableHandleIdVector,
     enumerable_only: bool,
 ) -> bool {
-    if !enumerate_global(cx, obj, props, enumerable_only) {
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    if !enumerate_global(cx.raw_cx(), obj, props, enumerable_only) {
         return false;
     }
 
@@ -609,14 +610,13 @@ pub(crate) unsafe extern "C" fn enumerate_window<D: DomTypes>(
         return true;
     }
 
-    let cx = SafeJSContext::from_ptr(cx);
     let obj = Handle::from_raw(obj);
     for (name, interface) in <D as DomHelpers<D>>::interface_map() {
-        if !(interface.enabled)(cx, obj) {
+        if !(interface.enabled)(&mut cx, obj) {
             continue;
         }
-        let s = JS_AtomizeStringN(*cx, name.as_c_char_ptr(), name.len());
-        rooted!(in(*cx) let id = StringId(s));
+        let s = JS_AtomizeStringN(cx.raw_cx(), name.as_c_char_ptr(), name.len());
+        rooted!(&in(cx) let id = StringId(s));
         if s.is_null() || !AppendToIdVector(props, id.handle().into()) {
             return false;
         }
@@ -675,20 +675,21 @@ pub(crate) unsafe extern "C" fn resolve_window<D: DomTypes>(
     id: RawHandleId,
     rval: *mut bool,
 ) -> bool {
-    if !resolve_global(cx, obj, id, rval) {
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    if !resolve_global(cx.raw_cx(), obj, id, rval) {
         return false;
     }
 
     if *rval {
         return true;
     }
-    let Ok(bytes) = latin1_bytes_from_id(cx, *id) else {
+    let Ok(bytes) = latin1_bytes_from_id(cx.raw_cx(), *id) else {
         *rval = false;
         return true;
     };
 
     if let Some(interface) = <D as DomHelpers<D>>::interface_map().get(bytes) {
-        (interface.define)(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
+        (interface.define)(&mut cx, Handle::from_raw(obj));
         *rval = true;
     } else {
         *rval = false;

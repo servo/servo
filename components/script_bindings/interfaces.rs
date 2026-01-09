@@ -28,9 +28,9 @@ use crate::utils::ProtoOrIfaceArray;
 /// <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/WebIDLGlobalNameHash.h#L24>
 pub struct Interface {
     /// Define the JS object for this interface on the given global.
-    pub define: fn(JSContext, HandleObject),
+    pub define: fn(&mut js::context::JSContext, HandleObject),
     /// Returns true if this interface's conditions are met for the given global.
-    pub enabled: fn(JSContext, HandleObject) -> bool,
+    pub enabled: fn(&mut js::context::JSContext, HandleObject) -> bool,
 }
 
 /// Operations that must be invoked from the generated bindings.

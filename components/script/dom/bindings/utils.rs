@@ -133,12 +133,7 @@ pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
 
 /// Eagerly define all relevant WebIDL interface constructors on the
 /// provided global object.
-pub(crate) fn define_all_exposed_interfaces(
-    global: &GlobalScope,
-    _in_realm: InRealm,
-    _can_gc: CanGc,
-) {
-    let cx = GlobalScope::get_cx();
+pub(crate) fn define_all_exposed_interfaces(cx: &mut CurrentRealm, global: &GlobalScope) {
     for (_, interface) in &InterfaceObjectMap::MAP {
         (interface.define)(cx, global.reflector().get_jsobject());
     }
