@@ -27,7 +27,7 @@ pub(crate) trait ResourceTimingListener {
     fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
 }
 
-pub(crate) fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(
+pub(crate) fn submit_timing<T: ResourceTimingListener>(
     listener: &T,
     resource_timing: &ResourceFetchTiming,
     can_gc: CanGc,
