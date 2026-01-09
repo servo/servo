@@ -16,8 +16,12 @@ for (const dataType in BeaconDataType) {
         method: 'POST',
         body: makeBeaconData(
             generatePayload(OVERSIZED_REQUEST_BODY_SIZE), dataType),
+        referrer: '',
       });
-    }, null, null);
+      // It is difficult to compute the exact requested length, as that depends on
+      // the datatype. Instead, it should always be more than `OVERSIZED_REQUEST_BODY_SIZE`
+      // since we count url and referrer as well
+    }, (requested) => requested > OVERSIZED_REQUEST_BODY_SIZE, QUOTA_PER_ORIGIN);
   }, `fetchLater() does not accept payload[size=${
           OVERSIZED_REQUEST_BODY_SIZE}] exceeding per-origin quota in a POST request body of ${
           dataType}.`);
