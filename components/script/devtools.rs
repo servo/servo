@@ -351,6 +351,7 @@ pub(crate) fn handle_get_layout(
         None => return reply.send(None).unwrap(),
         Some(found_node) => found_node,
     };
+    let auto_margins = determine_auto_margins(&node);
 
     let elem = node
         .downcast::<Element>()
@@ -360,30 +361,27 @@ pub(crate) fn handle_get_layout(
     let height = rect.Height() as f32;
 
     let window = node.owner_window();
-    let elem = node
-        .downcast::<Element>()
-        .expect("should be getting layout of element");
     let computed_style = window.GetComputedStyle(elem, None);
 
     reply
         .send(Some(ComputedNodeLayout {
-            display: String::from(computed_style.Display()),
-            position: String::from(computed_style.Position()),
-            z_index: String::from(computed_style.ZIndex()),
-            box_sizing: String::from(computed_style.BoxSizing()),
-            auto_margins: determine_auto_margins(&node),
-            margin_top: String::from(computed_style.MarginTop()),
-            margin_right: String::from(computed_style.MarginRight()),
-            margin_bottom: String::from(computed_style.MarginBottom()),
-            margin_left: String::from(computed_style.MarginLeft()),
-            border_top_width: String::from(computed_style.BorderTopWidth()),
-            border_right_width: String::from(computed_style.BorderRightWidth()),
-            border_bottom_width: String::from(computed_style.BorderBottomWidth()),
-            border_left_width: String::from(computed_style.BorderLeftWidth()),
-            padding_top: String::from(computed_style.PaddingTop()),
-            padding_right: String::from(computed_style.PaddingRight()),
-            padding_bottom: String::from(computed_style.PaddingBottom()),
-            padding_left: String::from(computed_style.PaddingLeft()),
+            display: computed_style.Display().into(),
+            position: computed_style.Position().into(),
+            z_index: computed_style.ZIndex().into(),
+            box_sizing: computed_style.BoxSizing().into(),
+            auto_margins,
+            margin_top: computed_style.MarginTop().into(),
+            margin_right: computed_style.MarginRight().into(),
+            margin_bottom: computed_style.MarginBottom().into(),
+            margin_left: computed_style.MarginLeft().into(),
+            border_top_width: computed_style.BorderTopWidth().into(),
+            border_right_width: computed_style.BorderRightWidth().into(),
+            border_bottom_width: computed_style.BorderBottomWidth().into(),
+            border_left_width: computed_style.BorderLeftWidth().into(),
+            padding_top: computed_style.PaddingTop().into(),
+            padding_right: computed_style.PaddingRight().into(),
+            padding_bottom: computed_style.PaddingBottom().into(),
+            padding_left: computed_style.PaddingLeft().into(),
             width,
             height,
         }))
@@ -450,13 +448,15 @@ pub(crate) fn handle_get_xpath(
 }
 
 fn determine_auto_margins(node: &Node) -> AutoMargins {
-    let style = node.style().unwrap();
+    let Some(style) = node.style() else {
+        return AutoMargins::default();
+    };
     let margin = style.get_margin();
     AutoMargins {
-        top: margin.margin_top.is_auto(),
-        right: margin.margin_right.is_auto(),
-        bottom: margin.margin_bottom.is_auto(),
-        left: margin.margin_left.is_auto(),
+        top: margin.margin_top.is_auto().then_some("auto".into()),
+        right: margin.margin_right.is_auto().then_some("auto".into()),
+        bottom: margin.margin_bottom.is_auto().then_some("auto".into()),
+        left: margin.margin_left.is_auto().then_some("auto".into()),
     }
 }
 
