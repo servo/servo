@@ -6465,21 +6465,21 @@ checksum = "9f50d9b3dabb09ecd771ad0aa242ca6894994c130308ca3d7684634df8037391"
 
 [[package]]
 name = "openxr"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40adeaa3219baa4412a522742eeee152656763008a39c68a50fd3027fe37625e"
+checksum = "09a7b5f4a26a71928a11b912f94c387378b1c14caac3bde3d9cecd4bb8870262"
 dependencies = [
  "libc",
- "libloading 0.8.9",
+ "libloading 0.9.0",
  "ndk-context",
  "openxr-sys",
 ]
 
 [[package]]
 name = "openxr-sys"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8b94052f57756896c60b504769568fc538808210e77190b69c69b467ee7eaaf"
+checksum = "b69a1e728e450d419fa7e82fdfb2988d4a0eadd6bdd16fceff72f1b485c4d96b"
 dependencies = [
  "libc",
 ]
