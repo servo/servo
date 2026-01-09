@@ -19,7 +19,6 @@ use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use js::jsapi::JS_AddInterruptCallback;
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
@@ -81,7 +80,7 @@ use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_w
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
@@ -161,6 +160,9 @@ impl FetchResponseListener for ScriptFetchContext {
         _request_id: RequestId,
         response: Result<ResourceFetchTiming, NetworkError>,
     ) {
+        #[expect(unsafe_code)]
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
         let scope = self.scope.root();
 
         if response
@@ -169,7 +171,7 @@ impl FetchResponseListener for ScriptFetchContext {
             .is_err() ||
             self.response.is_none()
         {
-            scope.on_complete(None, self.worker.clone(), CanGc::note());
+            scope.on_complete(None, self.worker.clone(), cx);
             return;
         }
         let metadata = self.response.take().unwrap();
@@ -202,7 +204,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 2 If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
         if !metadata.status.is_success() {
             // then run onComplete given null, and abort these steps.
-            scope.on_complete(None, self.worker.clone(), CanGc::note());
+            scope.on_complete(None, self.worker.clone(), cx);
             return;
         }
 
@@ -217,7 +219,7 @@ impl FetchResponseListener for ScriptFetchContext {
 
         if is_http_scheme && not_a_javascript_mime_type {
             // then run onComplete given null, and abort these steps.
-            scope.on_complete(None, self.worker.clone(), CanGc::note());
+            scope.on_complete(None, self.worker.clone(), cx);
             return;
         }
 
@@ -237,10 +239,10 @@ impl FetchResponseListener for ScriptFetchContext {
         );
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(Some(script), self.worker.clone(), CanGc::note());
+        scope.on_complete(Some(script), self.worker.clone(), cx);
 
         if let Ok(response) = response {
-            submit_timing(&self, &response, CanGc::note());
+            submit_timing(&self, &response, CanGc::from_cx(cx));
         }
     }
 
@@ -586,7 +588,7 @@ impl WorkerGlobalScope {
         &self,
         script: Option<ClassicScript>,
         worker: TrustedWorkerAddress,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let dedicated_worker_scope = self
             .downcast::<DedicatedWorkerGlobalScope>()
@@ -608,7 +610,7 @@ impl WorkerGlobalScope {
 
         unsafe {
             // Handle interrupt requests
-            JS_AddInterruptCallback(*self.get_cx(), Some(interrupt_callback));
+            js::rust::wrappers2::JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
         if self.is_closing() {
@@ -617,17 +619,16 @@ impl WorkerGlobalScope {
 
         {
             let _ar = AutoWorkerReset::new(dedicated_worker_scope, worker);
-            let realm = enter_realm(self);
-            define_all_exposed_interfaces(
-                dedicated_worker_scope.upcast(),
-                InRealm::entered(&realm),
-                can_gc,
-            );
+            let mut realm = enter_auto_realm(cx, self);
+            let mut realm = realm.current_realm();
+            define_all_exposed_interfaces(&mut realm, dedicated_worker_scope.upcast());
             self.execution_ready.store(true, Ordering::Relaxed);
-            _ = self
-                .globalscope
-                .run_a_classic_script(script, RethrowErrors::No, can_gc);
-            dedicated_worker_scope.fire_queued_messages(can_gc);
+            _ = self.globalscope.run_a_classic_script(
+                script,
+                RethrowErrors::No,
+                CanGc::from_cx(&mut realm),
+            );
+            dedicated_worker_scope.fire_queued_messages(CanGc::from_cx(&mut realm));
         }
     }
 }

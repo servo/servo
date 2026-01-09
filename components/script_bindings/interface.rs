@@ -592,11 +592,11 @@ pub(crate) fn get_per_interface_object_handle(
 }
 
 pub(crate) fn define_dom_interface(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: HandleObject,
     id: ProtoOrIfaceIndex,
     creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
-    enabled: fn(SafeJSContext, HandleObject) -> bool,
+    enabled: fn(&mut js::context::JSContext, HandleObject) -> bool,
 ) {
     assert!(!global.get().is_null());
 
@@ -604,8 +604,8 @@ pub(crate) fn define_dom_interface(
         return;
     }
 
-    rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
-    get_per_interface_object_handle(cx, global, id, creator, proto.handle_mut());
+    rooted!(&in(cx) let mut proto = ptr::null_mut::<JSObject>());
+    get_per_interface_object_handle(cx.into(), global, id, creator, proto.handle_mut());
     assert!(!proto.is_null());
 }
 

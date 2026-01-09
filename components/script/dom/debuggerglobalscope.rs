@@ -13,7 +13,7 @@ use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::JS_DefineDebuggerObject;
+use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
 use script_bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
@@ -35,7 +35,7 @@ use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpoints
 #[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 
 #[dom_struct]
@@ -71,7 +71,7 @@ impl DebuggerGlobalScope {
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
         #[cfg(feature = "webgpu")] gpu_id_hub: std::sync::Arc<IdentityHub>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
@@ -96,18 +96,14 @@ impl DebuggerGlobalScope {
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
         });
-        let global =
-            DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global);
+        let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx.into(), global);
 
-        let realm = enter_realm(&*global);
-        define_all_exposed_interfaces(global.upcast(), InRealm::entered(&realm), can_gc);
+        let mut realm = enter_auto_realm(cx, &*global);
+        let mut realm = realm.current_realm();
+        define_all_exposed_interfaces(&mut realm, global.upcast());
         assert!(unsafe {
-            // Invariants: `cx` must be a non-null, valid JSContext pointer,
-            // and `obj` must be a handle to a JS global object.
-            JS_DefineDebuggerObject(
-                *Self::get_cx(),
-                global.global_scope.reflector().get_jsobject(),
-            )
+            // Invariants: `obj` must be a handle to a JS global object.
+            JS_DefineDebuggerObject(&mut realm, global.global_scope.reflector().get_jsobject())
         });
 
         global

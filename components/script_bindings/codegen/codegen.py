@@ -3156,7 +3156,7 @@ class CGConstructorEnabled(CGAbstractMethod):
     def __init__(self, descriptor: Descriptor) -> None:
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
-                                  [Argument("SafeJSContext", "aCx"),
+                                  [Argument("&mut JSContext", "cx"),
                                    Argument("HandleObject", "aObj")],
                                   templateArgs=['D: DomTypes'],
                                   pub=True)
@@ -3178,14 +3178,14 @@ class CGConstructorEnabled(CGAbstractMethod):
         func = iface.getExtendedAttribute("Func")
         if func:
             assert isinstance(func, list) and len(func) == 1
-            conditions.append(f"D::{func[0]}(aCx, aObj)")
+            conditions.append(f"D::{func[0]}(cx.into(), aObj)")
 
         secure = iface.getExtendedAttribute("SecureContext")
         if secure:
             conditions.append("""
-unsafe {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(aCx);
-    D::GlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()
+{
+let realm = CurrentRealm::assert(cx);
+D::GlobalScope::from_current_realm(&realm).is_secure_context()
 }
 """)
 
@@ -4065,7 +4065,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor: Descriptor) -> None:
         assert descriptor.interface.hasInterfaceObject()
         args = [
-            Argument('SafeJSContext', 'cx'),
+            Argument('&mut JSContext', 'cx'),
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',

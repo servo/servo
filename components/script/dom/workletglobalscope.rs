@@ -16,7 +16,6 @@ use js::jsval::UndefinedValue;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
-use script_bindings::realms::InRealm;
 use script_traits::Painter;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -34,7 +33,7 @@ use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext};
 
 #[dom_struct]
@@ -52,6 +51,7 @@ pub(crate) struct WorkletGlobalScope {
 }
 
 impl WorkletGlobalScope {
+    #[expect(clippy::too_many_arguments)]
     /// Create a new heap-allocated `WorkletGlobalScope`.
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
@@ -61,6 +61,7 @@ impl WorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
@@ -82,8 +83,9 @@ impl WorkletGlobalScope {
             )),
         };
 
-        let realm = enter_realm(&*scope);
-        define_all_exposed_interfaces(scope.upcast(), InRealm::entered(&realm), CanGc::note());
+        let mut realm = enter_auto_realm(cx, &*scope);
+        let mut realm = realm.current_realm();
+        define_all_exposed_interfaces(&mut realm, scope.upcast());
 
         scope
     }
