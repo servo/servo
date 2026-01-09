@@ -30,20 +30,6 @@ where
             time_profiler_chan,
         })
     }
-
-    pub fn new_blocking<F: FnMut(Result<T, ipc_channel::Error>) + Send + 'static>(
-        time_profiler_chan: ProfilerChan,
-    ) -> Result<(Self, GenericReceiver<T>), ipc_channel::Error> {
-        let (callback, receiver) = base::generic_channel::GenericCallback::new_blocking()?;
-        Ok((
-            GenericCallback {
-                callback,
-                time_profiler_chan,
-            },
-            receiver,
-        ))
-    }
-
     pub fn send(&self, value: T) -> SendResult {
         time_profile!(
             ProfilerCategory::IpcReceiver,
