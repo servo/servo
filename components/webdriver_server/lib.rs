@@ -30,9 +30,9 @@ use cookie::{CookieBuilder, Expiration, SameSite};
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, after, select, unbounded};
 use embedder_traits::{
     CustomHandlersAutomationMode, EventLoopWaker, ImeEvent, InputEvent, JSValue,
-    JavaScriptEvaluationError, JavaScriptEvaluationResultSerializationError, MouseButton,
-    NewWindowTypeHint, WebDriverCommandMsg, WebDriverFrameId, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand,
+    JavaScriptEvaluationError, JavaScriptEvaluationResultSerializationError, NewWindowTypeHint,
+    WebDriverCommandMsg, WebDriverFrameId, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand,
 };
 use euclid::{Point2D, Rect, Size2D};
 use http::method::Method;
@@ -73,7 +73,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{InputSourceState, PointerInputState};
+use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
@@ -2334,14 +2334,14 @@ impl Handler {
         // Step 8.11. Construct pointer down action.
         // Step 8.12. Set a property button to 0 on pointer down action.
         let pointer_down_action = PointerDownAction {
-            button: i16::from(MouseButton::Left) as u64,
+            button: ELEMENT_CLICK_BUTTON,
             ..Default::default()
         };
 
         // Step 8.13. Construct pointer up action.
         // Step 8.14. Set a property button to 0 on pointer up action.
         let pointer_up_action = PointerUpAction {
-            button: i16::from(MouseButton::Left) as u64,
+            button: ELEMENT_CLICK_BUTTON,
             ..Default::default()
         };
 
