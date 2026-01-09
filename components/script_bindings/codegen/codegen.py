@@ -6887,7 +6887,7 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
             constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
             constructorCall = f"""
             call_default_constructor::<D>(
-                SafeJSContext::from_ptr(cx.raw_cx()),
+                &mut cx,
                 &args,
                 &global,
                 PrototypeList::ID::{MakeNativeName(self.descriptor.name)},

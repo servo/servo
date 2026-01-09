@@ -14,7 +14,7 @@ use crate::script_runtime::JSContext;
 use crate::utils::ProtoOrIfaceArray;
 
 pub(crate) unsafe fn call_default_constructor<D: crate::DomTypes>(
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     args: &CallArgs,
     global: &D::GlobalScope,
     proto_id: PrototypeList::ID,
@@ -23,15 +23,21 @@ pub(crate) unsafe fn call_default_constructor<D: crate::DomTypes>(
     constructor: impl FnOnce(JSContext, &CallArgs, &D::GlobalScope, HandleObject) -> bool,
 ) -> bool {
     if !args.is_constructing() {
-        throw_constructor_without_new(cx, ctor_name);
+        throw_constructor_without_new(cx.into(), ctor_name);
         return false;
     }
 
-    rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-    let proto_result = get_desired_proto(cx, args, proto_id, creator, desired_proto.handle_mut());
+    rooted!(&in(cx) let mut desired_proto = ptr::null_mut::<JSObject>());
+    let proto_result = get_desired_proto(
+        cx.into(),
+        args,
+        proto_id,
+        creator,
+        desired_proto.handle_mut(),
+    );
     if proto_result.is_err() {
         return false;
     }
 
-    constructor(cx, args, global, desired_proto.handle())
+    constructor(cx.into(), args, global, desired_proto.handle())
 }
