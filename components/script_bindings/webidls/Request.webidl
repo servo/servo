@@ -45,7 +45,7 @@ dictionary RequestInit {
   RequestCache cache;
   RequestRedirect redirect;
   DOMString integrity;
-  // boolean keepalive;
+  boolean keepalive;
   AbortSignal? signal;
   // RequestDuplex duplex;
   // RequestPriority priority;

@@ -191,6 +191,7 @@ impl Request {
             init.credentials.is_some() ||
             init.integrity.is_some() ||
             init.headers.is_some() ||
+            init.keepalive.is_some() ||
             init.method.is_some() ||
             init.mode.is_some() ||
             init.redirect.is_some() ||
@@ -305,8 +306,10 @@ impl Request {
             request.integrity_metadata = integrity;
         }
 
-        // Step 24.If init["keepalive"] exists, then set request’s keepalive to it.
-        // TODO
+        // Step 24. If init["keepalive"] exists, then set request’s keepalive to it.
+        if let Some(init_keepalive) = init.keepalive {
+            request.keep_alive = init_keepalive;
+        }
 
         // Step 25. If init["method"] exists, then:
         // Step 25.1. Let method be init["method"].
