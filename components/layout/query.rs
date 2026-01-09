@@ -7,8 +7,8 @@ use std::rc::Rc;
 
 use app_units::Au;
 use compositing_traits::display_list::ScrollTree;
-use euclid::default::{Point2D, Rect as UntypedRect};
-use euclid::{Rect, SideOffsets2D, Size2D};
+use euclid::default::Rect as UntypedRect;
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
@@ -24,7 +24,7 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use style::dom::{NodeInfo, OpaqueNode, TElement, TNode};
+use style::dom::{NodeInfo, TElement, TNode};
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -42,7 +42,7 @@ use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style::values::specified::text::TextTransformCase;
-use style_traits::{ParsingMode, ToCss};
+use style_traits::{CSSPixel, ParsingMode, ToCss};
 
 use crate::ArcRefCell;
 use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
@@ -194,8 +194,8 @@ pub fn process_node_scroll_area_request(
     };
 
     Rect::new(
-        Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
-        Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
+        rect.origin.map(Au::to_f32_px),
+        rect.size.to_vector().map(Au::to_f32_px).to_size(),
     )
     .round()
     .to_i32()
@@ -1307,8 +1307,33 @@ fn rendered_text_collection_steps(
     items
 }
 
-pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> Option<usize> {
-    None
+pub fn find_glyph_offset_in_fragment(
+    fragment: &Fragment,
+    point: Point2D<Au, CSSPixel>,
+    is_root: bool,
+) -> Option<usize> {
+    if let Fragment::Text(text_fragment) = fragment {
+        let text_fragment = text_fragment.borrow();
+        if !text_fragment.base.rect.contains(point) {
+            return None;
+        }
+        return Some(text_fragment.glyph_offset(point));
+    }
+
+    let point = if is_root {
+        point
+    } else {
+        let offset = fragment
+            .base()
+            .map(|base| base.rect.origin)
+            .unwrap_or_default();
+        point - offset.to_vector()
+    };
+
+    fragment
+        .children()?
+        .iter()
+        .find_map(|fragment| find_glyph_offset_in_fragment(fragment, point, false))
 }
 
 pub fn process_resolved_font_style_query<'dom, E>(

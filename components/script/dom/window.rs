@@ -41,7 +41,7 @@ use embedder_traits::{
     ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
     WebDriverJSResult, WebDriverLoadStatus,
 };
-use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
+use euclid::default::Rect as UntypedRect;
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
 use js::glue::DumpJSStack;
@@ -175,7 +175,7 @@ use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::{ImageBitmap, UIEvent};
+use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
 use crate::dom::visualviewport::VisualViewport;
 use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -3002,15 +3002,23 @@ impl Window {
             .map(|(source, overflow)| ScrollingBox::new(source, overflow))
     }
 
-    pub(crate) fn text_index_query(
+    pub(crate) fn text_index_query_on_node_for_event(
         &self,
         node: &Node,
-        point_in_node: UntypedPoint2D<f32>,
+        event: &Event,
     ) -> Option<usize> {
+        // dispatch_key_event (document.rs) triggers a click event when releasing
+        // the space key. There's no nice way to catch this so let's use this for
+        // now.
+        let mouse_event = event.downcast::<MouseEvent>()?;
+        let point_in_viewport = mouse_event.point_in_viewport()?.map(Au::from_f32_px);
+        let node_origin_in_viewport = node.content_box()?.origin;
+        let point_in_node = (point_in_viewport - node_origin_in_viewport.cast_unit()).to_point();
+
         self.layout_reflow(QueryMsg::TextIndexQuery);
         self.layout
             .borrow()
-            .query_text_indext(node.to_opaque(), point_in_node)
+            .query_text_index(node.to_trusted_node_address(), point_in_node)
     }
 
     pub(crate) fn elements_from_point_query(

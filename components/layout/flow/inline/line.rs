@@ -577,6 +577,7 @@ impl LineItemLayout<'_, '_> {
                 font_metrics: text_item.font_metrics,
                 font_key: text_item.font_key,
                 glyphs: text_item.text,
+                starting_glyph_offset: text_item.starting_glyph_offset,
                 justification_adjustment: self.justification_adjustment,
                 selection_range: text_item.selection_range,
             })),
@@ -790,6 +791,9 @@ pub(super) struct TextRunLineItem {
     pub inline_styles: SharedInlineStyles,
     pub text: Vec<std::sync::Arc<GlyphStore>>,
     pub font_metrics: Arc<FontMetrics>,
+    /// The glyph offset of the starting glyph of this [`TextFragment`] within
+    /// its parent inline box.
+    pub starting_glyph_offset: usize,
     pub font_key: FontInstanceKey,
     /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
     pub bidi_level: Level,

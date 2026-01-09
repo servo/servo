@@ -612,7 +612,7 @@ fn test_show_and_hide_ime() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    click_at_point(&webview, Point2D::new(50., 50.));
+    click_at_point(&webview, Point2D::new(100., 100.));
 
     // The form control should be shown.
     let captured_delegate = delegate.clone();
@@ -627,7 +627,7 @@ fn test_show_and_hide_ime() {
 
         assert_eq!(ime.input_method_type(), InputMethodType::Text);
         assert_eq!(ime.text(), "servo");
-        assert_eq!(ime.insertion_point(), Some(0));
+        assert_eq!(ime.insertion_point(), Some(5));
     }
 
     click_at_point(&webview, Point2D::new(300., 300.));
