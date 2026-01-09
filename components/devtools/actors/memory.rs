@@ -34,7 +34,7 @@ impl Actor for MemoryActor {
 impl MemoryActor {
     /// return name of actor
     pub fn create(registry: &ActorRegistry) -> String {
-        let actor_name = registry.new_name("memory");
+        let actor_name = registry.new_name::<Self>();
         let actor = MemoryActor {
             name: actor_name.clone(),
         };

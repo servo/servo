@@ -7,6 +7,7 @@ use serde_json::{Map, Value};
 
 use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actors::pause::PauseActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -77,10 +78,14 @@ impl Actor for ThreadActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "attach" => {
+                let pause = registry.new_name::<PauseActor>();
+                registry.register_later(PauseActor {
+                    name: pause.clone(),
+                });
                 let msg = ThreadAttached {
                     from: self.name(),
                     type_: "paused".to_owned(),
-                    actor: registry.new_name("pause"),
+                    actor: pause,
                     frame: 0,
                     error: 0,
                     recording_endpoint: 0,

@@ -4,8 +4,6 @@
 
 use crate::actor::Actor;
 
-// TODO: Remove once the actor is used.
-#[expect(dead_code)]
 /// Referenced by `ThreadActor` when replying to `interupt` messages.
 /// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1699>
 pub struct PauseActor {

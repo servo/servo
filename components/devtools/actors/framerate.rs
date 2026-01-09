@@ -32,7 +32,7 @@ impl FramerateActor {
         pipeline_id: PipelineId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let actor_name = registry.new_name("framerate");
+        let actor_name = registry.new_name::<Self>();
         let mut actor = FramerateActor {
             name: actor_name.clone(),
             pipeline_id,

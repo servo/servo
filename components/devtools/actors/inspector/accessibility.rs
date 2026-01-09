@@ -89,10 +89,13 @@ impl Actor for AccessibilityActor {
             },
             "getSimulator" => {
                 // TODO: Create actual simulator
-                let simulator = registry.new_name("simulator");
+                let actor = registry.new_name::<SimulatorActor>();
+                registry.register_later(SimulatorActor {
+                    name: actor.clone(),
+                });
                 let msg = GetSimulatorReply {
                     from: self.name(),
-                    simulator: ActorMsg { actor: simulator },
+                    simulator: ActorMsg { actor },
                 };
                 request.reply_final(&msg)?
             },
@@ -107,10 +110,13 @@ impl Actor for AccessibilityActor {
             },
             "getWalker" => {
                 // TODO: Create actual accessible walker
-                let walker = registry.new_name("accesiblewalker");
+                let actor = registry.new_name::<AccessibleWalkerActor>();
+                registry.register_later(AccessibleWalkerActor {
+                    name: actor.clone(),
+                });
                 let msg = GetWalkerReply {
                     from: self.name(),
-                    walker: ActorMsg { actor: walker },
+                    walker: ActorMsg { actor },
                 };
                 request.reply_final(&msg)?
             },
@@ -123,5 +129,25 @@ impl Actor for AccessibilityActor {
 impl AccessibilityActor {
     pub fn new(name: String) -> Self {
         Self { name }
+    }
+}
+
+pub struct SimulatorActor {
+    name: String,
+}
+
+impl Actor for SimulatorActor {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+}
+
+pub struct AccessibleWalkerActor {
+    name: String,
+}
+
+impl Actor for AccessibleWalkerActor {
+    fn name(&self) -> String {
+        self.name.clone()
     }
 }

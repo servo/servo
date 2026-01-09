@@ -12,6 +12,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::inspector::InspectorActor;
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
@@ -55,7 +56,7 @@ impl Actor for HighlighterActor {
                     return Err(ActorError::BadParameterType);
                 };
 
-                if node_actor_name.starts_with("inspector") {
+                if node_actor_name.starts_with(ActorRegistry::base_name::<InspectorActor>()) {
                     // TODO: For some reason, the client initially asks us to highlight
                     // the inspector? Investigate what this is supposed to mean.
                     let msg = ShowReply {

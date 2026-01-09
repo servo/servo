@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::any::Any;
+use std::any::{Any, type_name};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::mem;
@@ -130,11 +130,21 @@ impl ActorRegistry {
         panic!("couldn't find actor named {}", actor)
     }
 
+    /// Create a name prefix for each actor type.
+    /// While not needed for unique ids as each actor already has a different
+    /// suffix, it can be used to visually identify actors in the logs.
+    pub fn base_name<T: Actor>() -> &'static str {
+        let prefix = type_name::<T>();
+        prefix.split("::").last().unwrap_or(prefix)
+    }
+
     /// Create a unique name based on a monotonically increasing suffix
-    pub fn new_name(&self, prefix: &str) -> String {
+    /// TODO: Merge this with `register/register_later` and don't allow to
+    /// create new names without registering an actor.
+    pub fn new_name<T: Actor>(&self) -> String {
         let suffix = self.next.get();
         self.next.set(suffix + 1);
-        format!("{}{}", prefix, suffix)
+        format!("{}{}", Self::base_name::<T>(), suffix)
     }
 
     /// Add an actor to the registry of known actors that can receive messages.

@@ -268,12 +268,12 @@ impl RootActor {
     /// Registers the root actor and its global actors (those not associated with a specific target).
     pub fn register(registry: &mut ActorRegistry) {
         // Global actors
-        let device = DeviceActor::new(registry.new_name("device"));
-        let perf = PerformanceActor::new(registry.new_name("perf"));
-        let preference = PreferenceActor::new(registry.new_name("preference"));
+        let device = DeviceActor::new(registry.new_name::<DeviceActor>());
+        let perf = PerformanceActor::new(registry.new_name::<PerformanceActor>());
+        let preference = PreferenceActor::new(registry.new_name::<PreferenceActor>());
 
         // Process descriptor
-        let process = ProcessActor::new(registry.new_name("process"));
+        let process = ProcessActor::new(registry.new_name::<ProcessActor>());
 
         // Root actor
         let root = Self {

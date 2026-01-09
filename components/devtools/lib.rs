@@ -335,17 +335,17 @@ impl DevtoolsInstance {
         let devtools_browsing_context_id = id_map.browsing_context_id(browsing_context_id);
         let devtools_outer_window_id = id_map.outer_window_id(pipeline_id);
 
-        let console_name = actors.new_name("console");
+        let console_name = actors.new_name::<ConsoleActor>();
 
         let parent_actor = if let Some(id) = worker_id {
             assert!(self.pipelines.contains_key(&pipeline_id));
             assert!(self.browsing_contexts.contains_key(&browsing_context_id));
 
-            let thread = ThreadActor::new(actors.new_name("thread"));
+            let thread = ThreadActor::new(actors.new_name::<ThreadActor>());
             let thread_name = thread.name();
             actors.register(thread);
 
-            let worker_name = actors.new_name("worker");
+            let worker_name = actors.new_name::<WorkerActor>();
             let worker = WorkerActor {
                 name: worker_name.clone(),
                 console: console_name.clone(),
@@ -531,7 +531,7 @@ impl DevtoolsInstance {
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
-        let actor_name = actors.new_name("netevent");
+        let actor_name = actors.new_name::<NetworkEventActor>();
         let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
 
         self.actor_requests.insert(request_id, actor_name.clone());

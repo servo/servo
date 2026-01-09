@@ -72,7 +72,7 @@ impl Actor for LongStringActor {
 
 impl LongStringActor {
     pub fn new(registry: &ActorRegistry, full_string: String) -> Self {
-        let name = registry.new_name("longStringActor");
+        let name = registry.new_name::<Self>();
         LongStringActor { name, full_string }
     }
 
