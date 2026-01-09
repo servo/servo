@@ -28,6 +28,7 @@ crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glow = { workspace = true }
 log = { workspace = true }
+ipc-channel = { workspace = true }
 openxr = { workspace = true, optional = true }
 raw-window-handle = { workspace = true }
 surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }

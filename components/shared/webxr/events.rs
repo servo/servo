@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::RigidTransform3D;
+use ipc_channel::ipc::IpcSender;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     ApiSpace, BaseSpace, Frame, InputFrame, InputId, InputSource, SelectEvent, SelectKind,
-    WebXrSender,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -45,7 +45,7 @@ pub enum Visibility {
 /// when no event callback has been set
 pub enum EventBuffer {
     Buffered(Vec<Event>),
-    Sink(WebXrSender<Event>),
+    Sink(IpcSender<Event>),
 }
 
 impl Default for EventBuffer {
@@ -64,7 +64,7 @@ impl EventBuffer {
         }
     }
 
-    pub fn upgrade(&mut self, dest: WebXrSender<Event>) {
+    pub fn upgrade(&mut self, dest: IpcSender<Event>) {
         if let EventBuffer::Buffered(ref mut events) = *self {
             for event in events.drain(..) {
                 let _ = dest.send(event);

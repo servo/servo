@@ -11,6 +11,7 @@ use std::{mem, thread};
 use euclid::{Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use glow::{self as gl, HasContext, PixelUnpackData};
 use interaction_profiles::{get_profiles_from_path, get_supported_interaction_profiles};
+use ipc_channel::ipc::IpcSender;
 use log::{error, warn};
 use openxr::sys::CompositionLayerPassthroughFB;
 use openxr::{
@@ -31,7 +32,7 @@ use webxr_api::{
     Floor, Frame, GLContexts, InputId, InputSource, LayerGrandManager, LayerId, LayerInit,
     LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind,
     Session as WebXrSession, SessionBuilder, SessionInit, SessionMode, SubImage, SubImages, View,
-    ViewerPose, Viewport, Viewports, Views, Visibility, WebXrSender,
+    ViewerPose, Viewport, Viewports, Views, Visibility,
 };
 
 use crate::SurfmanGL;
@@ -1417,7 +1418,7 @@ impl DeviceAPI for OpenXrDevice {
         ]
     }
 
-    fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
+    fn set_event_dest(&mut self, dest: IpcSender<Event>) {
         self.events.upgrade(dest)
     }
 

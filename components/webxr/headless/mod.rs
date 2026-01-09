@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use euclid::{Point2D, RigidTransform3D};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use surfman::chains::SwapChains;
 use webxr_api::util::{self, ClipPlanes, HitTestList};
 use webxr_api::{
@@ -15,7 +16,7 @@ use webxr_api::{
     InputSource, LayerGrandManager, LayerId, LayerInit, LayerManager, MockButton, MockDeviceInit,
     MockDeviceMsg, MockDiscoveryAPI, MockInputMsg, MockViewInit, MockViewsInit, MockWorld, Native,
     Quitter, Ray, SelectEvent, SelectKind, Session, SessionBuilder, SessionInit, SessionMode,
-    Space, SubImages, View, Viewer, ViewerPose, Viewports, Views, WebXrReceiver, WebXrSender,
+    Space, SubImages, View, Viewer, ViewerPose, Viewports, Views,
 };
 
 use crate::{SurfmanGL, SurfmanLayerManager};
@@ -82,7 +83,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        receiver: WebXrReceiver<MockDeviceMsg>,
+        receiver: IpcReceiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<SurfmanGL>>, Error> {
         if !self.enabled.load(Ordering::Relaxed) {
             return Err(Error::NoMatchingDevice);
@@ -119,7 +120,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
     }
 }
 
-fn run_loop(receiver: WebXrReceiver<MockDeviceMsg>, data: Arc<Mutex<HeadlessDeviceData>>) {
+fn run_loop(receiver: IpcReceiver<MockDeviceMsg>, data: Arc<Mutex<HeadlessDeviceData>>) {
     while let Ok(msg) = receiver.recv() {
         if !data.lock().expect("Mutex poisoned").handle_msg(msg) {
             break;
@@ -295,7 +296,7 @@ impl DeviceAPI for HeadlessDevice {
         vec![]
     }
 
-    fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
+    fn set_event_dest(&mut self, dest: IpcSender<Event>) {
         self.with_per_session(|s| s.events.upgrade(dest))
     }
 

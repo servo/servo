@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::{Point2D, Rect, RigidTransform3D, Transform3D};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     DiscoveryAPI, Display, EntityType, Error, Floor, Handedness, Input, InputId, InputSource,
     LeftEye, Native, RightEye, SelectEvent, SelectKind, TargetRayMode, Triangle, Viewer, Viewport,
-    Visibility, WebXrReceiver, WebXrSender,
+    Visibility,
 };
 
 /// A trait for discovering mock XR devices
@@ -16,7 +17,7 @@ pub trait MockDiscoveryAPI<GL>: 'static {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        receiver: WebXrReceiver<MockDeviceMsg>,
+        receiver: IpcReceiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<GL>>, Error>;
 }
 
@@ -57,7 +58,7 @@ pub enum MockDeviceMsg {
     VisibilityChange(Visibility),
     SetWorld(MockWorld),
     ClearWorld,
-    Disconnect(WebXrSender<()>),
+    Disconnect(IpcSender<()>),
     SetBoundsGeometry(Vec<Point2D<f32, Floor>>),
     SimulateResetPose,
 }

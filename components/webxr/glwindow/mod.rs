@@ -9,6 +9,7 @@ use euclid::{
     Angle, Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, UnknownUnit, Vector3D,
 };
 use glow::{self as gl, Context as Gl, HasContext};
+use ipc_channel::ipc::IpcSender;
 use raw_window_handle::DisplayHandle;
 use surfman::chains::{PreserveBuffer, SwapChain, SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{
@@ -21,7 +22,7 @@ use webxr_api::{
     Display, Error, Event, EventBuffer, Floor, Frame, InputSource, LEFT_EYE, LayerGrandManager,
     LayerId, LayerInit, LayerManager, Native, Quitter, RIGHT_EYE, Session, SessionBuilder,
     SessionInit, SessionMode, SomeEye, VIEWER, View, Viewer, ViewerPose, Viewport, Viewports,
-    Views, WebXrSender,
+    Views,
 };
 
 use crate::{SurfmanGL, SurfmanLayerManager};
@@ -305,7 +306,7 @@ impl DeviceAPI for GlWindowDevice {
         vec![]
     }
 
-    fn set_event_dest(&mut self, dest: WebXrSender<Event>) {
+    fn set_event_dest(&mut self, dest: IpcSender<Event>) {
         self.events.upgrade(dest)
     }
 
