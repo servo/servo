@@ -82,6 +82,7 @@ pub(crate) trait ActorEncode<T: Serialize>: Actor {
 }
 
 /// A list of known, owned actors.
+#[derive(Default)]
 pub struct ActorRegistry {
     actors: HashMap<String, Box<dyn Actor>>,
     new_actors: RefCell<Vec<Box<dyn Actor>>>,
@@ -97,19 +98,6 @@ pub struct ActorRegistry {
 }
 
 impl ActorRegistry {
-    /// Create an empty registry.
-    pub fn new() -> ActorRegistry {
-        ActorRegistry {
-            actors: HashMap::new(),
-            new_actors: RefCell::new(vec![]),
-            old_actors: RefCell::new(vec![]),
-            script_actors: RefCell::new(HashMap::new()),
-            source_actor_names: RefCell::new(HashMap::new()),
-            inline_source_content: RefCell::new(HashMap::new()),
-            next: Cell::new(0),
-        }
-    }
-
     pub(crate) fn cleanup(&self, stream_id: StreamId) {
         for actor in self.actors.values() {
             actor.cleanup(stream_id);
