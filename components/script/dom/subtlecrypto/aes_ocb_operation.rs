@@ -13,7 +13,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ALG_AES_OCB, KeyAlgorithmAndDerivatives, SubtleAesKeyAlgorithm, aes_common,
+    ALG_AES_OCB, ExportedKey, KeyAlgorithmAndDerivatives, SubtleAesKeyAlgorithm, aes_common,
 };
 use crate::script_runtime::CanGc;
 
@@ -83,4 +83,9 @@ pub(crate) fn import_key(
 
     // Step 9. Return key.
     Ok(key)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-export-key>
+pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    aes_common::export_key(AesAlgorithm::AesOcb, format, key)
 }
