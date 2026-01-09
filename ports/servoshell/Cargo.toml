@@ -86,6 +86,7 @@ jni = "0.21.1"
 backtrace = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
+base = { workspace = true }
 env_filter = "0.1.4"
 euclid = { workspace = true }
 hilog = "0.2.2"

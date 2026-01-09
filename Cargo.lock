@@ -8417,6 +8417,7 @@ version = "0.0.4"
 dependencies = [
  "android_logger",
  "backtrace",
+ "base",
  "bpaf",
  "cc",
  "cfg-if",
