@@ -1002,6 +1002,10 @@ impl InlineFormattingContextLayout<'_> {
         } else {
             let mut block_end_position = block_start_position + resolved_block_advance;
             if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
+                if !is_phantom_line {
+                    sequential_layout_state.collapse_margins();
+                }
+
                 // This amount includes both the block size of the line and any extra space
                 // added to move the line down in order to avoid overlapping floats.
                 let increment = block_end_position - self.current_line.start_position.block;
@@ -1870,14 +1874,6 @@ impl InlineFormattingContext {
             text_wrap_mode: style_text.text_wrap_mode,
         };
 
-        // FIXME(pcwalton): This assumes that margins never collapse through inline formatting
-        // contexts (i.e. that inline formatting contexts are never empty). Is that right?
-        // FIXME(mrobinson): This should not happen if the IFC collapses through.
-        if let Some(ref mut sequential_layout_state) = layout.sequential_layout_state {
-            sequential_layout_state.collapse_margins();
-            // FIXME(mrobinson): Collapse margins in the containing block offsets as well??
-        }
-
         for item in self.inline_items.iter() {
             // Any new box should flush a pending hard line break.
             if !matches!(item, InlineItem::EndInlineBox) {
@@ -1941,6 +1937,73 @@ impl InlineFormattingContext {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
+    }
+
+    pub(crate) fn find_block_margin_collapsing_with_parent(
+        &self,
+        layout_context: &LayoutContext,
+        collected_margin: &mut CollapsedMargin,
+        containing_block_for_children: &ContainingBlock,
+    ) -> bool {
+        // Margins can't collapse through line boxes, unless they are phantom line boxes.
+        // <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+        // > Line boxes that contain no text, no preserved white space, no inline boxes with non-zero
+        // > inline-axis margins, padding, or borders, and no other in-flow content (such as atomic
+        // > inlines or ruby annotations), and do not end with a forced line break are phantom line boxes.
+        let mut nesting_levels_from_nonzero_end_pbm: u32 = 1;
+        let mut items_iter = self.inline_items.iter();
+        items_iter.all(|inline_item| match inline_item {
+            InlineItem::StartInlineBox(inline_box) => {
+                let pbm = inline_box
+                    .borrow()
+                    .layout_style()
+                    .padding_border_margin(containing_block_for_children);
+                if pbm.padding.inline_end.is_zero() &&
+                    pbm.border.inline_end.is_zero() &&
+                    pbm.margin.inline_end.auto_is(Au::zero).is_zero()
+                {
+                    nesting_levels_from_nonzero_end_pbm += 1;
+                } else {
+                    nesting_levels_from_nonzero_end_pbm = 0;
+                }
+                pbm.padding.inline_start.is_zero() &&
+                    pbm.border.inline_start.is_zero() &&
+                    pbm.margin.inline_start.auto_is(Au::zero).is_zero()
+            },
+            InlineItem::EndInlineBox => {
+                if nesting_levels_from_nonzero_end_pbm == 0 {
+                    false
+                } else {
+                    nesting_levels_from_nonzero_end_pbm -= 1;
+                    true
+                }
+            },
+            InlineItem::TextRun(text_run) => {
+                let text_run = &*text_run.borrow();
+                let parent_style = text_run.inline_styles.style.borrow();
+                text_run.shaped_text.iter().all(|segment| {
+                    segment.runs.iter().all(|run| {
+                        run.glyph_store.is_whitespace() &&
+                            !run.is_single_preserved_newline() &&
+                            !matches!(
+                                parent_style.get_inherited_text().white_space_collapse,
+                                WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
+                            )
+                    })
+                })
+            },
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => true,
+            InlineItem::OutOfFlowFloatBox(..) => true,
+            InlineItem::Atomic(..) => false,
+            InlineItem::AnonymousBlock(block_box) => block_box
+                .borrow()
+                .contents
+                .find_block_margin_collapsing_with_parent(
+                    layout_context,
+                    collected_margin,
+                    containing_block_for_children,
+                ),
+        })
     }
 }
 

@@ -206,12 +206,8 @@ impl BlockLevelBox {
         let margin = pbm.margin.auto_is(Au::zero);
         collected_margin.adjoin_assign(&CollapsedMargin::new(margin.block_start));
 
-        let child_boxes = match self {
-            BlockLevelBox::SameFormattingContextBlock { contents, .. } => match contents {
-                BlockContainer::BlockLevelBoxes(boxes) => boxes,
-                BlockContainer::InlineFormattingContext(_) => return false,
-            },
-            _ => return false,
+        let BlockLevelBox::SameFormattingContextBlock { contents, .. } = self else {
+            return false;
         };
 
         if !pbm.padding.block_start.is_zero() || !pbm.border.block_start.is_zero() {
@@ -256,9 +252,8 @@ impl BlockLevelBox {
             style,
         };
 
-        if !Self::find_block_margin_collapsing_with_parent_from_slice(
+        if !contents.find_block_margin_collapsing_with_parent(
             layout_context,
-            child_boxes,
             collected_margin,
             &containing_block_for_children,
         ) {
@@ -274,19 +269,6 @@ impl BlockLevelBox {
         collected_margin.adjoin_assign(&CollapsedMargin::new(margin.block_end));
 
         true
-    }
-
-    fn find_block_margin_collapsing_with_parent_from_slice(
-        layout_context: &LayoutContext,
-        boxes: &[ArcRefCell<BlockLevelBox>],
-        margin: &mut CollapsedMargin,
-        containing_block: &ContainingBlock,
-    ) -> bool {
-        boxes.iter().all(|block_level_box| {
-            block_level_box
-                .borrow()
-                .find_block_margin_collapsing_with_parent(layout_context, margin, containing_block)
-        })
     }
 }
 
@@ -658,6 +640,31 @@ impl BlockContainer {
     pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
         LayoutStyle::Default(&base.style)
     }
+
+    fn find_block_margin_collapsing_with_parent(
+        &self,
+        layout_context: &LayoutContext,
+        collected_margin: &mut CollapsedMargin,
+        containing_block_for_children: &ContainingBlock,
+    ) -> bool {
+        match self {
+            BlockContainer::BlockLevelBoxes(boxes) => boxes.iter().all(|block_level_box| {
+                block_level_box
+                    .borrow()
+                    .find_block_margin_collapsing_with_parent(
+                        layout_context,
+                        collected_margin,
+                        containing_block_for_children,
+                    )
+            }),
+            BlockContainer::InlineFormattingContext(context) => context
+                .find_block_margin_collapsing_with_parent(
+                    layout_context,
+                    collected_margin,
+                    containing_block_for_children,
+                ),
+        }
+    }
 }
 
 impl ComputeInlineContentSizes for BlockContainer {
@@ -986,14 +993,11 @@ pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 when laying out sequentially",
             ).0 && clear == Clear::None;
             if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
-                if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
-                    BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
-                        layout_context,
-                        child_boxes,
-                        &mut block_start_margin,
-                        &containing_block_for_children,
-                    );
-                }
+                contents.find_block_margin_collapsing_with_parent(
+                    layout_context,
+                    &mut block_start_margin,
+                    &containing_block_for_children,
+                );
             }
 
             // Introduce clearance if necessary.
