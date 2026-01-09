@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+mod aes_common;
+mod aes_ocb_operation;
 mod aes_operation;
 mod argon2_operation;
 mod chacha20_poly1305_operation;
@@ -93,6 +95,7 @@ const ALG_ML_KEM_1024: &str = "ML-KEM-1024";
 const ALG_ML_DSA_44: &str = "ML-DSA-44";
 const ALG_ML_DSA_65: &str = "ML-DSA-65";
 const ALG_ML_DSA_87: &str = "ML-DSA-87";
+const ALG_AES_OCB: &str = "AES-OCB";
 const ALG_CHACHA20_POLY1305: &str = "ChaCha20-Poly1305";
 const ALG_SHA3_256: &str = "SHA3-256";
 const ALG_SHA3_384: &str = "SHA3-384";
@@ -128,6 +131,7 @@ static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_ML_DSA_44,
     ALG_ML_DSA_65,
     ALG_ML_DSA_87,
+    ALG_AES_OCB,
     ALG_CHACHA20_POLY1305,
     ALG_SHA3_256,
     ALG_SHA3_384,
@@ -3479,6 +3483,7 @@ enum SupportedAlgorithm {
     Pbkdf2,
     MlKem(MlKemAlgorithm),
     MlDsa(MlDsaAlgorithm),
+    AesOcb,
     ChaCha20Poly1305,
     Sha3(Sha3Algorithm),
     CShake(CShakeAlgorithm),
@@ -3505,6 +3510,7 @@ impl SupportedAlgorithm {
             SupportedAlgorithm::Pbkdf2 => ALG_PBKDF2,
             SupportedAlgorithm::MlKem(ml_kem_algorithm) => ml_kem_algorithm.as_str(),
             SupportedAlgorithm::MlDsa(ml_dsa_algorithm) => ml_dsa_algorithm.as_str(),
+            SupportedAlgorithm::AesOcb => ALG_AES_OCB,
             SupportedAlgorithm::ChaCha20Poly1305 => ALG_CHACHA20_POLY1305,
             SupportedAlgorithm::Sha3(sha3_algorithm) => sha3_algorithm.as_str(),
             SupportedAlgorithm::CShake(cshake_algorithm) => cshake_algorithm.as_str(),
@@ -3648,6 +3654,9 @@ impl SupportedAlgorithm {
             (Self::MlDsa(_), Operation::ImportKey) => ParameterType::None,
             (Self::MlDsa(_), Operation::ExportKey) => ParameterType::None,
 
+            // <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-registration>
+            (Self::AesOcb, Operation::ImportKey) => ParameterType::None,
+
             // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
             (Self::ChaCha20Poly1305, Operation::Encrypt) => ParameterType::AeadParams,
             (Self::ChaCha20Poly1305, Operation::Decrypt) => ParameterType::AeadParams,
@@ -3709,6 +3718,7 @@ impl TryFrom<&str> for SupportedAlgorithm {
             ALG_ML_DSA_44 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa44)),
             ALG_ML_DSA_65 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa65)),
             ALG_ML_DSA_87 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa87)),
+            ALG_AES_OCB => Ok(SupportedAlgorithm::AesOcb),
             ALG_CHACHA20_POLY1305 => Ok(SupportedAlgorithm::ChaCha20Poly1305),
             ALG_SHA3_256 => Ok(SupportedAlgorithm::Sha3(Sha3Algorithm::Sha3_256)),
             ALG_SHA3_384 => Ok(SupportedAlgorithm::Sha3(Sha3Algorithm::Sha3_384)),
@@ -4378,6 +4388,9 @@ impl NormalizedAlgorithm {
                 usages,
                 can_gc,
             ),
+            (ALG_AES_OCB, NormalizedAlgorithm::Algorithm(_algo)) => {
+                aes_ocb_operation::import_key(global, format, key_data, extractable, usages, can_gc)
+            },
             (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
                 chacha20_poly1305_operation::import_key(
                     global,
