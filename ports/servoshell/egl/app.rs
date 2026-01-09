@@ -4,6 +4,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
+use base::generic_channel::GenericCallback;
 use dpi::PhysicalSize;
 use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
@@ -126,9 +127,9 @@ impl PlatformWindow for EmbeddedPlatformWindow {
 
             #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
             if new_load_status == LoadStatus::Complete {
-                let (sender, receiver) =
-                    ipc_channel::ipc::channel().expect("Could not create channel");
-                state.servo().create_memory_report(sender);
+                let (callback, receiver) =
+                    GenericCallback::new_blocking().expect("Could not create channel");
+                state.servo().create_memory_report(callback);
                 std::thread::spawn(move || {
                     let result = receiver.recv().expect("Could not get memory report");
                     let reports = result
