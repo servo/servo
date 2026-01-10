@@ -121,11 +121,11 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.click(x, y));
     }
 
-    public void pauseCompositor() {
-        mRunCallback.inGLThread(() -> mJNI.pauseCompositor());
+    public void pausePainting() {
+        mRunCallback.inGLThread(() -> mJNI.pausePainting());
     }
-    public void resumeCompositor(Surface surface, ServoCoordinates coords) {
-        mRunCallback.inGLThread(() -> mJNI.resumeCompositor(surface, coords));
+    public void resumePainting(Surface surface, ServoCoordinates coords) {
+        mRunCallback.inGLThread(() -> mJNI.resumePainting(surface, coords));
     }
 
     public void suspend(boolean suspended) {
