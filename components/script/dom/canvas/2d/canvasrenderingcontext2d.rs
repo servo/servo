@@ -46,7 +46,7 @@ pub(crate) struct CanvasRenderingContext2D {
 }
 
 impl CanvasRenderingContext2D {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
@@ -161,7 +161,6 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         self.canvas_state.save()
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-restore>
     fn Restore(&self) {
         self.canvas_state.restore()

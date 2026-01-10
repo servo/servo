@@ -23,7 +23,6 @@ pub(crate) struct StyleSheet {
 }
 
 impl StyleSheet {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         type_: DOMString,
         href: Option<DOMString>,

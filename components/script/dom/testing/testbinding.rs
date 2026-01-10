@@ -980,12 +980,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Record::new()
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
         Promise::new_resolved(&self.global(), cx, v, CanGc::note())
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
         Promise::new_rejected(&self.global(), cx, v, CanGc::note())
     }
@@ -1002,7 +1000,6 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.reject_error(Error::Type(s.0), can_gc);
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
         let promise = p.duplicate();
         let cb = TestBindingCallback {
@@ -1174,7 +1171,6 @@ pub(crate) struct TestBindingCallback {
 }
 
 impl TestBindingCallback {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn invoke(self) {
         self.promise
             .root()

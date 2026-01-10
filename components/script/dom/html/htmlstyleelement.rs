@@ -72,7 +72,6 @@ impl HTMLStyleElement {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -169,7 +168,7 @@ impl HTMLStyleElement {
     //
     // With the reuse of `StylesheetContent` for same stylesheet string content,
     // this function has a bit difference with `HTMLLinkElement::set_stylesheet` now.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_stylesheet(
         &self,
         s: Arc<Stylesheet>,

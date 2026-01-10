@@ -27,7 +27,7 @@ pub(crate) struct MediaStreamAudioSourceNode {
 }
 
 impl MediaStreamAudioSourceNode {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         context: &AudioContext,
         stream: &MediaStream,
@@ -60,7 +60,7 @@ impl MediaStreamAudioSourceNode {
         Self::new_with_proto(window, None, context, stream, can_gc)
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

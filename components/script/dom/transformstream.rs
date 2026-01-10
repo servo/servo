@@ -428,7 +428,6 @@ pub struct TransformStream {
 }
 
 impl TransformStream {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#initialize-transform-stream>
     fn new_inherited() -> TransformStream {
         TransformStream {

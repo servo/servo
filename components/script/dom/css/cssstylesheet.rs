@@ -103,7 +103,6 @@ impl CSSStyleSheet {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
@@ -129,7 +128,6 @@ impl CSSStyleSheet {
         )
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,
@@ -225,7 +223,7 @@ impl CSSStyleSheet {
 
     /// Add a [StyleSheetListOwner] as an adopter to be notified whenever this stylesheet is
     /// modified.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn add_adopter(&self, owner: StyleSheetListOwner) {
         debug_assert!(self.is_constructed());
         self.adopters.borrow_mut().push(owner);

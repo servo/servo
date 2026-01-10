@@ -985,7 +985,7 @@ impl DataBlock {
 
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) struct DataView {
     #[no_trace]
     range: Range<usize>,

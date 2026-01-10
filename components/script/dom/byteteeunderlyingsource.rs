@@ -74,7 +74,7 @@ pub(crate) struct ByteTeeUnderlyingSource {
 impl ByteTeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::redundant_allocation)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         reader: Rc<RefCell<ReaderType>>,
         stream: &ReadableStream,
@@ -123,7 +123,7 @@ impl ByteTeeUnderlyingSource {
         self.branch_2.set(Some(stream));
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn forward_reader_error(&self, this_reader: Rc<RefCell<ReaderType>>, can_gc: CanGc) {
         let this_reader = this_reader.borrow_mut();
         match &*this_reader {
@@ -330,7 +330,6 @@ impl ByteTeeUnderlyingSource {
     }
 
     /// Let pullAlgorithm be the following steps:
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn pull_algorithm(
         &self,
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,

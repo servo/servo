@@ -14,7 +14,6 @@ use crate::script_runtime::{CanGc, JSContext};
 use crate::{DomTypes, JSTraceable};
 
 /// A struct to store a reference to the reflector of a DOM object.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 #[derive(MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
@@ -27,7 +26,6 @@ unsafe impl js::gc::Traceable for Reflector {
     unsafe fn trace(&self, _: *mut js::jsapi::JSTracer) {}
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 impl PartialEq for Reflector {
     fn eq(&self, other: &Reflector) -> bool {
         self.object.get() == other.object.get()

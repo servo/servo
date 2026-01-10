@@ -25,7 +25,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) struct DefaultTeeReadRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: Box<Heap<JSVal>>,
@@ -66,7 +66,6 @@ pub(crate) struct DefaultTeeReadRequest {
 }
 impl DefaultTeeReadRequest {
     #[expect(clippy::too_many_arguments)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         stream: &ReadableStream,
         branch_1: &ReadableStream,

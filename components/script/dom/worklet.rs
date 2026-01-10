@@ -496,7 +496,6 @@ unsafe impl JSTraceable for WorkletThread {
 impl WorkletThread {
     #[allow(unsafe_code)]
     /// Spawn a new worklet thread, returning the channel to send it control messages.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn spawn(
         role: WorkletThreadRole,
         init: WorkletThreadInit,

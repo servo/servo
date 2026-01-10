@@ -202,7 +202,6 @@ impl BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#clean-up-the-disconnected-device
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn clean_up_disconnected_device(&self, can_gc: CanGc) {
         // Step 1.
         self.get_gatt(can_gc).set_connected(false);
@@ -238,7 +237,6 @@ impl BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn garbage_collect_the_connection(&self, can_gc: CanGc) -> ErrorResult {
         // Step 1: TODO: Check if other systems using this device.
 

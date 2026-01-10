@@ -108,7 +108,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-fromrect
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn FromRect(
         global: &GlobalScope,
         other: &DOMRectInit,
@@ -181,7 +181,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
 }
 
 /// <https://drafts.fxtf.org/geometry/#ref-for-create-a-domrectreadonly-from-the-dictionary>
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(super) fn create_a_domrectreadonly_from_the_dictionary(other: &DOMRectInit) -> DOMRectReadOnly {
     // NOTE: We trivially combine all three steps into one
 

@@ -233,7 +233,7 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-path-append>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn append_to_path(
         &self,
         invocation_target: &EventTarget,

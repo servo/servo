@@ -25,7 +25,6 @@ pub(crate) struct VisibilityStateEntry {
 }
 
 impl VisibilityStateEntry {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         state: DocumentVisibilityState,
         timestamp: CrossProcessInstant,

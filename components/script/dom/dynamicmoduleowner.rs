@@ -31,7 +31,6 @@ pub(crate) struct DynamicModuleOwner {
 }
 
 impl DynamicModuleOwner {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(promise: Rc<Promise>, id: DynamicModuleId) -> Self {
         DynamicModuleOwner {
             reflector_: Reflector::new(),
@@ -40,7 +39,6 @@ impl DynamicModuleOwner {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         promise: Rc<Promise>,

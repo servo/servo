@@ -383,7 +383,6 @@ fn get_callback(
 
 impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistry {
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
         &self,
@@ -1172,7 +1171,7 @@ impl CustomElementReactionStack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-a-custom-element-callback-reaction>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn enqueue_callback_reaction(
         &self,
         element: &Element,

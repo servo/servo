@@ -27,7 +27,7 @@ use crate::microtask::Microtask;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) struct ByteTeeReadRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: Box<Heap<JSVal>>,
@@ -65,7 +65,6 @@ pub(crate) struct ByteTeeReadRequest {
 }
 impl ByteTeeReadRequest {
     #[allow(clippy::too_many_arguments)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,

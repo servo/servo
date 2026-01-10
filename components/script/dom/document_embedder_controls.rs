@@ -62,7 +62,7 @@ impl ControlElement {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) struct DocumentEmbedderControls {
     /// The [`Window`] element for this [`DocumentUserInterfaceElements`].
     window: Dom<Window>,

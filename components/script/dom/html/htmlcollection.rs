@@ -69,7 +69,6 @@ pub(crate) struct HTMLCollection {
 }
 
 impl HTMLCollection {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
@@ -99,7 +98,6 @@ impl HTMLCollection {
         Self::new(window, root, Box::new(NoFilter), can_gc)
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         root: &Node,

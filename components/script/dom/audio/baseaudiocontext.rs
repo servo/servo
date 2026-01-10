@@ -113,7 +113,6 @@ pub(crate) struct BaseAudioContext {
 }
 
 impl BaseAudioContext {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         options: BaseAudioContextOptions,
         pipeline_id: PipelineId,
@@ -197,9 +196,8 @@ impl BaseAudioContext {
     /// does not take a list of promises to fulfill. Callers cannot just pop
     /// the front list off of `in_flight_resume_promises_queue` and later fulfill
     /// the promises because that would mean putting
-    /// `#[cfg_attr(crown, allow(crown::unrooted_must_root))]` on even more functions, potentially
+    /// `#[cfg_attr(crown, expect(crown::unrooted_must_root))]` on even more functions, potentially
     /// hiding actual safety bugs.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn fulfill_in_flight_resume_promises<F>(&self, f: F)
     where
         F: FnOnce(),

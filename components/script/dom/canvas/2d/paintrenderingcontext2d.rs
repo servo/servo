@@ -44,7 +44,7 @@ pub(crate) struct PaintRenderingContext2D {
 }
 
 impl PaintRenderingContext2D {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(global: &PaintWorkletGlobalScope) -> Option<PaintRenderingContext2D> {
         let canvas_state = CanvasState::new(global.upcast(), Size2D::zero())?;
         let image_cache = global.image_cache();
@@ -59,7 +59,7 @@ impl PaintRenderingContext2D {
         })
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &PaintWorkletGlobalScope,
         can_gc: CanGc,

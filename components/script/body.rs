@@ -677,7 +677,6 @@ pub(crate) enum FetchedData {
 /// A combination of parts of both algorithms,
 /// `body-fully-read` can be fully implemented, and separated, later,
 /// see #36049.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,

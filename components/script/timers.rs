@@ -593,7 +593,7 @@ pub(crate) enum TimerCallback {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(
@@ -616,7 +616,7 @@ impl Default for JsTimers {
 impl JsTimers {
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     #[allow(clippy::too_many_arguments)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_timeout_or_interval(
         &self,
         global: &GlobalScope,

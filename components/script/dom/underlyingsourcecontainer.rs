@@ -80,7 +80,7 @@ pub(crate) struct UnderlyingSourceContainer {
 }
 
 impl UnderlyingSourceContainer {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(underlying_source_type: UnderlyingSourceType) -> UnderlyingSourceContainer {
         UnderlyingSourceContainer {
             reflector_: Reflector::new(),
@@ -88,7 +88,7 @@ impl UnderlyingSourceContainer {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,

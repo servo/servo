@@ -90,7 +90,6 @@ impl TrustedPromise {
     /// Create a new `TrustedPromise` instance from an existing DOM object. The object will
     /// be prevented from being GCed for the duration of the resulting `TrustedPromise` object's
     /// lifetime.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(promise: Rc<Promise>) -> TrustedPromise {
         LIVE_REFERENCES.with(|r| {
             let live_references = &*r.borrow();
@@ -136,7 +135,6 @@ impl TrustedPromise {
     }
 
     /// A task which will reject the promise.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn reject_task(self, error: Error) -> impl TaskOnce {
         let this = self;
         task!(reject_promise: move || {
@@ -146,7 +144,6 @@ impl TrustedPromise {
     }
 
     /// A task which will resolve the promise.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn resolve_task<T>(self, value: T) -> impl TaskOnce
     where
         T: ToJSValConvertible + Send,
@@ -234,7 +231,6 @@ impl<T: DomObject> Clone for Trusted<T> {
 
 /// The set of live, pinned DOM objects that are currently prevented
 /// from being garbage collected due to outstanding references.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
     reflectable_table: RefCell<FxHashMap<*const libc::c_void, Weak<TrustedReference>>>,
@@ -250,7 +246,6 @@ impl LiveDOMReferences {
         });
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn addref_promise(&self, promise: Rc<Promise>) {
         let mut table = self.promise_table.borrow_mut();
         table.entry(&*promise).or_default().push(promise)
@@ -301,7 +296,6 @@ fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut FxHashMap<K, Weak<V>>) {
 }
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
     trace!("tracing live refcounted references");
     LIVE_REFERENCES.with(|r| {

@@ -93,7 +93,6 @@ impl DocumentCollection {
 }
 
 impl Default for DocumentCollection {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> Self {
         Self {
             map: HashMapTracedValues::new_fx(),
@@ -101,7 +100,6 @@ impl Default for DocumentCollection {
     }
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) struct DocumentsIter<'a> {
     iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }

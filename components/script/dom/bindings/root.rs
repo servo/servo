@@ -249,14 +249,12 @@ impl<T: DomObject> MutNullableDom<T> {
 
     /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
     /// For use by layout, which can't use safe types like Temporary.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<'_, T>> {
         assert_in_layout();
         unsafe { (*self.ptr.get()).as_ref().map(|js| js.to_layout()) }
     }
 
     /// Get a rooted value out of this object
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn get(&self) -> Option<DomRoot<T>> {
         assert_in_script();
         unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
@@ -305,7 +303,6 @@ impl<T: DomObject> PartialEq<Option<&T>> for MutNullableDom<T> {
 }
 
 impl<T: DomObject> Default for MutNullableDom<T> {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> MutNullableDom<T> {
         assert_in_script();
         MutNullableDom {
@@ -338,7 +335,6 @@ where
 {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn init_once<F>(&self, cb: F) -> &T
     where
         F: FnOnce() -> DomRoot<T>,
@@ -349,7 +345,6 @@ where
 }
 
 impl<T: DomObject> Default for DomOnceCell<T> {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> DomOnceCell<T> {
         assert_in_script();
         DomOnceCell {
@@ -365,7 +360,6 @@ impl<T: DomObject> MallocSizeOf for DomOnceCell<T> {
     }
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.get() {

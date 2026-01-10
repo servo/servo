@@ -49,7 +49,6 @@ impl StyleSheetListOwner {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
         match *self {
             StyleSheetListOwner::Document(ref doc) => {
@@ -61,7 +60,7 @@ impl StyleSheetListOwner {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(&self, owner: StylesheetSource, s: &Arc<Stylesheet>) {
         match *self {
             StyleSheetListOwner::Document(ref doc) => doc.remove_stylesheet(owner, s),
@@ -88,7 +87,7 @@ pub(crate) struct StyleSheetList {
 }
 
 impl StyleSheetList {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(doc_or_sr: StyleSheetListOwner) -> StyleSheetList {
         StyleSheetList {
             reflector_: Reflector::new(),
@@ -96,7 +95,7 @@ impl StyleSheetList {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         doc_or_sr: StyleSheetListOwner,

@@ -79,7 +79,7 @@ impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrect-fromrect
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn FromRect(global: &GlobalScope, other: &DOMRectInit, can_gc: CanGc) -> DomRoot<DOMRect> {
         let rect = create_a_domrectreadonly_from_the_dictionary(other);
 

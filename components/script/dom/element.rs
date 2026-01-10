@@ -447,7 +447,7 @@ impl Element {
         self.ensure_rare_data().custom_element_definition = None;
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
         self.ensure_rare_data()
             .custom_element_reaction_queue
@@ -5456,7 +5456,6 @@ impl ElementPerformFullscreenEnter {
 }
 
 impl TaskOnce for ElementPerformFullscreenEnter {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
         let promise = self.promise.root();
@@ -5504,7 +5503,6 @@ impl ElementPerformFullscreenExit {
 }
 
 impl TaskOnce for ElementPerformFullscreenExit {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
         let document = element.owner_document();

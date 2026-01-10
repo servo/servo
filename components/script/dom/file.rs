@@ -31,7 +31,6 @@ pub(crate) struct File {
 }
 
 impl File {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(blob_impl: &BlobImpl, name: DOMString, modified: Option<SystemTime>) -> File {
         File {
             blob: Blob::new_inherited(blob_impl),
@@ -51,7 +50,6 @@ impl File {
         Self::new_with_proto(global, None, blob_impl, name, modified, can_gc)
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

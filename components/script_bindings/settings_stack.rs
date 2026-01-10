@@ -19,7 +19,7 @@ pub enum StackEntryKind {
     Entry,
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 #[derive(JSTraceable)]
 pub struct StackEntry<D: DomTypes> {
     pub global: Dom<D::GlobalScope>,

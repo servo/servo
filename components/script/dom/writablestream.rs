@@ -172,7 +172,6 @@ pub struct WritableStream {
 }
 
 impl WritableStream {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#initialize-writable-stream>
     fn new_inherited() -> WritableStream {
         WritableStream {
@@ -980,7 +979,7 @@ impl WritableStream {
 }
 
 /// <https://streams.spec.whatwg.org/#create-writable-stream>
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_writable_stream(
     cx: SafeJSContext,
     global: &GlobalScope,

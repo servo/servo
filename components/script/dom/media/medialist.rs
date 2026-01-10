@@ -35,7 +35,6 @@ pub(crate) struct MediaList {
 }
 
 impl MediaList {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         parent_stylesheet: &CSSStyleSheet,
         media_queries: Arc<Locked<StyleMediaList>>,
@@ -47,7 +46,6 @@ impl MediaList {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,

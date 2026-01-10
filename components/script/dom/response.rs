@@ -541,7 +541,6 @@ impl Response {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn finish(&self, can_gc: CanGc) {
         if let Some(body) = self.fetch_body_stream.get() {
             body.controller_close_native(can_gc);

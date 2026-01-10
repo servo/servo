@@ -249,7 +249,7 @@ impl DocumentOrShadowRoot {
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(
         owner: StylesheetSource,
         s: &Arc<Stylesheet>,
@@ -270,7 +270,7 @@ impl DocumentOrShadowRoot {
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn add_stylesheet(
         owner: StylesheetSource,
         mut stylesheets: StylesheetSetRef<ServoStylesheetInDocument>,
