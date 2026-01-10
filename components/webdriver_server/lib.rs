@@ -2037,7 +2037,7 @@ impl Handler {
         let script = format!(
             r#"(async function() {{
                 try {{
-                    let result = (function() {{
+                    let result = (async function() {{
                         {func_body}
                     }})({});
                     let value = await result;
