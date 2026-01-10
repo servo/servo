@@ -2225,6 +2225,44 @@ impl Document {
         // TODO
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#completely-finish-loading>
+    fn completely_finish_loading(&self) {
+        // Step 1. Assert: document's browsing context is non-null.
+        // TODO: Adding this assert fails a lot of tests
+
+        // Step 2. Set document's completely loaded time to the current time.
+        self.completely_loaded.set(true);
+        // Step 3. Let container be document's node navigable's container.
+        // TODO
+
+        // Step 4. If container is an iframe element, then queue an element task
+        // on the DOM manipulation task source given container to run the iframe load event steps given container.
+        //
+        // Note: this will also result in the "iframe-load-event-steps" being run.
+        // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+        self.notify_constellation_load();
+
+        // Step 5. Otherwise, if container is non-null, then queue an element task on the DOM manipulation task source
+        // given container to fire an event named load at container.
+        // TODO
+
+        // Step 13 of https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
+        //
+        // At least time seconds have elapsed since document's completely loaded time,
+        // adjusted to take into account user or user agent preferences.
+        if let Some(DeclarativeRefresh::PendingLoad { url, time }) =
+            &*self.declarative_refresh.borrow()
+        {
+            self.window.as_global_scope().schedule_callback(
+                OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
+                    window: DomRoot::from_ref(self.window()),
+                    url: url.clone(),
+                }),
+                Duration::from_secs(*time),
+            );
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-end
     pub(crate) fn maybe_queue_document_completion(&self) {
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
@@ -2252,7 +2290,9 @@ impl Document {
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
-        // Step 7.
+
+        // Step 9. Queue a global task on the DOM manipulation task source given
+        // the Document's relevant global object to run the following steps:
         debug!("Document loads are complete.");
         let document = Trusted::new(self);
         self.owner_global()
@@ -2260,70 +2300,75 @@ impl Document {
             .dom_manipulation_task_source()
             .queue(task!(fire_load_event: move || {
                 let document = document.root();
+                // Step 9.3. Let window be the Document's relevant global object.
                 let window = document.window();
                 if !window.is_alive() {
                     return;
                 }
 
-                // Step 7.1.
+                // Step 9.1. Update the current document readiness to "complete".
                 document.set_ready_state(DocumentReadyState::Complete, CanGc::note());
 
-                // Step 7.2.
+                // Step 9.2. If the Document object's browsing context is null, then abort these steps.
                 if document.browsing_context().is_none() {
                     return;
                 }
-                let event = Event::new(
+
+                // Step 9.4. Set the Document's load timing info's load event start time to the current high resolution time given window.
+                update_with_current_instant(&document.load_event_start);
+
+                // Step 9.5. Fire an event named load at window, with legacy target override flag set.
+                let load_event = Event::new(
                     window.upcast(),
                     atom!("load"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
                     CanGc::note(),
                 );
-                event.set_trusted(true);
-
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-                update_with_current_instant(&document.load_event_start);
-
+                load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
-                window.dispatch_event_with_target_override(&event, CanGc::note());
+                window.dispatch_event_with_target_override(&load_event, CanGc::note());
 
-                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+                // Step 9.6. Invoke WebDriver BiDi load complete with the Document's browsing context,
+                // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading navigation ID
+                // for WebDriver BiDi, status is "complete", and url is the Document object's URL.
+                // TODO
+
+                // Step 9.7. Set the Document object's during-loading navigation ID for WebDriver BiDi to null.
+                // TODO
+
+                // Step 9.8. Set the Document's load timing info's load event end time to the current high resolution time given window.
                 update_with_current_instant(&document.load_event_end);
+
+                // Step 9.9. Assert: Document's page showing is false.
+                // TODO: Adding this assert fails a lot of tests
+
+                // Step 9.10. Set the Document's page showing to true.
+                document.page_showing.set(true);
+
+                // Step 9.11. Fire a page transition event named pageshow at window with false.
+                let page_show_event = PageTransitionEvent::new(
+                    window,
+                    atom!("pageshow"),
+                    false, // bubbles
+                    false, // cancelable
+                    false, // persisted
+                    CanGc::note(),
+                );
+                let page_show_event = page_show_event.upcast::<Event>();
+                page_show_event.set_trusted(true);
+                page_show_event.fire(window.upcast(), CanGc::note());
+
+                // Step 9.12. Completely finish loading the Document.
+                document.completely_finish_loading();
+
+                // Step 9.13. Queue the navigation timing entry for the Document.
+                // TODO
 
                 if let Some(fragment) = document.url().fragment() {
                     document.check_and_scroll_fragment(fragment);
                 }
             }));
-
-        // Step 8.
-        let document = Trusted::new(self);
-        if document.root().browsing_context().is_some() {
-            self.owner_global()
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue(task!(fire_pageshow_event: move || {
-                    let document = document.root();
-                    let window = document.window();
-                    if document.page_showing.get() || !window.is_alive() {
-                        return;
-                    }
-
-                    document.page_showing.set(true);
-
-                    let event = PageTransitionEvent::new(
-                        window,
-                        atom!("pageshow"),
-                        false, // bubbles
-                        false, // cancelable
-                        false, // persisted
-                        CanGc::note(),
-                    );
-                    let event = event.upcast::<Event>();
-                    event.set_trusted(true);
-
-                    window.dispatch_event_with_target_override(event, CanGc::note());
-                }));
-        }
 
         // Step 9.
         // TODO: pending application cache download process tasks.
@@ -2342,36 +2387,6 @@ impl Document {
         #[cfg(feature = "webxr")]
         if pref!(dom_webxr_sessionavailable) && self.window.is_top_level() {
             self.window.Navigator().Xr().dispatch_sessionavailable();
-        }
-
-        // Step 12: completely loaded.
-        // https://html.spec.whatwg.org/multipage/#completely-loaded
-        // TODO: fully implement "completely loaded".
-        let document = Trusted::new(self);
-        if document.root().browsing_context().is_some() {
-            self.owner_global()
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue(task!(completely_loaded: move || {
-                    let document = document.root();
-                    document.completely_loaded.set(true);
-                    if let Some(DeclarativeRefresh::PendingLoad {
-                        url,
-                        time
-                    }) = &*document.declarative_refresh.borrow() {
-                        // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
-                        document.window.as_global_scope().schedule_callback(
-                            OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
-                                window: DomRoot::from_ref(document.window()),
-                                url: url.clone(),
-                            }),
-                            Duration::from_secs(*time),
-                        );
-                    }
-                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
-                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-                    document.notify_constellation_load();
-                }));
         }
     }
 

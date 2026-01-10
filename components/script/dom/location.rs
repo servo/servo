@@ -76,6 +76,8 @@ impl Location {
         let source_document = incumbent_window.Document();
         // Step 3. If location's relevant Document is not yet completely loaded,
         // and the incumbent global object does not have transient activation, then set historyHandling to "replace".
+        //
+        // TODO: check for transient activation
         let history_handling = if !navigable.Document().completely_loaded() {
             NavigationHistoryBehavior::Replace
         } else {
