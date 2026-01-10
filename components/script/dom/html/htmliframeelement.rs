@@ -7,8 +7,8 @@ use std::rc::Rc;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{
-    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
-    NavigationHistoryBehavior, ScriptToConstellationMessage,
+    IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    ScriptToConstellationMessage,
 };
 use content_security_policy::sandboxing_directive::{
     SandboxingFlagSet, parse_a_sandboxing_directive,
@@ -166,15 +166,12 @@ impl HTMLIFrameElement {
             }
         }
 
-        match load_data.js_eval_result {
-            Some(JsEvalResult::NoContent) => (),
-            _ => {
-                let mut load_blocker = self.load_blocker.borrow_mut();
-                *load_blocker = Some(LoadBlocker::new(
-                    &document,
-                    LoadType::Subframe(load_data.url.clone()),
-                ));
-            },
+        if load_data.js_eval_result.is_some() {
+            let mut load_blocker = self.load_blocker.borrow_mut();
+            *load_blocker = Some(LoadBlocker::new(
+                &document,
+                LoadType::Subframe(load_data.url.clone()),
+            ));
         };
 
         let window = self.owner_window();
@@ -552,19 +549,17 @@ impl HTMLIFrameElement {
         self.pending_navigation.set(true);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps>
     pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
+            info!(
+                "loaded pipeline doesn't match pending pipeline: {:?} vs {:?}",
+                loaded_pipeline,
+                self.pending_pipeline_id.get()
+            );
             return;
         }
-
-        // TODO 1. Assert: element's content navigable is not null.
-
-        // TODO 2-4 Mark resource timing.
-
-        // TODO 5 Set childDocument's iframe load in progress flag.
 
         // Note: in the spec, these steps are either run synchronously as part of
         // "If url matches about:blank and initialInsertion is true, then:"
@@ -599,11 +594,28 @@ impl HTMLIFrameElement {
             // do not fire if there is a pending navigation.
             !self.pending_navigation.get()
         };
+
         if should_fire_event {
-            // Step 6. Fire an event named load at element.
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("load"), can_gc);
+            self.run_iframe_load_event_steps(can_gc);
+        } else {
+            debug!(
+                "suppressing load event for iframe loaded {:?}",
+                loaded_pipeline
+            );
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps>
+    pub(crate) fn run_iframe_load_event_steps(&self, can_gc: CanGc) {
+        // TODO 1. Assert: element's content navigable is not null.
+
+        // TODO 2-4 Mark resource timing.
+
+        // TODO 5 Set childDocument's iframe load in progress flag.
+
+        // Step 6. Fire an event named load at element.
+        self.upcast::<EventTarget>()
+            .fire_event(atom!("load"), can_gc);
 
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, can_gc);

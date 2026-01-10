@@ -41,7 +41,7 @@ use base::id::{
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use constellation_traits::{
-    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
+    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
     WindowSizeType,
 };
@@ -604,6 +604,9 @@ impl ScriptThread {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     if trusted_global.root().is::<Window>() {
                         let global = &trusted_global.root();
+                        // FIXME(jdm): we're assuming that the global being navigated
+                        //   is the same global initiating the navigation. this is
+                        //   not true with `<a href="javascript:..." _target="something">`.
                         if Self::navigate_to_javascript_url(global, global, &mut load_data, None, CanGc::note()) {
                             sender
                                 .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
@@ -657,6 +660,8 @@ impl ScriptThread {
         true
     }
 
+    /// Attempt to navigate a global to a javascript: URL. Returns true if evaluation occurred.
+    /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>
     pub(crate) fn navigate_to_javascript_url(
         initiator_global: &GlobalScope,
         target_global: &GlobalScope,
@@ -676,8 +681,30 @@ impl ScriptThread {
 
         // Step 6. Let newDocument be the result of evaluating a javascript: URL given targetNavigable,
         // url, initiatorOrigin, and userInvolvement.
-        Self::eval_js_url(target_global, load_data, can_gc);
-        true
+        if let Some(body) = Self::eval_js_url(target_global, &load_data.url, can_gc) {
+            // Step 11. of <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>.
+            // Let response be a new response with
+            // URL         targetNavigable's active document's URL
+            // header list « (`Content-Type`, `text/html;charset=utf-8`) »
+            // body        the UTF-8 encoding of result, as a body
+            load_data.js_eval_result = Some(body);
+            load_data.url = target_global.get_url();
+            load_data
+                .headers
+                .typed_insert(headers::ContentType::from(mime::TEXT_HTML_UTF_8));
+            true
+        } else {
+            let window_proxy = target_global.as_window().window_proxy();
+            if let Some(frame_element) = window_proxy
+                .frame_element()
+                .and_then(Castable::downcast::<HTMLIFrameElement>)
+            {
+                if frame_element.is_initial_blank_document() {
+                    frame_element.run_iframe_load_event_steps(can_gc);
+                }
+            }
+            false
+        }
     }
 
     pub(crate) fn get_top_level_for_browsing_context(
@@ -3575,21 +3602,24 @@ impl ScriptThread {
     }
 
     /// Turn javascript: URL into JS code to eval, according to the steps in
-    /// <https://html.spec.whatwg.org/multipage/#javascript-protocol>
-    pub(crate) fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData, can_gc: CanGc) {
-        // This slice of the URL’s serialization is equivalent to (5.) to (7.):
-        // Start with the scheme data of the parsed URL;
-        // append question mark and query component, if any;
-        // append number sign and fragment component if any.
-        let encoded = &load_data.url[Position::AfterScheme..][1..];
+    /// <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>
+    /// Returns the evaluated body, if available.
+    fn eval_js_url(global_scope: &GlobalScope, url: &ServoUrl, can_gc: CanGc) -> Option<String> {
+        // Step 1. Let urlString be the result of running the URL serializer on url.
+        // Step 2. Let encodedScriptSource be the result of removing the leading "javascript:" from urlString.
+        let encoded = &url[Position::AfterScheme..][1..];
 
-        // Percent-decode (8.) and UTF-8 decode (9.)
+        // Step 3. Let scriptSource be the UTF-8 decoding of the percent-decoding of encodedScriptSource.
         let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
-        // Script source is ready to be evaluated (11.)
+        // Step 4. Let settings be targetNavigable's active document's relevant settings object.
+        // Step 5. Let baseURL be settings's API base URL.
+        // Step 6. Let script be the result of creating a classic script given scriptSource, settings, baseURL, and the default script fetch options.
+        // Note: these steps are handled by `evaluate_js_on_global`.
         let _ac = enter_realm(global_scope);
         rooted!(in(*GlobalScope::get_cx()) let mut jsval = UndefinedValue());
-        _ = global_scope.evaluate_js_on_global(
+        // Step 7. Let evaluationStatus be the result of running the classic script script.
+        let evaluation_status = global_scope.evaluate_js_on_global(
             script_source,
             "",
             Some(IntroductionType::JAVASCRIPT_URL),
@@ -3597,24 +3627,28 @@ impl ScriptThread {
             can_gc,
         );
 
-        load_data.js_eval_result = if jsval.get().is_string() {
-            let strval = DOMString::safe_from_jsval(
-                GlobalScope::get_cx(),
-                jsval.handle(),
-                StringificationBehavior::Empty,
-                can_gc,
-            );
-            match strval {
-                Ok(ConversionResult::Success(s)) => {
-                    Some(JsEvalResult::Ok(String::from(s).as_bytes().to_vec()))
-                },
-                _ => None,
-            }
-        } else {
-            Some(JsEvalResult::NoContent)
-        };
+        // Step 9. If evaluationStatus is a normal completion, and evaluationStatus.[[Value]]
+        //   is a String, then set result to evaluationStatus.[[Value]].
+        // Step 10. Otherwise, return null.
+        if evaluation_status.is_err() || !jsval.get().is_string() {
+            return None;
+        }
 
-        load_data.url = ServoUrl::parse("about:blank").unwrap();
+        let strval = DOMString::safe_from_jsval(
+            GlobalScope::get_cx(),
+            jsval.handle(),
+            StringificationBehavior::Empty,
+            can_gc,
+        );
+        match strval {
+            Ok(ConversionResult::Success(s)) => {
+                // Step 11. Let response be a new response with
+                // the UTF-8 encoding of result, as a body.
+                Some(String::from(s))
+            },
+            // Should be unreachable.
+            _ => None,
+        }
     }
 
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
@@ -3807,13 +3841,11 @@ impl ScriptThread {
         // If this page load is the result of a javascript scheme url, map
         // the evaluation result into a response.
         let chunk = match incomplete.load_data.js_eval_result {
-            Some(JsEvalResult::Ok(ref mut content)) => std::mem::take(content),
-            Some(JsEvalResult::NoContent) => {
-                meta.status = http::StatusCode::NO_CONTENT.into();
-                vec![]
-            },
-            None => vec![],
-        };
+            Some(ref mut content) => std::mem::take(content),
+            None => String::new(),
+        }
+        .as_bytes()
+        .to_vec();
 
         let policy_container = incomplete.load_data.policy_container.clone();
         let about_base_url = incomplete.load_data.about_base_url.clone();

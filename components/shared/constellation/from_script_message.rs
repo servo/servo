@@ -107,7 +107,7 @@ pub struct LoadData {
     /// The data that will be used as the body of the request.
     pub data: Option<RequestBody>,
     /// The result of evaluating a javascript scheme url.
-    pub js_eval_result: Option<JsEvalResult>,
+    pub js_eval_result: Option<String>,
     /// The referrer.
     pub referrer: Referrer,
     /// The referrer policy.
@@ -133,16 +133,6 @@ pub struct LoadData {
     /// If this is a load operation for an `<iframe>` whose origin is same-origin with its
     /// container documents origin then this is the encoding of the container document.
     pub container_document_encoding: Option<&'static Encoding>,
-}
-
-/// The result of evaluating a javascript scheme url.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum JsEvalResult {
-    /// The js evaluation had a non-string result, 204 status code.
-    /// <https://html.spec.whatwg.org/multipage/#navigate> 12.11
-    NoContent,
-    /// The js evaluation had a string result.
-    Ok(Vec<u8>),
 }
 
 impl LoadData {
