@@ -241,7 +241,7 @@ public class ServoView extends SurfaceView
                         options, mServoView, mServoView, mClient, mActivity, surface);
             } else {
                 mPaused = false;
-                mServoView.mServo.resumeCompositor(surface, coords);
+                mServoView.mServo.resumePainting(surface, coords);
             }
 
             Choreographer.getInstance().postFrameCallback(mServoView);
@@ -259,7 +259,7 @@ public class ServoView extends SurfaceView
         public void surfaceDestroyed(SurfaceHolder holder) {
             Log.d(LOGTAG, "GLThread::surfaceDestroyed");
             mPaused = true;
-            mServoView.mServo.pauseCompositor();
+            mServoView.mServo.pausePainting();
         }
 
         public void shutdown() {
