@@ -17,7 +17,6 @@ bluetooth = ["bluetooth_traits"]
 gamepad = ["embedder_traits/gamepad"]
 tracing = ["dep:tracing", "canvas/tracing"]
 vello = ["canvas/vello"]
-vello_cpu = ["canvas/vello_cpu"]
 webgpu = ["script_traits/webgpu"]
 
 [lints.clippy]
