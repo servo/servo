@@ -221,7 +221,7 @@ pub(crate) struct ReadableByteStreamController {
 }
 
 impl ReadableByteStreamController {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
@@ -248,7 +248,7 @@ impl ReadableByteStreamController {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,

@@ -887,7 +887,7 @@ impl PartialEq for ReaderType {
 }
 
 /// <https://streams.spec.whatwg.org/#create-readable-stream>
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_readable_stream(
     global: &GlobalScope,
     underlying_source_type: UnderlyingSourceType,
@@ -929,7 +929,7 @@ pub(crate) fn create_readable_stream(
 }
 
 /// <https://streams.spec.whatwg.org/#abstract-opdef-createreadablebytestream>
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn readable_byte_stream_tee(
     global: &GlobalScope,
     underlying_source_type: UnderlyingSourceType,
@@ -976,7 +976,6 @@ pub(crate) struct ReadableStream {
 }
 
 impl ReadableStream {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
     fn new_inherited() -> ReadableStream {
         ReadableStream {
@@ -989,7 +988,6 @@ impl ReadableStream {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
@@ -1043,7 +1041,7 @@ impl ReadableStream {
 
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_with_external_underlying_source(
         global: &GlobalScope,
         source: UnderlyingSourceType,
@@ -1488,7 +1486,6 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool, can_gc: CanGc) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
@@ -1692,12 +1689,12 @@ impl ReadableStream {
         result_promise
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_reader(&self, new_reader: Option<ReaderType>) {
         *self.reader.borrow_mut() = new_reader;
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
     fn byte_tee(&self, can_gc: CanGc) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
@@ -1795,7 +1792,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn default_tee(
         &self,
         clone_for_branch_2: bool,

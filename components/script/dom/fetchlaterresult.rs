@@ -22,7 +22,6 @@ pub(crate) struct FetchLaterResult {
 }
 
 impl FetchLaterResult {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(deferred_record_id: DeferredFetchRecordId) -> FetchLaterResult {
         FetchLaterResult {
             reflector_: Reflector::new(),
@@ -30,7 +29,6 @@ impl FetchLaterResult {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         deferred_record_id: DeferredFetchRecordId,

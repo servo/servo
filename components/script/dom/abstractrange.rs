@@ -126,7 +126,6 @@ impl BoundaryPoint {
     }
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 impl PartialOrd for BoundaryPoint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         bp_position(
@@ -138,7 +137,6 @@ impl PartialOrd for BoundaryPoint {
     }
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 impl PartialEq for BoundaryPoint {
     fn eq(&self, other: &Self) -> bool {
         self.node.get() == other.node.get() && self.offset.get() == other.offset.get()

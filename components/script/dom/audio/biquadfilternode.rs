@@ -41,7 +41,7 @@ pub(crate) struct BiquadFilterNode {
 }
 
 impl BiquadFilterNode {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
@@ -128,7 +128,7 @@ impl BiquadFilterNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

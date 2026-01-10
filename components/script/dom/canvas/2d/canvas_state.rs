@@ -1323,7 +1323,7 @@ impl CanvasState {
             .push(self.state.borrow().clone());
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-restore>
     pub(super) fn restore(&self) {
         let mut saved_states = self.saved_states.borrow_mut();

@@ -36,7 +36,6 @@ pub struct WritableStreamDefaultWriter {
 }
 
 impl WritableStreamDefaultWriter {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// The parts that create a new promise.
     fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> WritableStreamDefaultWriter {

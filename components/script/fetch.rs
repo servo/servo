@@ -205,7 +205,6 @@ fn abort_fetch_call(
 
 /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
 #[expect(non_snake_case)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
@@ -541,7 +540,6 @@ impl FetchResponseListener for FetchContext {
         // TODO
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn process_response(
         &mut self,
         _: RequestId,

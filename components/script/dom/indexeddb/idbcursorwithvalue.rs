@@ -21,7 +21,7 @@ pub(crate) struct IDBCursorWithValue {
 }
 
 impl IDBCursorWithValue {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         transaction: &IDBTransaction,
         direction: IDBCursorDirection,
@@ -42,7 +42,7 @@ impl IDBCursorWithValue {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,

@@ -29,7 +29,6 @@ pub(crate) struct XRInputSourceEvent {
 }
 
 impl XRInputSourceEvent {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(frame: &XRFrame, source: &XRInputSource) -> XRInputSourceEvent {
         XRInputSourceEvent {
             event: Event::new_inherited(),

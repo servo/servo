@@ -149,7 +149,6 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             .push((NoTrace(LocalName::from(name.0)), datum));
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://xhr.spec.whatwg.org/#dom-formdata-append>
     fn Append_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let datum = FormDatum {
@@ -231,7 +230,6 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         ));
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://xhr.spec.whatwg.org/#dom-formdata-set>
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let file = self.create_an_entry(blob, filename, CanGc::note());

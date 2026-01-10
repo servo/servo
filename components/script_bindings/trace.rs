@@ -42,7 +42,6 @@ use crate::str::USVString;
 ///
 /// # Safety
 /// tracer must point to a valid, non-null JS tracer.
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub unsafe fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
     unsafe { trace_object(tracer, description, reflector.rootable()) }
@@ -276,7 +275,6 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: TreeSink<Handle = Handle> + JSTra
 
         impl<Handle: JSTraceable> HtmlTracer for Tracer<Handle> {
             type Handle = Handle;
-            #[cfg_attr(crown, allow(crown::unrooted_must_root))]
             fn trace_handle(&self, node: &Handle) {
                 unsafe {
                     node.trace(self.0);
@@ -308,7 +306,6 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: JSTraceable + XmlTreeSink<Handle 
 
         impl<Handle: JSTraceable> XmlTracer for Tracer<Handle> {
             type Handle = Handle;
-            #[cfg_attr(crown, allow(crown::unrooted_must_root))]
             fn trace_handle(&self, node: &Handle) {
                 unsafe {
                     node.trace(self.0);

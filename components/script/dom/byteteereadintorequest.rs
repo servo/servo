@@ -24,7 +24,7 @@ use crate::microtask::Microtask;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) struct ByteTeeReadIntoRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: HeapBufferSource<ArrayBufferViewU8>,
@@ -62,7 +62,6 @@ pub(crate) struct ByteTeeReadIntoRequest {
 }
 impl ByteTeeReadIntoRequest {
     #[allow(clippy::too_many_arguments)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         for_branch2: bool,
         byob_branch: &ReadableStream,

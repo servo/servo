@@ -324,7 +324,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
 }
 
 impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn run_once(self, cx: &mut js::context::JSContext) {
         Worker::dispatch_simple_error(self.addr, CanGc::from_cx(cx));
     }

@@ -28,7 +28,6 @@ pub(crate) struct URLPattern {
 }
 
 impl URLPattern {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(associated_url_pattern: urlpattern::UrlPattern) -> URLPattern {
         URLPattern {
             reflector: Reflector::new(),

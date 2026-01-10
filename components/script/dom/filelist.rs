@@ -21,7 +21,7 @@ pub(crate) struct FileList {
 }
 
 impl FileList {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(files: Vec<Dom<File>>) -> FileList {
         FileList {
             reflector_: Reflector::new(),
@@ -29,7 +29,6 @@ impl FileList {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         files: Vec<DomRoot<File>>,

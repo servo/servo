@@ -116,7 +116,6 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-signal-abort>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // TODO(39333): Remove when all iterators are marked as safe
     pub(crate) fn signal_abort(
         &self,
         cx: SafeJSContext,
@@ -247,7 +246,6 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#create-a-dependent-abort-signal>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // TODO(39333): Remove when all iterators are marked as safe
     pub(crate) fn create_dependent_abort_signal(
         signals: Vec<DomRoot<AbortSignal>>,
         global: &GlobalScope,

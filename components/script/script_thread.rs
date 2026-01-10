@@ -225,7 +225,7 @@ impl Drop for ScriptUserInteractingGuard {
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub struct ScriptThread {
     /// A reference to the currently operating `ScriptThread`. This should always be
     /// upgradable to an `Rc` as long as the `ScriptThread` is running.
@@ -419,7 +419,6 @@ impl<'a> ScriptMemoryFailsafe<'a> {
 }
 
 impl Drop for ScriptMemoryFailsafe<'_> {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn drop(&mut self) {
         if let Some(owner) = self.owner {
             for (_, document) in owner.documents.borrow().iter() {

@@ -282,7 +282,6 @@ pub(crate) struct VertexAttribData {
 }
 
 impl Default for VertexAttribData {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> Self {
         Self {
             enabled_as_array: false,

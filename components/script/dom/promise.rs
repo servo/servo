@@ -131,7 +131,7 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
@@ -173,7 +173,6 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_resolved(
         global: &GlobalScope,
         cx: SafeJSContext,
@@ -191,7 +190,6 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new_rejected(
         global: &GlobalScope,
         cx: SafeJSContext,
@@ -220,7 +218,6 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
             if !ResolvePromise(*cx, self.promise_obj(), value) {
@@ -249,7 +246,6 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
         unsafe {
             if !RejectPromise(*cx, self.promise_obj(), value) {
@@ -538,7 +534,7 @@ impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
 }
 
 /// <https://webidl.spec.whatwg.org/#wait-for-all>
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn wait_for_all(
     cx: SafeJSContext,
     global: &GlobalScope,

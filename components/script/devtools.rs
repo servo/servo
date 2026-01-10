@@ -224,7 +224,7 @@ pub(crate) fn handle_get_attribute_style(
     reply.send(Some(msg)).unwrap();
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn handle_get_stylesheet_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -271,7 +271,7 @@ pub(crate) fn handle_get_stylesheet_style(
     reply.send(msg).unwrap();
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn handle_get_selectors(
     documents: &DocumentCollection,
     pipeline: PipelineId,

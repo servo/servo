@@ -507,7 +507,7 @@ impl ServoParser {
         self.tokenizer.get_current_line()
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         document: &Document,
         tokenizer: Tokenizer,
@@ -547,7 +547,7 @@ impl ServoParser {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new(
         document: &Document,
         tokenizer: Tokenizer,
@@ -1457,7 +1457,7 @@ pub(crate) struct FragmentContext<'a> {
     pub(crate) context_element_allows_scripting: bool,
 }
 
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 fn insert(
     parent: &Node,
     reference_child: Option<&Node>,
@@ -1528,7 +1528,7 @@ impl Sink {
 
 impl TreeSink for Sink {
     type Output = Self;
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn finish(self) -> Self {
         self
     }
@@ -1539,12 +1539,12 @@ impl TreeSink for Sink {
     where
         Self: 'a;
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn get_document(&self) -> Dom<Node> {
         Dom::from_ref(self.document.upcast())
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn get_template_contents(&self, target: &Dom<Node>) -> Dom<Node> {
         let template = target
             .downcast::<HTMLTemplateElement>()
@@ -1566,7 +1566,7 @@ impl TreeSink for Sink {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_element(
         &self,
         name: QualName,
@@ -1594,7 +1594,7 @@ impl TreeSink for Sink {
         Dom::from_ref(element.upcast())
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_comment(&self, text: StrTendril) -> Dom<Node> {
         let comment = Comment::new(
             DOMString::from(String::from(text)),
@@ -1605,7 +1605,7 @@ impl TreeSink for Sink {
         Dom::from_ref(comment.upcast())
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_pi(&self, target: StrTendril, data: StrTendril) -> Dom<Node> {
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
@@ -1647,7 +1647,7 @@ impl TreeSink for Sink {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn append_before_sibling(&self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
         let parent = sibling
             .GetParentNode()
@@ -1676,7 +1676,7 @@ impl TreeSink for Sink {
         self.document.set_quirks_mode(mode);
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn append(&self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
         insert(
             parent,
@@ -1688,7 +1688,7 @@ impl TreeSink for Sink {
         );
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn append_based_on_parent_node(
         &self,
         elem: &Dom<Node>,

@@ -79,7 +79,6 @@ pub struct CallbackObject<D: DomTypes> {
 }
 
 impl<D: DomTypes> CallbackObject<D> {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
     fn new() -> Self {
@@ -157,7 +156,6 @@ pub struct CallbackFunction<D: DomTypes> {
 
 impl<D: DomTypes> CallbackFunction<D> {
     /// Create a new `CallbackFunction` for this object.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // These are used by the bindings and do not need `default()` functions.
     #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
@@ -279,7 +277,6 @@ pub struct CallSetup<D: DomTypes> {
 
 impl<D: DomTypes> CallSetup<D> {
     /// Performs the setup needed to make a call.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub fn new<T: CallbackContainer<D>>(callback: &T, handling: ExceptionHandling) -> Self {
         let global = unsafe { D::GlobalScope::from_object(callback.callback()) };
         if let Some(window) = global.downcast::<D::Window>() {

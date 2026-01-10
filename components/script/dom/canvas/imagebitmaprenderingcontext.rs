@@ -36,7 +36,7 @@ pub(crate) struct ImageBitmapRenderingContext {
 
 impl ImageBitmapRenderingContext {
     /// <https://html.spec.whatwg.org/multipage/#imagebitmaprenderingcontext-creation-algorithm>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(canvas: HTMLCanvasElementOrOffscreenCanvas) -> ImageBitmapRenderingContext {
         ImageBitmapRenderingContext {
             reflector_: Reflector::new(),

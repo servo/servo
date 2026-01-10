@@ -40,7 +40,6 @@ impl CSSLayerStatementRule {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
