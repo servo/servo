@@ -17,8 +17,9 @@ use js::jsapi::{
     GetRequestedModuleSpecifier, GetRequestedModulesCount, Handle, HandleObject, Heap, JSObject,
 };
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::IntoHandle;
+use js::realm::CurrentRealm;
 use js::rust::wrappers::JS_GetModulePrivate;
+use js::rust::{HandleValue, IntoHandle};
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{Destination, Referrer, RequestBuilder, RequestId, RequestMode};
@@ -28,24 +29,29 @@ use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
 use crate::document_loader::LoadType;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
+use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
     ModuleObject as Module, ModuleTree, RethrowError, ScriptFetchOptions,
     create_a_javascript_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
+use crate::task::NonSendTaskBox;
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -58,6 +64,27 @@ impl ModuleObject {
 
     pub(crate) fn handle(&self) -> HandleObject {
         unsafe { self.0.handle().into() }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct ModuleHandler {
+    #[ignore_malloc_size_of = "Measuring trait objects is hard"]
+    task: DomRefCell<Option<Box<dyn NonSendTaskBox>>>,
+}
+
+impl ModuleHandler {
+    pub(crate) fn new_boxed(task: Box<dyn NonSendTaskBox>) -> Box<dyn Callback> {
+        Box::new(Self {
+            task: DomRefCell::new(Some(task)),
+        })
+    }
+}
+
+impl Callback for ModuleHandler {
+    fn callback(&self, _cx: &mut CurrentRealm, _v: HandleValue) {
+        let task = self.task.borrow_mut().take().unwrap();
+        task.run_box();
     }
 }
 
@@ -88,14 +115,14 @@ pub(crate) fn LoadRequestedModules(global: &GlobalScope, module: HandleObject) -
     };
 
     // Step 4. Perform InnerModuleLoading(state, module).
-    InnerModuleLoading(global, &state, module);
+    InnerModuleLoading(global, &Rc::new(state), module);
 
     // Step 5. Return pc.[[Promise]].
     promise
 }
 
 /// <https://tc39.es/ecma262/#sec-InnerModuleLoading>
-fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: HandleObject) {
+fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, module: HandleObject) {
     let cx = GlobalScope::get_cx();
 
     rooted!(&in(cx) let mut referrer = UndefinedValue());
@@ -133,7 +160,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: H
                 let error = RethrowError::from_pending_exception(cx);
 
                 // Step 2. Perform ContinueModuleLoading(state, error).
-                ContinueModuleLoading(global, state, Err(error));
+                ContinueModuleLoading(global, &state, Err(error));
             } else if let Some(private_data) =
                 unsafe { module_script_from_reference_private(&referrer_handle) }
             {
@@ -184,7 +211,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &GraphLoadingState, module: H
 /// <https://tc39.es/ecma262/#sec-ContinueModuleLoading>
 fn ContinueModuleLoading(
     global: &GlobalScope,
-    state: &GraphLoadingState,
+    state: &Rc<GraphLoadingState>,
     module_completion: Result<HandleObject, RethrowError>,
 ) {
     // Step 1. If state.[[IsLoading]] is false, return unused.
@@ -218,7 +245,7 @@ fn FinishLoadingImportedModule(
     global: &GlobalScope,
     referrer: Handle<JSVal>,
     module_request_specifier: String,
-    payload: &GraphLoadingState,
+    payload: Rc<GraphLoadingState>,
     result: Result<HandleObject, RethrowError>,
 ) {
     // Step 1. If result is a normal completion, then
@@ -243,7 +270,7 @@ fn FinishLoadingImportedModule(
 
     // Step 2. If payload is a GraphLoadingState Record, then
     // a. Perform ContinueModuleLoading(payload, result).
-    ContinueModuleLoading(global, payload, result);
+    ContinueModuleLoading(global, &payload, result);
 
     // TODO Step 3. Else,
     // a. Perform ContinueDynamicImport(payload, result).
@@ -257,7 +284,7 @@ fn HostLoadImportedModule(
     referrer: Handle<JSVal>,
     specifier: String,
     /* loadState, */
-    payload: &GraphLoadingState,
+    payload: &Rc<GraphLoadingState>,
 ) {
     // Step 1. Let settingsObject be the current settings object.
     // Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
@@ -309,7 +336,7 @@ fn HostLoadImportedModule(
             global_scope,
             referrer,
             specifier,
-            payload,
+            payload.clone(),
             Err(resolution_error),
         );
 
@@ -328,27 +355,31 @@ fn HostLoadImportedModule(
 
     // TODO Step 13. If loadState is not undefined, then:
 
-    let on_single_fetch_complete = |module_tree: Option<&Rc<ModuleTree>>| {
-        let completion = match module_tree {
-            None => Err(gen_type_error(
-                global_scope,
-                "Module fetcing failed".to_string(),
-                CanGc::note(),
-            )),
-            Some(tree) => {
-                let parse_error = tree.get_rethrow_error().borrow().as_ref().cloned();
+    let on_single_fetch_complete =
+        move |global: &GlobalScope,
+              state: Rc<GraphLoadingState>,
+              module_tree: Option<&Rc<ModuleTree>>| {
+            let completion = match module_tree {
+                None => Err(gen_type_error(
+                    global,
+                    "Module fetcing failed".to_string(),
+                    CanGc::note(),
+                )),
+                Some(tree) => {
+                    let parse_error = tree.get_rethrow_error().borrow().as_ref().cloned();
 
-                if let Some(error) = parse_error {
-                    Err(error)
-                } else {
-                    let module_handle = tree.get_record().borrow().as_ref().unwrap().handle();
-                    Ok(module_handle)
-                }
-            },
+                    if let Some(error) = parse_error {
+                        Err(error)
+                    } else {
+                        let module_handle = tree.get_record().borrow().as_ref().unwrap().handle();
+                        assert!(!module_handle.is_null());
+                        Ok(module_handle)
+                    }
+                },
+            };
+
+            FinishLoadingImportedModule(global, referrer, specifier, state, completion);
         };
-
-        FinishLoadingImportedModule(global_scope, referrer, specifier, payload, completion);
-    };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
     // fetchReferrer, moduleRequest, and onSingleFetchComplete as defined below.
@@ -360,17 +391,19 @@ fn HostLoadImportedModule(
         fetch_options,
         fetch_referrer,
         on_single_fetch_complete,
+        payload,
     );
 }
 
 /// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-imported-module-script>
 fn fetch_a_single_imported_module_script(
     url: ServoUrl,
-    global_scope: &GlobalScope,
+    global: &GlobalScope,
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
-    on_complete: impl FnOnce(Option<&Rc<ModuleTree>>),
+    on_complete: impl FnOnce(&GlobalScope, Rc<GraphLoadingState>, Option<&Rc<ModuleTree>>) + 'static,
+    state: &Rc<GraphLoadingState>,
 ) {
     // Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
     // because we only asked for "type" attributes in HostGetSupportedImportAttributes.
@@ -384,13 +417,14 @@ fn fetch_a_single_imported_module_script(
     // moduleRequest, false, and onComplete. If performFetch was given, pass it along as well.
     fetch_a_single_module_script(
         url,
-        global_scope,
+        global,
         destination,
         options,
         referrer,
         false,
         Some(IntroductionType::IMPORTED_MODULE),
         on_complete,
+        state,
     );
 }
 
@@ -403,7 +437,8 @@ fn fetch_a_single_module_script(
     referrer: Referrer,
     is_top_level: bool,
     introduction_type: Option<&'static CStr>,
-    on_complete: impl FnOnce(Option<&Rc<ModuleTree>>),
+    on_complete: impl FnOnce(&GlobalScope, Rc<GraphLoadingState>, Option<&Rc<ModuleTree>>) + 'static,
+    state: &Rc<GraphLoadingState>,
 ) {
     // Step 1. Let moduleType be "javascript-or-wasm".
 
@@ -414,13 +449,15 @@ fn fetch_a_single_module_script(
     // Otherwise, we would not have reached this point because a failure would have been raised
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
+    let state = Rc::clone(state);
+
     {
         // Step 4. Let moduleMap be settingsObject's module map.
         let mut module_map = global.get_module_map().borrow_mut();
 
         if let Some(module_tree) = module_map.get(&url) {
             if module_tree.get_record().borrow().is_some() {
-                return on_complete(Some(module_tree));
+                return on_complete(global, state, Some(module_tree));
             }
             // TODO Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
             // then queue a task on the networking task source to proceed with running the following steps.
@@ -430,6 +467,27 @@ fn fetch_a_single_module_script(
             module_map.insert(url.clone(), Rc::new(module_tree));
         }
     }
+
+    let global_scope = DomRoot::from_ref(global);
+    let request_url = url.clone();
+    let handler = ModuleHandler::new_boxed(Box::new(
+        task!(fetched_resolve: |global_scope: DomRoot<GlobalScope>| {
+            let url = request_url;
+            let module_map = global_scope.get_module_map().borrow();
+            let module_tree = module_map.get(&url).filter(|module_tree| module_tree.get_network_error().borrow().is_none());
+
+            on_complete(&global_scope, state, module_tree);
+        }),
+    ));
+
+    let handler = PromiseNativeHandler::new(&global, Some(handler), None, CanGc::note());
+
+    let realm = enter_realm(&*global);
+    let comp = InRealm::Entered(&realm);
+    let _ais = AutoIncumbentScript::new(&global);
+
+    let promise = Promise::new(global, CanGc::note());
+    promise.append_native_handler(&handler, comp, CanGc::note());
 
     // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
 
@@ -456,6 +514,7 @@ fn fetch_a_single_module_script(
 
     let context = ModuleContext {
         global: Trusted::new(global),
+        promise: TrustedPromise::new(promise),
         data: vec![],
         metadata: None,
         url: url.clone(),
@@ -473,6 +532,7 @@ fn fetch_a_single_module_script(
 
 struct ModuleContext {
     global: Trusted<GlobalScope>,
+    promise: TrustedPromise,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -551,7 +611,15 @@ impl FetchResponseListener for ModuleContext {
         // then set moduleMap[(url, moduleType)] to null, run onComplete given null, and abort these steps.
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
-            return;
+            global
+                .get_module_map()
+                .borrow()
+                .get(&self.url)
+                .map(|module_tree| {
+                    module_tree.set_network_error(error.clone());
+                });
+
+            return self.promise.root().resolve_native(&(), CanGc::note());
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -613,6 +681,8 @@ impl FetchResponseListener for ModuleContext {
                         module_tree.set_record(Module::new(compiled_module.handle()));
                     }
                 });
+
+            self.promise.root().resolve_native(&(), CanGc::note());
         }
     }
 
