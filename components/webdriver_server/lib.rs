@@ -2030,14 +2030,25 @@ impl Handler {
         // Step 1. Let body and arguments be the result of trying to extract the script arguments
         // from a request with argument parameters.
         let (func_body, args_string) = self.extract_script_arguments(parameters)?;
+
         // This is pretty ugly; we really want something that acts like
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
         let script = format!(
-            "(function() {{ {}\n }})({})",
-            func_body,
+            r#"(async function() {{
+                try {{
+                    let result = (async function() {{
+                        {func_body}
+                    }})({});
+                    let value = await result;
+                    window.webdriverCallback(value);
+                }} catch (err) {{
+                    window.webdriverException(err);
+                }}
+            }})();"#,
             args_string.join(", ")
         );
+
         debug!("{}", script);
 
         // Step 2. If session's current browsing context is no longer open,
@@ -2048,7 +2059,8 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = generic_channel::channel().unwrap();
-        let cmd = WebDriverScriptCommand::ExecuteScript(script, sender);
+        let cmd = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
+
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
         let timeout_duration = self
