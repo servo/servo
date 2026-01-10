@@ -22,7 +22,8 @@ use url::Position;
 use uuid::Uuid;
 
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
-use crate::response::{HttpsState, Response};
+use crate::pub_domains::is_same_site;
+use crate::response::{HttpsState, RedirectTaint, Response};
 use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -1000,6 +1001,49 @@ impl Request {
         total_request_length += self.body.body_length();
         // Step 5. Return totalRequestLength.
         total_request_length
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-tainted-origin>
+    pub fn redirect_taint_for_request(&self) -> RedirectTaint {
+        // Step 1. Assert: request’s origin is not "client".
+        let Origin::Origin(request_origin) = &self.origin else {
+            unreachable!("origin cannot be \"client\" at this point in time");
+        };
+
+        // Step 2. Let lastURL be null.
+        let mut last_url = None;
+
+        // Step 3. Let taint be "same-origin".
+        let mut taint = RedirectTaint::SameOrigin;
+
+        // Step 4. For each url of request’s URL list:
+        for url in &self.url_list {
+            // Step 4.1 If lastURL is null, then set lastURL to url and continue.
+            let Some(last_url) = &mut last_url else {
+                last_url = Some(url);
+                continue;
+            };
+
+            // Step 4.2. If url’s origin is not same site with lastURL’s origin and
+            // request’s origin is not same site with lastURL’s origin, then return "cross-site".
+            if !is_same_site(&url.origin(), &last_url.origin()) &&
+                !is_same_site(request_origin, &last_url.origin())
+            {
+                return RedirectTaint::CrossSite;
+            }
+
+            // Step 4.3. If url’s origin is not same origin with lastURL’s origin
+            // and request’s origin is not same origin with lastURL’s origin, then set taint to "same-site".
+            if url.origin() != last_url.origin() && *request_origin != last_url.origin() {
+                taint = RedirectTaint::SameSite;
+            }
+
+            // Step 4.4 Set lastURL to url.
+            *last_url = url;
+        }
+
+        // Step 5. Return taint.
+        taint
     }
 }
 

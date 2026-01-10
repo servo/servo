@@ -58,6 +58,15 @@ impl ResponseBody {
     }
 }
 
+/// <https://fetch.spec.whatwg.org/#response-redirect-taint>
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum RedirectTaint {
+    #[default]
+    SameOrigin,
+    SameSite,
+    CrossSite,
+}
+
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum CacheState {
@@ -109,6 +118,8 @@ pub struct Response {
     pub https_state: HttpsState,
     pub tls_security_info: Option<TlsSecurityInfo>,
     pub referrer: Option<ServoUrl>,
+    /// <https://fetch.spec.whatwg.org/#response-redirect-taint>
+    pub redirect_taint: RedirectTaint,
     pub referrer_policy: ReferrerPolicy,
     /// [CORS-exposed header-name list](https://fetch.spec.whatwg.org/#concept-response-cors-exposed-header-name-list)
     pub cors_exposed_header_name_list: Vec<String>,
@@ -152,6 +163,7 @@ impl Response {
             aborted: Arc::new(AtomicBool::new(false)),
             resource_timing: Arc::new(Mutex::new(resource_timing)),
             range_requested: false,
+            redirect_taint: Default::default(),
         }
     }
 
@@ -187,6 +199,7 @@ impl Response {
                 ResourceTimingType::Error,
             ))),
             range_requested: false,
+            redirect_taint: Default::default(),
         }
     }
 

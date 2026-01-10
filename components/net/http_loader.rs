@@ -55,7 +55,9 @@ use net_traits::request::{
     is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
-use net_traits::response::{CacheState, HttpsState, Response, ResponseBody, ResponseType};
+use net_traits::response::{
+    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
+};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
     RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
@@ -2516,9 +2518,8 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     }
 
     // Step 4. If the result of byte-serializing a request origin with request is not origin, then return failure.
-    match request.origin {
-        Origin::Origin(ref o) if *o.ascii_serialization() == *origin => {},
-        _ => return Err(()),
+    if serialize_request_origin(request).to_string() != origin {
+        return Err(());
     }
 
     // Step 5. If request’s credentials mode is not "include", then return success.
@@ -2564,38 +2565,6 @@ fn is_redirect_status(status: StatusCode) -> bool {
     )
 }
 
-/// <https://fetch.spec.whatwg.org/#concept-request-tainted-origin>
-fn request_has_redirect_tainted_origin(request: &Request) -> bool {
-    // Step 1. Assert: request’s origin is not "client".
-    let Origin::Origin(request_origin) = &request.origin else {
-        panic!("origin cannot be \"client\" at this point in time");
-    };
-
-    // Step 2. Let lastURL be null.
-    let mut last_url = None;
-
-    // Step 3. For each url of request’s URL list:
-    for url in &request.url_list {
-        // Step 3.1 If lastURL is null, then set lastURL to url and continue.
-        let Some(last_url) = &mut last_url else {
-            last_url = Some(url);
-            continue;
-        };
-
-        // Step 3.2 If url’s origin is not same origin with lastURL’s origin and
-        //          request’s origin is not same origin with lastURL’s origin, then return true.
-        if url.origin() != last_url.origin() && *request_origin != last_url.origin() {
-            return true;
-        }
-
-        // Step 3.3 Set lastURL to url.
-        *last_url = url;
-    }
-
-    // Step 4. Return false.
-    false
-}
-
 /// <https://fetch.spec.whatwg.org/#serializing-a-request-origin>
 fn serialize_request_origin(request: &Request) -> headers::Origin {
     // Step 1. Assert: request’s origin is not "client".
@@ -2603,8 +2572,8 @@ fn serialize_request_origin(request: &Request) -> headers::Origin {
         panic!("origin cannot be \"client\" at this point in time");
     };
 
-    // Step 2. If request has a redirect-tainted origin, then return "null".
-    if request_has_redirect_tainted_origin(request) {
+    // Step 2. If request’s redirect-taint is not "same-origin", then return "null".
+    if request.redirect_taint_for_request() != RedirectTaint::SameOrigin {
         return headers::Origin::NULL;
     }
 
