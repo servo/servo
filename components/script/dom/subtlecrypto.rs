@@ -3656,6 +3656,7 @@ impl SupportedAlgorithm {
 
             // <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-registration>
             (Self::AesOcb, Operation::ImportKey) => ParameterType::None,
+            (Self::AesOcb, Operation::ExportKey) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
             (Self::ChaCha20Poly1305, Operation::Encrypt) => ParameterType::AeadParams,
@@ -4532,6 +4533,7 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
             ml_kem_operation::export_key(format, key)
         },
         ALG_ML_DSA_44 | ALG_ML_DSA_65 | ALG_ML_DSA_87 => ml_dsa_operation::export_key(format, key),
+        ALG_AES_OCB => aes_ocb_operation::export_key(format, key),
         ALG_CHACHA20_POLY1305 => chacha20_poly1305_operation::export_key(format, key),
         _ => Err(Error::NotSupported(None)),
     }

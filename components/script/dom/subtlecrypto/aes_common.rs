@@ -2,11 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyMethods, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{JsonWebKeyExt, JwkStringField};
+use crate::dom::subtlecrypto::{
+    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+};
 
 // TODO: Add AES-CTR, AES-CBC, AES-GCM, AES-KW
 pub(crate) enum AesAlgorithm {
@@ -123,4 +127,105 @@ pub(crate) fn import_key_from_key_data(
     }
 
     Ok(data)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-export-key>
+pub(crate) fn export_key(
+    aes_algorithm: AesAlgorithm,
+    format: KeyFormat,
+    key: &CryptoKey,
+) -> Result<ExportedKey, Error> {
+    // Step 1. If the underlying cryptographic key material represented by the [[handle]] internal
+    // slot of key cannot be accessed, then throw an OperationError.
+
+    // Step 2.
+    let result = match format {
+        // If format is "raw-secret":
+        KeyFormat::Raw_secret => {
+            // Step 2.1. Let data be a byte sequence containing the raw octets of the key
+            // represented by [[handle]] internal slot of key.
+            let data = match key.handle() {
+                Handle::Aes128Key(key) => key.to_vec(),
+                Handle::Aes192Key(key) => key.to_vec(),
+                Handle::Aes256Key(key) => key.to_vec(),
+                _ => {
+                    return Err(Error::Operation(Some(
+                        "The key handle is not representing an AES key".to_string(),
+                    )));
+                },
+            };
+
+            // Step 2.2. Let result be data.
+            ExportedKey::Bytes(data)
+        },
+        // If format is "jwk":
+        KeyFormat::Jwk => {
+            // Step 2.1. Let jwk be a new JsonWebKey dictionary.
+            // Step 2.2. Set the kty attribute of jwk to the string "oct".
+            let mut jwk = JsonWebKey {
+                kty: Some(DOMString::from("oct")),
+                ..Default::default()
+            };
+
+            // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
+            // key represented by [[handle]] internal slot of key, encoded according to Section 6.4
+            // of JSON Web Algorithms [JWA].
+            let key_bytes = match key.handle() {
+                Handle::Aes128Key(key) => key.as_slice(),
+                Handle::Aes192Key(key) => key.as_slice(),
+                Handle::Aes256Key(key) => key.as_slice(),
+                _ => {
+                    return Err(Error::Operation(Some(
+                        "The key handle is not representing an AES key".to_string(),
+                    )));
+                },
+            };
+            jwk.encode_string_field(JwkStringField::K, key_bytes);
+
+            match aes_algorithm {
+                AesAlgorithm::AesOcb => {
+                    // Step 2.4.
+                    // If the length attribute of key is 128:
+                    //     Set the alg attribute of jwk to the string "A128OCB".
+                    // If the length attribute of key is 192:
+                    //     Set the alg attribute of jwk to the string "A192OCB".
+                    // If the length attribute of key is 256:
+                    //     Set the alg attribute of jwk to the string "A256OCB".
+                    let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
+                    else {
+                        return Err(Error::Operation(None));
+                    };
+                    let alg = match algorithm.length {
+                        128 => "A128OCB",
+                        192 => "A192OCB",
+                        256 => "A256OCB",
+                        _ => return Err(Error::Operation(Some(
+                            "The length attribute of the [[algorithm]] internal slot of key is not \
+                            128, 192 or 256".to_string(),
+                        )))
+                    };
+                    jwk.alg = Some(DOMString::from(alg));
+                },
+            }
+
+            // Step 2.5. Set the key_ops attribute of jwk to equal the usages attribute of key.
+            jwk.set_key_ops(key.usages());
+
+            // Step 2.6. Set the ext attribute of jwk to equal the [[extractable]] internal slot of
+            // key.
+            jwk.ext = Some(key.Extractable());
+
+            // Step 2.7. Let result be jwk.
+            ExportedKey::Jwk(Box::new(jwk))
+        },
+        _ => {
+            // throw a NotSupportedError.
+            return Err(Error::NotSupported(Some(
+                "Unsupported import key format for AES key".to_string(),
+            )));
+        },
+    };
+
+    // Step 3. Return result.
+    Ok(result)
 }
