@@ -1128,7 +1128,7 @@ pub fn should_request_be_blocked_as_mixed_content(
     }
 
     // 1.2. request’s URL is a potentially trustworthy URL.
-    if is_url_potentially_trustworthy(protocol_registry, &request.url()) {
+    if is_url_potentially_trustworthy(protocol_registry, &request.current_url()) {
         return false;
     }
 
