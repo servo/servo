@@ -168,8 +168,7 @@ pub enum WebDriverScriptCommand {
     DeleteCookies(GenericSender<Result<(), ErrorStatus>>),
     DeleteCookie(String, GenericSender<Result<(), ErrorStatus>>),
     ElementClear(String, GenericSender<Result<(), ErrorStatus>>),
-    ExecuteScript(String, GenericSender<WebDriverJSResult>),
-    ExecuteAsyncScript(String, GenericSender<WebDriverJSResult>),
+    ExecuteScriptWithCallback(String, GenericSender<WebDriverJSResult>),
     FindElementsCSSSelector(String, GenericSender<Result<Vec<String>, ErrorStatus>>),
     FindElementsLinkText(
         String,

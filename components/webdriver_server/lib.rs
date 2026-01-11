@@ -2059,7 +2059,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         let (sender, receiver) = generic_channel::channel().unwrap();
-        let cmd = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
+        let cmd = WebDriverScriptCommand::ExecuteScriptWithCallback(script, sender);
 
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
@@ -2085,11 +2085,11 @@ impl Handler {
         let joined_args = args_string.join(", ");
         let script = format!(
             r#"(function() {{
-              let webdriverPromise = new Promise(function(resolve, reject) {{
+                new Promise(function(resolve, reject) {{
                   (async function() {{
                     {function_body}
                   }})({joined_args})
-                    .then((v) => {{}}, (err) => reject(err))
+                    .catch(reject)
               }})
               .then((v) => window.webdriverCallback(v), (r) => window.webdriverException(r))
               .catch((r) => window.webdriverException(r));
@@ -2106,7 +2106,7 @@ impl Handler {
 
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.browsing_context_script_command(
-            WebDriverScriptCommand::ExecuteAsyncScript(script, sender),
+            WebDriverScriptCommand::ExecuteScriptWithCallback(script, sender),
             VerifyBrowsingContextIsOpen::No,
         )?;
 
