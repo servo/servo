@@ -190,7 +190,7 @@ def get_pr_number() -> Optional[str]:
 
 
 def get_commit() -> str:
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode("utf-8").strip()
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
 
 
 def create_github_reports(body: str, tag: str = ""):
