@@ -5,7 +5,7 @@
 use std::cell::OnceCell;
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::{mem, thread};
 
@@ -427,6 +427,9 @@ struct KeyCache {
     cache: KeyCacheState,
     /// These images are loaded but have no key assigned to yet.
     images_pending_keys: VecDeque<PendingKey>,
+    /// A set of `LoadKey` and image size pairs which have been evicted
+    /// but are either being rasterized or are in images_pending_key
+    evicted_images: HashSet<(LoadKey, DeviceIntSize)>,
 }
 
 impl KeyCache {
@@ -434,6 +437,7 @@ impl KeyCache {
         KeyCache {
             cache: KeyCacheState::Ready(Vec::new()),
             images_pending_keys: VecDeque::new(),
+            evicted_images: HashSet::new(),
         }
     }
 }
@@ -494,6 +498,18 @@ impl ImageCacheStore {
     /// If a key is available the image will be immediately loaded, otherwise it will load then the next batch of
     /// keys is received. Only call this if the image does not have a `LoadKey` yet.
     fn load_image_with_keycache(&mut self, pending_image: PendingKey) {
+        if let PendingKey::Svg((pending_id, ref _raster_image, requested_size)) = pending_image {
+            if self
+                .key_cache
+                .evicted_images
+                .contains(&(pending_id, requested_size))
+            {
+                self.key_cache
+                    .evicted_images
+                    .remove(&(pending_id, requested_size));
+                return;
+            }
+        };
         match self.key_cache.cache {
             KeyCacheState::PendingBatch => {
                 self.key_cache.images_pending_keys.push_back(pending_image);
@@ -508,6 +524,16 @@ impl ImageCacheStore {
                 },
             },
         }
+    }
+
+    fn evict_image_from_keycache(
+        &mut self,
+        image_id: &PendingImageId,
+        requested_size: &DeviceIntSize,
+    ) {
+        self.key_cache
+            .evicted_images
+            .insert((image_id.clone(), requested_size.clone()));
     }
 
     fn fetch_more_image_keys(&mut self) {
@@ -1026,12 +1052,23 @@ impl ImageCache for ImageCacheImpl {
     fn evict_rasterized_image(&self, svg_id: &str) {
         let mut store = self.store.lock();
         if let Some(mapped_image_id) = self.svg_id_image_id_map.lock().get(svg_id) {
+            store.pending_loads.remove(mapped_image_id);
             store.vector_images.remove(mapped_image_id);
             if let Some(requested_sizes) = self.image_id_size_map.lock().get(mapped_image_id) {
                 for requested_size in requested_sizes.iter() {
-                    store
+                    // If there was an entry in self.image_id_size_map for a size of image
+                    // yet there is no corresponding rasterized_vector_image result or there is no,
+                    // then the vector image is either being rasterized or is in
+                    // store.key_cache.pending_image_keys. Either way, we need to notify the
+                    // KeyCache that it was evicted.
+                    if let Some(entry) = store
                         .rasterized_vector_images
-                        .remove(&(*mapped_image_id, *requested_size));
+                        .remove(&(*mapped_image_id, *requested_size))
+                    {
+                        if entry.result.is_none() {
+                            store.evict_image_from_keycache(mapped_image_id, requested_size)
+                        }
+                    }
                 }
             }
             self.image_id_size_map.lock().remove(mapped_image_id);

@@ -57,6 +57,7 @@ impl SVGSVGElement {
         }
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -256,6 +257,9 @@ impl VirtualMethods for SVGSVGElement {
             s.unbind_from_tree(context, can_gc);
         }
         let owner_window = self.owner_window();
+        self.owner_window()
+            .image_cache()
+            .evict_rasterized_image(&self.uuid);
         let data_url = self.cached_serialized_data_url.borrow().clone();
         if let Some(Ok(url)) = data_url {
             owner_window.layout_mut().remove_cached_image(&url);
@@ -266,8 +270,5 @@ impl VirtualMethods for SVGSVGElement {
             );
         }
         self.invalidate_cached_serialized_subtree();
-        self.owner_window()
-            .image_cache()
-            .evict_rasterized_image(&self.uuid);
     }
 }
