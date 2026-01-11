@@ -61,6 +61,10 @@ impl ImmutableOrigin {
         !other.has_domain() && self == other.immutable()
     }
 
+    pub fn same_origin_domain_snapshot(&self, other: &OriginSnapshot) -> bool {
+        !other.has_domain() && self == other.immutable()
+    }
+
     /// Creates a new opaque origin that is only equal to itself.
     pub fn new_opaque() -> ImmutableOrigin {
         ImmutableOrigin::Opaque(OpaqueOrigin::Opaque(Uuid::new_v4()))
@@ -199,6 +203,10 @@ pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
 malloc_size_of_is_0!(MutableOrigin);
 
 impl MutableOrigin {
+    pub fn from_snapshot(snapshot: OriginSnapshot) -> MutableOrigin {
+        MutableOrigin(Rc::new((snapshot.0, RefCell::new(snapshot.1))))
+    }
+
     pub fn snapshot(&self) -> OriginSnapshot {
         OriginSnapshot(self.0.0.clone(), self.0.1.borrow().clone())
     }

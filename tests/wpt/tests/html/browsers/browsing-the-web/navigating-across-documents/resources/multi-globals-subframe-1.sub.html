@@ -5,6 +5,7 @@
 <script>
 "use strict";
 document.domain = "{{hosts[][]}}";
+  console.log("subframe 1 parsed");
 </script>
 
 <iframe src="http://{{hosts[][]}}:{{ports[http][0]}}/html/browsers/browsing-the-web/navigating-across-documents/resources/multi-globals-subframe-2.sub.html"></iframe>

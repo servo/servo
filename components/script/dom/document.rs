@@ -5196,6 +5196,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 7. Set this's origin's domain to the result of parsing the given value.
         self.origin.set_domain(host);
 
+        println!("setting origin of {:?} to {:?}", self.url(), self.origin());
         Ok(())
     }
 

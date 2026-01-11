@@ -15,15 +15,15 @@ document.domain = "{{hosts[][]}}";
 promise_test(async t => {
   const iframe = await insertIframe(t);
   const innerIframe =  iframe.contentDocument.querySelector("iframe");
-
+    console.log("setting src");
   // - incumbentNavigationOrigin = this page's origin, http://{{hosts[][]}}:{{ports[http][0]}}
   // - iframe's current origin is this origin, http://{{hosts[][]}}:{{ports[http][0]}}.
   // javascript:'s security check uses incumbentNavigationOrigin vs. the iframe's current origin
   // so the check will pass and the result will get written.
  innerIframe.src = "javascript:'test'";
-
+    console.log("waiting");
   await waitForLoad(innerIframe, "Failed to load the javascript: URL");
-
+    console.log("finished");
   assert_equals(innerIframe.contentDocument.body.textContent, "test");
 }, "Using iframeEl.src");
 
