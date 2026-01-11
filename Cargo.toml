@@ -128,6 +128,7 @@ nom-rfc8288 = "0.4.0"
 num-bigint-dig = "0.8"
 num-traits = "0.2"
 num_cpus = "1.17.0"
+ocb3 = "0.1.0"
 openxr = "0.20"
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }

@@ -3655,9 +3655,12 @@ impl SupportedAlgorithm {
             (Self::MlDsa(_), Operation::ExportKey) => ParameterType::None,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-registration>
+            (Self::AesOcb, Operation::Encrypt) => ParameterType::AeadParams,
+            (Self::AesOcb, Operation::Decrypt) => ParameterType::AeadParams,
             (Self::AesOcb, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
             (Self::AesOcb, Operation::ImportKey) => ParameterType::None,
             (Self::AesOcb, Operation::ExportKey) => ParameterType::None,
+            (Self::AesOcb, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
 
             // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
             (Self::ChaCha20Poly1305, Operation::Encrypt) => ParameterType::AeadParams,
@@ -4032,6 +4035,9 @@ impl NormalizedAlgorithm {
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::encrypt_aes_gcm(algo, key, plaintext)
             },
+            (ALG_AES_OCB, NormalizedAlgorithm::AeadParams(algo)) => {
+                aes_ocb_operation::encrypt(algo, key, plaintext)
+            },
             (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::AeadParams(algo)) => {
                 chacha20_poly1305_operation::encrypt(algo, key, plaintext)
             },
@@ -4052,6 +4058,9 @@ impl NormalizedAlgorithm {
             },
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
                 aes_operation::decrypt_aes_gcm(algo, key, ciphertext)
+            },
+            (ALG_AES_OCB, NormalizedAlgorithm::AeadParams(algo)) => {
+                aes_ocb_operation::decrypt(algo, key, ciphertext)
             },
             (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::AeadParams(algo)) => {
                 chacha20_poly1305_operation::decrypt(algo, key, ciphertext)
@@ -4476,6 +4485,9 @@ impl NormalizedAlgorithm {
             (ALG_HKDF, NormalizedAlgorithm::Algorithm(_algo)) => hkdf_operation::get_key_length(),
             (ALG_PBKDF2, NormalizedAlgorithm::Algorithm(_algo)) => {
                 pbkdf2_operation::get_key_length()
+            },
+            (ALG_AES_OCB, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
+                aes_ocb_operation::get_key_length(algo)
             },
             (ALG_CHACHA20_POLY1305, NormalizedAlgorithm::Algorithm(_algo)) => {
                 chacha20_poly1305_operation::get_key_length()

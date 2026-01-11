@@ -16,8 +16,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives, SubtleAesKeyAlgorithm,
-    SubtleAesKeyGenParams,
+    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -324,4 +324,20 @@ pub(crate) fn export_key(
 
     // Step 3. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-get-key-length>
+pub(crate) fn get_key_length(
+    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256, then
+    // throw an OperationError.
+    if !matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256) {
+        return Err(Error::Operation(Some(
+            "The length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256".to_string(),
+        )));
+    }
+
+    // Step 2. Return the length member of normalizedDerivedKeyAlgorithm.
+    Ok(Some(normalized_derived_key_algorithm.length as u32))
 }
