@@ -2095,7 +2095,7 @@ impl Handler {
               .catch((r) => window.webdriverException(r));
             }})();"#,
         );
-        error!("{}", script);
+        debug!("{}", script);
 
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
