@@ -588,7 +588,7 @@ pub async fn main_fetch(
         },
     };
 
-    // Step 13.
+    // Step 13. If recursive is true, then return response.
     if recursive_flag {
         return response;
     }
@@ -596,7 +596,7 @@ pub async fn main_fetch(
     // reborrow request to avoid double mutable borrow
     let request = &mut fetch_params.request;
 
-    // Step 14.
+    // Step 14. If response is not a network error and response is not a filtered response, then:
     let mut response = if !response.is_network_error() && response.internal_response.is_none() {
         // Substep 1.
         if request.response_tainting == ResponseTainting::CorsTainting {
@@ -675,6 +675,9 @@ pub async fn main_fetch(
             internal_response.url_list.clone_from(&request.url_list)
         }
 
+        // Step 17. Set internalResponse’s redirect taint to request’s redirect-taint.
+        internal_response.redirect_taint = request.redirect_taint_for_request();
+
         // Step 19. If response is not a network error and any of the following returns blocked
         // * should internalResponse to request be blocked as mixed content
         // * should internalResponse to request be blocked by Content Security Policy
@@ -745,7 +748,7 @@ pub async fn main_fetch(
         response
     };
 
-    // Step 19.
+    // Step 19. If response is not a network error and any of the following returns blocked
     let mut response_loaded = false;
     let mut response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
         // Step 19.1.
