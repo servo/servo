@@ -5,3 +5,7 @@ features:
 - name: contenteditable
   files:
   - contenteditable-insertfrompaste-type-inputevent-data.html
+- name: keyboard-events
+  files:
+  - input-events-exec-command.html
+  - input-events-typing.html

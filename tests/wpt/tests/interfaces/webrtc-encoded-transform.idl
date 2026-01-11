@@ -3,15 +3,16 @@
 // (https://github.com/w3c/webref)
 // Source: WebRTC Encoded Transform (https://w3c.github.io/webrtc-encoded-transform/)
 
-typedef (SFrameTransform or RTCRtpScriptTransform) RTCRtpTransform;
+typedef (SFrameSenderTransform or RTCRtpScriptTransform) RTCRtpSenderTransform;
+typedef (SFrameReceiverTransform or RTCRtpScriptTransform) RTCRtpReceiverTransform;
 
 // New methods for RTCRtpSender and RTCRtpReceiver
 partial interface RTCRtpSender {
-    attribute RTCRtpTransform? transform;
+    attribute RTCRtpSenderTransform? transform;
 };
 
 partial interface RTCRtpReceiver {
-    attribute RTCRtpTransform? transform;
+    attribute RTCRtpReceiverTransform? transform;
 };
 
 // List of supported cipher suites, as defined in [[RFC9605]] section 4.5.
@@ -30,30 +31,42 @@ dictionary SFrameTransformOptions {
 typedef [EnforceRange] unsigned long long SmallCryptoKeyID;
 typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
 
-interface mixin SFrameKeyManagement {
-    Promise<undefined> setEncryptionKey(CryptoKey key, optional CryptoKeyID keyID);
+interface mixin SFrameEncrypterManager {
+    Promise<undefined> setEncryptionKey(CryptoKey key, CryptoKeyID keyId);
+    attribute EventHandler onerror;
+};
+
+interface mixin SFrameDecrypterManager {
+    Promise<undefined> addDecryptionKey(CryptoKey key, CryptoKeyID keyId);
+    Promise<undefined> removeDecryptionKey(CryptoKeyID keyId);
     attribute EventHandler onerror;
 };
 
 [Exposed=Window]
-interface SFrameTransform : EventTarget {
+interface SFrameSenderTransform {
     constructor(optional SFrameTransformOptions options = {});
 };
-SFrameTransform includes SFrameKeyManagement;
+SFrameSenderTransform includes SFrameEncrypterManager;
+
+[Exposed=Window]
+interface SFrameReceiverTransform : EventTarget {
+    constructor(optional SFrameTransformOptions options = {});
+};
+SFrameReceiverTransform includes SFrameDecrypterManager;
 
 [Exposed=(Window,DedicatedWorker)]
 interface SFrameEncrypterStream : EventTarget {
     constructor(optional SFrameTransformOptions options = {});
 };
 SFrameEncrypterStream includes GenericTransformStream;
-SFrameEncrypterStream includes SFrameKeyManagement;
+SFrameEncrypterStream includes SFrameEncrypterManager;
 
 [Exposed=(Window,DedicatedWorker)]
 interface SFrameDecrypterStream : EventTarget {
     constructor(optional SFrameTransformOptions options = {});
 };
 SFrameDecrypterStream includes GenericTransformStream;
-SFrameDecrypterStream includes SFrameKeyManagement;
+SFrameDecrypterStream includes SFrameDecrypterManager;
 
 enum SFrameTransformErrorEventType {
     "authentication",
@@ -126,13 +139,9 @@ interface RTCEncodedAudioFrame {
     RTCEncodedAudioFrameMetadata getMetadata();
 };
 
-[Exposed=DedicatedWorker]
-interface RTCTransformEvent : Event {
-    readonly attribute RTCRtpScriptTransformer transformer;
-};
-
-partial interface DedicatedWorkerGlobalScope {
-    attribute EventHandler onrtctransform;
+[Exposed=Window]
+interface RTCRtpScriptTransform {
+    constructor(Worker worker, optional any options, optional sequence<object> transfer);
 };
 
 [Exposed=DedicatedWorker]
@@ -148,9 +157,13 @@ interface RTCRtpScriptTransformer : EventTarget {
     readonly attribute any options;
 };
 
-[Exposed=Window]
-interface RTCRtpScriptTransform {
-    constructor(Worker worker, optional any options, optional sequence<object> transfer);
+[Exposed=DedicatedWorker]
+interface RTCTransformEvent : Event {
+    readonly attribute RTCRtpScriptTransformer transformer;
+};
+
+partial interface DedicatedWorkerGlobalScope {
+    attribute EventHandler onrtctransform;
 };
 
 [Exposed=DedicatedWorker]

@@ -1,0 +1,12 @@
+features:
+- name: box-sizing
+  files:
+  - blocks-026.xht
+  - blocks-027.xht
+  - blocks-028.xht
+  - cross-domain-iframe-paint-order.sub.html
+  - dynamic-percentage-height.html
+- name: width-height
+  files:
+  - '*width*'
+  - '*height*'

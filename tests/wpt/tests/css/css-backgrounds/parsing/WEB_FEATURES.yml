@@ -41,3 +41,6 @@ features:
   - border-color-invalid.html
   - border-color-shorthand.html
   - border-color-valid.html
+- name: box-shadow
+  files:
+  - box-shadow-*

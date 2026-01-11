@@ -16,3 +16,7 @@ features:
   files:
   - scrollIntoView-*
   - scrollintoview.html
+- name: mouse-events
+  files:
+  - mouseEvent-offsetXY-svg.html
+  - mouseEvent.html

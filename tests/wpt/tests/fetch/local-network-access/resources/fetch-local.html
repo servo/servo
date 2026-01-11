@@ -8,7 +8,7 @@
 <script>
 "use strict";
 
-// Set the 'local-network-access' permission then attempt to fetch a resource
+// Set the 'local-network' permission then attempt to fetch a resource
 // in the local address space.
 //
 // By default, 'local-network-access' permission is set to 'granted'. This can
@@ -27,7 +27,7 @@ Promise.resolve().then(async () => {
   }
 
   test_driver.set_test_context(opener);
-  await test_driver.set_permission({ name: 'local-network-access' }, permission_value);
+  await test_driver.set_permission({ name: 'local-network' }, permission_value);
 
   const target = {
     server: Server.HTTPS_LOCAL,

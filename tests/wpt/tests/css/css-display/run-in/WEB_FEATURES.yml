@@ -2,3 +2,6 @@ features:
 - name: text-align
   files:
   - text-align-applies-to-004.xht
+- name: line-height
+  files:
+  - line-height-applies-to-011.xht

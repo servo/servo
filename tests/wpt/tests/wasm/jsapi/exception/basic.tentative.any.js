@@ -7,6 +7,11 @@ function assert_throws_wasm(fn, message) {
     assert_not_reached(`expected to throw with ${message}`);
   } catch (e) {
     assert_true(e instanceof WebAssembly.Exception, `Error should be a WebAssembly.Exception with ${message}`);
+    // According to the spec discussion, the current `WebAssembly.Exception` does not have `[[ErrorData]]` semantically.
+    // - https://github.com/WebAssembly/spec/issues/1914
+    // - https://webassembly.github.io/spec/js-api/#exceptions
+    // - https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-properties-of-error-instances
+    assert_false(Error.isError(e), `Error.isError(WebAssembly.Exception) should be false due to lacking [[ErrorData]]`);
   }
 }
 

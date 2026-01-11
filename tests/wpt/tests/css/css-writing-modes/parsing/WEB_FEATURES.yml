@@ -1,4 +1,11 @@
 features:
+- name: layout-direction-override
+  files:
+  - direction-*
+  - unicode-bidi-*
 - name: text-combine-upright
   files:
-  - "text-combine-upright-*"
+  - text-combine-upright-*
+- name: writing-mode
+  files:
+  - writing-mode-*

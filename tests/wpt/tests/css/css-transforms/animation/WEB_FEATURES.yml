@@ -10,3 +10,13 @@ features:
   files:
   - backface-visibility-*
   - perspective-*
+- name: transforms2d
+  files:
+  - "*"
+  - "!rotate-animation-on-svg.html"
+  - "!rotate-animation-with-will-change-transform-001.html"
+  - "!scale-and-rotate-both-specified-on-animation-keyframes.html"
+  - "!scale-animation-on-svg.html"
+  - "!translate-animation-on-svg.html"
+  - "!backface-visibility-*"
+  - "!perspective-*"

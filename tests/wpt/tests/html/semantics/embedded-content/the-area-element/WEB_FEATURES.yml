@@ -1,4 +1,10 @@
 features:
-  - name: download
-    files:
-      - 'area-download-click.html'
+- name: image-maps
+  files:
+  - '*'
+  # Keep exclusions synced with mappings below
+  - '!area-download-click.html'
+- name: download
+  files:
+  # Keep in sync with `image-maps` mapping
+  - 'area-download-click.html'

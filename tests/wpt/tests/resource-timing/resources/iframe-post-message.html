@@ -1,0 +1,9 @@
+<!doctype html>
+<html>
+  <script>
+    window.addEventListener('message', e => {
+      const port = e.ports?.[0];
+      port.postMessage("hello from iframe");
+    });
+  </script>
+</html>

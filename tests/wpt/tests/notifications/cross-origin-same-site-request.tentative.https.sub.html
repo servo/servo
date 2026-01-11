@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notifications in cross origin iframes</title>
+<link rel="help" href="https://github.com/whatwg/notifications/issues/177">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+// The syntax below will give us a same-site cross-origin URL.
+// See: https://web-platform-tests.org/writing-tests/server-features.html
+const sameSiteIframe =
+  'https://{{hosts[][www1]}}:{{ports[https][0]}}/notifications/resources/cross-origin-nested-child.sub.html';
+let promise;
+
+// Firefox and Chrome deny notification permission in a same-site cross-origin
+// iframe even if the permission is granted for origin of the iframe.
+
+// Set up the listeners and then create a same-site iframe.
+promise_setup(async () => {
+  await trySettingPermission("granted");
+
+  promise = new Promise(r => window.addEventListener("message", ev => {
+    if (ev.data.sender === "childRequest") {
+      r(ev.data);
+    }
+  }));
+
+  const iframe = document.createElement("iframe");
+  iframe.src = sameSiteIframe;
+  document.body.append(iframe);
+})
+
+promise_test(async t => {
+  const childRequestResult = await promise;
+  assert_equals(childRequestResult.permission, "denied", "should deny the permission request");
+}, "same-site cross-origin iframe");
+</script>

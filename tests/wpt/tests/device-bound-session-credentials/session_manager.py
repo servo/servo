@@ -54,6 +54,7 @@ class SessionManager:
         self.use_empty_response = False
         self.registration_extra_cookies = []
         self.has_custom_query_param = False
+        self.allows_challenges = True
 
     def next_session_id(self):
         return len(self.session_to_key_map)
@@ -169,6 +170,10 @@ class SessionManager:
         if has_custom_query_param is not None:
             self.has_custom_query_param = has_custom_query_param
 
+        allows_challenges = configuration.get("allowsChallenges")
+        if allows_challenges is not None:
+            self.allows_challenges = allows_challenges
+
     def get_should_refresh_end_session(self):
         return self.should_refresh_end_session
 
@@ -276,3 +281,6 @@ class SessionManager:
 
     def get_provider_key(self):
         return self.provider_key
+
+    def get_allows_challenges(self):
+        return self.allows_challenges

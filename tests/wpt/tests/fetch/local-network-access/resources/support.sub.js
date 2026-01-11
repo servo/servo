@@ -206,12 +206,13 @@ const NavigationTestResult = {
 };
 
 async function iframeTest(
-    t, {source, target, expected, permission = 'denied'}) {
+    t, {source, target, expected, permissionName = 'local-network', permission = 'denied'}) {
   const targetUrl =
       resolveUrl('resources/openee.html', sourceResolveOptions(target));
 
   const sourceUrl =
       resolveUrl('resources/iframer.html', sourceResolveOptions(source));
+  sourceUrl.searchParams.set('permission-name', permissionName);
   sourceUrl.searchParams.set('permission', permission);
   sourceUrl.searchParams.set('url', targetUrl);
 

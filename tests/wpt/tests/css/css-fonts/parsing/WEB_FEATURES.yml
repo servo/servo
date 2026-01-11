@@ -1,4 +1,7 @@
 features:
+- name: font-family
+  files:
+  - font-family-*
 - name: font-optical-sizing
   files:
   - font-optical-sizing-*
@@ -14,6 +17,10 @@ features:
 - name: font-size-adjust
   files:
   - font-size-adjust-*
+- name: font-shorthand
+  files:
+  - font-valid.html
+  - font-invalid.html
 - name: font-synthesis
   files:
   - font-synthesis-computed.html

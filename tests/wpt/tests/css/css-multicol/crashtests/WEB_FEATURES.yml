@@ -1,0 +1,46 @@
+features:
+- name: column-fill
+  files:
+  - block-in-inline-*
+  - break-before-multicol-caption.html
+  - chrome-bug-1301281.html
+  - chrome-bug-1303256.html
+  - chrome-bug-1314866.html
+  - forced-break-in-oof-in-column-balancing-nested.html
+  - inline-float-parallel-flow.html
+  - monolithic-oof-in-clipped-container.html
+  - move-linebreak-to-different-column.html
+  - move-newline-pre-text.html
+  - multicol-dynamic-*
+  - multicol-floats-in-ifc.html
+  - multicol-with-oof-in-multicol-with-oof-in-multicol.html
+  - nested-as-balanced-legend.html
+  - nested-floated-multicol-with-tall-margin.html
+  - nested-multicol-*
+  - "!nested-multicol-in-svg-foreignobject.html"
+  - nested-oof-multicol-*
+  - nested-with-fragmented-oof-negative-top-offset.html
+  - nested-with-multicol-table-caption.html
+  - nested-with-oof-inside-fixed-width.html
+  - nested-with-tall-padding-and-oof.html
+  - oof-in-nested-line-float.html
+  - oof-in-oof-multicol-in-relpos-in-oof-in-multicol-in-multicol.html
+  - oof-nested-multicol-inside-oof.html
+  - outline-move-oof-with-inline.html
+  - relayout-fixedpos-in-abspos-in-relpos-in-nested-multicol.html
+  - relayout-nested-with-oof.html
+  - repeated-*
+  - sticky-in-abs-in-sticky.html
+  - table-caption-in-clipped-overflow.html
+  - table-caption-inline-block-remove-child.html
+  - text-box-trim-end-and-widows.html
+  - text-in-inline-interrupted-by-float.html
+  - vertical-rl-column-rules-wide-columns.html
+  - video-container-become-multicol.html
+  - zero-column-height.html
+  - "!*spanner*"
+- name: column-span
+  files:
+  - "*spanner*"
+  - "!body-becomes-spanner-html-becomes-vertical-rl.html"
+  - "!oof-becomes-spanner.html"

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: {column/row}-rule-{edge/interior}-inset shorthands</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#propdef-rule-inset">
+<meta name="assert"
+    content="rule-inset supports the full grammar '<length-percentage> <length-percentage>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+    <script>
+        const rule_properties = {
+            'column-rule-edge-inset': ['column-rule-edge-inset-start', 'column-rule-edge-inset-end'],
+            'row-rule-edge-inset': ['row-rule-edge-inset-start', 'row-rule-edge-inset-end'],
+            'column-rule-interior-inset': ['column-rule-interior-inset-start', 'column-rule-interior-inset-end'],
+            'row-rule-interior-inset': ['row-rule-interior-inset-start', 'row-rule-interior-inset-end']
+        };
+        const testCases = [
+            {
+                input: '0px',
+                expected: {
+                    ruleInsetStart: '0px',
+                    ruleInsetEnd: '0px',
+                }
+            },
+            {
+                input: '10px',
+                expected: {
+                    ruleInsetStart: '10px',
+                    ruleInsetEnd: '10px',
+                }
+            },
+            {
+                input: '50%',
+                expected: {
+                    ruleInsetStart: '50%',
+                    ruleInsetEnd: '50%',
+                }
+            },
+            {
+                input: '10px 20px',
+                expected: {
+                    ruleInsetStart: '10px',
+                    ruleInsetEnd: '20px',
+                }
+            },
+        ];
+
+
+        for (rule_property in rule_properties) {
+            const test_cases = testCases;
+
+            for (const { input, expected } of test_cases) {
+                const [ruleInsetStart, ruleInsetEnd] = rule_properties[rule_property];
+                test_shorthand_value(rule_property, input, {
+                    [ruleInsetStart]: expected.ruleInsetStart,
+                    [ruleInsetEnd]: expected.ruleInsetEnd,
+                });
+            }
+        }
+    </script>
+</body>
+</html>

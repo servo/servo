@@ -1,0 +1,25 @@
+features:
+- name: unset-value
+  files:
+  - highlight-cascade-001.html
+  - highlight-paired-cascade-005.html
+- name: selection
+  files:
+  - cascade-highlight-001.html
+  - cascade-highlight-002.html
+  - cascade-highlight-004.html
+  - cascade-highlight-005.html
+  - highlight-cascade-003.html
+  - highlight-cascade-004.html
+  - highlight-cascade-005.html
+  - highlight-cascade-006.xhtml
+  - highlight-cascade-007.html
+  - highlight-cascade-008.html
+  - highlight-cascade-009.html
+  - highlight-cascade-011.html
+  - highlight-paired-cascade-001.html
+  - highlight-paired-cascade-002.html
+  - highlight-paired-cascade-003.html
+  - highlight-paired-cascade-006.html
+  - highlight-currentcolor-root-implicit-default-001.html
+  - highlight-currentcolor-root-implicit-default-002.html

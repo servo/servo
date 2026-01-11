@@ -88,13 +88,20 @@ class TestFileHandler(TestUsingServer):
     def test_range_invalid(self):
         with self.assertRaises(HTTPError) as cm:
             self.request("/document.txt", headers={"Range":"bytes=11-10"})
-        self.assertEqual(cm.exception.code, 416)
+
+        with cm.exception as exc:
+            # Ensure we read the response
+            exc.read()
+            self.assertEqual(exc.code, 416)
 
         with open(os.path.join(doc_root, "document.txt"), 'rb') as f:
             expected = f.read()
         with self.assertRaises(HTTPError) as cm:
             self.request("/document.txt", headers={"Range":"bytes=%i-%i" % (len(expected), len(expected) + 10)})
-        self.assertEqual(cm.exception.code, 416)
+        with cm.exception as exc:
+            # Ensure we read the response
+            exc.read()
+            self.assertEqual(exc.code, 416)
 
     def test_sub_config(self):
         resp = self.request("/sub.sub.txt")
@@ -136,8 +143,10 @@ class TestFunctionHandler(TestUsingServer):
         with pytest.raises(HTTPError) as cm:
             self.request(route[1])
 
-        assert cm.value.code == 500
-        del cm
+        with cm.value as exc:
+            # Ensure we read the response
+            exc.read()
+            assert exc.code == 500
 
     def test_tuple_2_rv(self):
         @wptserve.handlers.handler
@@ -188,8 +197,10 @@ class TestFunctionHandler(TestUsingServer):
         with pytest.raises(HTTPError) as cm:
             self.request(route[1])
 
-        assert cm.value.code == 500
-        del cm
+        with cm.value as exc:
+            # Ensure we read the response
+            exc.read()
+            assert exc.code == 500
 
     def test_none_rv(self):
         @wptserve.handlers.handler
@@ -290,22 +301,28 @@ class TestPythonHandler(TestUsingServer):
         with pytest.raises(HTTPError) as cm:
             self.request("/no_main.py")
 
-        assert cm.value.code == 500
-        del cm
+        # Ensure we read the response
+        with cm.value as exc:
+            exc.read()
+            assert exc.code == 500
 
     def test_invalid(self):
         with pytest.raises(HTTPError) as cm:
             self.request("/invalid.py")
 
-        assert cm.value.code == 500
-        del cm
+        with cm.value as exc:
+            # Ensure we read the response
+            exc.read()
+            assert exc.code == 500
 
     def test_missing(self):
         with pytest.raises(HTTPError) as cm:
             self.request("/missing.py")
 
-        assert cm.value.code == 404
-        del cm
+        with cm.value as exc:
+            # Ensure we read the response
+            exc.read()
+            assert exc.code == 404
 
 
 class TestDirectoryHandler(TestUsingServer):
@@ -342,8 +359,10 @@ class TestAsIsHandler(TestUsingServer):
         with pytest.raises(HTTPError) as cm:
             self.request("/subdir")
 
-        assert cm.value.code == 500
-        del cm
+        with cm.value as exc:
+            # Ensure we read the response
+            exc.read()
+            assert exc.code == 500
 
 
 class TestH2Handler(TestUsingH2Server):

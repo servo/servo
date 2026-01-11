@@ -1,7 +1,14 @@
 features:
+- name: font-shorthand
+  files:
+  - font-0*
+  - font-1*
 - name: font-size
   files:
   - font-size-*
 - name: font-weight
   files:
   - font-weight-*
+- name: font-family
+  files:
+  - font-family-*

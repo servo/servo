@@ -20,6 +20,13 @@
   select, .after {
     white-space: nowrap;
   }
+
+  /* ::picker-icon will render inline in this test but on a new line in the
+   * reference because the select's inner element is display:block and can't be
+   * changed. */
+  ::picker-icon {
+    display: none;
+  }
 </style>
 
 <div class="container">

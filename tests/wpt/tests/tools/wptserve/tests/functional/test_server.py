@@ -16,8 +16,8 @@ class TestFileHandler(TestUsingServer):
     def test_not_handled(self):
         with self.assertRaises(HTTPError) as cm:
             self.request("/not_existing")
-
-        self.assertEqual(cm.exception.code, 404)
+        with cm.exception as exc:
+            self.assertEqual(exc.code, 404)
 
 
 class TestRewriter(TestUsingServer):
@@ -45,7 +45,8 @@ class TestRequestHandler(TestUsingServer):
         with self.assertRaises(HTTPError) as cm:
             self.request("/test/raises")
 
-        self.assertEqual(cm.exception.code, 500)
+        with cm.exception as exc:
+            self.assertEqual(exc.code, 500)
 
     def test_many_headers(self):
         headers = {"X-Val%d" % i: str(i) for i in range(256)}

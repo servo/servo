@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <style>
+    #target { background: green; }
+  </style>
+</head>
+
+<body>
+  <p>Cross-origin iframe</p>
+  <div id="target"></div>
+
+  <script>
+    function messageHandler(msg) {
+      if (msg.msgName === "setSize") {
+        target.style.width = msg.width;
+        target.style.height = msg.height;
+      }
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        window.top.postMessage({
+          msgName: "event",
+          borderBoxBlockSize: entry.borderBoxSize[0].blockSize,
+          borderBoxInlineSize: entry.borderBoxSize[0].inlineSize
+        }, "*");
+      }
+    });
+
+    window.addEventListener("load", () => {
+      observer.observe(target);
+      window.addEventListener("message", (event) => messageHandler(event.data));
+
+      window.top.postMessage({ "msgName": "loaded" }, "*");
+    }, { once: true });
+  </script>
+</body>
+
+</html>

@@ -15,3 +15,10 @@ features:
 - name: user-agent-sniffing
   files:
   - navigator.any.js
+- name: language
+  files:
+  - get-navigatorlanguage-manual.html
+  - navigatorlanguage.html
+- name: cookie-enabled
+  files:
+  - navigatorcookies-cookieenabled-*

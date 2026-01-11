@@ -1,0 +1,4 @@
+features:
+- name: mouse-events
+  files:
+  - dispatchEvent.click.checkbox.html

@@ -35,3 +35,19 @@ features:
 - name: text-stroke-fill
   files:
   - highlight-styling-003.html
+- name: selection
+  files:
+  - active-selection-*
+  - selection-*
+  - svg-text-selection-*
+  - textpath-selection-011.html
+  - highlight-custom-properties-dynamic-001.html
+  - highlight-painting-001.html
+  - highlight-painting-002.html
+  - highlight-painting-005-crash.html
+  - highlight-styling-001.html
+  - highlight-styling-002.html
+  - highlight-styling-004.html
+  - highlight-styling-005.html
+  - highlight-z-index-001.html
+  - highlight-z-index-002.html

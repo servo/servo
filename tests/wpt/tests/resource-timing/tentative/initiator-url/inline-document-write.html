@@ -17,8 +17,8 @@
     document.write('<link id="css_written" rel="stylesheet" href="../resources/empty_style.css?inline-script-doc-write">');
     document.write('<script id="script_written" src="../resources/empty.js?doc-write"><\/script>');
 
-    const host_info = get_host_info();
-    const expectedInitiatorUrl = host_info["ORIGIN"] +
+    const hostInfo = get_host_info();
+    const expectedInitiatorUrl = hostInfo["ORIGIN"] +
       "/resource-timing/tentative/initiator-url/inline-document-write.html";
 
     const resources = [

@@ -21,7 +21,9 @@ def main(request, response):
 
     test_session_manager = session_manager.find_for_request(request)
 
-    header_items = ["(RS256)",'challenge="login_challenge_value"',f'path="{registration_url}"']
+    header_items = ["(RS256)",f'path="{registration_url}"']
+    if test_session_manager.get_allows_challenges():
+        header_items.append('challenge="login_challenge_value"')
     authorization_value = test_session_manager.get_authorization_value()
     if authorization_value is not None:
         header_items.append(f'authorization="{authorization_value}"')

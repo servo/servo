@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<meta name="timeout" content="long">
+<title>Pointer Events interaction with drag and drop</title>
+<link rel="author" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://w3c.github.io/pointerevents/">
+<link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<div id="testContainer">
+  <div draggable="true" id="target0"></div>
+  <div id="target1"></div>
+</div>
+
+<script>
+let received_events = [];
+
+function reset() {
+  received_events = [];
+  // Use ESC to cancel drag session.
+  const Escape = '\uE00C';
+  return new test_driver.Actions()
+    .keyDown(Escape)
+    .keyUp(Escape)
+    .send();
+}
+
+function performDrag() {
+  return new test_driver.Actions()
+    .addPointer('pointer-drag', 'mouse')
+    .pointerMove(0, 0, { origin: target0 })
+    .pointerDown()
+    .pointerMove(10, 10, { origin: target0 })
+    .pointerMove(0, 0, { origin: target1 })
+    .pause(100)
+    .pointerUp()
+    .send();
+}
+
+function on(t, target, eventName, handler) {
+  target.addEventListener(eventName, handler);
+  t.add_cleanup(() => target.removeEventListener(eventName, handler));
+}
+
+function trackEvents(t, target, eventNames) {
+  eventNames.forEach(name => {
+    on(t, target, name, e => received_events.push(e.type + '@' + target.id));
+  });
+}
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+
+  trackEvents(t, target0, ['pointerdown', 'mousedown', 'dragstart', 'pointercancel']);
+  const pointerCancelPromise = new Promise(resolve => {
+    on(t, target0, 'pointercancel', resolve);
+  });
+
+  await performDrag();
+  await pointerCancelPromise;
+
+  assert_equals(received_events.join(', '),
+    'pointerdown@target0, mousedown@target0, dragstart@target0, pointercancel@target0');
+}, 'Pointercancel should be fired with the expected order when drag operation starts');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+
+  trackEvents(t, target0, ['pointerdown', 'mousedown', 'gotpointercapture', 'dragstart', 'pointercancel', 'lostpointercapture']);
+  on(t, target0, 'pointerdown', e => target0.setPointerCapture(e.pointerId));
+  const lostCapturePromise = new Promise(resolve => {
+    on(t, target0, 'lostpointercapture', resolve);
+  });
+
+  await performDrag();
+  await lostCapturePromise;
+
+  assert_equals(
+    received_events.join(', '),
+    'pointerdown@target0, mousedown@target0, gotpointercapture@target0, dragstart@target0, pointercancel@target0, lostpointercapture@target0');
+}, 'Pointercancel and lostpointercapture should be fired with the expected order when drag operation starts (capture on pointerdown)');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let pointerId = -1;
+
+  trackEvents(t, target0, ['pointerdown', 'mousedown', 'gotpointercapture', 'dragstart', 'pointercancel', 'lostpointercapture']);
+  on(t, target0, 'pointerdown', e => { pointerId = e.pointerId; });
+  on(t, target0, 'mousedown', e => { target0.setPointerCapture(pointerId); });
+  const lostCapturePromise = new Promise(resolve => {
+    on(t, target0, 'lostpointercapture', resolve);
+  });
+
+  await performDrag();
+  await lostCapturePromise;
+
+  assert_equals(received_events.join(', '),
+    'pointerdown@target0, mousedown@target0, gotpointercapture@target0, dragstart@target0, pointercancel@target0, lostpointercapture@target0');
+}, 'Pointercancel and lostpointercapture should be fired with the expected order when drag operation starts (capture on mousedown)');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+
+  trackEvents(t, target0, ['pointerdown', 'mousedown', 'dragstart']);
+  trackEvents(t, target1, ['pointerup']);
+  on(t, target0, 'dragstart', e => e.preventDefault());
+  const pointerUpPromise = new Promise(resolve => {
+    on(t, target1, 'pointerup', resolve);
+  });
+
+  await performDrag();
+  await pointerUpPromise;
+
+  assert_equals(received_events.join(', '),
+    'pointerdown@target0, mousedown@target0, dragstart@target0, pointerup@target1');
+}, 'Pointerevent stream should not get interrupted when drag is prevented.');
+</script>

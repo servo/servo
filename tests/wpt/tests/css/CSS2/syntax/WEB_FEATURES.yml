@@ -61,3 +61,6 @@ features:
   - case-sensitive-005.xht
   - characters-0080-009F-001.xht
   - counters-*
+- name: lang
+  files:
+  - case-sensitive-004.xht

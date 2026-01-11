@@ -1,0 +1,12 @@
+features:
+- name: column-fill
+  files:
+  - column-fill-*
+- name: column-span
+  files:
+  - column-span-*
+- name: column-pseudo
+  files:
+  - column-pseudo-computed.html
+  - column-pseudo-invalid.html
+  - column-pseudo-valid.html

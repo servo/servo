@@ -1,4 +1,7 @@
 features:
+- name: box-shadow
+  files:
+  - box-shadow.html
 - name: speak
   files:
   - speak.html
@@ -29,3 +32,13 @@ features:
 - name: filter
   files:
   - filter.html
+- name: opacity
+  files:
+  - opacity.html
+- name: opacity-svg
+  files:
+  - fill-opacity.html
+  - stroke-opacity.html
+- name: text-overflow
+  files:
+  - text-overflow.html

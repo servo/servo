@@ -127,14 +127,14 @@ components:
       - python3.8-dev
       - python3.8-venv
 
-  tox-python3_13:
+  tox-python3_14:
     env:
-      TOXENV: py313
+      TOXENV: py314
       PY_COLORS: "0"
     install:
-      - python3.13
-      - python3.13-dev
-      - python3.13-venv
+      - python3.14
+      - python3.14-dev
+      - python3.14-venv
   tests-affected:
     options:
       browser:
@@ -588,13 +588,13 @@ tasks:
         run-job:
           - tools_unittest
 
-  - tools/ unittests (Python 3.13):
+  - tools/ unittests (Python 3.14):
       description: >-
-        Unit tests for tools running under Python 3.13, excluding wptrunner
+        Unit tests for tools running under Python 3.14, excluding wptrunner
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_13
+        - tox-python3_14
       command: ./tools/ci/ci_tools_unittest.sh
       env:
         HYPOTHESIS_PROFILE: ci
@@ -624,13 +624,13 @@ tasks:
         run-job:
           - wpt_integration
 
-  - tools/ integration tests (Python 3.13):
+  - tools/ integration tests (Python 3.14):
       description: >-
-        Integration tests for tools running under Python 3.13
+        Integration tests for tools running under Python 3.14
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_13
+        - tox-python3_14
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
@@ -665,13 +665,13 @@ tasks:
         run-job:
           - resources_unittest
 
-  - resources/ tests (Python 3.13):
+  - resources/ tests (Python 3.14):
       description: >-
-        Tests for testharness.js and other files in resources/ under Python 3.13
+        Tests for testharness.js and other files in resources/ under Python 3.14
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_13
+        - tox-python3_14
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools

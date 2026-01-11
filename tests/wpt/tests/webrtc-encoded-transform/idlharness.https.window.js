@@ -1,5 +1,5 @@
-// META: variant=?exclude=(SFrameDecrypterStream|SFrameEncrypterStream|SFrameTransform.*)
-// META: variant=?include=(SFrameDecrypterStream|SFrameEncrypterStream|SFrameTransform.*)
+// META: variant=?exclude=(SFrameDecrypterStream|SFrameEncrypterStream|SFrameSenderTransform|SFrameReceiverTransform|SFrameTransform.*)
+// META: variant=?include=(SFrameDecrypterStream|SFrameEncrypterStream|SFrameSenderTransform|SFrameReceiverTransform|SFrameTransform.*)
 // META: script=/common/subset-tests-by-key.js
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js

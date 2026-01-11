@@ -7,3 +7,10 @@ features:
   files:
   - backface-visibility-*
   - perspective-*
+- name: transforms2d
+  files:
+  - "*"
+  - "!rotate-parsing-computed.html"
+  - "!rotate-parsing-valid.html"
+  - "!backface-visibility-*"
+  - "!perspective-*"

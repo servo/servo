@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<style>
+  #target::after {
+    content: "content";
+    animation: fade-scroll linear;
+    animation-timeline: scroll(inline);
+  }
+
+  #target.off::after {
+    content: none;
+  }
+
+  @keyframes fade-scroll {
+    from { opacity: 1; }
+    to { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+  // This test ensures that removing the content of a pseudo-element whose
+  // parent element is the target of a scroll-timeline animation during style
+  // recalc doesn't crash.
+  // Perform content removal after layout pass to ensure scroll animation is
+  // registered.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      target.className = 'off';
+    });
+  });
+</script>
+</body>
+</html>

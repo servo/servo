@@ -8,3 +8,9 @@ features:
 - name: caret-color
   files:
   - caret-color-*
+- name: text-overflow
+  files:
+  - text-overflow-*
+- name: box-sizing
+  files:
+  - box-sizing-*

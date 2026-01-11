@@ -2,7 +2,7 @@ const effectAllowedList = ["uninitialized", "undefined", "none", "all",
   "copy",
   "move", "link", "copyMove", "copyLink", "linkMove", "dummy"
 ];
-const dropEffectList = [ "none", "copy", "move", "link", "dummy" ];
+const dropEffectList = ["none", "copy", "move", "link", "dummy"];
 
 // Drop callback used for `dropEffect` tests in `dnd/drop/`. This function
 // compares the text content of the drop target with the `dropEffect` and
@@ -28,39 +28,47 @@ function buildDragAndDropDivs() {
 
 function expectedDropEffectForEffectAllowed(chosenDropEffect,
   chosenEffectAllowed) {
+  // If the drop effect is not initialized or initialized to an invalid value,
+  // it will be up to the UA's discretion to decide which drop effect to choose
+  // based on the current effectAllowed.
   if (chosenDropEffect == "dummy") {
     switch (chosenEffectAllowed) {
       case "undefined":
-      case "copyLink":
-      case "copyMove":
       case "uninitialized":
       case "all":
-        return "copy";
+        return ["copy", "move", "link"];
+      case "copyLink":
+        return ["copy", "link"];
       case "linkMove":
-        return "link";
-      case "move":
-        return "move";
+        return ["link", "move"];
+      case "copyMove":
+        return ["copy", "move"];
       default:
-        return chosenEffectAllowed;
+        return [chosenEffectAllowed];
     }
   }
-  return chosenDropEffect;
+  return [chosenDropEffect];
 }
 
 function dropEventShouldBeSent(dropEffect, effectAllowed) {
-  dropEffect = expectedDropEffectForEffectAllowed(dropEffect, effectAllowed);
+  let expectedDropEffects = expectedDropEffectForEffectAllowed(dropEffect,
+    effectAllowed);
+  assert_greater_than_equal(expectedDropEffects.length, 1,
+    "Expected drop effect should not be empty");
   if (effectAllowed === 'dummy' || effectAllowed === 'undefined') {
     effectAllowed = 'uninitialized';
   }
-  if (effectAllowed === 'none' || dropEffect === 'none') {
+  if (effectAllowed === 'none' || expectedDropEffects[0] === 'none') {
     return false;
   }
   if (effectAllowed === 'uninitialized' || effectAllowed === 'all') {
     return true;
   }
   // Matches cases like `copyLink` / `link`.
-  if (effectAllowed.toLowerCase().includes(dropEffect)) {
-    return true;
+  for (let effect of expectedDropEffects) {
+    if (effectAllowed.toLowerCase().includes(effect)) {
+      return true;
+    }
   }
   return false;
 }
@@ -75,17 +83,17 @@ function onDropCallBack(event, chosenDropEffect, chosenEffectAllowed) {
   }
   assert_equals(actualEffectAllowed, expectedEffectAllowed,
     `chosenDropEffect: ${chosenDropEffect}, chosenEffectAllowed: ${chosenEffectAllowed}; failed effectAllowed check:`
-    );
-  let expectedDropEffect = expectedDropEffectForEffectAllowed(
+  );
+  let expectedDropEffects = expectedDropEffectForEffectAllowed(
     chosenDropEffect, actualEffectAllowed);
   // `dragend` events with invalid dropEffect-effectAllowed combinations have a
   // `none` dropEffect.
   if (!dropEventShouldBeSent(chosenDropEffect, chosenEffectAllowed)) {
-    expectedDropEffect = 'none';
+    expectedDropEffects = ['none'];
   }
-  assert_equals(actualDropEffect, expectedDropEffect,
+  assert_in_array(actualDropEffect, expectedDropEffects,
     `chosenDropEffect: ${chosenDropEffect}, chosenEffectAllowed: ${chosenEffectAllowed}; failed dropEffect check:`
-    );
+  );
   return true;
 }
 

@@ -8,7 +8,7 @@
 <script>
 "use strict";
 
-// Set the 'local-network-access' permission then attempt to iframe a resource
+// Set the 'local-network' permission then attempt to iframe a resource
 // in the local address space.
 //
 // By default, 'local-network-access' permission is set to 'granted'. This can
@@ -20,13 +20,17 @@
 //    * prompt
 Promise.resolve().then(async () => {
     const window_url = new URL(window.location.href);
+    let permission_name = 'local-network'
     let permission_value = 'granted';
+    if (window_url.searchParams.has('permission-name')) {
+        permission_name = window_url.searchParams.get('permission-name');
+    }
     if (window_url.searchParams.has('permission')) {
         permission_value = window_url.searchParams.get('permission');
     }
 
     test_driver.set_test_context(opener);
-    await test_driver.set_permission({ name: 'local-network-access' }, permission_value);
+    await test_driver.set_permission({ name: permission_name }, permission_value);
 
     const child = document.createElement('iframe');
     child.src = new URL(window.location).searchParams.get('url');

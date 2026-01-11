@@ -2,6 +2,8 @@ features:
 - name: absolute-positioning
   files:
   - 'position-absolute-*'
+  - '!position-absolute-center-003.html'
+  - '!position-absolute-center-004.html'
 - name: backdrop
   files:
   - backdrop-inherit-computed.html
@@ -14,3 +16,10 @@ features:
 - name: z-index
   files:
   - '*z-index*'
+- name: static-positioning
+  files:
+  - "position-static-*.html"
+- name: box-sizing
+  files:
+  - position-absolute-center-003.html
+  - position-absolute-center-004.html

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listbox selected option should be visible after horizontal scroll</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2007620">
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+#s {
+  box-sizing: content-box;
+  width: 1ch;
+  font: monospace;
+  overflow: scroll;
+  outline: none;
+  border: none;
+  scrollbar-width: none;
+}
+</style>
+<select id="s" size="2">
+  <option selected>AAAAA</option>
+</select>
+<script>
+  s.focus();
+  s.scrollLeft = 100000;
+</script>

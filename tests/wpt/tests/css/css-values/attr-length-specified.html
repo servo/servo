@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() specified length</title>
+<meta name="assert" content="Test attr() specified length">
+<link rel="help" href="https://drafts.csswg.org/css-values/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  --foo: attr(data-foo type(<length>));
+  --bar: attr(data-bar type(<length>));
+  --baz: attr(data-baz em);
+}
+</style>
+
+<div
+  data-foo="3em"
+  data-bar="3EM"
+  data-baz="3"
+/ >
+
+<script>
+  var elem = getComputedStyle(document.querySelector("div"));
+  test(() => {
+    assert_equals(elem.getPropertyValue("--foo"), "3em");
+  }, "type(<length>) lowercase")
+  test(() => {
+    assert_equals(elem.getPropertyValue("--bar"), "3em");
+  }, "type(<length>) uppercase")
+  test(() => {
+    assert_equals(elem.getPropertyValue("--baz"), "3em");
+  }, "Unit (em) number")
+</script>

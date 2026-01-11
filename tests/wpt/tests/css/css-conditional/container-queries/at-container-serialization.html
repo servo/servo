@@ -50,6 +50,8 @@
     ["(  100px >= width >= 10px  )", "(100px >= width >= 10px)"],
     ["(calc(1em + 1px) >= width >= max(10em, 10px))", "(calc(1em + 1px) >= width >= max(10em, 10px))"],
     ["(width),(height) ,--foo ,--bar", "(width), (height), --foo, --bar"],
+    ["  --NAMe   ", "--NAMe"],
+    ["NAMe   (inline-sizE  < 1300px )", "NAMe (inline-size < 1300px)"],
   ];
 
   for (testCase of testCases) {

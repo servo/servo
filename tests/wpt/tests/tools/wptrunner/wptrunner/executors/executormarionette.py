@@ -577,8 +577,8 @@ class MarionetteGenerateTestReportProtocolPart(GenerateTestReportProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
 
-    def generate_test_report(self, config):
-        raise NotImplementedError("generate_test_report not yet implemented")
+    def generate_test_report(self, message):
+        self.marionette.generate_test_report(message)
 
 class MarionetteVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPart):
     def setup(self):

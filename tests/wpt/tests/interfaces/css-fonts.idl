@@ -4,8 +4,8 @@
 // Source: CSS Fonts Module Level 4 (https://drafts.csswg.org/css-fonts-4/)
 
 partial interface CSSRule {
-  const unsigned short FONT_FEATURE_VALUES_RULE = 14;
-};
+    const unsigned short FONT_FEATURE_VALUES_RULE = 14;
+  };
 [Exposed=Window]
 interface CSSFontFeatureValuesRule : CSSRule {
   attribute CSSOMString fontFamily;
@@ -22,13 +22,13 @@ interface CSSFontFeatureValuesRule : CSSRule {
 interface CSSFontFeatureValuesMap {
   maplike<CSSOMString, sequence<unsigned long>>;
   undefined set(CSSOMString featureValueName,
-         (unsigned long or sequence<unsigned long>) values);
+    (unsigned long or sequence<unsigned long>) values);
 };
 
 [Exposed=Window]
-interface CSSFontPaletteValuesRule : CSSRule {
-  readonly attribute CSSOMString name;
-  readonly attribute CSSOMString fontFamily;
-  readonly attribute CSSOMString basePalette;
-  readonly attribute CSSOMString overrideColors;
-};
+  interface CSSFontPaletteValuesRule : CSSRule {
+    readonly attribute CSSOMString name;
+    readonly attribute CSSOMString fontFamily;
+    readonly attribute CSSOMString basePalette;
+    readonly attribute CSSOMString overrideColors;
+  };

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: rule-edge-inset shorthands</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#inset">
+<meta name="assert"
+    content="rule-edge-inset supports the full grammar '<length-percentage> <length-percentage>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+    <script>
+        const rule_properties = {
+            'rule-edge-inset': ['column-rule-edge-inset-start', 'column-rule-edge-inset-end',
+                'row-rule-edge-inset-start', 'row-rule-edge-inset-end']
+        };
+
+        const bidirectionalTestCases = [
+            {
+                input: '0px',
+                expected: {
+                    columnRuleEdgeInsetStart: '0px',
+                    columnRuleEdgeInsetEnd: '0px',
+                    rowRuleEdgeInsetStart: '0px',
+                    rowRuleEdgeInsetEnd: '0px'
+                }
+            },
+            {
+                input: '10px',
+                expected: {
+                    columnRuleEdgeInsetStart: '10px',
+                    columnRuleEdgeInsetEnd: '10px',
+                    rowRuleEdgeInsetStart: '10px',
+                    rowRuleEdgeInsetEnd: '10px'
+                }
+            },
+            {
+                input: '50%',
+                expected: {
+                    columnRuleEdgeInsetStart: '50%',
+                    columnRuleEdgeInsetEnd: '50%',
+                    columnRuleEdgeInsetStart: '50%',
+                    columnRuleEdgeInsetEnd: '50%',
+                    rowRuleEdgeInsetStart: '50%',
+                    rowRuleEdgeInsetEnd: '50%',
+                    rowRuleEdgeInsetStart: '50%',
+                    rowRuleEdgeInsetEnd: '50%',
+                }
+            },
+            {
+                input: '10px 20px',
+                expected: {
+                    columnRuleEdgeInsetStart: '10px',
+                    columnRuleEdgeInsetEnd: '20px',
+                    rowRuleEdgeInsetStart: '10px',
+                    rowRuleEdgeInsetEnd: '20px',
+                }
+            },
+        ];
+
+
+        for (rule_property in rule_properties) {
+            const test_cases = bidirectionalTestCases;
+
+            for (const { input, expected } of test_cases) {
+                const [columnRuleEdgeInsetStart, columnRuleEdgeInsetEnd, rowRuleEdgeInsetStart, rowRuleEdgeInsetEnd] = rule_properties[rule_property];
+
+                test_shorthand_value(rule_property, input, {
+                    [columnRuleEdgeInsetStart]: expected.columnRuleEdgeInsetStart,
+                    [columnRuleEdgeInsetEnd]: expected.columnRuleEdgeInsetEnd,
+                    [rowRuleEdgeInsetStart]: expected.rowRuleEdgeInsetStart,
+                    [rowRuleEdgeInsetEnd]: expected.rowRuleEdgeInsetEnd,
+                });
+            }
+        }
+    </script>
+</body>
+</html>

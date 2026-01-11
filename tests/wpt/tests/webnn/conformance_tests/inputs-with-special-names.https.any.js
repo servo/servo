@@ -24,6 +24,8 @@ const specialNameArray = [
 
   // Escape Sequence
   'hello\n\t\r\b\f\v\'\"\0\\webnn',
+  '\0',
+  '\0startWithNullCharacter',
 
   // Hexadecimal Escape Sequences
   // '\x41'→ 'A'
@@ -72,3 +74,32 @@ specialNameArray.forEach((name) => {
         Float32Array.from([2, 1, 1, 2]));
   }, `abs input with special character name '${name}'`);
 });
+
+promise_test(async () => {
+  const builder = new MLGraphBuilder(mlContext);
+  const inputA = builder.input('input\0a', { dataType: 'float32', shape: [2] });
+  const inputB = builder.input('input\0b', { dataType: 'float32', shape: [2] });
+  const output = builder.add(inputA, inputB);
+
+  const [inputATensor, inputBTensor, outputTensor, mlGraph] = await Promise.all([
+    mlContext.createTensor({ dataType: 'float32', shape: [2], writable: true }),
+    mlContext.createTensor({ dataType: 'float32', shape: [2], writable: true }),
+    mlContext.createTensor({ dataType: 'float32', shape: [2], readable: true }),
+    builder.build({ 'output': output })
+  ]);
+
+  const inputAData = Float32Array.from([1, 1]);
+  const inputBData = Float32Array.from([2, 2]);
+  mlContext.writeTensor(inputATensor, inputAData);
+  mlContext.writeTensor(inputBTensor, inputBData);
+
+  const inputs = { 'input\0a': inputATensor, 'input\0b': inputBTensor };
+  mlContext.dispatch(mlGraph, inputs, { 'output': outputTensor });
+
+  // Wait for graph execution to complete.
+  await mlContext.readTensor(outputTensor);
+
+  assert_array_equals(
+    new Float32Array(await mlContext.readTensor(outputTensor)),
+    Float32Array.from([3, 3]));
+}, `[add] inputs with null character name in the middle`);

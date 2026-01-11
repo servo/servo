@@ -2,3 +2,8 @@ features:
 - name: background-image
   files:
   - root-element-background-image-*
+- name: mix-blend-mode
+  files:
+  - line-with-svg-background.html
+  - root-element-blend-mode.html
+  - text-with-svg-background.html

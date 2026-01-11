@@ -1081,6 +1081,60 @@ const matmulTests = [
         }
       }
     }
+  },
+  {
+    'name': 'matmul float32 2D tensors with K dimension size > 8192',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': new Array(2 * 8193).fill(1.0),
+          'descriptor': {shape: [2, 8193], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': new Array(8193 * 2).fill(1.0),
+          'descriptor': {shape: [8193, 2], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'matmul',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [8193.0, 8193.0, 8193.0, 8193.0],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'matmul float32 3D tensors with K dimension size > 8192',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': new Array(2 * 2 * 8193).fill(1.0),
+          'descriptor': {shape: [2, 2, 8193], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': new Array(2 * 8193 * 2).fill(1.0),
+          'descriptor': {shape: [2, 8193, 2], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'matmul',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            8193.0, 8193.0, 8193.0, 8193.0, 8193.0, 8193.0, 8193.0, 8193.0
+          ],
+          'descriptor': {shape: [2, 2, 2], dataType: 'float32'}
+        }
+      }
+    }
   }
 ];
 

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Nested inert, focusability and dynamic changes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="outer" inert>
+  <div id="inner" inert>
+    <input id="inp" type="text">
+  </div>
+</div>
+<script>
+  test(() => {
+    inp.focus();
+    assert_not_equals(document.activeElement, inp);
+  }, "Input element in nested inerts is not focusable");
+
+  test(() => {
+    outer.inert = false;
+    inp.focus();
+    assert_not_equals(document.activeElement, inp);
+  }, "Input element still not focusable after outer inert removed");
+
+  test(() => {
+    inner.inert = false;
+    inp.focus();
+    assert_equals(document.activeElement, inp);
+  }, "Input element focusable with both inerts removed");
+
+</script>

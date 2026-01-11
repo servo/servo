@@ -7,7 +7,7 @@
   <video id="video"
          src="/media-source/mp4/test-v-128k-320x240-24fps-8kfr.mp4"
          type="video/mp4; codecs=avc1.64000D"
-         controls
+         controls>
   </video>
 </body>
 <script>
@@ -23,15 +23,17 @@ promise_test(async t => {
     canPlay == 'probably',
     `Test needs canPlayType('${type}') == 'probably'; got '${canPlay}'.`);
 
-  video.watcher = new EventWatcher(t, video,
-                                   ['error', 'seeked', 'playing', 'ended']);
+  // We don't include playing here since automated test harnesses may encounter
+  // underflow during testing; which can generate multiple playing events.
+  video.watcher = new EventWatcher(t, video, ['error', 'seeked', 'ended']);
+
   // Shorten test.
   video.currentTime = 1.9;
   await video.watcher.wait_for('seeked');
 
   await Promise.all([
     video.play(),
-    video.watcher.wait_for(['playing','ended']),
+    video.watcher.wait_for(['ended']),
   ]);
 }, 'fragmented-mp4-end');
 </script>

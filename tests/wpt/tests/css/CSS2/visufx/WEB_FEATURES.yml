@@ -12,3 +12,6 @@ features:
   - clipping-016.xht
   - clipping-017.xht
   - shape-spaces-001.xht
+- name: visibility
+  files:
+  - 'visibility-*'

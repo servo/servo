@@ -9,7 +9,7 @@
 </head>
 <body>
   <script>
-    function testValidGridLanes(gridTemplateRowsValue, gridTemplateColumnsValue, gridTemplateAreasValue, gridLanesDirectionValue, gridLanesFillValue, serializedGridLanesValue) {
+    function testValidGridLanes(gridTemplateRowsValue, gridTemplateColumnsValue, gridTemplateAreasValue, gridLanesDirectionValue, serializedGridLanesValue) {
     test(()=>{
       const root = document.documentElement;
     const properties = [
@@ -17,7 +17,6 @@
       ["gridTemplateColumns", gridTemplateColumnsValue],
       ["gridTemplateAreas", gridTemplateAreasValue],
       ["gridLanesDirection", gridLanesDirectionValue],
-      ["gridLanesFill", gridLanesFillValue],
     ];
     for (const [property, value] of properties) {
       root.style[property] = "";
@@ -27,17 +26,16 @@
   }, `grid-template-rows: ${gridTemplateRowsValue},
       grid-template-columns: ${gridTemplateColumnsValue},
       grid-template-areas: ${gridTemplateAreasValue},
-      grid-lanes-direction: ${gridLanesDirectionValue},
-      grid-lanes-fill: ${gridLanesFillValue} should be valid.`);
+      grid-lanes-direction: ${gridLanesDirectionValue} should be valid.`);
 }
 
-  testValidGridLanes("none", "none", "none", "column", "normal", "none column normal");
-  testValidGridLanes("10px", "none", "none", "column", "reverse", "none column reverse");
-  testValidGridLanes("10px 20px", "10% 20%", "none", "row", "normal", "10px 20px row normal");
-  testValidGridLanes("none", "1fr 1fr 3fr", '"a a b"', 'column', 'reverse','"a a b" 1fr 1fr 3fr column reverse');
-  testValidGridLanes("20% 40%", "none", '"b" "a"', 'row', 'normal', '"b a" 20% 40% row normal');
-  testValidGridLanes("none", "fit-content(calc(0.5em + 10px))", "none", "column-reverse", "normal", "fit-content(calc(0.5em + 10px)) column-reverse normal");
-  testValidGridLanes("10% 20% 40%", "none", '"a" "b" "c"', "row-reverse", "normal", '"a b c" 10% 20% 40% row-reverse normal');
+  testValidGridLanes("none", "none", "none", "column", "none column");
+  testValidGridLanes("10px", "none", "none", "column", "none column");
+  testValidGridLanes("10px 20px", "10% 20%", "none", "row", "10px 20px row");
+  testValidGridLanes("none", "1fr 1fr 3fr", '"a a b"', 'column', '"a a b" 1fr 1fr 3fr column');
+  testValidGridLanes("20% 40%", "none", '"b" "a"', 'row', '"b a" 20% 40% row');
+  testValidGridLanes("none", "fit-content(calc(0.5em + 10px))", "none", "column-reverse", "fit-content(calc(0.5em + 10px)) column-reverse");
+  testValidGridLanes("10% 20% 40%", "none", '"a" "b" "c"', "row-reverse", '"a b c" 10% 20% 40% row-reverse');
   </script>
 </body>
 </html>

@@ -86,8 +86,9 @@ sha512: r8eLGRTc7ZznZkFjeVLyo6/FyQdra9qmlYCwKKxm3kfQAswRS9+3HsYk3thLUhcFmmWhK4dX
         self.assertEqual(resp.read().rstrip(), expected.strip())
 
     def test_sub_file_hash_unrecognized(self):
-        with self.assertRaises(urllib.error.HTTPError):
+        with self.assertRaises(urllib.error.HTTPError) as cm:
             self.request("/sub_file_hash_unrecognized.sub.txt")
+        cm.exception.close()
 
     def test_sub_headers(self):
         resp = self.request("/sub_headers.txt", query="pipe=sub", headers={"X-Test": "PASS"})

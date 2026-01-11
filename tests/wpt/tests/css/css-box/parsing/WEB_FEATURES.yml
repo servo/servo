@@ -1,9 +1,19 @@
 features:
-  - name: float-clear
-    files:
-      - 'clear-computed.html'
-      - 'clear-invalid.html'
-      - 'clear-valid.html'
-      - 'float-computed.html'
-      - 'float-invalid.html'
-      - 'float-valid.html'
+- name: float-clear
+  files:
+  - 'clear-computed.html'
+  - 'clear-invalid.html'
+  - 'clear-valid.html'
+  - 'float-computed.html'
+  - 'float-invalid.html'
+  - 'float-valid.html'
+- name: width-height
+  files:
+  - 'width-*'
+  - 'height-*'
+- name: padding
+  files:
+  - 'padding-*'
+- name: visibility
+  files:
+  - 'visibility-*'

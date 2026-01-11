@@ -21,3 +21,40 @@ features:
 - name: change-event
   files:
   - change-to-empty-value.html
+- name: input-hidden
+  files:
+  - hidden*
+- name: input-image
+  files:
+  - image*
+- name: input-button
+  files:
+  - button.html
+  - input-type-button.html
+- name: input-reset
+  files:
+  - reset.html
+- name: input-submit
+  files:
+  - input-submit-remove-jssubmit.html
+  - input-type-change-submit.html
+- name: input-email-tel-url
+  files:
+  - email*
+  - telephone.html
+  - url.html
+- name: input-color
+  files:
+  - color*
+- name: input-range
+  files:
+  - range*
+- name: input-password
+  files:
+  - password*
+- name: search-input-type
+  files:
+  - search_input.html
+- name: mouse-events
+  files:
+  - checkbox-click-events.html

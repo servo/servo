@@ -2,3 +2,10 @@ features:
 - name: wheel-events
   files:
   - wheel-*
+- name: mouse-events
+  files:
+  - click-*
+  - mouseevents-mousemove.htm
+  - mousemove-across.html
+  - mousemove-between.html
+  - mouseover-out.html

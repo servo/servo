@@ -1,0 +1,4 @@
+features:
+- name: focus-events
+  files:
+  - blur-event.window.js

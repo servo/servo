@@ -1,0 +1,4 @@
+features:
+- name: image-maps
+  files:
+  - mouse-cursor-imagemap.html

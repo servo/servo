@@ -1,0 +1,7 @@
+features:
+- name: document-colors
+  files:
+  - document-color-*
+- name: headings
+  files:
+  - heading-obsolete-attributes-01.html

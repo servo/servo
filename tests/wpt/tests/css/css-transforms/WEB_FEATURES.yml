@@ -10,3 +10,11 @@ features:
   - "*3d*"
   - backface-visibility-*
   - perspective-*
+- name: transforms2d
+  files:
+  - "*"
+  - "!*3d*"
+  - "!backface-visibility-*"
+  - "!perspective-*"
+  - "!transform-with-sign-function.html"
+  - "!transform-and-individual-transform-properties-computed-style.html"

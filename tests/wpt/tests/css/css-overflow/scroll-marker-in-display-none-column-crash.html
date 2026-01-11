@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="test-wait">
+  <title>Change ::column pseudo-element to display:none dynamically</title>
+  <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+  <link rel="help" href="https://issues.chromium.org/issues/470512590">
+  <style>
+    body {
+      margin: 0;
+    }
+    #mc {
+      overflow: hidden;
+      scroll-marker-group: before;
+      columns: 1;
+      column-fill: auto;
+      width: 400px;
+      height: 100px;
+    }
+    #mc::scroll-marker-group {
+      display: flex;
+      height: 20px;
+    }
+    #mc::column::scroll-marker {
+      width: 20px;
+      content: "X";
+    }
+    #mc:hover::column {
+      display: none;
+    }
+  </style>
+  <div id="mc">
+    <!-- Create three columns. -->
+    <div style="height:300px;"></div>
+  </div>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script>
+    async function foo() {
+      // Hover the second ::column::scroll-marker.
+      actions_promise = new test_driver.Actions()
+        .pointerMove(30, 10)
+        .send();
+      await actions_promise;
+      document.body.offsetTop;
+      mc.style.width = "401px";
+      document.body.offsetTop;
+      document.documentElement.classList.remove("test-wait");
+    }
+    document.body.offsetTop;
+    foo();
+  </script>
+</html>

@@ -1,4 +1,8 @@
 features:
+- name: object
+  files:
+  - "*"
+  - "!object-setcustomvalidity.html"
 - name: constraint-validation
   files:
   - object-setcustomvalidity.html

@@ -2,3 +2,7 @@ features:
 - name: accesskey
   files:
   - keyboard-accesskey-click-event.html
+- name: mouse-events
+  files:
+  - click-event-manual.htm
+  - dblclick-event-manual.htm

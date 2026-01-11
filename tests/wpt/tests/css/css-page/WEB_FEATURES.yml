@@ -1,4 +1,13 @@
 features:
+- name: page-setup
+  files:
+  - forced-page-breaks-002.xht
+  - page-borders-000.xht
+  - page-box-*
+  - page-left-right-*
+  - page-margin-*
+  - page-rule-*
+  - page-size-*
 - name: page-orientation
   files:
   - page-orientation*

@@ -1,4 +1,10 @@
 features:
+- name: lang-attr
+  files:
+  - lang-attribute*
+  - lang-xmllang-01.html
+  - lang-xyzzy.html
+  - the-lang-attribute-*
 - name: style-attr
   files:
   - style-01.html

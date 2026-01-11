@@ -1,0 +1,4 @@
+features:
+- name: pointer-events-api
+  files:
+  - "*"

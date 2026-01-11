@@ -60,7 +60,6 @@
   border-radius: 0.5em;
   cursor: default;
   text-align: inherit;
-  /* TODO(crbug.com/41483940): Make display match the UA stylesheet. */
   display: inline-flex;
   gap: 0.5em;
   overflow-x: hidden;
