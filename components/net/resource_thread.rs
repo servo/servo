@@ -752,7 +752,6 @@ impl CoreResourceManager {
                         &mut fetch_params,
                         &mut CorsCache::default(),
                         response,
-                        true,
                         &mut sender,
                         &mut None,
                         &context,
