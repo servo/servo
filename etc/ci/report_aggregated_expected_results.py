@@ -189,6 +189,10 @@ def get_pr_number() -> Optional[str]:
     return None
 
 
+def get_commit_sha() -> str:
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
+
+
 def create_github_reports(body: str, tag: str = ""):
     # GitHub will set a special environment variable which points to a file where
     # a job summary can be appended. This is produced in addition to the GitHub
@@ -213,14 +217,12 @@ def create_github_reports(body: str, tag: str = ""):
 
     github_token = os.environ.get("GITHUB_TOKEN")
     github_context = json.loads(os.environ.get("GITHUB_CONTEXT", "{}"))
-    if "sha" not in github_context:
-        return None
     if "repository" not in github_context:
         return None
     repo = github_context["repository"]
     data = {
         "name": tag,
-        "head_sha": github_context["sha"],
+        "head_sha": get_commit_sha(),
         "status": "completed",
         "started_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         "conclusion": conclusion,

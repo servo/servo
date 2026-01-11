@@ -128,7 +128,13 @@ jobs:
           pattern: wpt-filtered-logs-linux-*
           delete-merged: true
       - uses: actions/checkout@v5
-        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
+        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name != 'pull_request_target' }}
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v5
+        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name == 'pull_request_target' }}
+        with:
+          ref: refs/pull/${{ github.event.number }}/head
       - uses: actions/download-artifact@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
