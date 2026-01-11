@@ -88,7 +88,7 @@ use crate::dom::types::ShadowRoot;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
