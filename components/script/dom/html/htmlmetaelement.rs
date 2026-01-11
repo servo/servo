@@ -163,11 +163,11 @@ impl HTMLMetaElement {
             return;
         }
 
-        // 2
+        // Step 2. Let input be the value of the element's content attribute.
         let content = self.Content();
-        // 1
+        // Step 1. If the meta element has no content attribute, or if that attribute's value is the empty string, then return.
         if !content.is_empty() {
-            // 3
+            // Step 3. Run the shared declarative refresh steps with the meta element's node document, input, and the meta element.
             self.owner_document()
                 .shared_declarative_refresh_steps(&content.as_bytes());
         }

@@ -36,11 +36,6 @@ pub(crate) enum NavigationType {
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#dom-location-reload
     ReloadByConstellation,
-
-    /// Reload triggered by a [declarative refresh][1].
-    ///
-    /// [1]: https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
-    DeclarativeRefresh,
 }
 
 #[dom_struct]
@@ -72,8 +67,9 @@ impl Location {
         let navigable = &self.window;
         // Step 2. Let sourceDocument be the incumbent global object's associated Document.
         let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
-        let incumbent_window = incumbent_global.as_window();
-        let source_document = incumbent_window.Document();
+        let load_data = incumbent_global
+            .as_window()
+            .load_data_for_document(url, navigable.pipeline_id());
         // Step 3. If location's relevant Document is not yet completely loaded,
         // and the incumbent global object does not have transient activation, then set historyHandling to "replace".
         //
@@ -84,22 +80,6 @@ impl Location {
             history_handling
         };
         // Step 4. Navigate navigable to url using sourceDocument, with exceptionsEnabled set to true and historyHandling set to historyHandling.
-        let secure_context = if incumbent_window.is_top_level() {
-            None
-        } else {
-            Some(incumbent_global.is_secure_context())
-        };
-        let load_data = LoadData::new(
-            LoadOrigin::Script(incumbent_window.origin().immutable().clone()),
-            url,
-            Some(navigable.pipeline_id()),
-            Referrer::ReferrerUrl(source_document.url()),
-            source_document.get_referrer_policy(),
-            secure_context,
-            Some(source_document.insecure_requests_policy()),
-            source_document.has_trustworthy_ancestor_origin(),
-            source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
-        );
         navigable.load_url(history_handling, false, load_data, can_gc);
     }
 
@@ -123,9 +103,7 @@ impl Location {
         // The active document of the source browsing context used for
         // navigation determines the request's referrer and referrer policy.
         let source_window = match navigation_type {
-            NavigationType::ReloadByScript |
-            NavigationType::ReloadByConstellation |
-            NavigationType::DeclarativeRefresh => {
+            NavigationType::ReloadByScript | NavigationType::ReloadByConstellation => {
                 // > Navigate the browsing context [...] the source browsing context
                 // > set to the browsing context being navigated.
                 DomRoot::from_ref(&*self.window)
@@ -147,9 +125,7 @@ impl Location {
         // > node document of the element that initiated the navigation.
         let navigation_origin_window = match navigation_type {
             NavigationType::Normal | NavigationType::ReloadByScript => incumbent_window(),
-            NavigationType::ReloadByConstellation | NavigationType::DeclarativeRefresh => {
-                DomRoot::from_ref(&*self.window)
-            },
+            NavigationType::ReloadByConstellation => DomRoot::from_ref(&*self.window),
         };
         let (load_origin, creator_pipeline_id) = (
             navigation_origin_window.origin().immutable().clone(),
@@ -159,7 +135,7 @@ impl Location {
         // Is `historyHandling` `reload`?
         let reload_triggered = match navigation_type {
             NavigationType::ReloadByScript | NavigationType::ReloadByConstellation => true,
-            NavigationType::Normal | NavigationType::DeclarativeRefresh => false,
+            NavigationType::Normal => false,
         };
 
         // Initiate navigation
@@ -366,28 +342,33 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-hash>
     fn SetHash(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
-        self.setter_common(
-            |mut copy_url| {
-                // Step 4: Let input be the given value with a single leading "#" removed, if any.
-                // Step 5: Set copyURL's fragment to the empty string.
-                // Step 6: Basic URL parse input, with copyURL as url and fragment state as
-                // state override.
-                let new_fragment = if value.0.starts_with('#') {
-                    Some(&value.0[1..])
-                } else {
-                    Some(value.0.as_str())
-                };
-                // Step 7: If copyURL's fragment is this's url's fragment, then return.
-                if copy_url.fragment() == new_fragment {
-                    Ok(None)
-                } else {
-                    copy_url.as_mut_url().set_fragment(new_fragment);
-
-                    Ok(Some(copy_url))
-                }
-            },
-            can_gc,
-        )
+        // Step 1. If this's relevant Document is null, then return.
+        if self.has_document() {
+            // Step 2. If this's relevant Document's origin is not same origin-domain
+            // with the entry settings object's origin, then throw a "SecurityError" DOMException.
+            // Step 3. Let copyURL be a copy of this's url.
+            let mut copy_url = self.get_url_if_same_origin()?;
+            // Step 4. Let thisURLFragment be copyURL's fragment if it is non-null; otherwise the empty string.
+            let this_url_fragment = copy_url.fragment().map(str::to_owned).unwrap_or_default();
+            // Step 6. Set copyURL's fragment to the empty string.
+            // Step 7. Basic URL parse input, with copyURL as url and fragment state as state override.
+            let input = &value.0;
+            // Note that if the hash is the empty string, we shouldn't then set the fragment to `None`.
+            // That's because the empty string is a valid hash target and should then scroll to the
+            // top of the document. Therefore, we don't use `UrlHelpers::SetHash` here, which would
+            // set it to `None`.
+            copy_url.set_fragment(match input {
+                // Step 5. Let input be the given value with a single leading "#" removed, if any.
+                _ if input.starts_with('#') => Some(&input[1..]),
+                _ => Some(input),
+            });
+            // Step 8. If copyURL's fragment is thisURLFragment, then return.
+            if copy_url.fragment() != Some(&this_url_fragment) {
+                // Step 9. Location-object navigate this to copyURL.
+                self.navigate_a_location(copy_url, NavigationHistoryBehavior::Auto, can_gc);
+            }
+        }
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-host>

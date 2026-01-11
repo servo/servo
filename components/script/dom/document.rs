@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{LazyLock, Mutex};
@@ -69,7 +70,7 @@ use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use stylo_atoms::Atom;
-use url::Host;
+use url::{Host, Position};
 
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
@@ -158,7 +159,7 @@ use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
-use crate::dom::location::{Location, NavigationType};
+use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding};
@@ -233,13 +234,22 @@ pub(crate) struct RefreshRedirectDue {
     pub(crate) window: DomRoot<Window>,
 }
 impl RefreshRedirectDue {
+    /// Step 13 of <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
     pub(crate) fn invoke(self, can_gc: CanGc) {
-        self.window.Location().navigate(
-            self.url.clone(),
-            NavigationHistoryBehavior::Replace,
-            NavigationType::DeclarativeRefresh,
-            can_gc,
-        );
+        // After the refresh has come due (as defined below),
+        // if the user has not canceled the redirect and, if meta is given,
+        // document's active sandboxing flag set does not have the sandboxed
+        // automatic features browsing context flag set,
+        // then navigate document's node navigable to urlRecord using document,
+        // with historyHandling set to "replace".
+        //
+        // TODO: check sandbox
+        // TODO: Check if meta was given
+        let load_data = self
+            .window
+            .load_data_for_document(self.url.clone(), self.window.pipeline_id());
+        self.window
+            .load_url(NavigationHistoryBehavior::Replace, false, load_data, can_gc);
     }
 }
 
@@ -1107,63 +1117,104 @@ impl Document {
         }
     }
 
-    /// Attempt to find a named element in this page's document.
-    /// <https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document>
-    pub(crate) fn find_fragment_node(&self, fragid: &str) -> Option<DomRoot<Element>> {
-        // Step 1 is not handled here; the fragid is already obtained by the calling function
-        // Step 2: Simply use None to indicate the top of the document.
-        // Step 3 & 4
-        percent_decode(fragid.as_bytes())
-            .decode_utf8()
-            .ok()
-            // Step 5
-            .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
-            // Step 6
-            .or_else(|| self.get_anchor_by_name(fragid))
-        // Step 7 & 8
+    /// <https://html.spec.whatwg.org/multipage/#find-a-potential-indicated-element>
+    fn find_a_potential_indicated_element(&self, fragment: &str) -> Option<DomRoot<Element>> {
+        // Step 1. If there is an element in the document tree whose root is
+        // document and that has an ID equal to fragment, then return the first such element in tree order.
+        // Step 3. Return null.
+        self.get_element_by_id(&Atom::from(fragment))
+            // Step 2. If there is an a element in the document tree whose root is
+            // document that has a name attribute whose value is equal to fragment,
+            // then return the first such element in tree order.
+            .or_else(|| self.get_anchor_by_name(fragment))
     }
 
-    /// Scroll to the target element, and when we do not find a target
-    /// and the fragment is empty or "top", scroll to the top.
-    /// <https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier>
-    pub(crate) fn check_and_scroll_fragment(&self, fragment: &str) {
-        let target = self.find_fragment_node(fragment);
+    /// Attempt to find a named element in this page's document.
+    /// <https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document>
+    fn select_indicated_part(&self, fragment: &str) -> Option<DomRoot<Node>> {
+        // Step 1. If document's URL does not equal url with exclude fragments set to true, then return null.
+        //
+        // Already handled by calling function
 
-        // Step 1
-        self.set_target_element(target.as_deref());
+        // Step 2. Let fragment be url's fragment.
+        //
+        // Already handled by calling function
 
-        let point = target
-            .as_ref()
-            .map(|element| {
-                // TODO: This strategy is completely wrong if the element we are scrolling to in
-                // inside other scrollable containers. Ideally this should use an implementation of
-                // `scrollIntoView` when that is available:
-                // See https://github.com/servo/servo/issues/24059.
-                let rect = element.upcast::<Node>().border_box().unwrap_or_default();
-
-                // In order to align with element edges, we snap to unscaled pixel boundaries, since
-                // the paint thread currently does the same for drawing elements. This is important
-                // for pages that require pixel perfect scroll positioning for proper display
-                // (like Acid2).
-                let device_pixel_ratio = self.window.device_pixel_ratio().get();
-                (
-                    rect.origin.x.to_nearest_pixel(device_pixel_ratio),
-                    rect.origin.y.to_nearest_pixel(device_pixel_ratio),
-                )
-            })
-            .or_else(|| {
-                if fragment.is_empty() || fragment.eq_ignore_ascii_case("top") {
-                    // FIXME(stshine): this should be the origin of the stacking context space,
-                    // which may differ under the influence of writing mode.
-                    Some((0.0, 0.0))
-                } else {
-                    None
-                }
-            });
-
-        if let Some((x, y)) = point {
-            self.window.scroll(x, y, ScrollBehavior::Instant)
+        // Step 3. If fragment is the empty string, then return the special value top of the document.
+        if fragment.is_empty() {
+            return Some(DomRoot::from_ref(self.upcast()));
         }
+        // Step 4. Let potentialIndicatedElement be the result of finding a potential indicated element given document and fragment.
+        if let Some(potential_indicated_element) = self.find_a_potential_indicated_element(fragment)
+        {
+            // Step 5. If potentialIndicatedElement is not null, then return potentialIndicatedElement.
+            return Some(DomRoot::upcast(potential_indicated_element));
+        }
+        // Step 6. Let fragmentBytes be the result of percent-decoding fragment.
+        let fragment_bytes = percent_decode(fragment.as_bytes());
+        // Step 7. Let decodedFragment be the result of running UTF-8 decode without BOM on fragmentBytes.
+        let Ok(decoded_fragment) = fragment_bytes.decode_utf8() else {
+            return None;
+        };
+        // Step 8. Set potentialIndicatedElement to the result of finding a potential indicated element given document and decodedFragment.
+        if let Some(potential_indicated_element) =
+            self.find_a_potential_indicated_element(&decoded_fragment)
+        {
+            // Step 9. If potentialIndicatedElement is not null, then return potentialIndicatedElement.
+            return Some(DomRoot::upcast(potential_indicated_element));
+        }
+        // Step 10. If decodedFragment is an ASCII case-insensitive match for the string top, then return the top of the document.
+        if decoded_fragment.eq_ignore_ascii_case("top") {
+            return Some(DomRoot::from_ref(self.upcast()));
+        }
+        // Step 11. Return null.
+        None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier>
+    pub(crate) fn scroll_to_the_fragment(&self, fragment: &str) {
+        // Step 1. If document's indicated part is null, then set document's target element to null.
+        //
+        // > For an HTML document document, its indicated part is the result of
+        // > selecting the indicated part given document and document's URL.
+        let Some(indicated_part) = self.select_indicated_part(fragment) else {
+            self.set_target_element(None);
+            return;
+        };
+        // Step 2. Otherwise, if document's indicated part is top of the document, then:
+        if *indicated_part == *self.upcast() {
+            // Step 2.1. Set document's target element to null.
+            self.set_target_element(None);
+            // Step 2.2. Scroll to the beginning of the document for document. [CSSOMVIEW]
+            //
+            // FIXME(stshine): this should be the origin of the stacking context space,
+            // which may differ under the influence of writing mode.
+            self.window.scroll(0.0, 0.0, ScrollBehavior::Instant);
+            // Step 2.3. Return.
+            return;
+        }
+        // Step 3. Otherwise:
+        // Step 3.2. Let target be document's indicated part.
+        let Some(target) = indicated_part.downcast::<Element>() else {
+            // Step 3.1. Assert: document's indicated part is an element.
+            unreachable!("Indicated part should always be an element");
+        };
+        // Step 3.3. Set document's target element to target.
+        self.set_target_element(Some(target));
+        // Step 3.4. Run the ancestor revealing algorithm on target.
+        // TODO
+        // Step 3.5. Scroll target into view, with behavior set to "auto", block set to "start", and inline set to "nearest". [CSSOMVIEW]
+        target.scroll_into_view_with_options(
+            ScrollBehavior::Auto,
+            ScrollAxisState::new_always_scroll_position(ScrollLogicalPosition::Start),
+            ScrollAxisState::new_always_scroll_position(ScrollLogicalPosition::Nearest),
+            None,
+            None,
+        );
+        // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback target.
+        // TODO
+        // Step 3.7. Move the sequential focus navigation starting point to target.
+        // TODO
     }
 
     fn get_anchor_by_name(&self, name: &str) -> Option<DomRoot<Element>> {
@@ -2032,6 +2083,67 @@ impl Document {
         quota_for_request_origin
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#update-document-for-history-step-application>
+    pub(crate) fn update_document_for_history_step_application(
+        &self,
+        old_url: &ServoUrl,
+        new_url: &ServoUrl,
+    ) {
+        // Step 6. If documentsEntryChanged is true, then:
+        //
+        // It is right now since we already have a document and a new_url
+
+        // Step 6.1. Let oldURL be document's latest entry's URL.
+        // Passed in as argument
+
+        // Step 6.2. Set document's latest entry to entry.
+        // TODO
+        // Step 6.3. Restore the history object state given document and entry.
+        // TODO
+        // Step 6.4. If documentIsNew is false, then:
+        // TODO
+        // Step 6.4.1. Assert: navigationType is not null.
+        // TODO
+        // Step 6.4.2. Update the navigation API entries for a same-document navigation given navigation, entry, and navigationType.
+        // TODO
+        // Step 6.4.3. Fire an event named popstate at document's relevant global object, using PopStateEvent,
+        // with the state attribute initialized to document's history object's state and hasUAVisualTransition
+        // initialized to true if a visual transition, to display a cached rendered state of the latest entry, was done by the user agent.
+        // TODO
+        // Step 6.4.4. Restore persisted state given entry.
+        // TODO
+
+        // Step 6.4.5. If oldURL's fragment is not equal to entry's URL's fragment,
+        // then queue a global task on the DOM manipulation task source given document's relevant global object
+        // to fire an event named hashchange at document's relevant global object, using HashChangeEvent,
+        // with the oldURL attribute initialized to the serialization of oldURL
+        // and the newURL attribute initialized to the serialization of entry's URL.
+        if old_url.as_url()[Position::BeforeFragment..] !=
+            new_url.as_url()[Position::BeforeFragment..]
+        {
+            let window = Trusted::new(self.owner_window().deref());
+            let old_url = old_url.to_string();
+            let new_url = new_url.to_string();
+            self.owner_global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task!(hashchange_event: move || {
+                        let window = window.root();
+                        HashChangeEvent::new(
+                            &window,
+                            atom!("hashchange"),
+                            false,
+                            false,
+                            old_url,
+                            new_url,
+                            CanGc::note(),
+                        )
+                        .upcast::<Event>()
+                        .fire(window.upcast(), CanGc::note());
+                }));
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-end
     // https://html.spec.whatwg.org/multipage/#delay-the-load-event
     pub(crate) fn finish_load(&self, load: LoadType, can_gc: CanGc) {
@@ -2366,7 +2478,7 @@ impl Document {
                 // TODO
 
                 if let Some(fragment) = document.url().fragment() {
-                    document.check_and_scroll_fragment(fragment);
+                    document.scroll_to_the_fragment(fragment);
                 }
             }));
 

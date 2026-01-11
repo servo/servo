@@ -68,6 +68,7 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
     ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
+use net_traits::request::Referrer;
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
 use profile_traits::generic_channel as ProfiledGenericChannel;
@@ -150,7 +151,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fetchlaterresult::FetchLaterResult;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
@@ -3071,9 +3071,77 @@ impl Window {
         }
     }
 
-    /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    ///
-    /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
+    /// <https://html.spec.whatwg.org/multipage/#navigate-fragid>
+    fn navigate_to_fragment(&self, url: &ServoUrl, history_handling: NavigationHistoryBehavior) {
+        let doc = self.Document();
+        // Step 1. Let navigation be navigable's active window's navigation API.
+        // TODO
+        // Step 2. Let destinationNavigationAPIState be navigable's active session history entry's navigation API state.
+        // TODO
+        // Step 3. If navigationAPIState is not null, then set destinationNavigationAPIState to navigationAPIState.
+        // TODO
+
+        // Step 4. Let continue be the result of firing a push/replace/reload navigate event
+        // at navigation with navigationType set to historyHandling, isSameDocument set to true,
+        // userInvolvement set to userInvolvement, sourceElement set to sourceElement,
+        // destinationURL set to url, and navigationAPIState set to destinationNavigationAPIState.
+        // TODO
+        // Step 5. If continue is false, then return.
+        // TODO
+
+        // Step 6. Let historyEntry be a new session history entry, with
+        // Step 7. Let entryToReplace be navigable's active session history entry if historyHandling is "replace", otherwise null.
+        // Step 8. Let history be navigable's active document's history object.
+        // Step 9. Let scriptHistoryIndex be history's index.
+        // Step 10. Let scriptHistoryLength be history's length.
+        // Step 11. If historyHandling is "push", then:
+        // Step 13. Set navigable's active session history entry to historyEntry.
+        self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
+            url.clone(),
+            history_handling,
+        ));
+        // Step 12. Set navigable's active document's URL to url.
+        let old_url = doc.url();
+        doc.set_url(url.clone());
+        // Step 14. Update document for history step application given navigable's active document,
+        // historyEntry, true, scriptHistoryIndex, scriptHistoryLength, and historyHandling.
+        doc.update_document_for_history_step_application(&old_url, url);
+        // Step 15. Scroll to the fragment given navigable's active document.
+        let Some(fragment) = url.fragment() else {
+            unreachable!("Must always have a fragment");
+        };
+        doc.scroll_to_the_fragment(fragment);
+        // Step 16. Let traversable be navigable's traversable navigable.
+        // TODO
+        // Step 17. Append the following session history synchronous navigation steps involving navigable to traversable:
+        // TODO
+    }
+
+    pub(crate) fn load_data_for_document(
+        &self,
+        url: ServoUrl,
+        pipeline_id: PipelineId,
+    ) -> LoadData {
+        let source_document = self.Document();
+        let secure_context = if self.is_top_level() {
+            None
+        } else {
+            Some(self.IsSecureContext())
+        };
+        LoadData::new(
+            LoadOrigin::Script(self.origin().immutable().clone()),
+            url,
+            Some(pipeline_id),
+            Referrer::ReferrerUrl(source_document.url()),
+            source_document.get_referrer_policy(),
+            secure_context,
+            Some(source_document.insecure_requests_policy()),
+            source_document.has_trustworthy_ancestor_origin(),
+            source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
+        )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#navigate>
     pub(crate) fn load_url(
         &self,
         history_handling: NavigationHistoryBehavior,
@@ -3088,65 +3156,6 @@ impl Window {
 
         // TODO: Important re security. See https://github.com/servo/servo/issues/23373
         // Step 5. check that the source browsing-context is "allowed to navigate" this window.
-        if !force_reload &&
-            load_data.url.as_url()[..Position::AfterQuery] ==
-                doc.url().as_url()[..Position::AfterQuery]
-        {
-            // Step 6
-            // TODO: Fragment handling appears to have moved to step 13
-            if let Some(fragment) = load_data.url.fragment() {
-                let webdriver_sender = self.webdriver_load_status_sender.borrow().clone();
-                if let Some(ref sender) = webdriver_sender {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStart);
-                }
-
-                self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
-                    load_data.url.clone(),
-                    history_handling,
-                ));
-                doc.check_and_scroll_fragment(fragment);
-                let this = Trusted::new(self);
-                let old_url = doc.url().into_string();
-                let new_url = load_data.url.clone().into_string();
-
-                // https://html.spec.whatwg.org/multipage/#update-document-for-history-step-application
-                // Step 6.4.5: If oldURL's fragment is not equal to entry's URL's fragment, then queue a global task on the
-                // DOM manipulation task source given document's relevant global object to fire an event named hashchange at
-                // document's relevant global object, using HashChangeEvent, with the oldURL attribute initialized to the
-                // serialization of oldURL and the newURL attribute initialized to the serialization of entry's URL.
-                let old_fragment = doc.url().fragment().map(ToOwned::to_owned);
-                let new_fragment = load_data.url.fragment().map(ToOwned::to_owned);
-
-                if old_fragment != new_fragment {
-                    let webdriver_sender_for_task = webdriver_sender.clone();
-                    let task = task!(hashchange_event: move || {
-                        let this = this.root();
-                        let event = HashChangeEvent::new(
-                            &this,
-                            atom!("hashchange"),
-                            false,
-                            false,
-                            old_url,
-                            new_url,
-                            CanGc::note(),
-                        );
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
-                        if let Some(sender) = webdriver_sender_for_task {
-                            let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                        }
-                    });
-
-                    self.as_global_scope()
-                        .task_manager()
-                        .dom_manipulation_task_source()
-                        .queue(task);
-                } else if let Some(sender) = webdriver_sender {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                }
-                doc.set_url(load_data.url.clone());
-                return;
-            }
-        }
 
         // Step 4 and 5
         let pipeline_id = self.pipeline_id();
@@ -3160,14 +3169,6 @@ impl Window {
         // Step 23. Let unloadPromptCanceled be the result of checking if unloading
         // is canceled for navigable's active document's inclusive descendant navigables.
         if doc.check_if_unloading_is_cancelled(false, can_gc) {
-            let window_proxy = self.window_proxy();
-            if window_proxy.parent().is_some() {
-                // Step 10
-                // If browsingContext is a nested browsing context,
-                // then put it in the delaying load events mode.
-                window_proxy.start_delaying_load_events_mode();
-            }
-
             // Step 12. If historyHandling is "auto", then:
             let history_handling = if history_handling == NavigationHistoryBehavior::Auto {
                 // Step 12.1. If url equals navigable's active document's URL, and
@@ -3200,6 +3201,36 @@ impl Window {
                 } else {
                     history_handling
                 };
+
+            // Step 14. If all of the following are true:
+            // > documentResource is null;
+            // > response is null;
+            if !force_reload
+                // > url equals navigable's active session history entry's URL with exclude fragments set to true; and
+                && load_data.url.as_url()[..Position::AfterQuery] ==
+                    doc.url().as_url()[..Position::AfterQuery]
+                // > url's fragment is non-null,
+                && load_data.url.fragment().is_some()
+            {
+                // Step 14.1. Navigate to a fragment given navigable, url, historyHandling,
+                // userInvolvement, sourceElement, navigationAPIState, and navigationId.
+                let webdriver_sender = self.webdriver_load_status_sender.borrow().clone();
+                if let Some(ref sender) = webdriver_sender {
+                    let _ = sender.send(WebDriverLoadStatus::NavigationStart);
+                }
+                self.navigate_to_fragment(&load_data.url, history_handling);
+                // Step 14.2. Return.
+                if let Some(sender) = webdriver_sender {
+                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
+                }
+                return;
+            }
+
+            // Step 15. If navigable's parent is non-null, then set navigable's is delaying load events to true.
+            let window_proxy = self.window_proxy();
+            if window_proxy.parent().is_some() {
+                window_proxy.start_delaying_load_events_mode();
+            }
 
             if let Some(sender) = self.webdriver_load_status_sender.borrow().as_ref() {
                 let _ = sender.send(WebDriverLoadStatus::NavigationStart);
