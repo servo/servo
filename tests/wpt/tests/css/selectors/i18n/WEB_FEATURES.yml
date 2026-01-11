@@ -1,0 +1,5 @@
+features:
+- name: lang
+  files:
+  - css3-selectors-lang-*
+  - lang-pseudo-class-*

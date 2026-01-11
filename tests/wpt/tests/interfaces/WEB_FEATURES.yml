@@ -1,4 +1,0 @@
-features:
-- name: barcode
-  files:
-  - shape-detection-api.idl

@@ -2,3 +2,19 @@ features:
 - name: change-event
   files:
   - legacy-pre-activation-behavior.window.js
+- name: focus-events
+  files:
+  - no-focus-events-at-clicking-editable-content-in-link.html
+- name: mouse-events
+  files:
+  - Event-dispatch-click.html
+  - Event-dispatch-click.tentative.html
+  - mouse-event-retarget.html
+- name: events
+  files:
+  - '*'
+  - '!legacy-pre-activation-behavior.window.js'
+  - '!no-focus-events-at-clicking-editable-content-in-link.html'
+  - '!Event-dispatch-click.html'
+  - '!Event-dispatch-click.tentative.html'
+  - '!mouse-event-retarget.html'

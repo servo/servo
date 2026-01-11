@@ -1,4 +1,5 @@
 # mypy: ignore-errors
+from urllib.parse import urlsplit
 
 import json
 import os
@@ -9,6 +10,8 @@ import jsone
 import pytest
 import yaml
 from jsonschema import validate
+from referencing import Resource
+from referencing.jsonschema import DRAFT6, SchemaRegistry
 
 from tools.ci.tc import decision
 
@@ -86,13 +89,24 @@ def test_verify_payload():
     """Verify that the decision task produces tasks with a valid payload"""
     from tools.ci.tc.decision import decide
 
-    r = httpx.get("https://community-tc.services.mozilla.com/schemas/queue/v1/create-task-request.json")
-    r.raise_for_status()
-    create_task_schema = r.json()
+    schema_urls = ["https://community-tc.services.mozilla.com/schemas/common/metaschema.json",
+                   "https://community-tc.services.mozilla.com/schemas/queue/v1/task-metadata.json",
+                   "https://community-tc.services.mozilla.com/schemas/queue/v1/task.json",
+                   "https://community-tc.services.mozilla.com/schemas/queue/v1/create-task-request.json",
+                   "https://community-tc.services.mozilla.com/references/schemas/docker-worker/v1/payload.json"]
 
-    r = httpx.get("https://community-tc.services.mozilla.com/references/schemas/docker-worker/v1/payload.json")
-    r.raise_for_status()
-    payload_schema = r.json()
+    schemas = {}
+    for schema_url in schema_urls:
+        name = urlsplit(schema_url).path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        r = httpx.get(schema_url)
+        r.raise_for_status()
+        schemas[name] = (schema_url, r.json())
+
+
+    registry = SchemaRegistry()
+    for url, schema_doc in schemas.values():
+        resource = Resource.from_contents(schema_doc, default_specification=DRAFT6)
+        registry = registry.with_resource(url, resource)
 
     jobs = ["lint",
             "manifest_upload",
@@ -111,8 +125,12 @@ def test_verify_payload():
                 task_id_map = decide(event)
         for name, (task_id, task_data) in task_id_map.items():
             try:
-                validate(instance=task_data, schema=create_task_schema)
-                validate(instance=task_data["payload"], schema=payload_schema)
+                validate(instance=task_data,
+                         schema=schemas["create-task-request"][1],
+                         registry=registry)
+                validate(instance=task_data["payload"],
+                         schema=schemas["payload"][1],
+                         registry=registry)
             except Exception as e:
                 print(f"Validation failed for task '{name}':\n{json.dumps(task_data, indent=2)}")
                 raise e
@@ -177,11 +195,11 @@ def test_verify_payload():
     ("pr_event.json", True, {".taskcluster.yml", ".travis.yml", "tools/ci/start.sh"},
      ['lint',
       'tools/ unittests (Python 3.8)',
-      'tools/ unittests (Python 3.13)',
+      'tools/ unittests (Python 3.14)',
       'tools/ integration tests (Python 3.8)',
-      'tools/ integration tests (Python 3.13)',
+      'tools/ integration tests (Python 3.14)',
       'resources/ tests (Python 3.8)',
-      'resources/ tests (Python 3.13)',
+      'resources/ tests (Python 3.14)',
       'download-firefox-nightly',
       'infrastructure/ tests (firefox)',
       'infrastructure/ tests (chrome)',
@@ -201,7 +219,7 @@ def test_verify_payload():
     ("pr_event_tests_affected.json", True, {"resources/testharness.js"},
      ['lint',
       'resources/ tests (Python 3.8)',
-      'resources/ tests (Python 3.13)',
+      'resources/ tests (Python 3.14)',
       'download-firefox-nightly',
       'infrastructure/ tests (firefox)',
       'infrastructure/ tests (chrome)',

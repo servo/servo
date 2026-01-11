@@ -1,0 +1,16 @@
+features:
+- name: composition-events
+  files:
+  - CompositionEvent.html
+  - compositionstart.*
+- name: focus-events
+  files:
+  - focus*
+- name: mouse-events
+  files:
+  - mouseenter.ctrlKey.html
+  - mouseenter.relatedTarget.html
+  - MouseEvent.button.html
+  - MouseEvent.image.map.area.html
+  - MouseEvent.preventDefault.html
+  - mouseleave.relatedTarget.html

@@ -12,3 +12,6 @@ features:
   files:
   - line-clamp-*
   - webkit-line-clamp-*
+- name: text-overflow
+  files:
+  - text-overflow-*

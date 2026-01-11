@@ -14,9 +14,24 @@ features:
 - name: not
   files:
   - not-*
+- name: nth-child
+  files:
+  - first-child-last-child.html
+  - nth-child-in-shadow-root.html
 - name: nth-child-of
   files:
   - nth-child-of-*
+  - nth-child-when-*
+  - nth-child-whole-subtree.html
+  - nth-child-containing-ancestor.html
+  - negated-nth-child-when-*
+  - nth-last-child-of-*
+  - nth-last-child-when-*
+  - nth-last-child-containing-ancestor.html
+  - negated-nth-last-child-when-*
+- name: nth-of-type
+  files:
+  - 'negated-*-of-type*'
 - name: user-pseudos
   files:
   - user-valid-user-invalid.html
@@ -28,3 +43,14 @@ features:
   - part-dir.html
   - part-lang.html
   - part-pseudo.html
+- name: host
+  files:
+  - host-*
+  - "!host-context-*"
+- name: is
+  files:
+  - is.html
+  - negated-is-*
+- name: where
+  files:
+  - where.html

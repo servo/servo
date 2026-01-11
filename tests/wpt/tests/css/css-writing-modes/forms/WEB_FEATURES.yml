@@ -4,3 +4,9 @@ features:
   - "*vertical*"
   - "*vlr*"
   - "*vrl*"
+- name: writing-mode
+  files:
+  - "*"
+  - "!*vertical*"
+  - "!*vlr*"
+  - "!*vrl*"

@@ -10,21 +10,45 @@ features:
 - name: focus-visible
   files:
   - focus-visible-*
+- name: focus-within
+  files:
+  - focus-within-*
 - name: has
   files:
   - has-*
 - name: read-write-pseudos
   files:
   - selector-read-write-*
+- name: scope-psuedo
+  files:
+  - scope-*
 - name: modal
   files:
   - modal-pseudo-class.html
 - name: not
   files:
   - not-*
+- name: nth-child
+  files:
+  - first-child.html
+  - last-child.html
+  - only-child.html
+  - nth-child-spurious-brace-crash.html
+  - child-indexed-no-parent.html
 - name: nth-child-of
   files:
   - nth-child-of-*
+  - nth-child-and-nth-last-child.html
+  - nth-child-specificity-*
+  - nth-last-child-of-*
+  - nth-last-child-specificity-*
+  - nth-last-child-invalid.html
+- name: nth-of-type
+  files:
+  - first-of-type.html
+  - last-of-type.html
+  - only-of-type.html
+  - nth-of-type-namespace.html
 - name: user-pseudos
   files:
   - user-invalid.html
@@ -38,6 +62,31 @@ features:
   - hover-002.html
   - remove-hovered-element.html
   - focus-display-none-001.html
+- name: root
+  files:
+  - root-siblings.html
 - name: open-pseudo
   files:
   - open-pseudo.html
+- name: heading-selectors
+  files:
+  - heading.html
+- name: host
+  files:
+  - featureless-001.html
+  - featureless-002.html
+  - featureless-003.html
+# TODO: Map the is-where-* tests here and in subdirectories to either or both
+# of is/where, or refactor the tests to not overlap.
+- name: is
+  files:
+  - is-default-ns-*
+  - is-nested.html
+  - is-specificity.html
+  - is-specificity-shadow.html
+- name: where
+  files:
+  - pseudo-where-crash.html
+- name: selection
+  files:
+  - selection-image-001.html

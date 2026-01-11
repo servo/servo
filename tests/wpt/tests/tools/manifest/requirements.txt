@@ -1,1 +1,2 @@
-zstandard==0.23.0
+zstandard==0.23.0; python_version < '3.9'
+zstandard==0.25.0; python_version >= '3.9'

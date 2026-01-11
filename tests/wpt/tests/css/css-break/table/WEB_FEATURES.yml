@@ -1,0 +1,20 @@
+features:
+- name: column-breaks
+  files:
+  - bottom-padding-repeated-header-crash.html
+  - break-after-table-cell*
+  - break-avoidance-*
+  - break-before-expansion-*
+  - break-before-repeated-footer-instead-of-border-crash.html
+  - break-before-table-cell*
+  - inside-flex-001.html
+  - table-border-006.html
+  - table-cell-expansion-001.html
+  - table-cell-expansion-003.html
+  - table-cell-expansion-004.html
+  - table-cell-expansion-005.html
+  - table-cell-expansion-007.html
+  - table-cell-expansion-008.html
+  - table-cell-expansion-009.html
+  - table-cell-expansion-010.html
+  - zero-height-repeated-footer-crash.html

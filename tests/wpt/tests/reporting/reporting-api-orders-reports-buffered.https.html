@@ -1,0 +1,84 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>
+    Reporting API: buffered observer preserves ordering across report types
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<body>
+<script>
+promise_test(async t => {
+  assert_true("ReportingObserver" in self);
+
+  function generateTest(i) {
+    test_driver.generate_test_report(`Test report ${i}`);
+  }
+
+  function generateDeprecation(i) {
+    let img = document.createElement("img");
+
+    img.src = `/some/bunk/file${i}.png`;
+    document.body.appendChild(img);
+  }
+
+  let nonBufferedReports = [];
+  const observeTwoReports = async () => {
+    let { promise, resolve } = Promise.withResolvers();
+    let count = 0;
+    let reportingObserver = new ReportingObserver(reports => {
+      count += reports.length;
+      nonBufferedReports.push(...reports);
+      if (count >= 2) {
+        resolve();
+      }
+    });
+
+    reportingObserver.observe();
+    return promise.finally(() => reportingObserver.disconnect());
+  }
+
+  // Generate interleaved reports
+  for (let i = 0; i < 25; i++) {
+    generateTest(i);
+    generateDeprecation(i);
+    await observeTwoReports();
+  }
+
+  const collected = [];
+  const { promise: collectedAll, resolve } = Promise.withResolvers();
+
+  const observer = new ReportingObserver(
+    reports => {
+      collected.push(...reports);
+      if (collected.length == nonBufferedReports.length) {
+        resolve();
+      }
+    },
+    { buffered: true }
+  );
+
+  observer.observe();
+
+  await collectedAll;
+  observer.disconnect();
+
+  assert_greater_than(
+    collected.length,
+    0,
+    "Some reports must be delivered"
+  );
+
+  // Verify relative ordering by type
+  const observedTypes = collected.map(r => r.type);
+
+  assert_array_equals(observedTypes, nonBufferedReports.map(r => r.type));
+}, "Buffered ReportingObserver preserves report generation order");
+</script>
+</body>
+</html>

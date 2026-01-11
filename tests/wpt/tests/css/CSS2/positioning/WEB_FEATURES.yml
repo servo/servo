@@ -4,3 +4,25 @@ features:
   - 'position-fixed-*.xht'
   - position-004.xht
   - position-006.xht
+- name: physical-properties
+  files:
+  - 'top-*'
+  - '!top-applies-to*'
+  - '!top-offset*'
+  - 'right-*'
+  - '!right-applies-to*'
+  - '!right-offset*'
+  - 'bottom-*'
+  - '!bottom-applies-to*'
+  - '!bottom-offset*'
+  - 'left-*'
+  - '!left-applies-to*'
+  - '!left-offset*'
+- name: width-height
+  files:
+  - '*width*'
+  - '*height*'
+- name: static-positioning
+  files:
+  - position-001.xht
+  - "position-static-*.xht"

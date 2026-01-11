@@ -66,7 +66,7 @@ class SlowLock(BaseManager):
 
 
 @pytest.mark.xfail(sys.platform == "win32" or
-                   multiprocessing.get_start_method() == "spawn",
+                   multiprocessing.get_start_method() != "fork",
                    reason="https://github.com/web-platform-tests/wpt/issues/16938")
 def test_delayed_lock(add_cleanup):
     """Ensure that delays in proxied Lock retrieval do not interfere with
@@ -114,7 +114,7 @@ class SlowDict(BaseManager):
 
 
 @pytest.mark.xfail(sys.platform == "win32" or
-                   multiprocessing.get_start_method() == "spawn",
+                   multiprocessing.get_start_method() != "fork",
                    reason="https://github.com/web-platform-tests/wpt/issues/16938")
 def test_delayed_dict(add_cleanup):
     """Ensure that delays in proxied `dict` retrieval do not interfere with

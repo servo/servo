@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Anchor Positioning: default anchor-center alignment is safe</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-area-alignment">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#auto-safety">
+<link rel="match" href="position-area-justify-self-safe-001-ref.html">
+
+<style>
+.container {
+  width: 100px;
+  height: 50px;
+  border: 1px solid gray;
+  margin: 10px;
+  position: relative;
+}
+
+.anchor {
+  width: 10px;
+  height: 10px;
+  top: 30px;
+  position: absolute;
+  background: blue;
+  anchor-name: --a;
+}
+
+.anchored, .anchored2 {
+  width: 50px;
+  height: 20px;
+  position: absolute;
+  position-area: top;
+  position-anchor: --a;
+  background: green;
+}
+
+.anchored2 {
+  margin: 0 10px;
+}
+</style>
+
+<div class=container>
+  <div class=anchor style="left: 10px"></div>
+  <div class=anchored></div>
+</div>
+
+<div class=container>
+  <div class=anchor style="left: 45px"></div>
+  <div class=anchored></div>
+</div>
+
+<div class=container>
+  <div class=anchor style="left: 80px"></div>
+  <div class=anchored></div>
+</div>
+
+<div class=container>
+  <div class=anchor style="left: 5px"></div>
+  <div class=anchored2></div>
+</div>
+
+<div class=container>
+  <div class=anchor style="left: 85px"></div>
+  <div class=anchored2></div>
+</div>

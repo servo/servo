@@ -15,9 +15,17 @@ features:
   files:
   - c534-bgre-*
   - c534-bgreps-*
+- name: width-height
+  files:
+  - '*width*'
+  - '*height*'
+  - '*blockw*'
 - name: word-spacing
   files:
-    - c541-word-sp*
+  - c541-word-sp*
+- name: letter-spacing
+  files:
+  - c542-letter-sp-*
 - name: font-size
   files:
   - c526-font-sz-*

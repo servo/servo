@@ -1,9 +1,12 @@
 <!doctype html>
 <html>
     <head>
-        <meta charset="utf-8">
+        <meta charset="utf-8"/>
+        <meta name="timeout" content="long"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="RTCPeerConnection-helper.js"></script>
+        <script src="RTCDataChannel-worker-shim.js"></script>
     </head>
     <body>
         <script>
@@ -148,17 +151,421 @@ promise_test(async (test) => {
             secondConnection.ondatachannel = (event) => {
                 remoteChannel = event.channel;
                 test.step_timeout(() => {
-                    try {
+                    assert_throws_dom('DataCloneError', () => {
                         worker.postMessage({channel: remoteChannel}, [remoteChannel]);
-                        reject("postMessage ok");
-                    } catch(e) {
-                        resolve();
-                    }
+                    });
+                    resolve();
                 }, 0);
             };
         });
     });
 }, "Failing to transfer a data channel");
+
+promise_test(async (test) => {
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dc = pc.createDataChannel('foo');
+  const dcShim = new WorkerBackedDataChannel();
+
+  await promise_rejects_js(test, Error, dcShim.send('foo'),
+    'Sending before init should throw');
+  await promise_rejects_js(test, Error, dcShim.close(),
+    'Closing before init should throw');
+  await promise_rejects_js(test, Error, dcShim.updateState(),
+    'updateState before init should throw');
+
+  assert_throws_js(TypeError, () => {
+    let foo = dcShim.ordered;
+  }, 'Using getter before init should throw');
+  assert_throws_js(TypeError, () => {
+    dcShim.binaryType = 'blob';
+  }, 'Using setter before init should throw');
+}, 'Sanity check worker shim: never initted');
+
+promise_test(async (test) => {
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dc = pc.createDataChannel('foo');
+  const dcShim = new WorkerBackedDataChannel();
+  await pc.setLocalDescription();
+  await promise_rejects_dom(test, 'DataCloneError', dcShim.init(dc));
+}, 'Sanity check worker shim: RTCDataChannel not transferable');
+
+async function transferAndShim(dc, worker) {
+  const shim = new WorkerBackedDataChannel(worker);
+  await shim.init(dc);
+  return shim;
+}
+
+promise_test(async (test) => {
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dcShim1 = await transferAndShim(pc.createDataChannel('dupe'));
+  const dcShim2 = new WorkerBackedDataChannel(dcShim1.worker);
+  const dc2 = pc.createDataChannel('dupe');
+  await promise_rejects_js(test, Error, dcShim2.init(dc2),
+      'Worker init throws on duplicate label');
+}, 'Sanity check worker shim: Worker code throws on duplicate label');
+
+promise_test(async (test) => {
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dcShim = await transferAndShim(pc.createDataChannel('foo'));
+  await promise_rejects_js(test, Error, dcShim.send('oops'),
+    'RTCDataChannel errors propagate');
+}, 'Sanity check worker shim: RTCDataChannel can throw');
+
+promise_test(async (test) => {
+  // Use worker shim in RTCDataChannel-worker-shim.js
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dcShim = await transferAndShim(pc.createDataChannel('foo'));
+  assert_equals(dcShim.label, 'foo');
+  assert_equals(dcShim.ordered, true);
+  assert_equals(dcShim.maxPacketLifeTime, null);
+  assert_equals(dcShim.maxRetransmits, null);
+  assert_equals(dcShim.protocol, '');
+  assert_equals(dcShim.negotiated, false);
+  assert_equals(dcShim.id, null);
+  assert_equals(dcShim.readyState, 'connecting');
+  assert_equals(dcShim.bufferedAmount, 0);
+  assert_equals(dcShim.bufferedAmountLowThreshold, 0);
+  assert_equals(dcShim.binaryType, 'arraybuffer');
+}, 'Check that transferred RTCDataChannel has correct initial (default) attributes');
+
+promise_test(async (test) => {
+  // Use worker shim in RTCDataChannel-worker-shim.js
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dcShim = await transferAndShim(pc.createDataChannel('foo', {
+    ordered: false,
+    maxPacketLifeTime: 500,
+    protocol: 'bar',
+    negotiated: true,
+    id: '17'}));
+
+  assert_equals(dcShim.label, 'foo');
+  assert_equals(dcShim.ordered, false);
+  assert_equals(dcShim.maxPacketLifeTime, 500);
+  assert_equals(dcShim.maxRetransmits, null);
+  assert_equals(dcShim.protocol, 'bar');
+  assert_equals(dcShim.negotiated, true);
+  assert_equals(dcShim.id, 17);
+  assert_equals(dcShim.readyState, 'connecting');
+  assert_equals(dcShim.bufferedAmount, 0);
+  assert_equals(dcShim.bufferedAmountLowThreshold, 0);
+  assert_equals(dcShim.binaryType, 'arraybuffer');
+}, 'Check that transferred RTCDataChannel has correct initial (non-default) attributes');
+
+promise_test(async (test) => {
+  // Use worker shim in RTCDataChannel-worker-shim.js
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dcShim = await transferAndShim(pc.createDataChannel('foo', {
+    ordered: false,
+    maxRetransmits: 5,
+    protocol: 'bar',
+    negotiated: true,
+    id: '17'}));
+
+  assert_equals(dcShim.label, 'foo');
+  assert_equals(dcShim.ordered, false);
+  assert_equals(dcShim.maxPacketLifeTime, null);
+  assert_equals(dcShim.maxRetransmits, 5);
+  assert_equals(dcShim.protocol, 'bar');
+  assert_equals(dcShim.negotiated, true);
+  assert_equals(dcShim.id, 17);
+  assert_equals(dcShim.readyState, 'connecting');
+  assert_equals(dcShim.bufferedAmount, 0);
+  assert_equals(dcShim.bufferedAmountLowThreshold, 0);
+  assert_equals(dcShim.binaryType, 'arraybuffer');
+}, 'Check that transferred RTCDataChannel has correct initial (non-default) attributes (maxRetransmits variant)');
+
+promise_test(async (test) => {
+  // Use worker shim in RTCDataChannel-worker-shim.js
+  const pc = new RTCPeerConnection();
+  test.add_cleanup(() => pc.close());
+  const dcShim = await transferAndShim(pc.createDataChannel('foo'));
+  dcShim.bufferedAmountLowThreshold = 42;
+  dcShim.binaryType = 'blob';
+  await dcShim.updateState();
+  assert_equals(dcShim.bufferedAmountLowThreshold, 42);
+  assert_equals(dcShim.binaryType, 'blob');
+}, 'Check that transferred RTCDataChannel can set bufferedAmountLowThreshold/binaryType');
+
+async function negotiate(offerer, answerer) {
+  offerer.onicecandidate = (e) => answerer.addIceCandidate(e.candidate);
+  answerer.onicecandidate = (e) => offerer.addIceCandidate(e.candidate);
+
+  await offerer.setLocalDescription();
+  await answerer.setRemoteDescription(offerer.localDescription);
+  await answerer.setLocalDescription();
+  await offerer.setRemoteDescription(answerer.localDescription);
+}
+
+async function openChannelPairOffererShimmed() {
+  // Use worker shim in RTCDataChannel-worker-shim.js
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  const offererChannel = offerer.createDataChannel('foo');
+  const shimmedChannel = new WorkerBackedDataChannel();
+  await shimmedChannel.init(offererChannel);
+
+  await negotiate(offerer, answerer);
+
+  const answererChannelEvent = new Promise(r => answerer.ondatachannel = r);
+  const openEvent = new Promise(r => shimmedChannel.onopen = r);
+
+  const answererChannel = (await answererChannelEvent).channel;
+  await openEvent;
+  return {shimmedChannel, nonShimmedChannel: answererChannel, offerer, answerer};
+}
+
+async function openChannelPairAnswererShimmed() {
+  // Use worker shim in RTCDataChannel-worker-shim.js
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  const offererChannel = offerer.createDataChannel('foo');
+
+  await negotiate(offerer, answerer);
+
+  const answererChannelEvent = new Promise(r => answerer.ondatachannel = r);
+  const answererChannel = (await answererChannelEvent).channel;
+  const shimmedChannel = new WorkerBackedDataChannel();
+  await shimmedChannel.init(answererChannel);
+  await new Promise(r => shimmedChannel.onopen = r);
+
+  return {shimmedChannel, nonShimmedChannel: offererChannel, offerer, answerer};
+}
+
+async function openChannelPairWithShim(whichChannelShimmed) {
+  switch(whichChannelShimmed) {
+    case 'offerer':
+      return openChannelPairOffererShimmed();
+    case 'answerer':
+      return openChannelPairAnswererShimmed();
+  }
+}
+
+for (const whichChannelShimmed of ['offerer', 'answerer']) {
+  promise_test(async (test) => {
+    const {shimmedChannel, nonShimmedChannel, offerer, answerer} = await openChannelPairWithShim(whichChannelShimmed);
+    test.add_cleanup(() => offerer.close());
+    test.add_cleanup(() => answerer.close());
+  }, `Check that transferred ${whichChannelShimmed} RTCDataChannel open event works`);
+
+  for (const message of ['hello', '', '世界你好']) {
+    promise_test(async (test) => {
+
+      const {shimmedChannel, nonShimmedChannel, offerer, answerer} = await openChannelPairWithShim(whichChannelShimmed);
+      test.add_cleanup(() => offerer.close());
+      test.add_cleanup(() => answerer.close());
+
+      shimmedChannel.send(message);
+      let bufferedAmountLowEvent;
+      if (message != '') {
+        // This comes from a queued task, so it is possible the message will get
+        // to mainthread first.
+        bufferedAmountLowEvent = new Promise(r => shimmedChannel.onbufferedamountlow = r);
+      }
+
+      const messageEvent1 = await new Promise(r => nonShimmedChannel.onmessage = r);
+      await bufferedAmountLowEvent;
+
+      assert_equals(messageEvent1.data, message);
+
+      nonShimmedChannel.send(message);
+      const messageEvent2 = await new Promise(r => shimmedChannel.onmessage = r);
+      assert_equals(messageEvent2.data, message);
+      assert_equals(messageEvent2.origin, messageEvent1.origin);
+    }, `Check that transferred ${whichChannelShimmed} RTCDataChannel can send and receive string "${message}"`);
+  }
+
+  // ASCII encoded buffer representation of the string
+  const helloBuffer = Uint8Array.of(0x68, 0x65, 0x6c, 0x6c, 0x6f);
+  const emptyBuffer = new Uint8Array();
+  const helloBlob = new Blob([helloBuffer]);
+
+  // UTF-8 encoded buffer representation of the string
+  const unicodeBuffer = Uint8Array.of(
+    0xe4, 0xb8, 0x96, 0xe7, 0x95, 0x8c,
+    0xe4, 0xbd, 0xa0, 0xe5, 0xa5, 0xbd);
+
+  for (const message of [helloBlob, helloBuffer.buffer, helloBuffer]) {
+    promise_test(async (test) => {
+      const {shimmedChannel, nonShimmedChannel, offerer, answerer} = await openChannelPairWithShim(whichChannelShimmed);
+      test.add_cleanup(() => offerer.close());
+      test.add_cleanup(() => answerer.close());
+      shimmedChannel.binaryType = 'blob';
+      nonShimmedChannel.binaryType = 'blob';
+
+      shimmedChannel.send(message);
+      let bufferedAmountLowEvent;
+      if (message != '') {
+        // This comes from a queued task, so it is possible the message will get
+        // to mainthread first.
+        bufferedAmountLowEvent = new Promise(r => shimmedChannel.onbufferedamountlow = r);
+      }
+
+      const messageEvent1 = await new Promise(r => nonShimmedChannel.onmessage = r);
+      await bufferedAmountLowEvent;
+
+      assert_true(messageEvent1.data instanceof Blob);
+      const arrayBuf1 = await messageEvent1.data.arrayBuffer();
+      assert_equals_typed_array(arrayBuf1, helloBuffer.buffer);
+
+      nonShimmedChannel.send(message);
+      const messageEvent2 = await new Promise(r => shimmedChannel.onmessage = r);
+      assert_true(messageEvent2.data instanceof Blob);
+      const arrayBuf2 = await messageEvent2.data.arrayBuffer();
+      assert_equals_typed_array(arrayBuf2, helloBuffer.buffer);
+
+      assert_equals(messageEvent2.origin, messageEvent1.origin);
+    }, `Check that transferred ${whichChannelShimmed} RTCDataChannel can send ${message.constructor.name} that is received as Blob, and vice-versa`);
+  }
+
+  for (const message of [helloBlob, helloBuffer.buffer, helloBuffer]) {
+    promise_test(async (test) => {
+      const {shimmedChannel, nonShimmedChannel, offerer, answerer} = await openChannelPairWithShim(whichChannelShimmed);
+      test.add_cleanup(() => offerer.close());
+      test.add_cleanup(() => answerer.close());
+      shimmedChannel.send(message);
+
+      let bufferedAmountLowEvent;
+      if (message != '') {
+        // This comes from a queued task, so it is possible the message will get
+        // to mainthread first.
+        bufferedAmountLowEvent = new Promise(r => shimmedChannel.onbufferedamountlow = r);
+      }
+
+      const messageEvent1 = await new Promise(r => nonShimmedChannel.onmessage = r);
+      await bufferedAmountLowEvent;
+
+      assert_true(messageEvent1.data instanceof ArrayBuffer);
+      assert_equals_typed_array(messageEvent1.data, helloBuffer.buffer);
+
+      nonShimmedChannel.send(message);
+      const messageEvent2 = await new Promise(r => shimmedChannel.onmessage = r);
+      assert_true(messageEvent2.data instanceof ArrayBuffer);
+      assert_equals_typed_array(messageEvent2.data, helloBuffer.buffer);
+
+      assert_equals(messageEvent2.origin, messageEvent1.origin);
+    }, `Check that transferred ${whichChannelShimmed} RTCDataChannel can send ${message.constructor.name} that is received as ArrayBuffer, and vice-versa`);
+  }
+
+  promise_test(async (test) => {
+    const {shimmedChannel, nonShimmedChannel, offerer, answerer} = await openChannelPairWithShim(whichChannelShimmed);
+    test.add_cleanup(() => offerer.close());
+    test.add_cleanup(() => answerer.close());
+    shimmedChannel.close();
+    await new Promise(r => shimmedChannel.onclose = r);
+  }, `Check that transferred ${whichChannelShimmed} RTCDataChannel onclose fires`);
+
+  promise_test(async (test) => {
+    const {shimmedChannel, nonShimmedChannel, offerer, answerer} = await openChannelPairWithShim(whichChannelShimmed);
+    test.add_cleanup(() => offerer.close());
+    test.add_cleanup(() => answerer.close());
+    nonShimmedChannel.close();
+    await new Promise(r => shimmedChannel.onclosing = r);
+  }, `Check that transferred ${whichChannelShimmed} RTCDataChannel onclosing fires`);
+}
+
+// Calling this will only work if the channel is brand new
+async function maybeWrapChannel(channel, shim) {
+  if (shim) {
+    assert_true(shim instanceof WorkerBackedDataChannel);
+    openEvent = new Promise(r => shim.onopen = r);
+    await shim.init(channel);
+    channel = shim;
+  } else {
+    openEvent = new Promise(r => channel.onopen = r);
+  }
+  await openEvent;
+  return channel;
+}
+
+async function openAnotherChannelPair(pc1, pc2, label, config, workerShim1, workerShim2) {
+  const channelEvent = new Promise(r => {
+    pc2.addEventListener('datachannel', async ({channel}) => {
+      if (channel.label == label) {
+        channel = await maybeWrapChannel(channel, workerShim2);
+        r(channel);
+      }
+    });
+  });
+
+  const [channel1, channel2] = await Promise.all([
+    maybeWrapChannel(pc1.createDataChannel(label, config), workerShim1),
+    channelEvent]);
+
+  for (const channel of [channel1, channel2]) {
+    if (channel instanceof WorkerBackedDataChannel) {
+      await channel.updateState();
+    }
+  }
+
+  return [channel1, channel2];
+}
+
+promise_test(async (test) => {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  test.add_cleanup(() => offerer.close());
+  test.add_cleanup(() => answerer.close());
+
+  // Just to make an m=application section
+  offerer.createDataChannel('foo');
+  await negotiate(offerer, answerer);
+
+  // We're creating every combination of:
+  // {main, dedicated worker, shared worker} <- offerer
+  // {main, dedicated worker, shared worker} <- answerer
+  // {offerer created, answerer created}
+
+  const channelPairPromises = [];
+  const sharedOff = WorkerBackedDataChannel.makeWorker();
+  const sharedAns = WorkerBackedDataChannel.makeWorker();
+
+  function createShim(workerConfig, sharedWorker) {
+    switch (workerConfig) {
+      case "main":
+        return null;
+      case "dedicated":
+        return new WorkerBackedDataChannel();
+      case "shared":
+        return new WorkerBackedDataChannel(sharedWorker);
+    }
+  }
+
+  // Make the rat's nest. There will be 18 channel pairs.
+  for (const offererWorker of ["main", "dedicated", "shared"]) {
+    for (const answererWorker of ["main", "dedicated", "shared"]) {
+      channelPairPromises.push(openAnotherChannelPair(
+        offerer, answerer,
+        `${offererWorker}, ${answererWorker}, offerer creates`, {},
+        createShim(offererWorker, sharedOff),
+        createShim(answererWorker, sharedAns)));
+
+      channelPairPromises.push(openAnotherChannelPair(
+        answerer, offerer,
+        `${offererWorker}, ${answererWorker}, answerer creates`, {},
+        createShim(answererWorker, sharedAns),
+        createShim(offererWorker, sharedOff)));
+    }
+  }
+
+  const channelPairs = await Promise.all(channelPairPromises);
+  const sendRecvPromises = channelPairs.map(async ([channel1, channel2]) => {
+    channel1.send(channel1.label);
+    const recv1Event = await new Promise(r => channel2.onmessage = r);
+    assert_equals(recv1Event.data, channel1.label);
+    channel2.send(channel2.label);
+    const recvEvent2 = await new Promise(r => channel1.onmessage = r);
+    assert_equals(recvEvent2.data, channel2.label);
+  });
+
+  await Promise.all(sendRecvPromises);
+}, 'Check that a variety of kinds of worker/non-worker DataChannel can work simultaneously');
         </script>
     </body>
 </html>

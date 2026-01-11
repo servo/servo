@@ -18,3 +18,9 @@ features:
   - color-computed-hsl.html
   - color-invalid-hsl.html
   - color-valid-hsl.html
+- name: opacity
+  files:
+  - opacity-*.html
+- name: named-color
+  files:
+  - "*-named-color.html"

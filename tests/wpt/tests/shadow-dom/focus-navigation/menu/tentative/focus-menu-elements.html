@@ -20,8 +20,14 @@
  <menuitem id="A2">Command A2</menuitem>
 </menulist>
 
-<script>
+<style>
+  menuitem {
+    /* Make sure focus doesn't activate the submenu. */
+    interest-delay: 1000s;
+  }
+</style>
 
+<script>
 promise_test(async () => {
   let elements = [
     'A',
@@ -31,5 +37,4 @@ promise_test(async () => {
 
   await assert_focus_navigation_bidirectional(elements);
 }, 'Should focus on menuitems in menubar only.');
-
 </script>

@@ -1,3 +1,10 @@
 features:
 - name: resource-timing
-  files: "**"
+  files:
+  - "*"
+  - "!load-from-mem-cache-transfer-size*"
+  - "!resource_timing_content_length*"
+- name: resource-size
+  files:
+  - "load-from-mem-cache-transfer-size*"
+  - "resource_timing_content_length*"

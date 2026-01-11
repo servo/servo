@@ -35,6 +35,13 @@
   margin: 0;
 }
 
+.menulist > hr {
+  color: inherit;
+  margin-inline: 0;
+  border: none;
+  border-block-start: 1px solid currentColor;
+}
+
 /* Menulists whose implicit anchor is a menuitem in a menubar. */
 .menulist-with-menubar-anchor {
   position: absolute;

@@ -17,7 +17,7 @@
 // options to minimize # of resources needed.
 Promise.resolve().then(async () => {
   test_driver.set_test_context(opener);
-  await test_driver.set_permission({ name: 'local-network-access' }, 'granted');
+  await test_driver.set_permission({ name: 'local-network' }, 'granted');
 
   const target = {
     server: Server.HTTP_PUBLIC,

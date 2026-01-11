@@ -6,3 +6,6 @@ features:
   - dom-hover-*
   - focus-pseudo-class-*
   - focus-selector-*
+- name: lang
+  files:
+  - lang-selector-*

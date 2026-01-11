@@ -31,3 +31,7 @@ features:
 - name: mutationobserver
   files:
   - MutationObserver-style.html
+- name: page-setup
+  files:
+  - cssom-pagerule.html
+  - page-descriptors.html

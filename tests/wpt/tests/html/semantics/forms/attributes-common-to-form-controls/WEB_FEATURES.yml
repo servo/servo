@@ -1,4 +1,8 @@
 features:
+- name: form
+  files:
+  - '*'
+  - '!dirname-*'
 - name: dirname
   files:
   - dirname-*

@@ -1,4 +1,8 @@
 features:
+- name: page-visibility
+  files:
+  - "*"
+  - "!visibility-state-entry.tentative.html"
 - name: page-visibility-state
   files:
   - visibility-state-entry.tentative.html

@@ -6,3 +6,12 @@ features:
   files:
   - host-context-*
   - host-in-host-context-selector.html
+- name: scope-psuedo
+  files:
+  - scope-pseudo*
+- name: host
+  files:
+  - host-*
+  - "!host-context-*"
+  - "!host-in-host-context-selector.html"
+  - "!host-is-featureless.html"

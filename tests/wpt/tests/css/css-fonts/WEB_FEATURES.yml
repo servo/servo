@@ -1,4 +1,7 @@
 features:
+- name: lang-attr
+  files:
+  - lang-attribute-affects-rendering*
 - name: font-palette
   files:
   - font-palette.html
@@ -73,6 +76,9 @@ features:
 - name: font-language-override
   files:
   - font-language-override-*
+- name: font-family-system
+  files:
+  - system-ui*
 - name: font-family-ui
   files:
   - standard-font-family-*
@@ -99,3 +105,6 @@ features:
 - name: font-weight
   files:
   - font-weight-*
+- name: font-shorthand
+  files:
+  - font-shorthand-*

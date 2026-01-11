@@ -12,3 +12,9 @@ features:
 - name: all
   files:
   - all-prop-*
+- name: unset-value
+  files:
+  - unset-val-*
+  - unset-value-storage.html
+  - all-prop-unset-color.html
+  - all-prop-unset-visited.html

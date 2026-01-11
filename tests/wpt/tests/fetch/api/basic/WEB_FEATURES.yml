@@ -1,4 +1,8 @@
 features:
+- name: fetch
+  files:
+  - "*"
+  - "!request-upload*"
 - name: fetch-request-streams
   files:
   - request-upload*

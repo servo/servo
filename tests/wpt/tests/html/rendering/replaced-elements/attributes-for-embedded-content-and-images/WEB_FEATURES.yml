@@ -1,0 +1,13 @@
+features:
+- name: img
+  files:
+  - "img-*"
+- name: video
+  files:
+  - "video-*"
+- name: object
+  files:
+  - "object_*"
+- name: picture
+  files:
+  - "picture-*"

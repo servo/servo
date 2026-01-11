@@ -2,3 +2,66 @@ features:
 - name: contain-inline-size
   files:
   - contain-inline-size-*
+- name: contain-layout
+  files:
+  - contain-body-bg-001.html
+  - contain-body-dir-001.html
+  - contain-body-overflow-001.html
+  - contain-body-t-o-001.html
+  - contain-body-w-m-001.html
+  - contain-html-bg-001.html
+  - contain-html-dir-001.html
+  - contain-html-overflow-001.html
+  - contain-html-t-o-001.html
+  - contain-html-w-m-001.html
+  - contain-layout-*
+- name: contain-paint
+  files:
+  - contain-body-bg-002.html
+  - contain-body-dir-002.html
+  - contain-body-overflow-002.html
+  - contain-body-t-o-002.html
+  - contain-body-w-m-002.html
+  - contain-html-bg-002.html
+  - contain-html-dir-002.html
+  - contain-html-overflow-002.html
+  - contain-html-t-o-002.html
+  - contain-html-w-m-002.html
+  - contain-paint-*
+  - "!contain-paint-stacking-context-001b.html"
+- name: contain-size
+  files:
+  - contain-body-bg-003.html
+  - contain-body-dir-003.html
+  - contain-body-overflow-003.html
+  - contain-body-t-o-003.html
+  - contain-body-w-m-003.html
+  - contain-html-bg-003.html
+  - contain-html-dir-003.html
+  - contain-html-overflow-003.html
+  - contain-html-t-o-003.html
+  - contain-html-w-m-003.html
+  - contain-size-*
+  - "!contain-size-014.html"
+- name: contain-style
+  files:
+  - contain-body-bg-004.html
+  - contain-body-dir-004.html
+  - contain-body-overflow-004.html
+  - contain-body-t-o-004.html
+  - contain-body-w-m-004.html
+  - contain-html-bg-004.html
+  - contain-html-dir-004.html
+  - contain-html-overflow-004.html
+  - contain-html-t-o-004.html
+  - contain-html-w-m-004.html
+  - contain-style-*
+  - "!contain-style-remove-element-crash.html"
+  - counter-scoping-*
+  - quote-scoping-*
+- name: contain
+  files:
+  - contain-animation-001.html
+  - contain-content-*
+  - contain-flexbox-outline.html
+  - contain-strict-*

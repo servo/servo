@@ -90,7 +90,8 @@ test((test) => {
 test((test) => {
     const [doc1, win1] = makeIframe(test);
     const [doc2, win2] = makeIframe(test);
-    win2.customElements.define('a-b', class ABElement extends win2.HTMLElement { });
+    class ABElement extends win2.HTMLElement { };
+    win2.customElements.define('a-b', ABElement);
     const elementFromDoc1 = doc1.createElement('a-b');
     assert_equals(elementFromDoc1.customElementRegistry, win1.customElements);
     doc2.body.appendChild(elementFromDoc1);

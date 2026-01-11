@@ -2,3 +2,7 @@ features:
 - name: svg-filters
   files:
   - "filters-*"
+- name: opacity-svg
+  files:
+  - painting-fill-05-b-manual.svg
+  - painting-stroke-08-t-manual.svg

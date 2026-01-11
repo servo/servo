@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+<title>Tests that Resize Observer in a cross-origin frame works when observing its own element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+
+<style>
+  #iframe {
+    width: 300px;
+    height: 200px;
+    outline: 1px black solid;
+  }
+</style>
+
+<body>
+
+<iframe id="iframe" src="http://{{hosts[alt][]}}:{{ports[http][0]}}/resize-observer/resources/cross-origin-subframe.html" sandbox="allow-scripts" frameborder="0"></iframe>
+
+<script>
+let borderBoxBlockSize = null;
+let borderBoxInlineSize = null;
+
+function rafPromise() {
+  return new Promise(requestAnimationFrame);
+}
+
+async function setSize(width, height) {
+  iframe.contentWindow.postMessage({
+    msgName: "setSize",
+    width: width,
+    height: height
+  }, "*");
+
+  await rafPromise();
+  await rafPromise();
+  await rafPromise();
+}
+
+promise_setup(() => {
+  // Wait for iframe to be loaded.
+  return new Promise(resolve => {
+    window.addEventListener("message", event => {
+      if (event.data.msgName === "loaded") {
+        // Install a long-lasting event listener, since this listener is one-shot
+        window.addEventListener("message", event => {
+          if (event.data.msgName === "event") {
+            borderBoxBlockSize = event.data.borderBoxBlockSize;
+            borderBoxInlineSize = event.data.borderBoxInlineSize;
+          }
+        });
+
+        resolve();
+      }
+    }, { once: true });
+  });
+});
+
+promise_test(async t => {
+  await setSize("200px", "100px");
+
+  assert_equals(borderBoxInlineSize, 200);
+  assert_equals(borderBoxBlockSize, 100)
+}, "Cross-origin observer responds to explicitly set physical size");
+
+promise_test(async t => {
+  // Initial iframe size is 300x200
+  await setSize("50vw", "50vh");
+  assert_equals(borderBoxInlineSize, 150);
+  assert_equals(borderBoxBlockSize, 100);
+
+  iframe.style.width = "400px";
+  iframe.style.height = "500px";
+  await setSize("50vw", "50vh");
+
+  assert_equals(borderBoxInlineSize, 200);
+  assert_equals(borderBoxBlockSize, 250);
+}, "When size is viewport-dependant, cross-origin observer responds to viewport size changes");
+
+</script>
+
+</body>

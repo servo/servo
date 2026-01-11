@@ -9,6 +9,8 @@ features:
   - "!Document-createElementNS-customized-builtins.html"
   - "!HTMLElement-constructor-customized-builtins.html"
   - "!pseudo-class-defined-customized-builtins.html"
+  # Exclude CustomElementRegistry. Keep in sync with below list.
+  - "!CustomElementRegistry*"
 - name: customized-built-in-elements
   files:
   # Keep in sync with above list.
@@ -18,3 +20,7 @@ features:
   - Document-createElementNS-customized-builtins.html
   - HTMLElement-constructor-customized-builtins.html
   - pseudo-class-defined-customized-builtins.html
+- name: scoped-custom-element-registries
+  files:
+  # Keep in sync with main list.
+  - "CustomElementRegistry*"

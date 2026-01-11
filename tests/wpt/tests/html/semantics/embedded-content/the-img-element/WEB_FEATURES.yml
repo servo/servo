@@ -1,6 +1,28 @@
 features:
+- name: img
+  files:
+  - "*"
+  # Exclude `loading-lazy`. Keep in sync with `loading-lazy` mappings below.
+  - "!*loading-lazy*"
+  - "!image-loading-subpixel-clip.html"
+  - "!move-element-and-scroll.html"
+  - "!relevant-mutations-lazy.html"
+  - "!remove-element-and-scroll.html"
+  - "!scrolling-below-viewport-image-lazy-loading-in-iframe.html"
+  # Exclude `base`. Keep in sync with `base` mappings below.
+  - "!document-adopt-base-url.html"
+  - "!document-base-url.html"
+  - "!image-base-url.html"
+  - "!image-loading-lazy-base-url.html"
+  # Exclude `srcset`. Keep in sync with `srcset` mappings below.
+  - "!responsive-image-select-print.html"
+  - "!update-the-source-set.html"
+  - "!null-image-source.html"
+  # Exclude `image-maps`. Keep in sync with `image-maps` mappings below.
+  - "!usemap-casing.html"
 - name: loading-lazy
   files:
+  # Keep in sync with `img` mappings.
   - "*loading-lazy*"
   - image-loading-subpixel-clip.html
   - move-element-and-scroll.html
@@ -9,12 +31,18 @@ features:
   - scrolling-below-viewport-image-lazy-loading-in-iframe.html
 - name: base
   files:
+  # Keep in sync with `img` mappings.
   - document-adopt-base-url.html
   - document-base-url.html
   - image-base-url.html
   - image-loading-lazy-base-url.html
 - name: srcset
   files:
+  # Keep in sync with `img` mappings.
   - responsive-image-select-print.html
   - update-the-source-set.html
   - null-image-source.html
+- name: image-maps
+  files:
+  # Keep in sync with `img` mappings.
+  - usemap-casing.html

@@ -1,0 +1,8 @@
+features:
+- name: image-maps
+  files:
+  - mouse_boundary_events_on_image_map.html
+- name: mouse-events
+  files:
+  - "*"
+  - "!mouse_boundary_events_on_image_map.html"

@@ -26,6 +26,10 @@
   </a>
 </svg>
 
+<menulist style="display:block; inset:auto; top: 300px">
+  <menuitem data-testcase="<menuitem>" interestfor=target>menuitem</menuitem>
+</menulist>
+
 <div id=target popover>Popover</div>
 <button id="otherbutton">Other button</button>
 <button id="another" interestfor=anothertarget>Another Button</button>
@@ -41,7 +45,16 @@
 </style>
 
 <script>
-const allInterestForElements = document.querySelectorAll('[data-testcase]');
+const menuSupported = document.createElement('menuitem') instanceof HTMLMenuItemElement;
+const menu = document.querySelector('menulist:has(menuitem[data-testcase])');
+if (menuSupported) {
+  // A menulist needs to be open to be interactive.
+  menu.showPopover();
+}
+let allInterestForElements = [...document.querySelectorAll('[data-testcase]')];
+if (!menuSupported) {
+  allInterestForElements = allInterestForElements.filter(el => el.localName !== 'menuitem');
+}
 assert_true(allInterestForElements.length > 0);
 
 function verifyInterest(onlyElements,description) {

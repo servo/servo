@@ -601,7 +601,10 @@ def server_is_running(host: str, port: int, timeout: float) -> bool:
     Check the WebTransport over HTTP/3 server is running at the given `host` and
     `port`.
     """
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
     return loop.run_until_complete(_connect_server_with_timeout(host, port, timeout))
 
 

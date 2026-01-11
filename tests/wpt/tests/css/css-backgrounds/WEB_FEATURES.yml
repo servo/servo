@@ -78,3 +78,7 @@ features:
   - "!border-image*"
   - "!border-*radius-*"
   - ttwf-css3background-border-*
+- name: box-shadow
+  files:
+  - "*box-shadow*"
+  - fieldset-inset-shadow.html

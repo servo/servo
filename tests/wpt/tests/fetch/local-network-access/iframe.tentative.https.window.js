@@ -96,6 +96,7 @@ function makePermissionTests({
   sourceTreatAsPublic,
   targetName,
   targetServer,
+  permissionName = 'local-network',
 }) {
   const prefix = `${sourceName} to ${targetName}: `;
 
@@ -112,6 +113,7 @@ function makePermissionTests({
         },
         expected: NavigationTestResult.FAILURE,
         permission: 'denied',
+        permissionName: permissionName,
       }),
       prefix + 'permission denied.');
 
@@ -123,6 +125,7 @@ function makePermissionTests({
         },
         expected: NavigationTestResult.SUCCESS,
         permission: 'granted',
+        permissionName: permissionName,
       }),
       prefix + 'success.');
 }
@@ -138,6 +141,7 @@ subsetTestByKey('from-public', makePermissionTests, {
   sourceName: 'public',
   targetServer: Server.HTTPS_LOOPBACK,
   targetName: 'loopback',
+  permissionName: 'loopback-network',
 });
 
 subsetTestByKey('from-public', makePermissionTests, {
@@ -164,6 +168,7 @@ subsetTestByKey('from-treat-as-public', makePermissionTests, {
   sourceName: 'treat-as-public-address',
   targetServer: Server.OTHER_HTTPS_LOOPBACK,
   targetName: 'loopback',
+  permissionName: 'loopback-network',
 });
 
 subsetTestByKey(

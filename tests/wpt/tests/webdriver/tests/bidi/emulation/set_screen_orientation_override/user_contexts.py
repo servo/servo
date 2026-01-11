@@ -101,10 +101,9 @@ async def test_set_to_multiple_user_contexts(bidi_session, create_user_context,
 
 
 async def test_set_to_user_context_and_then_to_context(bidi_session,
-        create_user_context, new_tab, get_screen_orientation,
+        create_user_context, get_screen_orientation,
         some_bidi_screen_orientation, some_web_screen_orientation,
-        another_bidi_screen_orientation, another_web_screen_orientation,
-        default_screen_orientation):
+        another_bidi_screen_orientation, another_web_screen_orientation):
     user_context = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(
         user_context=user_context, type_hint="tab"
@@ -144,6 +143,81 @@ async def test_set_to_user_context_and_then_to_context(bidi_session,
         screen_orientation=None,
     )
 
-    # Make sure that the screen orientation override was reset.
+    # Make sure that the screen orientation is still set to user context override.
     assert await get_screen_orientation(
-        context_in_user_context_1) == default_screen_orientation
+        context_in_user_context_1) == some_web_screen_orientation
+
+
+async def test_set_to_context_and_then_to_user_context(
+    bidi_session,
+    create_user_context,
+    get_screen_orientation,
+    some_bidi_screen_orientation,
+    some_web_screen_orientation,
+    another_bidi_screen_orientation,
+    another_web_screen_orientation,
+    default_screen_orientation,
+):
+    user_context = await create_user_context()
+    context_in_user_context_1 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+
+    # Apply screen orientation override to the context.
+    await bidi_session.emulation.set_screen_orientation_override(
+        contexts=[context_in_user_context_1["context"]],
+        screen_orientation=another_bidi_screen_orientation,
+    )
+
+    assert (
+        await get_screen_orientation(context_in_user_context_1)
+        == another_web_screen_orientation
+    )
+
+    # Apply screen orientation override to the user context.
+    await bidi_session.emulation.set_screen_orientation_override(
+        user_contexts=[user_context], screen_orientation=some_bidi_screen_orientation
+    )
+
+    # Make sure that context has still the context override.
+    assert (
+        await get_screen_orientation(context_in_user_context_1)
+        == another_web_screen_orientation
+    )
+
+    await bidi_session.browsing_context.reload(
+        context=context_in_user_context_1["context"], wait="complete"
+    )
+
+    # Make sure that after reload the screen orientation still has the context override.
+    assert (
+        await get_screen_orientation(context_in_user_context_1)
+        == another_web_screen_orientation
+    )
+
+    # Create a new context in the user context.
+    context_in_user_context_2 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+
+    # Make sure that the screen orientation override for the user context is applied.
+    assert (
+        await get_screen_orientation(context_in_user_context_2)
+        == some_web_screen_orientation
+    )
+
+    # Reset override for user context.
+    await bidi_session.emulation.set_screen_orientation_override(
+        user_contexts=[user_context], screen_orientation=None
+    )
+
+    # Make sure that the screen orientation override for the first context is still set.
+    assert (
+        await get_screen_orientation(context_in_user_context_1)
+        == another_web_screen_orientation
+    )
+    # Make sure that the screen orientation override for the second context is reset.
+    assert (
+        await get_screen_orientation(context_in_user_context_2)
+        == default_screen_orientation
+    )

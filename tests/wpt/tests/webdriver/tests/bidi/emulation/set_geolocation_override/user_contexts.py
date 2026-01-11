@@ -268,3 +268,88 @@ async def test_set_to_user_context_and_then_to_context(
     assert (
         await get_current_geolocation(context_in_user_context_1) == default_coordinates
     )
+
+
+async def test_set_to_context_and_then_to_user_context(
+    bidi_session,
+    create_user_context,
+    url,
+    get_current_geolocation,
+    set_geolocation_permission,
+):
+
+    user_context = await create_user_context()
+    context_in_user_context_1 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+
+    test_url = url("/common/blank.html")
+    await bidi_session.browsing_context.navigate(
+        context=context_in_user_context_1["context"],
+        url=test_url,
+        wait="complete",
+    )
+    await set_geolocation_permission(context_in_user_context_1, user_context)
+    default_coordinates = await get_current_geolocation(context_in_user_context_1)
+
+    # Apply geolocation override to the context.
+    await bidi_session.emulation.set_geolocation_override(
+        contexts=[context_in_user_context_1["context"]],
+        coordinates=CoordinatesOptions(
+            latitude=TEST_COORDINATES["latitude"],
+            longitude=TEST_COORDINATES["longitude"],
+            accuracy=TEST_COORDINATES["accuracy"],
+        ),
+    )
+
+    assert await get_current_geolocation(context_in_user_context_1) == TEST_COORDINATES
+
+    another_geolocation_coordinates = {"latitude": 30, "longitude": 20, "accuracy": 3}
+
+    # Apply geolocation override to the user context.
+    await bidi_session.emulation.set_geolocation_override(
+        user_contexts=[user_context],
+        coordinates=CoordinatesOptions(
+            latitude=another_geolocation_coordinates["latitude"],
+            longitude=another_geolocation_coordinates["longitude"],
+            accuracy=another_geolocation_coordinates["accuracy"],
+        ),
+    )
+
+    # Make sure that context has still the context geolocation override.
+    assert await get_current_geolocation(context_in_user_context_1) == TEST_COORDINATES
+
+    await bidi_session.browsing_context.reload(
+        context=context_in_user_context_1["context"], wait="complete"
+    )
+
+    # Make sure that after reload the geolocation still has the context geolocation override.
+    assert await get_current_geolocation(context_in_user_context_1) == TEST_COORDINATES
+
+    # Create a new context in the user context.
+    context_in_user_context_2 = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint="tab"
+    )
+    await bidi_session.browsing_context.navigate(
+        context=context_in_user_context_2["context"],
+        url=test_url,
+        wait="complete",
+    )
+    # Make sure that the geolocation override for the user context is applied.
+    assert (
+        await get_current_geolocation(context_in_user_context_2)
+        == another_geolocation_coordinates
+    )
+
+    # Reset override for user context.
+    await bidi_session.emulation.set_geolocation_override(
+        user_contexts=[user_context],
+        coordinates=None,
+    )
+
+    # Make sure that the geolocation override for the first context is still set.
+    assert await get_current_geolocation(context_in_user_context_1) == TEST_COORDINATES
+    # Make sure that the geolocation override for the second context is reset.
+    assert (
+        await get_current_geolocation(context_in_user_context_2) == default_coordinates
+    )

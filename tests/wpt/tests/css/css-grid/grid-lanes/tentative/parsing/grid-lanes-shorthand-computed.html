@@ -12,12 +12,12 @@
 <body>
   <div id="target"></div>
   <script>
-    test_computed_value("grid-lanes", '"a b" 1fr 2fr row normal');
-    test_computed_value("grid-lanes", "8px column normal");
-    test_computed_value("grid-lanes", '"a b c" 10% 20% 30% row-reverse', '"a b c" 10% 20% 30% row-reverse normal');
-    test_computed_value("grid-lanes", '"a b" 10px 20px column-reverse reverse');
-    test_computed_value("grid-lanes", 'min-content row', 'min-content row normal');
-    test_computed_value("grid-lanes", 'repeat(5, auto) reverse', 'repeat(5, auto) column reverse');
+    test_computed_value("grid-lanes", '"a b" 1fr 2fr row');
+    test_computed_value("grid-lanes", "8px column");
+    test_computed_value("grid-lanes", '"a b c" 10% 20% 30% row-reverse', '"a b c" 10% 20% 30% row-reverse');
+    test_computed_value("grid-lanes", '"a b" 10px 20px column-reverse');
+    test_computed_value("grid-lanes", 'min-content row', 'min-content row');
+    test_computed_value("grid-lanes", 'repeat(5, auto)', 'repeat(5, auto) normal');
   </script>
 </body>
 </html>

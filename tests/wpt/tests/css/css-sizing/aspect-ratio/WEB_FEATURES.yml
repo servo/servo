@@ -1,3 +1,62 @@
 features:
 - name: aspect-ratio
-  files: "**"
+  files:
+  #  The following patterns are intended to match every file that isn't matched
+  #  by `box-sizing` below.
+  - "*"
+  - "!abspos-010.html"
+  - "!abspos-011.html"
+  - "!block-aspect-ratio-004.html"
+  - "!block-aspect-ratio-006.html"
+  - "!block-aspect-ratio-026.html"
+  - "!block-aspect-ratio-027.html"
+  - "!block-aspect-ratio-035.html"
+  - "!block-aspect-ratio-050.html"
+  - "!box-sizing-dimensions.html"
+  - "!box-sizing-squashed.html"
+  - "!flex-aspect-ratio-025.html"
+  - "!flex-aspect-ratio-026.html"
+  - "!flex-aspect-ratio-031.html"
+  - "!grid-aspect-ratio-015.html"
+  - "!intrinsic-size-012.html"
+  - "!intrinsic-size-013.html"
+  - "!replaced-element-013.html"
+  - "!replaced-element-014.html"
+  - "!replaced-element-031.html"
+  - "!replaced-element-032.html"
+  - "!replaced-element-033.html"
+  - "!replaced-element-034.html"
+  - "!replaced-element-037.html"
+  - "!replaced-element-042.html"
+  - "!replaced-element-045.html"
+  - "!replaced-element-046.html"
+- name: box-sizing
+  files:
+  # When modifying this classifier, please make corresponding changes to the
+  # classifier for the `aspect-ration` feature above.
+  - abspos-010.html
+  - abspos-011.html
+  - block-aspect-ratio-004.html
+  - block-aspect-ratio-006.html
+  - block-aspect-ratio-026.html
+  - block-aspect-ratio-027.html
+  - block-aspect-ratio-035.html
+  - block-aspect-ratio-050.html
+  - box-sizing-dimensions.html
+  - box-sizing-squashed.html
+  - flex-aspect-ratio-025.html
+  - flex-aspect-ratio-026.html
+  - flex-aspect-ratio-031.html
+  - grid-aspect-ratio-015.html
+  - intrinsic-size-012.html
+  - intrinsic-size-013.html
+  - replaced-element-013.html
+  - replaced-element-014.html
+  - replaced-element-031.html
+  - replaced-element-032.html
+  - replaced-element-033.html
+  - replaced-element-034.html
+  - replaced-element-037.html
+  - replaced-element-042.html
+  - replaced-element-045.html
+  - replaced-element-046.html

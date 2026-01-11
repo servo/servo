@@ -24,7 +24,13 @@ async function didRemotePcClose(t, closeRemotePc) {
   let dc1 = pc1.createDataChannel("");
   worker.postMessage({channel: dc1}, [dc1]);
   dc1 = null;
-  const haveClosed = new Promise(r => worker.onmessage = r);
+  const closed = new Promise(r => {
+    worker.onmessage = ({data}) => {
+      if (data == "close") {
+        r(true);
+      }
+    }
+  });
   await pc1.setLocalDescription();
   await pc2.setRemoteDescription(pc1.localDescription);
   await pc2.setLocalDescription();
@@ -32,8 +38,7 @@ async function didRemotePcClose(t, closeRemotePc) {
   if (closeRemotePc) pc2.close();
   pc1 = pc2 = null;
   await garbageCollect();
-  await Promise.race([haveClosed, new Promise(r => t.step_timeout(r, 10000))]);
-  return closed;
+  return await Promise.race([closed, new Promise(r => t.step_timeout(r, 10000))]);
 }
 
 promise_test(async t => {
@@ -47,11 +52,7 @@ promise_test(async t => {
 function work() {
   onmessage = ({data: {channel}}) => {
     if (channel) {
-      channel.onopen = () => assert_true(true, "worker: open");
-      channel.onclose = () => {
-        assert_true(true, "worker: close");
-        self.postMessage(true);
-      }
+      channel.onclose = () => self.postMessage("close");
     }
   };
 }

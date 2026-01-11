@@ -1,4 +1,13 @@
 features:
+- name: select
+  files:
+  - '*'
+  # Keep exclusions synced with mappings below
+  - '!select-setcustomvalidity.html'
+  - '!select-validity.html'
+  - '!select-willvalidate-readonly-attribute.html'
+  - '!show-picker-*'
+# Keep all additional mappings synced with `select` mapping above
 - name: constraint-validation
   files:
   - select-setcustomvalidity.html

@@ -10,19 +10,11 @@
 <canvas id="webgl-canvas"></canvas>
 
 <script>
-
   function testCommonXRLayerInitErrors(createLayerFn, valid_init, t, gl) {
     const is_webgl2 = gl instanceof WebGL2RenderingContext;
     return new Promise((resolve, reject) => {
       const max_texture_size = gl.getParameter(gl.MAX_TEXTURE_SIZE);
       if (!is_webgl2) {
-        // Check an exception on texture-array.
-        t.step(() => {
-          // texture-array supported for webgl2 only.
-          let invalid_texture_type = Object.assign({}, valid_init, { textureType: 'texture-array' });
-          assert_throws_js(TypeError, () => createLayerFn(invalid_texture_type), "texture-array for webgl2 only");
-        });
-
         // Check an exception on webgl2 color formats.
         t.step(() => {
           [
@@ -36,12 +28,6 @@
           });
         });
       }
-
-      t.step(() => {
-        // Check an exception for invalid transform object.
-        let invalid_transform = Object.assign({}, valid_init, { transform: { x: 0, y: 0, z: 0 } });
-        assert_throws_js(TypeError, () => createLayerFn(invalid_transform), "Invalid transform object");
-      });
 
       t.step(() => {
         // viewPixelWidth and viewPixelHeight must be greater than 0.
@@ -64,11 +50,54 @@
         let large_pixel_height = Object.assign({}, valid_init, { viewPixelHeight: max_texture_size + 1 });
         assert_throws_js(TypeError, () => createLayerFn(large_pixel_height), "viewPixelHeight is too large");
       });
+    });
+  };
 
-      // Layout cannot be 'default'.
+  function testXRLayerInitTextureArrayErrors(createLayerFn, valid_init, t, gl) {
+    const is_webgl2 = gl instanceof WebGL2RenderingContext;
+    return new Promise((resolve, reject) => {
+      let texture_array = Object.assign({}, valid_init, { textureType: 'texture-array', layout: 'stereo' });
+      if (is_webgl2) {
+        const layer = createLayerFn(texture_array);
+        // 'stereo' layout should be supported with 'texture-array'.
+        assert_equals(layer.layout, 'stereo', "layout is not expected");
+      } else {
+          // Check an exception on texture-array.
+        t.step(() => {
+          // texture-array is not supported for webgl.
+          assert_throws_js(TypeError, () => createLayerFn(texture_array), "texture-array for webgl2 only");
+        });
+      }
+    });
+  }
+
+  function testXRLayerInitTransformErrors(createLayerFn, valid_init, t) {
+    return new Promise((resolve, reject) => {
       t.step(() => {
-        let invalid_layout = Object.assign({}, valid_init, { layout: 'default' });
-        assert_throws_js(TypeError, () => createLayerFn(invalid_layout), "layout is 'default'");
+        // Check an exception for invalid transform object.
+        let invalid_transform = Object.assign({}, valid_init, { transform: { x: 0, y: 0, z: 0 } });
+        assert_throws_js(TypeError, () => createLayerFn(invalid_transform), "Invalid transform object");
+      });
+    });
+  }
+
+  function testXRLayerInitLayoutErrors(createLayerFn, valid_init, t, is_cube) {
+    return new Promise((resolve, reject) => {
+      t.step(() => {
+        // 'default' is invalid for all layers.
+        const default_layout = Object.assign({}, valid_init, { layout: 'default' });
+        assert_throws_js(TypeError, () => createLayerFn(default_layout), "layout is 'default'");
+
+        const stereo_layout = Object.assign({}, valid_init, { layout: 'stereo' });
+        if (is_cube) {
+          // We don't support 'stereo' layout for cube layers.
+          assert_throws_js(TypeError, () => createLayerFn(stereo_layout), "layout is 'stereo'");
+        } else {
+          // It should end up as 'stereo-left-right' when 'texture-array' is not used.
+          const layer = createLayerFn(stereo_layout);
+          const layout = layer.layout;
+          assert_equals(layout, 'stereo-left-right', "layout is not expected");
+        }
         resolve();
       });
     });
@@ -80,10 +109,30 @@
       viewPixelWidth: 1024,
       viewPixelHeight: 1024
     };
+    const create_quad_layer = xrBinding.createQuadLayer.bind(xrBinding);
+    const create_cylinder_layer = xrBinding.createCylinderLayer.bind(xrBinding);
+    const create_equirect_layer = xrBinding.createEquirectLayer.bind(xrBinding);
+    const create_cube_layer = xrBinding.createCubeLayer.bind(xrBinding);
+
     return Promise.resolve()
-      .then(testCommonXRLayerInitErrors(xrBinding.createQuadLayer.bind(xrBinding), valid_init, t, gl))
-      .then(testCommonXRLayerInitErrors(xrBinding.createCylinderLayer.bind(xrBinding), valid_init, t, gl))
-      .then(testCommonXRLayerInitErrors(xrBinding.createEquirectLayer.bind(xrBinding), valid_init, t, gl));
+      // Quad layer.
+      .then(testCommonXRLayerInitErrors(create_quad_layer, valid_init, t, gl))
+      .then(testXRLayerInitTextureArrayErrors(create_quad_layer, valid_init, t, gl))
+      .then(testXRLayerInitTransformErrors(create_quad_layer, valid_init, t))
+      .then(testXRLayerInitLayoutErrors(create_quad_layer, valid_init, t, false /*is_cube*/))
+      // Cylinder layer.
+      .then(testCommonXRLayerInitErrors(create_cylinder_layer, valid_init, t, gl))
+      .then(testXRLayerInitTextureArrayErrors(create_cylinder_layer, valid_init, t, gl))
+      .then(testXRLayerInitTransformErrors(create_cylinder_layer, valid_init, t))
+      .then(testXRLayerInitLayoutErrors(create_cylinder_layer, valid_init, t, false /*is_cube*/))
+      // Equirect layer.
+      .then(testCommonXRLayerInitErrors(create_equirect_layer, valid_init, t, gl))
+      .then(testXRLayerInitTextureArrayErrors(create_equirect_layer, valid_init, t, gl))
+      .then(testXRLayerInitTransformErrors(create_equirect_layer, valid_init, t))
+      .then(testXRLayerInitLayoutErrors(create_equirect_layer, valid_init, t, false /*is_cube*/))
+      // Cube layer.
+      .then(testCommonXRLayerInitErrors(create_cube_layer, valid_init, t, gl))
+      .then(testXRLayerInitLayoutErrors(create_cube_layer, valid_init, t, true /*is_cube*/));
   }
 
   // This method tests XRLayerInit parameters, which are common to the Quad,Cylinder and Equirect layers.

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="../../resources/test-initiator.js"></script>
+
+  <script src="../../resources/loading-resource-lib.js"></script>
+</head>
+<body>
+  <h1>Description</h1>
+  <p> This test verifies that, for a resource fetched via event handler,
+      the initiator_url points to script that sets up the event handler.
+  </p>
+</body>
+<script>
+
+  var img = document.createElement("img");
+  document.body.appendChild(img);
+
+  const frame = document.createElement("iframe");
+  frame.addEventListener("load", () => {
+    load_image(label, img);
+  });
+  frame.src = "../resources/green.html";
+  document.body.appendChild(frame);
+
+
+  const label = "initiator_url_eventhandler";
+  const resource = "/images/blue.png?"+label;
+  const hostInfo = get_host_info();
+  const expectedInitiatorUrl = hostInfo["ORIGIN"] +
+    "/resource-timing/tentative/initiator-url/event-handler.html";
+
+  initiator_url_test(resource, expectedInitiatorUrl, resource +
+    " initiatorUrl from event handlers", resource + " timeout");
+</script>

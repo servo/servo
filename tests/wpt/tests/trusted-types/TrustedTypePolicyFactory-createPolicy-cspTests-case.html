@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<meta http-equiv="Content-Security-Policy" content="trusted-types * 'aLLow-dUPLIcates'">
+<body>
+<script>
+  // CSP3 is defined in terms of RFC 5234 grammars, which states that terminal
+  // symbols are case-insensitive. So 'allow-duplicates' should be parsed the
+  // same as 'ALLOW-DUPLICATES'.
+  //
+  // Ref:
+  // - https://www.w3.org/TR/CSP3/#framework-infrastructure
+  // - https://www.rfc-editor.org/rfc/rfc5234#section-2.3
+  // - See also: https://github.com/w3c/webappsec-csp/issues/236
+  test(t => {
+    window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+  }, "Can create policy with name 'SomeName'");
+  test(t => {
+    window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+  }, "Can create a second policy with name 'SomeName'");
+</script>

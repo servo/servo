@@ -1,5 +1,6 @@
 // META: title=Language Model Clone
 // META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
 // META: script=../resources/util.js
 // META: timeout=long
 

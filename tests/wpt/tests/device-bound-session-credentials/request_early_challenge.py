@@ -22,7 +22,7 @@ def main(request, response):
     challenges = []
     for session_id in session_manager.find_for_request(request).get_session_ids():
         early_challenge = test_session_manager.get_early_challenge(session_id)
-        if early_challenge is not None:
+        if test_session_manager.get_allows_challenges() and early_challenge is not None:
             challenges.append(("Secure-Session-Challenge", f'"{early_challenge}";id="{session_id}"'))
 
     if use_single_header:

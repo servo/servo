@@ -1,4 +1,7 @@
 features:
+- name: form
+  files:
+  - historical.html
 - name: change-event
   files:
   - input-change-event-properties.html

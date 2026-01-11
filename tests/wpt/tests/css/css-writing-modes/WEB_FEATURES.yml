@@ -1,7 +1,17 @@
 features:
+- name: writing-mode
+  files:
+  - "*"
+  - "!writing-mode-parsing-svg1-001.html"
+- name: writing-mode-svg-values
+  files:
+  - writing-mode-parsing-svg1-001.html
 - name: clip
   files:
   - clip-rect-*
 - name: text-combine-upright
   files:
   - "text-combine-upright-*"
+- name: layout-direction-override
+  files:
+  - "bidi-*"

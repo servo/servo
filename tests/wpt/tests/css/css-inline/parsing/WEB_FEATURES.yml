@@ -8,3 +8,9 @@ features:
 - name: dominant-baseline
   files:
   - dominant-baseline-*
+- name: line-height
+  files:
+  - line-height-*
+- name: vertical-align
+  files:
+  - vertical-align-*
