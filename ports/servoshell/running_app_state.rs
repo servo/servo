@@ -523,8 +523,7 @@ impl RunningAppState {
 
     pub(crate) fn handle_webdriver_script_command(&self, script_command: &WebDriverScriptCommand) {
         match script_command {
-            WebDriverScriptCommand::ExecuteScript(_webview_id, response_sender) |
-            WebDriverScriptCommand::ExecuteAsyncScript(_webview_id, response_sender) => {
+            WebDriverScriptCommand::ExecuteScriptWithCallback(_webview_id, response_sender) => {
                 // Give embedder a chance to interrupt the script command.
                 // Webdriver only handles 1 script command at a time, so we can
                 // safely set a new interrupt sender and remove the previous one here.

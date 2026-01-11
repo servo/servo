@@ -621,43 +621,6 @@ fn clone_an_object(
     return_val
 }
 
-pub(crate) fn handle_execute_script(
-    window: Option<DomRoot<Window>>,
-    eval: String,
-    reply: GenericSender<WebDriverJSResult>,
-    can_gc: CanGc,
-) {
-    match window {
-        Some(window) => {
-            let cx = window.get_cx();
-            let realm = AlreadyInRealm::assert_for_cx(cx);
-            let realm = InRealm::already(&realm);
-
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            let global = window.as_global_scope();
-            let evaluation_result = global.evaluate_js_on_global(
-                eval.into(),
-                "",
-                None, // No known `introductionType` for JS code from WebDriver
-                rval.handle_mut(),
-                can_gc,
-            );
-
-            let result = evaluation_result
-                .and_then(|_| jsval_to_webdriver(cx, global, rval.handle(), realm, can_gc));
-
-            reply.send(result).unwrap_or_else(|err| {
-                error!("ExecuteScript Failed to send reply: {err}");
-            });
-        },
-        None => reply
-            .send(Err(JavaScriptEvaluationError::DocumentNotFound))
-            .unwrap_or_else(|err| {
-                error!("ExecuteScript Failed to send reply: {err}");
-            }),
-    }
-}
-
 pub(crate) fn handle_execute_async_script(
     window: Option<DomRoot<Window>>,
     eval: String,
