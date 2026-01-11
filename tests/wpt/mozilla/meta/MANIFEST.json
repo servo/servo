@@ -12919,6 +12919,15 @@
     ]
    },
    "input-events": {
+    "dblclick-events-fired-every-two-clicks.html": [
+     "9ad53ceaf05018bb48e4ff2424da4e45fbca6be6",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "input-events-textarea-cut-paste.html": [
      "7e1151d222b5a5210921345a3e60434194cd1794",
      [
@@ -12930,6 +12939,15 @@
     ],
     "input-events-textarea-typing.html": [
      "19d8f6be9537f4a286471ddd483a75c01a34e912",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "mouse-button-events-detail-increases-indefinitely.html": [
+     "6bf57fe3accad4d3cbfb454e10f31b0a8540b5a5",
      [
       null,
       {
