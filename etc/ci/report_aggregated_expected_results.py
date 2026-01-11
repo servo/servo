@@ -189,7 +189,7 @@ def get_pr_number() -> Optional[str]:
     return None
 
 
-def get_commit() -> str:
+def get_commit_sha() -> str:
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
 
 
@@ -222,7 +222,7 @@ def create_github_reports(body: str, tag: str = ""):
     repo = github_context["repository"]
     data = {
         "name": tag,
-        "head_sha": get_commit(),
+        "head_sha": get_commit_sha(),
         "status": "completed",
         "started_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         "conclusion": conclusion,
