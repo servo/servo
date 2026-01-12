@@ -5356,7 +5356,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c3294c4d74d0742910f8c7b466f44dda9eb2d5742c1e430138df290a1e8451c"
 dependencies = [
  "log",
- "tendril",
+ "tendril 0.4.3",
  "web_atoms",
 ]
 
@@ -7829,7 +7829,7 @@ dependencies = [
  "stylo_traits",
  "swapper",
  "tempfile",
- "tendril",
+ "tendril 0.5.0",
  "time",
  "timers",
  "tracing",
@@ -7883,7 +7883,7 @@ dependencies = [
  "smallvec",
  "stylo",
  "stylo_atoms",
- "tendril",
+ "tendril 0.5.0",
  "tracing",
  "webxr-api",
  "xml5ever",
@@ -8398,7 +8398,7 @@ dependencies = [
  "stylo_dom",
  "stylo_malloc_size_of",
  "taffy",
- "tendril",
+ "tendril 0.5.0",
  "tokio",
  "unicode-bidi",
  "unicode-script",
@@ -9190,9 +9190,19 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d24a120c5fc464a3458240ee02c299ebcb9d67b5249c8848b09d639dca8d7bb0"
 dependencies = [
- "encoding_rs",
  "futf",
  "mac",
+ "utf-8",
+]
+
+[[package]]
+name = "tendril"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4790fc369d5a530f4b544b094e31388b9b3a37c0f4652ade4505945f5660d24"
+dependencies = [
+ "encoding_rs",
+ "new_debug_unreachable",
  "utf-8",
 ]
 
