@@ -158,7 +158,6 @@ jobs:
   # if we figure out how to make hvigor build for harmonyos without the HOS commandline-tools installed.
   build-harmonyos-aarch64:
     name: HarmonyOS Build (aarch64)
-    continue-on-error: true
     runs-on: hos-builder
     if: github.repository == 'servo/servo'
     outputs:
