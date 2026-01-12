@@ -470,7 +470,6 @@ pub(crate) mod transformstreamdefaultcontroller;
 pub(crate) mod wheelevent;
 #[expect(dead_code)]
 pub(crate) mod window;
-#[expect(dead_code)]
 pub(crate) mod windowproxy;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;

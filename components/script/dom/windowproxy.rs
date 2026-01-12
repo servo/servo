@@ -423,28 +423,6 @@ impl WindowProxy {
         self.creator_base_url.clone()
     }
 
-    pub(crate) fn has_creator_base_url(&self) -> bool {
-        self.creator_base_url.is_some()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#creator-url>
-    pub(crate) fn creator_url(&self) -> Option<ServoUrl> {
-        self.creator_url.clone()
-    }
-
-    pub(crate) fn has_creator_url(&self) -> bool {
-        self.creator_base_url.is_some()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#creator-origin>
-    pub(crate) fn creator_origin(&self) -> Option<ImmutableOrigin> {
-        self.creator_origin.clone()
-    }
-
-    pub(crate) fn has_creator_origin(&self) -> bool {
-        self.creator_origin.is_some()
-    }
-
     #[expect(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
     pub(crate) fn opener(
