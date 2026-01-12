@@ -87,7 +87,7 @@ impl phf_shared::PhfHash for Bytes<'_> {
 /// Note: This function should be kept in sync with the version in `components/servo/build.rs`
 fn find_python() -> Command {
     let mut command = Command::new("uv");
-    command.args(["run", "--no-project", "python"]);
+    command.args(["run", "python"]);
 
     if command.output().is_ok_and(|out| out.status.success()) {
         return command;

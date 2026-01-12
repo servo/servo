@@ -2,6 +2,7 @@
 # `uv` logs warnings if this file doesn't contain a `project` table.
 name = "servo"
 version = "0.0.1"
+requires-python = ">=3.11"
 
 [tool.ruff]
 line-length = 120
