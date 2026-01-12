@@ -92,16 +92,16 @@ class Base:
         def cargo_deny_installed() -> bool:
             if force or not shutil.which("cargo-deny"):
                 return False
-            # Tidy needs at least version 0.18.1 installed.
+            # Tidy needs at least version 0.18.6 installed.
             result = subprocess.run(["cargo-deny", "--version"], encoding="utf-8", capture_output=True)
             (major, minor, micro) = result.stdout.strip().split(" ")[1].split(".", 2)
-            return (int(major), int(minor), int(micro)) >= (0, 18, 1)
+            return (int(major), int(minor), int(micro)) >= (0, 18, 6)
 
         if cargo_deny_installed():
             return False
 
         print(" * Installing cargo-deny...")
-        if subprocess.call(["cargo", "install", "cargo-deny@0.18.3", "--locked"]) != 0:
+        if subprocess.call(["cargo", "install", "cargo-deny@0.19.0", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-deny failed.")
         return True
 

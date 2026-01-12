@@ -63,7 +63,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-deny
-          version: 0.18.3
+          version: 0.19.0
           locked: true
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
