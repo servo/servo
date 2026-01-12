@@ -42,7 +42,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@8c9da53d1cdd63b32fcc58d03aa614313c4c3057
+        uses: servo/ci-runners/actions/runner-select@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
@@ -52,7 +52,6 @@ jobs:
           github-hosted-runner-count: ${{ inputs.number-of-wpt-chunks }}
           self-hosted-image-name: servo-ubuntu2204-wpt
           self-hosted-runner-count: 3
-          first-runner-index: 1
           # You can disable self-hosted runners globally by creating a repository variable named
           # NO_SELF_HOSTED_RUNNERS with any non-empty value.
           # <https://github.com/servo/servo/settings/variables/actions>
