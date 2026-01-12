@@ -3970,7 +3970,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6452c4751a24e1b99c3260d505eaeee76a050573e61f30ac2c924ddc7236f01e"
 dependencies = [
  "log",
- "markup5ever",
+ "markup5ever 0.36.1",
 ]
 
 [[package]]
@@ -5354,6 +5354,17 @@ name = "markup5ever"
 version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c3294c4d74d0742910f8c7b466f44dda9eb2d5742c1e430138df290a1e8451c"
+dependencies = [
+ "log",
+ "tendril",
+ "web_atoms",
+]
+
+[[package]]
+name = "markup5ever"
+version = "0.37.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f9c40eb01b6c0f9a1d70a6bfce7370221322ad0673d6f7f4cf3f85227f23a8b"
 dependencies = [
  "log",
  "tendril",
@@ -7775,7 +7786,7 @@ dependencies = [
  "libc",
  "log",
  "malloc_size_of_derive",
- "markup5ever",
+ "markup5ever 0.37.0",
  "media",
  "metrics",
  "mime",
@@ -8386,7 +8397,7 @@ dependencies = [
  "indexmap",
  "ipc-channel",
  "keyboard-types",
- "markup5ever",
+ "markup5ever 0.37.0",
  "mime",
  "parking_lot",
  "resvg",
@@ -10310,9 +10321,9 @@ dependencies = [
 
 [[package]]
 name = "web_atoms"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acd0c322f146d0f8aad130ce6c187953889359584497dac6561204c8e17bb43d"
+checksum = "30e588f10c7bc3465f5fc1ab087fc97877ec1064a7ec89fb685ac4ee998dac4a"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -11379,7 +11390,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f57dd51b88a4b9f99f9b55b136abb86210629d61c48117ddb87f567e51e66be7"
 dependencies = [
  "log",
- "markup5ever",
+ "markup5ever 0.36.1",
 ]
 
 [[package]]
@@ -11394,7 +11405,7 @@ version = "0.0.1"
 dependencies = [
  "log",
  "malloc_size_of_derive",
- "markup5ever",
+ "markup5ever 0.37.0",
  "servo_malloc_size_of",
 ]
 
