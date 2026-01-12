@@ -41,12 +41,6 @@ def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
 def run_tests(default_binary_path: str, **kwargs: Any) -> int:
     print(f"Running WPT tests with {default_binary_path}")
 
-    # By default, Rayon selects the number of worker threads based on the
-    # available CPU count. This doesn't work very well when running tests on CI,
-    # since we run so many Servo processes in parallel. The result is a lot of
-    # extra timeouts. Instead, force Rayon to assume we are running on a 2 CPU
-    # environment.
-    os.environ["RAYON_RS_NUM_CPUS"] = "2"
     os.environ["RUST_BACKTRACE"] = "1"
     os.environ["HOST_FILE"] = os.path.join(SERVO_ROOT, "tests", "wpt", "hosts")
 
