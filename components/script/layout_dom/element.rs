@@ -174,6 +174,14 @@ where
     }
 }
 
+impl<'dom> style::dom::AttributeProvider for ServoLayoutElement<'dom> {
+    fn get_attr(&self, attr: &style::LocalName) -> Option<String> {
+        self.element
+            .get_attr_val_for_layout(&ns!(), attr)
+            .map(String::from)
+    }
+}
+
 impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     type ConcreteNode = ServoLayoutNode<'dom>;
     type TraversalChildrenIterator = DOMDescendantIterator<Self>;
