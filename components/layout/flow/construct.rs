@@ -683,12 +683,9 @@ impl BlockLevelJob<'_> {
         // If this `BlockLevelBox` is undamaged and it has been laid out before, reuse
         // the old one, while being sure to clear the layout cache.
         if !info.damage.has_box_damage() {
-            if let Some(block_level_box) = match self.box_slot.slot.as_ref() {
-                Some(box_slot) => match &*box_slot.borrow() {
-                    Some(LayoutBox::BlockLevel(block_level_box)) => Some(block_level_box.clone()),
-                    _ => None,
-                },
-                None => None,
+            if let Some(block_level_box) = match &*self.box_slot.slot.borrow() {
+                Some(LayoutBox::BlockLevel(block_level_box)) => Some(block_level_box.clone()),
+                _ => None,
             } {
                 return block_level_box;
             }

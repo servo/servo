@@ -203,13 +203,12 @@ impl GenericLayoutDataTrait for DOMLayoutData {
 }
 
 pub struct BoxSlot<'dom> {
-    pub(crate) slot: Option<ArcRefCell<Option<LayoutBox>>>,
+    pub(crate) slot: ArcRefCell<Option<LayoutBox>>,
     pub(crate) marker: PhantomData<&'dom ()>,
 }
 
 impl From<ArcRefCell<Option<LayoutBox>>> for BoxSlot<'_> {
-    fn from(layout_box_slot: ArcRefCell<Option<LayoutBox>>) -> Self {
-        let slot = Some(layout_box_slot);
+    fn from(slot: ArcRefCell<Option<LayoutBox>>) -> Self {
         Self {
             slot,
             marker: PhantomData,
@@ -219,26 +218,22 @@ impl From<ArcRefCell<Option<LayoutBox>>> for BoxSlot<'_> {
 
 /// A mutable reference to a `LayoutBox` stored in a DOM element.
 impl BoxSlot<'_> {
-    pub(crate) fn set(mut self, box_: LayoutBox) {
-        if let Some(slot) = &mut self.slot {
-            *slot.borrow_mut() = Some(box_);
-        }
+    pub(crate) fn set(self, layout_box: LayoutBox) {
+        *self.slot.borrow_mut() = Some(layout_box);
     }
 
     pub(crate) fn take_layout_box_if_undamaged(&self, damage: LayoutDamage) -> Option<LayoutBox> {
         if damage.has_box_damage() {
             return None;
         }
-        self.slot.as_ref().and_then(|slot| slot.borrow_mut().take())
+        self.slot.borrow_mut().take()
     }
 }
 
 impl Drop for BoxSlot<'_> {
     fn drop(&mut self) {
         if !std::thread::panicking() {
-            if let Some(slot) = &mut self.slot {
-                assert!(slot.borrow().is_some(), "failed to set a layout box");
-            }
+            assert!(self.slot.borrow().is_some(), "failed to set a layout box");
         }
     }
 }
