@@ -28,6 +28,9 @@ ignore = [
     # cryptographic secret via side channel. Wait for a patch in stable
     # release version from upstream.
     "RUSTSEC-2023-0071",
+    # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
+    # See the comment above `bincode` entry in Cargo.toml.
+    "RUSTSEC-2025-0141",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -193,6 +196,18 @@ skip = [
     # 0.3.0 and ml-dsa releases the next version 0.1.0, we can remove
     # this.
     "hybrid-array",
+
+
+    # The following 5 duplicates were introduced when Servo's CI was failing to
+    # detect duplicates introduced in automatic dependabot PRs (#38945). They
+    # are added here to allow the fix for this issue to land as a priority.
+    # These need to be investigated separately to see if the duplication can be
+    # avoided.
+    "libloading",
+    "futures",
+    "cfg-expr",
+    "system-deps",
+    "target-lexicon",
 ]
 
 # github.com organizations to allow git sources for
