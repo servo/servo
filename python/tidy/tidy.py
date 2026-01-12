@@ -508,8 +508,13 @@ def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
 
     # If there are no known errors but cargo-deny still failed, ensure test-tidy also fails.
     if len(errors) == 0 and result.returncode != 0:
-        errors.append((CARGO_DENY_CONFIG_FILE, 1,
-                       f"Unknown error when running `cargo-deny`. See the full output:\n f{result.stderr}"))
+        errors.append(
+            (
+                CARGO_DENY_CONFIG_FILE,
+                1,
+                f"Unknown error when running `cargo-deny`. See the full output:\n f{result.stderr}",
+            )
+        )
 
     for error in errors:
         yield error
