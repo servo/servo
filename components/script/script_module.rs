@@ -16,6 +16,7 @@ use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
 use hyper_serde::Serde;
+use indexmap::map::Entry;
 use indexmap::{IndexMap, IndexSet};
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
@@ -149,7 +150,6 @@ pub(crate) struct ModuleScript {
     pub(crate) base_url: ServoUrl,
     pub(crate) options: ScriptFetchOptions,
     owner: Option<ModuleOwner>,
-    pub(crate) loaded_modules: DomRefCell<IndexMap<String, ModuleObject>>,
     is_inline: bool,
 }
 
@@ -164,7 +164,6 @@ impl ModuleScript {
             base_url,
             options,
             owner,
-            loaded_modules: DomRefCell::new(IndexMap::new()),
             is_inline,
         }
     }
@@ -233,6 +232,9 @@ pub(crate) struct ModuleTree {
     // is finished
     #[conditional_malloc_size_of]
     promise: DomRefCell<Option<Rc<Promise>>>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "mozjs"]
+    loaded_modules: DomRefCell<IndexMap<String, ServoUrl>>,
     external: bool,
 }
 
@@ -250,6 +252,7 @@ impl ModuleTree {
             rethrow_error: DomRefCell::new(None),
             network_error: DomRefCell::new(None),
             promise: DomRefCell::new(None),
+            loaded_modules: DomRefCell::new(IndexMap::new()),
             external,
         }
     }
@@ -443,6 +446,42 @@ impl ModuleTree {
         let new_promise = Promise::new_in_current_realm(comp, can_gc);
         new_promise.append_native_handler(&handler, comp, can_gc);
         *self.promise.borrow_mut() = Some(new_promise);
+    }
+
+    pub(crate) fn find_descendant_inside_module_map(
+        &self,
+        global: &GlobalScope,
+        specifier: &String,
+    ) -> Option<Rc<ModuleTree>> {
+        self.loaded_modules
+            .borrow()
+            .get(specifier)
+            .and_then(|url| global.get_module_map().borrow().get(&url).cloned())
+    }
+
+    pub(crate) fn insert_module_dependency(
+        &self,
+        module: &Rc<ModuleTree>,
+        module_request_specifier: String,
+    ) {
+        // Store the url which is used to retrieve the module from module map when needed.
+        let url = module.url.clone();
+        match self
+            .loaded_modules
+            .borrow_mut()
+            .entry(module_request_specifier)
+        {
+            Entry::Occupied(entry) => {
+                // i. Assert: record.[[Module]] and result.[[Value]] are the same Module Record.
+                assert_eq!(*entry.get(), url);
+            },
+            // b. Else,
+            Entry::Vacant(entry) => {
+                // i. Append the LoadedModuleRequest Record { [[Specifier]]: moduleRequest.[[Specifier]],
+                // [[Attributes]]: moduleRequest.[[Attributes]], [[Module]]: result.[[Value]] } to referrer.[[LoadedModules]].
+                entry.insert(url);
+            },
+        }
     }
 }
 
@@ -1601,23 +1640,6 @@ unsafe extern "C" fn HostResolveImportedModule(
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
     let jsstr =
         std::ptr::NonNull::new(unsafe { GetModuleRequestSpecifier(cx, specifier) }).unwrap();
-    let string = unsafe { jsstr_to_string(cx, jsstr) };
-
-    // Simply return the module that we previously inserted
-    // Assert that there is always a module?
-    if let Some(loaded_module) = module_data
-        .filter(|module| module.is_inline)
-        .and_then(|module| {
-            println!("HostResolveImportedModule attempted to borrow loaded_modules");
-            module
-                .loaded_modules
-                .borrow()
-                .get(&string)
-                .map(|module| module.handle())
-        })
-    {
-        return loaded_module.get();
-    }
 
     let specifier = DOMString::from_string(unsafe { jsstr_to_string(cx, jsstr) });
     let url =
@@ -2004,14 +2026,14 @@ fn fetch_the_descendants_and_link_module_script(
 
     // Step 1. Let record be moduleScript's record.
     // Step 2. If record is null, then:
-    let Some(ref record) = *module_tree.get_record().borrow() else {
+    if module_tree.get_record().borrow().is_none() {
         // Step 2.1. Set moduleScript's error to rethrow to moduleScript's parse error.
         // Step 2.2. Run onComplete given moduleScript.
         owner.notify_owner_to_finish(identity, can_gc);
 
         // Step 2.3. Return.
         return;
-    };
+    }
 
     // TODO Step 3. Let state be Record
     // { [[ErrorToRethrow]]: null, [[Destination]]: destination, [[PerformFetch]]: null, [[FetchClient]]: fetchClient }.
@@ -2019,7 +2041,7 @@ fn fetch_the_descendants_and_link_module_script(
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise = LoadRequestedModules(&global, record.handle());
+    let loading_promise = LoadRequestedModules(&global, module_tree, owner.clone());
 
     let fulfillment_owner = owner.clone();
     let fulfillment_identity = identity.clone();
