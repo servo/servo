@@ -15,7 +15,7 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of libservo, so you also
 # need to add features that should be default to ports/servoshell/Cargo.toml
-default = ["clipboard", "js_jit", "vello_cpu"]
+default = ["clipboard", "js_jit"]
 background_hang_monitor = ["background_hang_monitor/sampler"]
 bluetooth = [
     "bluetooth_traits",
@@ -53,7 +53,6 @@ tracing = [
     "script/tracing",
 ]
 vello = ["constellation/vello"]
-vello_cpu = ["constellation/vello_cpu"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "webgl/webgl_backtrace",
