@@ -165,9 +165,6 @@ skip = [
     # duplicated by async-io
     "rustix",
 
-    # duplicated by zbus-xml
-    "quick-xml",
-
     # duplicated by sea-query
     "heck",
 
