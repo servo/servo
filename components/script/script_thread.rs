@@ -23,7 +23,6 @@ use std::default::Default;
 use std::option::Option;
 use std::rc::{Rc, Weak};
 use std::result::Result;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
@@ -608,7 +607,7 @@ impl ScriptThread {
                         // FIXME(jdm): we're assuming that the global being navigated
                         //   is the same global initiating the navigation. this is
                         //   not true with `<a href="javascript:..." _target="something">`.
-                        if Self::navigate_to_javascript_url(global, global, &mut load_data, None, CanGc::note()) {
+                        if Self::navigate_to_javascript_url(global, global, &mut load_data, None, None, CanGc::note()) {
                             sender
                                 .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
                                 .unwrap();
@@ -668,6 +667,7 @@ impl ScriptThread {
         target_global: &GlobalScope,
         load_data: &mut LoadData,
         container: Option<&Element>,
+        initial_insertion: Option<bool>,
         can_gc: CanGc,
     ) -> bool {
         if !Self::can_navigate_to_javascript_url(
@@ -700,7 +700,7 @@ impl ScriptThread {
                 .frame_element()
                 .and_then(Castable::downcast::<HTMLIFrameElement>)
             {
-                if frame_element.is_initial_blank_document() {
+                if initial_insertion == Some(true) && frame_element.is_initial_blank_document() {
                     frame_element.run_iframe_load_event_steps(can_gc);
                 }
             }
@@ -2629,7 +2629,9 @@ impl ScriptThread {
                     new_pipeline_info.load_data.url.as_str() == "about:blank" ||
                     new_pipeline_info.load_data.url.as_str() == "about:srcdoc" ||
                     new_pipeline_info.load_data.js_eval_result.is_some();
-                let origin = if about_blank_or_about_srcdoc_load {
+                let origin = if new_pipeline_info.load_data.creation_sandboxing_flag_set.contains(content_security_policy::sandboxing_directive::SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG) {
+                    Some(MutableOrigin::new(ImmutableOrigin::new_opaque()))
+                } else if about_blank_or_about_srcdoc_load {
                     match new_pipeline_info.load_data.load_origin {
                         LoadOrigin::Script(ref snapshot) => Some(MutableOrigin::from_snapshot(snapshot.clone())),
                         _ => None,
@@ -3615,7 +3617,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
-            iframe.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
+            iframe.navigate_or_reload_child_browsing_context(load_data, history_handling, false, can_gc);
         }
     }
 
@@ -3852,12 +3854,7 @@ impl ScriptThread {
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
-        if let Some(content_type) = incomplete.load_data.headers.get("Content-Type") {
-            meta.set_content_type(Some(&mime::Mime::from_str(content_type.to_str().unwrap()).unwrap()));
-            
-        } else {
-            meta.set_content_type(Some(&mime::TEXT_HTML));
-        }
+        meta.set_content_type(Some(&mime::TEXT_HTML));
         meta.set_referrer_policy(incomplete.load_data.referrer_policy);
 
         // If this page load is the result of a javascript scheme url, map

@@ -115,12 +115,14 @@ impl HTMLIFrameElement {
         &self,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
+        initial_insertion: bool,
         can_gc: CanGc,
     ) {
         self.start_new_pipeline(
             load_data,
             PipelineType::Navigation,
             history_handling,
+            initial_insertion,
             can_gc,
         );
     }
@@ -130,6 +132,7 @@ impl HTMLIFrameElement {
         mut load_data: LoadData,
         pipeline_type: PipelineType,
         history_handling: NavigationHistoryBehavior,
+        initial_insertion: bool,
         can_gc: CanGc,
     ) {
         let document = self.owner_document();
@@ -158,6 +161,7 @@ impl HTMLIFrameElement {
                 .networking_task_source()
                 .queue(task!(navigate_to_javascript: move || {
                     let this = iframe.root();
+                    //this.pending_pipeline_id.set(None);
                     let window_proxy = this.GetContentWindow();
                     if let Some(window_proxy) = window_proxy {
                         if !ScriptThread::navigate_to_javascript_url(
@@ -165,6 +169,7 @@ impl HTMLIFrameElement {
                             &window_proxy.global(),
                             &mut load_data,
                             Some(this.upcast()),
+                            Some(initial_insertion),
                             CanGc::note(),
                         ) {
                             LoadBlocker::terminate(&this.load_blocker, CanGc::note());
@@ -306,9 +311,11 @@ impl HTMLIFrameElement {
             load_data.destination = Destination::IFrame;
             load_data.policy_container = Some(window.as_global_scope().policy_container());
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
+            let initial_insertion = mode == ProcessingMode::FirstTime;
             self.navigate_or_reload_child_browsing_context(
                 load_data,
                 NavigationHistoryBehavior::Push,
+                initial_insertion,
                 can_gc,
             );
             return;
@@ -415,7 +422,8 @@ impl HTMLIFrameElement {
             NavigationHistoryBehavior::Push
         };
 
-        self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
+        let initial_insertion = mode == ProcessingMode::FirstTime;
+        self.navigate_or_reload_child_browsing_context(load_data, history_handling, initial_insertion, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
@@ -455,6 +463,7 @@ impl HTMLIFrameElement {
             load_data,
             PipelineType::InitialAboutBlank,
             NavigationHistoryBehavior::Push,
+            true,
             can_gc,
         );
     }
