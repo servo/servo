@@ -65,6 +65,68 @@ use crate::dom::types::{
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
 
+/// A data structure used for tracking the current click count. This can be
+/// reset to 0 if a mouse button event happens at a sufficient distance or time
+/// from the previous one.
+///
+/// From <https://w3c.github.io/uievents/#current-click-count>:
+/// > Implementations MUST maintain the current click count when generating mouse
+/// > events. This MUST be a non-negative integer indicating the number of consecutive
+/// > clicks of a pointing device button within a specific time. The delay after which
+/// > the count resets is specific to the environment configuration.
+#[derive(Default, JSTraceable, MallocSizeOf)]
+struct ClickCountingInfo {
+    time: Option<Instant>,
+    #[no_trace]
+    point: Option<Point2D<f32, CSSPixel>>,
+    #[no_trace]
+    button: Option<MouseButton>,
+    count: usize,
+}
+
+impl ClickCountingInfo {
+    fn reset_click_count_if_necessary(
+        &mut self,
+        button: MouseButton,
+        point_in_frame: Point2D<f32, CSSPixel>,
+    ) {
+        let (Some(previous_button), Some(previous_point), Some(previous_time)) =
+            (self.button, self.point, self.time)
+        else {
+            assert_eq!(self.count, 0);
+            return;
+        };
+
+        let double_click_timeout =
+            Duration::from_millis(pref!(dom_document_dblclick_timeout) as u64);
+        let double_click_distance_threshold = pref!(dom_document_dblclick_dist) as u64;
+
+        // Calculate distance between this click and the previous click.
+        let line = point_in_frame - previous_point;
+        let distance = (line.dot(line) as f64).sqrt();
+        if previous_button != button ||
+            Instant::now().duration_since(previous_time) > double_click_timeout ||
+            distance > double_click_distance_threshold as f64
+        {
+            self.count = 0;
+            self.time = None;
+            self.point = None;
+        }
+    }
+
+    fn increment_click_count(
+        &mut self,
+        button: MouseButton,
+        point: Point2D<f32, CSSPixel>,
+    ) -> usize {
+        self.time = Some(Instant::now());
+        self.point = Some(point);
+        self.button = Some(button);
+        self.count += 1;
+        self.count
+    }
+}
+
 /// The [`DocumentEventHandler`] is a structure responsible for handling input events for
 /// the [`crate::Document`] and storing data related to event handling. It exists to
 /// decrease the size of the [`crate::Document`] structure.
@@ -80,9 +142,7 @@ pub(crate) struct DocumentEventHandler {
     /// The index of the last mouse move event in the pending input events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
-    #[ignore_malloc_size_of = "Defined in std"]
-    #[no_trace]
-    last_click_info: DomRefCell<Option<(Instant, Point2D<f32, CSSPixel>)>>,
+    click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
     last_mouse_button_down_point: Cell<Option<Point2D<f32, CSSPixel>>>,
     /// The element that is currently hovered by the cursor.
@@ -109,7 +169,7 @@ impl DocumentEventHandler {
             window: Dom::from_ref(window),
             pending_input_events: Default::default(),
             mouse_move_event_index: Default::default(),
-            last_click_info: Default::default(),
+            click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
             current_hover_target: Default::default(),
             most_recently_clicked_element: Default::default(),
@@ -587,6 +647,19 @@ impl DocumentEventHandler {
             embedder_traits::MouseButtonAction::Up => "mouseup",
             embedder_traits::MouseButtonAction::Down => "mousedown",
         };
+
+        // From <https://w3c.github.io/uievents/#event-type-mousedown>
+        // and <https://w3c.github.io/uievents/#event-type-mouseup>:
+        //
+        // UIEvent.detail: indicates the current click count incremented by one. For
+        // example, if no click happened before the mousedown, detail will contain
+        // the value 1
+        if event.action == MouseButtonAction::Down {
+            self.click_counting_info
+                .borrow_mut()
+                .reset_click_count_if_necessary(event.button, hit_test_result.point_in_frame);
+        }
+
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
             mouse_event_type_string,
             event,
@@ -594,6 +667,7 @@ impl DocumentEventHandler {
             &self.window,
             &hit_test_result,
             input_event.active_keyboard_modifiers,
+            self.click_counting_info.borrow().count + 1,
             can_gc,
         ));
 
@@ -653,6 +727,13 @@ impl DocumentEventHandler {
                 // Step 7. dispatch event at target.
                 dom_event.dispatch(node.upcast(), false, can_gc);
 
+                // Click counts should still work for other buttons even though they
+                // do not trigger "click" and "dblclick" events, so we increment
+                // even when those events are not fired.
+                self.click_counting_info
+                    .borrow_mut()
+                    .increment_click_count(event.button, hit_test_result.point_in_frame);
+
                 self.maybe_trigger_click_for_mouse_button_down_event(
                     event,
                     input_event,
@@ -665,6 +746,7 @@ impl DocumentEventHandler {
     }
 
     /// <https://w3c.github.io/uievents/#handle-native-mouse-click>
+    /// <https://w3c.github.io/uievents/#event-type-dblclick>
     fn maybe_trigger_click_for_mouse_button_down_event(
         &self,
         event: MouseButtonEvent,
@@ -676,6 +758,7 @@ impl DocumentEventHandler {
         if event.button != MouseButton::Left {
             return;
         }
+
         let Some(last_mouse_button_down_point) = self.last_mouse_button_down_point.take() else {
             return;
         };
@@ -689,27 +772,49 @@ impl DocumentEventHandler {
         // From <https://w3c.github.io/uievents/#event-type-click>
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
-
         // For nodes inside a text input UA shadow DOM, dispatch dblclick at the shadow host.
         let delegated = element.find_focusable_shadow_host_if_necessary();
         let element = delegated.as_deref().unwrap_or(element);
         self.most_recently_clicked_element.set(Some(element));
 
+        let click_count = self.click_counting_info.borrow().count;
         element.set_click_in_progress(true);
-        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
+        MouseEvent::for_platform_mouse_event(
             "click",
             event,
             input_event.pressed_mouse_buttons,
             &self.window,
             hit_test_result,
             input_event.active_keyboard_modifiers,
+            click_count,
             can_gc,
-        ));
-        let node = element.upcast::<Node>();
-        dom_event.dispatch(node.upcast(), false, can_gc);
+        )
+        .upcast::<Event>()
+        .dispatch(element.upcast(), false, can_gc);
         element.set_click_in_progress(false);
 
-        self.maybe_fire_dblclick(node, hit_test_result, input_event, can_gc);
+        // The firing of "dbclick" events is dependent on the platform, so we have
+        // some flexibility here. Some browsers on some platforms only fire a
+        // "dbclick" when the click count is 2 and others essentially fire one for
+        // every 2 clicks in a sequence. In all cases, browsers set the click count
+        // `detail` property to 2.
+        //
+        // We follow the latter approach here, considering that every sequence of
+        // even numbered clicks is a series of double clicks.
+        if click_count % 2 == 0 {
+            MouseEvent::for_platform_mouse_event(
+                "dblclick",
+                event,
+                input_event.pressed_mouse_buttons,
+                &self.window,
+                hit_test_result,
+                input_event.active_keyboard_modifiers,
+                2,
+                can_gc,
+            )
+            .upcast::<Event>()
+            .dispatch(element.upcast(), false, can_gc);
+        }
     }
 
     /// <https://www.w3.org/TR/uievents/#maybe-show-context-menu>
@@ -765,64 +870,6 @@ impl DocumentEventHandler {
                 .embedder_controls()
                 .show_context_menu(hit_test_result);
         };
-    }
-
-    fn maybe_fire_dblclick(
-        &self,
-        target: &Node,
-        hit_test_result: &HitTestResult,
-        input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
-    ) {
-        // https://w3c.github.io/uievents/#event-type-dblclick
-        let now = Instant::now();
-        let point_in_frame = hit_test_result.point_in_frame;
-        let opt = self.last_click_info.borrow_mut().take();
-
-        if let Some((last_time, last_pos)) = opt {
-            let double_click_timeout =
-                Duration::from_millis(pref!(dom_document_dblclick_timeout) as u64);
-            let double_click_distance_threshold = pref!(dom_document_dblclick_dist) as u64;
-
-            // Calculate distance between this click and the previous click.
-            let line = point_in_frame - last_pos;
-            let dist = (line.dot(line) as f64).sqrt();
-
-            if now.duration_since(last_time) < double_click_timeout &&
-                dist < double_click_distance_threshold as f64
-            {
-                // A double click has occurred if this click is within a certain time and dist. of previous click.
-                let click_count = 2;
-
-                let event = MouseEvent::new(
-                    &self.window,
-                    DOMString::from("dblclick"),
-                    EventBubbles::Bubbles,
-                    EventCancelable::Cancelable,
-                    Some(&self.window),
-                    click_count,
-                    point_in_frame.to_i32(),
-                    point_in_frame.to_i32(),
-                    hit_test_result
-                        .point_relative_to_initial_containing_block
-                        .to_i32(),
-                    input_event.active_keyboard_modifiers,
-                    0i16,
-                    input_event.pressed_mouse_buttons,
-                    None,
-                    None,
-                    can_gc,
-                );
-                event.upcast::<Event>().fire(target.upcast(), can_gc);
-
-                // When a double click occurs, self.last_click_info is left as None so that a
-                // third sequential click will not cause another double click.
-                return;
-            }
-        }
-
-        // Update last_click_info with the time and position of the click.
-        *self.last_click_info.borrow_mut() = Some((now, point_in_frame));
     }
 
     fn handle_touch_event(

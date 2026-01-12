@@ -152,7 +152,7 @@ impl MouseButtonEvent {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum MouseButton {
     Left,
     Middle,

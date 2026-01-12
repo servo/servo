@@ -255,6 +255,7 @@ impl MouseEvent {
 
     /// Create a [MouseEvent] triggered by the embedder
     /// <https://w3c.github.io/uievents/#create-a-cancelable-mouseevent-id>
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn for_platform_mouse_event(
         event_type_string: &'static str,
         event: embedder_traits::MouseButtonEvent,
@@ -262,6 +263,7 @@ impl MouseEvent {
         window: &Window,
         hit_test_result: &HitTestResult,
         modifiers: Modifiers,
+        click_count: usize,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let client_point = hit_test_result.point_in_frame.to_i32();
@@ -269,14 +271,13 @@ impl MouseEvent {
             .point_relative_to_initial_containing_block
             .to_i32();
 
-        let click_count = 1;
         let mouse_event = MouseEvent::new(
             window,
             event_type_string.into(),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             Some(window),
-            click_count,
+            click_count as i32,
             client_point, // TODO: Get real screen coordinates?
             client_point,
             page_point,
