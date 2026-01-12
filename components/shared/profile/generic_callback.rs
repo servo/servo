@@ -30,7 +30,6 @@ where
             time_profiler_chan,
         })
     }
-
     pub fn send(&self, value: T) -> SendResult {
         time_profile!(
             ProfilerCategory::IpcReceiver,

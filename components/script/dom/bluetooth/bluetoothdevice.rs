@@ -12,7 +12,7 @@ use bluetooth_traits::{
     BluetoothServiceMsg,
 };
 use dom_struct::dom_struct;
-use profile_traits::ipc;
+use profile_traits::generic_channel;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -162,7 +162,8 @@ impl BluetoothDevice {
     }
 
     pub(crate) fn is_represented_device_null(&self) -> bool {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()
             .send(BluetoothRequest::IsRepresentedDeviceNull(
                 self.Id().to_string(),
@@ -250,7 +251,8 @@ impl BluetoothDevice {
         }
 
         // Step 3.
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()
             .send(BluetoothRequest::GATTServerDisconnect(
                 String::from(self.Id()),

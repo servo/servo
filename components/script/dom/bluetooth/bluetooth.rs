@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::GenericSender;
+use base::generic_channel::{GenericCallback, GenericSender};
 use bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
 use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
@@ -35,12 +35,10 @@ use crate::dom::promise::Promise;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
-use profile_traits::ipc as ProfiledIpc;
+use profile_traits::{generic_channel};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -168,7 +166,7 @@ impl Bluetooth {
         p: &Rc<Promise>,
         filters: &Option<Vec<BluetoothLEScanFilterInit>>,
         optional_services: &[BluetoothServiceUUID],
-        sender: IpcSender<BluetoothResponseResult>,
+        sender: GenericCallback<BluetoothResponseResult>,
         can_gc: CanGc,
     ) {
         // TODO: Step 1: Triggered by user activation.
@@ -243,8 +241,7 @@ impl Bluetooth {
 pub(crate) fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
     promise: &Rc<Promise>,
     receiver: &T,
-) -> IpcSender<BluetoothResponseResult> {
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
+) -> GenericCallback<BluetoothResponseResult> {
     let task_source = receiver
         .global()
         .task_manager()
@@ -254,33 +251,30 @@ pub(crate) fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         promise: Some(TrustedPromise::new(promise.clone())),
         receiver: Trusted::new(receiver),
     }));
-    ROUTER.add_typed_route(
-        action_receiver,
-        Box::new(move |message| {
-            struct ListenerTask<T: AsyncBluetoothListener + DomObject> {
-                context: Arc<Mutex<BluetoothContext<T>>>,
-                action: BluetoothResponseResult,
+    GenericCallback::new(move |message| {
+        struct ListenerTask<T: AsyncBluetoothListener + DomObject> {
+            context: Arc<Mutex<BluetoothContext<T>>>,
+            action: BluetoothResponseResult,
+        }
+
+        impl<T> TaskOnce for ListenerTask<T>
+        where
+            T: AsyncBluetoothListener + DomObject,
+        {
+            fn run_once(self, cx: &mut js::context::JSContext) {
+                let mut context = self.context.lock().unwrap();
+                context.response(self.action, CanGc::from_cx(cx));
             }
+        }
 
-            impl<T> TaskOnce for ListenerTask<T>
-            where
-                T: AsyncBluetoothListener + DomObject,
-            {
-                fn run_once(self, cx: &mut js::context::JSContext) {
-                    let mut context = self.context.lock().unwrap();
-                    context.response(self.action, CanGc::from_cx(cx));
-                }
-            }
+        let task = ListenerTask {
+            context: context.clone(),
+            action: message.unwrap(),
+        };
 
-            let task = ListenerTask {
-                context: context.clone(),
-                action: message.unwrap(),
-            };
-
-            task_source.queue_unconditionally(task);
-        }),
-    );
-    action_sender
+        task_source.queue_unconditionally(task);
+    })
+    .expect("Could not create callback")
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
@@ -704,7 +698,7 @@ impl PermissionAlgorithm for Bluetooth {
                 // Instead of creating an internal slot we send an ipc message to the Bluetooth thread
                 // to check if one of the filters matches.
                 let (sender, receiver) =
-                    ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
+                    generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
                 status
                     .get_bluetooth_thread()
                     .send(BluetoothRequest::MatchesFilter(

@@ -960,7 +960,6 @@ version = "0.0.1"
 dependencies = [
  "base",
  "embedder_traits",
- "ipc-channel",
  "regex",
  "serde",
 ]

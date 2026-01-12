@@ -5,7 +5,7 @@
 use base::generic_channel::GenericSender;
 use bluetooth_traits::BluetoothRequest;
 use dom_struct::dom_struct;
-use profile_traits::ipc;
+use profile_traits::generic_channel;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
@@ -42,7 +42,8 @@ impl TestRunnerMethods<crate::DomTypeHolder> for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     #[expect(non_snake_case)]
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) =
+            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()
             .send(BluetoothRequest::Test(String::from(dataSetName), sender))
             .unwrap();

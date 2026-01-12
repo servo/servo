@@ -5,7 +5,7 @@
 pub mod blocklist;
 pub mod scanfilter;
 
-use ipc_channel::ipc::IpcSender;
+use base::generic_channel::{GenericCallback, GenericSender};
 use serde::{Deserialize, Serialize};
 
 use crate::scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};
@@ -77,29 +77,32 @@ pub type BluetoothResponseResult = Result<BluetoothResponse, BluetoothError>;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothRequest {
-    RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResponseResult>),
-    GATTServerConnect(String, IpcSender<BluetoothResponseResult>),
-    GATTServerDisconnect(String, IpcSender<BluetoothResult<()>>),
+    RequestDevice(
+        RequestDeviceoptions,
+        GenericCallback<BluetoothResponseResult>,
+    ),
+    GATTServerConnect(String, GenericCallback<BluetoothResponseResult>),
+    GATTServerDisconnect(String, GenericSender<BluetoothResult<()>>),
     GetGATTChildren(
         String,
         Option<String>,
         bool,
         GATTType,
-        IpcSender<BluetoothResponseResult>,
+        GenericCallback<BluetoothResponseResult>,
     ),
-    ReadValue(String, IpcSender<BluetoothResponseResult>),
-    WriteValue(String, Vec<u8>, IpcSender<BluetoothResponseResult>),
-    EnableNotification(String, bool, IpcSender<BluetoothResponseResult>),
-    WatchAdvertisements(String, IpcSender<BluetoothResponseResult>),
+    ReadValue(String, GenericCallback<BluetoothResponseResult>),
+    WriteValue(String, Vec<u8>, GenericCallback<BluetoothResponseResult>),
+    EnableNotification(String, bool, GenericCallback<BluetoothResponseResult>),
+    WatchAdvertisements(String, GenericCallback<BluetoothResponseResult>),
     SetRepresentedToNull(Vec<String>, Vec<String>, Vec<String>),
-    IsRepresentedDeviceNull(String, IpcSender<bool>),
-    GetAvailability(IpcSender<BluetoothResponseResult>),
+    IsRepresentedDeviceNull(String, GenericSender<bool>),
+    GetAvailability(GenericCallback<BluetoothResponseResult>),
     MatchesFilter(
         String,
         BluetoothScanfilterSequence,
-        IpcSender<BluetoothResult<bool>>,
+        GenericSender<BluetoothResult<bool>>,
     ),
-    Test(String, IpcSender<BluetoothResult<()>>),
+    Test(String, GenericSender<BluetoothResult<()>>),
     Exit,
 }
 
