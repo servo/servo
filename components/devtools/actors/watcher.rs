@@ -180,7 +180,7 @@ pub struct WatcherActorMsg {
 
 pub struct WatcherActor {
     name: String,
-    browsing_context_actor: String,
+    pub browsing_context_actor: String,
     network_parent: String,
     target_configuration: String,
     thread_configuration: String,
