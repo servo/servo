@@ -23,12 +23,6 @@
 	// "remoteUser": "root",
 	// "updateRemoteUserUID": false,
 
-	// Mount a volume for the virtual environment, to avoid the container venv conflicting with the
-	// host venv, if users build both inside and outside the container.
-	"mounts":  [
-		"source=${localWorkspaceFolderBasename}-venv,target=${containerWorkspaceFolder}/.venv,type=volume"
-	],
-
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// This takes more time on the first run compared to pulling a prebuilt image layer,
@@ -38,6 +32,7 @@
 
 	"containerEnv": {
 		"CC": "clang",
-		"CXX": "clang++"
+		"CXX": "clang++",
+		"UV_PROJECT_ENVIRONMENT": ".devcontainer-venv"
 	}
 }
