@@ -259,10 +259,9 @@ pub(crate) struct AppInitOptions {
 
 pub struct App {
     state: Rc<RunningAppState>,
-    // todo: multi-window support, like desktop version.
+    // TODO: multi-window support, like desktop version.
     // This is just an intermediate state, to split refactoring into
     // multiple PRs.
-    // todo: active window?
     host: Rc<dyn HostTrait>,
     refresh_driver: Rc<VsyncRefreshDriver>,
     window_rendering_context: RefCell<Option<Rc<WindowRenderingContext>>>,

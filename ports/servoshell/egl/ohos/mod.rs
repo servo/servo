@@ -504,7 +504,7 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
     let xc_wrapper = XComponentWrapper(xcomponent);
     let window_wrapper = WindowWrapper(window);
 
-    // Todo: This if will be removed once we add multi-window support in a follow-up PR.
+    // TODO: This if will be removed once we add multi-window support in a follow-up PR.
     // This function will always be invoked on the UI thread, so there is no concurrency.
     if FIRST_WINDOW.load(Ordering::Relaxed) {
         FIRST_WINDOW.store(false, Ordering::Relaxed);
