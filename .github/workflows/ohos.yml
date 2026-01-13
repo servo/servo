@@ -86,7 +86,7 @@ jobs:
         id: signing_config
         env:
           SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
-        if: ${{ inputs.upload || env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
+        if: ${{ env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
         run: |
           cd ~
           echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
