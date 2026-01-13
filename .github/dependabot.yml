@@ -69,6 +69,22 @@ updates:
     wayland-related:
       patterns:
         - "wayland-*"
+    zbus-related:
+      # From zbus repository
+      patterns:
+        - "zbus"
+        - "zbus_macros"
+        - "zbus_names"
+        - "zbus_xml"
+        - "zbus_xmlgen"
+        - "zvariant"
+        - "zvariant_derive"
+        - "zvariant_utils"
+    zbus-lockstep-related:
+      # From zbus-lockstep repository
+      patterns:
+        - "zbus-lockstep"
+        - "zbus-lockstep-macros"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: selectors
