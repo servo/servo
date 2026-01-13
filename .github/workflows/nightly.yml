@@ -102,10 +102,10 @@ jobs:
           fetch-depth: '1'
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-binary-windows
+          name: production-binary-windows
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-binary-windows-zip
+          name: production-binary-windows-zip
       - name: Upload nightly
         run: |
           .\mach upload-nightly windows-msvc --secret-from-environment `
@@ -141,7 +141,7 @@ jobs:
           fetch-depth: '1'
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-binary-mac
+          name: production-binary-mac
       - name: Upload nightly
         run: |
           .\mach upload-nightly mac --secret-from-environment `
@@ -176,7 +176,7 @@ jobs:
           fetch-depth: '1'
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-binary-mac-arm64
+          name: production-binary-mac-arm64
       - name: Upload nightly
         run: |
           .\mach upload-nightly mac-arm64 --secret-from-environment `
@@ -213,7 +213,7 @@ jobs:
           fetch-depth: '1'
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-binary-linux
+          name: production-binary-linux
       - name: Upload nightly
         run: |
           .\mach upload-nightly linux --secret-from-environment `
@@ -251,18 +251,18 @@ jobs:
           fetch-depth: '1'
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-binary-android-aarch64
+          name: release-binary-android-aarch64
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-library-android-aarch64
+          name: release-library-android-aarch64
       - name: Generate artifact attestation for APK
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
+          subject-path: target/android/aarch64-linux-android/release/servoapp.apk
       - name: Generate artifact attestation for AAR
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+          subject-path: target/android/aarch64-linux-android/release/servoview.aar
       - name: Upload nightly
         run: |
           ./mach upload-nightly android \
@@ -303,18 +303,18 @@ jobs:
           fetch-depth: '1'
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-library-ohos-aarch64-unknown-linux-ohos
+          name: production-library-ohos-aarch64-unknown-linux-ohos
       - name: Generate artifact attestation for shared library
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
       - uses: actions/download-artifact@v7
         with:
-          name: ${{ inputs.profile }}-binary-ohos-aarch64-unknown-linux-ohos
+          name: production-binary-ohos-aarch64-unknown-linux-ohos
       - name: Generate artifact attestation for HAP
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
+          subject-path: target/openharmony/aarch64-unknown-linux-ohos/production/entry/build/default/outputs/default/servoshell-default-signed.hap
       - name: Upload nightly
         run: |
           ./mach upload-nightly ohos \
