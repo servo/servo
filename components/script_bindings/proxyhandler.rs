@@ -14,9 +14,8 @@ use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxy
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
     HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue,
-    JS_AtomizeAndPinString, JS_DefinePropertyById, JSContext, JSErrNum, JSFunctionSpec, JSObject,
-    JSPropertySpec, MutableHandle as RawMutableHandle,
-    MutableHandleIdVector as RawMutableHandleIdVector,
+    JS_DefinePropertyById, JSContext, JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec,
+    MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
@@ -25,7 +24,7 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
     AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
-    RUST_INTERNED_STRING_TO_JSID, SetDataPropertyDescriptor,
+    SetDataPropertyDescriptor,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
@@ -260,7 +259,7 @@ impl CrossOriginProperties {
 ///
 /// [`CrossOriginOwnPropertyKeys`]: https://html.spec.whatwg.org/multipage/#crossoriginownpropertykeys-(-o-)
 pub(crate) fn cross_origin_own_property_keys(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     _proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     props: RawMutableHandleIdVector,
@@ -269,9 +268,13 @@ pub(crate) fn cross_origin_own_property_keys(
     // >    `e.[[Property]]` to `keys`.
     for key in cross_origin_properties.keys() {
         unsafe {
-            rooted!(in(*cx) let rooted = JS_AtomizeAndPinString(*cx, key));
-            rooted!(in(*cx) let mut rooted_jsid: jsid);
-            RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
+            rooted!(&in(cx) let rooted = js::rust::wrappers2::JS_AtomizeAndPinString(cx, key));
+            rooted!(&in(cx) let mut rooted_jsid: jsid);
+            js::rust::wrappers2::RUST_INTERNED_STRING_TO_JSID(
+                cx,
+                rooted.handle().get(),
+                rooted_jsid.handle_mut(),
+            );
             AppendToIdVector(props, rooted_jsid.handle());
         }
     }
@@ -437,17 +440,27 @@ pub(crate) fn is_cross_origin_allowlisted_prop(
 /// `props`. This is used to implement [`CrossOriginOwnPropertyKeys`].
 ///
 /// [`CrossOriginOwnPropertyKeys`]: https://html.spec.whatwg.org/multipage/#crossoriginownpropertykeys-(-o-)
-fn append_cross_origin_allowlisted_prop_keys(cx: SafeJSContext, props: RawMutableHandleIdVector) {
+fn append_cross_origin_allowlisted_prop_keys(
+    cx: &mut js::context::JSContext,
+    props: RawMutableHandleIdVector,
+) {
     unsafe {
-        rooted!(in(*cx) let mut id: jsid);
+        rooted!(&in(cx) let mut id: jsid);
 
-        let jsstring = JS_AtomizeAndPinString(*cx, c"then".as_ptr());
-        rooted!(in(*cx) let rooted = jsstring);
-        RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), id.handle_mut());
+        let jsstring = js::rust::wrappers2::JS_AtomizeAndPinString(cx, c"then".as_ptr());
+        rooted!(&in(cx) let rooted = jsstring);
+        js::rust::wrappers2::RUST_INTERNED_STRING_TO_JSID(
+            cx,
+            rooted.handle().get(),
+            id.handle_mut(),
+        );
         AppendToIdVector(props, id.handle());
 
         for &allowed_code in ALLOWLISTED_SYMBOL_CODES.iter() {
-            id.set(SymbolId(GetWellKnownSymbol(*cx, allowed_code)));
+            id.set(SymbolId(js::rust::wrappers2::GetWellKnownSymbol(
+                cx,
+                allowed_code,
+            )));
             AppendToIdVector(props, id.handle());
         }
     }
