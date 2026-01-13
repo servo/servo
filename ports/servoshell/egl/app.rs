@@ -263,7 +263,6 @@ pub struct App {
     // This is just an intermediate state, to split refactoring into
     // multiple PRs.
     host: Rc<dyn HostTrait>,
-    refresh_driver: Rc<VsyncRefreshDriver>,
     window_rendering_context: RefCell<Option<Rc<WindowRenderingContext>>>,
     initial_url: Url,
 }
@@ -297,7 +296,6 @@ impl App {
         Rc::new(Self {
             state,
             host: init.host,
-            refresh_driver: Rc::new(VsyncRefreshDriver::default()),
             window_rendering_context: RefCell::new(None),
             initial_url,
         })
@@ -311,12 +309,13 @@ impl App {
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     ) {
         let viewport_size = viewport_rect.size;
+        let refresh_driver = Rc::new(VsyncRefreshDriver::default());
         let rendering_context = Rc::new(
             WindowRenderingContext::new_with_refresh_driver(
                 display_handle,
                 window_handle,
                 PhysicalSize::new(viewport_size.width as u32, viewport_size.height as u32),
-                self.refresh_driver.clone(),
+                refresh_driver.clone(),
             )
             .expect("Could not create RenderingContext"),
         );
@@ -330,7 +329,7 @@ impl App {
         let platform_window = Rc::new(EmbeddedPlatformWindow {
             host: self.host.clone(),
             rendering_context,
-            refresh_driver: self.refresh_driver.clone(),
+            refresh_driver,
             viewport_rect: RefCell::new(viewport_rect),
             hidpi_scale_factor,
             visible_input_methods: Default::default(),
@@ -625,10 +624,12 @@ impl App {
         }
     }
 
-    // TODO: Instead of letting the embedder drive the refresh-driver, we should move the vsync
+    // TODO: Instead of letting the embedder drive the RefreshDriver we should move the vsync
     // notification directly into the VsyncRefreshDriver.
     pub fn notify_vsync(&self) {
-        self.refresh_driver.notify_vsync();
+        let platform_window = self.window().platform_window();
+        let embedded_platform_window = platform_window.as_headed_window().expect("No headed window");
+        embedded_platform_window.refresh_driver.notify_vsync();
         self.spin_event_loop();
     }
 
