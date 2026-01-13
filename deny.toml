@@ -130,7 +130,6 @@ skip = [
 
     # Duplicated by gilrs.
     "core-foundation",
-    "mach2",
 
     # wgpu crates still depend on 1.1.0
     "rustc-hash",
