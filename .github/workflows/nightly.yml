@@ -76,19 +76,45 @@ jobs:
       - upload-android
       - upload-ohos
 
-  upload-win:
+  build-win:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (Windows)
-    needs:
-      - create-draft-release
+    name: Build nightly (Windows)
     uses: ./.github/workflows/windows.yml
     with:
       profile: "production"
-      upload: true
-      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
+      upload_zip: true
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
-    secrets: inherit
+
+  upload-win:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs:
+      - create-draft-release
+      - build-win
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            python
+            .
+          fetch-depth: '1'
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-binary-windows
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-binary-windows-zip
+      - name: Upload nightly
+        run: |
+          .\mach upload-nightly windows-msvc --secret-from-environment `
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+
 
   upload-mac:
     # This job is only useful when run on upstream servo.
