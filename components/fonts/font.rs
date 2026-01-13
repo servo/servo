@@ -179,24 +179,9 @@ pub struct FontMetrics {
 impl FontMetrics {
     /// Create an empty [`FontMetrics`] mainly to be used in situations where
     /// no font can be found.
-    pub fn empty() -> Self {
-        Self {
-            underline_size: Au::zero(),
-            underline_offset: Au::zero(),
-            strikeout_size: Au::zero(),
-            strikeout_offset: Au::zero(),
-            leading: Au::zero(),
-            x_height: Au::zero(),
-            em_size: Au::zero(),
-            ascent: Au::zero(),
-            descent: Au::zero(),
-            max_advance: Au::zero(),
-            average_advance: Au::zero(),
-            line_gap: Au::zero(),
-            zero_horizontal_advance: None,
-            ic_horizontal_advance: None,
-            space_advance: Au::zero(),
-        }
+    pub fn empty() -> Arc<Self> {
+        static EMPTY: OnceLock<Arc<FontMetrics>> = OnceLock::new();
+        EMPTY.get_or_init(Default::default).clone()
     }
 }
 
@@ -223,7 +208,7 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
 pub struct Font {
     pub(crate) handle: PlatformFont,
     pub(crate) template: FontTemplateRef,
-    pub metrics: FontMetrics,
+    pub metrics: Arc<FontMetrics>,
     pub descriptor: FontDescriptor,
 
     /// The data for this font. And the index of the font within the data (in case it's a TTC)
@@ -299,7 +284,7 @@ impl Font {
             &data,
             synthetic_bold,
         )?;
-        let metrics = handle.metrics();
+        let metrics = Arc::new(handle.metrics());
 
         Ok(Font {
             handle,

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
 use std::vec::IntoIter;
 
 use app_units::Au;
@@ -217,7 +218,7 @@ impl InlineBoxContainerState {
         containing_block: &ContainingBlock,
         layout_context: &LayoutContext,
         parent_container: &InlineContainerState,
-        font_metrics: Option<&FontMetrics>,
+        font_metrics: Option<Arc<FontMetrics>>,
     ) -> Self {
         let style = inline_box.base.style.clone();
         let pbm = inline_box

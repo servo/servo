@@ -65,7 +65,8 @@ pub(crate) struct CollapsedMargin {
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
     pub selected_style: SharedStyle,
-    pub font_metrics: FontMetrics,
+    #[conditional_malloc_size_of]
+    pub font_metrics: Arc<FontMetrics>,
     pub font_key: FontInstanceKey,
     #[conditional_malloc_size_of]
     pub glyphs: Vec<Arc<GlyphStore>>,
