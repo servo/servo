@@ -2499,32 +2499,6 @@ impl GlobalScope {
         self.devtools_chan.as_ref()
     }
 
-    pub(crate) fn issue_page_warning(&self, warning: &str) {
-        if let Some(ref chan) = self.devtools_chan {
-            let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                self.pipeline_id,
-                PageError {
-                    type_: "PageError".to_string(),
-                    error_message: warning.to_string(),
-                    source_name: self.get_url().to_string(),
-                    line_text: "".to_string(),
-                    line_number: 0,
-                    column_number: 0,
-                    category: "script".to_string(),
-                    time_stamp: SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
-                    error: false,
-                    warning: true,
-                    exception: true,
-                    strict: false,
-                    private: false,
-                },
-            ));
-        }
-    }
-
     /// Get a sender to the memory profiler thread.
     pub(crate) fn mem_profiler_chan(&self) -> &profile_mem::ProfilerChan {
         &self.mem_profiler_chan
@@ -2852,10 +2826,8 @@ impl GlobalScope {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
                         self.pipeline_id,
                         PageError {
-                            type_: "PageError".to_string(),
                             error_message: error_info.message.clone(),
                             source_name: error_info.filename.clone(),
-                            line_text: "".to_string(), // TODO
                             line_number: error_info.lineno,
                             column_number: error_info.column,
                             category: "script".to_string(),
@@ -2865,9 +2837,9 @@ impl GlobalScope {
                                 .as_millis() as u64,
                             error: true,
                             warning: false,
-                            exception: true,
-                            strict: false,
+                            info: false,
                             private: false,
+                            stacktrace: None,
                         },
                     ));
                 }

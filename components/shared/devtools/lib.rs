@@ -20,7 +20,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use bitflags::bitflags;
 pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
@@ -329,19 +328,19 @@ pub struct RuleModification {
     pub priority: String,
 }
 
-/// A console message as it is sent from script to the constellation
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ConsoleMessage {
-    pub log_level: ConsoleLogLevel,
+pub struct StackFrame {
     pub filename: String,
-    pub line_number: usize,
-    pub column_number: usize,
-    pub arguments: Vec<ConsoleMessageArgument>,
-    pub stacktrace: Option<Vec<StackFrame>>,
+    pub function_name: String,
+    pub column_number: u32,
+    pub line_number: u32,
+    // Not implemented in Servo
+    // source_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum ConsoleMessageArgument {
     String(String),
     Integer(i32),
@@ -349,97 +348,69 @@ pub enum ConsoleMessageArgument {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct StackFrame {
+#[serde(rename_all = "camelCase")]
+pub struct ConsoleMessage {
+    pub level: ConsoleLogLevel,
     pub filename: String,
-
-    #[serde(rename = "functionName")]
-    pub function_name: String,
-
-    #[serde(rename = "columnNumber")]
-    pub column_number: u32,
-
-    #[serde(rename = "lineNumber")]
     pub line_number: u32,
-}
-
-bitflags! {
-    #[derive(Deserialize, Serialize)]
-    pub struct CachedConsoleMessageTypes: u8 {
-        const PAGE_ERROR  = 1 << 0;
-        const CONSOLE_API = 1 << 1;
-    }
+    pub column_number: u32,
+    pub time_stamp: u64,
+    pub arguments: Vec<ConsoleMessageArgument>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id: u32,
+    // source_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageError {
-    #[serde(rename = "_type")]
-    pub type_: String,
     pub error_message: String,
     pub source_name: String,
-    pub line_text: String,
     pub line_number: u32,
     pub column_number: u32,
     pub category: String,
     pub time_stamp: u64,
     pub error: bool,
     pub warning: bool,
-    pub exception: bool,
-    pub strict: bool,
+    pub info: bool,
     pub private: bool,
-}
-
-/// Represents a console message as it is sent to the devtools
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ConsoleLog {
-    pub level: String,
-    pub filename: String,
-    pub line_number: u32,
-    pub column_number: u32,
-    pub time_stamp: u64,
-    pub arguments: Vec<ConsoleArgument>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id: u32,
+    // source_id: String,
+    // has_exception: bool,
+    // exception: Option<{...}>,
 }
 
-impl From<ConsoleMessage> for ConsoleLog {
-    fn from(value: ConsoleMessage) -> Self {
-        let level = match value.log_level {
-            ConsoleLogLevel::Debug => "debug",
-            ConsoleLogLevel::Info => "info",
-            ConsoleLogLevel::Warn => "warn",
-            ConsoleLogLevel::Error => "error",
-            ConsoleLogLevel::Trace => "trace",
-            ConsoleLogLevel::Log => "log",
-        }
-        .to_owned();
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PageErrorWrapper {
+    pub page_error: PageError,
+}
 
-        let time_stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
-
-        Self {
-            level,
-            filename: value.filename,
-            line_number: value.line_number as u32,
-            column_number: value.column_number as u32,
-            time_stamp,
-            arguments: value.arguments.into_iter().map(|arg| arg.into()).collect(),
-            stacktrace: value.stacktrace,
-        }
+impl From<PageError> for PageErrorWrapper {
+    fn from(page_error: PageError) -> Self {
+        Self { page_error }
     }
 }
 
-#[derive(Serialize)]
-pub struct ConsoleClearMessage {
-    pub level: String,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum ConsoleResource {
+    ConsoleMessage(ConsoleMessage),
+    PageError(PageErrorWrapper),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum CachedConsoleMessage {
-    PageError(PageError),
-    ConsoleLog(ConsoleLog),
+impl ConsoleResource {
+    pub fn resource_type(&self) -> String {
+        match self {
+            ConsoleResource::ConsoleMessage(_) => "console-message".into(),
+            ConsoleResource::PageError(_) => "error-message".into(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -599,11 +570,17 @@ impl ConsoleMessageBuilder {
     }
 
     pub fn finish(self) -> ConsoleMessage {
+        let time_stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+
         ConsoleMessage {
-            log_level: self.level,
+            level: self.level,
             filename: self.filename,
-            line_number: self.line_number as usize,
-            column_number: self.column_number as usize,
+            line_number: self.line_number,
+            column_number: self.column_number,
+            time_stamp,
             arguments: self.arguments,
             stacktrace: self.stack_trace,
         }
