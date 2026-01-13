@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::Au;
 use bitflags::bitflags;
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
@@ -788,7 +790,7 @@ pub(super) struct TextRunLineItem {
     pub base_fragment_info: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
     pub text: Vec<std::sync::Arc<GlyphStore>>,
-    pub font_metrics: FontMetrics,
+    pub font_metrics: Arc<FontMetrics>,
     pub font_key: FontInstanceKey,
     /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
     pub bidi_level: Level,

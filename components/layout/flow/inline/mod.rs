@@ -77,6 +77,7 @@ pub mod text_run;
 use std::cell::{OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
@@ -91,7 +92,7 @@ use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range;
 use script::layout_dom::ServoThreadSafeLayoutNode;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
@@ -284,7 +285,7 @@ impl InlineItem {
         &self,
         context: &SharedStyleContext,
         node: &ServoThreadSafeLayoutNode,
-        new_style: &Arc<ComputedValues>,
+        new_style: &ServoArc<ComputedValues>,
     ) {
         match self {
             InlineItem::StartInlineBox(inline_box) => {
@@ -678,7 +679,7 @@ bitflags! {
 
 pub(super) struct InlineContainerState {
     /// The style of this inline container.
-    style: Arc<ComputedValues>,
+    style: ServoArc<ComputedValues>,
 
     /// Flags which describe details of this [`InlineContainerState`].
     flags: InlineContainerStateFlags,
@@ -706,7 +707,7 @@ pub(super) struct InlineContainerState {
     pub baseline_offset: Au,
 
     /// The font metrics of the non-fallback font for this container.
-    font_metrics: FontMetrics,
+    font_metrics: Arc<FontMetrics>,
 }
 
 pub(super) struct InlineFormattingContextLayout<'layout_data> {
@@ -853,7 +854,10 @@ impl InlineFormattingContextLayout<'_> {
             containing_block,
             self.layout_context,
             self.current_inline_container_state(),
-            inline_box.default_font.as_ref().map(|font| &font.metrics),
+            inline_box
+                .default_font
+                .as_ref()
+                .map(|font| font.metrics.clone()),
         );
 
         self.depends_on_block_constraints |= inline_box
@@ -1441,7 +1445,7 @@ impl InlineFormattingContextLayout<'_> {
 
     pub(super) fn push_glyph_store_to_unbreakable_segment(
         &mut self,
-        glyph_store: std::sync::Arc<GlyphStore>,
+        glyph_store: Arc<GlyphStore>,
         text_run: &TextRun,
         font: &FontRef,
         bidi_level: Level,
@@ -1462,8 +1466,10 @@ impl InlineFormattingContextLayout<'_> {
             self.layout_context.painter_id,
             &self.layout_context.font_context,
         );
-        let using_fallback_font =
-            self.current_inline_container_state().font_metrics != *font_metrics;
+        let using_fallback_font = !Arc::ptr_eq(
+            &self.current_inline_container_state().font_metrics,
+            font_metrics,
+        );
 
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
         let strut_size = if using_fallback_font {
@@ -1784,7 +1790,7 @@ impl InlineFormattingContext {
     pub(crate) fn repair_style(
         &self,
         node: &ServoThreadSafeLayoutNode,
-        new_style: &Arc<ComputedValues>,
+        new_style: &ServoArc<ComputedValues>,
     ) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
         *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
@@ -1853,7 +1859,7 @@ impl InlineFormattingContext {
                 style.to_arc(),
                 inline_container_state_flags,
                 None, /* parent_container */
-                default_font_metrics.as_ref(),
+                default_font_metrics,
             ),
             inline_box_state_stack: Vec::new(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
@@ -1944,12 +1950,12 @@ impl InlineFormattingContext {
 
 impl InlineContainerState {
     fn new(
-        style: Arc<ComputedValues>,
+        style: ServoArc<ComputedValues>,
         flags: InlineContainerStateFlags,
         parent_container: Option<&InlineContainerState>,
-        font_metrics: Option<&FontMetrics>,
+        font_metrics: Option<Arc<FontMetrics>>,
     ) -> Self {
-        let font_metrics = font_metrics.cloned().unwrap_or_else(FontMetrics::empty);
+        let font_metrics = font_metrics.unwrap_or_else(FontMetrics::empty);
         let mut baseline_offset = Au::zero();
         let mut strut_block_sizes = Self::get_block_sizes_with_style(
             effective_vertical_align(&style, parent_container),
