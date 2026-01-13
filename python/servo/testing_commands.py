@@ -427,7 +427,7 @@ class MachCommands(CommandBase):
     @Command(
         "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
     )
-    @CommandArgument("--multiprocess", "-m", default=False, action="store_true", help="Run in multiprocess mode")
+    @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
     @CommandBase.common_command_arguments(binary_selection=True)
     def test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
         return self._test_wpt(servo_binary, multiprocess, **kwargs)
