@@ -151,19 +151,42 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
 
-  upload-mac-arm64:
+  build-mac-arm64:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (macOS Arm64)
-    needs:
-      - create-draft-release
+    name: Build nightly (macOS Arm64)
     uses: ./.github/workflows/mac-arm64.yml
     with:
       profile: "production"
-      upload: true
-      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
-    secrets: inherit
+
+  upload-mac-arm64:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs:
+      - create-draft-release
+      - build-mac-arm64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            python
+            .
+          fetch-depth: '1'
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-binary-mac-arm64
+      - name: Upload nightly
+        run: |
+          .\mach upload-nightly mac-arm64 --secret-from-environment `
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          # TODO: this appears unused, can we remove it?
+          GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
 
   upload-linux:
     # This job is only useful when run on upstream servo.
