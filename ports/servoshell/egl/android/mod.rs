@@ -205,7 +205,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
             #[cfg(feature = "webxr")]
             xr_discovery: init_opts.xr_discovery,
         });
-        new_app.initialize_platform_window(
+        new_app.add_platform_window(
             display_handle,
             window_handle,
             init_opts.viewport_rect,

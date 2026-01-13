@@ -299,7 +299,7 @@ impl App {
         })
     }
 
-    pub(crate) fn initialize_platform_window(
+    pub(crate) fn add_platform_window(
         &self,
         display_handle: DisplayHandle,
         window_handle: WindowHandle,
