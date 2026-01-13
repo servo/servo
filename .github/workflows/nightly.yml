@@ -109,7 +109,9 @@ jobs:
       - name: Upload nightly
         run: |
           ./mach upload-nightly windows-msvc --secret-from-environment
-            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
+            Servo.exe \
+            Servo.zip
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
@@ -145,7 +147,8 @@ jobs:
       - name: Upload nightly
         run: |
           ./mach upload-nightly mac --secret-from-environment
-            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
+            servo-tech-demo.dmg
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
@@ -180,7 +183,8 @@ jobs:
       - name: Upload nightly
         run: |
           ./mach upload-nightly mac-arm64 --secret-from-environment
-            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
+            servo-tech-demo.dmg
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           # TODO: this appears unused, can we remove it?
@@ -217,7 +221,8 @@ jobs:
       - name: Upload nightly
         run: |
           ./mach upload-nightly linux --secret-from-environment
-            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
+            servo-tech-demo.tar.gz
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
@@ -258,16 +263,18 @@ jobs:
       - name: Generate artifact attestation for APK
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: target/android/aarch64-linux-android/release/servoapp.apk
+          subject-path: servoapp.apk
       - name: Generate artifact attestation for AAR
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: target/android/aarch64-linux-android/release/servoview.aar
+          subject-path: servoview.aar
       - name: Upload nightly
         run: |
           ./mach upload-nightly android \
             --secret-from-environment \
-            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
+            servoapp.apk \
+            servoview.aar
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
@@ -307,19 +314,21 @@ jobs:
       - name: Generate artifact attestation for shared library
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
+          subject-path: libservoshell.so
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-ohos-aarch64-unknown-linux-ohos
       - name: Generate artifact attestation for HAP
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: target/openharmony/aarch64-unknown-linux-ohos/production/entry/build/default/outputs/default/servoshell-default-signed.hap
+          subject-path: servoshell-default-signed.hap
       - name: Upload nightly
         run: |
           ./mach upload-nightly ohos \
             --secret-from-environment \
-            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
+            libservoshell.so \
+            servoshell-default-signed.hap
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
