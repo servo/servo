@@ -3582,8 +3582,8 @@ where
             "{}: Loading ({}replacing): {}",
             source_id,
             match history_handling {
-                NavigationHistoryBehavior::Push => "",
-                NavigationHistoryBehavior::Replace => "not ",
+                NavigationHistoryBehavior::Push => "not ",
+                NavigationHistoryBehavior::Replace => "",
                 NavigationHistoryBehavior::Auto => "unsure if ",
             },
             load_data.url,

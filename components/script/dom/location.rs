@@ -61,6 +61,48 @@ impl Location {
         reflect_dom_object(Box::new(Location::new_inherited(window)), window, can_gc)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#location-object-navigate>
+    fn navigate_a_location(
+        &self,
+        url: ServoUrl,
+        history_handling: NavigationHistoryBehavior,
+        can_gc: CanGc,
+    ) {
+        // Step 1. Let navigable be location's relevant global object's navigable.
+        let navigable = &self.window;
+        // Step 2. Let sourceDocument be the incumbent global object's associated Document.
+        let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
+        let incumbent_window = incumbent_global.as_window();
+        let source_document = incumbent_window.Document();
+        // Step 3. If location's relevant Document is not yet completely loaded,
+        // and the incumbent global object does not have transient activation, then set historyHandling to "replace".
+        //
+        // TODO: check for transient activation
+        let history_handling = if !navigable.Document().completely_loaded() {
+            NavigationHistoryBehavior::Replace
+        } else {
+            history_handling
+        };
+        // Step 4. Navigate navigable to url using sourceDocument, with exceptionsEnabled set to true and historyHandling set to historyHandling.
+        let secure_context = if incumbent_window.is_top_level() {
+            None
+        } else {
+            Some(incumbent_global.is_secure_context())
+        };
+        let load_data = LoadData::new(
+            LoadOrigin::Script(incumbent_window.origin().immutable().clone()),
+            url,
+            Some(navigable.pipeline_id()),
+            Referrer::ReferrerUrl(source_document.url()),
+            source_document.get_referrer_policy(),
+            secure_context,
+            Some(source_document.insecure_requests_policy()),
+            source_document.has_trustworthy_ancestor_origin(),
+            source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
+        );
+        navigable.load_url(history_handling, false, load_data, can_gc);
+    }
+
     /// Navigate the relevant `Document`'s browsing context.
     ///
     /// This is ostensibly an implementation of
@@ -304,21 +346,15 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
     fn Replace(&self, url: USVString, can_gc: CanGc) -> ErrorResult {
         // Step 1: If this Location object's relevant Document is null, then return.
         if self.has_document() {
-            // Step 2: Parse url relative to the entry settings object. If that failed,
-            // throw a "SyntaxError" DOMException.
+            // Step 2. Let urlRecord be the result of encoding-parsing a URL given url, relative to the entry settings object.
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&url.0) {
                 Ok(url) => url,
+                // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
                 Err(_) => return Err(Error::Syntax(None)),
             };
-            // Step 3: Location-object navigate to the resulting URL record with
-            // the replacement flag set.
-            self.navigate(
-                url,
-                NavigationHistoryBehavior::Replace,
-                NavigationType::Normal,
-                can_gc,
-            );
+            // Step 4. Location-object navigate this to urlRecord given "replace".
+            self.navigate_a_location(url, NavigationHistoryBehavior::Replace, can_gc);
         }
         Ok(())
     }
@@ -414,23 +450,18 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location-href>
     fn SetHref(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
-        // Step 1: If this Location object's relevant Document is null, then return.
+        // Step 1. If this's relevant Document is null, then return.
         if self.has_document() {
             // Note: no call to self.check_same_origin_domain()
             // Step 2: Let url be the result of encoding-parsing a URL given the given value, relative to the entry settings object.
-            // Step 3: If url is failure, then throw a "SyntaxError" DOMException.
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&value.0) {
                 Ok(url) => url,
+                // Step 3: If url is failure, then throw a "SyntaxError" DOMException.
                 Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
             // Step 4: Location-object navigate this to url.
-            self.navigate(
-                url,
-                NavigationHistoryBehavior::Push,
-                NavigationType::Normal,
-                can_gc,
-            );
+            self.navigate_a_location(url, NavigationHistoryBehavior::Auto, can_gc);
         }
         Ok(())
     }
