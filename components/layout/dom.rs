@@ -116,7 +116,7 @@ impl InnerDOMLayoutData {
 pub(super) enum LayoutBox {
     DisplayContents(SharedInlineStyles),
     BlockLevel(ArcRefCell<BlockLevelBox>),
-    InlineLevel(ArcRefCell<InlineItem>),
+    InlineLevel(InlineItem),
     FlexLevel(ArcRefCell<FlexLevelBox>),
     TableLevelBox(TableLevelBox),
     TaffyItemBox(ArcRefCell<TaffyItemBox>),
@@ -127,7 +127,7 @@ impl LayoutBox {
         Some(match self {
             LayoutBox::DisplayContents(..) => return None,
             LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().with_base(callback),
-            LayoutBox::InlineLevel(inline_item) => inline_item.borrow().with_base(callback),
+            LayoutBox::InlineLevel(inline_item) => inline_item.with_base(callback),
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
             LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().with_base(callback),
             LayoutBox::TableLevelBox(table_box) => table_box.with_base(callback),
@@ -143,7 +143,7 @@ impl LayoutBox {
             LayoutBox::BlockLevel(block_level_box) => {
                 block_level_box.borrow_mut().with_base_mut(callback)
             },
-            LayoutBox::InlineLevel(inline_item) => inline_item.borrow_mut().with_base_mut(callback),
+            LayoutBox::InlineLevel(inline_item) => inline_item.with_base_mut(callback),
             LayoutBox::FlexLevel(flex_level_box) => {
                 flex_level_box.borrow_mut().with_base_mut(callback)
             },
@@ -171,9 +171,7 @@ impl LayoutBox {
                     .repair_style(context, node, new_style);
             },
             LayoutBox::InlineLevel(inline_item) => {
-                inline_item
-                    .borrow_mut()
-                    .repair_style(context, node, new_style);
+                inline_item.repair_style(context, node, new_style);
             },
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box
                 .borrow_mut()

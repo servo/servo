@@ -144,7 +144,7 @@ pub(crate) struct InlineFormattingContext {
     /// [`InlineItem::StartInlineBox`] and [`InlineItem::EndInlineBox`] allow representing
     /// the tree of inline boxes within the formatting context, but a flat array allows
     /// easy iteration through all inline items.
-    pub(super) inline_items: Vec<ArcRefCell<InlineItem>>,
+    pub(super) inline_items: Vec<InlineItem>,
 
     /// The tree of inline boxes in this [`InlineFormattingContext`]. These are stored in
     /// a flat array with each being given a [`InlineBoxIdentifier`].
@@ -261,7 +261,7 @@ impl AnonymousBlockBox {
     }
 }
 
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) enum InlineItem {
     StartInlineBox(ArcRefCell<InlineBox>),
     EndInlineBox,
@@ -1723,7 +1723,7 @@ impl From<&InheritedText> for SegmentContentFlags {
 impl InlineFormattingContext {
     #[servo_tracing::instrument(name = "InlineFormattingContext::new_with_builder", skip_all)]
     pub(super) fn new_with_builder(
-        builder: InlineFormattingContextBuilder,
+        mut builder: InlineFormattingContextBuilder,
         layout_context: &LayoutContext,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
@@ -1736,8 +1736,8 @@ impl InlineFormattingContext {
         let has_right_to_left_content = bidi_info.has_rtl();
 
         let mut new_linebreaker = LineBreaker::new(text_content.as_str());
-        for item in builder.inline_items.iter() {
-            match &mut *item.borrow_mut() {
+        for item in &mut builder.inline_items {
+            match item {
                 InlineItem::TextRun(text_run) => {
                     text_run.borrow_mut().segment_and_shape(
                         &text_content,
@@ -1875,8 +1875,6 @@ impl InlineFormattingContext {
         }
 
         for item in self.inline_items.iter() {
-            let item = &*item.borrow();
-
             // Any new box should flush a pending hard line break.
             if !matches!(item, InlineItem::EndInlineBox) {
                 layout.possibly_flush_deferred_forced_line_break();
@@ -2430,8 +2428,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         self.add_inline_size(
             inline_formatting_context.inline_start_for_first_line(self.constraint_space.into()),
         );
-        for inline_item in inline_formatting_context.inline_items.iter() {
-            self.process_item(&inline_item.borrow(), inline_formatting_context);
+        for inline_item in &inline_formatting_context.inline_items {
+            self.process_item(inline_item, inline_formatting_context);
         }
         self.forced_line_break();
         self.flush_floats();

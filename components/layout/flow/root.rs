@@ -278,7 +278,7 @@ impl BoxTree {
 #[expect(clippy::enum_variant_names)]
 enum DirtyRootBoxTreeNode {
     AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
-    AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineItem>, usize),
+    AbsolutelyPositionedInlineLevelBox(InlineItem, usize),
     AbsolutelyPositionedFlexLevelBox(ArcRefCell<FlexLevelBox>),
     AbsolutelyPositionedTaffyLevelBox(ArcRefCell<TaffyItemBox>),
 }
@@ -364,7 +364,7 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
                 },
                 LayoutBox::InlineLevel(inline_level_box) => {
                     let InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index) =
-                        &*inline_level_box.borrow()
+                        inline_level_box
                     else {
                         return None;
                     };
@@ -414,34 +414,37 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         let info =
             NodeAndStyleInfo::new(node, self.primary_style.clone(), node.take_restyle_damage());
 
-        let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
-            AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents),
-        );
+        let out_of_flow_absolutely_positioned_box =
+            AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents);
         match &self.box_tree_node {
             DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
                 *block_level_box.borrow_mut() = BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    out_of_flow_absolutely_positioned_box,
+                    ArcRefCell::new(out_of_flow_absolutely_positioned_box),
                 );
             },
             DirtyRootBoxTreeNode::AbsolutelyPositionedInlineLevelBox(
                 inline_level_box,
                 text_offset_index,
-            ) => {
-                *inline_level_box.borrow_mut() = InlineItem::OutOfFlowAbsolutelyPositionedBox(
-                    out_of_flow_absolutely_positioned_box,
-                    *text_offset_index,
-                );
+            ) => match inline_level_box {
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, offset_in_text) => {
+                    *positioned_box.borrow_mut() = out_of_flow_absolutely_positioned_box;
+                    assert_eq!(
+                        *offset_in_text, *text_offset_index,
+                        "The offset of the dirty root shouldn't have changed"
+                    );
+                },
+                _ => unreachable!("The dirty root should be absolutely positioned"),
             },
             DirtyRootBoxTreeNode::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
                 *flex_level_box.borrow_mut() = FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    out_of_flow_absolutely_positioned_box,
+                    ArcRefCell::new(out_of_flow_absolutely_positioned_box),
                 );
             },
             DirtyRootBoxTreeNode::AbsolutelyPositionedTaffyLevelBox(taffy_level_box) => {
                 taffy_level_box.borrow_mut().taffy_level_box =
-                    TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(
+                    TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
                         out_of_flow_absolutely_positioned_box,
-                    );
+                    ));
             },
         }
 

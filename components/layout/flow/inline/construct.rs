@@ -62,7 +62,7 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// The current list of [`InlineItem`]s in this [`InlineFormattingContext`] under
     /// construction. This is stored in a flat list to make it easy to access the last
     /// item.
-    pub inline_items: Vec<ArcRefCell<InlineItem>>,
+    pub inline_items: Vec<InlineItem>,
 
     /// The current [`InlineBox`] tree of this [`InlineFormattingContext`] under construction.
     pub inline_boxes: InlineBoxes,
@@ -121,23 +121,20 @@ impl InlineFormattingContextBuilder {
         independent_formatting_context_creator: impl FnOnce()
             -> ArcRefCell<IndependentFormattingContext>,
         old_layout_box: Option<LayoutBox>,
-    ) -> ArcRefCell<InlineItem> {
+    ) -> InlineItem {
         // If there is an existing undamaged layout box that's compatible, use that.
         let independent_formatting_context = old_layout_box
             .and_then(|layout_box| match layout_box {
-                LayoutBox::InlineLevel(inline_item) => match &*inline_item.borrow() {
-                    InlineItem::Atomic(atomic, ..) => Some(atomic.clone()),
-                    _ => None,
-                },
+                LayoutBox::InlineLevel(InlineItem::Atomic(atomic, ..)) => Some(atomic.clone()),
                 _ => None,
             })
             .unwrap_or_else(independent_formatting_context_creator);
 
-        let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
+        let inline_level_box = InlineItem::Atomic(
             independent_formatting_context,
             self.current_text_offset,
             Level::ltr(), /* This will be assigned later if necessary. */
-        ));
+        );
         self.inline_items.push(inline_level_box.clone());
         self.is_empty = false;
 
@@ -155,24 +152,22 @@ impl InlineFormattingContextBuilder {
         &mut self,
         absolutely_positioned_box_creator: impl FnOnce() -> ArcRefCell<AbsolutelyPositionedBox>,
         old_layout_box: Option<LayoutBox>,
-    ) -> ArcRefCell<InlineItem> {
+    ) -> InlineItem {
         let absolutely_positioned_box = old_layout_box
             .and_then(|layout_box| match layout_box {
-                LayoutBox::InlineLevel(inline_item) => match &*inline_item.borrow() {
-                    InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
-                        Some(positioned_box.clone())
-                    },
-                    _ => None,
-                },
+                LayoutBox::InlineLevel(InlineItem::OutOfFlowAbsolutelyPositionedBox(
+                    positioned_box,
+                    ..,
+                )) => Some(positioned_box.clone()),
                 _ => None,
             })
             .unwrap_or_else(absolutely_positioned_box_creator);
 
         // We cannot just reuse the old inline item, because the `current_text_offset` may have changed.
-        let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowAbsolutelyPositionedBox(
+        let inline_level_box = InlineItem::OutOfFlowAbsolutelyPositionedBox(
             absolutely_positioned_box,
             self.current_text_offset,
-        ));
+        );
 
         self.inline_items.push(inline_level_box.clone());
         self.is_empty = false;
@@ -183,19 +178,16 @@ impl InlineFormattingContextBuilder {
         &mut self,
         float_box_creator: impl FnOnce() -> ArcRefCell<FloatBox>,
         old_layout_box: Option<LayoutBox>,
-    ) -> ArcRefCell<InlineItem> {
+    ) -> InlineItem {
         let inline_level_box = old_layout_box
             .and_then(|layout_box| match layout_box {
                 LayoutBox::InlineLevel(inline_item) => Some(inline_item),
                 _ => None,
             })
-            .unwrap_or_else(|| ArcRefCell::new(InlineItem::OutOfFlowFloatBox(float_box_creator())));
+            .unwrap_or_else(|| InlineItem::OutOfFlowFloatBox(float_box_creator()));
 
         debug_assert!(
-            matches!(
-                &*inline_level_box.borrow(),
-                InlineItem::OutOfFlowFloatBox(..),
-            ),
+            matches!(inline_level_box, InlineItem::OutOfFlowFloatBox(..),),
             "Created float box with incompatible `old_layout_box`"
         );
 
@@ -214,25 +206,23 @@ impl InlineFormattingContextBuilder {
         assert!(self.currently_processing_inline_box());
         self.contains_floats = self.contains_floats || block_level_box.borrow().contains_floats();
 
-        if let Some(inline_item) = self.inline_items.last() {
-            if let InlineItem::AnonymousBlock(anonymous_block) = &*inline_item.borrow() {
-                if let BlockContainer::BlockLevelBoxes(ref mut block_level_boxes) =
-                    anonymous_block.borrow_mut().contents
-                {
-                    block_level_boxes.push(block_level_box);
-                    return;
-                }
+        if let Some(InlineItem::AnonymousBlock(anonymous_block)) = self.inline_items.last() {
+            if let BlockContainer::BlockLevelBoxes(ref mut block_level_boxes) =
+                anonymous_block.borrow_mut().contents
+            {
+                block_level_boxes.push(block_level_box);
+                return;
             }
         }
         let info = &block_builder_info
             .with_pseudo_element(layout_context, PseudoElement::ServoAnonymousBox)
             .expect("Should never fail to create anonymous box");
         self.inline_items
-            .push(ArcRefCell::new(InlineItem::AnonymousBlock(
-                ArcRefCell::new(AnonymousBlockBox {
+            .push(InlineItem::AnonymousBlock(ArcRefCell::new(
+                AnonymousBlockBox {
                     base: LayoutBoxBase::new(info.into(), info.style.clone()),
                     contents: BlockContainer::BlockLevelBoxes(vec![block_level_box]),
-                }),
+                },
             )));
     }
 
@@ -244,10 +234,7 @@ impl InlineFormattingContextBuilder {
         // If there is an existing undamaged layout box that's compatible, use the `InlineBox` within it.
         let inline_box = old_layout_box
             .and_then(|layout_box| match layout_box {
-                LayoutBox::InlineLevel(inline_item) => match &*inline_item.borrow() {
-                    InlineItem::StartInlineBox(inline_box) => Some(inline_box.clone()),
-                    _ => None,
-                },
+                LayoutBox::InlineLevel(InlineItem::StartInlineBox(inline_box)) => Some(inline_box),
                 _ => None,
             })
             .unwrap_or_else(inline_box_creator);
@@ -260,8 +247,8 @@ impl InlineFormattingContextBuilder {
         std::mem::drop(borrowed_inline_box);
 
         let identifier = self.inline_boxes.start_inline_box(inline_box.clone());
-        let inline_level_box = ArcRefCell::new(InlineItem::StartInlineBox(inline_box));
-        self.inline_items.push(inline_level_box.clone());
+        self.inline_items
+            .push(InlineItem::StartInlineBox(inline_box));
         self.inline_box_stack.push(identifier);
         self.is_empty = false;
     }
@@ -272,8 +259,7 @@ impl InlineFormattingContextBuilder {
     /// box is split around a block-level element.
     pub(crate) fn end_inline_box(&mut self) {
         self.shared_inline_styles_stack.pop();
-        self.inline_items
-            .push(ArcRefCell::new(InlineItem::EndInlineBox));
+        self.inline_items.push(InlineItem::EndInlineBox);
         let identifier = self
             .inline_box_stack
             .pop()
@@ -345,21 +331,17 @@ impl InlineFormattingContextBuilder {
         self.current_text_offset = new_range.end;
         self.text_segments.push(new_text);
 
-        if let Some(inline_item) = self.inline_items.last() {
-            if let InlineItem::TextRun(text_run) = &mut *inline_item.borrow_mut() {
-                text_run.borrow_mut().text_range.end = new_range.end;
-                return;
-            }
+        if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last() {
+            text_run.borrow_mut().text_range.end = new_range.end;
+            return;
         }
 
         self.inline_items
-            .push(ArcRefCell::new(InlineItem::TextRun(ArcRefCell::new(
-                TextRun::new(
-                    info.into(),
-                    self.shared_inline_styles(),
-                    new_range,
-                    selection_range,
-                ),
+            .push(InlineItem::TextRun(ArcRefCell::new(TextRun::new(
+                info.into(),
+                self.shared_inline_styles(),
+                new_range,
+                selection_range,
             ))));
     }
 
