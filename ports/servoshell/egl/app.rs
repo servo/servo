@@ -263,7 +263,6 @@ pub struct App {
     // This is just an intermediate state, to split refactoring into
     // multiple PRs.
     host: Rc<dyn HostTrait>,
-    window_rendering_context: RefCell<Option<Rc<WindowRenderingContext>>>,
     initial_url: Url,
 }
 
@@ -296,7 +295,6 @@ impl App {
         Rc::new(Self {
             state,
             host: init.host,
-            window_rendering_context: RefCell::new(None),
             initial_url,
         })
     }
@@ -319,13 +317,6 @@ impl App {
             )
             .expect("Could not create RenderingContext"),
         );
-        if let Some(old) = self
-            .window_rendering_context
-            .borrow_mut()
-            .replace(rendering_context.clone())
-        {
-            warn!("Replacing existing platform window rendering context");
-        }
         let platform_window = Rc::new(EmbeddedPlatformWindow {
             host: self.host.clone(),
             rendering_context,
@@ -628,20 +619,20 @@ impl App {
     // notification directly into the VsyncRefreshDriver.
     pub fn notify_vsync(&self) {
         let platform_window = self.window().platform_window();
-        let embedded_platform_window = platform_window.as_headed_window().expect("No headed window");
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
         embedded_platform_window.refresh_driver.notify_vsync();
         self.spin_event_loop();
     }
 
     pub fn pause_painting(&self) {
-        if let Err(e) = self
-            .window_rendering_context
-            .borrow()
-            .as_ref()
-            .expect("")
-            .take_window()
-        {
-            warn!("Unbinding native surface from context failed ({:?})", e);
+        let platform_window = self.window().platform_window();
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
+        if let Err(error) = embedded_platform_window.rendering_context.take_window() {
+            warn!("Unbinding native surface from context failed ({:?})", error);
         }
         self.spin_event_loop();
     }
@@ -653,11 +644,12 @@ impl App {
     ) {
         let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
         let size = viewport_rect.size.to_u32();
-        if let Err(error) = self
-            .window_rendering_context
-            .borrow_mut()
-            .as_mut()
-            .expect("resume_painting called but platform window does not exist")
+        let platform_window = self.window().platform_window();
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
+        if let Err(error) = embedded_platform_window
+            .rendering_context
             .set_window(window_handle, PhysicalSize::new(size.width, size.height))
         {
             warn!("Binding native surface to context failed ({error:?})");
