@@ -11,13 +11,13 @@ use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use tempfile::TempDir;
 
-pub struct WebStorageTest {
+pub(crate) struct WebStorageTest {
     tmp_dir: Option<TempDir>,
     threads: StorageThreads,
 }
 
 impl WebStorageTest {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let tmp_dir = tempfile::tempdir().unwrap();
         let config_dir = tmp_dir.path().to_path_buf();
         let mem_profiler_chan = profile_mem::Profiler::create();
@@ -29,7 +29,7 @@ impl WebStorageTest {
         }
     }
 
-    pub fn new_in_memory() -> Self {
+    pub(crate) fn new_in_memory() -> Self {
         let mem_profiler_chan = profile_mem::Profiler::create();
         let threads = storage::new_storage_threads(mem_profiler_chan, None);
 
@@ -39,7 +39,7 @@ impl WebStorageTest {
         }
     }
 
-    pub fn restart(mut self) -> Self {
+    pub(crate) fn restart(mut self) -> Self {
         let tmp_dir = self.tmp_dir.take();
         let config_dir = tmp_dir.as_ref().map(|d| d.path().to_path_buf());
         let mem_profiler_chan = profile_mem::Profiler::create();
@@ -51,11 +51,11 @@ impl WebStorageTest {
         }
     }
 
-    pub fn threads(&self) -> StorageThreads {
+    pub(crate) fn threads(&self) -> StorageThreads {
         self.threads.clone()
     }
 
-    pub fn length(&self, storage_type: WebStorageType, url: &ServoUrl) -> usize {
+    pub(crate) fn length(&self, storage_type: WebStorageType, url: &ServoUrl) -> usize {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Length(
@@ -68,7 +68,12 @@ impl WebStorageTest {
         receiver.recv().unwrap()
     }
 
-    pub fn key(&self, storage_type: WebStorageType, url: &ServoUrl, index: u32) -> Option<String> {
+    pub(crate) fn key(
+        &self,
+        storage_type: WebStorageType,
+        url: &ServoUrl,
+        index: u32,
+    ) -> Option<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Key(
@@ -82,7 +87,7 @@ impl WebStorageTest {
         receiver.recv().unwrap()
     }
 
-    pub fn keys(&self, storage_type: WebStorageType, url: &ServoUrl) -> Vec<String> {
+    pub(crate) fn keys(&self, storage_type: WebStorageType, url: &ServoUrl) -> Vec<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Keys(
@@ -95,7 +100,7 @@ impl WebStorageTest {
         receiver.recv().unwrap()
     }
 
-    pub fn get_item(
+    pub(crate) fn get_item(
         &self,
         storage_type: WebStorageType,
         url: &ServoUrl,
@@ -114,7 +119,7 @@ impl WebStorageTest {
         receiver.recv().unwrap()
     }
 
-    pub fn set_item(
+    pub(crate) fn set_item(
         &self,
         storage_type: WebStorageType,
         url: &ServoUrl,
@@ -135,7 +140,7 @@ impl WebStorageTest {
         receiver.recv().unwrap()
     }
 
-    pub fn remove_item(
+    pub(crate) fn remove_item(
         &self,
         storage_type: WebStorageType,
         url: &ServoUrl,
@@ -154,7 +159,7 @@ impl WebStorageTest {
         receiver.recv().unwrap()
     }
 
-    pub fn clear(&self, storage_type: WebStorageType, url: &ServoUrl) -> bool {
+    pub(crate) fn clear(&self, storage_type: WebStorageType, url: &ServoUrl) -> bool {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Clear(

@@ -624,8 +624,8 @@ impl WebStorageManager {
                             .get_origin_location(&origin)
                             .expect("Should always be able to get origin location.");
 
-                        if let Err(e) = std::fs::remove_dir_all(&origin_location) {
-                            warn!("Failed to delete origin location: {:?}", e);
+                        if let Err(error) = std::fs::remove_dir_all(&origin_location) {
+                            warn!("Failed to delete origin location: {:?}", error);
                             self.local_storage_origins.ensure_origin_descriptor(&origin);
                         }
                     }
