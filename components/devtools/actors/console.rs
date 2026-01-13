@@ -140,8 +140,8 @@ pub(crate) struct ConsoleActor {
 impl ConsoleActor {
     fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
         match &self.root {
-            Root::BrowsingContext(bc) => registry
-                .find::<BrowsingContextActor>(bc)
+            Root::BrowsingContext(browsing_context) => registry
+                .find::<BrowsingContextActor>(browsing_context)
                 .script_chan
                 .clone(),
             Root::DedicatedWorker(worker) => {
@@ -152,10 +152,14 @@ impl ConsoleActor {
 
     fn current_unique_id(&self, registry: &ActorRegistry) -> UniqueId {
         match &self.root {
-            Root::BrowsingContext(bc) => {
-                UniqueId::Pipeline(registry.find::<BrowsingContextActor>(bc).pipeline_id())
+            Root::BrowsingContext(browsing_context) => UniqueId::Pipeline(
+                registry
+                    .find::<BrowsingContextActor>(browsing_context)
+                    .pipeline_id(),
+            ),
+            Root::DedicatedWorker(worker) => {
+                UniqueId::Worker(registry.find::<WorkerActor>(worker).worker_id)
             },
-            Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).worker_id),
         }
     }
 

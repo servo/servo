@@ -163,7 +163,12 @@ impl ActorRegistry {
 
     /// Find an actor by registered name
     pub fn find<T: Actor>(&self, name: &str) -> DowncastableActorArc<T> {
-        let actor = self.actors.borrow().get(name).unwrap().clone();
+        let actor = self
+            .actors
+            .borrow()
+            .get(name)
+            .expect("Should never look for a nonexistent actor")
+            .clone();
         DowncastableActorArc {
             actor,
             _phantom: PhantomData,

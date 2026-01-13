@@ -337,11 +337,11 @@ impl BrowsingContextActor {
             .map_err(|_| ())
     }
 
-    pub fn pipeline_id(&self) -> PipelineId {
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
         *self.active_pipeline_id.borrow()
     }
 
-    pub fn outer_window_id(&self) -> DevtoolsOuterWindowId {
+    pub(crate) fn outer_window_id(&self) -> DevtoolsOuterWindowId {
         *self.active_outer_window_id.borrow()
     }
 }
