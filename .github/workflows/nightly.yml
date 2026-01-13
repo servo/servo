@@ -97,6 +97,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           sparse-checkout: |
+            .github
             python
             .
           fetch-depth: '1'
@@ -140,6 +141,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           sparse-checkout: |
+            .github
             python
             .
           fetch-depth: '1'
@@ -178,6 +180,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           sparse-checkout: |
+            .github
             python
             .
           fetch-depth: '1'
@@ -218,6 +221,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           sparse-checkout: |
+            .github
             python
             .
           fetch-depth: '1'
@@ -259,6 +263,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           sparse-checkout: |
+            .github
             python
             .
           fetch-depth: '1'
@@ -315,6 +320,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           sparse-checkout: |
+            .github
             python
             .
           fetch-depth: '1'
