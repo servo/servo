@@ -6455,7 +6455,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_own_property_keys(
-                        SafeJSContext::from_ptr(cx.raw_cx()), proxy, CROSS_ORIGIN_PROPERTIES.get(), props
+                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), props
                     );
                 }
 
