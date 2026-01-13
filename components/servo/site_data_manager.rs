@@ -178,14 +178,17 @@ impl SiteDataManager {
     ///
     /// The clearing is restricted to the provided `storage_types` bitflags.
     /// Both public and private browsing data are affected.
-    ///
-    /// TODO: At present this method can only clear cookies and sessionStorage
-    /// data for the specified sites. Support for localStorage will be added
-    /// in a follow-up.
     pub fn clear_site_data(&self, sites: &[&str], storage_types: StorageType) {
         if storage_types.contains(StorageType::Cookies) {
             self.public_resource_threads.clear_cookies_for_sites(sites);
             self.private_resource_threads.clear_cookies_for_sites(sites);
+        }
+
+        if storage_types.contains(StorageType::Local) {
+            self.public_storage_threads
+                .clear_webstorage_for_sites(WebStorageType::Local, sites);
+            self.private_storage_threads
+                .clear_webstorage_for_sites(WebStorageType::Local, sites);
         }
 
         if storage_types.contains(StorageType::Session) {
