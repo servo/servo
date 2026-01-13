@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::time::{ProfilerCategory, ProfilerChan};
 use crate::time_profile;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GenericCallback<T>
 where
     T: Serialize + Send + 'static,

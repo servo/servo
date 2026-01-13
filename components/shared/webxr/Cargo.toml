@@ -16,8 +16,10 @@ but adapted to Rust design patterns.'''
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 embedder_traits = { workspace = true }
 ipc-channel = { workspace = true }
+profile_traits = { workspace = true }
 euclid = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }

@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericReceiver;
 use euclid::{Point2D, Rect, RigidTransform3D, Transform3D};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -17,7 +18,7 @@ pub trait MockDiscoveryAPI<GL>: 'static {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        receiver: IpcReceiver<MockDeviceMsg>,
+        receiver: GenericReceiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<GL>>, Error>;
 }
 
@@ -58,7 +59,7 @@ pub enum MockDeviceMsg {
     VisibilityChange(Visibility),
     SetWorld(MockWorld),
     ClearWorld,
-    Disconnect(IpcSender<()>),
+    Disconnect(ProfileGenericCallback<()>),
     SetBoundsGeometry(Vec<Point2D<f32, Floor>>),
     SimulateResetPose,
 }

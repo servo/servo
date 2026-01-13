@@ -8,11 +8,10 @@
 
 use std::rc::Rc;
 
+use base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-use ipc_channel::router::ROUTER;
 use js::jsval::JSVal;
-use profile_traits::ipc;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
 use crate::ScriptThread;
@@ -49,7 +48,7 @@ impl XRTest {
 
     fn device_obtained(
         &self,
-        response: Result<IpcSender<MockDeviceMsg>, XRError>,
+        response: Result<GenericSender<MockDeviceMsg>, XRError>,
         trusted: TrustedPromise,
         can_gc: CanGc,
     ) {
@@ -154,11 +153,9 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
-        ROUTER.add_typed_route(
-            receiver.to_ipc_receiver(),
-            Box::new(move |message| {
+        let callback =
+            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
                 let trusted = trusted
                     .take()
                     .expect("SimulateDeviceConnection callback called twice");
@@ -169,10 +166,10 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 task_source.queue(task!(request_session: move || {
                     this.root().device_obtained(message, trusted, CanGc::note());
                 }));
-            }),
-        );
+            })
+            .expect("Could not create callback");
         if let Some(mut r) = global.as_window().webxr_registry() {
-            r.simulate_device_connection(init, sender);
+            r.simulate_device_connection(init, callback);
         }
 
         p
@@ -201,7 +198,6 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         } else {
             let mut len = devices.len();
 
-            let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
             let mut rooted_devices: Vec<_> =
                 devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
             devices.clear();
@@ -212,9 +208,8 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 .dom_manipulation_task_source()
                 .to_sendable();
 
-            ROUTER.add_typed_route(
-                receiver.to_ipc_receiver(),
-                Box::new(move |_| {
+            let callback =
+                ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |_| {
                     len -= 1;
                     if len == 0 {
                         let trusted = trusted
@@ -222,11 +217,11 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                             .expect("DisconnectAllDevices disconnected more devices than expected");
                         task_source.queue(trusted.resolve_task(()));
                     }
-                }),
-            );
+                })
+                .expect("Could not create callback");
 
             for device in rooted_devices.drain(..) {
-                device.disconnect(sender.clone());
+                device.disconnect(callback.clone());
             }
         };
         p

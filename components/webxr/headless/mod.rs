@@ -6,8 +6,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use base::generic_channel::GenericReceiver;
 use euclid::{Point2D, RigidTransform3D};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use surfman::chains::SwapChains;
 use webxr_api::util::{self, ClipPlanes, HitTestList};
 use webxr_api::{
@@ -83,7 +84,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        receiver: IpcReceiver<MockDeviceMsg>,
+        receiver: GenericReceiver<MockDeviceMsg>,
     ) -> Result<Box<dyn DiscoveryAPI<SurfmanGL>>, Error> {
         if !self.enabled.load(Ordering::Relaxed) {
             return Err(Error::NoMatchingDevice);
@@ -120,7 +121,7 @@ impl MockDiscoveryAPI<SurfmanGL> for HeadlessMockDiscovery {
     }
 }
 
-fn run_loop(receiver: IpcReceiver<MockDeviceMsg>, data: Arc<Mutex<HeadlessDeviceData>>) {
+fn run_loop(receiver: GenericReceiver<MockDeviceMsg>, data: Arc<Mutex<HeadlessDeviceData>>) {
     while let Ok(msg) = receiver.recv() {
         if !data.lock().expect("Mutex poisoned").handle_msg(msg) {
             break;
@@ -296,7 +297,7 @@ impl DeviceAPI for HeadlessDevice {
         vec![]
     }
 
-    fn set_event_dest(&mut self, dest: IpcSender<Event>) {
+    fn set_event_dest(&mut self, dest: ProfileGenericCallback<Event>) {
         self.with_per_session(|s| s.events.upgrade(dest))
     }
 

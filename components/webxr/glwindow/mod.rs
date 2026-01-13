@@ -9,7 +9,7 @@ use euclid::{
     Angle, Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, UnknownUnit, Vector3D,
 };
 use glow::{self as gl, Context as Gl, HasContext};
-use ipc_channel::ipc::IpcSender;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use raw_window_handle::DisplayHandle;
 use surfman::chains::{PreserveBuffer, SwapChain, SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{
@@ -306,7 +306,7 @@ impl DeviceAPI for GlWindowDevice {
         vec![]
     }
 
-    fn set_event_dest(&mut self, dest: IpcSender<Event>) {
+    fn set_event_dest(&mut self, dest: ProfileGenericCallback<Event>) {
         self.events.upgrade(dest)
     }
 

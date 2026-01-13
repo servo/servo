@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
 use embedder_traits::EventLoopWaker;
-use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
+use ipc_channel::ipc::IpcSender;
 use log::warn;
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -14,7 +16,7 @@ use crate::{
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registry {
-    sender: IpcSender<RegistryMsg>,
+    sender: GenericSender<RegistryMsg>,
     waker: MainThreadWakerImpl,
 }
 
@@ -22,8 +24,8 @@ pub struct MainThreadRegistry<GL> {
     discoveries: Vec<Box<dyn DiscoveryAPI<GL>>>,
     sessions: Vec<Box<dyn MainThreadSession>>,
     mocks: Vec<Box<dyn MockDiscoveryAPI<GL>>>,
-    sender: IpcSender<RegistryMsg>,
-    receiver: IpcReceiver<RegistryMsg>,
+    sender: GenericSender<RegistryMsg>,
+    receiver: GenericReceiver<RegistryMsg>,
     waker: MainThreadWakerImpl,
     grand_manager: LayerGrandManager<GL>,
     next_session_id: u32,
@@ -31,23 +33,27 @@ pub struct MainThreadRegistry<GL> {
 
 #[derive(Clone, Serialize, Deserialize)]
 struct MainThreadWakerImpl {
-    sender: IpcSender<()>,
+    callback: GenericCallback<()>,
 }
 
 impl MainThreadWakerImpl {
     fn new(waker: Box<dyn EventLoopWaker>) -> Result<MainThreadWakerImpl, Error> {
-        let (sender, receiver) = channel().or(Err(Error::CommunicationError))?;
-        ipc_channel::router::ROUTER.add_typed_route(receiver, Box::new(move |_| waker.wake()));
-        Ok(MainThreadWakerImpl { sender })
+        let callback =
+            GenericCallback::new(move |_| waker.wake()).expect("Could not construct callback");
+        Ok(MainThreadWakerImpl { callback })
     }
 
     fn wake(&self) {
-        let _ = self.sender.send(());
+        let _ = self.callback.send(());
     }
 }
 
 impl Registry {
-    pub fn supports_session(&mut self, mode: SessionMode, dest: IpcSender<Result<(), Error>>) {
+    pub fn supports_session(
+        &mut self,
+        mode: SessionMode,
+        dest: ProfileGenericCallback<Result<(), Error>>,
+    ) {
         let _ = self.sender.send(RegistryMsg::SupportsSession(mode, dest));
         self.waker.wake();
     }
@@ -71,7 +77,7 @@ impl Registry {
     pub fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-        dest: IpcSender<Result<IpcSender<MockDeviceMsg>, Error>>,
+        dest: ProfileGenericCallback<Result<GenericSender<MockDeviceMsg>, Error>>,
     ) {
         let _ = self
             .sender
@@ -85,7 +91,9 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         waker: Box<dyn EventLoopWaker>,
         grand_manager: LayerGrandManager<GL>,
     ) -> Result<Self, Error> {
-        let (sender, receiver) = channel().or(Err(Error::CommunicationError))?;
+        let Some((sender, receiver)) = generic_channel::channel() else {
+            return Err(Error::CommunicationError);
+        };
         let discoveries = Vec::new();
         let sessions = Vec::new();
         let mocks = Vec::new();
@@ -197,9 +205,11 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
     fn simulate_device_connection(
         &mut self,
         init: MockDeviceInit,
-    ) -> Result<IpcSender<MockDeviceMsg>, Error> {
+    ) -> Result<GenericSender<MockDeviceMsg>, Error> {
         for mock in &mut self.mocks {
-            let (sender, receiver) = channel().or(Err(Error::CommunicationError))?;
+            let Some((sender, receiver)) = generic_channel::channel() else {
+                return Err(Error::CommunicationError);
+            };
             if let Ok(discovery) = mock.simulate_device_connection(init.clone(), receiver) {
                 self.discoveries.insert(0, discovery);
                 return Ok(sender);
@@ -218,9 +228,9 @@ enum RegistryMsg {
         IpcSender<Result<Session, Error>>,
         IpcSender<Frame>,
     ),
-    SupportsSession(SessionMode, IpcSender<Result<(), Error>>),
+    SupportsSession(SessionMode, ProfileGenericCallback<Result<(), Error>>),
     SimulateDeviceConnection(
         MockDeviceInit,
-        IpcSender<Result<IpcSender<MockDeviceMsg>, Error>>,
+        ProfileGenericCallback<Result<GenericSender<MockDeviceMsg>, Error>>,
     ),
 }

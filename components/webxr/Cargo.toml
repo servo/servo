@@ -24,11 +24,12 @@ openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
 x11 = ["surfman/sm-x11"]
 
 [dependencies]
+base = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glow = { workspace = true }
+profile_traits = { workspace = true }
 log = { workspace = true }
-ipc-channel = { workspace = true }
 openxr = { workspace = true, optional = true }
 raw-window-handle = { workspace = true }
 surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }
