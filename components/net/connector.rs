@@ -5,6 +5,7 @@
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::Arc;
+use std::time::Duration;
 use std::{fmt, io};
 
 use futures::task::{Context, Poll};
@@ -49,6 +50,7 @@ impl ServoHttpConnector {
         let mut inner = HyperHttpConnector::new();
         inner.enforce_http(false);
         inner.set_happy_eyeballs_timeout(None);
+        inner.set_connect_timeout(Some(Duration::from_secs(pref!(network_connection_timeout))));
         ServoHttpConnector { inner }
     }
 }
