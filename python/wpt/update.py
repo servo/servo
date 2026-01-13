@@ -117,8 +117,7 @@ def update_tests(**kwargs: Any) -> int:
 
 def run_update(**kwargs: Any) -> bool:
     """Run the update process returning True if the process is successful."""
-    run_logs: list[str] = kwargs.get("run_log", "")
-    if any([GITHUB_ACTION_RUN_URL_REGEX.search(run_log) for run_log in run_logs]):
+    if any([GITHUB_ACTION_RUN_URL_REGEX.search(argument) for argument in sys.argv]):
         return download_run_results_and_then_run_update(kwargs)
 
     logger = setup_logging(kwargs, {"mach": sys.stdout})
@@ -129,13 +128,15 @@ def download_run_results_and_then_run_update(kwargs: dict[str, Any]) -> bool:
     """If any of the arguments passed to `./mach update-wpt` are URLs, attempt to
     interpret them as GitHub Action Run URLs and download any test results, passing
     the downloaded results as the input to the WPT metadata update."""
-    run_logs: list[str] = kwargs.get("run_log", "")
     with tempfile.TemporaryDirectory() as directory:
         downloaded_run_logs = []
-        for run_log in run_logs:
-            match = GITHUB_ACTION_RUN_URL_REGEX.search(run_log)
+        for argument in sys.argv:
+            if argument.startswith("-") or argument == "update-wpt":
+                continue
+
+            match = GITHUB_ACTION_RUN_URL_REGEX.search(argument)
             if not match:
-                downloaded_run_logs.append(run_log)
+                downloaded_run_logs.append(argument)
                 continue
 
             repository = match.group(1)
