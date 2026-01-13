@@ -251,10 +251,10 @@ jobs:
           fetch-depth: '1'
       - uses: actions/download-artifact@v7
         with:
-          name: release-binary-android-aarch64
+          name: release-binary-android-aarch64-linux-android
       - uses: actions/download-artifact@v7
         with:
-          name: release-library-android-aarch64
+          name: release-library-android-aarch64-linux-android
       - name: Generate artifact attestation for APK
         uses: actions/attest-build-provenance@v3
         with:
