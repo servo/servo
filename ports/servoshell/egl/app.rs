@@ -422,8 +422,8 @@ impl App {
             webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
         }
         let window = self.window().platform_window();
-        let ohos_window = window.as_headed_window().expect("No headed window");
-        *ohos_window.viewport_rect.borrow_mut() = viewport_rect;
+        let embedded_platform_window = window.as_headed_window().expect("No headed window");
+        *embedded_platform_window.viewport_rect.borrow_mut() = viewport_rect;
 
         self.spin_event_loop();
     }
@@ -632,7 +632,7 @@ impl App {
             .as_headed_window()
             .expect("No headed window");
         if let Err(error) = embedded_platform_window.rendering_context.take_window() {
-            warn!("Unbinding native surface from context failed ({:?})", error);
+            warn!("Unbinding native surface from context failed ({error:?})");
         }
         self.spin_event_loop();
     }
