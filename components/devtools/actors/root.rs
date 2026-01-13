@@ -9,11 +9,12 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js
 
+use std::collections::HashMap;
+
 use atomic_refcell::AtomicRefCell;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
-use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
@@ -22,14 +23,16 @@ use crate::actors::process::{ProcessActor, ProcessActorMsg};
 use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerActorMsg};
 use crate::protocol::{ActorDescription, ClientRequest};
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ActorTraits {
+struct RootTraits {
     sources: bool,
     highlightable: bool,
     custom_highlighters: bool,
     network_monitor: bool,
+    resources: HashMap<&'static str, bool>,
 }
 
 #[derive(Serialize)]
@@ -78,7 +81,7 @@ struct GetTabReply {
 pub struct RootActorMsg {
     from: String,
     application_type: String,
-    traits: ActorTraits,
+    traits: RootTraits,
 }
 
 #[derive(Serialize)]
@@ -260,6 +263,18 @@ impl Actor for RootActor {
                 request.reply_final(&msg)?
             },
 
+            "watchResources" => {
+                // TODO: Respond to watch resource requests
+                let msg = EmptyReplyMsg { from: self.name() };
+                request.reply_final(&msg)?
+            },
+
+            "unwatchResources" => {
+                // TODO: Respond to unwatch resource requests
+                let msg = EmptyReplyMsg { from: self.name() };
+                request.reply_final(&msg)?
+            },
+
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
@@ -324,11 +339,12 @@ impl ActorEncode<RootActorMsg> for RootActor {
         RootActorMsg {
             from: "root".to_owned(),
             application_type: "browser".to_owned(),
-            traits: ActorTraits {
+            traits: RootTraits {
                 sources: false,
                 highlightable: true,
                 custom_highlighters: true,
                 network_monitor: true,
+                resources: HashMap::from([("extensions-backgroundscript-status", true)]),
             },
         }
     }
