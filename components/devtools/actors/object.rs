@@ -51,7 +51,7 @@ impl ObjectActor {
             };
 
             registry.register_script_actor(uuid, name.clone());
-            registry.register_later(actor);
+            registry.register(actor);
 
             name
         } else {

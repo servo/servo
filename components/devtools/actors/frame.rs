@@ -81,7 +81,7 @@ impl Actor for FrameActor {
                     from: self.name(),
                     environment: environment.encode(registry),
                 };
-                registry.register_later(environment);
+                registry.register(environment);
                 request.reply_final(&msg)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),

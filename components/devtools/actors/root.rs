@@ -9,8 +9,7 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js
 
-use std::cell::RefCell;
-
+use atomic_refcell::AtomicRefCell;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
@@ -128,11 +127,11 @@ struct GetProcessResponse {
 
 #[derive(Default)]
 pub struct RootActor {
-    active_tab: RefCell<Option<String>>,
+    active_tab: AtomicRefCell<Option<String>>,
     global_actors: GlobalActors,
     process: String,
-    pub tabs: RefCell<Vec<String>>,
-    pub workers: RefCell<Vec<String>>,
+    pub tabs: AtomicRefCell<Vec<String>>,
+    pub workers: AtomicRefCell<Vec<String>>,
 }
 
 impl Actor for RootActor {

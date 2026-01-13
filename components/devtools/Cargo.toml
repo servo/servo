@@ -12,6 +12,7 @@ name = "devtools"
 path = "lib.rs"
 
 [dependencies]
+atomic_refcell = { workspace = true }
 base = { workspace = true }
 base64 = { workspace = true }
 chrono = { workspace = true }

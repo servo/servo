@@ -6,11 +6,11 @@
 //! Mediates interaction between the remote web console and equivalent functionality (object
 //! inspection, JS evaluation, autocompletion) in Servo.
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReply::{
@@ -134,29 +134,32 @@ pub(crate) enum Root {
 pub(crate) struct ConsoleActor {
     pub name: String,
     pub root: Root,
-    pub cached_events: RefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
+    pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
 }
 
 impl ConsoleActor {
-    fn script_chan<'a>(
-        &self,
-        registry: &'a ActorRegistry,
-    ) -> &'a GenericSender<DevtoolScriptControlMsg> {
+    fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
         match &self.root {
-            Root::BrowsingContext(bc) => &registry.find::<BrowsingContextActor>(bc).script_chan,
-            Root::DedicatedWorker(worker) => &registry.find::<WorkerActor>(worker).script_chan,
+            Root::BrowsingContext(browsing_context) => registry
+                .find::<BrowsingContextActor>(browsing_context)
+                .script_chan
+                .clone(),
+            Root::DedicatedWorker(worker) => {
+                registry.find::<WorkerActor>(worker).script_chan.clone()
+            },
         }
     }
 
     fn current_unique_id(&self, registry: &ActorRegistry) -> UniqueId {
         match &self.root {
-            Root::BrowsingContext(bc) => UniqueId::Pipeline(
+            Root::BrowsingContext(browsing_context) => UniqueId::Pipeline(
                 registry
-                    .find::<BrowsingContextActor>(bc)
-                    .active_pipeline_id
-                    .get(),
+                    .find::<BrowsingContextActor>(browsing_context)
+                    .pipeline_id(),
             ),
-            Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).worker_id),
+            Root::DedicatedWorker(worker) => {
+                UniqueId::Worker(registry.find::<WorkerActor>(worker).worker_id)
+            },
         }
     }
 

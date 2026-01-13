@@ -389,7 +389,7 @@ impl ResourceAvailable for WatcherActor {
 
 impl WatcherActor {
     pub fn new(
-        actors: &mut ActorRegistry,
+        actors: &ActorRegistry,
         browsing_context_actor: String,
         session_context: SessionContext,
     ) -> Self {

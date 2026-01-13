@@ -79,7 +79,7 @@ impl Actor for ThreadActor {
         match msg_type {
             "attach" => {
                 let pause = registry.new_name::<PauseActor>();
-                registry.register_later(PauseActor {
+                registry.register(PauseActor {
                     name: pause.clone(),
                 });
                 let msg = ThreadAttached {
