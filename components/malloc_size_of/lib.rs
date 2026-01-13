@@ -432,6 +432,12 @@ impl<T: MallocSizeOf> MallocSizeOf for BinaryHeap<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for Range<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.start.size_of(ops) + self.end.size_of(ops)
+    }
+}
+
 macro_rules! malloc_size_of_hash_set {
     ($ty:ty) => {
         impl<T, S> MallocShallowSizeOf for $ty
@@ -1066,9 +1072,6 @@ malloc_size_of_is_0!(f32, f64);
 malloc_size_of_is_0!(i8, i16, i32, i64, i128, isize);
 malloc_size_of_is_0!(u8, u16, u32, u64, u128, usize);
 
-malloc_size_of_is_0!(Range<f32>, Range<f64>);
-malloc_size_of_is_0!(Range<i8>, Range<i16>, Range<i32>, Range<i64>, Range<isize>);
-malloc_size_of_is_0!(Range<u8>, Range<u16>, Range<u32>, Range<u64>, Range<usize>);
 malloc_size_of_is_0!(Uuid);
 malloc_size_of_is_0!(app_units::Au);
 malloc_size_of_is_0!(content_security_policy::Destination);

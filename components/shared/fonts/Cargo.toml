@@ -18,9 +18,10 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 memmap2 = { workspace = true }
+num-derive = { workspace = true }
+num-traits = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }
-range = { path = "../../range" }
 read-fonts = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }

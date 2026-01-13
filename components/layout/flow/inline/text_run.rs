@@ -9,11 +9,11 @@ use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
+    TextByteRange,
 };
 use fonts_traits::ByteIndex;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use range::Range as ServoRange;
 use servo_arc::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -140,7 +140,7 @@ impl TextRunSegment {
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
             if run.is_single_preserved_newline() {
-                byte_processed = byte_processed + run.range.length();
+                byte_processed = byte_processed + run.range.len();
                 ifc.defer_forced_line_break();
                 continue;
             }
@@ -149,17 +149,16 @@ impl TextRunSegment {
             if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
                 ifc.process_soft_wrap_opportunity();
             }
+
+            let range_start = byte_processed + ByteIndex(self.range.start as isize);
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.glyph_store.clone(),
                 text_run,
                 &self.font,
                 self.bidi_level,
-                ServoRange::<ByteIndex>::new(
-                    byte_processed + ByteIndex(self.range.start as isize),
-                    run.range.length(),
-                ),
+                TextByteRange::new(range_start, range_start + run.range.len()),
             );
-            byte_processed = byte_processed + run.range.length();
+            byte_processed = byte_processed + run.range.len();
         }
     }
 
@@ -173,9 +172,9 @@ impl TextRunSegment {
             glyph_store: self
                 .font
                 .shape_text(&formatting_context_text[range.clone()], options),
-            range: ServoRange::new(
+            range: TextByteRange::new(
                 ByteIndex(range.start as isize),
-                ByteIndex(range.len() as isize),
+                ByteIndex(range.end as isize),
             ),
         });
     }
@@ -345,7 +344,7 @@ pub(crate) struct TextRun {
 
     /// The selection range for the DOM text node that originated this [`TextRun`]. This
     /// comes directly from the DOM.
-    pub selection_range: Option<ServoRange<ByteIndex>>,
+    pub selection_range: Option<TextByteRange>,
 }
 
 impl TextRun {
@@ -353,7 +352,7 @@ impl TextRun {
         base_fragment_info: BaseFragmentInfo,
         inline_styles: SharedInlineStyles,
         text_range: Range<usize>,
-        selection_range: Option<ServoRange<ByteIndex>>,
+        selection_range: Option<TextByteRange>,
     ) -> Self {
         Self {
             base_fragment_info,

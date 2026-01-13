@@ -30,7 +30,6 @@ net_traits = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
-range = { path = "../../range" }
 rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }

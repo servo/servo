@@ -120,7 +120,6 @@ pixels = { path = "../pixels" }
 pkcs8 = { workspace = true }
 profile_traits = { workspace = true }
 rand = { workspace = true }
-range = { path = "../range" }
 regex = { workspace = true }
 rsa = { workspace = true }
 rustc-hash = { workspace = true }

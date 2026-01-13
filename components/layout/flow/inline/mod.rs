@@ -81,7 +81,7 @@ use std::rc::Rc;
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{ByteIndex, FontMetrics, FontRef, GlyphStore};
+use fonts::{FontMetrics, FontRef, GlyphStore, TextByteRange};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
@@ -89,7 +89,6 @@ use line::{
 };
 use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
-use range::Range;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc;
 use style::Zero;
@@ -1445,7 +1444,7 @@ impl InlineFormattingContextLayout<'_> {
         text_run: &TextRun,
         font: &FontRef,
         bidi_level: Level,
-        range: range::Range<ByteIndex>,
+        range: TextByteRange,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1508,19 +1507,18 @@ impl InlineFormattingContextLayout<'_> {
         let selection_range = if let Some(selection) = &text_run.selection_range {
             let intersection = selection.intersect(&range);
             if intersection.is_empty() {
-                let insertion_point_index = selection.begin();
+                let insertion_point_index = selection.start;
                 if range.contains_inclusive(insertion_point_index) {
-                    Some(Range::new(
-                        insertion_point_index - range.begin(),
-                        ByteIndex(0),
-                    ))
+                    let selection_start = insertion_point_index - range.start;
+                    Some(TextByteRange::new(selection_start, selection_start))
                 } else {
                     None
                 }
             } else {
-                Some(Range::new(
-                    intersection.begin() - range.begin(),
-                    intersection.length(),
+                let selection_start = intersection.start - range.start;
+                Some(TextByteRange::new(
+                    selection_start,
+                    selection_start + intersection.len(),
                 ))
             }
         } else {
