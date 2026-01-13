@@ -100,6 +100,8 @@ jobs:
             python
             .
           fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-windows
@@ -141,6 +143,8 @@ jobs:
             python
             .
           fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-mac
@@ -177,6 +181,8 @@ jobs:
             python
             .
           fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-mac-arm64
@@ -215,6 +221,8 @@ jobs:
             python
             .
           fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-linux
@@ -254,6 +262,8 @@ jobs:
             python
             .
           fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@v7
         with:
           name: release-binary-android-aarch64-linux-android
@@ -308,6 +318,8 @@ jobs:
             python
             .
           fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - uses: actions/download-artifact@v7
         with:
           name: production-library-ohos-aarch64-unknown-linux-ohos
