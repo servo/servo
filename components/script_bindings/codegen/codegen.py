@@ -3605,7 +3605,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
     Generate the CollectJSONAttributes method for an interface descriptor
     """
     def __init__(self, descriptor: Descriptor, toJSONMethod: IDLType | None) -> None:
-        args = [Argument('*mut RawJSContext', 'cx'),
+        args = [Argument('&mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'obj'),
                 Argument('*mut libc::c_void', 'this'),
                 Argument('HandleObject', 'result')]
@@ -3627,15 +3627,15 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                     let conditions = ${conditions};
                     let is_satisfied = conditions.iter().any(|c|
                          c.is_satisfied::<D>(
-                           SafeJSContext::from_ptr(cx),
+                           cx.into(),
                            HandleObject::from_raw(obj),
                            global));
                     if is_satisfied {
-                      rooted!(in(cx) let mut temp = UndefinedValue());
-                      if !get_${name}::<D>(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
+                      rooted!(&in(cx) let mut temp = UndefinedValue());
+                      if !get_${name}::<D>(cx.raw_cx(), obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                         return false;
                       }
-                      if !JS_DefineProperty(cx, result,
+                      if !JS_DefineProperty(cx.raw_cx(), result,
                                             ${nameAsArray},
                                             temp.handle(), JSPROP_ENUMERATE as u32) {
                         return false;
@@ -4565,7 +4565,9 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
     def definition_body(self) -> CGThing:
         ret = dedent("""
             use crate::inheritance::HasParent;
-            rooted!(in(cx) let result = JS_NewPlainObject(cx));
+            let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
+            let cx = &mut cx;
+            rooted!(&in(cx) let result = JS_NewPlainObject(cx.raw_cx()));
             if result.is_null() {
               return false;
             }
