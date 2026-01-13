@@ -116,19 +116,40 @@ jobs:
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
 
 
-  upload-mac:
+  build-mac:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (macOS)
-    needs:
-      - create-draft-release
+    name: Build nightly (macOS)
     uses: ./.github/workflows/mac.yml
     with:
       profile: "production"
-      upload: true
-      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
-    secrets: inherit
+
+  upload-mac:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs:
+      - create-draft-release
+      - build-mac
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            python
+            .
+          fetch-depth: '1'
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-binary-mac
+      - name: Upload nightly
+        run: |
+          .\mach upload-nightly mac --secret-from-environment `
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
 
   upload-mac-arm64:
     # This job is only useful when run on upstream servo.
