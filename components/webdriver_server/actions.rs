@@ -28,9 +28,13 @@ use webdriver::error::{ErrorStatus, WebDriverError};
 
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_oneshot_response};
 
-// Interval between wheelScroll and pointerMove increments in ms, based on common vsync
+/// Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
 static WHEELSCROLL_INTERVAL: u64 = 17;
+
+/// <https://w3c.github.io/webdriver/#dfn-element-click>
+/// This is hard-coded as 0 in spec.
+pub(crate) static ELEMENT_CLICK_BUTTON: u64 = 0;
 
 /// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
 /// 2^53 - 1
@@ -532,13 +536,14 @@ impl Handler {
                 x: current_x,
                 y: current_y,
                 subtype,
-                ..
-            } = *self.get_pointer_input_state(source_id);
+                pressed,
+                pointer_id,
+            } = self.get_pointer_input_state(source_id);
 
             // Step 7. If x != current x or y != current y, run the following steps:
             // FIXME: Actually "last" should not be checked here based on spec.
-            if x != current_x || y != current_y || last {
-                // Step 7.1. Let buttons be equal to input state's buttons property.
+            if x != *current_x || y != *current_y || last {
+                // Step 7.1. Let buttons be equal to input state's pressed property.
                 // Step 7.2. Perform implementation-specific action dispatch steps
                 let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
 
@@ -556,7 +561,16 @@ impl Handler {
                     // In the case where the pointerType is "pen" or "touch", and buttons is empty,
                     // this may be a no-op.
                     PointerType::Touch | PointerType::Pen => {
-                        // TODO: Handle the case where buttons is non-empty.
+                        if pressed.contains(&ELEMENT_CLICK_BUTTON) {
+                            let input_event = InputEvent::Touch(TouchEvent::new(
+                                TouchEventType::Move,
+                                TouchId(*pointer_id as i32),
+                                point,
+                            ));
+                            // We should NOT block here. TouchMove is special, and may never
+                            // be forwarded to constellation and handled.
+                            self.send_input_event_to_embedder(input_event);
+                        }
                     },
                 }
 
