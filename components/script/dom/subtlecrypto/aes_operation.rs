@@ -4,7 +4,7 @@
 
 use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::generic_array::GenericArray;
-use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
+use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
@@ -22,9 +22,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, SubtleAesCbcParams, SubtleAesCtrParams, SubtleAesDerivedKeyParams,
-    SubtleAesGcmParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
+    ALG_AES_CBC, ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithmAndDerivatives, SubtleAesCbcParams, SubtleAesDerivedKeyParams, SubtleAesGcmParams,
+    SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -34,9 +34,6 @@ type Aes192CbcEnc = cbc::Encryptor<Aes192>;
 type Aes192CbcDec = cbc::Decryptor<Aes192>;
 type Aes256CbcEnc = cbc::Encryptor<Aes256>;
 type Aes256CbcDec = cbc::Decryptor<Aes256>;
-type Aes128Ctr = ctr::Ctr64BE<Aes128>;
-type Aes192Ctr = ctr::Ctr64BE<Aes192>;
-type Aes256Ctr = ctr::Ctr64BE<Aes256>;
 
 type Aes128Gcm96Iv = AesGcm<Aes128, U12>;
 type Aes128Gcm128Iv = AesGcm<Aes128, U16>;
@@ -45,125 +42,6 @@ type Aes256Gcm96Iv = AesGcm<Aes256, U12>;
 type Aes128Gcm256Iv = AesGcm<Aes128, U32>;
 type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
 type Aes256Gcm256Iv = AesGcm<Aes256, U32>;
-
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-encrypt>
-pub(crate) fn encrypt_aes_ctr(
-    normalized_algorithm: &SubtleAesCtrParams,
-    key: &CryptoKey,
-    plaintext: &[u8],
-) -> Result<Vec<u8>, Error> {
-    // Step 1. If the counter member of normalizedAlgorithm does not have a length of 16 bytes,
-    // then throw an OperationError.
-    if normalized_algorithm.counter.len() != 16 {
-        return Err(Error::Operation(Some(
-            "The initial counter block length is not 16 bytes".into(),
-        )));
-    }
-
-    // Step 2. If the length member of normalizedAlgorithm is zero or is greater than 128, then
-    // throw an OperationError.
-    if normalized_algorithm.length == 0 {
-        return Err(Error::Operation(Some("The counter length is zero".into())));
-    }
-    if normalized_algorithm.length > 128 {
-        return Err(Error::Operation(Some(
-            "The counter length is greater than 128".into(),
-        )));
-    }
-
-    // Step 3. Let ciphertext be the result of performing the CTR Encryption operation described in
-    // Section 6.5 of [NIST-SP800-38A] using AES as the block cipher, the counter member of
-    // normalizedAlgorithm as the initial value of the counter block, the length member of
-    // normalizedAlgorithm as the input parameter m to the standard counter block incrementing
-    // function defined in Appendix B.1 of [NIST-SP800-38A] and plaintext as the input plaintext.
-    let mut ciphertext = Vec::from(plaintext);
-    let counter = GenericArray::from_slice(&normalized_algorithm.counter);
-
-    match key.handle() {
-        Handle::Aes128(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes128Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
-        },
-        Handle::Aes192(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes192Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
-        },
-        Handle::Aes256(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes256Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
-        },
-        _ => return Err(Error::Data(Some("The key is not an AES key".into()))),
-    };
-
-    // Step 3. Return ciphertext.
-    Ok(ciphertext)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-decrypt>
-pub(crate) fn decrypt_aes_ctr(
-    normalized_algorithm: &SubtleAesCtrParams,
-    key: &CryptoKey,
-    ciphertext: &[u8],
-) -> Result<Vec<u8>, Error> {
-    // NOTE: Share implementation with `encrypt_aes_ctr`
-    encrypt_aes_ctr(normalized_algorithm, key, ciphertext)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
-pub(crate) fn generate_key_aes_ctr(
-    global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
-    extractable: bool,
-    usages: Vec<KeyUsage>,
-    can_gc: CanGc,
-) -> Result<DomRoot<CryptoKey>, Error> {
-    generate_key_aes(
-        global,
-        normalized_algorithm,
-        extractable,
-        usages,
-        ALG_AES_CTR,
-        &[
-            KeyUsage::Encrypt,
-            KeyUsage::Decrypt,
-            KeyUsage::WrapKey,
-            KeyUsage::UnwrapKey,
-        ],
-        can_gc,
-    )
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
-pub(crate) fn import_key_aes_ctr(
-    global: &GlobalScope,
-    format: KeyFormat,
-    key_data: &[u8],
-    extractable: bool,
-    usages: Vec<KeyUsage>,
-    can_gc: CanGc,
-) -> Result<DomRoot<CryptoKey>, Error> {
-    import_key_aes(
-        global,
-        format,
-        key_data,
-        extractable,
-        usages,
-        ALG_AES_CTR,
-        can_gc,
-    )
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
-pub(crate) fn export_key_aes_ctr(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
-    export_key_aes(format, key)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-get-key-length>
-pub(crate) fn get_key_length_aes_ctr(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
-) -> Result<Option<u32>, Error> {
-    get_key_length_aes(normalized_derived_key_algorithm)
-}
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
 pub(crate) fn encrypt_aes_cbc(
@@ -783,7 +661,6 @@ pub(crate) fn get_key_length_aes_kw(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
@@ -858,7 +735,6 @@ fn generate_key_aes(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
@@ -919,11 +795,10 @@ fn import_key_aes(
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
-            // NOTE: This function is shared by AES-CBC, AES-CTR, AES-GCM and AES-KW.
+            // NOTE: This function is shared by AES-CBC, AES-GCM and AES-KW.
             // Different static texts are used in different AES types, in the following step.
             let alg_matching = match alg_name {
                 ALG_AES_CBC => ["A128CBC", "A192CBC", "A256CBC"],
-                ALG_AES_CTR => ["A128CTR", "A192CTR", "A256CTR"],
                 ALG_AES_GCM => ["A128GCM", "A192GCM", "A256GCM"],
                 ALG_AES_KW => ["A128KW", "A192KW", "A256KW"],
                 _ => unreachable!(),
@@ -934,7 +809,6 @@ fn import_key_aes(
                 // If the length in bits of data is 128:
                 128 => {
                     // If the alg field of jwk is present, and is not "A128CBC", then throw a DataError.
-                    // If the alg field of jwk is present, and is not "A128CTR", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A128GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A128KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
@@ -947,7 +821,6 @@ fn import_key_aes(
                 // If the length in bits of data is 192:
                 192 => {
                     // If the alg field of jwk is present, and is not "A192CBC", then throw a DataError.
-                    // If the alg field of jwk is present, and is not "A192CTR", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A192GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A192KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
@@ -960,7 +833,6 @@ fn import_key_aes(
                 // If the length in bits of data is 256:
                 256 => {
                     // If the alg field of jwk is present, and is not "A256CBC", then throw a DataError.
-                    // If the alg field of jwk is present, and is not "A256CTR", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A256GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A256KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
@@ -1041,7 +913,6 @@ fn import_key_aes(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
@@ -1089,28 +960,21 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             };
 
             // Step 2.4.
-            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
-            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
-            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
+            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CBC".
+            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CBC".
+            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CBC".
             //
-            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
-            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
-            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
+            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128GCM".
+            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192GCM".
+            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256GCM".
             //
-            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
-            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
-            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
-            //
-            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CTR".
-            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CTR".
-            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CTR".
+            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128KW".
+            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192KW".
+            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256KW".
             //
             // NOTE: Check key length via key.handle()
             jwk.alg = Some(
                 match (key.handle(), key.algorithm().name()) {
-                    (Handle::Aes128(_), ALG_AES_CTR) => "A128CTR",
-                    (Handle::Aes192(_), ALG_AES_CTR) => "A192CTR",
-                    (Handle::Aes256(_), ALG_AES_CTR) => "A256CTR",
                     (Handle::Aes128(_), ALG_AES_CBC) => "A128CBC",
                     (Handle::Aes192(_), ALG_AES_CBC) => "A192CBC",
                     (Handle::Aes256(_), ALG_AES_CBC) => "A256CBC",
@@ -1148,7 +1012,6 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-get-key-length>
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-get-key-length>
