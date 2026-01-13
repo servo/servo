@@ -8,7 +8,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{mem, thread};
 
-use base::generic_channel::GenericSender;
 use euclid::{Point2D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use glow::{self as gl, HasContext, PixelUnpackData};
 use interaction_profiles::{get_profiles_from_path, get_supported_interaction_profiles};
@@ -22,6 +21,7 @@ use openxr::{
     ReferenceSpaceType, SecondaryEndInfo, Session, Space, Swapchain, SwapchainCreateFlags,
     SwapchainCreateInfo, SwapchainUsageFlags, SystemId, Vector3f, Version, ViewConfigurationType,
 };
+use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use surfman::{
     Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
 };
@@ -1418,7 +1418,7 @@ impl DeviceAPI for OpenXrDevice {
         ]
     }
 
-    fn set_event_dest(&mut self, dest: GenericSender<Event>) {
+    fn set_event_dest(&mut self, dest: ProfileGenericCallback<Event>) {
         self.events.upgrade(dest)
     }
 
