@@ -9,6 +9,7 @@ use std::fmt;
 use std::iter::FusedIterator;
 
 use base::id::{BrowsingContextId, PipelineId};
+use fonts::TextByteRange;
 use fonts_traits::ByteIndex;
 use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -19,7 +20,6 @@ use layout_api::{
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
-use range::Range;
 use selectors::Element as _;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -380,13 +380,13 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         unsafe { self.get_jsmanaged().text_content() }
     }
 
-    fn selection(&self) -> Option<Range<ByteIndex>> {
+    fn selection(&self) -> Option<TextByteRange> {
         let this = unsafe { self.get_jsmanaged() };
 
         this.selection().map(|range| {
-            Range::new(
+            TextByteRange::new(
                 ByteIndex(range.start as isize),
-                ByteIndex(range.len() as isize),
+                ByteIndex(range.end as isize),
             )
         })
     }

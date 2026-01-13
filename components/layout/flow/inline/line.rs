@@ -6,9 +6,8 @@ use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::{ByteIndex, FontMetrics, GlyphStore};
+use fonts::{FontMetrics, GlyphStore, TextByteRange};
 use itertools::Either;
-use range::Range;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -794,7 +793,7 @@ pub(super) struct TextRunLineItem {
     pub font_key: FontInstanceKey,
     /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
     pub bidi_level: Level,
-    pub selection_range: Option<Range<ByteIndex>>,
+    pub selection_range: Option<TextByteRange>,
 }
 
 impl TextRunLineItem {

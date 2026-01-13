@@ -11,11 +11,10 @@ use std::{fmt, mem};
 use app_units::Au;
 use euclid::default::Point2D;
 use euclid::num::Zero;
-pub(crate) use fonts_traits::ByteIndex;
+use fonts_traits::{ByteIndex, TextByteRange};
 use itertools::Either;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
-use range::{self, Range, RangeIndex};
 use serde::{Deserialize, Serialize};
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
@@ -356,7 +355,7 @@ pub enum GlyphInfo<'a> {
 impl GlyphInfo<'_> {
     pub fn id(self) -> GlyphId {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].id(),
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[usize::from(entry_i)].id(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store
                     .detail_store
@@ -369,7 +368,7 @@ impl GlyphInfo<'_> {
     #[inline(always)]
     pub fn advance(self) -> Au {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].advance(),
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[usize::from(entry_i)].advance(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store
                     .detail_store
@@ -518,7 +517,7 @@ impl GlyphStore {
     fn cache_total_advance_and_word_separators(&mut self) {
         let mut total_advance = Au::zero();
         let mut total_word_separators = 0;
-        for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
+        for glyph in self.iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex(0), self.len())) {
             total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
                 total_word_separators += 1;
@@ -568,7 +567,7 @@ impl GlyphStore {
             entry.set_char_is_word_separator();
         }
 
-        self.entry_buffer[i.to_usize()] = entry;
+        self.entry_buffer[usize::from(i)] = entry;
     }
 
     pub(crate) fn add_glyphs_for_byte_index(
@@ -607,41 +606,41 @@ impl GlyphStore {
             i, glyph_count, entry
         );
 
-        self.entry_buffer[i.to_usize()] = entry;
+        self.entry_buffer[usize::from(i)] = entry;
     }
 
     #[inline]
     pub fn iter_glyphs_for_byte_range(
         &self,
-        range: &Range<ByteIndex>,
+        range: TextByteRange,
     ) -> impl Iterator<Item = GlyphInfo<'_>> + use<'_> {
-        if range.begin() >= self.len() {
+        if range.start >= self.len() {
             panic!("iter_glyphs_for_range: range.begin beyond length!");
         }
-        if range.end() > self.len() {
+        if range.end > self.len() {
             panic!("iter_glyphs_for_range: range.end beyond length!");
         }
 
         let range_it = if self.is_rtl {
-            Either::Left(range.each_index().rev())
+            Either::Left(range.rev())
         } else {
-            Either::Right(range.each_index())
+            Either::Right(range)
         };
+
         range_it.into_iter().flat_map(move |range_idx| {
-            let entry = self.entry_buffer[range_idx.to_usize()];
+            let entry = self.entry_buffer[usize::from(range_idx)];
             let result = if entry.is_simple() {
                 Either::Left(once(GlyphInfo::Simple(self, range_idx)))
             } else {
                 // Slow path for complex glyphs
-                let glyphs = self.detail_store.detailed_glyphs_for_entry(
-                    range_idx,
-                    self.entry_buffer[range_idx.to_usize()].glyph_count(),
-                );
+                let glyphs = self
+                    .detail_store
+                    .detailed_glyphs_for_entry(range_idx, entry.glyph_count());
 
                 let complex_glyph_range =
-                    range::each_index(ByteIndex(0), ByteIndex(glyphs.len() as isize));
+                    TextByteRange::new(ByteIndex::zero(), ByteIndex(glyphs.len() as isize));
                 Either::Right(complex_glyph_range.map(move |i| {
-                    GlyphInfo::Detail(self, range_idx, i.get() as u16 /* ??? */)
+                    GlyphInfo::Detail(self, range_idx, usize::from(i) as u16 /* ??? */)
                 }))
             };
 
@@ -650,8 +649,8 @@ impl GlyphStore {
     }
 
     #[inline]
-    pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
-        if range.begin() == ByteIndex(0) && range.end() == self.len() {
+    pub fn advance_for_byte_range(&self, range: TextByteRange, extra_word_spacing: Au) -> Au {
+        if range.start == ByteIndex(0) && range.end == self.len() {
             self.total_advance + extra_word_spacing * (self.total_word_separators as i32)
         } else {
             self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
@@ -661,7 +660,7 @@ impl GlyphStore {
     #[inline]
     pub(crate) fn advance_for_byte_range_simple_glyphs(
         &self,
-        range: &Range<ByteIndex>,
+        range: TextByteRange,
         extra_word_spacing: Au,
     ) -> Au {
         self.iter_glyphs_for_byte_range(range)
@@ -677,7 +676,7 @@ impl GlyphStore {
 
     pub(crate) fn char_is_word_separator(&self, i: ByteIndex) -> bool {
         assert!(i < self.len());
-        self.entry_buffer[i.to_usize()].char_is_word_separator()
+        self.entry_buffer[usize::from(i)].char_is_word_separator()
     }
 }
 
@@ -720,7 +719,7 @@ pub struct GlyphRun {
     #[conditional_malloc_size_of]
     pub glyph_store: Arc<GlyphStore>,
     /// The byte range of characters in the containing run.
-    pub range: Range<ByteIndex>,
+    pub range: TextByteRange,
 }
 
 impl GlyphRun {

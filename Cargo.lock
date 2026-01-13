@@ -2868,7 +2868,6 @@ dependencies = [
  "num-traits",
  "parking_lot",
  "profile_traits",
- "range",
  "read-fonts",
  "rustc-hash 2.1.1",
  "serde",
@@ -2902,9 +2901,10 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "memmap2",
+ "num-derive",
+ "num-traits",
  "parking_lot",
  "profile_traits",
- "range",
  "read-fonts",
  "serde",
  "servo_malloc_size_of",
@@ -4998,7 +4998,6 @@ dependencies = [
  "pixels",
  "profile_traits",
  "quickcheck",
- "range",
  "rayon",
  "rustc-hash 2.1.1",
  "script",
@@ -5045,7 +5044,6 @@ dependencies = [
  "parking_lot",
  "pixels",
  "profile_traits",
- "range",
  "rustc-hash 2.1.1",
  "script_traits",
  "selectors",
@@ -7202,16 +7200,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "range"
-version = "0.0.1"
-dependencies = [
- "malloc_size_of_derive",
- "num-traits",
- "serde",
- "servo_malloc_size_of",
-]
-
-[[package]]
 name = "range-alloc"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7770,7 +7758,6 @@ dependencies = [
  "pkcs8",
  "profile_traits",
  "rand 0.9.2",
- "range",
  "regex",
  "rsa",
  "rustc-hash 2.1.1",

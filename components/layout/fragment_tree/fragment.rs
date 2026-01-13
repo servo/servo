@@ -9,10 +9,9 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use euclid::{Point2D, Rect, Size2D, UnknownUnit};
-use fonts::{ByteIndex, FontMetrics, GlyphStore};
+use fonts::{FontMetrics, GlyphStore, TextByteRange};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
-use range::Range as ServoRange;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
@@ -73,7 +72,7 @@ pub(crate) struct TextFragment {
 
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
-    pub selection_range: Option<ServoRange<ByteIndex>>,
+    pub selection_range: Option<TextByteRange>,
 }
 
 #[derive(MallocSizeOf)]

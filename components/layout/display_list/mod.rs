@@ -13,10 +13,10 @@ use compositing_traits::largest_contentful_paint_candidate::{
     LCPCandidateID, LargestContentfulPaintType,
 };
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
-use fonts::GlyphStore;
+use fonts::{GlyphStore, TextByteRange};
+use fonts_traits::ByteIndex;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
-use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
 use servo_geometry::MaxRect;
@@ -810,19 +810,19 @@ impl Fragment {
 
         // TODO: This caret/text selection implementation currently does not account for vertical text
         // and RTL text properly.
-        if let Some(range) = fragment.selection_range {
+        if let Some(range) = fragment.selection_range.clone() {
             let baseline_origin = rect.origin;
             if !range.is_empty() {
                 let start = glyphs_advance_by_index(
                     &fragment.glyphs,
-                    range.begin(),
+                    range.start,
                     baseline_origin,
                     fragment.justification_adjustment,
                 );
 
                 let end = glyphs_advance_by_index(
                     &fragment.glyphs,
-                    range.end(),
+                    range.end,
                     baseline_origin,
                     fragment.justification_adjustment,
                 );
@@ -847,7 +847,7 @@ impl Fragment {
             } else {
                 let insertion_point = glyphs_advance_by_index(
                     &fragment.glyphs,
-                    range.begin(),
+                    range.start,
                     baseline_origin,
                     fragment.justification_adjustment,
                 );
@@ -1650,11 +1650,10 @@ fn glyphs(
     include_whitespace: bool,
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
-    use range::Range;
 
     let mut glyphs = vec![];
     for run in glyph_runs {
-        for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
+        for glyph in run.iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex(0), run.len())) {
             if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
@@ -1680,16 +1679,15 @@ fn glyphs(
 // TODO: The implementation here does not account for multiple glyph runs properly.
 fn glyphs_advance_by_index(
     glyph_runs: &[Arc<GlyphStore>],
-    index: fonts_traits::ByteIndex,
+    mut index: ByteIndex,
     baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
 ) -> PhysicalPoint<Au> {
     let mut point = baseline_origin;
-    let mut index = index;
     for run in glyph_runs {
-        let range = ServoRange::new(fonts::ByteIndex(0), index.min(run.len()));
-        index = index - range.length();
-        let total_advance = run.advance_for_byte_range(&range, justification_adjustment);
+        let range = TextByteRange::new(ByteIndex(0), index.min(run.len()));
+        index = index - range.len();
+        let total_advance = run.advance_for_byte_range(range, justification_adjustment);
         point.x += total_advance;
     }
     point

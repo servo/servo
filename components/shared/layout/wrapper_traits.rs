@@ -9,12 +9,11 @@ use std::fmt::Debug;
 
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
-use fonts_traits::ByteIndex;
+use fonts::TextByteRange;
 use html5ever::{LocalName, Namespace};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
-use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -207,7 +206,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     fn text_content(self) -> Cow<'dom, str>;
 
     /// If selection intersects this node, return it. Otherwise, returns `None`.
-    fn selection(&self) -> Option<Range<ByteIndex>>;
+    fn selection(&self) -> Option<TextByteRange>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;

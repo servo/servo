@@ -4,13 +4,12 @@
 
 use std::borrow::Cow;
 
-use fonts::ByteIndex;
+use fonts::TextByteRange;
 use html5ever::LocalName;
 use layout_api::wrapper_traits::{
     PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
-use range::Range;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element as SelectorsElement;
 use servo_arc::Arc as ServoArc;
@@ -67,7 +66,7 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         })
     }
 
-    pub(crate) fn get_selection_range(&self) -> Option<Range<ByteIndex>> {
+    pub(crate) fn get_selection_range(&self) -> Option<TextByteRange> {
         self.node.selection()
     }
 }

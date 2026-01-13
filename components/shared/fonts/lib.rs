@@ -9,6 +9,7 @@ mod font_identifier;
 mod font_template;
 mod system_font_service_proxy;
 
+use std::ops::{Deref, Neg, Range};
 use std::sync::Arc;
 
 use base::generic_channel::GenericSharedMemory;
@@ -16,15 +17,114 @@ pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
-use range::{RangeIndex, int_range_index};
+use num_derive::{NumOps, One, Zero};
 use serde::{Deserialize, Serialize};
 pub use system_font_service_proxy::*;
+use webrender_api::euclid::num::One;
 
-int_range_index! {
-    #[derive(Deserialize, MallocSizeOf, Serialize)]
-    /// An index that refers to a byte offset in a text run. This could
-    /// the middle of a glyph.
-    struct ByteIndex(isize)
+/// An index that refers to a byte offset in a text run. This could
+/// the middle of a glyph.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    Eq,
+    MallocSizeOf,
+    NumOps,
+    Ord,
+    One,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+    Zero,
+)]
+pub struct ByteIndex(pub isize);
+
+impl From<ByteIndex> for usize {
+    fn from(value: ByteIndex) -> Self {
+        value.0 as usize
+    }
+}
+
+impl Neg for ByteIndex {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self {
+        Self(-self.0)
+    }
+}
+
+/// A range of UTF-8 bytes in a text run. This is used to identify glyphs in a `GlyphRun`
+/// by their original character byte offsets in the text.
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct TextByteRange(Range<ByteIndex>);
+
+impl TextByteRange {
+    pub fn len(&self) -> ByteIndex {
+        self.0.end - self.0.start
+    }
+
+    #[inline]
+    pub fn intersect(&self, other: &Self) -> Self {
+        let begin = self.start.max(other.start);
+        let end = self.end.min(other.end);
+
+        if end < begin {
+            Self::default()
+        } else {
+            Self::new(begin, end)
+        }
+    }
+
+    #[inline]
+    pub fn contains_inclusive(&self, index: ByteIndex) -> bool {
+        index >= self.start && index <= self.end
+    }
+}
+
+impl Deref for TextByteRange {
+    type Target = Range<ByteIndex>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Iterator for TextByteRange {
+    type Item = ByteIndex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0.start == self.0.end {
+            None
+        } else {
+            let next = self.0.start;
+            self.0.start = self.0.start + ByteIndex::one();
+            Some(next)
+        }
+    }
+}
+
+impl DoubleEndedIterator for TextByteRange {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.0.start == self.0.end {
+            None
+        } else {
+            self.0.end = self.0.end - ByteIndex::one();
+            Some(self.0.end)
+        }
+    }
+}
+
+impl TextByteRange {
+    pub fn new(start: ByteIndex, end: ByteIndex) -> Self {
+        Self(start..end)
+    }
+
+    pub fn iter(&self) -> Range<ByteIndex> {
+        self.0.clone()
+    }
 }
 
 pub type StylesheetWebFontLoadFinishedCallback = Arc<dyn Fn(bool) + Send + Sync + 'static>;
