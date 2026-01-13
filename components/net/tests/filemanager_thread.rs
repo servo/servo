@@ -12,17 +12,20 @@ use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FilePickerRequest, FilterPattern,
 };
 use ipc_channel::ipc;
+use net::async_runtime::{async_runtime_initialized, init_async_runtime};
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
 use servo_config::prefs::Preferences;
+use tokio::task::yield_now;
 
 use crate::create_embedder_proxy_and_receiver;
 
 #[test]
 fn test_filemanager() {
+    let _runtime = init_async_runtime();
     let mut preferences = Preferences::default();
     preferences.dom_testing_html_input_element_select_files_enabled = true;
     servo_config::prefs::set(preferences);

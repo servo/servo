@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -29,10 +29,13 @@ use net_traits::response::{Response, ResponseBody};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
+use tokio::task::yield_now;
 use url::Url;
 use uuid::Uuid;
 
+use crate::async_runtime::spawn_task;
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::protocols::get_range_request_bounds;
 
@@ -97,8 +100,8 @@ impl FileManager {
         origin: FileOrigin,
     ) {
         let store = self.store.clone();
-        std::thread::spawn(move || {
-            if let Err(e) = store.try_read_file(&sender, id, origin) {
+        spawn_task(async move {
+            if let Err(e) = store.try_read_file(&sender, id, origin).await {
                 let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
             }
         });
@@ -147,8 +150,11 @@ impl FileManager {
             FileManagerThreadMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
                 let store = self.store.clone();
                 let embedder = self.embedder_proxy.clone();
-                std::thread::spawn(move || {
-                    store.select_files(control_id, file_picker_request, response_sender, embedder);
+                spawn_task(async move {
+                    let embedder_control_msg = store
+                        .select_files(control_id, file_picker_request, embedder)
+                        .await;
+                    response_sender.send(embedder_control_msg).unwrap();
                 });
             },
             FileManagerThreadMsg::ReadFile(sender, id, origin) => {
@@ -181,7 +187,7 @@ impl FileManager {
         range: RelativePos,
     ) {
         let done_sender = done_sender.clone();
-        std::thread::spawn(move || {
+        spawn_task(async move {
             loop {
                 if cancellation_listener.cancelled() {
                     *res_body.lock() = ResponseBody::Done(vec![]);
@@ -231,6 +237,7 @@ impl FileManager {
                     break;
                 }
                 reader.consume(length);
+                yield_now().await
             }
         });
     }
@@ -526,13 +533,12 @@ impl FileManagerStore {
         }
     }
 
-    fn select_files(
+    async fn select_files(
         &self,
         control_id: EmbedderControlId,
         file_picker_request: FilePickerRequest,
-        response_sender: IpcSender<EmbedderControlResponse>,
         embedder_proxy: EmbedderProxy,
-    ) {
+    ) -> EmbedderControlResponse {
         let (ipc_sender, ipc_receiver) =
             generic_channel::channel().expect("Failed to create IPC channel!");
 
@@ -546,13 +552,11 @@ impl FileManagerStore {
         let paths = match ipc_receiver.recv() {
             Ok(Some(result)) => result,
             Ok(None) => {
-                let _ = response_sender.send(EmbedderControlResponse::FilePicker(None));
-                return;
+                return EmbedderControlResponse::FilePicker(None);
             },
             Err(error) => {
                 warn!("Failed to receive files from embedder ({:?}).", error);
-                let _ = response_sender.send(EmbedderControlResponse::FilePicker(None));
-                return;
+                return EmbedderControlResponse::FilePicker(None);
             },
         };
 
@@ -579,11 +583,10 @@ impl FileManagerStore {
             for file in files.iter() {
                 self.remove(&file.id);
             }
-            let _ = response_sender.send(EmbedderControlResponse::FilePicker(Some(Vec::new())));
-            return;
+            return EmbedderControlResponse::FilePicker(Some(Vec::new()));
         }
 
-        let _ = response_sender.send(EmbedderControlResponse::FilePicker(Some(files)));
+        EmbedderControlResponse::FilePicker(Some(files))
     }
 
     fn create_entry(
@@ -639,7 +642,7 @@ impl FileManagerStore {
         })
     }
 
-    fn get_blob_buf(
+    async fn get_blob_buf(
         &self,
         sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
         id: &Uuid,
@@ -679,10 +682,12 @@ impl FileManagerStore {
                 let mime = mime_guess::from_path(metadata.path.clone()).first();
                 let range = rel_pos.to_abs_range(metadata.size as usize);
 
-                let mut file = File::open(&metadata.path)
+                let mut file = tokio::fs::File::open(&metadata.path)
+                    .await
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
                 let seeked_start = file
                     .seek(SeekFrom::Start(range.start as u64))
+                    .await
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
                 if seeked_start == (range.start as u64) {
@@ -691,7 +696,7 @@ impl FileManagerStore {
                         None => "".to_string(),
                     };
 
-                    read_file_in_chunks(sender, &mut file, range.len(), opt_filename, type_string);
+                    read_file_in_chunks(sender, file, range.len(), opt_filename, type_string).await;
                     Ok(())
                 } else {
                     Err(BlobURLStoreError::InvalidEntry)
@@ -700,19 +705,20 @@ impl FileManagerStore {
             FileImpl::Sliced(parent_id, inner_rel_pos) => {
                 // Next time we don't need to check validity since
                 // we have already done that for requesting URL if necessary
-                self.get_blob_buf(
+                Box::pin(self.get_blob_buf(
                     sender,
                     &parent_id,
                     file_token,
                     origin_in,
                     rel_pos.slice_inner(&inner_rel_pos),
-                )
+                ))
+                .await
             },
         }
     }
 
     // Convenient wrapper over get_blob_buf
-    fn try_read_file(
+    async fn try_read_file(
         &self,
         sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
@@ -725,6 +731,7 @@ impl FileManagerStore {
             &origin_in,
             RelativePos::full_range(),
         )
+        .await
     }
 
     fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
@@ -841,16 +848,16 @@ impl FileManagerStore {
     }
 }
 
-fn read_file_in_chunks(
+async fn read_file_in_chunks(
     sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
-    file: &mut File,
+    mut file: tokio::fs::File,
     size: usize,
     opt_filename: Option<String>,
     type_string: String,
 ) {
     // First chunk
     let mut buf = vec![0; FILE_CHUNK_SIZE];
-    match file.read(&mut buf) {
+    match file.read(&mut buf).await {
         Ok(n) => {
             buf.truncate(n);
             let blob_buf = BlobBuf {
@@ -870,7 +877,7 @@ fn read_file_in_chunks(
     // Send the remaining chunks
     loop {
         let mut buf = vec![0; FILE_CHUNK_SIZE];
-        match file.read(&mut buf) {
+        match file.read(&mut buf).await {
             Ok(0) => {
                 let _ = sender.send(Ok(ReadFileProgress::EOF));
                 return;
