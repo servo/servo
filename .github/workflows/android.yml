@@ -6,13 +6,6 @@ on:
         required: false
         default: "release"
         type: string
-      upload:
-        required: false
-        default: false
-        type: boolean
-      github-release-id:
-        required: false
-        type: string
       bencher:
         required: false
         default: false
@@ -117,31 +110,11 @@ jobs:
           name: cargo-timings-android-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
-      - name: Upload nightly
-        if: ${{ inputs.upload && contains(matrix.target, 'aarch64') }}
-        run: |
-          ./mach upload-nightly android \
-            --secret-from-environment \
-            --github-release-id ${{ inputs.github-release-id }}
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
-      - name: Generate artifact attestation for APK
-        if: ${{ inputs.upload }}
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
-      - name: Generate artifact attestation for AAR
-        if: ${{ inputs.upload }}
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
         with:

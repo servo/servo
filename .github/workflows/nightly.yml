@@ -158,21 +158,56 @@ jobs:
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
     secrets: inherit
 
-  upload-android:
+  build-android:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Upload nightly (Android)
-    needs:
-      - create-draft-release
-    permissions:
-      id-token: write
-      attestations: write
+    name: Build nightly (Android)
     uses: ./.github/workflows/android.yml
     with:
       profile: "release"
-      upload: true
-      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
+
+  upload-android:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      attestations: write
+    needs:
+      - create-draft-release
+      - build-android
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            python
+            .
+          fetch-depth: '1'
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-binary-android-aarch64
+      - uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-library-android-aarch64
+      - name: Generate artifact attestation for APK
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
+      - name: Generate artifact attestation for AAR
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+      - name: Upload nightly
+        run: |
+          ./mach upload-nightly android \
+            --secret-from-environment \
+            --github-release-id ${{ needs.create-draft-release.outputs.release-id }}
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+
 
   upload-ohos:
     # This job is only useful when run on upstream servo.
