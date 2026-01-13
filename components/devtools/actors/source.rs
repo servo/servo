@@ -55,7 +55,7 @@ pub struct SourceActor {
     /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#black-boxing-sources>
     pub is_black_boxed: bool,
 
-    pub content: Option<String>,
+    pub content: RefCell<Option<String>>,
     pub content_type: Option<String>,
 
     // TODO: use it in #37667, then remove this allow
@@ -127,7 +127,7 @@ impl SourceActor {
         SourceActor {
             name,
             url,
-            content,
+            content: RefCell::new(content),
             content_type,
             is_black_boxed: false,
             spidermonkey_id,
@@ -201,6 +201,7 @@ impl Actor for SourceActor {
                     // become available later (e.g. after a fetch)?
                     source: self
                         .content
+                        .borrow()
                         .as_deref()
                         .unwrap_or("<!-- not available; please reload! -->")
                         .to_owned(),

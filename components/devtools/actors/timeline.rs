@@ -336,7 +336,7 @@ impl Emitter {
         if let Some(ref actor_name) = self.framerate_actor {
             let mut lock = self.registry.lock();
             let registry = lock.as_mut().unwrap();
-            let framerate_actor = registry.find_mut::<FramerateActor>(actor_name);
+            let framerate_actor = registry.find::<FramerateActor>(actor_name);
             let framerate_reply = FramerateEmitterReply {
                 type_: "framerate".to_owned(),
                 from: framerate_actor.name(),

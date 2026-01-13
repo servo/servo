@@ -65,14 +65,10 @@ pub(crate) trait Actor: Any + ActorAsAny + Send {
 
 pub(crate) trait ActorAsAny {
     fn actor_as_any(&self) -> &dyn Any;
-    fn actor_as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: Actor> ActorAsAny for T {
     fn actor_as_any(&self) -> &dyn Any {
-        self
-    }
-    fn actor_as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }
@@ -163,12 +159,6 @@ impl ActorRegistry {
     pub fn find<'a, T: Any>(&'a self, name: &str) -> &'a T {
         let actor = self.actors.get(name).unwrap();
         actor.actor_as_any().downcast_ref::<T>().unwrap()
-    }
-
-    /// Find an actor by registered name
-    pub fn find_mut<'a, T: Any>(&'a mut self, name: &str) -> &'a mut T {
-        let actor = self.actors.get_mut(name).unwrap();
-        actor.actor_as_any_mut().downcast_mut::<T>().unwrap()
     }
 
     /// Find an actor by registered name and return its serialization

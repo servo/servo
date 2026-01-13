@@ -42,7 +42,7 @@ struct ListAddonsReply {
 #[derive(Serialize)]
 enum AddonMsg {}
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct GlobalActors {
     device_actor: String,
@@ -126,12 +126,13 @@ struct GetProcessResponse {
     process_descriptor: ProcessActorMsg,
 }
 
+#[derive(Default)]
 pub struct RootActor {
     active_tab: RefCell<Option<String>>,
     global_actors: GlobalActors,
     process: String,
-    pub tabs: Vec<String>,
-    pub workers: Vec<String>,
+    pub tabs: RefCell<Vec<String>>,
+    pub workers: RefCell<Vec<String>>,
 }
 
 impl Actor for RootActor {
@@ -220,6 +221,7 @@ impl Actor for RootActor {
                     from: "root".to_owned(),
                     tabs: self
                         .tabs
+                        .borrow()
                         .iter()
                         .filter_map(|target| {
                             let tab_actor = registry.find::<TabDescriptorActor>(target);
@@ -240,6 +242,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     workers: self
                         .workers
+                        .borrow()
                         .iter()
                         .map(|name| registry.encode::<WorkerActor, _>(name))
                         .collect(),
@@ -277,15 +280,13 @@ impl RootActor {
 
         // Root actor
         let root = Self {
-            active_tab: None.into(),
             global_actors: GlobalActors {
                 device_actor: device.name(),
                 perf_actor: perf.name(),
                 preference_actor: preference.name(),
             },
             process: process.name(),
-            tabs: vec![],
-            workers: vec![],
+            ..Default::default()
         };
 
         registry.register(perf);
@@ -302,6 +303,7 @@ impl RootActor {
     ) -> Option<TabDescriptorActorMsg> {
         let mut tab_msg = self
             .tabs
+            .borrow()
             .iter()
             .map(|target| registry.encode::<TabDescriptorActor, _>(target))
             .find(|tab| tab.browser_id() == browser_id);

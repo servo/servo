@@ -292,8 +292,8 @@ impl DevtoolsInstance {
     }
 
     fn handle_framerate_tick(&self, actor_name: String, tick: f64) {
-        let mut actors = self.registry.lock().unwrap();
-        let framerate_actor = actors.find_mut::<FramerateActor>(&actor_name);
+        let actors = self.registry.lock().unwrap();
+        let framerate_actor = actors.find::<FramerateActor>(&actor_name);
         framerate_actor.add_tick(tick);
     }
 
@@ -356,8 +356,8 @@ impl DevtoolsInstance {
                 script_chan: script_sender,
                 streams: Default::default(),
             };
-            let root = actors.find_mut::<RootActor>("root");
-            root.workers.push(worker.name.clone());
+            let root = actors.find::<RootActor>("root");
+            root.tabs.borrow_mut().push(worker.name.clone());
 
             self.actor_workers.insert(id, worker_name.clone());
             actors.register(worker);
@@ -570,7 +570,7 @@ impl DevtoolsInstance {
             };
 
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
-            let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
+            let thread_actor = actors.find::<ThreadActor>(&thread_actor_name);
 
             thread_actor.source_manager.add_source(&source_actor_name);
 
@@ -597,8 +597,7 @@ impl DevtoolsInstance {
                 browsing_context.thread.clone()
             };
 
-            let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-
+            let thread_actor = actors.find::<ThreadActor>(&thread_actor_name);
             thread_actor.source_manager.add_source(&source_actor_name);
 
             // Notify browsing context about the new source
@@ -619,9 +618,10 @@ impl DevtoolsInstance {
         let mut actors = self.registry.lock().unwrap();
 
         for actor_name in actors.source_actor_names_for_pipeline(pipeline_id) {
-            let source_actor: &mut SourceActor = actors.find_mut(&actor_name);
-            if source_actor.content.is_none() {
-                source_actor.content = Some(source_content.clone());
+            let source_actor = actors.find::<SourceActor>(&actor_name);
+            let mut content = source_actor.content.borrow_mut();
+            if content.is_none() {
+                *content = Some(source_content.clone());
             }
         }
 
