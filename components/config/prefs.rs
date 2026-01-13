@@ -274,8 +274,10 @@ pub struct Preferences {
     pub media_glvideo_enabled: bool,
     /// Enable a non-standard event handler for verifying behavior of media elements during tests.
     pub media_testing_enabled: bool,
-    /// The default timeout set for the connection in seconds. This will be evenly divided to all resolved ip addresses,
-    /// e.g., if we have a timeout of 20 and 4 resolved ip addresses, each ip address will have a connection timeout of 5s.
+    /// The default timeout set for establishing a network connection in seconds. This amount
+    /// if for the entire process of connecting to an address. For instance, if a particular host is
+    /// associated with multiple IP addresses, this timeout will be divided equally among
+    /// each IP address.
     pub network_connection_timeout: u64,
     pub network_enforce_tls_enabled: bool,
     pub network_enforce_tls_localhost: bool,
