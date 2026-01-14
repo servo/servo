@@ -31,7 +31,7 @@ pub(crate) struct TargetConfigurationActorMsg {
     traits: TargetConfigurationTraits,
 }
 
-pub struct TargetConfigurationActor {
+pub(crate) struct TargetConfigurationActor {
     name: String,
     configuration: HashMap<&'static str, bool>,
     supported_options: HashMap<&'static str, bool>,
