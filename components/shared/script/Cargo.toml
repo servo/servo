@@ -16,7 +16,7 @@ bluetooth = ["bluetooth_traits"]
 webgpu = ["webgpu_traits"]
 
 [dependencies]
-accessibility_traits = { workspace = true }
+accesskit = { workspace = true, features = ["serde"] }
 background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }

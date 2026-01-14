@@ -18,7 +18,7 @@ baked-default-resources = []
 gamepad = []
 
 [dependencies]
-accessibility_traits = { workspace = true }
+accesskit = { workspace = true, features = ["serde"] }
 base = { workspace = true }
 bitflags = { workspace = true }
 cookie = { workspace = true }

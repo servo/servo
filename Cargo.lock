@@ -2467,7 +2467,7 @@ dependencies = [
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
- "accessibility_traits",
+ "accesskit",
  "base",
  "bitflags 2.10.0",
  "cookie 0.18.1",
@@ -5149,7 +5149,7 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
- "accessibility_traits",
+ "accesskit",
  "arboard",
  "background_hang_monitor",
  "base",
@@ -7875,7 +7875,7 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
- "accessibility_traits",
+ "accesskit",
  "background_hang_monitor_api",
  "base",
  "bluetooth_traits",

@@ -5,7 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use accessibility_traits::AccessibilityTree;
+use egui::accesskit::TreeUpdate;
 use euclid::Scale;
 use log::warn;
 use servo::{
@@ -435,5 +435,5 @@ pub(crate) trait PlatformWindow {
         None
     }
 
-    fn hacky_accessibility_tree_update(&self, _: WebView, _: AccessibilityTree) {}
+    fn hacky_accessibility_tree_update(&self, _: WebView, _: TreeUpdate) {}
 }

@@ -11,6 +11,10 @@ use std::process;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
+use accesskit::{
+    Node as AxNode, NodeId as AxNodeId, TreeId as AxTreeId, TreeUpdate as AxTreeUpdate,
+    Uuid as AxUuid,
+};
 use app_units::Au;
 use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
@@ -1153,10 +1157,21 @@ impl LayoutThread {
 
         let accessibility_tree =
             AccessibilityTreeCalculator::construct(document, fragment_tree.clone());
+        let nodes: Vec<(AxNodeId, AxNode)> = accessibility_tree
+            .ax_nodes
+            .iter()
+            .map(|(k, v)| (*k, v.clone()))
+            .collect();
+        let tree_update = AxTreeUpdate {
+            nodes,
+            tree: Some(accessibility_tree.ax_tree),
+            tree_id: AxTreeId(AxUuid::from_bytes([1; 16])),
+            focus: AxNodeId(1),
+        };
         self.script_chan
             .send(ScriptThreadMessage::HackySendAccessibilityTree(
                 self.webview_id,
-                accessibility_tree,
+                tree_update,
             ))
             .expect("TODO: panic message");
 

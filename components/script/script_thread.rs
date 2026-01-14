@@ -1923,12 +1923,12 @@ impl ScriptThread {
                     .borrow_mut()
                     .remove(&user_content_manager_id);
             },
-            ScriptThreadMessage::HackySendAccessibilityTree(webview_id, accessibility_tree) => {
+            ScriptThreadMessage::HackySendAccessibilityTree(webview_id, tree_update) => {
                 self.senders
                     .pipeline_to_embedder_sender
                     .send(EmbedderMsg::HackyAccessibilityTreeUpdate(
                         webview_id,
-                        accessibility_tree,
+                        tree_update,
                     ))
                     .expect("TODO: panic message");
             },

@@ -22,7 +22,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use accessibility_traits::AccessibilityTree;
+use accesskit::TreeUpdate;
 use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
@@ -532,7 +532,7 @@ pub enum EmbedderMsg {
     /// and the embedder can continue processing it, if necessary.
     InputEventHandled(WebViewId, InputEventId, InputEventResult),
     /// Placeholder
-    HackyAccessibilityTreeUpdate(WebViewId, AccessibilityTree),
+    HackyAccessibilityTreeUpdate(WebViewId, TreeUpdate),
 }
 
 impl Debug for EmbedderMsg {

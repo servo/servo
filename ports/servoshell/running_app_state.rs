@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
-use accessibility_traits::AccessibilityTree;
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use egui::accesskit::TreeUpdate;
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
 use log::{error, info, warn};
@@ -821,13 +821,9 @@ impl WebViewDelegate for RunningAppState {
             .show_console_message(level, &message);
     }
 
-    fn hacky_accessibility_tree_update(
-        &self,
-        webview: WebView,
-        accessibility_tree: AccessibilityTree,
-    ) {
+    fn hacky_accessibility_tree_update(&self, webview: WebView, tree_update: TreeUpdate) {
         self.platform_window_for_webview_id(webview.id())
-            .hacky_accessibility_tree_update(webview, accessibility_tree);
+            .hacky_accessibility_tree_update(webview, tree_update);
     }
 }
 

@@ -73,7 +73,7 @@ webxr = [
 ]
 
 [dependencies]
-accessibility_traits = { workspace = true }
+accesskit = { workspace = true, features = ["serde"] }
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
 bitflags = { workspace = true }

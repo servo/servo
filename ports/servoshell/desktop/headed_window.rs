@@ -13,8 +13,7 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
-use accessibility_traits::AccessibilityTree;
-use egui::accesskit::{Node, NodeId, TreeId, TreeUpdate, Uuid};
+use egui::accesskit::{TreeId, TreeUpdate};
 use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
@@ -1147,24 +1146,10 @@ impl PlatformWindow for HeadedWindow {
         log::log!(level.into(), "{message}");
     }
 
-    fn hacky_accessibility_tree_update(
-        &self,
-        _webview: WebView,
-        accessibility_tree: AccessibilityTree,
-    ) {
-        let nodes: Vec<(NodeId, Node)> = accessibility_tree
-            .ax_nodes
-            .iter()
-            .map(|(k, v)| (*k, v.clone()))
-            .collect();
+    fn hacky_accessibility_tree_update(&self, _webview: WebView, tree_update: TreeUpdate) {
         self.gui
             .borrow_mut()
-            .hacky_accessibility_tree_update(|| TreeUpdate {
-                nodes,
-                tree: Some(accessibility_tree.ax_tree),
-                tree_id: TreeId(Uuid::from_bytes([1; 16])),
-                focus: NodeId(1),
-            });
+            .hacky_accessibility_tree_update(|| tree_update);
     }
 }
 
