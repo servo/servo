@@ -49,7 +49,7 @@ use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
 use crate::fragment_tree::{
-    BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
+    BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, TextFragment,
 };
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
@@ -1307,33 +1307,59 @@ fn rendered_text_collection_steps(
     items
 }
 
-pub fn find_glyph_offset_in_fragment(
-    fragment: &Fragment,
+pub fn find_glyph_offset_in_fragment_descendants(
+    node: &ServoThreadSafeLayoutNode,
     point: Point2D<Au, CSSPixel>,
-    is_root: bool,
 ) -> Option<usize> {
-    if let Fragment::Text(text_fragment) = fragment {
-        let text_fragment = text_fragment.borrow();
-        if !text_fragment.base.rect.contains(point) {
-            return None;
-        }
-        return Some(text_fragment.glyph_offset(point));
+    type ClosestFragment = Option<(Au, Point2D<Au, CSSPixel>, ArcRefCell<TextFragment>)>;
+    fn maybe_update_closest(
+        fragment: &Fragment,
+        point_in_fragment: Point2D<Au, CSSPixel>,
+        closest_relative_fragment: &mut ClosestFragment,
+    ) {
+        let Fragment::Text(text_fragment) = fragment else {
+            return;
+        };
+        let Some(new_distance) = text_fragment
+            .borrow()
+            .distance_to_point_for_glyph_offset(point_in_fragment)
+        else {
+            return;
+        };
+        if matches!(closest_relative_fragment, Some((old_distance, _, _)) if *old_distance < new_distance)
+        {
+            return;
+        };
+        *closest_relative_fragment = Some((new_distance, point_in_fragment, text_fragment.clone()))
     }
 
-    let point = if is_root {
-        point
-    } else {
-        let offset = fragment
-            .base()
-            .map(|base| base.rect.origin)
-            .unwrap_or_default();
-        point - offset.to_vector()
-    };
+    fn collect_relevant_children(
+        fragment: &Fragment,
+        point_in_fragment: Point2D<Au, CSSPixel>,
+        closest_relative_fragment: &mut ClosestFragment,
+    ) {
+        maybe_update_closest(fragment, point_in_fragment, closest_relative_fragment);
 
-    fragment
-        .children()?
-        .iter()
-        .find_map(|fragment| find_glyph_offset_in_fragment(fragment, point, false))
+        if let Some(children) = fragment.children() {
+            for child in children.iter() {
+                let offset = child
+                    .base()
+                    .map(|base| base.rect.origin)
+                    .unwrap_or_default();
+                let point = point_in_fragment - offset.to_vector();
+                collect_relevant_children(child, point, closest_relative_fragment);
+            }
+        }
+    }
+
+    let mut closest_relative_fragment = None;
+    for fragment in &node.fragments_for_pseudo(None) {
+        collect_relevant_children(fragment, point, &mut closest_relative_fragment);
+    }
+
+    closest_relative_fragment.map(|(_, point_in_parent, text_fragment)| {
+        text_fragment.borrow().glyph_offset(point_in_parent)
+    })
 }
 
 pub fn process_resolved_font_style_query<'dom, E>(

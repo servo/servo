@@ -369,18 +369,38 @@ impl TextFragment {
         self.selection_range.is_some()
     }
 
-    pub(crate) fn glyph_offset(&self, point_in_parent: Point2D<Au, CSSPixel>) -> usize {
-        let point = point_in_parent - self.base.rect.origin;
+    /// Find the distance between for point relative to a [`TextFragment`] for the
+    /// purposes of finding a glyph offset. This is used to identify the most relevant
+    /// fragment for glyph offset queries during click handling.
+    pub(crate) fn distance_to_point_for_glyph_offset(
+        &self,
+        point_in_fragment: Point2D<Au, CSSPixel>,
+    ) -> Option<Au> {
+        // Accept any `TextFragment` that is within the vertical range of the point, as one
+        // can click past the end of a line to move the cursor to its end.
+        let rect = &self.base.rect;
+        if point_in_fragment.y < Au::zero() || point_in_fragment.y > rect.height() {
+            return None;
+        }
+        // Only consider clicks that are to the right of the fragment's origin.
+        if point_in_fragment.x < Au::zero() {
+            return None;
+        }
+        Some(point_in_fragment.x - rect.width().max(Au::zero()))
+    }
+
+    /// Given a point relative to this [`TextFragment`], find the most appropriate glyph
+    /// offset. Note that the point may be outside the [`TextFragment`]'s content rect.
+    pub(crate) fn glyph_offset(&self, point_in_fragment: Point2D<Au, CSSPixel>) -> usize {
         let mut current_glyph = self.starting_glyph_offset;
         let mut current_offset = Au::zero();
-
         for glyph_store in &self.glyphs {
             for glyph in glyph_store.iter_glyphs_for_byte_range(TextByteRange::new(
                 ByteIndex::zero(),
                 glyph_store.len(),
             )) {
                 let advance = glyph.advance();
-                if current_offset + advance.scale_by(0.5) >= point.x {
+                if current_offset + advance.scale_by(0.5) >= point_in_fragment.x {
                     return current_glyph;
                 }
                 current_offset += advance;
