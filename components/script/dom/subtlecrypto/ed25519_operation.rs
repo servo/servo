@@ -537,7 +537,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 .to_pkcs8v1()
                 .map_err(|_| {
                     Error::Operation(Some(
-                        "Failed to serialize the key into a PKCS format".into(),
+                        "Failed to serialize the key into a PKCS#8 format".into(),
                     ))
                 })?;
 
