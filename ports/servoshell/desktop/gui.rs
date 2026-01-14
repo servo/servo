@@ -7,11 +7,12 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use dpi::PhysicalSize;
+use egui::accesskit::{Role, TreeId, TreeUpdate, Uuid};
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
     Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel, Vec2, WidgetInfo,
-    WidgetType, pos2,
+    WidgetType, accesskit, pos2,
 };
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
@@ -464,6 +465,18 @@ impl Gui {
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
             let rect = ctx.available_rect();
+            let tree_id = TreeId(Uuid::from_bytes([1; 16]));
+            let id = egui::Id::new("webview");
+            ctx.accesskit_node_builder(id, |node| {
+                node.set_role(Role::Group);
+                node.set_tree_id(tree_id);
+                node.set_bounds(accesskit::Rect {
+                    x0: rect.left() as f64,
+                    y0: rect.top() as f64,
+                    x1: rect.right() as f64,
+                    y1: rect.bottom() as f64,
+                });
+            });
             let size = Size2D::new(rect.width(), rect.height()) * scale;
             if let Some(webview) = window.active_webview() &&
                 size != webview.size()
@@ -607,6 +620,12 @@ impl Gui {
 
     pub(crate) fn set_zoom_factor(&self, factor: f32) {
         self.context.egui_ctx.set_zoom_factor(factor);
+    }
+
+    pub(crate) fn hacky_accessibility_tree_update(&mut self, updater: impl FnOnce() -> TreeUpdate) {
+        if let Some(adapter) = self.context.egui_winit.accesskit.as_mut() {
+            adapter.update_if_active(updater);
+        }
     }
 }
 

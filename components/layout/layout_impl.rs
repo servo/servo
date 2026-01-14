@@ -11,6 +11,10 @@ use std::process;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
+use accesskit::{
+    Node as AxNode, NodeId as AxNodeId, TreeId as AxTreeId, TreeUpdate as AxTreeUpdate,
+    Uuid as AxUuid,
+};
 use app_units::Au;
 use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
@@ -86,6 +90,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
+use crate::accessibility_tree::{AccessibilityTree, AccessibilityTreeCalculator};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{
     DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
@@ -182,6 +187,7 @@ pub struct LayoutThread {
 
     /// The fragment tree.
     fragment_tree: RefCell<Option<Rc<FragmentTree>>>,
+    accessibility_tree: RefCell<Option<AccessibilityTree>>,
 
     /// The [`StackingContextTree`] cached from previous layouts.
     stacking_context_tree: RefCell<Option<StackingContextTree>>,
@@ -750,6 +756,7 @@ impl LayoutThread {
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
+            accessibility_tree: Default::default(),
             stacking_context_tree: Default::default(),
             paint_api: config.paint_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
@@ -1150,6 +1157,26 @@ impl LayoutThread {
         } else {
             run_layout()
         });
+
+        let accessibility_tree =
+            AccessibilityTreeCalculator::construct(document, fragment_tree.clone());
+        let nodes: Vec<(AxNodeId, AxNode)> = accessibility_tree
+            .ax_nodes
+            .iter()
+            .map(|(k, v)| (*k, v.clone()))
+            .collect();
+        let tree_update = AxTreeUpdate {
+            nodes,
+            tree: Some(accessibility_tree.ax_tree),
+            tree_id: AxTreeId(AxUuid::from_bytes([1; 16])),
+            focus: AxNodeId(1),
+        };
+        self.script_chan
+            .send(ScriptThreadMessage::HackySendAccessibilityTree(
+                self.webview_id,
+                tree_update,
+            ))
+            .expect("TODO: panic message");
 
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 

@@ -13,6 +13,7 @@ use std::env;
 use std::rc::Rc;
 use std::time::Duration;
 
+use egui::accesskit::{TreeId, TreeUpdate};
 use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
@@ -756,8 +757,21 @@ impl HeadedWindow {
         }
     }
 
-    pub(crate) fn handle_winit_app_event(&self, app_event: AppEvent) {
+    pub(crate) fn handle_winit_app_event(&self, _window: &ServoShellWindow, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
+            match &event.window_event {
+                egui_winit::accesskit_winit::WindowEvent::InitialTreeRequested => {
+                    // TODO get the initial tree from servo
+                },
+                egui_winit::accesskit_winit::WindowEvent::ActionRequested(req) => {
+                    // TODO use window to get active webview, then do something with action request.
+                    if req.target_tree != TreeId::ROOT {
+                        println!("{:?}", req);
+                    }
+                },
+                _ => {},
+            }
+
             if self
                 .gui
                 .borrow_mut()
@@ -1130,6 +1144,12 @@ impl PlatformWindow for HeadedWindow {
     fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {
         println!("{message}");
         log::log!(level.into(), "{message}");
+    }
+
+    fn hacky_accessibility_tree_update(&self, _webview: WebView, tree_update: TreeUpdate) {
+        self.gui
+            .borrow_mut()
+            .hacky_accessibility_tree_update(|| tree_update);
     }
 }
 

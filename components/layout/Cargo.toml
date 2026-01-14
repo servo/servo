@@ -17,6 +17,8 @@ doctest = false
 tracing = ["dep:tracing"]
 
 [dependencies]
+accessibility_traits = { workspace = true }
+accesskit = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 base = { workspace = true }

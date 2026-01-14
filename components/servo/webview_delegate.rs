@@ -5,6 +5,7 @@
 use std::path::PathBuf;
 use std::rc::Rc;
 
+use accesskit::TreeUpdate;
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use compositing_traits::rendering_context::RenderingContext;
@@ -974,6 +975,8 @@ pub trait WebViewDelegate {
     /// A console message was logged by content in this [`WebView`].
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     fn show_console_message(&self, _webview: WebView, _level: ConsoleLogLevel, _message: String) {}
+
+    fn hacky_accessibility_tree_update(&self, _webview: WebView, _tree_update: TreeUpdate) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;
