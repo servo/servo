@@ -651,8 +651,45 @@ impl ImageCacheStore {
         origin: &ImmutableOrigin,
         cors_setting: &Option<CorsSettings>,
     ) {
-        self.completed_loads
-            .remove(&(url.clone(), origin.clone(), *cors_setting));
+        if let Some(loaded_image) =
+            self.completed_loads
+                .remove(&(url.clone(), origin.clone(), *cors_setting))
+        {
+            if let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response {
+                if image.id.is_some() {
+                    self.paint_api.update_images(
+                        self.webview_id.into(),
+                        vec![ImageUpdate::DeleteImage(image.id.unwrap())].into(),
+                    );
+                }
+            }
+        }
+    }
+
+    fn remove_rasterized_vector_image(
+        &mut self,
+        image_id: &PendingImageId,
+        device_size: &DeviceIntSize,
+    ) {
+        if let Some(entry) = self
+            .rasterized_vector_images
+            .remove(&(*image_id, *device_size))
+        {
+            // If there is no corresponding rasterized_vector_image result,
+            // then the vector image is either being rasterized or is in
+            // self.store.key_cache.pending_image_keys. Either way, we need to notify the
+            // KeyCache that it was evicted.
+            if entry.result.is_none() {
+                self.evict_image_from_keycache(image_id, device_size);
+            } else {
+                if let Some(image_id) = entry.result.as_ref().unwrap().id {
+                    self.paint_api.update_images(
+                        self.webview_id.into(),
+                        vec![ImageUpdate::DeleteImage(image_id)].into(),
+                    );
+                }
+            }
+        }
     }
 
     /// Return a completed image if it exists, or None if there is no complete load
@@ -1051,29 +1088,15 @@ impl ImageCache for ImageCacheImpl {
 
     fn evict_rasterized_image(&self, svg_id: &str) {
         let mut store = self.store.lock();
-        if let Some(mapped_image_id) = self.svg_id_image_id_map.lock().get(svg_id) {
-            store.pending_loads.remove(mapped_image_id);
-            store.vector_images.remove(mapped_image_id);
-            if let Some(requested_sizes) = self.image_id_size_map.lock().get(mapped_image_id) {
+        if let Some(mapped_image_id) = self.svg_id_image_id_map.lock().remove(svg_id) {
+            store.pending_loads.remove(&mapped_image_id);
+            store.vector_images.remove(&mapped_image_id);
+            if let Some(requested_sizes) = self.image_id_size_map.lock().remove(&mapped_image_id) {
                 for requested_size in requested_sizes.iter() {
-                    // If there was an entry in self.image_id_size_map for a size of image
-                    // yet there is no corresponding rasterized_vector_image result or there is no,
-                    // then the vector image is either being rasterized or is in
-                    // store.key_cache.pending_image_keys. Either way, we need to notify the
-                    // KeyCache that it was evicted.
-                    if let Some(entry) = store
-                        .rasterized_vector_images
-                        .remove(&(*mapped_image_id, *requested_size))
-                    {
-                        if entry.result.is_none() {
-                            store.evict_image_from_keycache(mapped_image_id, requested_size)
-                        }
-                    }
+                    store.remove_rasterized_vector_image(&mapped_image_id, &requested_size);
                 }
             }
-            self.image_id_size_map.lock().remove(mapped_image_id);
         }
-        self.svg_id_image_id_map.lock().remove(svg_id);
     }
 
     /// Inform the image cache about a response for a pending request.
@@ -1085,50 +1108,51 @@ impl ImageCache for ImageCacheImpl {
             (FetchResponseMsg::ProcessResponse(_, response), _) => {
                 debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);
                 let mut store = self.store.lock();
-                let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
-                let (cors_status, metadata) = match response {
-                    Ok(meta) => match meta {
-                        FetchMetadata::Unfiltered(m) => (CorsStatus::Safe, Some(m)),
-                        FetchMetadata::Filtered { unsafe_, filtered } => (
-                            match filtered {
-                                FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => {
-                                    CorsStatus::Safe
+                if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
+                    let (cors_status, metadata) = match response {
+                        Ok(meta) => match meta {
+                            FetchMetadata::Unfiltered(m) => (CorsStatus::Safe, Some(m)),
+                            FetchMetadata::Filtered { unsafe_, filtered } => (
+                                match filtered {
+                                    FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => {
+                                        CorsStatus::Safe
+                                    },
+                                    FilteredMetadata::Opaque |
+                                    FilteredMetadata::OpaqueRedirect(_) => CorsStatus::Unsafe,
                                 },
-                                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
-                                    CorsStatus::Unsafe
-                                },
-                            },
-                            Some(unsafe_),
-                        ),
-                    },
-                    Err(_) => (CorsStatus::Unsafe, None),
-                };
-                let final_url = metadata.as_ref().map(|m| m.final_url.clone());
-                pending_load.final_url = final_url;
-                pending_load.cors_status = cors_status;
-                pending_load.content_type = metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.content_type.clone())
-                    .map(|content_type| content_type.into_inner().into());
+                                Some(unsafe_),
+                            ),
+                        },
+                        Err(_) => (CorsStatus::Unsafe, None),
+                    };
+                    let final_url = metadata.as_ref().map(|m| m.final_url.clone());
+                    pending_load.final_url = final_url;
+                    pending_load.cors_status = cors_status;
+                    pending_load.content_type = metadata
+                        .as_ref()
+                        .and_then(|metadata| metadata.content_type.clone())
+                        .map(|content_type| content_type.into_inner().into());
+                }
             },
             (FetchResponseMsg::ProcessResponseChunk(_, data), _) => {
                 debug!("Got some data for {:?}", id);
                 let mut store = self.store.lock();
-                let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
-                pending_load.bytes.extend_from_slice(&data);
+                if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
+                    pending_load.bytes.extend_from_slice(&data);
 
-                // jmr0 TODO: possibly move to another task?
-                if pending_load.metadata.is_none() {
-                    let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
-                    if let Ok(info) = imsz_from_reader(&mut reader) {
-                        let img_metadata = ImageMetadata {
-                            width: info.width as u32,
-                            height: info.height as u32,
-                        };
-                        for listener in &pending_load.listeners {
-                            listener.respond(ImageResponse::MetadataLoaded(img_metadata));
+                    // jmr0 TODO: possibly move to another task?
+                    if pending_load.metadata.is_none() {
+                        let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
+                        if let Ok(info) = imsz_from_reader(&mut reader) {
+                            let img_metadata = ImageMetadata {
+                                width: info.width as u32,
+                                height: info.height as u32,
+                            };
+                            for listener in &pending_load.listeners {
+                                listener.respond(ImageResponse::MetadataLoaded(img_metadata));
+                            }
+                            pending_load.metadata = Some(img_metadata);
                         }
-                        pending_load.metadata = Some(img_metadata);
                     }
                 }
             },
@@ -1136,26 +1160,32 @@ impl ImageCache for ImageCacheImpl {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {
-                        let (bytes, cors_status, content_type) = {
-                            let mut store = self.store.lock();
-                            let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
-                            pending_load.result = Some(Ok(()));
-                            debug!("Async decoding {} ({:?})", pending_load.url, key);
-                            (
-                                pending_load.bytes.mark_complete(),
-                                pending_load.cors_status,
-                                pending_load.content_type.clone(),
-                            )
-                        };
+                        let mut store = self.store.lock();
+                        if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
+                            let (bytes, cors_status, content_type) = {
+                                pending_load.result = Some(Ok(()));
+                                debug!("Async decoding {} ({:?})", pending_load.url, key);
+                                (
+                                    pending_load.bytes.mark_complete(),
+                                    pending_load.cors_status,
+                                    pending_load.content_type.clone(),
+                                )
+                            };
 
-                        let local_store = self.store.clone();
-                        let fontdb = self.fontdb.clone();
-                        self.thread_pool.spawn(move || {
-                            let msg =
-                                decode_bytes_sync(key, &bytes, cors_status, content_type, fontdb);
-                            debug!("Image decoded");
-                            local_store.lock().handle_decoder(msg);
-                        });
+                            let local_store = self.store.clone();
+                            let fontdb = self.fontdb.clone();
+                            self.thread_pool.spawn(move || {
+                                let msg = decode_bytes_sync(
+                                    key,
+                                    &bytes,
+                                    cors_status,
+                                    content_type,
+                                    fontdb,
+                                );
+                                debug!("Image decoded");
+                                local_store.lock().handle_decoder(msg);
+                            });
+                        }
                     },
                     Err(error) => {
                         debug!("Processing error for {key:?}: {error:?}");
