@@ -107,7 +107,7 @@ jobs:
           name: production-binary-windows-zip
       - name: Upload nightly
         run: |
-          ./mach upload-nightly windows-msvc --secret-from-environment
+          ./mach upload-nightly windows-msvc --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             Servo.exe \
             Servo.zip
@@ -144,7 +144,7 @@ jobs:
           name: production-binary-mac
       - name: Upload nightly
         run: |
-          ./mach upload-nightly mac --secret-from-environment
+          ./mach upload-nightly mac --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.dmg
         env:
@@ -179,7 +179,7 @@ jobs:
           name: production-binary-mac-arm64
       - name: Upload nightly
         run: |
-          ./mach upload-nightly mac-arm64 --secret-from-environment
+          ./mach upload-nightly mac-arm64 --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.dmg
         env:
@@ -216,7 +216,7 @@ jobs:
           name: production-binary-linux
       - name: Upload nightly
         run: |
-          ./mach upload-nightly linux --secret-from-environment
+          ./mach upload-nightly linux --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.tar.gz
         env:
