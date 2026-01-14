@@ -3,10 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aes::cipher::generic_array::GenericArray;
-use aes::{Aes128, Aes192, Aes256};
-use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
-use cipher::consts::{U12, U16, U32};
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 
@@ -20,316 +17,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, SubtleAesDerivedKeyParams, SubtleAesGcmParams,
-    SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
+    ALG_AES_KW, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
-
-type Aes128Gcm96Iv = AesGcm<Aes128, U12>;
-type Aes128Gcm128Iv = AesGcm<Aes128, U16>;
-type Aes192Gcm96Iv = AesGcm<Aes192, U12>;
-type Aes256Gcm96Iv = AesGcm<Aes256, U12>;
-type Aes128Gcm256Iv = AesGcm<Aes128, U32>;
-type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
-type Aes256Gcm256Iv = AesGcm<Aes256, U32>;
-
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
-pub(crate) fn encrypt_aes_gcm(
-    normalized_algorithm: &SubtleAesGcmParams,
-    key: &CryptoKey,
-    plaintext: &[u8],
-) -> Result<Vec<u8>, Error> {
-    // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an OperationError.
-    if plaintext.len() as u64 > (2 << 39) - 256 {
-        return Err(Error::Operation(Some("The plaintext is too long".into())));
-    }
-
-    // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
-    // then throw an OperationError.
-    // NOTE: servo does not currently support 128-bit platforms, so this can never happen
-
-    // Step 3. If the additionalData member of normalizedAlgorithm is present and has a length
-    // greater than 2^64 - 1 bytes, then throw an OperationError.
-    if normalized_algorithm
-        .additional_data
-        .as_ref()
-        .is_some_and(|data| data.len() > u64::MAX as usize)
-    {
-        return Err(Error::Operation(Some(
-            "The additional authentication data is too long".into(),
-        )));
-    }
-
-    // Step 4.
-    // If the tagLength member of normalizedAlgorithm is not present:
-    //     Let tagLength be 128.
-    // If the tagLength member of normalizedAlgorithm is one of 32, 64, 96, 104, 112, 120 or 128:
-    //     Let tagLength be equal to the tagLength member of normalizedAlgorithm
-    // Otherwise:
-    //     throw an OperationError.
-    let tag_length = match normalized_algorithm.tag_length {
-        None => 128,
-        Some(length) if matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128) => length,
-        _ => {
-            return Err(Error::Operation(Some("The tag length is invalid".into())));
-        },
-    };
-
-    // Step 5. Let additionalData be the additionalData member of normalizedAlgorithm if present or
-    // an empty byte sequence otherwise.
-    let additional_data = normalized_algorithm
-        .additional_data
-        .as_deref()
-        .unwrap_or_default();
-
-    // Step 6. Let C and T be the outputs that result from performing the Authenticated Encryption
-    // Function described in Section 7.1 of [NIST-SP800-38D] using AES as the block cipher, the
-    // contents of the iv member of normalizedAlgorithm as the IV input parameter, the contents of
-    // additionalData as the A input parameter, tagLength as the t pre-requisite and the contents
-    // of plaintext as the input plaintext.
-    let key_length = key.handle().as_bytes().len();
-    let iv_length = normalized_algorithm.iv.len();
-    let mut ciphertext = plaintext.to_vec();
-    let key_bytes = key.handle().as_bytes();
-    let tag = match (key_length, iv_length) {
-        (16, 12) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes128Gcm96Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
-        },
-        (16, 16) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes128Gcm128Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
-        },
-        (24, 12) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes192Gcm96Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
-        },
-        (32, 12) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes256Gcm96Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
-        },
-        (16, 32) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes128Gcm256Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
-        },
-        (24, 32) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes192Gcm256Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
-        },
-        (32, 32) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes256Gcm256Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
-        },
-        _ => {
-            log::warn!(
-                "Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV"
-            );
-            return Err(Error::NotSupported(Some(format!(
-                "AES-GCM encryption with {key_length}-byte key and {iv_length}-byte IV is unsupported"
-            ))));
-        },
-    };
-
-    // Step 7. Let ciphertext be equal to C | T, where '|' denotes concatenation.
-    ciphertext.extend_from_slice(&tag.unwrap()[..tag_length as usize / 8]);
-
-    // Step 8. Return ciphertext.
-    Ok(ciphertext)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-decrypt>
-pub(crate) fn decrypt_aes_gcm(
-    normalized_algorithm: &SubtleAesGcmParams,
-    key: &CryptoKey,
-    ciphertext: &[u8],
-) -> Result<Vec<u8>, Error> {
-    // Step 1.
-    // If the tagLength member of normalizedAlgorithm is not present:
-    //     Let tagLength be 128.
-    // If the tagLength member of normalizedAlgorithm is one of 32, 64, 96, 104, 112, 120 or 128:
-    //     Let tagLength be equal to the tagLength member of normalizedAlgorithm
-    // Otherwise:
-    //     throw an OperationError.
-    let tag_length = match normalized_algorithm.tag_length {
-        None => 128,
-        Some(length) if matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128) => length as usize,
-        _ => {
-            return Err(Error::Operation(Some("The tag length is invalid".into())));
-        },
-    };
-
-    // Step 2. If ciphertext has a length in bits less than tagLength, then throw an
-    // OperationError.
-    if ciphertext.len() * 8 < tag_length {
-        return Err(Error::Operation(Some(
-            "The ciphertext is shorter than the tag".into(),
-        )));
-    }
-
-    // Step 3. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
-    // then throw an OperationError.
-    // NOTE: servo does not currently support 128-bit platforms, so this can never happen
-
-    // Step 4. If the additionalData member of normalizedAlgorithm is present and has a length
-    // greater than 2^64 - 1 bytes, then throw an OperationError.
-    // NOTE: servo does not currently support 128-bit platforms, so this can never happen
-
-    // Step 5. Let tag be the last tagLength bits of ciphertext.
-    // Step 6. Let actualCiphertext be the result of removing the last tagLength bits from
-    // ciphertext.
-    // NOTE: aes_gcm splits the ciphertext for us
-
-    // Step 7. Let additionalData be the additionalData member of normalizedAlgorithm if present or
-    // an empty byte sequence otherwise.
-    let additional_data = normalized_algorithm
-        .additional_data
-        .as_deref()
-        .unwrap_or_default();
-
-    // Step 8. Perform the Authenticated Decryption Function described in Section 7.2 of
-    // [NIST-SP800-38D] using AES as the block cipher, the iv member of normalizedAlgorithm as the
-    // IV input parameter, additionalData as the A input parameter, tagLength as the t
-    // pre-requisite, actualCiphertext as the input ciphertext, C and tag as the authentication
-    // tag, T.
-    // If the result of the algorithm is the indication of inauthenticity, "FAIL":
-    //     throw an OperationError
-    // Otherwise:
-    //     Let plaintext be the output P of the Authenticated Decryption Function.
-    let mut plaintext = ciphertext.to_vec();
-    let key_length = key.handle().as_bytes().len();
-    let iv_length = normalized_algorithm.iv.len();
-    let key_bytes = key.handle().as_bytes();
-    let result = match (key_length, iv_length) {
-        (16, 12) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes128Gcm96Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .decrypt_in_place(nonce, additional_data, &mut plaintext)
-        },
-        (16, 16) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes128Gcm128Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .decrypt_in_place(nonce, additional_data, &mut plaintext)
-        },
-        (24, 12) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes192Gcm96Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .decrypt_in_place(nonce, additional_data, &mut plaintext)
-        },
-        (32, 12) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes256Gcm96Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .decrypt_in_place(nonce, additional_data, &mut plaintext)
-        },
-        (16, 32) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes128Gcm256Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .decrypt_in_place(nonce, additional_data, &mut plaintext)
-        },
-        (24, 32) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes192Gcm256Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .decrypt_in_place(nonce, additional_data, &mut plaintext)
-        },
-        (32, 32) => {
-            let nonce = GenericArray::from_slice(&normalized_algorithm.iv);
-            <Aes256Gcm256Iv>::new_from_slice(key_bytes)
-                .expect("key length did not match")
-                .decrypt_in_place(nonce, additional_data, &mut plaintext)
-        },
-        _ => {
-            log::warn!(
-                "Missing AES-GCM decryption implementation with {key_length}-byte key and {iv_length}-byte IV"
-            );
-            return Err(Error::NotSupported(Some(format!(
-                "AES-GCM decryption with {key_length}-byte key and {iv_length}-byte IV is unsupported"
-            ))));
-        },
-    };
-    if result.is_err() {
-        return Err(Error::Operation(Some(
-            "Failed to perform GCM decryption".into(),
-        )));
-    }
-
-    Ok(plaintext)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
-pub(crate) fn generate_key_aes_gcm(
-    global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
-    extractable: bool,
-    usages: Vec<KeyUsage>,
-    can_gc: CanGc,
-) -> Result<DomRoot<CryptoKey>, Error> {
-    generate_key_aes(
-        global,
-        normalized_algorithm,
-        extractable,
-        usages,
-        ALG_AES_GCM,
-        &[
-            KeyUsage::Encrypt,
-            KeyUsage::Decrypt,
-            KeyUsage::WrapKey,
-            KeyUsage::UnwrapKey,
-        ],
-        can_gc,
-    )
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
-pub(crate) fn import_key_aes_gcm(
-    global: &GlobalScope,
-    format: KeyFormat,
-    key_data: &[u8],
-    extractable: bool,
-    usages: Vec<KeyUsage>,
-    can_gc: CanGc,
-) -> Result<DomRoot<CryptoKey>, Error> {
-    import_key_aes(
-        global,
-        format,
-        key_data,
-        extractable,
-        usages,
-        ALG_AES_GCM,
-        can_gc,
-    )
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
-pub(crate) fn export_key_aes_gcm(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
-    export_key_aes(format, key)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
-pub(crate) fn get_key_length_aes_gcm(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
-) -> Result<Option<u32>, Error> {
-    get_key_length_aes(normalized_derived_key_algorithm)
-}
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-wrap-key>
 pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
@@ -495,7 +186,6 @@ pub(crate) fn get_key_length_aes_kw(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
 #[allow(clippy::too_many_arguments)]
 fn generate_key_aes(
@@ -568,7 +258,6 @@ fn generate_key_aes(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
 fn import_key_aes(
     global: &GlobalScope,
@@ -627,10 +316,8 @@ fn import_key_aes(
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
-            // NOTE: This function is shared by AES-GCM and AES-KW.
             // Different static texts are used in different AES types, in the following step.
             let alg_matching = match alg_name {
-                ALG_AES_GCM => ["A128GCM", "A192GCM", "A256GCM"],
                 ALG_AES_KW => ["A128KW", "A192KW", "A256KW"],
                 _ => unreachable!(),
             };
@@ -639,9 +326,7 @@ fn import_key_aes(
             match data.len() * 8 {
                 // If the length in bits of data is 128:
                 128 => {
-                    // If the alg field of jwk is present, and is not "A128GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A128KW", then throw a DataError.
-                    // NOTE: Only perform the step of the corresponding AES type.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[0]) {
                         return Err(Error::Data(Some(
                             "JWK algorithm and key length do not match".into(),
@@ -650,9 +335,7 @@ fn import_key_aes(
                 },
                 // If the length in bits of data is 192:
                 192 => {
-                    // If the alg field of jwk is present, and is not "A192GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A192KW", then throw a DataError.
-                    // NOTE: Only perform the step of the corresponding AES type.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[1]) {
                         return Err(Error::Data(Some(
                             "JWK algorithm and key length do not match".into(),
@@ -661,9 +344,7 @@ fn import_key_aes(
                 },
                 // If the length in bits of data is 256:
                 256 => {
-                    // If the alg field of jwk is present, and is not "A256GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A256KW", then throw a DataError.
-                    // NOTE: Only perform the step of the corresponding AES type.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != alg_matching[2]) {
                         return Err(Error::Data(Some(
                             "JWK algorithm and key length do not match".into(),
@@ -741,7 +422,6 @@ fn import_key_aes(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
 fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     // Step 1. If the underlying cryptographic key material represented by the [[handle]]
@@ -787,10 +467,6 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             };
 
             // Step 2.4.
-            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128GCM".
-            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192GCM".
-            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256GCM".
-            //
             // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128KW".
             // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192KW".
             // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256KW".
@@ -798,9 +474,6 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             // NOTE: Check key length via key.handle()
             jwk.alg = Some(
                 match (key.handle(), key.algorithm().name()) {
-                    (Handle::Aes128(_), ALG_AES_GCM) => "A128GCM",
-                    (Handle::Aes192(_), ALG_AES_GCM) => "A192GCM",
-                    (Handle::Aes256(_), ALG_AES_GCM) => "A256GCM",
                     (Handle::Aes128(_), ALG_AES_KW) => "A128KW",
                     (Handle::Aes192(_), ALG_AES_KW) => "A192KW",
                     (Handle::Aes256(_), ALG_AES_KW) => "A256KW",
@@ -832,7 +505,6 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-get-key-length>
 pub(crate) fn get_key_length_aes(
     normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
