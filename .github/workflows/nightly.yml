@@ -96,12 +96,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: |
-            .github
-            python
-            .
-            tests/wpt/tests/tools/requirements_tests.txt
-            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -142,12 +136,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: |
-            .github
-            python
-            .
-            tests/wpt/tests/tools/requirements_tests.txt
-            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -183,12 +171,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: |
-            .github
-            python
-            .
-            tests/wpt/tests/tools/requirements_tests.txt
-            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -226,12 +208,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: |
-            .github
-            python
-            .
-            tests/wpt/tests/tools/requirements_tests.txt
-            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -270,12 +246,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: |
-            .github
-            python
-            .
-            tests/wpt/tests/tools/requirements_tests.txt
-            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -329,12 +299,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: |
-            .github
-            python
-            .
-            tests/wpt/tests/tools/requirements_tests.txt
-            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
