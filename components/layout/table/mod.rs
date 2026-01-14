@@ -85,7 +85,8 @@ use style::selector_parser::PseudoElement;
 
 use super::flow::BlockFormattingContext;
 use crate::SharedStyle;
-use crate::cell::ArcRefCell;
+use crate::cell::{ArcRefCell, WeakRefCell};
+use crate::dom::WeakLayoutBox;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
@@ -386,7 +387,7 @@ pub(crate) struct TableLayoutStyle<'a> {
 /// Table parts that are stored in the DOM. This is used in order to map from
 /// the DOM to the box tree and will eventually be important for incremental
 /// layout.
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum TableLevelBox {
     Caption(ArcRefCell<TableCaption>),
     Cell(ArcRefCell<TableSlotCell>),
@@ -430,5 +431,44 @@ impl TableLevelBox {
             },
             TableLevelBox::Track(track) => track.borrow_mut().repair_style(new_style),
         }
+    }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        match self {
+            Self::Caption(caption) => caption.borrow().context.attached_to_tree(layout_box),
+            Self::Cell(cell) => cell.borrow().contents.attached_to_tree(layout_box),
+            Self::TrackGroup(_) | Self::Track(_) => {
+                // The parentage of tracks within a track group, and cells within a row, is handled
+                // when the entire table is attached to the tree.
+            },
+        }
+    }
+
+    pub(crate) fn downgrade(&self) -> WeakTableLevelBox {
+        match self {
+            Self::Caption(caption) => WeakTableLevelBox::Caption(caption.downgrade()),
+            Self::Cell(cell) => WeakTableLevelBox::Cell(cell.downgrade()),
+            Self::TrackGroup(track_group) => WeakTableLevelBox::TrackGroup(track_group.downgrade()),
+            Self::Track(track) => WeakTableLevelBox::Track(track.downgrade()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) enum WeakTableLevelBox {
+    Caption(WeakRefCell<TableCaption>),
+    Cell(WeakRefCell<TableSlotCell>),
+    TrackGroup(WeakRefCell<TableTrackGroup>),
+    Track(WeakRefCell<TableTrack>),
+}
+
+impl WeakTableLevelBox {
+    pub(crate) fn upgrade(&self) -> Option<TableLevelBox> {
+        Some(match self {
+            Self::Caption(caption) => TableLevelBox::Caption(caption.upgrade()?),
+            Self::Cell(cell) => TableLevelBox::Cell(cell.upgrade()?),
+            Self::TrackGroup(track_group) => TableLevelBox::TrackGroup(track_group.upgrade()?),
+            Self::Track(track) => TableLevelBox::Track(track.upgrade()?),
+        })
     }
 }

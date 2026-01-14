@@ -696,6 +696,14 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for Rc<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for std::sync::Weak<T> {
+    fn size_of(&self, _: &mut MallocSizeOfOps) -> usize {
+        // A weak reference to the data necessarily has another strong reference
+        // somewhere else where it can be measured or...it's been released and is zero.
+        0
+    }
+}
+
 /// If a mutex is stored directly as a member of a data type that is being measured,
 /// it is the unique owner of its contents and deserves to be measured.
 ///
