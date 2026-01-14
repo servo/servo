@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>Clicking in &lt;textarea&gt; should move the edit point</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<textarea id="target" style="color: rgba(255, 0, 0, 0.2); height: 1000px; font: 50px/1 Ahem;">
+12345
+12345
+12345
+12345
+</textarea>
+
+<script>
+promise_test(async test => {
+    let targetRect = target.getBoundingClientRect();
+
+    let middleOfFirstLine = (50 / 2) + targetRect.top;
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 10, middleOfFirstLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 0);
+
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 50, middleOfFirstLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 1);
+    assert_equals(target.selectionEnd, 1);
+
+    target.setSelectionRange(0, 0);
+
+    // Click on the right half of a character should move the cursor to the next index.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 40, middleOfFirstLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 1);
+    assert_equals(target.selectionEnd, 1);
+
+    target.setSelectionRange(0, 0);
+
+    // Click on the right half of a character should move the cursor to the next index.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + (50 * 5), middleOfFirstLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 5);
+    assert_equals(target.selectionEnd, 5);
+
+    target.setSelectionRange(0, 0);
+
+    // Clicking past the end of the text should move the edit point to the end.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + (50 * 7), middleOfFirstLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 24);
+    assert_equals(target.selectionEnd, 24);
+
+    target.setSelectionRange(0, 0);
+
+    let middleOfThirdLine = (50 * 2) + 25 + targetRect.top;
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 10, middleOfThirdLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 12);
+    assert_equals(target.selectionEnd, 12);
+
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 50, middleOfThirdLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 13);
+    assert_equals(target.selectionEnd, 13);
+
+    target.setSelectionRange(0, 0);
+
+    // Click on the right half of a character should move the cursor to the next index.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 40, middleOfThirdLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 13);
+    assert_equals(target.selectionEnd, 13);
+
+    target.setSelectionRange(0, 0);
+
+    // Click on the right half of a character should move the cursor to the next index.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + (50 * 5), middleOfThirdLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 17);
+    assert_equals(target.selectionEnd, 17);
+
+    target.setSelectionRange(0, 0);
+
+    // Clicking past the end of the text should move the edit point to the end.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + (50 * 7), middleOfThirdLine)
+      .pointerDown().pointerUp()
+          .send();
+    assert_equals(target.selectionStart, 24);
+    assert_equals(target.selectionEnd, 24);
+}, 'Mouse events move the edit point in <textarea>');
+</script>

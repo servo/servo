@@ -12954,6 +12954,24 @@
        "testdriver": true
       }
      ]
+    ],
+    "mousedown-edit-point-input-text.html": [
+     "24e1852fd98d80807852bf9c45dae1c5063b064a",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "mousedown-edit-point-textarea.html": [
+     "54b6e42625373e1a71e6a62f8bc40c12909bed52",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
     ]
    },
    "mozilla": {
