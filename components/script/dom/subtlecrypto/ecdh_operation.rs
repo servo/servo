@@ -983,14 +983,6 @@ pub(crate) fn import_key(
     Ok(key)
 }
 
-fn create_public_key_export_error() -> Error {
-    Error::Operation(Some("Failed to export public key".to_string()))
-}
-
-fn create_private_key_export_error() -> Error {
-    Error::Operation(Some("Failed to export private key".to_string()))
-}
-
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-export-key>
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the CryptoKey to be exported.
@@ -1000,6 +992,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
     // NOTE: Done in Step 3.
 
     // Step 3.
+    let create_public_key_export_error =
+        || Error::Operation(Some("Failed to export public key".to_string()));
+    let create_private_key_export_error =
+        || Error::Operation(Some("Failed to export private key".to_string()));
     let result = match format {
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
