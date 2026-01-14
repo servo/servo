@@ -100,6 +100,8 @@ jobs:
             .github
             python
             .
+            tests/wpt/tests/tools/requirements_tests.txt
+            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -144,6 +146,8 @@ jobs:
             .github
             python
             .
+            tests/wpt/tests/tools/requirements_tests.txt
+            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -183,6 +187,8 @@ jobs:
             .github
             python
             .
+            tests/wpt/tests/tools/requirements_tests.txt
+            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -224,6 +230,8 @@ jobs:
             .github
             python
             .
+            tests/wpt/tests/tools/requirements_tests.txt
+            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -266,6 +274,8 @@ jobs:
             .github
             python
             .
+            tests/wpt/tests/tools/requirements_tests.txt
+            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -323,6 +333,8 @@ jobs:
             .github
             python
             .
+            tests/wpt/tests/tools/requirements_tests.txt
+            tests/wpt/tests/tools/wptrunner/requirements.txt
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
