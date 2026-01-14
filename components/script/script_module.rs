@@ -1154,6 +1154,34 @@ impl ModuleOwner {
         }
     }
 
+    fn complete_module_loading(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
+        match &self {
+            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::DynamicModule(_) => unimplemented!(),
+            ModuleOwner::Window(script) => {
+                let document = script.root().owner_document();
+
+                let load = match module_tree {
+                    Some(module_tree) => Ok(Script::Module(module_tree)),
+                    None => Err(NetworkError::ResourceLoadError("Fetch failed".to_owned()).into()),
+                };
+
+                let asynch = script
+                    .root()
+                    .upcast::<Element>()
+                    .has_attribute(&local_name!("async"));
+
+                if !asynch && (*script.root()).get_parser_inserted() {
+                    document.deferred_script_loaded(&script.root(), load, can_gc);
+                } else if !asynch && !(*script.root()).get_non_blocking() {
+                    document.asap_in_order_script_loaded(&script.root(), load, can_gc);
+                } else {
+                    document.asap_script_loaded(&script.root(), load, can_gc);
+                };
+            },
+        }
+    }
+
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#hostimportmoduledynamically(referencingscriptormodule,-specifier,-promisecapability):fetch-an-import()-module-script-graph>
     /// Step 6-9
@@ -2029,7 +2057,7 @@ fn fetch_the_descendants_and_link_module_script(
     if module_tree.get_record().borrow().is_none() {
         // Step 2.1. Set moduleScript's error to rethrow to moduleScript's parse error.
         // Step 2.2. Run onComplete given moduleScript.
-        owner.notify_owner_to_finish(identity, can_gc);
+        owner.complete_module_loading(Some(module_tree), can_gc);
 
         // Step 2.3. Return.
         return;
@@ -2051,8 +2079,7 @@ fn fetch_the_descendants_and_link_module_script(
             let global = fulfillment_owner.global();
 
             let module_tree = fulfillment_identity.get_module_tree(&global);
-            let module_record = module_tree.get_record().borrow();
-            if let Some(record) = &*module_record {
+            if let Some(record) = module_tree.get_record().borrow().as_ref() {
                 // Step 1. Perform record.Link().
                 let instantiated = ModuleTree::instantiate_module_tree(&global, record.handle());
 
@@ -2063,11 +2090,10 @@ fn fetch_the_descendants_and_link_module_script(
             }
 
             // Step 2. Run onComplete given moduleScript.
-            fulfillment_owner.notify_owner_to_finish(fulfillment_identity, CanGc::note());
+            fulfillment_owner.complete_module_loading(Some(module_tree), CanGc::note());
         })));
 
     let rejection_owner = owner.clone();
-    let rejection_identity = identity.clone();
 
     let loading_promise_rejection =
         ModuleHandler::new_boxed(Box::new(task!(fetched_resolve: move || {
@@ -2075,12 +2101,7 @@ fn fetch_the_descendants_and_link_module_script(
             // and run onComplete given moduleScript.
 
             // Step 2. Otherwise, run onComplete given null.
-            // Remove the record from the module tree to signal failure
-            let global = rejection_owner.global();
-            let module_tree = rejection_identity.get_module_tree(&global);
-            module_tree.get_record().borrow_mut().take();
-
-            rejection_owner.notify_owner_to_finish(rejection_identity, CanGc::note());
+            rejection_owner.complete_module_loading(None, CanGc::note());
         })));
 
     let handler = PromiseNativeHandler::new(
