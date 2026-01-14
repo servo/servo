@@ -112,7 +112,7 @@ egui = { version = "0.33.3", features = ["accesskit"] }
 egui-file-dialog = "0.12.0"
 egui-winit = { version = "0.33.3", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
 egui_glow = { version = "0.33.3", features = ["winit"] }
-gilrs = "0.11.0"
+gilrs = "0.11.1"
 glow = { workspace = true }
 headers = { workspace = true }
 serde_json = { workspace = true }
