@@ -39,11 +39,20 @@
 ///
 /// The servoshell [`main_thread()`] continues to initialize servo, while concurrently the ArkTS
 /// code continues with `onWindowStageCreate()`, which will load our ArkUI page from
-/// `pages/Index.ets`
+/// `pages/Index.ets`. Once the page has been created, the `onForeground()` method will be invoked
+/// by ArkTS, in which we currently do nothing.
+/// Immediately afterwards, `aboutToAppear()` from our UIComponent in `Index.ets` will be invoked.
+/// We override this method, and use it to register callbacks with servoshell, that will allow
+/// servoshell to send events to ArkTS.
 ///
-/// To be continued ...
+/// Next, during construction of the ArkUI, the `XComponent` surface will be created, which will
+/// in turn cause [`init()`] to be invoked (again), this time with the xcomponent object.
+/// `servoshell` registers callbacks for the xcomponent object.
+/// After [`init()`] finishes, ArkTS will call the callback for `on_surface_created`, that we just
+/// registered. In the callback we send a message to our main thread, informing it of the new window.
+/// Additionally, for the first window, we also setup vsync callbacks.
 ///
-
+/// At this point the initialization is finished, and servoshell is ready.
 mod resources;
 
 use std::cell::RefCell;
