@@ -21,16 +21,18 @@ use crate::dom::subtlecrypto::{
 };
 use crate::script_runtime::CanGc;
 
-// TODO: Add AES-GCM, AES-KW
+// TODO: Add AES-KW
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum AesAlgorithm {
     AesCtr,
     AesCbc,
+    AesGcm,
     AesOcb,
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-generate-key>
 pub(crate) fn generate_key(
     aes_algorithm: AesAlgorithm,
@@ -41,7 +43,10 @@ pub(crate) fn generate_key(
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     match aes_algorithm {
-        AesAlgorithm::AesCtr | AesAlgorithm::AesCbc | AesAlgorithm::AesOcb => {
+        AesAlgorithm::AesCtr |
+        AesAlgorithm::AesCbc |
+        AesAlgorithm::AesGcm |
+        AesAlgorithm::AesOcb => {
             // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
             if usages.iter().any(|usage| {
@@ -103,6 +108,10 @@ pub(crate) fn generate_key(
             // Step 8. Set the name attribute of algorithm to "AES-CBC".
             "AES-CBC"
         },
+        AesAlgorithm::AesGcm => {
+            // Step 8. Set the name attribute of algorithm to "AES-GCM".
+            "AES-GCM"
+        },
         AesAlgorithm::AesOcb => {
             // Step 8. Set the name attribute of algorithm to "AES-OCB".
             "AES-OCB"
@@ -138,8 +147,13 @@ pub(crate) fn import_key_from_key_data(
 ) -> Result<Vec<u8>, Error> {
     let data;
     match format {
-        // If format is "raw": (Only applied to AES-CTR)
-        KeyFormat::Raw if matches!(aes_algorithm, AesAlgorithm::AesCtr | AesAlgorithm::AesCbc) => {
+        // If format is "raw": (Only applied to AES-CTR, AES-CBC, AES-GCM)
+        KeyFormat::Raw
+            if matches!(
+                aes_algorithm,
+                AesAlgorithm::AesCtr | AesAlgorithm::AesCbc | AesAlgorithm::AesGcm
+            ) =>
+        {
             // Step 1. Let data be keyData.
             data = key_data.to_vec();
 
@@ -244,6 +258,36 @@ pub(crate) fn import_key_from_key_data(
                         ))));
                     }
                 },
+                AesAlgorithm::AesGcm => {
+                    // Step 5.
+                    // If data has length 128 bits:
+                    //     If the alg field of jwk is present, and is not "A128GCM", then throw a
+                    //     DataError.
+                    // If data has length 192 bits:
+                    //     If the alg field of jwk is present, and is not "A192GCM", then throw a
+                    //     DataError.
+                    // If data has length 256 bits:
+                    //     If the alg field of jwk is present, and is not "A256GCM", then throw a
+                    //     DataError.
+                    // Otherwise:
+                    //     throw a DataError.
+                    let expected_alg = match data.len() {
+                        16 => "A128GCM",
+                        24 => "A192GCM",
+                        32 => "A256GCM",
+                        _ => {
+                            return Err(Error::Data(Some(
+                                "The length in bits of data is not 128, 192 or 256".to_string(),
+                            )));
+                        },
+                    };
+                    if jwk.alg.as_ref().is_none_or(|alg| alg != expected_alg) {
+                        return Err(Error::Data(Some(format!(
+                            "The alg field of jwk is present, and is not {}",
+                            expected_alg
+                        ))));
+                    }
+                },
                 AesAlgorithm::AesOcb => {
                     // Step 5.
                     // If data has length 128 bits:
@@ -314,6 +358,7 @@ pub(crate) fn import_key_from_key_data(
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-export-key>
 pub(crate) fn export_key(
     aes_algorithm: AesAlgorithm,
@@ -325,8 +370,13 @@ pub(crate) fn export_key(
 
     // Step 2.
     let result = match format {
-        // If format is "raw": (Only applied to AES-CTR)
-        KeyFormat::Raw if matches!(aes_algorithm, AesAlgorithm::AesCtr | AesAlgorithm::AesCbc) => {
+        // If format is "raw": (Only applied to AES-CTR, AES-CBC, AES-GCM)
+        KeyFormat::Raw
+            if matches!(
+                aes_algorithm,
+                AesAlgorithm::AesCtr | AesAlgorithm::AesCbc | AesAlgorithm::AesGcm
+            ) =>
+        {
             // Step 2.1. Let data be a byte sequence containing the raw octets of the key
             // represented by [[handle]] internal slot of key.
             let data = match key.handle() {
@@ -432,6 +482,29 @@ pub(crate) fn export_key(
                     };
                     jwk.alg = Some(DOMString::from(alg));
                 },
+                AesAlgorithm::AesGcm => {
+                    // Step 2.4.
+                    // If the length attribute of key is 128:
+                    //     Set the alg attribute of jwk to the string "A128GCM".
+                    // If the length attribute of key is 192:
+                    //     Set the alg attribute of jwk to the string "A192GCM".
+                    // If the length attribute of key is 256:
+                    //     Set the alg attribute of jwk to the string "A256GCM".
+                    let KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) = key.algorithm()
+                    else {
+                        return Err(Error::Operation(None));
+                    };
+                    let alg = match algorithm.length {
+                        128 => "A128GCM",
+                        192 => "A192GCM",
+                        256 => "A256GCM",
+                        _ => return Err(Error::Operation(Some(
+                            "The length attribute of the [[algorithm]] internal slot of key is not \
+                            128, 192 or 256".to_string(),
+                        )))
+                    };
+                    jwk.alg = Some(DOMString::from(alg));
+                },
                 AesAlgorithm::AesOcb => {
                     // Step 2.4.
                     // If the length attribute of key is 128:
@@ -479,6 +552,9 @@ pub(crate) fn export_key(
     Ok(result)
 }
 
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-get-key-length>
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-get-key-length>
 pub(crate) fn get_key_length(
     normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
