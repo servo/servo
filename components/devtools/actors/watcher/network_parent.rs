@@ -8,7 +8,7 @@ use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
-pub struct NetworkParentActor {
+pub(crate) struct NetworkParentActor {
     name: String,
 }
 
