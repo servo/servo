@@ -13,6 +13,7 @@ use background_hang_monitor_api::{
 };
 use base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
+use log::{error, warn};
 use rustc_hash::FxHashMap;
 
 use crate::SamplerImpl;
@@ -177,7 +178,7 @@ struct BackgroundHangMonitorWorker {
     monitored_components: FxHashMap<MonitoredComponentId, MonitoredComponent>,
     constellation_chan: GenericSender<HangMonitorAlert>,
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
-    control_port: RoutedReceiver<BackgroundHangMonitorControlMsg>,
+    control_port: Option<RoutedReceiver<BackgroundHangMonitorControlMsg>>,
     sampling_duration: Option<Duration>,
     sampling_max_duration: Option<Duration>,
     last_sample: Instant,
@@ -204,7 +205,7 @@ impl BackgroundHangMonitorWorker {
             monitored_components: Default::default(),
             constellation_chan,
             port,
-            control_port,
+            control_port: Some(control_port),
             sampling_duration: None,
             sampling_max_duration: None,
             last_sample: Instant::now(),
@@ -267,65 +268,108 @@ impl BackgroundHangMonitorWorker {
             never()
         };
 
-        let received = select! {
-            recv(self.port) -> event => {
-                if let Ok(event) = event {
-                    Some(event)
-                } else {
-                    // All senders have dropped,
-                    // which means all monitored components have shut down,
-                    // and so we can as well.
-                    return false;
-                }
-            },
-            recv(self.control_port) -> event => {
-                match event {
-                    Ok(Ok(BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration))) => {
-                        if self.sampling_duration.is_some() {
-                            println!("Enabling profiler.");
-                            self.finish_sampled_profile();
-                            self.sampling_duration = None;
-                        } else {
-                            println!("Disabling profiler.");
-                            self.sampling_duration = Some(rate);
-                            self.sampling_max_duration = Some(max_duration);
-                            self.sampling_baseline = Instant::now();
-                        }
-                        None
-                    },
-                    Ok(Ok(BackgroundHangMonitorControlMsg::Exit)) => {
-                        for component in self.monitored_components.values_mut() {
-                            component.exit_signal.signal_to_exit();
-                        }
+        // Helper enum to collect messages from different ports depending
+        // on the BHM state.
+        enum BhmMessage {
+            ComponentMessage((MonitoredComponentId, MonitoredComponentMsg)),
+            ToggleSampler(Duration, Duration),
+            Exit,
+            ControlError(String),
+            ControlDisconnected,
+            Tick,
+            PortDisconnected,
+        }
 
-                        // Note the start of shutdown,
-                        // to ensure exit propagates,
-                        // even to components that have yet to register themselves,
-                        // from this point on.
-                        self.shutting_down = true;
-
-                        // Keep running; this worker thread will shutdown
-                        // when the monitored components have shutdown,
-                        // which we know has happened when `self.port` disconnects.
-                        None
-                    },
-                    Ok(Err(e)) => {
-                        log::warn!("BackgroundHangMonitorWorker control message deserialization error: {e:?}");
-                        None
-                    },
-                    Err(_) => return false,
+        let result = if let Some(ref control_port) = self.control_port {
+            select! {
+                recv(self.port) -> event => {
+                    match event {
+                        Ok(msg) => BhmMessage::ComponentMessage(msg),
+                        Err(_) => BhmMessage::PortDisconnected,
+                    }
+                },
+                recv(control_port) -> event => {
+                    match event {
+                        Ok(Ok(BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration))) => {
+                            BhmMessage::ToggleSampler(rate, max_duration)
+                        },
+                        Ok(Ok(BackgroundHangMonitorControlMsg::Exit)) => BhmMessage::Exit,
+                        Ok(Err(e)) => BhmMessage::ControlError(format!("{e:?}")),
+                        Err(_) => BhmMessage::ControlDisconnected,
+                    }
                 }
+                recv(tick) -> _ => BhmMessage::Tick,
             }
-            recv(tick) -> _ => None,
+        } else {
+            // control_port is already disconnected, just wait on port and tick
+            select! {
+                recv(self.port) -> event => {
+                    match event {
+                        Ok(msg) => BhmMessage::ComponentMessage(msg),
+                        Err(_) => BhmMessage::PortDisconnected,
+                    }
+                },
+                recv(tick) -> _ => BhmMessage::Tick,
+            }
         };
 
-        if let Some(msg) = received {
-            self.handle_msg(msg);
-            while let Ok(another_msg) = self.port.try_recv() {
-                // Handle any other incoming messages,
-                // before performing a hang checkpoint.
-                self.handle_msg(another_msg);
-            }
+        match result {
+            BhmMessage::PortDisconnected => {
+                // All senders have dropped,
+                // which means all monitored components have shut down,
+                // and so we can as well.
+                return false;
+            },
+            BhmMessage::ToggleSampler(rate, max_duration) => {
+                if self.sampling_duration.is_some() {
+                    println!("Enabling profiler.");
+                    self.finish_sampled_profile();
+                    self.sampling_duration = None;
+                } else {
+                    println!("Disabling profiler.");
+                    self.sampling_duration = Some(rate);
+                    self.sampling_max_duration = Some(max_duration);
+                    self.sampling_baseline = Instant::now();
+                }
+            },
+            BhmMessage::Exit => {
+                for component in self.monitored_components.values_mut() {
+                    component.exit_signal.signal_to_exit();
+                }
+
+                // Note the start of shutdown to ensure exit propagates,
+                // even to components that have yet to register themselves,
+                // from this point on.
+                self.shutting_down = true;
+            },
+            BhmMessage::ControlError(e) => {
+                warn!("BackgroundHangMonitorWorker control message deserialization error: {e}");
+            },
+            BhmMessage::ControlDisconnected => {
+                // The control port has disconnected. This can happen during
+                // shutdown when the EventLoop drops before all script threads
+                // have finished. Instead of exiting immediately, we signal
+                // all components to exit and continue running until they all
+                // unregister (indicated by `self.port` disconnecting).
+                if !self.shutting_down {
+                    error!("BHM control disconnected before shutting down!");
+                    for component in self.monitored_components.values_mut() {
+                        component.exit_signal.signal_to_exit();
+                    }
+                    self.shutting_down = true;
+                }
+                self.control_port = None;
+            },
+            BhmMessage::ComponentMessage(msg) => {
+                self.handle_msg(msg);
+                while let Ok(another_msg) = self.port.try_recv() {
+                    // Handle any other incoming messages before performing a hang checkpoint.
+                    self.handle_msg(another_msg);
+                }
+            },
+            BhmMessage::Tick => {
+                // Just proceed to checkpoint
+            },
         }
 
         if let Some(duration) = self.sampling_duration {
