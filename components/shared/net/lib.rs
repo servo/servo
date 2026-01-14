@@ -244,7 +244,7 @@ pub enum FetchResponseMsg {
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(RequestId, Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(RequestId, DebugVec),
-    ProcessResponseEOF(RequestId, Result<ResourceFetchTiming, NetworkError>),
+    ProcessResponseEOF(RequestId, Result<(), NetworkError>, ResourceFetchTiming),
     ProcessCspViolations(RequestId, Vec<csp::Violation>),
 }
 
@@ -374,13 +374,14 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 
     fn process_response_eof(&mut self, request: &Request, response: &Response) {
-        let payload = if let Some(network_error) = response.get_network_error() {
-            Err(network_error.clone())
-        } else {
-            Ok(response.get_resource_timing().lock().clone())
-        };
+        let result = response
+            .get_network_error()
+            .map_or_else(|| Ok(()), |network_error| Err(network_error.clone()));
+        let timing = response.get_resource_timing().lock().clone();
 
-        let _ = self.send(FetchResponseMsg::ProcessResponseEOF(request.id, payload));
+        let _ = self.send(FetchResponseMsg::ProcessResponseEOF(
+            request.id, result, timing,
+        ));
     }
 
     fn process_csp_violations(&mut self, request: &Request, violations: Vec<csp::Violation>) {

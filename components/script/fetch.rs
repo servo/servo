@@ -18,8 +18,7 @@ use net_traits::request::{
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
-    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
-    cancel_async_fetch,
+    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch,
 };
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -622,7 +621,8 @@ impl FetchResponseListener for FetchContext {
     fn process_response_eof(
         self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         let response_object = self.response_object.root();
         let _ac = enter_realm(&*response_object);
@@ -631,11 +631,7 @@ impl FetchResponseListener for FetchContext {
         // ... trailerObject is not supported in Servo yet.
 
         // navigation submission is handled in servoparser/mod.rs
-        if let Ok(response) = response {
-            if response.timing_type == ResourceTimingType::Resource {
-                network_listener::submit_timing(&self, &response, CanGc::note());
-            }
-        }
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -681,11 +677,10 @@ impl FetchResponseListener for FetchLaterListener {
     fn process_response_eof(
         self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
-        if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -748,7 +743,7 @@ pub(crate) fn load_whole_resource(
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(_, data) => buf.extend_from_slice(&data),
-            FetchResponseMsg::ProcessResponseEOF(_, Ok(_)) => {
+            FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
                     submit_timing_data(global, url, InitiatorType::Other, timing, can_gc);
@@ -756,7 +751,7 @@ pub(crate) fn load_whole_resource(
                 return Ok((metadata, buf, muted_errors));
             },
             FetchResponseMsg::ProcessResponse(_, Err(e)) |
-            FetchResponseMsg::ProcessResponseEOF(_, Err(e)) => return Err(e),
+            FetchResponseMsg::ProcessResponseEOF(_, Err(e), _) => return Err(e),
             FetchResponseMsg::ProcessCspViolations(_, violations) => {
                 csp_violations_processor.process_csp_violations(violations);
             },

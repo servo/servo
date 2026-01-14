@@ -3629,8 +3629,8 @@ impl ScriptThread {
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
                 self.handle_fetch_chunk(pipeline_id, request_id, chunk.0)
             },
-            FetchResponseMsg::ProcessResponseEOF(request_id, eof) => {
-                self.handle_fetch_eof(pipeline_id, request_id, eof)
+            FetchResponseMsg::ProcessResponseEOF(request_id, eof, timing) => {
+                self.handle_fetch_eof(pipeline_id, request_id, eof, timing)
             },
             FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
                 self.handle_csp_violations(pipeline_id, request_id, violations)
@@ -3677,7 +3677,8 @@ impl ScriptThread {
         &self,
         id: PipelineId,
         request_id: RequestId,
-        eof: Result<ResourceFetchTiming, NetworkError>,
+        eof: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         let idx = self
             .incomplete_parser_contexts
@@ -3688,7 +3689,7 @@ impl ScriptThread {
 
         if let Some(idx) = idx {
             let (_, context) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
-            context.process_response_eof(request_id, eof);
+            context.process_response_eof(request_id, eof, timing);
         }
     }
 
@@ -3787,7 +3788,8 @@ impl ScriptThread {
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
-            Ok(ResourceFetchTiming::new(ResourceTimingType::None)),
+            Ok(()),
+            ResourceFetchTiming::new(ResourceTimingType::None),
         );
     }
 
@@ -3817,7 +3819,8 @@ impl ScriptThread {
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
-            Ok(ResourceFetchTiming::new(ResourceTimingType::None)),
+            Ok(()),
+            ResourceFetchTiming::new(ResourceTimingType::None),
         );
     }
 
