@@ -54,7 +54,7 @@ use crate::script_runtime::{CanGc, IntroductionType};
 use crate::task::NonSendTaskBox;
 
 #[derive(JSTraceable, MallocSizeOf)]
-struct ModuleHandler {
+pub(crate) struct ModuleHandler {
     #[ignore_malloc_size_of = "Measuring trait objects is hard"]
     task: DomRefCell<Option<Box<dyn NonSendTaskBox>>>,
 }
@@ -74,12 +74,20 @@ impl Callback for ModuleHandler {
     }
 }
 
+#[derive(JSTraceable)]
+pub(crate) struct LoadState {
+    pub(crate) error_to_rethrow: RefCell<Option<RethrowError>>,
+    #[no_trace]
+    pub(crate) destination: Destination,
+}
+
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
 struct GraphLoadingState {
     promise: Rc<Promise>,
     is_loading: Cell<bool>,
     pending_modules_count: Cell<u32>,
     visited: RefCell<Vec<ModuleObject>>,
+    load_state: Rc<LoadState>,
     owner: ModuleOwner,
 }
 
@@ -87,6 +95,7 @@ struct GraphLoadingState {
 pub(crate) fn LoadRequestedModules(
     global: &GlobalScope,
     module: Rc<ModuleTree>,
+    load_state: Rc<LoadState>,
     owner: ModuleOwner,
 ) -> Rc<Promise> {
     // Step 1. If hostDefined is not present, let hostDefined be empty.
@@ -101,6 +110,7 @@ pub(crate) fn LoadRequestedModules(
         is_loading: Cell::new(true),
         pending_modules_count: Cell::new(1),
         visited: RefCell::new(Vec::new()),
+        load_state,
         owner,
     };
 
@@ -261,7 +271,6 @@ fn HostLoadImportedModule(
     global_scope: &GlobalScope,
     referrer_module: Rc<ModuleTree>,
     specifier: String,
-    /* loadState, */
     payload: &Rc<GraphLoadingState>,
 ) {
     let module_handle = referrer_module
@@ -311,14 +320,19 @@ fn HostLoadImportedModule(
 
     // Step 9 If the previous step threw an exception, then:
     let Ok(url) = url else {
-        // TODO Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
-        // set loadState.[[ErrorToRethrow]] to resolutionError.
-
         let resolution_error = gen_type_error(
             global_scope,
             "Wrong module specifier".to_string(),
             CanGc::note(),
         );
+
+        // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
+        // set loadState.[[ErrorToRethrow]] to resolutionError.
+        payload
+            .load_state
+            .error_to_rethrow
+            .borrow_mut()
+            .get_or_insert(resolution_error.clone());
 
         // Step 9.2. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(resolutionError)).
         FinishLoadingImportedModule(
@@ -348,6 +362,8 @@ fn HostLoadImportedModule(
     let state = Rc::clone(payload);
 
     let on_single_fetch_complete = move |global: &GlobalScope, module_tree: Rc<ModuleTree>| {
+        // Step 1. Let completion be null.
+        // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
         let completion = if module_tree.get_network_error().borrow().is_some() {
             Err(gen_type_error(
                 global,
@@ -355,9 +371,20 @@ fn HostLoadImportedModule(
                 CanGc::note(),
             ))
         } else {
+            // Step 3.1 Let parseError be moduleScript's parse error.
             let parse_error = module_tree.get_rethrow_error().borrow().as_ref().cloned();
 
+            // Step 3. Otherwise, if moduleScript's parse error is not null, then:
             if let Some(error) = parse_error {
+                // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
+                // set loadState.[[ErrorToRethrow]] to parseError.
+                state
+                    .load_state
+                    .error_to_rethrow
+                    .borrow_mut()
+                    .get_or_insert(error.clone());
+
+                // Step 3.2 Set completion to ThrowCompletion(parseError).
                 Err(error)
             } else {
                 assert!(
@@ -367,10 +394,12 @@ fn HostLoadImportedModule(
                         .as_ref()
                         .is_some_and(|record| !record.handle().is_null())
                 );
+                // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
                 Ok(module_tree)
             }
         };
 
+        // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
         FinishLoadingImportedModule(global, referrer_module, specifier, state, completion);
     };
 

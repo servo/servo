@@ -5,6 +5,7 @@
 //! The script module mod contains common traits and structs
 //! related to `type=module` for script thread or worker threads.
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CStr;
 use std::fmt::Debug;
@@ -78,7 +79,10 @@ use crate::dom::types::Console;
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
-use crate::module_loading::{LoadRequestedModules, fetch_a_single_module_script};
+use crate::module_loading::{
+    LoadRequestedModules, LoadState, ModuleHandler as NonSendModuleHandler,
+    fetch_a_single_module_script,
+};
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
@@ -1103,7 +1107,7 @@ impl Callback for ModuleHandler {
 
 /// The owner of the module
 /// It can be `worker` or `script` element
-#[derive(Clone)]
+#[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleOwner {
     #[expect(dead_code)]
     Worker(TrustedWorkerAddress),
@@ -2100,13 +2104,18 @@ fn fetch_the_descendants_and_link_module_script(
         return;
     }
 
-    // TODO Step 3. Let state be Record
+    // Step 3. Let state be Record
     // { [[ErrorToRethrow]]: null, [[Destination]]: destination, [[PerformFetch]]: null, [[FetchClient]]: fetchClient }.
+    let state = Rc::new(LoadState {
+        error_to_rethrow: RefCell::new(None),
+        destination,
+    });
 
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise = LoadRequestedModules(&global, module_tree, owner.clone());
+    let loading_promise =
+        LoadRequestedModules(&global, module_tree, Rc::clone(&state), owner.clone());
 
     let fulfillment_owner = owner.clone();
     let fulfillment_identity = identity.clone();
@@ -2131,15 +2140,25 @@ fn fetch_the_descendants_and_link_module_script(
         })));
 
     let rejection_owner = owner.clone();
+    let rejection_identity = identity.clone();
 
-    let loading_promise_rejection =
-        ModuleHandler::new_boxed(Box::new(task!(fetched_resolve: move || {
-            // TODO Step 1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
+    let loading_promise_rejection = NonSendModuleHandler::new_boxed(Box::new(
+        task!(fetched_resolve: |rejection_owner: ModuleOwner, rejection_identity: ModuleIdentity, state: Rc<LoadState>| {
+            let global = rejection_owner.global();
+
+            let module_tree = rejection_identity.get_module_tree(&global);
+
+            // Step 1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
             // and run onComplete given moduleScript.
-
-            // Step 2. Otherwise, run onComplete given null.
-            rejection_owner.complete_module_loading(None, CanGc::note());
-        })));
+            if let Some(error) = state.error_to_rethrow.borrow().as_ref() {
+                module_tree.set_rethrow_error(error.clone());
+                rejection_owner.complete_module_loading(Some(module_tree), CanGc::note());
+            } else {
+                // Step 2. Otherwise, run onComplete given null.
+                rejection_owner.complete_module_loading(None, CanGc::note());
+            }
+        }),
+    ));
 
     let handler = PromiseNativeHandler::new(
         &global,
