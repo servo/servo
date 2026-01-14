@@ -568,8 +568,6 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
 
         let native_vsync =
             ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
-        // get_period() returns an error - perhaps we need to wait until the first callback?
-        // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
         unsafe {
             native_vsync
                 .request_raw_callback_with_self(Some(on_vsync_cb))
