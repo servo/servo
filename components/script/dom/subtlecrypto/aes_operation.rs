@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::generic_array::GenericArray;
-use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
@@ -22,18 +20,11 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_AES_CBC, ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, SubtleAesCbcParams, SubtleAesDerivedKeyParams, SubtleAesGcmParams,
+    ALG_AES_GCM, ALG_AES_KW, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithmAndDerivatives, SubtleAesDerivedKeyParams, SubtleAesGcmParams,
     SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
-
-type Aes128CbcEnc = cbc::Encryptor<Aes128>;
-type Aes128CbcDec = cbc::Decryptor<Aes128>;
-type Aes192CbcEnc = cbc::Encryptor<Aes192>;
-type Aes192CbcDec = cbc::Decryptor<Aes192>;
-type Aes256CbcEnc = cbc::Encryptor<Aes256>;
-type Aes256CbcDec = cbc::Decryptor<Aes256>;
 
 type Aes128Gcm96Iv = AesGcm<Aes128, U12>;
 type Aes128Gcm128Iv = AesGcm<Aes128, U16>;
@@ -42,163 +33,6 @@ type Aes256Gcm96Iv = AesGcm<Aes256, U12>;
 type Aes128Gcm256Iv = AesGcm<Aes128, U32>;
 type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
 type Aes256Gcm256Iv = AesGcm<Aes256, U32>;
-
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
-pub(crate) fn encrypt_aes_cbc(
-    normalized_algorithm: &SubtleAesCbcParams,
-    key: &CryptoKey,
-    plaintext: &[u8],
-) -> Result<Vec<u8>, Error> {
-    // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
-    // throw an OperationError.
-    if normalized_algorithm.iv.len() != 16 {
-        return Err(Error::Operation(Some(
-            "The initialization vector length is not 16 bytes".into(),
-        )));
-    }
-
-    // Step 2. Let paddedPlaintext be the result of adding padding octets to plaintext according to
-    // the procedure defined in Section 10.3 of [RFC2315], step 2, with a value of k of 16.
-    // Step 3. Let ciphertext be the result of performing the CBC Encryption operation described in
-    // Section 6.2 of [NIST-SP800-38A] using AES as the block cipher, the iv member of
-    // normalizedAlgorithm as the IV input parameter and paddedPlaintext as the input plaintext.
-    let plaintext = Vec::from(plaintext);
-    let iv = GenericArray::from_slice(&normalized_algorithm.iv);
-    let ciphertext = match key.handle() {
-        Handle::Aes128(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes128CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
-        },
-        Handle::Aes192(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes192CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
-        },
-        Handle::Aes256(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
-        },
-        _ => return Err(Error::Data(Some("The key is not an AES key".into()))),
-    };
-
-    // Step 4. Return ciphertext.
-    Ok(ciphertext)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-decrypt>
-pub(crate) fn decrypt_aes_cbc(
-    normalized_algorithm: &SubtleAesCbcParams,
-    key: &CryptoKey,
-    ciphertext: &[u8],
-) -> Result<Vec<u8>, Error> {
-    // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
-    // throw an OperationError.
-    if normalized_algorithm.iv.len() != 16 {
-        return Err(Error::Operation(Some(
-            "The initialization vector length is not 16 bytes".into(),
-        )));
-    }
-
-    // Step 2. If the length of ciphertext is zero or is not a multiple of 16 bytes, then throw an
-    // OperationError.
-    if ciphertext.is_empty() {
-        return Err(Error::Operation(Some("The ciphertext is empty".into())));
-    }
-    if ciphertext.len() % 16 != 0 {
-        return Err(Error::Operation(Some(
-            "The ciphertext length is not a multiple of 16 bytes".into(),
-        )));
-    }
-
-    // Step 3. Let paddedPlaintext be the result of performing the CBC Decryption operation
-    // described in Section 6.2 of [NIST-SP800-38A] using AES as the block cipher, the iv member of
-    // normalizedAlgorithm as the IV input parameter and ciphertext as the input ciphertext.
-    // Step 4. Let p be the value of the last octet of paddedPlaintext.
-    // Step 5. If p is zero or greater than 16, or if any of the last p octets of paddedPlaintext
-    // have a value which is not p, then throw an OperationError.
-    // Step 6. Let plaintext be the result of removing p octets from the end of paddedPlaintext.
-    let mut ciphertext = Vec::from(ciphertext);
-    let iv = GenericArray::from_slice(&normalized_algorithm.iv);
-    let plaintext = match key.handle() {
-        Handle::Aes128(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes128CbcDec::new(key_data, iv)
-                .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
-        },
-        Handle::Aes192(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes192CbcDec::new(key_data, iv)
-                .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
-        },
-        Handle::Aes256(data) => {
-            let key_data = GenericArray::from_slice(data);
-            Aes256CbcDec::new(key_data, iv)
-                .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
-                .map_err(|_| Error::Operation(Some("Failed to perform CBC decryption".into())))?
-        },
-        _ => return Err(Error::Data(Some("The key is not an AES key".into()))),
-    };
-
-    // Step 7. Return plaintext.
-    Ok(plaintext.to_vec())
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
-pub(crate) fn generate_key_aes_cbc(
-    global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
-    extractable: bool,
-    usages: Vec<KeyUsage>,
-    can_gc: CanGc,
-) -> Result<DomRoot<CryptoKey>, Error> {
-    generate_key_aes(
-        global,
-        normalized_algorithm,
-        extractable,
-        usages,
-        ALG_AES_CBC,
-        &[
-            KeyUsage::Encrypt,
-            KeyUsage::Decrypt,
-            KeyUsage::WrapKey,
-            KeyUsage::UnwrapKey,
-        ],
-        can_gc,
-    )
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
-pub(crate) fn import_key_aes_cbc(
-    global: &GlobalScope,
-    format: KeyFormat,
-    key_data: &[u8],
-    extractable: bool,
-    usages: Vec<KeyUsage>,
-    can_gc: CanGc,
-) -> Result<DomRoot<CryptoKey>, Error> {
-    import_key_aes(
-        global,
-        format,
-        key_data,
-        extractable,
-        usages,
-        ALG_AES_CBC,
-        can_gc,
-    )
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
-pub(crate) fn export_key_aes_cbc(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
-    export_key_aes(format, key)
-}
-
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
-pub(crate) fn get_key_length_aes_cbc(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
-) -> Result<Option<u32>, Error> {
-    get_key_length_aes(normalized_derived_key_algorithm)
-}
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
 pub(crate) fn encrypt_aes_gcm(
@@ -661,7 +495,6 @@ pub(crate) fn get_key_length_aes_kw(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
 #[allow(clippy::too_many_arguments)]
@@ -735,7 +568,6 @@ fn generate_key_aes(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
 fn import_key_aes(
@@ -795,10 +627,9 @@ fn import_key_aes(
             // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
-            // NOTE: This function is shared by AES-CBC, AES-GCM and AES-KW.
+            // NOTE: This function is shared by AES-GCM and AES-KW.
             // Different static texts are used in different AES types, in the following step.
             let alg_matching = match alg_name {
-                ALG_AES_CBC => ["A128CBC", "A192CBC", "A256CBC"],
                 ALG_AES_GCM => ["A128GCM", "A192GCM", "A256GCM"],
                 ALG_AES_KW => ["A128KW", "A192KW", "A256KW"],
                 _ => unreachable!(),
@@ -808,7 +639,6 @@ fn import_key_aes(
             match data.len() * 8 {
                 // If the length in bits of data is 128:
                 128 => {
-                    // If the alg field of jwk is present, and is not "A128CBC", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A128GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A128KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
@@ -820,7 +650,6 @@ fn import_key_aes(
                 },
                 // If the length in bits of data is 192:
                 192 => {
-                    // If the alg field of jwk is present, and is not "A192CBC", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A192GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A192KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
@@ -832,7 +661,6 @@ fn import_key_aes(
                 },
                 // If the length in bits of data is 256:
                 256 => {
-                    // If the alg field of jwk is present, and is not "A256CBC", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A256GCM", then throw a DataError.
                     // If the alg field of jwk is present, and is not "A256KW", then throw a DataError.
                     // NOTE: Only perform the step of the corresponding AES type.
@@ -913,7 +741,6 @@ fn import_key_aes(
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
 fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
@@ -960,10 +787,6 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             };
 
             // Step 2.4.
-            // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128CBC".
-            // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192CBC".
-            // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256CBC".
-            //
             // If the length attribute of key is 128: Set the alg attribute of jwk to the string "A128GCM".
             // If the length attribute of key is 192: Set the alg attribute of jwk to the string "A192GCM".
             // If the length attribute of key is 256: Set the alg attribute of jwk to the string "A256GCM".
@@ -975,9 +798,6 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
             // NOTE: Check key length via key.handle()
             jwk.alg = Some(
                 match (key.handle(), key.algorithm().name()) {
-                    (Handle::Aes128(_), ALG_AES_CBC) => "A128CBC",
-                    (Handle::Aes192(_), ALG_AES_CBC) => "A192CBC",
-                    (Handle::Aes256(_), ALG_AES_CBC) => "A256CBC",
                     (Handle::Aes128(_), ALG_AES_GCM) => "A128GCM",
                     (Handle::Aes192(_), ALG_AES_GCM) => "A192GCM",
                     (Handle::Aes256(_), ALG_AES_GCM) => "A256GCM",
@@ -1012,7 +832,6 @@ fn export_key_aes(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Err
 }
 
 /// Helper function for
-/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-get-key-length>
 pub(crate) fn get_key_length_aes(
