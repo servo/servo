@@ -25,6 +25,7 @@ from PIL import Image
 from selenium.webdriver.remote.webelement import WebElement
 
 WEBDRIVER_PORT = 7000
+MITMPROXY_PORT = 8080
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
 
@@ -100,6 +101,24 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
     return driver
 
 
+# Sets up the port forward, returns true if we the forward failed
+def port_forward(port: int, reverse: bool) -> bool:
+    cmd = []
+    if reverse:
+        cmd = ["hdc", "rport", f"tcp:{port}", f"tcp:{port}"]
+    else:
+        cmd = ["hdc", "fport", f"tcp:{port}", f"tcp:{port}"]
+    print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    if result.stdout.startswith("[Fail]TCP Port listen failed"):
+        time.sleep(0.2)
+        return False
+    elif result.stdout.startswith("[Fail]"):
+        raise RuntimeError(f"HDC port forwarding failed with: {result.stdout}")
+
+    return True
+
+
 def setup_hdc_forward(timeout: int = 5):
     """
     set hdc forward
@@ -107,25 +126,23 @@ def setup_hdc_forward(timeout: int = 5):
     """
     for v in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
         os.environ.pop(v, None)
+
     cmd = ["hdc", "fport", "ls"]
     output = subprocess.check_output(cmd, encoding="utf-8")
-    if f"tcp:{WEBDRIVER_PORT} tcp:7000" in output:
+    if f"tcp:{WEBDRIVER_PORT} tcp:7000" in output and "tcp:8080 tcp:8080" in output:
         print("HDC port forwarding already established - skipping")
         return
+    # doing the mitmproxy port
 
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
-            cmd = ["hdc", "fport", f"tcp:{WEBDRIVER_PORT}", "tcp:7000"]
-            print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            # The port forwarding can fail if servo didn't start yet.
-            if result.stdout.startswith("[Fail]TCP Port listen failed"):
-                time.sleep(0.2)
+            if port_forward(WEBDRIVER_PORT, False):
                 continue
-            elif result.stdout.startswith("[Fail]"):
-                raise RuntimeError(f"HDC port forwarding failed with: {result.stdout}")
-            print(f"HDC port forwarding established on port {WEBDRIVER_PORT}")
+
+            if port_forward(MITMPROXY_PORT, True):
+                continue
+
             return
         except FileNotFoundError:
             print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
@@ -247,7 +264,10 @@ def run_test(test_fn, test_name: str):
         stop_servo()
         hdc = HarmonyDeviceConnector()
         print("Starting new servo instance...")
-        hdc.cmd(f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn --webdriver", timeout=10)
+        hdc.cmd(
+            f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver --psn=--pref=network_https_proxy_uri=http://127.0.0.1:8080 --psn=--pref=network_http_proxy_uri=http://127.0.0.1:8080 --psn=--ignore-certificate-errors",
+            timeout=10,
+        )
         setup_hdc_forward()
         close_usb_popup(hdc)
     except Exception as e:
