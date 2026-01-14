@@ -265,14 +265,12 @@ impl Actor for RootActor {
 
             "watchResources" => {
                 // TODO: Respond to watch resource requests
-                let msg = EmptyReplyMsg { from: self.name() };
-                request.reply_final(&msg)?
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
 
             "unwatchResources" => {
                 // TODO: Respond to unwatch resource requests
-                let msg = EmptyReplyMsg { from: self.name() };
-                request.reply_final(&msg)?
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
