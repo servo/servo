@@ -21,15 +21,15 @@ use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 
-use crate::cell::ArcRefCell;
+use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
-use crate::flow::inline::{InlineItem, SharedInlineStyles};
+use crate::flow::inline::{InlineItem, SharedInlineStyles, WeakInlineItem};
 use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalSize;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::replaced::CanvasInfo;
-use crate::table::TableLevelBox;
+use crate::table::{TableLevelBox, WeakTableLevelBox};
 use crate::taffy::TaffyItemBox;
 
 #[derive(MallocSizeOf)]
@@ -112,7 +112,7 @@ impl InnerDOMLayoutData {
 }
 
 /// A box that is stored in one of the `DOMLayoutData` slots.
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(super) enum LayoutBox {
     DisplayContents(SharedInlineStyles),
     BlockLevel(ArcRefCell<BlockLevelBox>),
@@ -184,6 +184,72 @@ impl LayoutBox {
                 .repair_style(context, node, new_style),
         }
     }
+
+    fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        match self {
+            Self::DisplayContents(_) => {
+                // This box can't have children, its contents get reparented to its parent.
+                // Therefore, no need to do anything.
+            },
+            Self::BlockLevel(block_level_box) => {
+                block_level_box.borrow().attached_to_tree(layout_box)
+            },
+            Self::InlineLevel(inline_item) => inline_item.attached_to_tree(layout_box),
+            Self::FlexLevel(flex_level_box) => flex_level_box.borrow().attached_to_tree(layout_box),
+            Self::TableLevelBox(table_level_box) => table_level_box.attached_to_tree(layout_box),
+            Self::TaffyItemBox(taffy_item_box) => {
+                taffy_item_box.borrow().attached_to_tree(layout_box)
+            },
+        }
+    }
+
+    fn downgrade(&self) -> WeakLayoutBox {
+        match self {
+            Self::DisplayContents(inline_shared_styles) => {
+                WeakLayoutBox::DisplayContents(inline_shared_styles.clone())
+            },
+            Self::BlockLevel(block_level_box) => {
+                WeakLayoutBox::BlockLevel(block_level_box.downgrade())
+            },
+            Self::InlineLevel(inline_item) => WeakLayoutBox::InlineLevel(inline_item.downgrade()),
+            Self::FlexLevel(flex_level_box) => WeakLayoutBox::FlexLevel(flex_level_box.downgrade()),
+            Self::TableLevelBox(table_level_box) => {
+                WeakLayoutBox::TableLevelBox(table_level_box.downgrade())
+            },
+            Self::TaffyItemBox(taffy_item_box) => {
+                WeakLayoutBox::TaffyItemBox(taffy_item_box.downgrade())
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(super) enum WeakLayoutBox {
+    DisplayContents(SharedInlineStyles),
+    BlockLevel(WeakRefCell<BlockLevelBox>),
+    InlineLevel(WeakInlineItem),
+    FlexLevel(WeakRefCell<FlexLevelBox>),
+    TableLevelBox(WeakTableLevelBox),
+    TaffyItemBox(WeakRefCell<TaffyItemBox>),
+}
+
+impl WeakLayoutBox {
+    pub(crate) fn upgrade(&self) -> Option<LayoutBox> {
+        Some(match self {
+            Self::DisplayContents(inline_shared_styles) => {
+                LayoutBox::DisplayContents(inline_shared_styles.clone())
+            },
+            Self::BlockLevel(block_level_box) => LayoutBox::BlockLevel(block_level_box.upgrade()?),
+            Self::InlineLevel(inline_item) => LayoutBox::InlineLevel(inline_item.upgrade()?),
+            Self::FlexLevel(flex_level_box) => LayoutBox::FlexLevel(flex_level_box.upgrade()?),
+            Self::TableLevelBox(table_level_box) => {
+                LayoutBox::TableLevelBox(table_level_box.upgrade()?)
+            },
+            Self::TaffyItemBox(taffy_item_box) => {
+                LayoutBox::TaffyItemBox(taffy_item_box.upgrade()?)
+            },
+        })
+    }
 }
 
 /// A wrapper for [`InnerDOMLayoutData`]. This is necessary to give the entire data
@@ -217,6 +283,7 @@ impl From<ArcRefCell<Option<LayoutBox>>> for BoxSlot<'_> {
 /// A mutable reference to a `LayoutBox` stored in a DOM element.
 impl BoxSlot<'_> {
     pub(crate) fn set(self, layout_box: LayoutBox) {
+        layout_box.attached_to_tree(layout_box.downgrade());
         *self.slot.borrow_mut() = Some(layout_box);
     }
 

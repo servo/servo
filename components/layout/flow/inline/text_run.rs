@@ -28,6 +28,7 @@ use xi_unicode::linebreak_property;
 use super::line_breaker::LineBreaker;
 use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::context::LayoutContext;
+use crate::dom::WeakLayoutBox;
 use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -339,6 +340,10 @@ pub(crate) struct TextRun {
     /// original text node in the DOM for the text.
     pub base_fragment_info: BaseFragmentInfo,
 
+    /// A weak reference to the parent of this layout box. This becomes valid as soon
+    /// as the *parent* of this box is added to the tree.
+    pub parent_box: Option<WeakLayoutBox>,
+
     /// The [`crate::SharedStyle`] from this [`TextRun`]s parent element. This is
     /// shared so that incremental layout can simply update the parent element and
     /// this [`TextRun`] will be updated automatically.
@@ -366,6 +371,7 @@ impl TextRun {
     ) -> Self {
         Self {
             base_fragment_info,
+            parent_box: None,
             inline_styles,
             text_range,
             shaped_text: Vec::new(),

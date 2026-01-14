@@ -18,6 +18,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
@@ -592,5 +593,13 @@ impl TaffyContainer {
     #[inline]
     pub(crate) fn layout_style(&self) -> LayoutStyle<'_> {
         LayoutStyle::Default(&self.style)
+    }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        for child in &self.children {
+            child.borrow_mut().with_base_mut(|base| {
+                base.parent_box.replace(layout_box.clone());
+            });
+        }
     }
 }
