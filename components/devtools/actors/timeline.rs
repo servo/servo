@@ -24,8 +24,8 @@ use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
 use crate::protocol::{ClientRequest, JsonPacketStream};
 
-pub struct TimelineActor {
-    name: String,
+pub(crate) struct TimelineActor {
+    pub name: String,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
     pipeline_id: PipelineId,

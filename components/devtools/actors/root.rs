@@ -75,14 +75,14 @@ struct GetTabReply {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RootActorMsg {
+pub(crate) struct RootActorMsg {
     from: String,
     application_type: String,
     traits: ActorTraits,
 }
 
 #[derive(Serialize)]
-pub struct ProtocolDescriptionReply {
+pub(crate) struct ProtocolDescriptionReply {
     from: String,
     types: Types,
 }
@@ -100,7 +100,7 @@ struct ListServiceWorkerRegistrationsReply {
 }
 
 #[derive(Serialize)]
-pub struct Types {
+pub(crate) struct Types {
     performance: ActorDescription,
     device: ActorDescription,
 }
@@ -113,7 +113,9 @@ struct ListProcessesResponse {
 
 #[derive(Default, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DescriptorTraits {
+
+//check again
+pub(crate) struct DescriptorTraits {
     pub(crate) watcher: bool,
     pub(crate) supports_reload_descriptor: bool,
 }
@@ -126,7 +128,7 @@ struct GetProcessResponse {
 }
 
 #[derive(Default)]
-pub struct RootActor {
+pub(crate) struct RootActor {
     active_tab: AtomicRefCell<Option<String>>,
     global_actors: GlobalActors,
     process: String,

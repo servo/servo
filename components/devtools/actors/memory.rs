@@ -8,7 +8,7 @@ use crate::actor::{Actor, ActorRegistry};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TimelineMemoryReply {
+pub(crate) struct TimelineMemoryReply {
     js_object_size: u64,
     js_string_size: u64,
     js_other_size: u64,
@@ -21,8 +21,8 @@ pub struct TimelineMemoryReply {
     non_js_milliseconds: f64,
 }
 
-pub struct MemoryActor {
-    pub name: String,
+pub(crate) struct MemoryActor {
+    name: String,
 }
 
 impl Actor for MemoryActor {

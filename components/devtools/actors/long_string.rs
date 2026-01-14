@@ -10,14 +10,14 @@ use crate::protocol::ClientRequest;
 
 const INITIAL_LENGTH: usize = 500;
 
-pub struct LongStringActor {
+pub(crate) struct LongStringActor {
     name: String,
     full_string: String,
 }
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LongStringObj {
+pub(crate) struct LongStringObj {
     #[serde(rename = "type")]
     type_: String,
     actor: String,

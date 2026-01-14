@@ -6,7 +6,7 @@ use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg};
 
-pub struct BreakpointListActor {
+pub(crate) struct BreakpointListActor {
     name: String,
 }
 

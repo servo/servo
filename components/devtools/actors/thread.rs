@@ -49,7 +49,7 @@ struct ThreadInterruptedReply {
     type_: String,
 }
 
-pub struct ThreadActor {
+pub(crate) struct ThreadActor {
     pub name: String,
     pub source_manager: SourceManager,
 }

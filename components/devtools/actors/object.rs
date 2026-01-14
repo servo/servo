@@ -7,14 +7,14 @@ use serde::Serialize;
 use crate::actor::{Actor, ActorEncode, ActorRegistry};
 
 #[derive(Serialize)]
-pub struct ObjectPreview {
+pub(crate) struct ObjectPreview {
     kind: String,
     url: String,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ObjectActorMsg {
+pub(crate) struct ObjectActorMsg {
     actor: String,
     #[serde(rename = "type")]
     type_: String,
@@ -27,7 +27,7 @@ pub struct ObjectActorMsg {
     preview: ObjectPreview,
 }
 
-pub struct ObjectActor {
+pub(crate) struct ObjectActor {
     pub name: String,
     pub _uuid: String,
 }

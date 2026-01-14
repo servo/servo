@@ -12,7 +12,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::timeline::HighResolutionStamp;
 
-pub struct FramerateActor {
+pub(crate) struct FramerateActor {
     name: String,
     pipeline_id: PipelineId,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
