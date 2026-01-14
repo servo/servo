@@ -9,7 +9,7 @@ use dpi::PhysicalSize;
 use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
 use log::{info, warn};
-use raw_window_handle::{RawWindowHandle, WindowHandle};
+use raw_window_handle::{DisplayHandle, RawWindowHandle, WindowHandle};
 use servo::{
     DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel, DevicePoint,
     DeviceVector2D, EmbedderControl, EmbedderControlId, EventLoopWaker, ImeEvent, InputEvent,
@@ -27,7 +27,7 @@ use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
 pub(crate) struct EmbeddedPlatformWindow {
-    host: Box<dyn HostTrait>,
+    host: Rc<dyn HostTrait>,
     rendering_context: Rc<WindowRenderingContext>,
     refresh_driver: Rc<VsyncRefreshDriver>,
     viewport_rect: RefCell<Rect<i32, DevicePixel>>,
@@ -247,12 +247,8 @@ impl RefreshDriver for VsyncRefreshDriver {
 }
 
 pub(crate) struct AppInitOptions {
-    pub host: Box<dyn HostTrait>,
+    pub host: Rc<dyn HostTrait>,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
-    pub viewport_rect: Rect<i32, DevicePixel>,
-    pub hidpi_scale_factor: f32,
-    pub rendering_context: Rc<WindowRenderingContext>,
-    pub refresh_driver: Rc<VsyncRefreshDriver>,
     pub initial_url: Option<String>,
     pub opts: Opts,
     pub preferences: Preferences,
@@ -263,7 +259,11 @@ pub(crate) struct AppInitOptions {
 
 pub struct App {
     state: Rc<RunningAppState>,
-    platform_window: Rc<EmbeddedPlatformWindow>,
+    // TODO: multi-window support, like desktop version.
+    // This is just an intermediate state, to split refactoring into
+    // multiple PRs.
+    host: Rc<dyn HostTrait>,
+    initial_url: Url,
 }
 
 #[expect(unused)]
@@ -292,12 +292,37 @@ impl App {
             user_content_manager,
         ));
 
-        let platform_window = Rc::new(EmbeddedPlatformWindow {
+        Rc::new(Self {
+            state,
             host: init.host,
-            rendering_context: init.rendering_context,
-            refresh_driver: init.refresh_driver,
-            viewport_rect: RefCell::new(init.viewport_rect),
-            hidpi_scale_factor: Scale::new(init.hidpi_scale_factor),
+            initial_url,
+        })
+    }
+
+    pub(crate) fn add_platform_window(
+        &self,
+        display_handle: DisplayHandle,
+        window_handle: WindowHandle,
+        viewport_rect: Rect<i32, DevicePixel>,
+        hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    ) {
+        let viewport_size = viewport_rect.size;
+        let refresh_driver = Rc::new(VsyncRefreshDriver::default());
+        let rendering_context = Rc::new(
+            WindowRenderingContext::new_with_refresh_driver(
+                display_handle,
+                window_handle,
+                PhysicalSize::new(viewport_size.width as u32, viewport_size.height as u32),
+                refresh_driver.clone(),
+            )
+            .expect("Could not create RenderingContext"),
+        );
+        let platform_window = Rc::new(EmbeddedPlatformWindow {
+            host: self.host.clone(),
+            rendering_context,
+            refresh_driver,
+            viewport_rect: RefCell::new(viewport_rect),
+            hidpi_scale_factor,
             visible_input_methods: Default::default(),
             current_title: Default::default(),
             current_url: Default::default(),
@@ -305,12 +330,8 @@ impl App {
             current_can_go_forward: Default::default(),
             current_load_status: Default::default(),
         });
-        state.open_window(platform_window.clone(), initial_url);
-
-        Rc::new(Self {
-            state,
-            platform_window,
-        })
+        self.state
+            .open_window(platform_window.clone(), self.initial_url.clone());
     }
 
     pub(crate) fn servo(&self) -> &Servo {
@@ -334,6 +355,10 @@ impl App {
         self.window().active_or_newest_webview()
     }
 
+    pub(crate) fn initial_url(&self) -> Url {
+        self.initial_url.clone()
+    }
+
     pub(crate) fn create_and_activate_toplevel_webview(self: &Rc<Self>, url: Url) -> WebView {
         self.window()
             .create_and_activate_toplevel_webview(self.state.clone(), url)
@@ -352,7 +377,7 @@ impl App {
             .state
             .spin_event_loop(None /* create_platform_window */)
         {
-            self.platform_window.host.on_shutdown_complete();
+            self.host.on_shutdown_complete()
         }
     }
 
@@ -396,7 +421,10 @@ impl App {
             let size = viewport_rect.size;
             webview.resize(PhysicalSize::new(size.width as u32, size.height as u32));
         }
-        *self.platform_window.viewport_rect.borrow_mut() = viewport_rect;
+        let window = self.window().platform_window();
+        let embedded_platform_window = window.as_headed_window().expect("No headed window");
+        *embedded_platform_window.viewport_rect.borrow_mut() = viewport_rect;
+
         self.spin_event_loop();
     }
 
@@ -587,14 +615,24 @@ impl App {
         }
     }
 
+    // TODO: Instead of letting the embedder drive the RefreshDriver we should move the vsync
+    // notification directly into the VsyncRefreshDriver.
     pub fn notify_vsync(&self) {
-        self.platform_window.refresh_driver.notify_vsync();
+        let platform_window = self.window().platform_window();
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
+        embedded_platform_window.refresh_driver.notify_vsync();
         self.spin_event_loop();
     }
 
     pub fn pause_painting(&self) {
-        if let Err(e) = self.platform_window.rendering_context.take_window() {
-            warn!("Unbinding native surface from context failed ({:?})", e);
+        let platform_window = self.window().platform_window();
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
+        if let Err(error) = embedded_platform_window.rendering_context.take_window() {
+            warn!("Unbinding native surface from context failed ({error:?})");
         }
         self.spin_event_loop();
     }
@@ -606,8 +644,11 @@ impl App {
     ) {
         let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
         let size = viewport_rect.size.to_u32();
-        if let Err(error) = self
-            .platform_window
+        let platform_window = self.window().platform_window();
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
+        if let Err(error) = embedded_platform_window
             .rendering_context
             .set_window(window_handle, PhysicalSize::new(size.width, size.height))
         {
