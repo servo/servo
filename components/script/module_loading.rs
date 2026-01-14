@@ -419,7 +419,7 @@ fn fetch_a_single_imported_module_script(
 }
 
 /// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script>
-fn fetch_a_single_module_script(
+pub(crate) fn fetch_a_single_module_script(
     url: ServoUrl,
     owner: ModuleOwner,
     destination: Destination,

@@ -78,7 +78,7 @@ use crate::dom::types::Console;
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
-use crate::module_loading::LoadRequestedModules;
+use crate::module_loading::{LoadRequestedModules, fetch_a_single_module_script};
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
@@ -1999,6 +1999,43 @@ pub(crate) fn create_a_javascript_module_script(
     }
 
     Ok(())
+}
+
+/// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-module-script-tree>
+pub(crate) fn fetch_an_external_module_script(
+    url: ServoUrl,
+    owner: ModuleOwner,
+    options: ScriptFetchOptions,
+    can_gc: CanGc,
+) {
+    let referrer = owner.global().get_referrer();
+    let identity = ModuleIdentity::ModuleUrl(url.clone());
+
+    // Step 1. Fetch a single module script given url, settingsObject, "script", options, settingsObject, "client", true,
+    // and with the following steps given result:
+    fetch_a_single_module_script(
+        url,
+        owner.clone(),
+        Destination::Script,
+        options,
+        referrer,
+        true,
+        Some(IntroductionType::SRC_SCRIPT),
+        move |_, module_tree| {
+            // Step 1.1. If result is null, run onComplete given null, and abort these steps.
+            if module_tree.get_record().borrow().is_none() {
+                return owner.complete_module_loading(None, can_gc);
+            }
+
+            // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
+            fetch_the_descendants_and_link_module_script(
+                Destination::Script,
+                owner,
+                identity,
+                can_gc,
+            );
+        },
+    );
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
