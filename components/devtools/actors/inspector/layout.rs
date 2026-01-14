@@ -12,18 +12,18 @@ use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, StreamId};
 
-pub struct LayoutInspectorActor {
+pub(crate) struct LayoutInspectorActor {
     name: String,
 }
 
 #[derive(Serialize)]
-pub struct GetGridsReply {
+pub(crate) struct GetGridsReply {
     from: String,
     grids: Vec<String>,
 }
 
 #[derive(Serialize)]
-pub struct GetCurrentFlexboxReply {
+pub(crate) struct GetCurrentFlexboxReply {
     from: String,
     flexbox: Option<()>,
 }

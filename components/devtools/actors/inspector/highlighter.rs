@@ -16,7 +16,8 @@ use crate::actors::inspector::InspectorActor;
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
-pub struct HighlighterActor {
+/// The HighlighterActor properties are used in the inspector.rs
+pub(crate) struct HighlighterActor {
     pub name: String,
     pub script_sender: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,

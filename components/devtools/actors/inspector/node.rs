@@ -46,7 +46,7 @@ struct AttrMsg {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NodeActorMsg {
+pub(crate) struct NodeActorMsg {
     pub actor: String,
 
     /// The ID of the shadow host of this node, if it is

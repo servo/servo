@@ -19,9 +19,9 @@ use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
-pub struct WalkerMsg {
-    pub actor: String,
-    pub root: NodeActorMsg,
+pub(crate) struct WalkerMsg {
+    actor: String,
+    root: NodeActorMsg,
 }
 
 pub struct WalkerActor {
