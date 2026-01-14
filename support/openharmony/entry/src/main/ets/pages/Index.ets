@@ -2,10 +2,10 @@ import promptAction from '@ohos.promptAction';
 import servoshell from 'libservoshell.so';
 
 function prompt_toast(msg: string) {
-    promptAction.showToast({
-      message: msg,
-      duration: 2000
-    });
+  promptAction.showToast({
+    message: msg,
+    duration: 2000
+  });
 }
 
 // Use the getShared API to obtain the LocalStorage instance shared by stage.
