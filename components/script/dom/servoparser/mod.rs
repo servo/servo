@@ -1387,7 +1387,8 @@ impl FetchResponseListener for ParserContext {
     fn process_response_eof(
         mut self,
         _: RequestId,
-        status: Result<ResourceFetchTiming, NetworkError>,
+        status: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
@@ -1411,10 +1412,8 @@ impl FetchResponseListener for ParserContext {
 
         let _realm = enter_realm(&*parser);
 
-        if let Ok(resource_timing) = &status {
-            parser
-                .document
-                .set_redirect_count(resource_timing.redirect_count);
+        if status.is_ok() {
+            parser.document.set_redirect_count(timing.redirect_count);
         }
 
         parser.last_chunk_received.set(true);
