@@ -29,7 +29,7 @@ use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::values::computed::angle::Angle;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
-use style::values::generics::box_::Perspective;
+use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
 use style::values::generics::transform::{self, GenericRotate, GenericScale, GenericTranslate};
 use style::values::specified::box_::DisplayOutside;
 use style_traits::CSSPixel;
@@ -1448,25 +1448,27 @@ impl BoxFragment {
 
         // Non-scrollable overflow path
         if overflow.x == ComputedOverflow::Clip || overflow.y == ComputedOverflow::Clip {
-            // TODO: The spec allows `overflow-clip-rect` to specify which box edge to use
-            // as the overflow clip edge origin, but Stylo doesn't currently support that.
-            // It will need to be handled here, for now always use the padding rect.
-            let mut overflow_clip_rect = self
-                .padding_rect()
-                .translate(containing_block_rect.origin.to_vector())
-                .to_webrender();
+            let overflow_clip_margin = style.get_margin().overflow_clip_margin;
+            let mut overflow_clip_rect = match overflow_clip_margin.visual_box {
+                OverflowClipMarginBox::ContentBox => self.content_rect(),
+                OverflowClipMarginBox::PaddingBox => self.padding_rect(),
+                OverflowClipMarginBox::BorderBox => self.border_rect(),
+            }
+            .translate(containing_block_rect.origin.to_vector())
+            .to_webrender();
 
             // Adjust by the overflow clip margin.
             // https://drafts.csswg.org/css-overflow-3/#overflow-clip-margin
-            let clip_margin = style.get_margin().overflow_clip_margin.px();
-            overflow_clip_rect = overflow_clip_rect.inflate(clip_margin, clip_margin);
+            let clip_margin_offset = overflow_clip_margin.offset.px();
+            overflow_clip_rect = overflow_clip_rect.inflate(clip_margin_offset, clip_margin_offset);
 
             // The clipping region only gets rounded corners if both axes have `overflow: clip`.
             // https://drafts.csswg.org/css-overflow-3/#corner-clipping
             let radii;
             if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
                 let builder = BuilderForBoxFragment::new(self, containing_block_rect, false, false);
-                radii = offset_radii(builder.border_radius, clip_margin);
+                // TODO(#41907): This only works well when `overflow-clip-margin` uses the border box.
+                radii = offset_radii(builder.border_radius, clip_margin_offset);
             } else if overflow.x != ComputedOverflow::Clip {
                 overflow_clip_rect.min.x = f32::MIN;
                 overflow_clip_rect.max.x = f32::MAX;
