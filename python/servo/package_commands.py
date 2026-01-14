@@ -12,7 +12,6 @@ import random
 from typing import List
 
 import time
-from collections.abc import Generator
 from github import Github
 
 import hashlib
@@ -42,7 +41,7 @@ from servo.command_base import (
     CommandBase,
     is_windows,
 )
-from servo.util import delete, get_target_dir
+from servo.util import delete
 
 from python.servo.platform.build_target import SanitizerKind
 from servo.platform.build_target import is_android, is_openharmony
