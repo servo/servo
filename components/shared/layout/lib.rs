@@ -556,6 +556,8 @@ bitflags! {
         /// updating style or layout. This is used when updating canvas contents and
         /// progressing to a new animated image frame.
         const UpdatedImageData = 1 << 5;
+
+        const AccessibilityTreeUpdated = 1 << 6;
     }
 }
 

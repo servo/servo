@@ -878,6 +878,31 @@ impl LayoutThread {
         }
     }
 
+    fn handle_accessibility_update<'dom>(&self, document: ServoLayoutDocument<'dom>) -> bool {
+        if let Some(fragment_tree) = &*self.fragment_tree.borrow() {
+            let accessibility_tree =
+                AccessibilityTreeCalculator::construct(document, fragment_tree.clone());
+            let nodes: Vec<(AxNodeId, AxNode)> = accessibility_tree
+                .ax_nodes
+                .iter()
+                .map(|(k, v)| (*k, v.clone()))
+                .collect();
+            let tree_update = AxTreeUpdate {
+                nodes,
+                tree: Some(accessibility_tree.ax_tree),
+                tree_id: AxTreeId(AxUuid::from_bytes([1; 16])),
+                focus: AxNodeId(1),
+            };
+            self.script_chan
+                .send(ScriptThreadMessage::HackySendAccessibilityTree(
+                    self.webview_id,
+                    tree_update,
+                ))
+                .expect("TODO: panic message");
+        }
+        return true;
+    }
+
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(skip_all)]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
@@ -928,6 +953,10 @@ impl LayoutThread {
         }
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
+        }
+
+        if pref!(experimental_accessibility_enabled) && self.handle_accessibility_update(document) {
+            reflow_phases_run.insert(ReflowPhasesRun::AccessibilityTreeUpdated)
         }
 
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
@@ -1154,26 +1183,6 @@ impl LayoutThread {
         } else {
             run_layout()
         });
-
-        let accessibility_tree =
-            AccessibilityTreeCalculator::construct(document, fragment_tree.clone());
-        let nodes: Vec<(AxNodeId, AxNode)> = accessibility_tree
-            .ax_nodes
-            .iter()
-            .map(|(k, v)| (*k, v.clone()))
-            .collect();
-        let tree_update = AxTreeUpdate {
-            nodes,
-            tree: Some(accessibility_tree.ax_tree),
-            tree_id: AxTreeId(AxUuid::from_bytes([1; 16])),
-            focus: AxNodeId(1),
-        };
-        self.script_chan
-            .send(ScriptThreadMessage::HackySendAccessibilityTree(
-                self.webview_id,
-                tree_update,
-            ))
-            .expect("TODO: panic message");
 
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
