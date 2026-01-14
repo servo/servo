@@ -1,12 +1,6 @@
 import promptAction from '@ohos.promptAction';
 import servoshell from 'libservoshell.so';
 
-interface InitOpts {
-  url: string;
-  resourceDir: string,
-  commandlineArgs: string,
-}
-
 function prompt_toast(msg: string) {
     promptAction.showToast({
       message: msg,
