@@ -9,10 +9,11 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use euclid::{Point2D, Rect, Size2D, UnknownUnit};
-use fonts::{FontMetrics, GlyphStore, TextByteRange};
+use fonts::{ByteIndex, FontMetrics, GlyphStore, TextByteRange};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
+use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
@@ -69,7 +70,9 @@ pub(crate) struct TextFragment {
     pub font_key: FontInstanceKey,
     #[conditional_malloc_size_of]
     pub glyphs: Vec<Arc<GlyphStore>>,
-
+    /// The glyph offset of the starting glyph of this [`TextFragment`] within
+    /// its parent inline box.
+    pub starting_glyph_offset: usize,
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     pub selection_range: Option<TextByteRange>,
@@ -274,6 +277,20 @@ impl Fragment {
         rect.round().to_i32()
     }
 
+    pub(crate) fn children<'a>(&'a self) -> Option<AtomicRef<'a, Vec<Fragment>>> {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let fragment = fragment.borrow();
+                Some(AtomicRef::map(fragment, |fragment| &fragment.children))
+            },
+            Fragment::Positioning(fragment) => {
+                let fragment = fragment.borrow();
+                Some(AtomicRef::map(fragment, |fragment| &fragment.children))
+            },
+            _ => None,
+        }
+    }
+
     pub(crate) fn find<T>(
         &self,
         manager: &ContainingBlockManager<PhysicalRect<Au>>,
@@ -342,14 +359,36 @@ impl TextFragment {
             "Text num_glyphs={} box={:?}",
             self.glyphs
                 .iter()
-                .map(|glyph_store| glyph_store.len().0)
-                .sum::<isize>(),
-            self.base.rect,
+                .map(|glyph_store| glyph_store.glyph_count())
+                .sum::<usize>(),
+            self.base.rect
         ));
     }
 
     pub fn has_selection(&self) -> bool {
         self.selection_range.is_some()
+    }
+
+    pub(crate) fn glyph_offset(&self, point_in_parent: Point2D<Au, CSSPixel>) -> usize {
+        let point = point_in_parent - self.base.rect.origin;
+        let mut current_glyph = self.starting_glyph_offset;
+        let mut current_offset = Au::zero();
+
+        for glyph_store in &self.glyphs {
+            for glyph in glyph_store.iter_glyphs_for_byte_range(TextByteRange::new(
+                ByteIndex::zero(),
+                glyph_store.len(),
+            )) {
+                let advance = glyph.advance();
+                if current_offset + advance.scale_by(0.5) >= point.x {
+                    return current_glyph;
+                }
+                current_offset += advance;
+                current_glyph += 1;
+            }
+        }
+
+        current_glyph
     }
 }
 

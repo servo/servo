@@ -74,7 +74,7 @@ pub mod line;
 mod line_breaker;
 pub mod text_run;
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -707,6 +707,9 @@ pub(super) struct InlineContainerState {
 
     /// The font metrics of the non-fallback font for this container.
     font_metrics: Arc<FontMetrics>,
+
+    /// The current count of glyphs added to the inline container.
+    number_of_glyphs: Cell<usize>,
 }
 
 pub(super) struct InlineFormattingContextLayout<'layout_data> {
@@ -1453,6 +1456,7 @@ impl InlineFormattingContextLayout<'_> {
         font: &FontRef,
         bidi_level: Level,
         range: TextByteRange,
+        starting_glyph_offset: usize,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1539,6 +1543,7 @@ impl InlineFormattingContextLayout<'_> {
             current_inline_box_identifier,
             TextRunLineItem {
                 text: vec![glyph_store],
+                starting_glyph_offset,
                 base_fragment_info: text_run.base_fragment_info,
                 inline_styles: text_run.inline_styles.clone(),
                 font_metrics: font_metrics.clone(),
@@ -2048,6 +2053,7 @@ impl InlineContainerState {
             strut_block_sizes,
             baseline_offset,
             font_metrics,
+            number_of_glyphs: Default::default(),
         }
     }
 

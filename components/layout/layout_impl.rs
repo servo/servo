@@ -19,7 +19,7 @@ use compositing_traits::CrossProcessPaintApi;
 use compositing_traits::display_list::ScrollType;
 use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
-use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
+use euclid::default::Rect as UntypedRect;
 use euclid::{Point2D, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
@@ -90,11 +90,13 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{
     DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
 };
+use crate::dom::NodeExt;
 use crate::query::{
-    get_the_text_steps, process_box_area_request, process_box_areas_request,
-    process_client_rect_request, process_current_css_zoom_query, process_node_scroll_area_request,
-    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
-    process_resolved_style_request, process_scroll_container_query, process_text_index_request,
+    find_glyph_offset_in_fragment, get_the_text_steps, process_box_area_request,
+    process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
+    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
+    process_resolved_font_style_query, process_resolved_style_request,
+    process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
@@ -478,16 +480,15 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_text_indext(
+    fn query_text_index(
         &self,
-        node: OpaqueNode,
-        point_in_node: UntypedPoint2D<f32>,
+        node: TrustedNodeAddress,
+        point_in_node: Point2D<Au, CSSPixel>,
     ) -> Option<usize> {
-        let point_in_node = Point2D::new(
-            Au::from_f32_px(point_in_node.x),
-            Au::from_f32_px(point_in_node.y),
-        );
-        process_text_index_request(node, point_in_node)
+        let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+        node.fragments_for_pseudo(None)
+            .iter()
+            .find_map(|fragment| find_glyph_offset_in_fragment(fragment, point_in_node, true))
     }
 
     #[servo_tracing::instrument(skip_all)]
