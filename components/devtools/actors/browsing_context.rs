@@ -90,7 +90,7 @@ enum TargetType {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BrowsingContextActorMsg {
+pub(crate) struct BrowsingContextActorMsg {
     actor: String,
     title: String,
     url: String,
@@ -132,26 +132,26 @@ pub struct BrowsingContextActorMsg {
 /// view. To this extent, it contains a watcher actor that helps when communicating with the host,
 /// as well as resource actors that each perform one debugging function.
 pub(crate) struct BrowsingContextActor {
-    pub name: String,
-    pub title: AtomicRefCell<String>,
-    pub url: AtomicRefCell<String>,
+    name: String,
+    pub(crate) title: AtomicRefCell<String>,
+    pub(crate) url: AtomicRefCell<String>,
     /// This corresponds to webview_id
-    pub browser_id: DevtoolsBrowserId,
+    pub(crate) browser_id: DevtoolsBrowserId,
     // TODO: Should these ids be atomic?
-    pub active_pipeline_id: AtomicRefCell<PipelineId>,
-    pub active_outer_window_id: AtomicRefCell<DevtoolsOuterWindowId>,
-    pub browsing_context_id: DevtoolsBrowsingContextId,
-    pub accessibility: String,
-    pub console: String,
-    pub css_properties: String,
-    pub inspector: String,
-    pub reflow: String,
-    pub style_sheets: String,
-    pub thread: String,
-    pub _tab: String,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
-    pub watcher: String,
+    active_pipeline_id: AtomicRefCell<PipelineId>,
+    active_outer_window_id: AtomicRefCell<DevtoolsOuterWindowId>,
+    pub(crate) browsing_context_id: DevtoolsBrowsingContextId,
+    accessibility: String,
+    pub(crate) console: String,
+    css_properties: String,
+    inspector: String,
+    reflow: String,
+    style_sheets: String,
+    pub(crate) thread: String,
+    _tab: String,
+    pub(crate) script_chan: GenericSender<DevtoolScriptControlMsg>,
+    pub(crate) streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
+    pub(crate) watcher: String,
 }
 
 impl ResourceAvailable for BrowsingContextActor {

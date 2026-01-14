@@ -22,7 +22,7 @@ struct ListWorkersReply {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ProcessActorMsg {
+pub(crate) struct ProcessActorMsg {
     actor: String,
     id: u32,
     is_parent: bool,
@@ -30,7 +30,7 @@ pub struct ProcessActorMsg {
     traits: DescriptorTraits,
 }
 
-pub struct ProcessActor {
+pub(crate) struct ProcessActor {
     name: String,
 }
 

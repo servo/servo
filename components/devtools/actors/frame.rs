@@ -29,7 +29,7 @@ pub enum FrameState {
 }
 
 #[derive(Serialize)]
-pub struct FrameWhere {
+pub(crate) struct FrameWhere {
     actor: String,
     line: u32,
     column: u32,
@@ -37,7 +37,7 @@ pub struct FrameWhere {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct FrameActorMsg {
+pub(crate) struct FrameActorMsg {
     actor: String,
     #[serde(rename = "type")]
     type_: String,
@@ -52,9 +52,9 @@ pub struct FrameActorMsg {
 
 /// Represents an stack frame. Used by `ThreadActor` when replying to interrupt messages.
 /// <https://searchfox.org/firefox-main/source/devtools/server/actors/frame.js>
-pub struct FrameActor {
-    pub name: String,
-    pub source_actor: String,
+pub(crate) struct FrameActor {
+    name: String,
+    source_actor: String,
 }
 
 impl Actor for FrameActor {

@@ -37,7 +37,7 @@ struct EnvironmentFunction {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EnvironmentActorMsg {
+pub(crate) struct EnvironmentActorMsg {
     actor: String,
     #[serde(rename = "type")]
     type_: EnvironmentType,
@@ -57,9 +57,9 @@ pub struct EnvironmentActorMsg {
 /// Resposible for listing the bindings in an environment and assigning new values to them.
 /// Referenced by `FrameActor` when replying to `getEnvironment` messages.
 /// <https://searchfox.org/firefox-main/source/devtools/server/actors/environment.js>
-pub struct EnvironmentActor {
-    pub name: String,
-    pub parent: Option<String>,
+pub(crate) struct EnvironmentActor {
+    pub(crate) name: String,
+    pub(crate) parent: Option<String>,
 }
 
 impl Actor for EnvironmentActor {

@@ -16,8 +16,8 @@ struct GetStyleSheetsReply {
     style_sheets: Vec<u32>, // TODO: real JSON structure.
 }
 
-pub struct StyleSheetsActor {
-    pub name: String,
+pub(crate) struct StyleSheetsActor {
+    name: String,
 }
 
 impl Actor for StyleSheetsActor {

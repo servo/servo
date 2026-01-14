@@ -6,8 +6,8 @@ use crate::actor::Actor;
 
 /// Referenced by `ThreadActor` when replying to `interupt` messages.
 /// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1699>
-pub struct PauseActor {
-    pub name: String,
+pub(crate) struct PauseActor {
+    pub(crate) name: String,
 }
 
 impl Actor for PauseActor {

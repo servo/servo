@@ -25,12 +25,12 @@ const ELEMENT_STYLE_TYPE: u32 = 100;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AppliedRule {
+pub(crate) struct AppliedRule {
     actor: String,
     ancestor_data: Vec<()>,
     authored_text: String,
     css_text: String,
-    pub declarations: Vec<AppliedDeclaration>,
+    pub(crate) declarations: Vec<AppliedDeclaration>,
     href: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     selectors: Vec<String>,
@@ -42,13 +42,13 @@ pub struct AppliedRule {
 }
 
 #[derive(Serialize)]
-pub struct IsUsed {
-    pub used: bool,
+pub(crate) struct IsUsed {
+    pub(crate) used: bool,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AppliedDeclaration {
+pub(crate) struct AppliedDeclaration {
     colon_offsets: Vec<i32>,
     is_name_valid: bool,
     is_used: IsUsed,
@@ -61,24 +61,24 @@ pub struct AppliedDeclaration {
 }
 
 #[derive(Serialize)]
-pub struct ComputedDeclaration {
+pub(crate) struct ComputedDeclaration {
     matched: bool,
     value: String,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct StyleRuleActorTraits {
-    pub can_set_rule_text: bool,
+pub(crate) struct StyleRuleActorTraits {
+    pub(crate) can_set_rule_text: bool,
 }
 
 #[derive(Serialize)]
-pub struct StyleRuleActorMsg {
+pub(crate) struct StyleRuleActorMsg {
     from: String,
     rule: Option<AppliedRule>,
 }
 
-pub struct StyleRuleActor {
+pub(crate) struct StyleRuleActor {
     name: String,
     node: String,
     selector: Option<(String, usize)>,

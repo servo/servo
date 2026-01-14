@@ -30,18 +30,18 @@ use crate::network_handler::Cause;
 use crate::protocol::ClientRequest;
 
 #[derive(Default)]
-pub struct NetworkEventActor {
+pub(crate) struct NetworkEventActor {
     name: String,
     request: AtomicRefCell<Option<NetworkEventRequest>>,
     resource_id: u64,
     response: AtomicRefCell<Option<NetworkEventResponse>>,
     security_info: AtomicRefCell<TlsSecurityInfo>,
-    pub watcher: String,
+    pub(crate) watcher: String,
 }
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NetworkEventResource {
+pub(crate) struct NetworkEventResource {
     #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
     inner_window_id: u64,
@@ -51,7 +51,7 @@ pub struct NetworkEventResource {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NetworkEventMsg {
+pub(crate) struct NetworkEventMsg {
     actor: String,
     #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
@@ -158,7 +158,7 @@ struct SecurityFields {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ResourceUpdates {
+pub(crate) struct ResourceUpdates {
     http_version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(flatten)]
@@ -190,13 +190,13 @@ struct ResponseContent {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CacheDetails {
+pub(crate) struct CacheDetails {
     from_cache: bool,
     from_service_worker: bool,
 }
 
 #[derive(Clone, Default, Serialize)]
-pub struct Timings {
+pub(crate) struct Timings {
     blocked: usize,
     dns: usize,
     connect: usize,
@@ -325,7 +325,7 @@ struct NetworkEventResponse {
 }
 
 #[derive(Serialize)]
-pub struct CookieWrapper {
+pub(crate) struct CookieWrapper {
     name: String,
     value: String,
     #[serde(skip_serializing_if = "Option::is_none")]

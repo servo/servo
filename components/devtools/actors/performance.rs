@@ -9,7 +9,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::{ActorDescription, ClientRequest, Method};
 
-pub struct PerformanceActor {
+pub(crate) struct PerformanceActor {
     name: String,
 }
 

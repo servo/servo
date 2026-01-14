@@ -43,7 +43,7 @@ pub mod thread_configuration;
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher/session-context.js>
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SessionContext {
+pub(crate) struct SessionContext {
     is_server_target_switching_enabled: bool,
     supported_targets: HashMap<&'static str, bool>,
     supported_resources: HashMap<&'static str, bool>,
@@ -173,14 +173,14 @@ struct WatcherTraits {
 }
 
 #[derive(Serialize)]
-pub struct WatcherActorMsg {
+pub(crate) struct WatcherActorMsg {
     actor: String,
     traits: WatcherTraits,
 }
 
-pub struct WatcherActor {
+pub(crate) struct WatcherActor {
     name: String,
-    pub browsing_context_actor: String,
+    pub(crate) browsing_context_actor: String,
     network_parent: String,
     target_configuration: String,
     thread_configuration: String,
@@ -190,7 +190,7 @@ pub struct WatcherActor {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct WillNavigateMessage {
+pub(crate) struct WillNavigateMessage {
     #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
     inner_window_id: u32,
