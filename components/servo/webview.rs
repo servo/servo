@@ -567,12 +567,6 @@ impl WebView {
             .send(EmbedderToConstellationMessage::ExitFullScreen(self.id()));
     }
 
-    pub fn set_throttled(&self, throttled: bool) {
-        self.inner().servo.constellation_proxy().send(
-            EmbedderToConstellationMessage::SetWebViewThrottled(self.id(), throttled),
-        );
-    }
-
     pub fn toggle_webrender_debugging(&self, debugging: WebRenderDebugOption) {
         self.inner().servo.paint().toggle_webrender_debug(debugging);
     }

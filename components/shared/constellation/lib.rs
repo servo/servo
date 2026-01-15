@@ -90,7 +90,7 @@ pub enum EmbedderToConstellationMessage {
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
     /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
-    SetWebViewThrottled(WebViewId, bool),
+    SetWebViewHidden(WebViewId, bool),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
     SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
