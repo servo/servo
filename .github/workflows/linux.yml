@@ -33,13 +33,6 @@ on:
         required: false
         default: false
         type: boolean
-      upload:
-        required: false
-        default: false
-        type: boolean
-      github-release-id:
-        required: false
-        type: string
       force-github-hosted-runner:
         required: false
         type: boolean
@@ -82,10 +75,6 @@ on:
         required: false
         default: false
         type: boolean
-      upload:
-        required: false
-        default: false
-        type: boolean
       force-github-hosted-runner:
         required: false
         type: boolean
@@ -125,7 +114,7 @@ jobs:
           # <https://github.com/servo/servo/settings/variables/actions>
           NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
           # Any other boolean conditions that disable self-hosted runners go here.
-          force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
+          force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
 
   build:
     needs:
@@ -211,16 +200,6 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-linux
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
-      - name: Upload nightly
-        if: ${{ inputs.upload }}
-        run: |
-          ./mach upload-nightly linux \
-            --secret-from-environment \
-            --github-release-id ${{ inputs.github-release-id }}
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
 
   wpt-2020:
     if: ${{ inputs.wpt }}

@@ -19,13 +19,10 @@ on:
         required: false
         default: false
         type: boolean
-      upload:
+      upload_zip:
         required: false
         default: false
         type: boolean
-      github-release-id:
-        required: false
-        type: string
       force-github-hosted-runner:
         required: false
         type: boolean
@@ -46,10 +43,6 @@ on:
         default: false
         type: boolean
       build-libservo:
-        required: false
-        default: false
-        type: boolean
-      upload:
         required: false
         default: false
         type: boolean
@@ -195,24 +188,22 @@ jobs:
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
         run: .\mach package --profile ${{ inputs.profile }}
+      # These files are available
+      # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
+      # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.exe
+      # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-windows
-          # These files are available
-          # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
-          # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.exe
-          # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.exe
-      - name: Upload nightly
-        if: ${{ inputs.upload }}
-        run: |
-          .\mach upload-nightly windows-msvc --secret-from-environment `
-            --github-release-id ${{ inputs.github-release-id }}
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      - name: Upload artifact for mach package (zip)
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.upload_zip }}
+        with:
+          name: ${{ inputs.profile }}-binary-windows-zip
+          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.zip
+
   bencher:
     needs: ["build"]
     if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
