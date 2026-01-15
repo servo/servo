@@ -17,7 +17,7 @@ use js::jsapi::{GetRequestedModuleSpecifier, GetRequestedModulesCount, JSObject}
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers::JS_GetModulePrivate;
-use js::rust::{Handle as RustHandle, HandleValue, IntoHandle};
+use js::rust::{HandleValue, IntoHandle};
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{Destination, Referrer, RequestBuilder, RequestId, RequestMode};
@@ -86,7 +86,7 @@ struct GraphLoadingState {
     promise: Rc<Promise>,
     is_loading: Cell<bool>,
     pending_modules_count: Cell<u32>,
-    visited: RefCell<Vec<ModuleObject>>,
+    visited: RefCell<HashSet<ServoUrl>>,
     load_state: Rc<LoadState>,
     owner: ModuleOwner,
 }
@@ -109,7 +109,7 @@ pub(crate) fn LoadRequestedModules(
         promise: promise.clone(),
         is_loading: Cell::new(true),
         pending_modules_count: Cell::new(1),
-        visited: RefCell::new(Vec::new()),
+        visited: RefCell::new(HashSet::new()),
         load_state,
         owner,
     };
@@ -134,17 +134,21 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
         .as_ref()
         .map(|module| module.handle())
         .unwrap();
-    let module_object = ModuleObject::new(unsafe { RustHandle::from_raw(module_handle) });
 
-    let visited_contains_module = state.visited.borrow().contains(&module_object);
+    let module_url = module.get_url();
+    let visited_contains_module = state.visited.borrow().contains(&module_url);
 
     // Step 2. If module is a Cyclic Module Record, module.[[Status]] is new, and state.[[Visited]] does not contain module, then
     if !visited_contains_module {
         // a. Append module to state.[[Visited]].
-        state.visited.borrow_mut().push(module_object);
+        state.visited.borrow_mut().insert(module_url);
 
         // b. Let requestedModulesCount be the number of elements in module.[[RequestedModules]].
         let requested_modules_count = unsafe { GetRequestedModulesCount(*cx, module_handle) };
+        debug!(
+            "Requested modules count for module with url {} is {requested_modules_count}.",
+            module.get_url()
+        );
 
         // c. Set state.[[PendingModulesCount]] to state.[[PendingModulesCount]] + requestedModulesCount.
         state
@@ -158,6 +162,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
             let jsstr = unsafe { GetRequestedModuleSpecifier(*cx, module_handle, index) };
 
             if jsstr.is_null() {
+                debug!("Failed to get module specifier.");
                 // Step 1. Let error be ThrowCompletion(a newly created SyntaxError object).
                 let error = RethrowError::from_pending_exception(cx);
 
@@ -173,7 +178,10 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
 
                 match loaded_module {
                     // 1. Perform InnerModuleLoading(state, record.[[Module]]).
-                    Some(module) => InnerModuleLoading(global, state, module),
+                    Some(module) => {
+                        debug!("Starting module loading for module with specifier: {specifier}.");
+                        InnerModuleLoading(global, state, module);
+                    },
                     // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
                     None => HostLoadImportedModule(global, module.clone(), specifier, state),
                 }
@@ -192,6 +200,11 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
     // Step 4. Set state.[[PendingModulesCount]] to state.[[PendingModulesCount]] - 1.
     state.pending_modules_count.update(|count| count - 1);
 
+    debug!(
+        "Pending modules count is {}",
+        state.pending_modules_count.get()
+    );
+
     // Step 5. If state.[[PendingModulesCount]] = 0, then
     if state.pending_modules_count.get() == 0 {
         // a. Set state.[[IsLoading]] to false.
@@ -203,6 +216,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
         // }
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
+        debug!("Module loading process terminated.");
         state.promise.resolve_native(&(), CanGc::note());
     }
 
@@ -231,6 +245,7 @@ fn ContinueModuleLoading(
             state.is_loading.set(false);
 
             // b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
+            debug!("Module loading failed, rejecting promise.");
             state
                 .promise
                 .reject(GlobalScope::get_cx(), exception.handle(), CanGc::note());
@@ -251,6 +266,7 @@ fn FinishLoadingImportedModule(
 ) {
     // Step 1. If result is a normal completion, then
     if let Ok(ref module) = result {
+        debug!("Module fetching was successful");
         // a. If referrer.[[LoadedModules]] contains a LoadedModuleRequest Record record such that
         // ModuleRequestsEqual(record, moduleRequest) is true, then
         referrer_module.insert_module_dependency(module, module_request_specifier);
@@ -346,6 +362,8 @@ fn HostLoadImportedModule(
         // Step 9.3. Return.
         return;
     };
+
+    debug!("Starting fetch for {specifier} {url}");
 
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
     // originalFetchOptions, url, and settingsObject.
@@ -470,26 +488,26 @@ pub(crate) fn fetch_a_single_module_script(
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
     // Step 4. Let moduleMap be settingsObject's module map.
-    {
+    let module_tree = {
         let module_map = global.get_module_map().borrow();
-        let module_tree = module_map.get(&url);
+        module_map.get(&url).cloned()
+    };
 
-        // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
-        // then queue a task on the networking task source to proceed with running the following steps.
-        if let Some(module_tree) = module_tree {
-            if module_tree.get_record().borrow().is_none() &&
-                module_tree.get_network_error().borrow().is_none()
-            {
-                return;
-            } else {
-                return on_complete(&global, module_tree.clone());
-            }
+    // TODO Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
+    // then queue a task on the networking task source to proceed with running the following steps.
+
+    // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
+    if let Some(module_tree) = module_tree {
+        if module_tree.get_record().borrow().is_some() ||
+            module_tree.get_network_error().borrow().is_some()
+        {
+            return on_complete(&global, module_tree);
         }
+    } else {
+        // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
+        let module_tree = ModuleTree::new(url.clone(), true, HashSet::new());
+        global.set_module_map(url.clone(), module_tree);
     }
-
-    // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-    let module_tree = ModuleTree::new(url.clone(), true, HashSet::new());
-    global.set_module_map(url.clone(), module_tree);
 
     let global_scope = DomRoot::from_ref(&*global);
     let request_url = url.clone();
@@ -498,7 +516,7 @@ pub(crate) fn fetch_a_single_module_script(
             let url = request_url;
             let module_tree = {
                 let module_map = global_scope.get_module_map().borrow();
-                module_map.get(&url).unwrap().clone()
+                module_map.get(&url).cloned().unwrap()
             };
 
             on_complete(&global_scope, module_tree);

@@ -261,6 +261,10 @@ impl ModuleTree {
         }
     }
 
+    pub(crate) fn get_url(&self) -> ServoUrl {
+        self.url.clone()
+    }
+
     pub(crate) fn get_status(&self) -> ModuleStatus {
         *self.status.borrow()
     }
@@ -2033,6 +2037,7 @@ pub(crate) fn fetch_an_external_module_script(
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
             fetch_the_descendants_and_link_module_script(
+                module_tree,
                 Destination::Script,
                 owner,
                 identity,
@@ -2065,17 +2070,22 @@ pub(crate) fn fetch_inline_module_script(
         true,
         line_number as u32,
     );
-    let module_tree = ModuleTree::new(url.clone(), false, HashSet::new());
+    let module_tree = Rc::new(ModuleTree::new(url.clone(), false, HashSet::new()));
 
     if let Err(exception) = result {
         module_tree.set_rethrow_error(exception);
     } else {
         module_tree.set_record(ModuleObject::new(compiled_module.handle()));
     }
-    owner.global().set_inline_module_map(script_id, module_tree);
+    owner
+        .global()
+        .get_inline_module_map()
+        .borrow_mut()
+        .insert(script_id, Rc::clone(&module_tree));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
     fetch_the_descendants_and_link_module_script(
+        module_tree,
         Destination::Script,
         owner,
         ModuleIdentity::ScriptId(script_id),
@@ -2085,20 +2095,20 @@ pub(crate) fn fetch_inline_module_script(
 
 /// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-the-descendants-of-and-link-a-module-script>
 fn fetch_the_descendants_and_link_module_script(
+    module_script: Rc<ModuleTree>,
     destination: Destination,
     owner: ModuleOwner,
     identity: ModuleIdentity,
     can_gc: CanGc,
 ) {
     let global = owner.global();
-    let module_tree = identity.get_module_tree(&global);
 
     // Step 1. Let record be moduleScript's record.
     // Step 2. If record is null, then:
-    if module_tree.get_record().borrow().is_none() {
+    if module_script.get_record().borrow().is_none() {
         // Step 2.1. Set moduleScript's error to rethrow to moduleScript's parse error.
         // Step 2.2. Run onComplete given moduleScript.
-        owner.complete_module_loading(Some(module_tree), can_gc);
+        owner.complete_module_loading(Some(module_script), can_gc);
 
         // Step 2.3. Return.
         return;
@@ -2115,7 +2125,7 @@ fn fetch_the_descendants_and_link_module_script(
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
     let loading_promise =
-        LoadRequestedModules(&global, module_tree, Rc::clone(&state), owner.clone());
+        LoadRequestedModules(&global, module_script, Rc::clone(&state), owner.clone());
 
     let fulfillment_owner = owner.clone();
     let fulfillment_identity = identity.clone();
