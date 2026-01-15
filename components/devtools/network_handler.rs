@@ -15,7 +15,7 @@ use crate::resource::{ResourceArrayType, ResourceAvailable};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Cause {
+pub(crate) struct Cause {
     #[serde(rename = "type")]
     pub type_: String,
     pub loading_document_uri: Option<String>,
