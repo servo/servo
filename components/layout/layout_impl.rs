@@ -90,9 +90,8 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{
     DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
 };
-use crate::dom::NodeExt;
 use crate::query::{
-    find_glyph_offset_in_fragment, get_the_text_steps, process_box_area_request,
+    find_glyph_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
     process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
     process_resolved_font_style_query, process_resolved_style_request,
@@ -486,9 +485,7 @@ impl Layout for LayoutThread {
         point_in_node: Point2D<Au, CSSPixel>,
     ) -> Option<usize> {
         let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
-        node.fragments_for_pseudo(None)
-            .iter()
-            .find_map(|fragment| find_glyph_offset_in_fragment(fragment, point_in_node, true))
+        find_glyph_offset_in_fragment_descendants(&node, point_in_node)
     }
 
     #[servo_tracing::instrument(skip_all)]
