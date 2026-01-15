@@ -356,7 +356,7 @@ impl DevtoolsInstance {
                 streams: Default::default(),
             };
             let root = actors.find::<RootActor>("root");
-            root.tabs.borrow_mut().push(worker.name.clone());
+            root.workers.borrow_mut().push(worker.name.clone());
 
             self.actor_workers.insert(id, worker_name.clone());
             actors.register(worker);
