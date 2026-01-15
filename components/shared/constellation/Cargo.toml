@@ -16,6 +16,7 @@ bluetooth = []
 webgpu = ["wgpu-core"]
 
 [dependencies]
+accesskit = { workspace = true }
 base = { workspace = true }
 canvas_traits = { workspace = true }
 content-security-policy = { workspace = true }

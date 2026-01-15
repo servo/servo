@@ -59,6 +59,10 @@ pub struct Gui {
     ///
     /// These need to be cached across egui draw calls.
     favicon_textures: HashMap<WebViewId, (egui::TextureHandle, egui::load::SizedTexture)>,
+
+    /// AccessKit tree updates pending the next egui tick.
+    /// This allows us to ensure that graft nodes are sent before the subtrees they graft.
+    pending_accesskit_updates: Vec<accesskit::TreeUpdate>,
 }
 
 fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
@@ -124,6 +128,7 @@ impl Gui {
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
+            pending_accesskit_updates: vec![],
         }
     }
 
@@ -472,6 +477,24 @@ impl Gui {
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
             let rect = ctx.available_rect();
+
+            // Build a graft node for every webview
+            for (webview_id, webview) in window.webviews() {
+                if let Some(tree_id) = webview.accesskit_tree_id() {
+                    let id = egui::Id::new(webview_id);
+                    ctx.accesskit_node_builder(id, |node| {
+                        node.set_role(accesskit::Role::Group);
+                        node.set_label("graft");
+                        node.set_tree_id(tree_id);
+                        node.set_bounds(accesskit::Rect {
+                            x0: rect.left() as f64,
+                            y0: rect.top() as f64,
+                            x1: rect.right() as f64,
+                            y1: rect.bottom() as f64,
+                        });
+                    });
+                }
+            }
             let size = Size2D::new(rect.width(), rect.height()) * scale;
             if let Some(webview) = window.active_webview() &&
                 size != webview.size()
@@ -508,6 +531,16 @@ impl Gui {
                 });
             }
         });
+
+        let adapter = self
+            .context
+            .egui_winit
+            .accesskit
+            .as_mut()
+            .expect("guaranteed by Gui::new()");
+        for tree_update in self.pending_accesskit_updates.drain(..) {
+            adapter.update_if_active(|| tree_update);
+        }
     }
 
     /// Paint the GUI, as of the last update.
@@ -617,8 +650,8 @@ impl Gui {
         self.context.egui_ctx.set_zoom_factor(factor);
     }
 
-    pub(crate) fn notify_accessibility_tree_update(&mut self, _tree_update: accesskit::TreeUpdate) {
-        // TODO(#41930): Forward this update to `self.context.egui_winit.accesskit`
+    pub(crate) fn notify_accessibility_tree_update(&mut self, tree_update: accesskit::TreeUpdate) {
+        self.pending_accesskit_updates.push(tree_update);
     }
 }
 
