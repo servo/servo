@@ -75,7 +75,6 @@ use crate::dom::html::htmlformelement::{
     SubmittedFrom,
 };
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
@@ -3223,37 +3222,24 @@ impl VirtualMethods for HTMLInputElement {
             s.handle_event(event, can_gc);
         }
 
-        if event.type_() == atom!("click") && !event.DefaultPrevented() {
+        if event.type_() == atom!("mousedown") && !event.DefaultPrevented() {
             // WHATWG-specified activation behaviors are handled elsewhere;
             // this is for all the other things a UI click might do
-
-            // TODO(#10083): set the editing position for text inputs
-
             if self.input_type().is_textual_or_password() &&
                 // Check if we display a placeholder. Layout doesn't know about this.
                 !self.textinput.borrow().is_empty()
             {
-                if let Some(mouse_event) = event.downcast::<MouseEvent>() {
-                    // dispatch_key_event (document.rs) triggers a click event when releasing
-                    // the space key. There's no nice way to catch this so let's use this for
-                    // now.
-                    if let Some(point_in_target) = mouse_event.point_in_target() {
-                        // Position the caret at the click position or at the end of the current value.
-                        if let Some(grapheme_index) = self
-                            .owner_window()
-                            .text_index_query(self.upcast::<Node>(), point_in_target.to_untyped())
-                        {
-                            let mut textinput = self.textinput.borrow_mut();
-                            textinput.clear_selection_to_start();
-                            textinput
-                                .modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
-                        } else {
-                            self.textinput.borrow_mut().clear_selection_to_end();
-                        }
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
-                        event.PreventDefault();
-                    }
+                if let Some(grapheme_index) = self
+                    .owner_window()
+                    .text_index_query_on_node_for_event(self.upcast::<Node>(), event)
+                {
+                    let mut textinput = self.textinput.borrow_mut();
+                    textinput.clear_selection_to_start();
+                    textinput.modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
+                } else {
+                    self.textinput.borrow_mut().clear_selection_to_end();
                 }
+                self.upcast::<Node>().dirty(NodeDamage::Other);
             }
         } else if event.type_() == atom!("keydown") &&
             !event.DefaultPrevented() &&

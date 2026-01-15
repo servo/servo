@@ -131,9 +131,11 @@ impl GlyphEntry {
         self.value |= FLAG_CHAR_IS_WORD_SEPARATOR;
     }
 
-    fn glyph_count(&self) -> u16 {
-        assert!(!self.is_simple());
-        (self.value & GLYPH_COUNT_MASK) as u16
+    fn glyph_count(&self) -> usize {
+        if self.is_simple() {
+            return 1;
+        }
+        (self.value & GLYPH_COUNT_MASK) as usize
     }
 
     #[inline(always)]
@@ -232,7 +234,7 @@ impl<'a> DetailedGlyphStore {
     fn detailed_glyphs_for_entry(
         &'a self,
         entry_offset: ByteIndex,
-        count: u16,
+        count: usize,
     ) -> &'a [DetailedGlyph] {
         debug!(
             "Requesting detailed glyphs[n={}] for entry[off={:?}]",
@@ -245,7 +247,7 @@ impl<'a> DetailedGlyphStore {
             return &self.detail_buffer[0..0];
         }
 
-        assert!((count as usize) <= self.detail_buffer.len());
+        assert!(count <= self.detail_buffer.len());
         assert!(self.lookup_is_sorted);
 
         let key = DetailedGlyphRecord {
@@ -258,9 +260,9 @@ impl<'a> DetailedGlyphStore {
             .binary_search(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
         let main_detail_offset = self.detail_lookup[i].detail_offset;
-        assert!(main_detail_offset + (count as usize) <= self.detail_buffer.len());
+        assert!(main_detail_offset + count <= self.detail_buffer.len());
         // return a slice into the buffer
-        &self.detail_buffer[main_detail_offset..main_detail_offset + count as usize]
+        &self.detail_buffer[main_detail_offset..main_detail_offset + count]
     }
 
     fn detailed_glyph_with_index(
@@ -491,6 +493,11 @@ impl GlyphStore {
     #[inline]
     pub fn len(&self) -> ByteIndex {
         ByteIndex(self.entry_buffer.len() as isize)
+    }
+
+    #[inline]
+    pub fn glyph_count(&self) -> usize {
+        self.entry_buffer.iter().map(GlyphEntry::glyph_count).sum()
     }
 
     #[inline]

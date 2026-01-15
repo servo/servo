@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+mod aes_cbc_operation;
 mod aes_common;
 mod aes_ctr_operation;
+mod aes_gcm_operation;
 mod aes_ocb_operation;
 mod aes_operation;
 mod argon2_operation;
@@ -4031,10 +4033,10 @@ impl NormalizedAlgorithm {
                 aes_ctr_operation::encrypt(algo, key, plaintext)
             },
             (ALG_AES_CBC, NormalizedAlgorithm::AesCbcParams(algo)) => {
-                aes_operation::encrypt_aes_cbc(algo, key, plaintext)
+                aes_cbc_operation::encrypt(algo, key, plaintext)
             },
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
-                aes_operation::encrypt_aes_gcm(algo, key, plaintext)
+                aes_gcm_operation::encrypt(algo, key, plaintext)
             },
             (ALG_AES_OCB, NormalizedAlgorithm::AeadParams(algo)) => {
                 aes_ocb_operation::encrypt(algo, key, plaintext)
@@ -4055,10 +4057,10 @@ impl NormalizedAlgorithm {
                 aes_ctr_operation::decrypt(algo, key, ciphertext)
             },
             (ALG_AES_CBC, NormalizedAlgorithm::AesCbcParams(algo)) => {
-                aes_operation::decrypt_aes_cbc(algo, key, ciphertext)
+                aes_cbc_operation::decrypt(algo, key, ciphertext)
             },
             (ALG_AES_GCM, NormalizedAlgorithm::AesGcmParams(algo)) => {
-                aes_operation::decrypt_aes_gcm(algo, key, ciphertext)
+                aes_gcm_operation::decrypt(algo, key, ciphertext)
             },
             (ALG_AES_OCB, NormalizedAlgorithm::AeadParams(algo)) => {
                 aes_ocb_operation::decrypt(algo, key, ciphertext)
@@ -4192,11 +4194,11 @@ impl NormalizedAlgorithm {
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
             (ALG_AES_CBC, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
-                aes_operation::generate_key_aes_cbc(global, algo, extractable, usages, can_gc)
+                aes_cbc_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
             (ALG_AES_GCM, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
-                aes_operation::generate_key_aes_gcm(global, algo, extractable, usages, can_gc)
+                aes_gcm_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
             (ALG_AES_KW, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
@@ -4329,24 +4331,10 @@ impl NormalizedAlgorithm {
                 aes_ctr_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
             (ALG_AES_CBC, NormalizedAlgorithm::Algorithm(_algo)) => {
-                aes_operation::import_key_aes_cbc(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                )
+                aes_cbc_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
             (ALG_AES_GCM, NormalizedAlgorithm::Algorithm(_algo)) => {
-                aes_operation::import_key_aes_gcm(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                )
+                aes_gcm_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
             (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
                 aes_operation::import_key_aes_kw(
@@ -4465,10 +4453,10 @@ impl NormalizedAlgorithm {
                 aes_ctr_operation::get_key_length(algo)
             },
             (ALG_AES_CBC, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
-                aes_operation::get_key_length_aes_cbc(algo)
+                aes_cbc_operation::get_key_length(algo)
             },
             (ALG_AES_GCM, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
-                aes_operation::get_key_length_aes_gcm(algo)
+                aes_gcm_operation::get_key_length(algo)
             },
             (ALG_AES_KW, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
                 aes_operation::get_key_length_aes_kw(algo)
@@ -4536,8 +4524,8 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
         ALG_ED25519 => ed25519_operation::export_key(format, key),
         ALG_X25519 => x25519_operation::export_key(format, key),
         ALG_AES_CTR => aes_ctr_operation::export_key(format, key),
-        ALG_AES_CBC => aes_operation::export_key_aes_cbc(format, key),
-        ALG_AES_GCM => aes_operation::export_key_aes_gcm(format, key),
+        ALG_AES_CBC => aes_cbc_operation::export_key(format, key),
+        ALG_AES_GCM => aes_gcm_operation::export_key(format, key),
         ALG_AES_KW => aes_operation::export_key_aes_kw(format, key),
         ALG_HMAC => hmac_operation::export_key(format, key),
         ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024 => {

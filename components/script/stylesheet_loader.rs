@@ -303,7 +303,8 @@ impl FetchResponseListener for StylesheetContext {
     fn process_response_eof(
         mut self,
         _: RequestId,
-        status: Result<ResourceFetchTiming, NetworkError>,
+        status: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         // FIXME: Revisit once consensus is reached at:
         // https://github.com/whatwg/html/issues/1142
@@ -313,12 +314,12 @@ impl FetchResponseListener for StylesheetContext {
             .map(|metadata| metadata.status == http::StatusCode::OK)
             .unwrap_or(false);
 
-        let Ok(response) = status else {
+        network_listener::submit_timing(&self, &status, &timing, CanGc::note());
+
+        let Ok(_response) = status else {
             self.do_post_parse_tasks(successful, None);
             return;
         };
-
-        network_listener::submit_timing(&self, &response, CanGc::note());
 
         let Some(metadata) = self.metadata.as_ref() else {
             self.do_post_parse_tasks(successful, None);

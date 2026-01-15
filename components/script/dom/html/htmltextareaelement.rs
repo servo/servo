@@ -6,8 +6,8 @@ use std::cell::{Cell, RefCell};
 use std::default::Default;
 use std::ops::Range;
 
-use base::Lines;
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use base::{Lines, RopeMovement};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -735,8 +735,18 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.handle_event(event, can_gc);
         }
 
-        if event.type_() == atom!("click") && !event.DefaultPrevented() {
-            // TODO: set the editing position for text inputs
+        if event.type_() == atom!("mousedown") && !event.DefaultPrevented() {
+            if let Some(grapheme_index) = self
+                .owner_window()
+                .text_index_query_on_node_for_event(self.upcast::<Node>(), event)
+            {
+                let mut textinput = self.textinput.borrow_mut();
+                textinput.clear_selection_to_start();
+                textinput.modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
+            } else {
+                self.textinput.borrow_mut().clear_selection_to_end();
+            }
+            self.upcast::<Node>().dirty(NodeDamage::Other);
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()

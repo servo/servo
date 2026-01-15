@@ -487,13 +487,14 @@ impl FetchResponseListener for LinkFetchContext {
     fn process_response_eof(
         mut self,
         _: RequestId,
-        response_result: Result<ResourceFetchTiming, NetworkError>,
+        response_result: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         // Steps for https://html.spec.whatwg.org/multipage/#preload
         if let LinkFetchContextType::Preload(key) = &self.type_ {
-            let response = if let Ok(resource_timing) = &response_result {
+            let response = if response_result.is_ok() {
                 // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
-                let response = Response::new(self.url.clone(), resource_timing.clone());
+                let response = Response::new(self.url.clone(), timing.clone());
                 *response.body.lock() = ResponseBody::Done(std::mem::take(&mut self.response_body));
                 response
             } else {
@@ -518,9 +519,7 @@ impl FetchResponseListener for LinkFetchContext {
             );
         }
 
-        if let Ok(ref response) = response_result {
-            submit_timing(&self, response, CanGc::note());
-        }
+        submit_timing(&self, &response_result, &timing, CanGc::note());
 
         // Step 11.6. If processResponse is given, then call processResponse with response.
         //

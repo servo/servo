@@ -28,6 +28,7 @@ use xi_unicode::linebreak_property;
 use super::line_breaker::LineBreaker;
 use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::context::LayoutContext;
+use crate::dom::WeakLayoutBox;
 use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -136,6 +137,15 @@ impl TextRunSegment {
         for (run_index, run) in self.runs.iter().enumerate() {
             ifc.possibly_flush_deferred_forced_line_break();
 
+            // Advance the glyph offset of the current inline container. Note that this must
+            // be done before handling preserved newlines, as they count as glyphs for the
+            // purposes of calculating the current glyph offset.
+            let current_inline_container_state = ifc.current_inline_container_state();
+            let starting_glyph_offset = current_inline_container_state.number_of_glyphs.get();
+            current_inline_container_state
+                .number_of_glyphs
+                .replace(starting_glyph_offset + run.glyph_store.glyph_count());
+
             // If this whitespace forces a line break, queue up a hard line break the next time we
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
@@ -157,6 +167,7 @@ impl TextRunSegment {
                 &self.font,
                 self.bidi_level,
                 TextByteRange::new(range_start, range_start + run.range.len()),
+                starting_glyph_offset,
             );
             byte_processed = byte_processed + run.range.len();
         }
@@ -329,6 +340,10 @@ pub(crate) struct TextRun {
     /// original text node in the DOM for the text.
     pub base_fragment_info: BaseFragmentInfo,
 
+    /// A weak reference to the parent of this layout box. This becomes valid as soon
+    /// as the *parent* of this box is added to the tree.
+    pub parent_box: Option<WeakLayoutBox>,
+
     /// The [`crate::SharedStyle`] from this [`TextRun`]s parent element. This is
     /// shared so that incremental layout can simply update the parent element and
     /// this [`TextRun`] will be updated automatically.
@@ -356,6 +371,7 @@ impl TextRun {
     ) -> Self {
         Self {
             base_fragment_info,
+            parent_box: None,
             inline_styles,
             text_range,
             shaped_text: Vec::new(),

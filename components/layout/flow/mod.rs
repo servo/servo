@@ -23,6 +23,7 @@ use style::values::specified::{Display, TextAlignKeyword};
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom::WeakLayoutBox;
 use crate::flow::float::{
     Clear, ContainingBlockPositionInfo, FloatBox, FloatSide, PlacementAmongFloats,
     SequentialLayoutState,
@@ -159,6 +160,25 @@ impl BlockLevelBox {
             BlockLevelBox::OutOfFlowFloatBox(float_box) => callback(&mut float_box.contents.base),
             BlockLevelBox::OutsideMarker(outside_marker) => callback(&mut outside_marker.base),
             BlockLevelBox::SameFormattingContextBlock { base, .. } => callback(base),
+        }
+    }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        match self {
+            Self::Independent(independent_formatting_context) => {
+                independent_formatting_context.attached_to_tree(layout_box)
+            },
+            Self::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box.borrow().context.attached_to_tree(layout_box)
+            },
+            Self::OutOfFlowFloatBox(float_box) => float_box.contents.attached_to_tree(layout_box),
+            Self::OutsideMarker(outside_marker) => outside_marker
+                .block_formatting_context
+                .contents
+                .attached_to_tree(layout_box),
+            Self::SameFormattingContextBlock { contents, .. } => {
+                contents.attached_to_tree(layout_box)
+            },
         }
     }
 
@@ -450,6 +470,10 @@ impl BlockFormattingContext {
     ) {
         self.contents.repair_style(node, new_style);
     }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        self.contents.attached_to_tree(layout_box);
+    }
 }
 
 /// Finds the min/max-content inline size of the block-level children of a block container.
@@ -639,6 +663,19 @@ impl BlockContainer {
     #[inline]
     pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
         LayoutStyle::Default(&base.style)
+    }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        match self {
+            Self::BlockLevelBoxes(child_boxes) => {
+                for child_box in child_boxes {
+                    child_box.borrow_mut().with_base_mut(|base| {
+                        base.parent_box.replace(layout_box.clone());
+                    });
+                }
+            },
+            Self::InlineFormattingContext(ifc) => ifc.attached_to_tree(layout_box),
+        }
     }
 
     fn find_block_margin_collapsing_with_parent(

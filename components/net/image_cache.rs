@@ -1033,7 +1033,7 @@ impl ImageCache for ImageCacheImpl {
                     }
                 }
             },
-            (FetchResponseMsg::ProcessResponseEOF(_, result), key) => {
+            (FetchResponseMsg::ProcessResponseEOF(_, result, _), key) => {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {

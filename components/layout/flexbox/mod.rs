@@ -19,7 +19,7 @@ use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
-use crate::dom::LayoutBox;
+use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
@@ -196,6 +196,18 @@ impl FlexLevelBox {
             FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
                 callback(&mut positioned_box.borrow_mut().context.base)
             },
+        }
+    }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        match self {
+            Self::FlexItem(flex_item_box) => flex_item_box
+                .independent_formatting_context
+                .attached_to_tree(layout_box),
+            Self::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow_mut()
+                .context
+                .attached_to_tree(layout_box),
         }
     }
 }
