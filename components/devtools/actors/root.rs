@@ -114,7 +114,6 @@ struct ListProcessesResponse {
 #[derive(Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 
-// check again
 pub(crate) struct DescriptorTraits {
     pub(crate) watcher: bool,
     pub(crate) supports_reload_descriptor: bool,
@@ -132,8 +131,8 @@ pub(crate) struct RootActor {
     active_tab: AtomicRefCell<Option<String>>,
     global_actors: GlobalActors,
     process: String,
-    pub tabs: AtomicRefCell<Vec<String>>,
-    pub workers: AtomicRefCell<Vec<String>>,
+    pub(crate) tabs: AtomicRefCell<Vec<String>>,
+    pub(crate) workers: AtomicRefCell<Vec<String>>,
 }
 
 impl Actor for RootActor {

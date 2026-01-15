@@ -24,11 +24,11 @@ pub(crate) struct WalkerMsg {
     root: NodeActorMsg,
 }
 
-pub struct WalkerActor {
-    pub name: String,
-    pub mutations: AtomicRefCell<Vec<(AttrModification, String)>>,
-    pub pipeline: PipelineId,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
+pub(crate) struct WalkerActor {
+    pub(crate) name: String,
+    pub(crate) mutations: AtomicRefCell<Vec<(AttrModification, String)>>,
+    pub(crate) pipeline: PipelineId,
+    pub(crate) script_chan: GenericSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(Serialize)]

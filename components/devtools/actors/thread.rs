@@ -50,8 +50,8 @@ struct ThreadInterruptedReply {
 }
 
 pub(crate) struct ThreadActor {
-    pub name: String,
-    pub source_manager: SourceManager,
+    pub(crate) name: String,
+    pub(crate) source_manager: SourceManager,
 }
 
 impl ThreadActor {

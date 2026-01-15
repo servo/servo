@@ -13,10 +13,10 @@ pub enum ResourceArrayType {
 
 #[derive(Serialize)]
 pub(crate) struct ResourceAvailableReply<T: Serialize> {
-    pub from: String,
+    pub(crate) from: String,
     #[serde(rename = "type")]
-    pub type_: String,
-    pub array: Vec<(String, Vec<T>)>,
+    pub(crate) type_: String,
+    pub(crate) array: Vec<(String, Vec<T>)>,
 }
 
 pub(crate) trait ResourceAvailable {

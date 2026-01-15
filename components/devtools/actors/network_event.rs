@@ -30,13 +30,13 @@ use crate::network_handler::Cause;
 use crate::protocol::ClientRequest;
 
 #[derive(Default)]
-pub struct NetworkEventActor {
+pub(crate) struct NetworkEventActor {
     name: String,
     request: AtomicRefCell<Option<NetworkEventRequest>>,
     resource_id: u64,
     response: AtomicRefCell<Option<NetworkEventResponse>>,
     security_info: AtomicRefCell<TlsSecurityInfo>,
-    pub watcher: String,
+    pub(crate) watcher: String,
 }
 
 #[derive(Clone, Serialize)]

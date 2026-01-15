@@ -35,8 +35,8 @@ pub(crate) struct SourceForm {
 
 #[derive(Serialize)]
 pub(crate) struct SourcesReply {
-    pub from: String,
-    pub sources: Vec<SourceForm>,
+    pub(crate) from: String,
+    pub(crate) sources: Vec<SourceForm>,
 }
 
 pub(crate) struct SourceManager {
@@ -44,9 +44,9 @@ pub(crate) struct SourceManager {
 }
 
 #[derive(Clone, Debug)]
-pub struct SourceActor {
+pub(crate) struct SourceActor {
     /// Actor name.
-    pub name: String,
+    pub(crate) name: String,
 
     /// URL of the script, or URL of the page for inline scripts.
     url: ServoUrl,
@@ -55,7 +55,7 @@ pub struct SourceActor {
     /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#black-boxing-sources>
     is_black_boxed: bool,
 
-    pub content: AtomicRefCell<Option<String>>,
+    pub(crate) content: AtomicRefCell<Option<String>>,
     content_type: Option<String>,
 
     // TODO: use it in #37667, then remove this allow

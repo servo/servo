@@ -88,13 +88,13 @@ enum UniqueId {
 }
 
 #[derive(Serialize)]
-pub struct EmptyReplyMsg {
-    pub from: String,
+pub(crate) struct EmptyReplyMsg {
+    pub(crate) from: String,
 }
 
 #[derive(Serialize)]
-pub struct ActorMsg {
-    pub actor: String,
+pub(crate) struct ActorMsg {
+    pub(crate) actor: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.

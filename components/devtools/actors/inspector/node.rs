@@ -47,7 +47,7 @@ struct AttrMsg {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NodeActorMsg {
-    pub actor: String,
+    pub(crate) actor: String,
 
     /// The ID of the shadow host of this node, if it is
     /// a shadow root
@@ -56,7 +56,7 @@ pub(crate) struct NodeActorMsg {
     base_uri: String,
     causes_overflow: bool,
     container_type: Option<()>,
-    pub display_name: String,
+    pub(crate) display_name: String,
     display_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     inline_text_child: Option<Box<NodeActorMsg>>,
@@ -79,7 +79,7 @@ pub(crate) struct NodeActorMsg {
     node_name: String,
     node_type: u16,
     node_value: Option<String>,
-    pub num_children: usize,
+    pub(crate) num_children: usize,
     #[serde(skip_serializing_if = "String::is_empty")]
     parent: String,
     shadow_root_mode: Option<String>,
@@ -99,12 +99,12 @@ pub(crate) struct NodeActorMsg {
     system_id: Option<String>,
 }
 
-pub struct NodeActor {
+pub(crate) struct NodeActor {
     name: String,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
-    pub walker: String,
-    pub style_rules: AtomicRefCell<HashMap<(String, usize), String>>,
+    pub(crate) script_chan: GenericSender<DevtoolScriptControlMsg>,
+    pub(crate) pipeline: PipelineId,
+    pub(crate) walker: String,
+    pub(crate) style_rules: AtomicRefCell<HashMap<(String, usize), String>>,
 }
 
 impl Actor for NodeActor {

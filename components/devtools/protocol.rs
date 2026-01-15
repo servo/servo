@@ -16,17 +16,17 @@ use crate::actor::ActorError;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ActorDescription {
-    pub category: &'static str,
-    pub type_name: &'static str,
-    pub methods: Vec<Method>,
+pub(crate) struct ActorDescription {
+    pub(crate) category: &'static str,
+    pub(crate) type_name: &'static str,
+    pub(crate) methods: Vec<Method>,
 }
 
 #[derive(Serialize)]
-pub struct Method {
-    pub name: &'static str,
-    pub request: Value,
-    pub response: Value,
+pub(crate) struct Method {
+    pub(crate) name: &'static str,
+    pub(crate) request: Value,
+    pub(crate) response: Value,
 }
 
 pub trait JsonPacketStream {
@@ -101,7 +101,7 @@ impl JsonPacketStream for TcpStream {
 ///
 /// It does not currently guarantee anything about messages sent via the [`TcpStream`] released via
 /// [`Self::try_clone_stream`] or the return value of [`Self::reply`].
-pub struct ClientRequest<'req, 'sent> {
+pub(crate) struct ClientRequest<'req, 'sent> {
     /// Client stream.
     stream: &'req mut TcpStream,
     /// Expected actor name.
