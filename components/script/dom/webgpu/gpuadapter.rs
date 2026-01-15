@@ -30,20 +30,40 @@ use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
-#[dom_struct]
-pub(crate) struct GPUAdapter {
-    reflector_: Reflector,
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUAdapter {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
+    #[no_trace]
+    adapter: WebGPUAdapter,
+}
+
+impl Drop for DroppableGPUAdapter {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropAdapter(self.adapter.0))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DropAdapter({:?}) ({})",
+                self.adapter.0, e
+            );
+        };
+    }
+}
+
+#[dom_struct]
+pub(crate) struct GPUAdapter {
+    reflector_: Reflector,
     name: DOMString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
     features: Dom<GPUSupportedFeatures>,
     limits: Dom<GPUSupportedLimits>,
     info: Dom<GPUAdapterInfo>,
-    #[no_trace]
-    adapter: WebGPUAdapter,
+    droppable: DroppableGPUAdapter,
 }
 
 impl GPUAdapter {
@@ -57,13 +77,12 @@ impl GPUAdapter {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             name,
             extensions: Heap::default(),
             features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),
             info: Dom::from_ref(info),
-            adapter,
+            droppable: DroppableGPUAdapter { channel, adapter },
         }
     }
 
@@ -167,21 +186,6 @@ impl GPUAdapter {
     }
 }
 
-impl Drop for GPUAdapter {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropAdapter(self.adapter.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropAdapter({:?}) ({})",
-                self.adapter.0, e
-            );
-        };
-    }
-}
-
 impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
@@ -232,11 +236,12 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         let queue_id = self.global().wgpu_id_hub().create_queue_id();
         let pipeline_id = self.global().pipeline_id();
         if self
+            .droppable
             .channel
             .0
             .send(WebGPURequest::RequestDevice {
                 sender: callback,
-                adapter_id: self.adapter,
+                adapter_id: self.droppable.adapter,
                 descriptor: desc,
                 device_id,
                 queue_id,
@@ -279,7 +284,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
             (device_id, queue_id, Ok(descriptor)) => {
                 let device = GPUDevice::new(
                     &self.global(),
-                    self.channel.clone(),
+                    self.droppable.channel.clone(),
                     self,
                     HandleObject::null(),
                     descriptor.required_features,
@@ -312,7 +317,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                 // 1. Let device be a new device.
                 let device = GPUDevice::new(
                     &self.global(),
-                    self.channel.clone(),
+                    self.droppable.channel.clone(),
                     self,
                     HandleObject::null(),
                     wgpu_types::Features::default(),
