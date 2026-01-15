@@ -277,7 +277,7 @@ impl Handler {
                     self.dispatch_scroll_action(input_id, scroll_action, tick_duration)?;
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Cancel)) => {
-                    info!("dispatch_tick_actions: PointerCancel action is not implemented yet");
+                    self.dispatch_pointercancel_action(input_id);
                 },
             }
         }
@@ -345,6 +345,29 @@ impl Handler {
         self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
             keyboard_event,
         )));
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointercancel-action>
+    fn dispatch_pointercancel_action(&mut self, source_id: &str) {
+        let PointerInputState {
+            subtype,
+            pointer_id,
+            x,
+            y,
+            ..
+        } = *self.get_pointer_input_state(source_id);
+        match subtype {
+            PointerType::Pen | PointerType::Touch => {
+                self.send_blocking_input_event_to_embedder(InputEvent::Touch(TouchEvent::new(
+                    TouchEventType::Cancel,
+                    TouchId(pointer_id as i32),
+                    WebViewPoint::Page(Point2D::new(x as f32, y as f32)),
+                )));
+            },
+            PointerType::Mouse => {
+                info!("WebDriver pointerCancel is not implemented for mouse yet");
+            },
+        }
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
