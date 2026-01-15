@@ -9,8 +9,9 @@
 
 from datetime import datetime
 import random
+from typing import List
+
 import time
-from collections.abc import Generator
 from github import Github
 
 import hashlib
@@ -40,42 +41,10 @@ from servo.command_base import (
     CommandBase,
     is_windows,
 )
-from servo.util import delete, get_target_dir
+from servo.util import delete
 
 from python.servo.platform.build_target import SanitizerKind
 from servo.platform.build_target import is_android, is_openharmony
-
-PACKAGES = {
-    "android": [
-        "android/aarch64-linux-android/release/servoapp.apk",
-        "android/aarch64-linux-android/release/servoview.aar",
-    ],
-    "linux": [
-        "production/servo-tech-demo.tar.gz",
-    ],
-    "mac": [
-        "production/servo-tech-demo.dmg",
-    ],
-    "mac-arm64": [
-        "production/servo-tech-demo.dmg",
-    ],
-    "windows-msvc": [
-        r"production\msi\Servo.exe",
-        r"production\msi\Servo.zip",
-    ],
-    "ohos": [
-        "aarch64-unknown-linux-ohos/production/libservoshell.so",
-        "openharmony/aarch64-unknown-linux-ohos/production/entry/build/"
-        + "default/outputs/default/servoshell-default-signed.hap",
-    ],
-}
-
-
-def packages_for_platform(platform: str) -> Generator[str]:
-    target_dir = get_target_dir()
-
-    for package in PACKAGES[platform]:
-        yield path.join(target_dir, package)
 
 
 def listfiles(directory: str) -> list[str]:
@@ -455,14 +424,17 @@ class PackageCommands(CommandBase):
         return subprocess.call(exec_command, env=env)
 
     @Command("upload-nightly", description="Upload Servo nightly to S3", category="package")
-    @CommandArgument("platform", choices=PACKAGES.keys(), help="Package platform type to upload")
+    @CommandArgument("platform", help="Package platform type to upload")
     @CommandArgument(
         "--secret-from-environment", action="store_true", help="Retrieve the appropriate secrets from the environment."
     )
     @CommandArgument(
         "--github-release-id", default=None, type=int, help="The github release to upload the nightly builds."
     )
-    def upload_nightly(self, platform: str, secret_from_environment: bool, github_release_id: int | None) -> int:
+    @CommandArgument("packages", nargs="+", help="The packages to upload.")
+    def upload_nightly(
+        self, platform: str, secret_from_environment: bool, github_release_id: int | None, packages: List[str]
+    ) -> int:
         import boto3
 
         def get_s3_secret() -> tuple:
@@ -565,8 +537,11 @@ class PackageCommands(CommandBase):
             )
 
         timestamp = datetime.utcnow().replace(microsecond=0)
-        for package in packages_for_platform(platform):
+        for package in packages:
+            # TODO: This if feels like it should not be necessary. Let's add a warning, and make this an
+            # error later.
             if path.isdir(package):
+                print("Warning: Skipping directory: {}".format(package), file=sys.stderr)
                 continue
             if not path.isfile(package):
                 print("Could not find package for {} at {}".format(platform, package), file=sys.stderr)
