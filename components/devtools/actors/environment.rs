@@ -58,8 +58,8 @@ pub(crate) struct EnvironmentActorMsg {
 /// Referenced by `FrameActor` when replying to `getEnvironment` messages.
 /// <https://searchfox.org/firefox-main/source/devtools/server/actors/environment.js>
 pub(crate) struct EnvironmentActor {
-    pub name: String,
-    pub parent: Option<String>,
+    pub(crate) name: String,
+    pub(crate) parent: Option<String>,
 }
 
 impl Actor for EnvironmentActor {

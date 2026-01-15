@@ -64,10 +64,10 @@ pub(crate) struct PageStyleMsg {
     traits: HashMap<String, bool>,
 }
 
-pub struct PageStyleActor {
-    pub name: String,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
+pub(crate) struct PageStyleActor {
+    pub(crate) name: String,
+    pub(crate) script_chan: GenericSender<DevtoolScriptControlMsg>,
+    pub(crate) pipeline: PipelineId,
 }
 
 impl Actor for PageStyleActor {

@@ -28,8 +28,8 @@ pub(crate) struct ObjectActorMsg {
 }
 
 pub(crate) struct ObjectActor {
-    pub name: String,
-    pub _uuid: String,
+    pub(crate) name: String,
+    pub(crate) _uuid: String,
 }
 
 impl Actor for ObjectActor {

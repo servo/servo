@@ -32,7 +32,7 @@ pub(crate) struct TabDescriptorActorMsg {
     is_zombie_tab: bool,
     #[serde(rename = "outerWindowID")]
     outer_window_id: u32,
-    pub selected: bool,
+    pub(crate) selected: bool,
     title: String,
     traits: DescriptorTraits,
     url: String,

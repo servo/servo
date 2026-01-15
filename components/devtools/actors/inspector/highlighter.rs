@@ -18,9 +18,9 @@ use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 /// The HighlighterActor properties are used in the inspector.rs
 pub(crate) struct HighlighterActor {
-    pub name: String,
-    pub script_sender: GenericSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
+    pub(crate) name: String,
+    pub(crate) script_sender: GenericSender<DevtoolScriptControlMsg>,
+    pub(crate) pipeline: PipelineId,
 }
 
 #[derive(Serialize)]

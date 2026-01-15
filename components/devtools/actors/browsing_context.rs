@@ -133,25 +133,25 @@ pub(crate) struct BrowsingContextActorMsg {
 /// as well as resource actors that each perform one debugging function.
 pub(crate) struct BrowsingContextActor {
     name: String,
-    pub title: AtomicRefCell<String>,
-    pub url: AtomicRefCell<String>,
+    pub(crate) title: AtomicRefCell<String>,
+    pub(crate) url: AtomicRefCell<String>,
     /// This corresponds to webview_id
-    pub browser_id: DevtoolsBrowserId,
+    pub(crate) browser_id: DevtoolsBrowserId,
     // TODO: Should these ids be atomic?
     active_pipeline_id: AtomicRefCell<PipelineId>,
     active_outer_window_id: AtomicRefCell<DevtoolsOuterWindowId>,
-    pub browsing_context_id: DevtoolsBrowsingContextId,
+    pub(crate) browsing_context_id: DevtoolsBrowsingContextId,
     accessibility: String,
-    pub console: String,
+    pub(crate) console: String,
     css_properties: String,
     inspector: String,
     reflow: String,
     style_sheets: String,
-    pub thread: String,
+    pub(crate) thread: String,
     _tab: String,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
-    pub watcher: String,
+    pub(crate) script_chan: GenericSender<DevtoolScriptControlMsg>,
+    pub(crate) streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
+    pub(crate) watcher: String,
 }
 
 impl ResourceAvailable for BrowsingContextActor {

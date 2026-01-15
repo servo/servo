@@ -30,7 +30,7 @@ pub(crate) struct AppliedRule {
     ancestor_data: Vec<()>,
     authored_text: String,
     css_text: String,
-    pub declarations: Vec<AppliedDeclaration>,
+    pub(crate) declarations: Vec<AppliedDeclaration>,
     href: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     selectors: Vec<String>,
@@ -43,7 +43,7 @@ pub(crate) struct AppliedRule {
 
 #[derive(Serialize)]
 pub(crate) struct IsUsed {
-    pub used: bool,
+    pub(crate) used: bool,
 }
 
 #[derive(Serialize)]
@@ -69,7 +69,7 @@ pub(crate) struct ComputedDeclaration {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct StyleRuleActorTraits {
-    pub can_set_rule_text: bool,
+    pub(crate) can_set_rule_text: bool,
 }
 
 #[derive(Serialize)]

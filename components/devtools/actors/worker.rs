@@ -28,14 +28,14 @@ pub enum WorkerType {
 }
 
 pub(crate) struct WorkerActor {
-    pub name: String,
-    pub console: String,
-    pub thread: String,
-    pub worker_id: WorkerId,
-    pub url: ServoUrl,
-    pub type_: WorkerType,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
+    pub(crate) name: String,
+    pub(crate) console: String,
+    pub(crate) thread: String,
+    pub(crate) worker_id: WorkerId,
+    pub(crate) url: ServoUrl,
+    pub(crate) type_: WorkerType,
+    pub(crate) script_chan: GenericSender<DevtoolScriptControlMsg>,
+    pub(crate) streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
 }
 
 impl ResourceAvailable for WorkerActor {

@@ -132,9 +132,9 @@ pub(crate) enum Root {
 }
 
 pub(crate) struct ConsoleActor {
-    pub name: String,
-    pub root: Root,
-    pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
+    pub(crate) name: String,
+    pub(crate) root: Root,
+    pub(crate) cached_events: AtomicRefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
 }
 
 impl ConsoleActor {
