@@ -98,7 +98,7 @@ pub(crate) struct ConsoleActor {
     /// activated after the client requests `console-message` or `error-message`
     /// resources for the first time. Otherwise we would be sending messages
     /// before the client is ready to receive them.
-    pub should_send_messages: AtomicBool,
+    pub client_ready_to_receive_messages: AtomicBool,
 }
 
 impl ConsoleActor {
@@ -226,7 +226,10 @@ impl ConsoleActor {
             .entry(id.clone())
             .or_default()
             .push(resource.clone());
-        if !self.should_send_messages.load(Ordering::Relaxed) {
+        if !self
+            .client_ready_to_receive_messages
+            .load(Ordering::Relaxed)
+        {
             return;
         }
         let resource_type = resource.resource_type();
@@ -277,6 +280,11 @@ impl ConsoleActor {
             .filter(|event| event.resource_type() == resource)
             .cloned()
             .collect()
+    }
+
+    pub(crate) fn received_first_message_from_client(&self) {
+        self.client_ready_to_receive_messages
+            .store(true, Ordering::Relaxed);
     }
 }
 

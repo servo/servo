@@ -409,7 +409,7 @@ impl DevtoolsInstance {
             name: console_name,
             root: parent_actor,
             cached_events: Default::default(),
-            should_send_messages: false.into(),
+            client_ready_to_receive_messages: false.into(),
         };
 
         actors.register(console);

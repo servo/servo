@@ -12,7 +12,6 @@
 
 use std::collections::HashMap;
 use std::net::TcpStream;
-use std::sync::atomic::Ordering;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::BrowsingContextId;
@@ -333,7 +332,7 @@ impl Actor for WatcherActor {
                         },
                         "console-message" | "error-message" => {
                             let console = registry.find::<ConsoleActor>(&target.console);
-                            console.should_send_messages.store(true, Ordering::Relaxed);
+                            console.received_first_message_from_client();
                             target.resources_array(
                                 console.get_cached_messages(registry, resource),
                                 resource.into(),
