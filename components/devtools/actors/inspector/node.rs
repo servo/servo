@@ -46,7 +46,7 @@ struct AttrMsg {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct NodeActorMsg {
+pub(crate) struct NodeActorMsg {
     pub actor: String,
 
     /// The ID of the shadow host of this node, if it is
@@ -99,10 +99,10 @@ pub struct NodeActorMsg {
     system_id: Option<String>,
 }
 
-pub struct NodeActor {
+pub(crate) struct NodeActor {
     name: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
+    pipeline: PipelineId,
     pub walker: String,
     pub style_rules: AtomicRefCell<HashMap<(String, usize), String>>,
 }
