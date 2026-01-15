@@ -47,6 +47,7 @@ rustc-hash = { workspace = true }
 script = { path = "../script" }
 script_traits = { workspace = true }
 selectors = { workspace = true }
+serde = { workspace = true }
 servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }

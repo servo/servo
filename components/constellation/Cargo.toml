@@ -24,6 +24,7 @@ unwrap_used = "deny"
 panic = "deny"
 
 [dependencies]
+accesskit = { workspace = true }
 background_hang_monitor = { path = "../background_hang_monitor" }
 background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }

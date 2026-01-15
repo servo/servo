@@ -759,9 +759,23 @@ impl HeadedWindow {
         }
     }
 
-    pub(crate) fn handle_winit_app_event(&self, _window: &ServoShellWindow, app_event: AppEvent) {
+    pub(crate) fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
             // TODO(#41930): Forward accesskit_winit::WindowEvent events to Servo where appropriate
+            match &event.window_event {
+                egui_winit::accesskit_winit::WindowEvent::InitialTreeRequested => {
+                    state.servo().set_accessibility_active(true);
+                },
+                egui_winit::accesskit_winit::WindowEvent::ActionRequested(req) => {
+                    // TODO(#41930): forward action to the appropriate window, taking accesskit subtree into account
+                    if req.target_tree != accesskit::TreeId::ROOT {
+                        println!("{:?}", req);
+                    }
+                },
+                egui_winit::accesskit_winit::WindowEvent::AccessibilityDeactivated => {
+                    state.servo().set_accessibility_active(false);
+                },
+            }
 
             if self
                 .gui

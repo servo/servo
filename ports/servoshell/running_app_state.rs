@@ -854,8 +854,11 @@ impl WebViewDelegate for RunningAppState {
     fn notify_accessibility_tree_update(
         &self,
         webview: WebView,
-        tree_update: accesskit::TreeUpdate,
+        mut tree_update: accesskit::TreeUpdate,
     ) {
+        // *** FIXME(alice): non-hacky tree id
+        let tree_id = accesskit::TreeId(accesskit::Uuid::from_bytes([1; 16]));
+        tree_update.tree_id = tree_id;
         self.platform_window_for_webview_id(webview.id())
             .notify_accessibility_tree_update(webview, tree_update);
     }

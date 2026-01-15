@@ -3079,7 +3079,8 @@ impl Document {
         }
         if !self.window().layout_blocked() &&
             (!self.restyle_reason().is_empty() ||
-                self.window().layout().needs_new_display_list())
+                self.window().layout().needs_new_display_list() ||
+                self.window().layout().needs_accessibility_update())
         {
             return true;
         }

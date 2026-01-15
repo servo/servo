@@ -3088,6 +3088,8 @@ where
             ConstellationWebView::new(webview_id, browsing_context_id, user_content_manager_id),
         );
 
+        // TODO: enable accessibility if necessary?
+
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
         let mut new_bc_group: BrowsingContextGroup = Default::default();
         let new_bc_group_id = self.next_browsing_context_group_id();
