@@ -8,9 +8,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
-use storage_traits::indexeddb::{
-    BackendError, BackendResult, IndexedDBThreadMsg, OpenDatabaseResult, SyncOperation,
-};
+use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
@@ -25,7 +23,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
-use crate::dom::indexeddb::idbfactory::DBName;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
@@ -39,89 +36,6 @@ struct OpenRequestListener {
 }
 
 impl OpenRequestListener {
-    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
-    /// The steps that continue on the script-thread.
-    fn handle_open_db(&self, name: String, response: OpenDatabaseResult, can_gc: CanGc) {
-        let request = self.open_request.root();
-        let global = request.global();
-        let name = DBName(name);
-        let finished = match response {
-            OpenDatabaseResult::Connection { version, upgraded } => {
-                // Step 2.2: Otherwise,
-                // set request’s result to result,
-                // set request’s done flag,
-                // and fire an event named success at request.
-                let connection = request.pending_connection.or_init(|| {
-                    debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
-                    IDBDatabase::new(
-                        &global,
-                        DOMString::from_string(name.0.clone()),
-                        version,
-                        can_gc,
-                    )
-                });
-                request.dispatch_success(&connection);
-                true
-            },
-            OpenDatabaseResult::Upgrade {
-                version,
-                old_version,
-                transaction,
-            } => {
-                // TODO: link with backend connection concept.
-                let connection = IDBDatabase::new(
-                    &global,
-                    DOMString::from_string(name.0.clone()),
-                    version,
-                    can_gc,
-                );
-                request.pending_connection.set(Some(&connection));
-                request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
-                false
-            },
-            OpenDatabaseResult::VersionError => {
-                // Step 2.1 If result is an error, see dispatch_error().
-                self.dispatch_error(Error::Version(None), can_gc);
-                true
-            },
-            OpenDatabaseResult::AbortError => {
-                // Step 2.1 If result is an error, see dispatch_error().
-                self.dispatch_error(Error::Abort(None), can_gc);
-                true
-            },
-        };
-        if finished {
-            global
-                .get_indexeddb()
-                .note_end_of_open(&name, &request.get_id());
-        }
-    }
-
-    fn handle_backend_error(&self, backend_error: BackendError, can_gc: CanGc) {
-        self.dispatch_error(map_backend_error_to_dom_error(backend_error), can_gc);
-    }
-
-    // Step 2.1 If result is an error,
-    // set request’s result to undefined,
-    // set request’s error to result,
-    // set request’s done flag,
-    // and fire an event named error at request
-    // with its bubbles and cancelable attributes initialized to true.
-    fn dispatch_error(&self, dom_exception: Error, can_gc: CanGc) {
-        let request = self.open_request.root();
-        let global = request.global();
-        request.set_result(HandleValue::undefined());
-        request.set_error(Some(dom_exception), can_gc);
-        let event = Event::new(
-            &global,
-            Atom::from("error"),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            can_gc,
-        );
-        event.fire(request.upcast(), can_gc);
-    }
-
     /// The contionuation of the parallel steps of
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase>
     fn handle_delete_db(&self, result: BackendResult<u64>, can_gc: CanGc) {
@@ -219,10 +133,14 @@ impl IDBOpenDBRequest {
         self.id
     }
 
+    pub(crate) fn set_connection(&self, connection: &IDBDatabase) {
+        self.pending_connection.set(Some(&connection));
+    }
+
     /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
     /// Step 10: Queue a database task to run these steps:
     /// The below are the steps in the task.
-    fn upgrade_db_version(
+    pub(crate) fn upgrade_db_version(
         &self,
         connection: &IDBDatabase,
         old_version: u64,
@@ -312,57 +230,6 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_error(error, can_gc);
     }
 
-    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
-    pub fn open_database(&self, name: DOMString, version: Option<u64>) -> Result<(), ()> {
-        let global = self.global();
-
-        let response_listener = OpenRequestListener {
-            open_request: Trusted::new(self),
-        };
-
-        let task_source = global
-            .task_manager()
-            .database_access_task_source()
-            .to_sendable();
-        let name = name.to_string();
-        let name_copy = name.clone();
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-            let response_listener = response_listener.clone();
-            let name = name_copy.clone();
-            let backend_result = match message {
-                Ok(inner) => inner,
-                Err(err) => Err(BackendError::DbErr(format!("{err:?}"))),
-            };
-            task_source.queue(task!(set_request_result_to_database: move || {
-                match backend_result {
-                    Ok(response) => {
-                        response_listener.handle_open_db(name, response, CanGc::note())
-                    }
-                    Err(error) => response_listener.handle_backend_error(error, CanGc::note()),
-                }
-            }));
-        })
-        .expect("Could not create open database callback");
-
-        let open_operation = SyncOperation::OpenDatabase(
-            callback,
-            global.origin().immutable().clone(),
-            name.to_string(),
-            version,
-            self.get_id(),
-        );
-
-        // Note: algo continues in parallel.
-        if global
-            .storage_threads()
-            .send(IndexedDBThreadMsg::Sync(open_operation))
-            .is_err()
-        {
-            return Err(());
-        }
-        Ok(())
-    }
-
     pub fn delete_database(&self, name: String) -> Result<(), ()> {
         let global = self.global();
 
@@ -398,12 +265,21 @@ impl IDBOpenDBRequest {
         Ok(())
     }
 
-    pub fn dispatch_success(&self, result: &IDBDatabase) {
-        self.idbrequest.set_ready_state_done();
+    pub fn dispatch_success(&self, name: String, version: u64, upgraded: bool, can_gc: CanGc) {
         let global = self.global();
+        let result = self.pending_connection.or_init(|| {
+            debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
+            IDBDatabase::new(
+                &global,
+                DOMString::from_string(name.clone()),
+                version,
+                can_gc,
+            )
+        });
+        self.idbrequest.set_ready_state_done();
         let cx = GlobalScope::get_cx();
 
-        let _ac = enter_realm(result);
+        let _ac = enter_realm(&*result);
         rooted!(in(*cx) let mut result_val = UndefinedValue());
         result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::note());
         self.set_result(result_val.handle());
