@@ -114,7 +114,7 @@ jobs:
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             Servo.exe \
             Servo.zip
-        env:
+        env: &upload_env
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
@@ -153,10 +153,7 @@ jobs:
           ./etc/ci/upload_nightly.py mac --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.dmg
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+        env: *upload_env
 
   build-mac-arm64:
     # This job is only useful when run on upstream servo.
@@ -191,12 +188,7 @@ jobs:
           ./etc/ci/upload_nightly.py mac-arm64 --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.dmg
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          # TODO: this appears unused, can we remove it?
-          GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+        env: *upload_env
 
   build-linux:
     # This job is only useful when run on upstream servo.
@@ -231,10 +223,7 @@ jobs:
           ./etc/ci/upload_nightly.py linux --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.tar.gz
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+        env: *upload_env
 
   build-android:
     # This job is only useful when run on upstream servo.
@@ -285,10 +274,7 @@ jobs:
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servoapp.apk \
             servoview.aar
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+        env: *upload_env
 
 
   build-ohos:
@@ -341,7 +327,4 @@ jobs:
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             libservoshell.so \
             servoshell-default-signed.hap
-        env:
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+        env: *upload_env
