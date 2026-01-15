@@ -1129,6 +1129,8 @@ impl ImageCache for ImageCacheImpl {
                         .as_ref()
                         .and_then(|metadata| metadata.content_type.clone())
                         .map(|content_type| content_type.into_inner().into());
+                } else {
+                    debug!("Pending load for id {:?} already evicted from cache", id);
                 }
             },
             (FetchResponseMsg::ProcessResponseChunk(_, data), _) => {
@@ -1151,6 +1153,8 @@ impl ImageCache for ImageCacheImpl {
                             pending_load.metadata = Some(img_metadata);
                         }
                     }
+                } else {
+                    debug!("Pending load for id {:?} already evicted from cache", id);
                 }
             },
             (FetchResponseMsg::ProcessResponseEOF(_, result, _), key) => {
@@ -1182,6 +1186,8 @@ impl ImageCache for ImageCacheImpl {
                                 debug!("Image decoded");
                                 local_store.lock().handle_decoder(msg);
                             });
+                        } else {
+                            debug!("Pending load for id {:?} already evicted from cache", id);
                         }
                     },
                     Err(error) => {
