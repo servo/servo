@@ -8,9 +8,9 @@ use std::ptr;
 use itertools::Itertools;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
-    ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, Heap, IsArrayBufferObject,
-    JS_GetStringLength, JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject,
-    JS_NewObject, NewDateObject, PropertyKey,
+    ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
+    JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
+    PropertyKey,
 };
 use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
@@ -53,11 +53,9 @@ pub fn key_type_to_jsval(
             date.safe_to_jsval(cx, result, can_gc);
         },
         IndexedDBKeyType::Array(a) => {
-            rooted_vec!(let mut values);
-            for key in a {
-                rooted!(in(*cx) let mut value: JSVal);
-                key_type_to_jsval(cx, key, value.handle_mut(), can_gc);
-                values.push(Heap::boxed(value.get()));
+            rooted!(in(*cx) let mut values = vec![JSVal::default(); a.len()]);
+            for (i, key) in a.iter().enumerate() {
+                key_type_to_jsval(cx, key, values.handle_mut_at(i), can_gc);
             }
             values.safe_to_jsval(cx, result, can_gc);
         },
