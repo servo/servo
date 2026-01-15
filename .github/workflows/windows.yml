@@ -31,6 +31,11 @@ on:
         required: false
         default: false
         type: boolean
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.release_artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
+
   workflow_dispatch:
     inputs:
       profile:
@@ -95,6 +100,8 @@ jobs:
       - runner-select
     name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    outputs:
+      release_artifact_ids: ${{ steps.artifact_ids.outputs.release_artifact_ids }}
     steps:
       - uses: servo/ci-runners/actions/checkout@44317e3cd86c5ff2ef0b08878b90da246bc237da
 
@@ -194,15 +201,26 @@ jobs:
       # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
+        id: upload-exe
         with:
           name: ${{ inputs.profile }}-binary-windows
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.exe
       - name: Upload artifact for mach package (zip)
         uses: actions/upload-artifact@v4
+        id: upload-zip
         if: ${{ inputs.upload_zip }}
         with:
           name: ${{ inputs.profile }}-binary-windows-zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.zip
+      - name: Collect artifact IDs needed by the release workflow
+        id: artifact_ids
+        shell: bash
+        run: |
+          ARTIFACT_IDS="${{steps.upload-exe.outputs.artifact-id}}"
+          if [[ -n "${{steps.upload-zip.outputs.artifact-id}}" ]]; then
+            ARTIFACT_IDS="${ARTIFACT_IDS},${{steps.upload-zip.outputs.artifact-id}}"
+          fi
+          echo "release_artifact_ids=${ARTIFACT_IDS}" >> $GITHUB_OUTPUT
 
   bencher:
     needs: ["build"]

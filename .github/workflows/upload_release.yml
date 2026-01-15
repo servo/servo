@@ -1,0 +1,60 @@
+name: Upload and Attest Release Assets
+on:
+  workflow_call:
+    inputs:
+      artifact_platform:
+        type: string
+        required: true
+        description: "The platform of the release artifacts to upload."
+      target_repo:
+        type: string
+        required: true
+        description: "The target repository owner and name (e.g. `servo/servo`) where the release will be created."
+      github_release_id:
+        type: string
+        required: true
+        description: "The ID of the GitHub release to which assets will be added."
+      artifact_ids:
+        required: true
+        type: string
+        description: "A comma-separated list of artifact IDs to upload."
+    secrets:
+      github_upload_token:
+        required: false
+        description: "A GitHub token with permission to upload release assets. If omitted github.token will be used instead."
+      s3_upload_token:
+        required: true
+        description: "A token with permission to upload release artifacts to our S3 bucket."
+
+
+jobs:
+  upload-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github
+            etc/ci
+          fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - uses: actions/download-artifact@v7
+        with:
+          artifact-ids: ${{ inputs.artifact_ids }}
+          merge-multiple: true
+          path: release-artifacts
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: 'release-artifacts/*'
+      - name: Upload release artifacts
+        run: |
+          ./etc/ci/upload_nightly.py ${{ inputs.artifact_platform}} \
+            --secret-from-environment \
+            --github-release-id ${{ inputs.github_release_id }} \
+            release-artifacts/*
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.s3_upload_token }}
+          RELEASE_REPO_TOKEN: ${{ secrets.github_upload_token || github.token }}
+          RELEASE_REPO: ${{ inputs.target_repo }}
