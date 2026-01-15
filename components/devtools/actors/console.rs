@@ -8,6 +8,7 @@
 
 use std::collections::HashMap;
 use std::net::TcpStream;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use atomic_refcell::AtomicRefCell;
@@ -16,11 +17,7 @@ use base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReply::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
-use devtools_traits::{
-    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleClearMessage, ConsoleLog,
-    ConsoleMessage, DevtoolScriptControlMsg, PageError,
-};
-use log::debug;
+use devtools_traits::{ConsoleResource, DevtoolScriptControlMsg};
 use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
 use uuid::Uuid;
@@ -33,42 +30,9 @@ use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, UniqueId};
 
-trait EncodableConsoleMessage {
-    fn encode(&self) -> serde_json::Result<String>;
-}
-
-impl EncodableConsoleMessage for CachedConsoleMessage {
-    fn encode(&self) -> serde_json::Result<String> {
-        match *self {
-            CachedConsoleMessage::PageError(ref a) => serde_json::to_string(a),
-            CachedConsoleMessage::ConsoleLog(ref a) => serde_json::to_string(a),
-        }
-    }
-}
-
 #[derive(Serialize)]
-struct StartedListenersTraits;
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct StartedListenersReply {
-    from: String,
-    native_console_api: bool,
-    started_listeners: Vec<String>,
-    traits: StartedListenersTraits,
-}
-
-#[derive(Serialize)]
-struct GetCachedMessagesReply {
-    from: String,
-    messages: Vec<Map<String, Value>>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct StopListenersReply {
-    from: String,
-    stopped_listeners: Vec<String>,
+pub struct ConsoleClearMessage {
+    pub level: String,
 }
 
 #[derive(Serialize)]
@@ -120,12 +84,6 @@ struct SetPreferencesReply {
     updated: Vec<String>,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PageErrorWrapper {
-    page_error: PageError,
-}
-
 pub(crate) enum Root {
     BrowsingContext(String),
     DedicatedWorker(String),
@@ -134,7 +92,13 @@ pub(crate) enum Root {
 pub(crate) struct ConsoleActor {
     pub name: String,
     pub root: Root,
-    pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
+    pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<ConsoleResource>>>,
+    /// Used to control whether to send resource array messages from
+    /// `handle_console_resource`. It starts being false, and it only gets
+    /// activated after the client requests `console-message` or `error-message`
+    /// resources for the first time. Otherwise we would be sending messages
+    /// before the client is ready to receive them.
+    pub client_ready_to_receive_messages: AtomicBool,
 }
 
 impl ConsoleActor {
@@ -250,9 +214,9 @@ impl ConsoleActor {
         std::result::Result::Ok(reply)
     }
 
-    pub(crate) fn handle_page_error(
+    pub(crate) fn handle_console_resource(
         &self,
-        page_error: PageError,
+        resource: ConsoleResource,
         id: UniqueId,
         registry: &ActorRegistry,
         stream: &mut TcpStream,
@@ -261,37 +225,19 @@ impl ConsoleActor {
             .borrow_mut()
             .entry(id.clone())
             .or_default()
-            .push(CachedConsoleMessage::PageError(page_error.clone()));
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
-                registry.find::<BrowsingContextActor>(bc).resource_array(
-                    PageErrorWrapper { page_error },
-                    "error-message".into(),
-                    ResourceArrayType::Available,
-                    stream,
-                )
-            };
+            .push(resource.clone());
+        if !self
+            .client_ready_to_receive_messages
+            .load(Ordering::Relaxed)
+        {
+            return;
         }
-    }
-
-    pub(crate) fn handle_console_api(
-        &self,
-        console_message: ConsoleMessage,
-        id: UniqueId,
-        registry: &ActorRegistry,
-        stream: &mut TcpStream,
-    ) {
-        let log_message: ConsoleLog = console_message.into();
-        self.cached_events
-            .borrow_mut()
-            .entry(id.clone())
-            .or_default()
-            .push(CachedConsoleMessage::ConsoleLog(log_message.clone()));
+        let resource_type = resource.resource_type();
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(bc) = &self.root {
                 registry.find::<BrowsingContextActor>(bc).resource_array(
-                    log_message,
-                    "console-message".into(),
+                    resource,
+                    resource_type,
                     ResourceArrayType::Available,
                     stream,
                 )
@@ -318,6 +264,28 @@ impl ConsoleActor {
             };
         }
     }
+
+    pub(crate) fn get_cached_messages(
+        &self,
+        registry: &ActorRegistry,
+        resource: &str,
+    ) -> Vec<ConsoleResource> {
+        let id = self.current_unique_id(registry);
+        let cached_events = self.cached_events.borrow();
+        let Some(events) = cached_events.get(&id) else {
+            return vec![];
+        };
+        events
+            .iter()
+            .filter(|event| event.resource_type() == resource)
+            .cloned()
+            .collect()
+    }
+
+    pub(crate) fn received_first_message_from_client(&self) {
+        self.client_ready_to_receive_messages
+            .store(true, Ordering::Relaxed);
+    }
 }
 
 impl Actor for ConsoleActor {
@@ -334,95 +302,11 @@ impl Actor for ConsoleActor {
         _id: StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
-            "clearMessagesCache" => {
+            "clearMessagesCacheAsync" => {
                 self.cached_events
                     .borrow_mut()
                     .remove(&self.current_unique_id(registry));
-                // FIXME: need to send a reply here!
-                return Err(ActorError::UnrecognizedPacketType);
-            },
-
-            "getCachedMessages" => {
-                let str_types = msg
-                    .get("messageTypes")
-                    .unwrap()
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|json_type| json_type.as_str().unwrap());
-                let mut message_types = CachedConsoleMessageTypes::empty();
-                for str_type in str_types {
-                    match str_type {
-                        "PageError" => message_types.insert(CachedConsoleMessageTypes::PAGE_ERROR),
-                        "ConsoleAPI" => {
-                            message_types.insert(CachedConsoleMessageTypes::CONSOLE_API)
-                        },
-                        s => debug!("unrecognized message type requested: \"{}\"", s),
-                    };
-                }
-                let mut messages = vec![];
-                for event in self
-                    .cached_events
-                    .borrow()
-                    .get(&self.current_unique_id(registry))
-                    .unwrap_or(&vec![])
-                    .iter()
-                {
-                    let include = match event {
-                        CachedConsoleMessage::PageError(_)
-                            if message_types.contains(CachedConsoleMessageTypes::PAGE_ERROR) =>
-                        {
-                            true
-                        },
-                        CachedConsoleMessage::ConsoleLog(_)
-                            if message_types.contains(CachedConsoleMessageTypes::CONSOLE_API) =>
-                        {
-                            true
-                        },
-                        _ => false,
-                    };
-                    if include {
-                        let json_string = event.encode().unwrap();
-                        let json = serde_json::from_str::<Value>(&json_string).unwrap();
-                        messages.push(json.as_object().unwrap().to_owned())
-                    }
-                }
-
-                let msg = GetCachedMessagesReply {
-                    from: self.name(),
-                    messages,
-                };
-                request.reply_final(&msg)?
-            },
-
-            "startListeners" => {
-                // TODO: actually implement listener filters that support starting/stopping
-                let listeners = msg.get("listeners").unwrap().as_array().unwrap().to_owned();
-                let msg = StartedListenersReply {
-                    from: self.name(),
-                    native_console_api: true,
-                    started_listeners: listeners
-                        .into_iter()
-                        .map(|s| s.as_str().unwrap().to_owned())
-                        .collect(),
-                    traits: StartedListenersTraits,
-                };
-                request.reply_final(&msg)?
-            },
-
-            "stopListeners" => {
-                // TODO: actually implement listener filters that support starting/stopping
-                let msg = StopListenersReply {
-                    from: self.name(),
-                    stopped_listeners: msg
-                        .get("listeners")
-                        .unwrap()
-                        .as_array()
-                        .unwrap_or(&vec![])
-                        .iter()
-                        .map(|listener| listener.as_str().unwrap().to_owned())
-                        .collect(),
-                };
+                let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
             },
 
@@ -482,14 +366,9 @@ impl Actor for ConsoleActor {
                 request.reply_final(&msg)?
             },
 
-            "clearMessagesCacheAsync" => {
-                self.cached_events
-                    .borrow_mut()
-                    .remove(&self.current_unique_id(registry));
-                let msg = EmptyReplyMsg { from: self.name() };
-                request.reply_final(&msg)?
-            },
-
+            // NOTE: Do not handle `startListeners`, it is a legacy API.
+            // Instead, enable the resource in `WatcherActor::supported_resources`
+            // and handle the messages there.
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())

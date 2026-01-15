@@ -26,6 +26,7 @@ use super::thread::ThreadActor;
 use super::worker::WorkerActorMsg;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::console::ConsoleActor;
 use crate::actors::root::RootActor;
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
@@ -70,7 +71,7 @@ impl SessionContext {
                 ("css-change", true),
                 ("css-message", false),
                 ("css-registered-properties", false),
-                ("document-event", false),
+                ("document-event", true),
                 ("Cache", false),
                 ("cookies", false),
                 ("error-message", true),
@@ -78,7 +79,7 @@ impl SessionContext {
                 ("indexed-db", false),
                 ("local-storage", false),
                 ("session-storage", false),
-                ("platform-message", false),
+                ("platform-message", true),
                 ("network-event", true),
                 ("network-event-stacktrace", false),
                 ("reflow", true),
@@ -289,7 +290,7 @@ impl Actor for WatcherActor {
                             //       Figure out if there needs work to be done here, ensure the page is loaded
                             for &name in ["dom-loading", "dom-interactive", "dom-complete"].iter() {
                                 let event = DocumentEvent {
-                                    has_native_console_api: Some(true),
+                                    has_native_console_api: None,
                                     name: name.into(),
                                     new_uri: None,
                                     time: SystemTime::now()
@@ -302,7 +303,7 @@ impl Actor for WatcherActor {
                                 };
                                 target.resource_array(
                                     event,
-                                    "document-event".into(),
+                                    resource.into(),
                                     ResourceArrayType::Available,
                                     &mut request,
                                 );
@@ -312,7 +313,7 @@ impl Actor for WatcherActor {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
                             target.resources_array(
                                 thread_actor.source_manager.source_forms(registry),
-                                "source".into(),
+                                resource.into(),
                                 ResourceArrayType::Available,
                                 &mut request,
                             );
@@ -323,13 +324,34 @@ impl Actor for WatcherActor {
 
                                 worker.resources_array(
                                     thread.source_manager.source_forms(registry),
-                                    "source".into(),
+                                    resource.into(),
                                     ResourceArrayType::Available,
                                     &mut request,
                                 );
                             }
                         },
-                        "console-message" | "error-message" => {},
+                        "console-message" | "error-message" => {
+                            let console = registry.find::<ConsoleActor>(&target.console);
+                            console.received_first_message_from_client();
+                            target.resources_array(
+                                console.get_cached_messages(registry, resource),
+                                resource.into(),
+                                ResourceArrayType::Available,
+                                &mut request,
+                            );
+
+                            for worker_name in &*root.workers.borrow() {
+                                let worker = registry.find::<WorkerActor>(worker_name);
+                                let console = registry.find::<ConsoleActor>(&worker.console);
+
+                                worker.resources_array(
+                                    console.get_cached_messages(registry, resource),
+                                    resource.into(),
+                                    ResourceArrayType::Available,
+                                    &mut request,
+                                );
+                            }
+                        },
                         "network-event" => {},
                         _ => warn!("resource {} not handled yet", resource),
                     }

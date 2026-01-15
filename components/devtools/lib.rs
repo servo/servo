@@ -22,9 +22,9 @@ use base::generic_channel::{self, GenericSender};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
-    ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageBuilder,
+    ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessageBuilder, ConsoleResource,
     DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState, NetworkEvent,
-    PageError, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -237,7 +237,11 @@ impl DevtoolsInstance {
                     pipeline_id,
                     console_message,
                     worker_id,
-                )) => self.handle_console_message(pipeline_id, worker_id, console_message),
+                )) => self.handle_console_resource(
+                    pipeline_id,
+                    worker_id,
+                    ConsoleResource::ConsoleMessage(console_message),
+                ),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ClearConsole(
                     pipeline_id,
                     worker_id,
@@ -253,7 +257,11 @@ impl DevtoolsInstance {
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
-                )) => self.handle_page_error(pipeline_id, None, page_error),
+                )) => self.handle_console_resource(
+                    pipeline_id,
+                    None,
+                    ConsoleResource::PageError(page_error.into()),
+                ),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
                     pipeline_id,
                     css_error,
@@ -266,7 +274,11 @@ impl DevtoolsInstance {
                     );
                     console_message.add_argument(css_error.msg.into());
 
-                    self.handle_console_message(pipeline_id, None, console_message.finish())
+                    self.handle_console_resource(
+                        pipeline_id,
+                        None,
+                        ConsoleResource::ConsoleMessage(console_message.finish()),
+                    )
                 },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
@@ -395,8 +407,9 @@ impl DevtoolsInstance {
 
         let console = ConsoleActor {
             name: console_name,
-            cached_events: Default::default(),
             root: parent_actor,
+            cached_events: Default::default(),
+            client_ready_to_receive_messages: false.into(),
         };
 
         actors.register(console);
@@ -416,11 +429,11 @@ impl DevtoolsInstance {
         browsing_context.title_changed(pipeline_id, title);
     }
 
-    fn handle_page_error(
+    fn handle_console_resource(
         &mut self,
         pipeline_id: PipelineId,
         worker_id: Option<WorkerId>,
-        page_error: PageError,
+        resource: ConsoleResource,
     ) {
         let console_actor_name = match self.find_console_actor(pipeline_id, worker_id) {
             Some(name) => name,
@@ -430,25 +443,7 @@ impl DevtoolsInstance {
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
         for stream in self.connections.values_mut() {
-            console_actor.handle_page_error(page_error.clone(), id.clone(), actors, stream);
-        }
-    }
-
-    fn handle_console_message(
-        &mut self,
-        pipeline_id: PipelineId,
-        worker_id: Option<WorkerId>,
-        console_message: ConsoleMessage,
-    ) {
-        let console_actor_name = match self.find_console_actor(pipeline_id, worker_id) {
-            Some(name) => name,
-            None => return,
-        };
-        let actors = &self.registry;
-        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
-        let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
-        for stream in self.connections.values_mut() {
-            console_actor.handle_console_api(console_message.clone(), id.clone(), actors, stream);
+            console_actor.handle_console_resource(resource.clone(), id.clone(), actors, stream);
         }
     }
 
