@@ -11,34 +11,17 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 
-#[derive(Clone, Copy, MallocSizeOf)]
-pub enum Lines {
-    Single,
-    Multiple,
-}
-
-impl Lines {
-    fn contents_vec(&self, contents: impl Into<String>) -> Vec<String> {
-        match self {
-            Self::Multiple => {
-                // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
-                let mut contents: Vec<_> = contents
-                    .into()
-                    .replace("\r\n", "\n")
-                    .split(['\n', '\r'])
-                    .map(|line| format!("{line}\n"))
-                    .collect();
-                // The last line should not have a newline.
-                if let Some(last_line) = contents.last_mut() {
-                    last_line.truncate(last_line.len() - 1);
-                }
-                contents
-            },
-            Self::Single => {
-                vec![contents.into()]
-            },
-        }
+fn contents_vec(contents: impl Into<String>) -> Vec<String> {
+    let mut contents: Vec<_> = contents
+        .into()
+        .split('\n')
+        .map(|line| format!("{line}\n"))
+        .collect();
+    // The last line should not have a newline.
+    if let Some(last_line) = contents.last_mut() {
+        last_line.truncate(last_line.len() - 1);
     }
+    contents
 }
 
 /// Describes a unit of movement for [`Rope::move_by`].
@@ -59,23 +42,13 @@ pub struct Rope {
     /// The lines of the rope. Each line is an owned string that ends with a newline
     /// (`\n`), apart from the last line which has no trailing newline.
     lines: Vec<String>,
-    /// The type of [`Rope`] this is. When in multi-line mode, the [`Rope`] will
-    /// automatically split all inserted text into lines and incorporate them into
-    /// the [`Rope`]. When in single line mode, the inserted text should not have any
-    /// newlines.
-    mode: Lines,
 }
 
 impl Rope {
-    pub fn new(contents: impl Into<String>, mode: Lines) -> Self {
+    pub fn new(contents: impl Into<String>) -> Self {
         Self {
-            lines: mode.contents_vec(contents),
-            mode,
+            lines: contents_vec(contents),
         }
-    }
-
-    pub fn mode(&self) -> Lines {
-        self.mode
     }
 
     pub fn contents(&self) -> String {
@@ -101,7 +74,7 @@ impl Rope {
         let start_index = range.start;
         self.delete_range(range);
 
-        let mut new_contents = self.mode.contents_vec(string);
+        let mut new_contents = contents_vec(string);
         let Some(first_line_of_new_contents) = new_contents.first() else {
             return start_index;
         };
@@ -570,7 +543,7 @@ impl DoubleEndedIterator for RopeChars<'_> {
 
 #[test]
 fn test_rope_index_conversion_to_utf8_offset() {
-    let rope = Rope::new("A\nBB\nCCC\nDDDD", Lines::Multiple);
+    let rope = Rope::new("A\nBB\nCCC\nDDDD");
     assert_eq!(
         rope.index_to_utf8_offset(RopeIndex::new(0, 0)),
         Utf8CodeUnitLength(0),
@@ -615,7 +588,7 @@ fn test_rope_index_conversion_to_utf8_offset() {
 
 #[test]
 fn test_rope_index_conversion_to_utf16_offset() {
-    let rope = Rope::new("A\nBB\nCCC\n家家", Lines::Multiple);
+    let rope = Rope::new("A\nBB\nCCC\n家家");
     assert_eq!(
         rope.index_to_utf16_offset(RopeIndex::new(0, 0)),
         Utf16CodeUnitLength(0),
@@ -651,7 +624,7 @@ fn test_rope_index_conversion_to_utf16_offset() {
 
 #[test]
 fn test_utf16_offset_to_utf8_offset() {
-    let rope = Rope::new("A\nBB\nCCC\n家家", Lines::Multiple);
+    let rope = Rope::new("A\nBB\nCCC\n家家");
     assert_eq!(
         rope.utf16_offset_to_utf8_offset(Utf16CodeUnitLength(0)),
         Utf8CodeUnitLength(0),
@@ -687,36 +660,36 @@ fn test_utf16_offset_to_utf8_offset() {
 
 #[test]
 fn test_rope_delete_slice() {
-    let mut rope = Rope::new("ABC\nDEF\n", Lines::Multiple);
+    let mut rope = Rope::new("ABC\nDEF\n");
     rope.delete_range(RopeIndex::new(0, 1)..RopeIndex::new(0, 2));
     assert_eq!(rope.contents(), "AC\nDEF\n");
 
     // Trying to delete beyond the last index of the line should note remove any trailing
     // newlines from the rope.
-    let mut rope = Rope::new("ABC\nDEF\n", Lines::Multiple);
+    let mut rope = Rope::new("ABC\nDEF\n");
     rope.delete_range(RopeIndex::new(0, 3)..RopeIndex::new(0, 4));
     assert_eq!(rope.lines, ["ABC\n", "DEF\n", ""]);
 
-    let mut rope = Rope::new("ABC\nDEF\n", Lines::Multiple);
+    let mut rope = Rope::new("ABC\nDEF\n");
     rope.delete_range(RopeIndex::new(0, 0)..RopeIndex::new(0, 4));
     assert_eq!(rope.lines, ["\n", "DEF\n", ""]);
 
-    let mut rope = Rope::new("A\nBB\nCCC", Lines::Multiple);
+    let mut rope = Rope::new("A\nBB\nCCC");
     rope.delete_range(RopeIndex::new(0, 2)..RopeIndex::new(1, 0));
     assert_eq!(rope.lines, ["ABB\n", "CCC"]);
 }
 
 #[test]
 fn test_rope_replace_slice() {
-    let mut rope = Rope::new("AAA\nBBB\nCCC", Lines::Multiple);
+    let mut rope = Rope::new("AAA\nBBB\nCCC");
     rope.replace_range(RopeIndex::new(0, 1)..RopeIndex::new(0, 2), "x");
     assert_eq!(rope.contents(), "AxA\nBBB\nCCC",);
 
-    let mut rope = Rope::new("A\nBB\nCCC", Lines::Multiple);
+    let mut rope = Rope::new("A\nBB\nCCC");
     rope.replace_range(RopeIndex::new(0, 2)..RopeIndex::new(1, 0), "D");
     assert_eq!(rope.lines, ["ADBB\n", "CCC"]);
 
-    let mut rope = Rope::new("AAA\nBBB\nCCC\nDDD", Lines::Multiple);
+    let mut rope = Rope::new("AAA\nBBB\nCCC\nDDD");
     rope.replace_range(RopeIndex::new(0, 2)..RopeIndex::new(2, 1), "x");
     assert_eq!(rope.lines, ["AAxCC\n", "DDD"]);
 }

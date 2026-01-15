@@ -8,7 +8,7 @@ use std::default::Default;
 use std::ops::Range;
 
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{Lines, Rope, RopeIndex, RopeMovement, RopeSlice};
+use base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use script_bindings::match_domstring_ascii;
@@ -62,6 +62,28 @@ impl From<SelectionDirection> for DOMString {
     }
 }
 
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+pub enum Lines {
+    Single,
+    Multiple,
+}
+
+impl Lines {
+    fn normalize(&self, contents: impl Into<String>) -> String {
+        let contents = contents.into().replace("\r\n", "\n");
+        match self {
+            Self::Multiple => {
+                // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
+                contents.replace("\r", "\n")
+            },
+            // https://infra.spec.whatwg.org/#strip-newlines
+            //
+            // Browsers generally seem to convert newlines to spaces, so we do the same.
+            Lines::Single => contents.replace(['\r', '\n'], " "),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct SelectionState {
     start: RopeIndex,
@@ -74,6 +96,12 @@ pub(crate) struct SelectionState {
 pub struct TextInput<T: ClipboardProvider> {
     #[no_trace]
     rope: Rope,
+
+    /// The type of [`TextInput`] this is. When in multi-line mode, the [`TextInput`] will
+    /// automatically split all inserted text into lines and incorporate them into
+    /// the [`Self::rope`]. When in single line mode, the inserted text will be stripped of
+    /// newlines.
+    mode: Lines,
 
     /// Current cursor input point
     #[no_trace]
@@ -229,7 +257,8 @@ impl<T: ClipboardProvider> TextInput<T> {
         selection_direction: SelectionDirection,
     ) -> TextInput<T> {
         Self {
-            rope: Rope::new(initial, lines),
+            rope: Rope::new(initial),
+            mode: lines,
             edit_point: Default::default(),
             selection_origin: None,
             clipboard_provider,
@@ -291,18 +320,13 @@ impl<T: ClipboardProvider> TextInput<T> {
         true
     }
 
-    /// Insert a character at the current editing point
-    pub fn insert_char(&mut self, ch: char) {
-        self.insert_string(ch.to_string());
-    }
-
     /// Insert a string at the current editing point or replace the selection if
     /// one exists.
-    pub fn insert_string<S: Into<String>>(&mut self, s: S) {
+    pub fn insert<S: Into<String>>(&mut self, string: S) {
         if self.selection_origin.is_none() {
             self.selection_origin = Some(self.edit_point);
         }
-        self.replace_selection(&DOMString::from(s.into()));
+        self.replace_selection(&DOMString::from(string.into()));
     }
 
     /// The start of the selection (or the edit point, if there is no selection). Always less than
@@ -407,6 +431,9 @@ impl<T: ClipboardProvider> TextInput<T> {
         )
     }
 
+    /// Replace the current selection with the given [`DOMString`]. If the [`Rope`] is in
+    /// single line mode this *will* strip newlines, as opposed to [`Self::set_content`],
+    /// which does not.
     pub fn replace_selection(&mut self, insert: &DOMString) {
         if !self.has_selection() {
             return;
@@ -423,6 +450,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             &insert.str()
         };
+        let string_to_insert = self.mode.normalize(string_to_insert);
 
         let start = self.selection_start();
         let end = self.selection_end();
@@ -498,9 +526,9 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Deal with a newline input.
     pub fn handle_return(&mut self) -> KeyReaction {
-        match self.rope.mode() {
+        match self.mode {
             Lines::Multiple => {
-                self.insert_char('\n');
+                self.insert('\n');
                 KeyReaction::DispatchInput(
                     None,
                     IsComposing::NotComposing,
@@ -602,7 +630,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
                 if let Ok(text_content) = self.clipboard_provider.get_text() {
-                    self.insert_string(&text_content);
+                    self.insert(&text_content);
                     KeyReaction::DispatchInput(
                         Some(text_content),
                         IsComposing::NotComposing,
@@ -743,10 +771,10 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::RedrawSelection
             })
             .otherwise(|| {
-                if let Key::Character(ref c) = key {
-                    self.insert_string(c.as_str());
+                if let Key::Character(ref character) = key {
+                    self.insert(character);
                     return KeyReaction::DispatchInput(
-                        Some(c.to_string()),
+                        Some(character.to_string()),
                         IsComposing::NotComposing,
                         InputType::InsertText,
                     );
@@ -764,10 +792,10 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     pub(crate) fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
-        let ch = event.data().str();
-        self.insert_string(ch.as_ref());
+        let insertion = event.data().str();
+        self.insert(insertion.to_string());
         KeyReaction::DispatchInput(
-            Some(ch.to_string()),
+            Some(insertion.to_string()),
             IsComposing::NotComposing,
             InputType::InsertCompositionText,
         )
@@ -776,7 +804,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub(crate) fn handle_compositionupdate(&mut self, event: &CompositionEvent) -> KeyReaction {
         let insertion = event.data().str();
         let start = self.selection_start_offset();
-        self.insert_string(insertion.as_ref());
+        self.insert(insertion.to_string());
         self.set_selection_range_utf8(
             start,
             start + event.data().len_utf8(),
@@ -806,8 +834,18 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
+    ///
+    /// Note that when the [`Rope`] is in single line mode, this will **not** strip newlines.
+    /// Newline stripping only happens for incremental updates to the [`Rope`] as `<input>`
+    /// elements currently need to store unsanitized values while being created.
     pub fn set_content(&mut self, content: DOMString) {
-        self.rope = Rope::new(content, self.rope.mode());
+        self.rope = Rope::new(
+            content
+                .str()
+                .to_string()
+                .replace("\r\n", "\n")
+                .replace("\r", "\n"),
+        );
         self.was_last_change_by_set_content = true;
 
         self.edit_point = self.rope.clamp_index(self.edit_point());
@@ -952,7 +990,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     return ClipboardEventReaction::empty();
                 }
 
-                self.insert_string(&text_content);
+                self.insert(&text_content);
 
                 // Step 3.1.2: Queue tasks to fire any events that should fire due to the
                 // modification, see § 5.3 Integration with other scripts and events for details.

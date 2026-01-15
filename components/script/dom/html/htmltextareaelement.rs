@@ -6,8 +6,8 @@ use std::cell::{Cell, RefCell};
 use std::default::Default;
 use std::ops::Range;
 
+use base::RopeMovement;
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{Lines, RopeMovement};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -51,7 +51,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput,
+    ClipboardEventFlags, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
 };
 
 #[dom_struct]
