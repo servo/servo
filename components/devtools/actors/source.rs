@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::str::FromStr;
 
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{GenericSender, channel};
@@ -13,7 +14,7 @@ use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, DowncastableActorArc};
 use crate::protocol::ClientRequest;
 
 /// A `sourceForm` as used in responses to thread `sources` requests.
@@ -43,6 +44,22 @@ pub(crate) struct SourceManager {
     source_actor_names: AtomicRefCell<BTreeSet<String>>,
 }
 
+impl SourceManager {
+    pub fn find_source(
+        &self,
+        registry: &ActorRegistry,
+        source_url: &str,
+    ) -> Option<DowncastableActorArc<SourceActor>> {
+        for name in self.source_actor_names.borrow().iter() {
+            let source = registry.find::<SourceActor>(name);
+            if source.url == ServoUrl::from_str(source_url).ok()? {
+                return Some(source);
+            }
+        }
+        None
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct SourceActor {
     /// Actor name.
@@ -63,7 +80,7 @@ pub(crate) struct SourceActor {
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
     introduction_type: String,
 
-    script_sender: GenericSender<DevtoolScriptControlMsg>,
+    pub script_sender: GenericSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(Serialize)]
@@ -263,5 +280,24 @@ impl Actor for SourceActor {
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
+    }
+}
+
+impl SourceActor {
+    pub fn find_offset(&self, column: u32, line: u32) -> u32 {
+        let (tx, rx) = channel().unwrap();
+        self.script_sender
+            .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
+                self.spidermonkey_id,
+                tx,
+            ))
+            .unwrap();
+        let result = rx.recv().unwrap();
+        for entry in result {
+            if entry.line_number == line && entry.column_number - 1 == column {
+                return entry.offset;
+            }
+        }
+        panic!("There should be an entry with this column and line numbers");
     }
 }

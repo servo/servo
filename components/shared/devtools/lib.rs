@@ -308,6 +308,7 @@ pub enum DevtoolScriptControlMsg {
     HighlightDomNode(PipelineId, Option<String>),
 
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
+    SetBreakpoint(u32, u32, GenericSender<bool>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

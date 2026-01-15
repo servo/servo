@@ -263,6 +263,7 @@ pub(crate) mod datatransferitemlist;
 pub(crate) mod debuggeradddebuggeeevent;
 pub(crate) mod debuggergetpossiblebreakpointsevent;
 pub(crate) mod debuggerglobalscope;
+pub(crate) mod debuggersetbreakpointevent;
 pub(crate) mod decompressionstream;
 pub(crate) mod defaultteereadrequest;
 pub(crate) mod defaultteeunderlyingsource;
