@@ -4,12 +4,27 @@
 
 use base::generic_channel::channel;
 use devtools_traits::DevtoolScriptControlMsg;
+use serde::Deserialize;
+use serde_json::Map;
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::thread::ThreadActor;
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg};
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BreakpointLocation {
+    line: u32,
+    column: u32,
+    source_url: String,
+}
+
+#[derive(Deserialize)]
+struct BreakpointMessage {
+    location: BreakpointLocation,
+}
 
 pub(crate) struct BreakpointListActor {
     name: String,
@@ -26,7 +41,7 @@ impl Actor for BreakpointListActor {
         request: ClientRequest,
         registry: &crate::actor::ActorRegistry,
         msg_type: &str,
-        msg: &serde_json::Map<String, serde_json::Value>,
+        msg: &Map<String, serde_json::Value>,
         _stream_id: crate::StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
@@ -34,30 +49,22 @@ impl Actor for BreakpointListActor {
             // Seems to be infallible, unlike the thread actor’s `setBreakpoint`.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#breakpoints>
             "setBreakpoint" => {
-                let location = msg.get("location");
-                let column = location
-                    .and_then(|location| location.get("column"))
-                    .and_then(|column| column.as_number())
-                    .and_then(|column| column.as_u64())
-                    .ok_or(ActorError::Internal)?;
-                let line = location
-                    .and_then(|location| location.get("line"))
-                    .and_then(|line| line.as_number())
-                    .and_then(|line| line.as_u64())
-                    .ok_or(ActorError::Internal)?;
-                let source_url = location
-                    .and_then(|location| location.get("sourceUrl"))
-                    .and_then(|source_url| source_url.as_str())
-                    .ok_or(ActorError::Internal)?;
+                let msg: BreakpointMessage =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+                let BreakpointLocation {
+                    line,
+                    column,
+                    source_url,
+                } = msg.location;
 
                 let browsing_context =
                     registry.find::<BrowsingContextActor>(&self.browsing_context);
                 let thread = registry.find::<ThreadActor>(&browsing_context.thread);
                 let source = thread
                     .source_manager
-                    .find_source(registry, source_url)
+                    .find_source(registry, &source_url)
                     .ok_or(ActorError::Internal)?;
-                let offset = source.find_offset(column as u32, line as u32);
+                let offset = source.find_offset(line, column);
 
                 // set-breakpoint
                 let (tx, rx) = channel().ok_or(ActorError::Internal)?;

@@ -54,6 +54,7 @@ addEventListener("getPossibleBreakpoints", event => {
 addEventListener("setBreakpoint", event => {
     const {spidermonkeyId, offset} = event;
     const script = sourceIdsToScripts.get(spidermonkeyId);
+    // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     function breakpointHandler(...args) {
         // TODO: notify script to pause
         // tell spidermonkey to pause

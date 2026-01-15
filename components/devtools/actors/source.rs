@@ -103,8 +103,7 @@ struct GetBreakableLinesReply {
 struct GetBreakpointPositionsCompressedReply {
     from: String,
     // Column numbers are in UTF-16 code units, not Unicode scalar values or grapheme clusters.
-    // Line number are one-based. Column numbers are zero-based.
-    // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+    // Line and column numbers are one-based.
     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
     positions: BTreeMap<u32, BTreeSet<u32>>,
 }
@@ -263,8 +262,7 @@ impl Actor for SourceActor {
                 let result = rx.recv().map_err(|_| ActorError::Internal)?;
                 let mut positions: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::default();
                 for entry in result {
-                    // Line number are one-based. Column numbers are zero-based.
-                    // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+                    // Line and column numbers are one-based.
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
                     positions
                         .entry(entry.line_number)
@@ -284,7 +282,7 @@ impl Actor for SourceActor {
 }
 
 impl SourceActor {
-    pub fn find_offset(&self, column: u32, line: u32) -> u32 {
+    pub fn find_offset(&self, line: u32, column: u32) -> u32 {
         let (tx, rx) = channel().unwrap();
         self.script_sender
             .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
@@ -294,6 +292,8 @@ impl SourceActor {
             .unwrap();
         let result = rx.recv().unwrap();
         for entry in result {
+            // Line and column numbers are one-based.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
             if entry.line_number == line && entry.column_number - 1 == column {
                 return entry.offset;
             }
