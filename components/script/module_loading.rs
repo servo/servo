@@ -651,7 +651,8 @@ impl FetchResponseListener for ModuleContext {
     fn process_response_eof(
         mut self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         let global = self.global.root();
 
@@ -661,9 +662,7 @@ impl FetchResponseListener for ModuleContext {
                 .finish_load(LoadType::Script(self.url.clone()), CanGc::note());
         }
 
-        if let Ok(response) = &response {
-            network_listener::submit_timing(&self, response, CanGc::note());
-        }
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
 
         // Step 1. If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
         // then set moduleMap[(url, moduleType)] to null, run onComplete given null, and abort these steps.
