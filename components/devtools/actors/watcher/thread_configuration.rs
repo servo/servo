@@ -13,7 +13,7 @@ use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
-pub struct ThreadConfigurationActor {
+pub(crate) struct ThreadConfigurationActor {
     name: String,
     _configuration: HashMap<&'static str, bool>,
 }

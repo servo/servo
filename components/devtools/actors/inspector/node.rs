@@ -102,7 +102,7 @@ pub(crate) struct NodeActorMsg {
 pub(crate) struct NodeActor {
     name: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pipeline: PipelineId,
+    pub pipeline: PipelineId,
     pub walker: String,
     pub style_rules: AtomicRefCell<HashMap<(String, usize), String>>,
 }
