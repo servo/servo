@@ -58,7 +58,7 @@ jobs:
 
   publish-nightly-release:
     # This job is only useful when run on upstream servo.
-    if: always() && (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+    if: always() && github.repository == 'servo/servo' && ((github.event_name == 'workflow_dispatch' && inputs.regular_release == true) || github.event_name != 'workflow_dispatch')
     name: Publish GH Release
     runs-on: ubuntu-latest
     steps:
