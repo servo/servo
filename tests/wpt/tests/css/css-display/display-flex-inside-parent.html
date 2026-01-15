@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: display: flex inside a parent container</title>
+  <link rel="author" title="Shubham Gupta" href="mailto:shubham.gupta@chromium.org">
+  <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-items">
+  <link rel="match" href="display-flex-inside-parent-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+
+  <style type="text/css">
+    .overide.current {
+      color: #d8232a
+    }
+
+    .current {
+      display: flex;
+      background: #f4f6f9;
+      color: #008000
+    }
+  </style>
+</head>
+
+<body>
+  <h1>CSS Test: display: flex inside a parent container</h1>
+  <p>Test passes if A is in red color</p>
+  <div class=" current">A</div>
+  <script>
+    function runTest() {
+      const text = document.getElementsByClassName("current");
+      text[0].className = "overide current";
+    }
+    onload = () => runTest();
+  </script>
+</body>
+</html>
