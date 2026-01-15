@@ -19,6 +19,7 @@ use crate::script_runtime::CanGc;
 pub(crate) struct DebuggerSetBreakpointEvent {
     event: Event,
     spidermonkey_id: u32,
+    script_id: u32,
     offset: u32,
 }
 
@@ -26,12 +27,14 @@ impl DebuggerSetBreakpointEvent {
     pub(crate) fn new(
         debugger_global: &GlobalScope,
         spidermonkey_id: u32,
+        script_id: u32,
         offset: u32,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
             spidermonkey_id,
+            script_id,
             offset,
         });
         let result = reflect_dom_object(result, debugger_global, can_gc);
@@ -49,6 +52,10 @@ impl DebuggerSetBreakpointEventMethods<crate::DomTypeHolder> for DebuggerSetBrea
         self.spidermonkey_id
     }
 
+    fn ScriptId(&self) -> u32 {
+        self.script_id
+    }
+
     fn Offset(&self) -> u32 {
         self.offset
     }
@@ -62,6 +69,7 @@ impl Debug for DebuggerSetBreakpointEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DebuggerSetBreakpointEvent")
             .field("spidermonkey_id", &self.spidermonkey_id)
+            .field("script_id", &self.script_id)
             .field("offset", &self.offset)
             .finish()
     }

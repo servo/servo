@@ -192,17 +192,13 @@ impl DebuggerGlobalScope {
         &self,
         can_gc: CanGc,
         spidermonkey_id: u32,
+        script_id: u32,
         offset: u32,
-        result_sender: GenericSender<bool>,
     ) {
-        assert!(
-            self.set_breakpoint_result_sender
-                .replace(Some(result_sender))
-                .is_none()
-        );
         let event = DomRoot::upcast::<Event>(DebuggerSetBreakpointEvent::new(
             self.upcast(),
             spidermonkey_id,
+            script_id,
             offset,
             can_gc,
         ));
@@ -323,6 +319,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             result
                 .into_iter()
                 .map(|entry| devtools_traits::RecommendedBreakpointLocation {
+                    script_id: entry.scriptId,
                     offset: entry.offset,
                     line_number: entry.lineNumber,
                     column_number: entry.columnNumber,
@@ -330,14 +327,5 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 })
                 .collect(),
         );
-    }
-
-    fn SetBreakpointResult(&self, event: &DebuggerSetBreakpointEvent, result: bool) {
-        info!("SetBreakpointResult: {event:?} {result:?}");
-        let sender = self
-            .set_breakpoint_result_sender
-            .take()
-            .expect("Guaranteed by Self::fire_set_breakpoint()");
-        let _ = sender.send(result);
     }
 }

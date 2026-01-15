@@ -2162,12 +2162,12 @@ impl ScriptThread {
                     result_sender,
                 );
             },
-            DevtoolScriptControlMsg::SetBreakpoint(spidermonkey_id, offset, result_sender) => {
+            DevtoolScriptControlMsg::SetBreakpoint(spidermonkey_id, script_id, offset) => {
                 self.debugger_global.fire_set_breakpoint(
                     CanGc::from_cx(cx),
                     spidermonkey_id,
+                    script_id,
                     offset,
-                    result_sender,
                 );
             },
         }

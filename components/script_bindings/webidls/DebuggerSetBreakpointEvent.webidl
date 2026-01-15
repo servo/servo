@@ -7,11 +7,6 @@
 [Exposed=DebuggerGlobalScope]
 interface DebuggerSetBreakpointEvent : Event {
     readonly attribute unsigned long spidermonkeyId;
+    readonly attribute unsigned long scriptId;
     readonly attribute unsigned long offset;
-};
-
-partial interface DebuggerGlobalScope {
-    undefined setBreakpointResult(
-        DebuggerSetBreakpointEvent event,
-        boolean result);
 };
