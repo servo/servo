@@ -118,8 +118,8 @@ struct ListProcessesResponse {
 #[serde(rename_all = "camelCase")]
 
 pub(crate) struct DescriptorTraits {
-    pub(crate) watcher: bool,
-    pub(crate) supports_reload_descriptor: bool,
+    pub watcher: bool,
+    pub supports_reload_descriptor: bool,
 }
 
 #[derive(Serialize)]
