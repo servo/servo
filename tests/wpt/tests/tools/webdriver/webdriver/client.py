@@ -210,6 +210,12 @@ class ActionSequence:
         self._pointer_action("pointerUp", button=button)
         return self
 
+    def pointer_cancel(self):
+        """Queue a pointerCancel action.
+        """
+        self._pointer_action("pointerCancel")
+        return self
+
     def pointer_down(
         self,
         button=0,

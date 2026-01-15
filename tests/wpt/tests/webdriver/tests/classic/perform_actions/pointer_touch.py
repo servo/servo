@@ -44,6 +44,35 @@ def test_pointer_down_closes_browsing_context(
             .perform()
 
 
+def test_touch_pointer_cancel(session, test_actions_pointer_page, touch_chain):
+    pointerArea = session.find.css("#pointerArea", all=False)
+
+    session.execute_script("""
+        window.events = {
+            touchstart: false,
+            touchcancel: false,
+            touchend: false,
+            click: false
+        };
+        const area = document.getElementById("pointerArea");
+        ['touchstart', 'touchcancel', 'touchend', 'click'].forEach(type => {
+            area.addEventListener(type, () => { window.events[type] = true; });
+        });
+    """)
+
+    touch_chain.pointer_move(0, 0, origin=pointerArea) \
+        .pointer_down() \
+        .pointer_cancel() \
+        .perform()
+
+    results = session.execute_script("return window.events;")
+
+    assert results['touchstart']
+    assert results["touchcancel"]
+    assert not results["touchend"]
+    assert not results["click"]
+
+
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, touch_chain, as_frame):
     element = stale_element("input#text", as_frame=as_frame)
