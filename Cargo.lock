@@ -23,6 +23,10 @@ name = "accesskit"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf203f9d3bd8f29f98833d1fbef628df18f759248a547e7e01cfbf63cda36a99"
+dependencies = [
+ "enumn",
+ "serde",
+]
 
 [[package]]
 name = "accesskit_atspi_common"
@@ -998,9 +1002,9 @@ dependencies = [
 
 [[package]]
 name = "bpaf"
-version = "0.9.21"
+version = "0.9.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03878050524c710d1e1e056e2aae592d65d52b39b237968df2e369e9e4ac1905"
+checksum = "4ffe12d9bbc54238745f1749c5a18dc5759e03c235618dd05554a9be350390b1"
 dependencies = [
  "bpaf_derive",
 ]
@@ -2472,6 +2476,7 @@ dependencies = [
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "base",
  "bitflags 2.10.0",
  "cookie 0.18.1",
@@ -2548,6 +2553,17 @@ name = "enumflags2_derive"
 version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67c78a4d8fdf9953a5c9d458f9efe940fd97a0cab0941c075a813ac594733827"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "enumn"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f9ed6b3789237c8a0c1c505af1c7eb2c560df6186f01b098c3a1064ea532f38"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4975,6 +4991,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "app_units",
  "atomic_refcell",
  "base",
@@ -5133,6 +5150,7 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "arboard",
  "background_hang_monitor",
  "base",
@@ -7858,6 +7876,7 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "background_hang_monitor_api",
  "base",
  "bluetooth_traits",
@@ -8381,6 +8400,7 @@ dependencies = [
 name = "servoshell"
 version = "0.0.4"
 dependencies = [
+ "accesskit",
  "android_logger",
  "backtrace",
  "base",

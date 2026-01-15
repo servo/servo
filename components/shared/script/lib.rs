@@ -305,6 +305,8 @@ pub enum ScriptThreadMessage {
     /// Release all data for the given `UserContentManagerId` from the `ScriptThread`'s
     /// `user_contents_for_manager_id` map.
     DestroyUserContentManager(UserContentManagerId),
+    /// Send the embedder an accessibility tree update.
+    AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

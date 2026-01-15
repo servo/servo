@@ -18,6 +18,7 @@ baked-default-resources = []
 gamepad = []
 
 [dependencies]
+accesskit = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
 cookie = { workspace = true }

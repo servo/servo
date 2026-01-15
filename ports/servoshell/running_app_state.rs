@@ -819,6 +819,15 @@ impl WebViewDelegate for RunningAppState {
         self.platform_window_for_webview_id(webview.id())
             .show_console_message(level, &message);
     }
+
+    fn notify_accessibility_tree_update(
+        &self,
+        webview: WebView,
+        tree_update: accesskit::TreeUpdate,
+    ) {
+        self.platform_window_for_webview_id(webview.id())
+            .notify_accessibility_tree_update(webview, tree_update);
+    }
 }
 
 struct ServoShellServoDelegate;

@@ -433,4 +433,6 @@ pub(crate) trait PlatformWindow {
     fn as_headed_window(&self) -> Option<&crate::egl::app::EmbeddedPlatformWindow> {
         None
     }
+
+    fn notify_accessibility_tree_update(&self, _: WebView, _: accesskit::TreeUpdate) {}
 }

@@ -638,6 +638,13 @@ impl ServoInner {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
                 }
             },
+            EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_accessibility_tree_update(webview, tree_update);
+                }
+            },
         }
     }
 }
