@@ -309,6 +309,8 @@ pub enum ScriptThreadMessage {
     /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
     /// instance that gets updated according to the changes from the `Compositor``.
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
+    /// Enable or disable accessibility updates.
+    SetAccessibilityEnabled(WebViewId, PipelineId, bool),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

@@ -292,6 +292,12 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
 
         get_selected_style().unwrap_or_else(|| style_data.primary().clone())
     }
+
+    // TODO: put text content in the fragment tree
+    pub fn dangerous_get_dom_text_content(self) -> Option<Cow<'dom, str>> {
+        let js_managed = unsafe { self.get_jsmanaged() };
+        js_managed.get_dom_text_content()
+    }
 }
 
 impl style::dom::NodeInfo for ServoThreadSafeLayoutNode<'_> {

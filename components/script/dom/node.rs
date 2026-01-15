@@ -1773,6 +1773,8 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn opaque(self) -> OpaqueNode;
     fn implemented_pseudo_element(&self) -> Option<PseudoElement>;
     fn is_in_ua_widget(&self) -> bool;
+
+    fn get_dom_text_content(self) -> Option<Cow<'dom, str>>;
 }
 
 impl<'dom> LayoutDom<'dom, Node> {
@@ -1838,6 +1840,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[expect(unsafe_code)]
     fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().next_sibling.get_inner_as_layout() }
+    }
+
+    #[inline]
+    fn get_dom_text_content(self) -> Option<Cow<'dom, str>> {
+        let Some(dom_string) = self.unsafe_get().GetTextContent() else {
+            return None;
+        };
+        return Some(String::from(dom_string.str()).into());
     }
 
     #[inline]

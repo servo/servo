@@ -1119,3 +1119,9 @@ pub struct NewWebViewDetails {
     pub viewport_details: ViewportDetails,
     pub user_content_manager_id: Option<UserContentManagerId>,
 }
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum AccessibilityAction {
+    Enable,
+    Disable,
+}
