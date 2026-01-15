@@ -624,6 +624,20 @@ impl ScrollTree {
             .root_to_node_transform
     }
 
+    /// Find the untransformed offset in the initial containing block of the nearest
+    /// inclusive ancestor reference frame for the given spatial tree node.
+    pub fn reference_frame_offset(&self, node_id: ScrollTreeNodeId) -> LayoutPoint {
+        let mut maybe_node_id = Some(node_id);
+        while let Some(node_id) = maybe_node_id {
+            let node = self.get_node(node_id);
+            if let SpatialTreeNodeInfo::ReferenceFrame(reference_frame) = &node.info {
+                return reference_frame.frame_origin_for_query;
+            }
+            maybe_node_id = node.parent;
+        }
+        Default::default()
+    }
+
     /// Find the cumulative offsets of sticky positioned boxes from the given node up to
     /// the root.
     pub fn cumulative_sticky_offsets(&self, node_id: ScrollTreeNodeId) -> LayoutVector2D {

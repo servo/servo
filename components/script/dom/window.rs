@@ -3013,13 +3013,11 @@ impl Window {
         // now.
         let mouse_event = event.downcast::<MouseEvent>()?;
         let point_in_viewport = mouse_event.point_in_viewport()?.map(Au::from_f32_px);
-        let node_origin_in_viewport = node.content_box()?.origin;
-        let point_in_node = (point_in_viewport - node_origin_in_viewport.cast_unit()).to_point();
 
         self.layout_reflow(QueryMsg::TextIndexQuery);
         self.layout
             .borrow()
-            .query_text_index(node.to_trusted_node_address(), point_in_node)
+            .query_text_index(node.to_trusted_node_address(), point_in_viewport)
     }
 
     pub(crate) fn elements_from_point_query(

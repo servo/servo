@@ -12973,6 +12973,15 @@
       }
      ]
     ],
+    "mousedown-edit-point-input-tranformed.html": [
+     "5c7e1e050c3883933dfa6c6c2984d74e3497ef60",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "mousedown-edit-point-textarea.html": [
      "a7f67227f48028f9d6fa88d5f92b325c9735710c",
      [

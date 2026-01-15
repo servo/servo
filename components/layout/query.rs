@@ -1309,7 +1309,8 @@ fn rendered_text_collection_steps(
 
 pub fn find_glyph_offset_in_fragment_descendants(
     node: &ServoThreadSafeLayoutNode,
-    point: Point2D<Au, CSSPixel>,
+    stacking_context_tree: &StackingContextTree,
+    point_in_viewport: Point2D<Au, CSSPixel>,
 ) -> Option<usize> {
     type ClosestFragment = Option<(Au, Point2D<Au, CSSPixel>, ArcRefCell<TextFragment>)>;
     fn maybe_update_closest(
@@ -1335,10 +1336,10 @@ pub fn find_glyph_offset_in_fragment_descendants(
 
     fn collect_relevant_children(
         fragment: &Fragment,
-        point_in_fragment: Point2D<Au, CSSPixel>,
+        point_in_viewport: Point2D<Au, CSSPixel>,
         closest_relative_fragment: &mut ClosestFragment,
     ) {
-        maybe_update_closest(fragment, point_in_fragment, closest_relative_fragment);
+        maybe_update_closest(fragment, point_in_viewport, closest_relative_fragment);
 
         if let Some(children) = fragment.children() {
             for child in children.iter() {
@@ -1346,7 +1347,7 @@ pub fn find_glyph_offset_in_fragment_descendants(
                     .base()
                     .map(|base| base.rect.origin)
                     .unwrap_or_default();
-                let point = point_in_fragment - offset.to_vector();
+                let point = point_in_viewport - offset.to_vector();
                 collect_relevant_children(child, point, closest_relative_fragment);
             }
         }
@@ -1354,7 +1355,11 @@ pub fn find_glyph_offset_in_fragment_descendants(
 
     let mut closest_relative_fragment = None;
     for fragment in &node.fragments_for_pseudo(None) {
-        collect_relevant_children(fragment, point, &mut closest_relative_fragment);
+        if let Some(point_in_fragment) =
+            stacking_context_tree.offset_in_fragment(fragment, point_in_viewport)
+        {
+            collect_relevant_children(fragment, point_in_fragment, &mut closest_relative_fragment);
+        }
     }
 
     closest_relative_fragment.map(|(_, point_in_parent, text_fragment)| {
