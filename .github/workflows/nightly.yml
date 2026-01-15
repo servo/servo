@@ -9,7 +9,7 @@ on:
       # Note: On scheduled runs `inputs.regular_release` will be `null`, which allows us to create
       # defaults by using `${{ inputs.regular_release || 'my_default_value' }}` expressions.
       regular_release:
-        description: 'Whether to create a release at this repo, or on the nightly releases repo'
+        description: '`true` to create a release on this repo, false to release to the nightly-releases repo'
         type: boolean
         default: false
       release_tag:
