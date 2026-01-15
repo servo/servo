@@ -336,7 +336,7 @@ pub struct StackFrame {
     pub column_number: u32,
     pub line_number: u32,
     // Not implemented in Servo
-    // source_id: String,
+    // source_id
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -359,8 +359,8 @@ pub struct ConsoleMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stacktrace: Option<Vec<StackFrame>>,
     // Not implemented in Servo
-    // inner_window_id: u32,
-    // source_id: String,
+    // inner_window_id
+    // source_id
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -379,10 +379,10 @@ pub struct PageError {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stacktrace: Option<Vec<StackFrame>>,
     // Not implemented in Servo
-    // inner_window_id: u32,
-    // source_id: String,
-    // has_exception: bool,
-    // exception: Option<{...}>,
+    // inner_window_id
+    // source_id
+    // has_exception
+    // exception
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

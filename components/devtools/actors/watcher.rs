@@ -333,7 +333,7 @@ impl Actor for WatcherActor {
                         },
                         "console-message" | "error-message" => {
                             let console = registry.find::<ConsoleActor>(&target.console);
-                            console.only_cache.store(false, Ordering::Relaxed);
+                            console.should_send_messages.store(true, Ordering::Relaxed);
                             target.resources_array(
                                 console.get_cached_messages(registry, resource),
                                 resource.into(),

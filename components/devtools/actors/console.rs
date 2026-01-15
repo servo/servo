@@ -93,7 +93,12 @@ pub(crate) struct ConsoleActor {
     pub name: String,
     pub root: Root,
     pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<ConsoleResource>>>,
-    pub only_cache: AtomicBool,
+    /// Used to control whether to send resource array messages from
+    /// `handle_console_resource`. It starts being false, and it only gets
+    /// activated after the client requests `console-message` or `error-message`
+    /// resources for the first time. Otherwise we would be sending messages
+    /// before the client is ready to receive them.
+    pub should_send_messages: AtomicBool,
 }
 
 impl ConsoleActor {
@@ -221,7 +226,7 @@ impl ConsoleActor {
             .entry(id.clone())
             .or_default()
             .push(resource.clone());
-        if self.only_cache.load(Ordering::Relaxed) {
+        if !self.should_send_messages.load(Ordering::Relaxed) {
             return;
         }
         let resource_type = resource.resource_type();

@@ -407,9 +407,9 @@ impl DevtoolsInstance {
 
         let console = ConsoleActor {
             name: console_name,
-            cached_events: Default::default(),
             root: parent_actor,
-            only_cache: true.into(),
+            cached_events: Default::default(),
+            should_send_messages: false.into(),
         };
 
         actors.register(console);
