@@ -253,7 +253,7 @@ impl IndependentFormattingContext {
                 block_formatting_context.repair_style(node, new_style);
             },
             IndependentFormattingContextContents::Flex(flex_container) => {
-                flex_container.repair_style(new_style)
+                flex_container.repair_style(context, node, new_style)
             },
             IndependentFormattingContextContents::Grid(taffy_container) => {
                 taffy_container.repair_style(new_style)

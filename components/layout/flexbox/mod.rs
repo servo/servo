@@ -146,9 +146,17 @@ impl FlexContainer {
         }
     }
 
-    pub(crate) fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        node: &ServoThreadSafeLayoutNode,
+        new_style: &ServoArc<ComputedValues>,
+    ) {
         self.config = FlexContainerConfig::new(new_style);
         self.style = new_style.clone();
+        for kid in self.children.iter_mut() {
+            kid.borrow_mut().repair_style(context, node, new_style);
+        }
     }
 }
 
