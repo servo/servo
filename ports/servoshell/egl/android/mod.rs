@@ -7,15 +7,13 @@
 mod resources;
 
 use std::cell::RefCell;
-use std::mem;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
-use dpi::PhysicalSize;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Scale, Size2D};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject};
 use jni::{JNIEnv, JavaVM};
@@ -26,13 +24,13 @@ use raw_window_handle::{
     WindowHandle,
 };
 use resources::ResourceReaderInstance;
+pub use servo::MediaSessionPlaybackState;
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
     MouseButton, PrefValue,
 };
-pub use servo::{MediaSessionPlaybackState, WindowRenderingContext};
 
-use super::app::{App, AppInitOptions, VsyncRefreshDriver};
+use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
 use crate::prefs::{ArgumentParsingResult, EXPERIMENTAL_PREFS, parse_command_line_arguments};
 
@@ -100,8 +98,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     callbacks_obj: JObject<'local>,
     surface: JObject<'local>,
 ) {
-    let (mut init_opts, log, log_str, _gst_debug_str) = match get_options(&mut env, &opts, &surface)
-    {
+    let (init_opts, log, log_str, _gst_debug_str) = match get_options(&mut env, &opts, &surface) {
         Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&mut env, &err);
@@ -165,7 +162,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     };
 
     let event_loop_waker = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
-    let host = Box::new(HostCallbacks::new(callbacks_ref, &env));
+    let host = Rc::new(HostCallbacks::new(callbacks_ref, &env));
 
     crate::init_crypto();
     servo::resources::set(Box::new(ResourceReaderInstance::new()));
@@ -195,33 +192,26 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
         )
     };
 
-    let size = init_opts.viewport_rect.size;
-    let refresh_driver = Rc::new(VsyncRefreshDriver::default());
-    let rendering_context = Rc::new(
-        WindowRenderingContext::new_with_refresh_driver(
-            display_handle,
-            window_handle,
-            PhysicalSize::new(size.width as u32, size.height as u32),
-            refresh_driver.clone(),
-        )
-        .expect("Could not create RenderingContext"),
-    );
+    let hidpi_scale_factor = Scale::new(init_opts.density);
 
     APP.with(|app| {
-        *app.borrow_mut() = Some(App::new(AppInitOptions {
+        let new_app = App::new(AppInitOptions {
             host,
             event_loop_waker,
-            viewport_rect: init_opts.viewport_rect,
-            hidpi_scale_factor: init_opts.density,
-            rendering_context,
-            refresh_driver,
             initial_url: init_opts.url,
             opts,
             preferences,
             servoshell_preferences,
             #[cfg(feature = "webxr")]
             xr_discovery: init_opts.xr_discovery,
-        }));
+        });
+        new_app.add_platform_window(
+            display_handle,
+            window_handle,
+            init_opts.viewport_rect,
+            hidpi_scale_factor,
+        );
+        *app.borrow_mut() = Some(new_app);
     });
 }
 

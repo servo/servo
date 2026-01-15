@@ -31,6 +31,7 @@ use super::{
     TableLayoutStyle, TableSlot, TableSlotCell, TableSlotCoordinates, TableTrack, TableTrackGroup,
 };
 use crate::context::LayoutContext;
+use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
@@ -48,6 +49,7 @@ use crate::sizing::{
 use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
 };
+use crate::table::WeakTableLevelBox;
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
 };
@@ -2667,6 +2669,61 @@ impl Table {
             containing_block_for_children,
             containing_block_for_table,
         )
+    }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        for caption in &self.captions {
+            caption
+                .borrow_mut()
+                .context
+                .base
+                .parent_box
+                .replace(layout_box.clone());
+        }
+        for row_group in &self.row_groups {
+            row_group
+                .borrow_mut()
+                .base
+                .parent_box
+                .replace(layout_box.clone());
+        }
+        for column_group in &self.column_groups {
+            column_group
+                .borrow_mut()
+                .base
+                .parent_box
+                .replace(layout_box.clone());
+        }
+        for row in &self.rows {
+            let row = &mut *row.borrow_mut();
+            if let Some(group_index) = row.group_index {
+                row.base.parent_box.replace(WeakLayoutBox::TableLevelBox(
+                    WeakTableLevelBox::TrackGroup(self.row_groups[group_index].downgrade()),
+                ));
+            } else {
+                row.base.parent_box.replace(layout_box.clone());
+            }
+        }
+        for column in &self.columns {
+            let column = &mut *column.borrow_mut();
+            if let Some(group_index) = column.group_index {
+                column.base.parent_box.replace(WeakLayoutBox::TableLevelBox(
+                    WeakTableLevelBox::TrackGroup(self.column_groups[group_index].downgrade()),
+                ));
+            } else {
+                column.base.parent_box.replace(layout_box.clone());
+            }
+        }
+        for row_index in 0..self.size.height {
+            let row = WeakLayoutBox::TableLevelBox(WeakTableLevelBox::Track(
+                self.rows[row_index].downgrade(),
+            ));
+            for column_index in 0..self.size.width {
+                if let TableSlot::Cell(ref cell) = self.slots[row_index][column_index] {
+                    cell.borrow_mut().base.parent_box.replace(row.clone());
+                }
+            }
+        }
     }
 }
 

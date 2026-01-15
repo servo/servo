@@ -74,7 +74,7 @@ pub mod line;
 mod line_breaker;
 pub mod text_run;
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -113,8 +113,9 @@ use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
 use super::{CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult};
-use crate::cell::ArcRefCell;
+use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
+use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::{
@@ -330,7 +331,7 @@ impl InlineItem {
         }
     }
 
-    pub(crate) fn with_base_mut<T>(&mut self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
+    pub(crate) fn with_base_mut<T>(&self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match self {
             InlineItem::StartInlineBox(inline_box) => callback(&mut inline_box.borrow_mut().base),
             InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
@@ -347,6 +348,94 @@ impl InlineItem {
             },
             InlineItem::AnonymousBlock(block_box) => callback(&mut block_box.borrow_mut().base),
         }
+    }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        match self {
+            Self::StartInlineBox(_) | InlineItem::EndInlineBox => {
+                // The parentage of inline items within an inline box is handled when the entire
+                // inline formatting context is attached to the tree.
+            },
+            Self::TextRun(_) => {
+                // Text runs can't have children, so no need to do anything.
+            },
+            Self::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                positioned_box.borrow().context.attached_to_tree(layout_box)
+            },
+            Self::OutOfFlowFloatBox(float_box) => {
+                float_box.borrow().contents.attached_to_tree(layout_box)
+            },
+            Self::Atomic(atomic, ..) => atomic.borrow().attached_to_tree(layout_box),
+            Self::AnonymousBlock(block_box) => {
+                block_box.borrow().contents.attached_to_tree(layout_box)
+            },
+        }
+    }
+
+    pub(crate) fn downgrade(&self) -> WeakInlineItem {
+        match self {
+            Self::StartInlineBox(inline_box) => {
+                WeakInlineItem::StartInlineBox(inline_box.downgrade())
+            },
+            Self::EndInlineBox => WeakInlineItem::EndInlineBox,
+            Self::TextRun(text_run) => WeakInlineItem::TextRun(text_run.downgrade()),
+            Self::OutOfFlowAbsolutelyPositionedBox(positioned_box, offset_in_text) => {
+                WeakInlineItem::OutOfFlowAbsolutelyPositionedBox(
+                    positioned_box.downgrade(),
+                    *offset_in_text,
+                )
+            },
+            Self::OutOfFlowFloatBox(float_box) => {
+                WeakInlineItem::OutOfFlowFloatBox(float_box.downgrade())
+            },
+            Self::Atomic(atomic, offset_in_text, bidi_level) => {
+                WeakInlineItem::Atomic(atomic.downgrade(), *offset_in_text, *bidi_level)
+            },
+            Self::AnonymousBlock(block_box) => {
+                WeakInlineItem::AnonymousBlock(block_box.downgrade())
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) enum WeakInlineItem {
+    StartInlineBox(WeakRefCell<InlineBox>),
+    EndInlineBox,
+    TextRun(WeakRefCell<TextRun>),
+    OutOfFlowAbsolutelyPositionedBox(
+        WeakRefCell<AbsolutelyPositionedBox>,
+        usize, /* offset_in_text */
+    ),
+    OutOfFlowFloatBox(WeakRefCell<FloatBox>),
+    Atomic(
+        WeakRefCell<IndependentFormattingContext>,
+        usize, /* offset_in_text */
+        Level, /* bidi_level */
+    ),
+    AnonymousBlock(WeakRefCell<AnonymousBlockBox>),
+}
+
+impl WeakInlineItem {
+    pub(crate) fn upgrade(&self) -> Option<InlineItem> {
+        Some(match self {
+            Self::StartInlineBox(inline_box) => InlineItem::StartInlineBox(inline_box.upgrade()?),
+            Self::EndInlineBox => InlineItem::EndInlineBox,
+            Self::TextRun(text_run) => InlineItem::TextRun(text_run.upgrade()?),
+            Self::OutOfFlowAbsolutelyPositionedBox(positioned_box, offset_in_text) => {
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(
+                    positioned_box.upgrade()?,
+                    *offset_in_text,
+                )
+            },
+            Self::OutOfFlowFloatBox(float_box) => {
+                InlineItem::OutOfFlowFloatBox(float_box.upgrade()?)
+            },
+            Self::Atomic(atomic, offset_in_text, bidi_level) => {
+                InlineItem::Atomic(atomic.upgrade()?, *offset_in_text, *bidi_level)
+            },
+            Self::AnonymousBlock(block_box) => InlineItem::AnonymousBlock(block_box.upgrade()?),
+        })
     }
 }
 
@@ -707,6 +796,9 @@ pub(super) struct InlineContainerState {
 
     /// The font metrics of the non-fallback font for this container.
     font_metrics: Arc<FontMetrics>,
+
+    /// The current count of glyphs added to the inline container.
+    number_of_glyphs: Cell<usize>,
 }
 
 pub(super) struct InlineFormattingContextLayout<'layout_data> {
@@ -1453,6 +1545,7 @@ impl InlineFormattingContextLayout<'_> {
         font: &FontRef,
         bidi_level: Level,
         range: TextByteRange,
+        starting_glyph_offset: usize,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1539,6 +1632,7 @@ impl InlineFormattingContextLayout<'_> {
             current_inline_box_identifier,
             TextRunLineItem {
                 text: vec![glyph_store],
+                starting_glyph_offset,
                 base_fragment_info: text_run.base_fragment_info,
                 inline_styles: text_run.inline_styles.clone(),
                 font_metrics: font_metrics.clone(),
@@ -2005,6 +2099,40 @@ impl InlineFormattingContext {
                 ),
         })
     }
+
+    pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
+        let mut parent_box_stack = Vec::new();
+        let current_parent_box = |parent_box_stack: &[WeakLayoutBox]| {
+            parent_box_stack.last().unwrap_or(&layout_box).clone()
+        };
+        for inline_item in &self.inline_items {
+            match inline_item {
+                InlineItem::StartInlineBox(inline_box) => {
+                    inline_box
+                        .borrow_mut()
+                        .base
+                        .parent_box
+                        .replace(current_parent_box(&parent_box_stack));
+                    parent_box_stack.push(WeakLayoutBox::InlineLevel(
+                        WeakInlineItem::StartInlineBox(inline_box.downgrade()),
+                    ));
+                },
+                InlineItem::EndInlineBox => {
+                    parent_box_stack.pop();
+                },
+                InlineItem::TextRun(text_run) => {
+                    text_run
+                        .borrow_mut()
+                        .parent_box
+                        .replace(current_parent_box(&parent_box_stack));
+                },
+                _ => inline_item.with_base_mut(|base| {
+                    base.parent_box
+                        .replace(current_parent_box(&parent_box_stack));
+                }),
+            }
+        }
+    }
 }
 
 impl InlineContainerState {
@@ -2048,6 +2176,7 @@ impl InlineContainerState {
             strut_block_sizes,
             baseline_offset,
             font_metrics,
+            number_of_glyphs: Default::default(),
         }
     }
 

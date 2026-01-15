@@ -1236,7 +1236,8 @@ impl FetchResponseListener for ModuleContext {
     fn process_response_eof(
         mut self,
         _: RequestId,
-        response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
     ) {
         let global = self.owner.global();
 
@@ -1350,9 +1351,7 @@ impl FetchResponseListener for ModuleContext {
             },
         }
 
-        if let Ok(response) = response {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
+        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

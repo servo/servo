@@ -249,8 +249,8 @@ impl MouseEvent {
         self.uievent.set_which(w);
     }
 
-    pub(crate) fn point_in_target(&self) -> Option<Point2D<f32, CSSPixel>> {
-        self.point_in_target.get()
+    pub(crate) fn point_in_viewport(&self) -> Option<Point2D<f32, CSSPixel>> {
+        Some(self.client_point.get().to_f32())
     }
 
     /// Create a [MouseEvent] triggered by the embedder

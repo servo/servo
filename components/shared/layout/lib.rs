@@ -27,7 +27,7 @@ use bitflags::bitflags;
 use compositing_traits::CrossProcessPaintApi;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::Point2D;
-use euclid::default::{Point2D as UntypedPoint2D, Rect};
+use euclid::default::Rect;
 use fonts::{FontContext, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
 use libc::c_void;
@@ -348,7 +348,11 @@ pub trait Layout {
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
-    fn query_text_indext(&self, node: OpaqueNode, point: UntypedPoint2D<f32>) -> Option<usize>;
+    fn query_text_index(
+        &self,
+        node: TrustedNodeAddress,
+        point: Point2D<Au, CSSPixel>,
+    ) -> Option<usize>;
     fn query_elements_from_point(
         &self,
         point: LayoutPoint,

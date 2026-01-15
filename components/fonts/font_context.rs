@@ -1055,7 +1055,7 @@ impl RemoteWebFontDownloader {
                 }
                 DownloaderResponseResult::InProcess
             },
-            FetchResponseMsg::ProcessResponseEOF(_, response) => {
+            FetchResponseMsg::ProcessResponseEOF(_, response, timing) => {
                 trace!(
                     "@font-face {} EOF={:?}",
                     self.web_font_family_name, response
@@ -1068,10 +1068,7 @@ impl RemoteWebFontDownloader {
                     .expect("must have download state before termination")
                     .document_context
                     .network_timing_handler
-                    .submit_timing(
-                        ServoUrl::from_url(self.url.as_ref().clone()),
-                        response.unwrap(),
-                    );
+                    .submit_timing(ServoUrl::from_url(self.url.as_ref().clone()), timing);
                 DownloaderResponseResult::Finished
             },
         }

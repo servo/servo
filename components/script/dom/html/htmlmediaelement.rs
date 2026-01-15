@@ -3825,7 +3825,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_eof(self, _: RequestId, status: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        self,
+        _: RequestId,
+        status: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
+    ) {
         let element = self.element.root();
 
         // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
@@ -3884,9 +3889,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             element.media_data_processing_failure_steps();
         }
 
-        if let Ok(response) = status {
-            network_listener::submit_timing(&self, &response, CanGc::note());
-        }
+        network_listener::submit_timing(&self, &status, &timing, CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

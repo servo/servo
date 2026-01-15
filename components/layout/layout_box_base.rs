@@ -12,6 +12,7 @@ use servo_arc::Arc;
 use style::properties::ComputedValues;
 
 use crate::context::LayoutContext;
+use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{BaseFragmentInfo, CollapsedBlockMargins, Fragment, SpecificLayoutInfo};
 use crate::positioned::PositioningContext;
@@ -33,6 +34,7 @@ pub(crate) struct LayoutBoxBase {
     pub outer_inline_content_sizes_depend_on_content: AtomicBool,
     pub cached_layout_result: AtomicRefCell<Option<Box<CacheableLayoutResultAndInputs>>>,
     pub fragments: AtomicRefCell<Vec<Fragment>>,
+    pub parent_box: Option<WeakLayoutBox>,
 }
 
 impl LayoutBoxBase {
@@ -44,6 +46,7 @@ impl LayoutBoxBase {
             outer_inline_content_sizes_depend_on_content: AtomicBool::new(true),
             cached_layout_result: AtomicRefCell::default(),
             fragments: AtomicRefCell::default(),
+            parent_box: None,
         }
     }
 
@@ -95,6 +98,11 @@ impl LayoutBoxBase {
                 base.repair_style(new_style);
             }
         }
+    }
+
+    #[expect(unused)]
+    pub(crate) fn parent_box(&self) -> Option<LayoutBox> {
+        self.parent_box.as_ref().and_then(WeakLayoutBox::upgrade)
     }
 }
 
