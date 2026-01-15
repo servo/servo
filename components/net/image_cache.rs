@@ -502,11 +502,8 @@ impl ImageCacheStore {
             if self
                 .key_cache
                 .evicted_images
-                .contains(&(pending_id, requested_size))
+                .remove(&(pending_id, requested_size))
             {
-                self.key_cache
-                    .evicted_images
-                    .remove(&(pending_id, requested_size));
                 return;
             }
         };
