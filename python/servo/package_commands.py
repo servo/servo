@@ -7,16 +7,10 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from datetime import datetime
 import random
 from typing import List
 
 import time
-from github import Github
-
-import hashlib
-import io
-import json
 import re
 import os
 import os.path as path
@@ -435,133 +429,8 @@ class PackageCommands(CommandBase):
     def upload_nightly(
         self, platform: str, secret_from_environment: bool, github_release_id: int | None, packages: List[str]
     ) -> int:
-        import boto3
-
-        def get_s3_secret() -> tuple:
-            aws_access_key = None
-            aws_secret_access_key = None
-            if secret_from_environment:
-                secret = json.loads(os.environ["S3_UPLOAD_CREDENTIALS"])
-                aws_access_key = secret["aws_access_key_id"]
-                aws_secret_access_key = secret["aws_secret_access_key"]
-            return (aws_access_key, aws_secret_access_key)
-
-        def nightly_filename(package: str, timestamp: datetime) -> str:
-            return "{}-{}".format(
-                timestamp.isoformat() + "Z",  # The `Z` denotes UTC
-                path.basename(package),
-            )
-
-        # Map the default platform shorthand to a name containing architecture.
-        def map_platform(platform: str) -> str:
-            if platform == "android":
-                return "aarch64-android"
-            elif platform == "linux":
-                return "x86_64-linux-gnu"
-            elif platform == "windows-msvc":
-                return "x86_64-windows-msvc"
-            elif platform == "mac":
-                return "x86_64-apple-darwin"
-            elif platform == "mac-arm64":
-                return "aarch64-apple-darwin"
-            elif platform == "ohos":
-                return "aarch64-linux-ohos"
-            raise Exception("Unknown platform: {}".format(platform))
-
-        def upload_to_github_release(platform: str, package: str, package_hash: str) -> None:
-            if not github_release_id:
-                return
-
-            extension = path.basename(package).partition(".")[2]
-            g = Github(os.environ["NIGHTLY_REPO_TOKEN"])
-            nightly_repo = g.get_repo(os.environ["NIGHTLY_REPO"])
-            release = nightly_repo.get_release(github_release_id)
-
-            if platform != "mac-arm64":
-                # Legacy assetname. Will be removed after a period with duplicate assets.
-                asset_name = f"servo-latest.{extension}"
-                package_hash_fileobj = io.BytesIO(f"{package_hash}  {asset_name}".encode("utf-8"))
-                release.upload_asset(package, name=asset_name)
-                # pyrefly: ignore[missing-attribute]
-                release.upload_asset_from_memory(
-                    package_hash_fileobj, package_hash_fileobj.getbuffer().nbytes, name=f"{asset_name}.sha256"
-                )
-            asset_platform = map_platform(platform)
-            asset_name = f"servo-{asset_platform}.{extension}"
-            package_hash_fileobj = io.BytesIO(f"{package_hash}  {asset_name}".encode("utf-8"))
-            release.upload_asset(package, name=asset_name)
-            # pyrefly: ignore[missing-attribute]
-            release.upload_asset_from_memory(
-                package_hash_fileobj, package_hash_fileobj.getbuffer().nbytes, name=f"{asset_name}.sha256"
-            )
-
-        def upload_to_s3(platform: str, package: str, package_hash: str, timestamp: datetime) -> None:
-            (aws_access_key, aws_secret_access_key) = get_s3_secret()
-            s3 = boto3.client("s3", aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_access_key)
-
-            cloudfront = boto3.client(
-                "cloudfront", aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_access_key
-            )
-
-            BUCKET = "servo-builds2"
-            DISTRIBUTION_ID = "EJ8ZWSJKFCJS2"
-
-            nightly_dir = f"nightly/{platform}"
-            filename = nightly_filename(package, timestamp)
-            package_upload_key = "{}/{}".format(nightly_dir, filename)
-            extension = path.basename(package).partition(".")[2]
-            latest_upload_key = "{}/servo-latest.{}".format(nightly_dir, extension)
-
-            package_hash_fileobj = io.BytesIO(f"{package_hash}  {filename}".encode("utf-8"))
-            latest_hash_upload_key = f"{latest_upload_key}.sha256"
-
-            s3.upload_file(package, BUCKET, package_upload_key)
-
-            copy_source = {
-                "Bucket": BUCKET,
-                "Key": package_upload_key,
-            }
-            s3.copy(copy_source, BUCKET, latest_upload_key)
-            s3.upload_fileobj(
-                package_hash_fileobj, BUCKET, latest_hash_upload_key, ExtraArgs={"ContentType": "text/plain"}
-            )
-
-            # Invalidate previous "latest" nightly files from
-            # CloudFront edge caches
-            cloudfront.create_invalidation(
-                DistributionId=DISTRIBUTION_ID,
-                InvalidationBatch={
-                    "CallerReference": f"{latest_upload_key}-{timestamp}",
-                    "Paths": {"Quantity": 1, "Items": [f"/{latest_upload_key}*"]},
-                },
-            )
-
-        timestamp = datetime.utcnow().replace(microsecond=0)
-        for package in packages:
-            # TODO: This if feels like it should not be necessary. Let's add a warning, and make this an
-            # error later.
-            if path.isdir(package):
-                print("Warning: Skipping directory: {}".format(package), file=sys.stderr)
-                continue
-            if not path.isfile(package):
-                print("Could not find package for {} at {}".format(platform, package), file=sys.stderr)
-                return 1
-
-            # Compute the hash
-            SHA_BUF_SIZE = 1048576  # read in 1 MiB chunks
-            sha256_digest = hashlib.sha256()
-            with open(package, "rb") as package_file:
-                while True:
-                    data = package_file.read(SHA_BUF_SIZE)
-                    if not data:
-                        break
-                    sha256_digest.update(data)
-            package_hash = sha256_digest.hexdigest()
-
-            upload_to_s3(platform, package, package_hash, timestamp)
-            upload_to_github_release(platform, package, package_hash)
-
-        return 0
+        print("Error: This command was moved to a dedicated script: etc/ci/upload_nightly.py", file=sys.stderr)
+        return 1
 
     @Command(
         "release", description="Perform necessary updates before release a new servoshell version", category="package"

@@ -96,6 +96,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            .github
+            etc/ci
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -107,7 +110,7 @@ jobs:
           name: production-binary-windows-zip
       - name: Upload nightly
         run: |
-          ./mach upload-nightly windows-msvc --secret-from-environment \
+          ./etc/ci/upload-nightly.py windows-msvc --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             Servo.exe \
             Servo.zip
@@ -136,6 +139,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            .github
+            etc/ci
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -144,7 +150,7 @@ jobs:
           name: production-binary-mac
       - name: Upload nightly
         run: |
-          ./mach upload-nightly mac --secret-from-environment \
+          ./etc/ci/upload_nightly.py mac --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.dmg
         env:
@@ -171,6 +177,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            .github
+            etc/ci
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -179,7 +188,7 @@ jobs:
           name: production-binary-mac-arm64
       - name: Upload nightly
         run: |
-          ./mach upload-nightly mac-arm64 --secret-from-environment \
+          ./etc/ci/upload_nightly.py mac-arm64 --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.dmg
         env:
@@ -208,6 +217,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            .github
+            etc/ci
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -216,7 +228,7 @@ jobs:
           name: production-binary-linux
       - name: Upload nightly
         run: |
-          ./mach upload-nightly linux --secret-from-environment \
+          ./etc/ci/upload_nightly.py linux --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servo-tech-demo.tar.gz
         env:
@@ -246,6 +258,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            .github
+            etc/ci
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -265,7 +280,7 @@ jobs:
           subject-path: servoview.aar
       - name: Upload nightly
         run: |
-          ./mach upload-nightly android \
+          ./etc/ci/upload_nightly.py android \
             --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             servoapp.apk \
@@ -299,6 +314,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            .github
+            etc/ci
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -318,7 +336,7 @@ jobs:
           subject-path: servoshell-default-signed.hap
       - name: Upload nightly
         run: |
-          ./mach upload-nightly ohos \
+          ./etc/ci/upload_nightly.py ohos \
             --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             libservoshell.so \
