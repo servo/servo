@@ -133,8 +133,23 @@ impl IDBOpenDBRequest {
         self.id
     }
 
-    pub(crate) fn set_connection(&self, connection: &IDBDatabase) {
-        self.pending_connection.set(Some(connection));
+    pub(crate) fn get_or_init_connection(
+        &self,
+        global: &GlobalScope,
+        name: String,
+        version: u64,
+        upgraded: bool,
+        can_gc: CanGc,
+    ) -> DomRoot<IDBDatabase> {
+        self.pending_connection.or_init(|| {
+            debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
+            IDBDatabase::new(
+                global,
+                DOMString::from_string(name.clone()),
+                version,
+                can_gc,
+            )
+        })
     }
 
     /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
@@ -222,15 +237,7 @@ impl IDBOpenDBRequest {
         }
     }
 
-    pub fn set_result(&self, result: HandleValue) {
-        self.idbrequest.set_result(result);
-    }
-
-    pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
-        self.idbrequest.set_error(error, can_gc);
-    }
-
-    pub fn delete_database(&self, name: String) -> Result<(), ()> {
+    pub(crate) fn delete_database(&self, name: String) -> Result<(), ()> {
         let global = self.global();
 
         let task_source = global
@@ -265,17 +272,17 @@ impl IDBOpenDBRequest {
         Ok(())
     }
 
+    pub fn set_result(&self, result: HandleValue) {
+        self.idbrequest.set_result(result);
+    }
+
+    pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
+        self.idbrequest.set_error(error, can_gc);
+    }
+
     pub fn dispatch_success(&self, name: String, version: u64, upgraded: bool, can_gc: CanGc) {
         let global = self.global();
-        let result = self.pending_connection.or_init(|| {
-            debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
-            IDBDatabase::new(
-                &global,
-                DOMString::from_string(name.clone()),
-                version,
-                can_gc,
-            )
-        });
+        let result = self.get_or_init_connection(&global, name, version, upgraded, can_gc);
         self.idbrequest.set_ready_state_done();
         let cx = GlobalScope::get_cx();
 

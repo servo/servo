@@ -19,7 +19,6 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -121,31 +120,23 @@ impl IDBDatabase {
         self.upgrade_transaction.set(Some(transaction));
     }
 
-    #[expect(dead_code)] // This will be used once we allow multiple concurrent connections
     pub fn dispatch_versionchange(
         &self,
         old_version: u64,
         new_version: Option<u64>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) {
         let global = self.global();
-        let this = Trusted::new(self);
-        global.task_manager().database_access_task_source().queue(
-            task!(send_versionchange_notification: move || {
-                let this = this.root();
-                let global = this.global();
-                let event = IDBVersionChangeEvent::new(
-                    &global,
-                    Atom::from("versionchange"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    old_version,
-                    new_version,
-                    CanGc::note()
-                );
-                event.upcast::<Event>().fire(this.upcast(), CanGc::note());
-            }),
+        let event = IDBVersionChangeEvent::new(
+            &global,
+            Atom::from("versionchange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            old_version,
+            new_version,
+            can_gc,
         );
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 }
 
