@@ -108,6 +108,10 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-windows-zip
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: 'Servo.exe,Servo.zip'
       - name: Upload nightly
         run: |
           ./etc/ci/upload_nightly.py windows-msvc --secret-from-environment \
@@ -148,6 +152,10 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-mac
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: 'servo-tech-demo.dmg'
       - name: Upload nightly
         run: |
           ./etc/ci/upload_nightly.py mac --secret-from-environment \
@@ -183,6 +191,10 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-mac-arm64
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: 'servo-tech-demo.dmg'
       - name: Upload nightly
         run: |
           ./etc/ci/upload_nightly.py mac-arm64 --secret-from-environment \
@@ -218,6 +230,10 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-linux
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: 'servo-tech-demo.tar.gz'
       - name: Upload nightly
         run: |
           ./etc/ci/upload_nightly.py linux --secret-from-environment \
@@ -259,14 +275,10 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: release-library-android-aarch64-linux-android
-      - name: Generate artifact attestation for APK
+      - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: servoapp.apk
-      - name: Generate artifact attestation for AAR
-        uses: actions/attest-build-provenance@v3
-        with:
-          subject-path: servoview.aar
+          subject-path: 'servoapp.apk,servoview.aar'
       - name: Upload nightly
         run: |
           ./etc/ci/upload_nightly.py android \
@@ -309,17 +321,13 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: production-library-ohos-aarch64-unknown-linux-ohos
-      - name: Generate artifact attestation for shared library
-        uses: actions/attest-build-provenance@v3
-        with:
-          subject-path: libservoshell.so
       - uses: actions/download-artifact@v7
         with:
           name: production-binary-ohos-aarch64-unknown-linux-ohos
-      - name: Generate artifact attestation for HAP
+      - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: servoshell-default-signed.hap
+          subject-path: 'libservoshell.so,servoshell-default-signed.hap'
       - name: Upload nightly
         run: |
           ./etc/ci/upload_nightly.py ohos \
