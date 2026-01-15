@@ -3964,12 +3964,12 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.36.1"
+version = "0.37.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6452c4751a24e1b99c3260d505eaeee76a050573e61f30ac2c924ddc7236f01e"
+checksum = "5935f02fdc02823ff15fec27c2b3d7ca19d629e996f7a0ae4d7d500e62e54c76"
 dependencies = [
  "log",
- "markup5ever",
+ "markup5ever 0.37.1",
 ]
 
 [[package]]
@@ -5334,7 +5334,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c3294c4d74d0742910f8c7b466f44dda9eb2d5742c1e430138df290a1e8451c"
 dependencies = [
  "log",
- "tendril",
+ "tendril 0.4.3",
+ "web_atoms",
+]
+
+[[package]]
+name = "markup5ever"
+version = "0.37.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cfb33ea12d5d83b1ba9a55ae7d05faec4f2189d47b79c04d4cea6bbe9f5b083"
+dependencies = [
+ "log",
+ "tendril 0.5.0",
  "web_atoms",
 ]
 
@@ -7734,7 +7745,7 @@ dependencies = [
  "libc",
  "log",
  "malloc_size_of_derive",
- "markup5ever",
+ "markup5ever 0.36.1",
  "media",
  "metrics",
  "mime",
@@ -7787,7 +7798,7 @@ dependencies = [
  "stylo_traits",
  "swapper",
  "tempfile",
- "tendril",
+ "tendril 0.4.3",
  "time",
  "timers",
  "tracing",
@@ -7841,7 +7852,7 @@ dependencies = [
  "smallvec",
  "stylo",
  "stylo_atoms",
- "tendril",
+ "tendril 0.4.3",
  "tracing",
  "webxr-api",
  "xml5ever",
@@ -8344,7 +8355,7 @@ dependencies = [
  "indexmap",
  "ipc-channel",
  "keyboard-types",
- "markup5ever",
+ "markup5ever 0.36.1",
  "mime",
  "parking_lot",
  "resvg",
@@ -8356,7 +8367,7 @@ dependencies = [
  "stylo_dom",
  "stylo_malloc_size_of",
  "taffy",
- "tendril",
+ "tendril 0.4.3",
  "tokio",
  "unicode-bidi",
  "unicode-script",
@@ -9151,6 +9162,16 @@ dependencies = [
  "encoding_rs",
  "futf",
  "mac",
+ "utf-8",
+]
+
+[[package]]
+name = "tendril"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4790fc369d5a530f4b544b094e31388b9b3a37c0f4652ade4505945f5660d24"
+dependencies = [
+ "new_debug_unreachable",
  "utf-8",
 ]
 
@@ -11340,7 +11361,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f57dd51b88a4b9f99f9b55b136abb86210629d61c48117ddb87f567e51e66be7"
 dependencies = [
  "log",
- "markup5ever",
+ "markup5ever 0.36.1",
 ]
 
 [[package]]
@@ -11355,7 +11376,7 @@ version = "0.0.1"
 dependencies = [
  "log",
  "malloc_size_of_derive",
- "markup5ever",
+ "markup5ever 0.36.1",
  "servo_malloc_size_of",
 ]
 
