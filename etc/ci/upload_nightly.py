@@ -63,8 +63,8 @@ def upload_to_github_release(platform: str, package: str, package_hash: str, git
         return
 
     extension = path.basename(package).partition(".")[2]
-    g = Github(os.environ["NIGHTLY_REPO_TOKEN"])
-    nightly_repo = g.get_repo(os.environ["NIGHTLY_REPO"])
+    g = Github(os.environ["RELEASE_REPO_TOKEN"])
+    nightly_repo = g.get_repo(os.environ["RELEASE_REPO"])
     release = nightly_repo.get_release(github_release_id)
 
     if platform != "mac-arm64":

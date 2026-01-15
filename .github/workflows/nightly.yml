@@ -5,10 +5,22 @@ on:
     # Run at 5:30 am, daily.
     - cron: '15 5 * * *'
   workflow_dispatch:
+    inputs:
+      # Note: On scheduled runs `inputs.regular_release` will be `null`, which allows us to create
+      # defaults by using `${{ inputs.regular_release || 'my_default_value' }}` expressions.
+      regular_release:
+        description: 'Whether to create a release at this repo, or on the nightly releases repo'
+        type: boolean
+        default: false
+      release_tag:
+        required: true
+        type: string
+        description: 'The tag to create for the release'
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
+  RELEASE_REPO: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
 jobs:
   create-draft-release:
@@ -19,30 +31,35 @@ jobs:
     steps:
       - id: create-release
         run: |
-          NIGHTLY_TAG=$(date "+%F")
-          RELEASE_URL=$(gh release create "${NIGHTLY_TAG}" \
+          if [[ "${{ inputs.release_tag }}" != "" ]]; then
+            RELEASE_TAG="${{ inputs.release_tag }}"
+            RELEASE_NOTES="Servo release ${{ inputs.release_tag }}"
+          else
+            RELEASE_TAG=$(date "+%F")
+            RELEASE_NOTES="Nightly build based on servo/servo@${{ github.sha }}"
+          fi
+          RELEASE_URL=$(gh release create "${RELEASE_TAG}" \
             --draft \
-            --title "${NIGHTLY_TAG}" \
-            --notes 'Nightly builds based on servo/servo@${{ github.sha }}' \
-            --repo ${NIGHTLY_REPO})
+            --title "${RELEASE_TAG}" \
+            --notes "${RELEASE_NOTES}" \
+            --repo ${RELEASE_REPO})
           TEMP_TAG=$(basename "$RELEASE_URL")
           RELEASE_ID=$( \
             gh api -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "/repos/${NIGHTLY_REPO}/releases/tags/${TEMP_TAG}" \
+            "/repos/${RELEASE_REPO}/releases/tags/${TEMP_TAG}" \
             | jq '.id' \
           )
           echo "RELEASE_ID=${RELEASE_ID}" >> ${GITHUB_OUTPUT}
         env:
-          GITHUB_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+          GITHUB_TOKEN: ${{ inputs.regular_release && github.token || secrets.NIGHTLY_REPO_TOKEN }}
     outputs:
       release-id: ${{ steps.create-release.outputs.RELEASE_ID }}
 
   publish-nightly-release:
     # This job is only useful when run on upstream servo.
     if: always() && (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
-    name: Publish GH Release for nightly
+    name: Publish GH Release
     runs-on: ubuntu-latest
     steps:
       - name: Publish as latest (success)
@@ -52,7 +69,7 @@ jobs:
             --method PATCH \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${NIGHTLY_REPO}/releases/${RELEASE_ID} \
+            /repos/${RELEASE_REPO}/releases/${RELEASE_ID} \
             -F draft=false
       - name: Publish as latest (failure)
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
@@ -61,11 +78,10 @@ jobs:
             --method PATCH \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${NIGHTLY_REPO}/releases/${RELEASE_ID} \
+            /repos/${RELEASE_REPO}/releases/${RELEASE_ID} \
             -F prerelease=true -F draft=false
     env:
-      GITHUB_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      GITHUB_TOKEN: ${{ inputs.regular_release && github.token || secrets.NIGHTLY_REPO_TOKEN }}
       RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
     needs:
       - create-draft-release
@@ -79,7 +95,7 @@ jobs:
   build-win:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Build nightly (Windows)
+    name: Build production release (Windows)
     uses: ./.github/workflows/windows.yml
     with:
       profile: "production"
@@ -112,7 +128,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'Servo.exe,Servo.zip'
-      - name: Upload nightly
+      - name: Upload release artifacts
         run: |
           ./etc/ci/upload_nightly.py windows-msvc --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
@@ -120,14 +136,13 @@ jobs:
             Servo.zip
         env: &upload_env
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-          NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+          RELEASE_REPO_TOKEN: ${{ inputs.regular_release && github.token || secrets.NIGHTLY_REPO_TOKEN }}
 
 
   build-mac:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Build nightly (macOS)
+    name: Build production release (macOS)
     uses: ./.github/workflows/mac.yml
     with:
       profile: "production"
@@ -156,7 +171,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'servo-tech-demo.dmg'
-      - name: Upload nightly
+      - name: Upload release artifacts
         run: |
           ./etc/ci/upload_nightly.py mac --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
@@ -166,7 +181,7 @@ jobs:
   build-mac-arm64:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Build nightly (macOS Arm64)
+    name: Build production release (macOS Arm64)
     uses: ./.github/workflows/mac-arm64.yml
     with:
       profile: "production"
@@ -195,7 +210,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'servo-tech-demo.dmg'
-      - name: Upload nightly
+      - name: Upload release artifacts
         run: |
           ./etc/ci/upload_nightly.py mac-arm64 --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
@@ -205,7 +220,7 @@ jobs:
   build-linux:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Build nightly (Linux)
+    name: Build production release (Linux)
     uses: ./.github/workflows/linux.yml
     with:
       profile: "production"
@@ -234,7 +249,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'servo-tech-demo.tar.gz'
-      - name: Upload nightly
+      - name: Upload release artifacts
         run: |
           ./etc/ci/upload_nightly.py linux --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
@@ -244,7 +259,7 @@ jobs:
   build-android:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Build nightly (Android)
+    name: Build release (Android)
     uses: ./.github/workflows/android.yml
     with:
       profile: "release"
@@ -279,7 +294,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'servoapp.apk,servoview.aar'
-      - name: Upload nightly
+      - name: Upload release artifacts
         run: |
           ./etc/ci/upload_nightly.py android \
             --secret-from-environment \
@@ -292,7 +307,7 @@ jobs:
   build-ohos:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    name: Build nightly (OpenHarmony)
+    name: Build production release (OpenHarmony)
     uses: ./.github/workflows/ohos.yml
     with:
       profile: "production"
@@ -328,7 +343,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'libservoshell.so,servoshell-default-signed.hap'
-      - name: Upload nightly
+      - name: Upload release artifacts
         run: |
           ./etc/ci/upload_nightly.py ohos \
             --secret-from-environment \
