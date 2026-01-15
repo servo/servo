@@ -7,9 +7,9 @@ use rustc_hash::FxHashMap;
 
 #[derive(Debug, Default)]
 pub(crate) struct IdMap {
-    pub(crate) browser_ids: FxHashMap<WebViewId, u32>,
-    pub(crate) browsing_context_ids: FxHashMap<BrowsingContextId, u32>,
-    pub(crate) outer_window_ids: FxHashMap<PipelineId, u32>,
+    browser_ids: FxHashMap<WebViewId, u32>,
+    browsing_context_ids: FxHashMap<BrowsingContextId, u32>,
+    outer_window_ids: FxHashMap<PipelineId, u32>,
 }
 
 impl IdMap {

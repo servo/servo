@@ -34,8 +34,8 @@ struct SystemInfo {
 
 include!(concat!(env!("OUT_DIR"), "/build_id.rs"));
 
-pub struct DeviceActor {
-    pub name: String,
+pub(crate) struct DeviceActor {
+    name: String,
 }
 
 impl Actor for DeviceActor {

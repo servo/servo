@@ -15,7 +15,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 
-pub struct CssPropertiesActor {
+pub(crate) struct CssPropertiesActor {
     name: String,
     properties: HashMap<String, CssDatabaseProperty>,
 }

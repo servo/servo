@@ -88,12 +88,12 @@ enum UniqueId {
 }
 
 #[derive(Serialize)]
-pub struct EmptyReplyMsg {
+pub(crate) struct EmptyReplyMsg {
     pub from: String,
 }
 
 #[derive(Serialize)]
-pub struct ActorMsg {
+pub(crate) struct ActorMsg {
     pub actor: String,
 }
 

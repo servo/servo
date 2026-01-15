@@ -52,11 +52,11 @@ struct SupportsHighlightersReply {
     value: bool,
 }
 
-pub struct InspectorActor {
-    pub name: String,
-    pub highlighter: String,
-    pub page_style: String,
-    pub walker: String,
+pub(crate) struct InspectorActor {
+    name: String,
+    highlighter: String,
+    page_style: String,
+    walker: String,
 }
 
 impl Actor for InspectorActor {

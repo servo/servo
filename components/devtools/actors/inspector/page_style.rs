@@ -53,18 +53,18 @@ struct GetLayoutReply {
 }
 
 #[derive(Serialize)]
-pub struct IsPositionEditableReply {
-    pub from: String,
-    pub value: bool,
+pub(crate) struct IsPositionEditableReply {
+    from: String,
+    value: bool,
 }
 
 #[derive(Serialize)]
-pub struct PageStyleMsg {
+pub(crate) struct PageStyleMsg {
     pub actor: String,
     pub traits: HashMap<String, bool>,
 }
 
-pub struct PageStyleActor {
+pub(crate) struct PageStyleActor {
     pub name: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,

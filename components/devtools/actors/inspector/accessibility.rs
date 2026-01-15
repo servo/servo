@@ -52,7 +52,7 @@ struct GetWalkerReply {
     walker: ActorMsg,
 }
 
-pub struct AccessibilityActor {
+pub(crate) struct AccessibilityActor {
     name: String,
 }
 
@@ -132,7 +132,7 @@ impl AccessibilityActor {
     }
 }
 
-pub struct SimulatorActor {
+pub(crate) struct SimulatorActor {
     name: String,
 }
 
@@ -142,7 +142,7 @@ impl Actor for SimulatorActor {
     }
 }
 
-pub struct AccessibleWalkerActor {
+pub(crate) struct AccessibleWalkerActor {
     name: String,
 }
 

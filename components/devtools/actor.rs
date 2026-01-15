@@ -81,7 +81,7 @@ pub(crate) trait ActorEncode<T: Serialize>: Actor {
 
 /// Return value of `ActorRegistry::find` that allows seamless downcasting
 /// from `dyn Actor` to the concrete actor type.
-pub struct DowncastableActorArc<T> {
+pub(crate) struct DowncastableActorArc<T> {
     actor: Arc<dyn Actor>,
     _phantom: PhantomData<T>,
 }
@@ -95,7 +95,7 @@ impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
 
 /// A list of known, owned actors.
 #[derive(Default)]
-pub struct ActorRegistry {
+pub(crate) struct ActorRegistry {
     actors: AtomicRefCell<HashMap<String, Arc<dyn Actor>>>,
     script_actors: AtomicRefCell<HashMap<String, String>>,
     /// Lookup table for SourceActor names associated with a given PipelineId.

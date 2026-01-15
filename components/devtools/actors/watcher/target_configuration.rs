@@ -20,18 +20,18 @@ use crate::{EmptyReplyMsg, RootActor, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TargetConfigurationTraits {
+pub(crate) struct TargetConfigurationTraits {
     supported_options: HashMap<&'static str, bool>,
 }
 
 #[derive(Serialize)]
-pub struct TargetConfigurationActorMsg {
+pub(crate) struct TargetConfigurationActorMsg {
     actor: String,
     configuration: HashMap<&'static str, bool>,
     traits: TargetConfigurationTraits,
 }
 
-pub struct TargetConfigurationActor {
+pub(crate) struct TargetConfigurationActor {
     name: String,
     configuration: HashMap<&'static str, bool>,
     supported_options: HashMap<&'static str, bool>,
