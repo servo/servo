@@ -110,7 +110,7 @@ jobs:
           name: production-binary-windows-zip
       - name: Upload nightly
         run: |
-          ./etc/ci/upload-nightly.py windows-msvc --secret-from-environment \
+          ./etc/ci/upload_nightly.py windows-msvc --secret-from-environment \
             --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
             Servo.exe \
             Servo.zip
