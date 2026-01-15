@@ -12928,6 +12928,15 @@
       }
      ]
     ],
+    "double-and-triple-click-in-text-input.html": [
+     "d7437745507c6cf0570de6b382d56a9502a7b005",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "input-events-textarea-cut-paste.html": [
      "7e1151d222b5a5210921345a3e60434194cd1794",
      [

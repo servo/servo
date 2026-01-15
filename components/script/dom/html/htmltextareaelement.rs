@@ -6,7 +6,6 @@ use std::cell::{Cell, RefCell};
 use std::default::Default;
 use std::ops::Range;
 
-use base::RopeMovement;
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
@@ -735,18 +734,11 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.handle_event(event, can_gc);
         }
 
+        let node = self.upcast();
         if event.type_() == atom!("mousedown") && !event.DefaultPrevented() {
-            if let Some(grapheme_index) = self
-                .owner_window()
-                .text_index_query_on_node_for_event(self.upcast::<Node>(), event)
-            {
-                let mut textinput = self.textinput.borrow_mut();
-                textinput.clear_selection_to_start();
-                textinput.modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
-            } else {
-                self.textinput.borrow_mut().clear_selection_to_end();
+            if self.textinput.borrow_mut().handle_mousedown(node, event) {
+                node.dirty(NodeDamage::Other);
             }
-            self.upcast::<Node>().dirty(NodeDamage::Other);
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
@@ -769,14 +761,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.handle_key_reaction(action, event, can_gc);
-                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    node.dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
                     self.handle_key_reaction(action, event, can_gc);
-                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    node.dirty(NodeDamage::Other);
                 }
                 event.mark_as_handled();
             }
