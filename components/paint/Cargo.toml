@@ -46,6 +46,7 @@ servo_allocator = { path = "../allocator" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 smallvec = { workspace = true }
+quick_cache = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true }
 timers = { path = "../timers" }

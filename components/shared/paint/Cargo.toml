@@ -40,4 +40,5 @@ strum = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
+pixels = { path = "../../pixels" }
 webrender_api = { workspace = true }

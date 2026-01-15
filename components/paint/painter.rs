@@ -49,7 +49,7 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
     DocumentId, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
-    FontInstanceOptions, FontKey, FontVariation, ImageKey, NativeFontHandle,
+    FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey, NativeFontHandle,
     PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons,
     SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
 };
@@ -124,6 +124,9 @@ pub(crate) struct Painter {
 
     /// Calculater for largest-contentful-paint.
     lcp_calculator: LargestContentfulPaintCalculator,
+
+    /// A local image only used for animation images
+    animation_image_cache: quick_cache::unsync::Cache<ImageKey, Arc<Vec<u8>>>,
 }
 
 impl Drop for Painter {
@@ -268,6 +271,7 @@ impl Painter {
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
             lcp_calculator: LargestContentfulPaintCalculator::new(),
+            animation_image_cache: quick_cache::unsync::Cache::new(5),
         };
         painter.assert_gl_framebuffer_complete();
         painter.clear_background();
@@ -1027,7 +1031,17 @@ impl Painter {
         for update in updates {
             match update {
                 ImageUpdate::AddImage(key, desc, data) => {
-                    txn.add_image(key, desc, data.into(), None)
+                    if let compositing_traits::SerializableImageData::Raw(ref ipc_shared_memory) =
+                        data
+                    {
+                        self.animation_image_cache
+                            .insert(key, Arc::new(ipc_shared_memory.to_vec()));
+                    } else {
+                        info!(
+                            "Transaction does have external Serializeableimage. We will not have it in the animation cache."
+                        )
+                    }
+                    txn.add_image(key, desc, data.into(), None);
                 },
                 ImageUpdate::DeleteImage(key) => {
                     txn.delete_image(key);
@@ -1038,6 +1052,18 @@ impl Painter {
                         self.frame_delayer.update_image(key, epoch);
                     }
                     txn.update_image(key, desc, data.into(), &DirtyRect::All)
+                },
+                ImageUpdate::UpdateAnimation(image_key, image_frame, desc) => {
+                    let Some(image) = self.animation_image_cache.get(&image_key) else {
+                        info!("Could not find image key in image cache.");
+                        break;
+                    };
+                    txn.update_image(
+                        image_key,
+                        desc,
+                        ImageData::new(image[image_frame.byte_range].to_vec()),
+                        &DirtyRect::All,
+                    );
                 },
             }
         }

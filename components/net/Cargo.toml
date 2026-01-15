@@ -57,7 +57,7 @@ paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
-quick_cache = { version = "0.6.18", default-features = false, features = ["ahash"] }
+quick_cache = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
 rustls = { workspace = true }

@@ -14,6 +14,7 @@ use embedder_traits::{AnimationState, EventLoopWaker};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
+use pixels::ImageFrame;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use strum::IntoStaticStr;
@@ -708,6 +709,8 @@ pub enum ImageUpdate {
         SerializableImageData,
         Option<Epoch>,
     ),
+    /// Update an animation for an existing image.
+    UpdateAnimation(ImageKey, ImageFrame, ImageDescriptor),
 }
 
 impl Debug for ImageUpdate {
@@ -724,6 +727,12 @@ impl Debug for ImageUpdate {
                 .field(image_key)
                 .field(image_desc)
                 .field(epoch)
+                .finish(),
+            Self::UpdateAnimation(image_key, image_frame, image_desc) => f
+                .debug_tuple("UpdateAnimation")
+                .field(image_key)
+                .field(image_frame)
+                .field(image_desc)
                 .finish(),
         }
     }

@@ -105,6 +105,7 @@ imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
 ipc-channel = "0.20.2"
 itertools = "0.14"
+quick_cache = { version = "0.6.18", default-features = false, features = ["ahash"] }
 js = { package = "mozjs", version = "=0.14.8", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
@@ -306,10 +307,10 @@ codegen-units = 1
 #
 # Or for WebRender:
 #
-# [patch."https://github.com/servo/webrender"]
-# webrender = { path = "../webrender/webrender" }
-# webrender_api = { path = "../webrender/webrender_api" }
-# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
+[patch."https://github.com/servo/webrender"]
+webrender = { path = "../webrender/webrender" }
+webrender_api = { path = "../webrender/webrender_api" }
+wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for another Git dependency:
 #
