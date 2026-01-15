@@ -10,7 +10,7 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
-pub struct ReflowActor {
+pub(crate) struct ReflowActor {
     name: String,
 }
 

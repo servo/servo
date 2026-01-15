@@ -24,7 +24,7 @@ use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
 use crate::protocol::{ClientRequest, JsonPacketStream};
 
-pub struct TimelineActor {
+pub(crate) struct TimelineActor {
     name: String,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
@@ -107,7 +107,7 @@ struct FramerateEmitterReply {
 /// with accuracy to microsecond that shows how much time has passed since
 /// actor registry inited
 /// analog <https://w3c.github.io/hr-time/#sec-DOMHighResTimeStamp>
-pub struct HighResolutionStamp(f64);
+pub(crate) struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
     pub fn new(start_stamp: CrossProcessInstant, time: CrossProcessInstant) -> HighResolutionStamp {

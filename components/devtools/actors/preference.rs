@@ -10,7 +10,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 
-pub struct PreferenceActor {
+pub(crate) struct PreferenceActor {
     name: String,
 }
 

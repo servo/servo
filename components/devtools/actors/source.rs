@@ -25,12 +25,12 @@ use crate::protocol::ClientRequest;
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SourceForm {
-    pub actor: String,
+    actor: String,
     /// URL of the script, or URL of the page for inline scripts.
-    pub url: String,
-    pub is_black_boxed: bool,
+    url: String,
+    is_black_boxed: bool,
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
-    pub introduction_type: String,
+    introduction_type: String,
 }
 
 #[derive(Serialize)]
@@ -44,24 +44,24 @@ pub(crate) struct SourceManager {
 }
 
 #[derive(Clone, Debug)]
-pub struct SourceActor {
+pub(crate) struct SourceActor {
     /// Actor name.
-    pub name: String,
+    name: String,
 
     /// URL of the script, or URL of the page for inline scripts.
-    pub url: ServoUrl,
+    url: ServoUrl,
 
     /// The ‘black-boxed’ flag, which tells the debugger to avoid pausing inside this script.
     /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#black-boxing-sources>
-    pub is_black_boxed: bool,
+    is_black_boxed: bool,
 
     pub content: AtomicRefCell<Option<String>>,
-    pub content_type: Option<String>,
+    content_type: Option<String>,
 
     // TODO: use it in #37667, then remove this allow
-    pub spidermonkey_id: u32,
+    spidermonkey_id: u32,
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
-    pub introduction_type: String,
+    introduction_type: String,
 
     script_sender: GenericSender<DevtoolScriptControlMsg>,
 }

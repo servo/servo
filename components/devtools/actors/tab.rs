@@ -22,7 +22,7 @@ use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TabDescriptorActorMsg {
+pub(crate) struct TabDescriptorActorMsg {
     actor: String,
     /// This correspond to webview_id
     #[serde(rename = "browserId")]
@@ -67,7 +67,7 @@ struct GetWatcherReply {
     watcher: WatcherActorMsg,
 }
 
-pub struct TabDescriptorActor {
+pub(crate) struct TabDescriptorActor {
     name: String,
     browsing_context_actor: String,
     is_top_level_global: bool,
