@@ -105,7 +105,7 @@ use crate::{BoxTree, FragmentTree};
 //
 // See: https://github.com/servo/servo/pull/29792
 // And: https://gist.github.com/mukilan/ed57eb61b83237a05fbf6360ec5e33b0
-static STYLE_THREAD_POOL: Mutex<&style::global_style_data::STYLE_THREAD_POOL> =
+static STYLE_THREAD_POOL: Mutex<&LazyLock<style::global_style_data::StyleThreadPool>> =
     Mutex::new(&style::global_style_data::STYLE_THREAD_POOL);
 
 /// A CSS file to style the user agent stylesheet.
