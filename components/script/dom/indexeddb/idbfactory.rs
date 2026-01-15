@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use base::generic_channel::GenericSend;
@@ -11,6 +11,7 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{BackendResult, DatabaseInfo, IndexedDBThreadMsg, SyncOperation};
+use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
@@ -38,12 +39,8 @@ pub struct IDBFactory {
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
     /// TODO: remove names when connections close.
-    /// TODO: track not db names but open requests,
-    /// because by tracking db names, if any global at an
-    /// origin `abort_pending_upgrades`, it will abort open requests
-    /// for other globals within the same origin.
     #[no_trace]
-    db_with_connections: DomRefCell<HashSet<DBName>>,
+    db_with_connections: DomRefCell<HashMap<DBName, HashSet<Uuid>>>,
 }
 
 impl IDBFactory {
@@ -58,23 +55,24 @@ impl IDBFactory {
         reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
     }
 
-    fn note_start_of_open(&self, name: DBName) {
-        self.db_with_connections.borrow_mut().insert(name);
+    fn note_start_of_open(&self, name: DBName, id: Uuid) {
+        let mut pending = self.db_with_connections.borrow_mut();
+        let entry = pending.entry(name).or_default();
+        entry.insert(id);
     }
 
     pub(crate) fn abort_pending_upgrades(&self) {
         let global = self.global();
-        let names = self
-            .db_with_connections
-            .borrow_mut()
-            .drain()
-            .map(|name| name.0)
-            .collect();
+        let mut pending = self.db_with_connections.borrow_mut();
+        let pending_upgrades = pending.drain().map(|(key, val)| (key.0, val)).collect();
         let origin = global.origin().immutable().clone();
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::Sync(
-                SyncOperation::AbortPendingUpgrades { names, origin },
+                SyncOperation::AbortPendingUpgrades {
+                    pending_upgrades,
+                    origin,
+                },
             ))
             .is_err()
         {
@@ -116,7 +114,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             return Err(Error::Operation(None));
         }
 
-        self.note_start_of_open(DBName(name.to_string()));
+        self.note_start_of_open(DBName(name.to_string()), request.get_id());
 
         // Step 6: Return a new IDBOpenDBRequest object for request.
         Ok(request)

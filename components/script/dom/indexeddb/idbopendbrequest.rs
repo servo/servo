@@ -12,6 +12,7 @@ use storage_traits::indexeddb::{
     BackendError, BackendResult, IndexedDBThreadMsg, OpenDatabaseResult, SyncOperation,
 };
 use stylo_atoms::Atom;
+use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
@@ -187,6 +188,9 @@ impl OpenRequestListener {
 pub struct IDBOpenDBRequest {
     idbrequest: IDBRequest,
     pending_connection: MutNullableDom<IDBDatabase>,
+
+    #[no_trace]
+    id: Uuid,
 }
 
 impl IDBOpenDBRequest {
@@ -194,11 +198,16 @@ impl IDBOpenDBRequest {
         IDBOpenDBRequest {
             idbrequest: IDBRequest::new_inherited(),
             pending_connection: Default::default(),
+            id: Uuid::new_v4(),
         }
     }
 
     pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBOpenDBRequest> {
         reflect_dom_object(Box::new(IDBOpenDBRequest::new_inherited()), global, can_gc)
+    }
+
+    pub(crate) fn get_id(&self) -> Uuid {
+        self.id
     }
 
     /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
@@ -223,6 +232,7 @@ impl IDBOpenDBRequest {
             IDBTransactionMode::Versionchange,
             &connection.object_stores(),
             transaction,
+            Some(self.get_id()),
             can_gc,
         );
         connection.set_transaction(&transaction);
@@ -330,6 +340,7 @@ impl IDBOpenDBRequest {
             global.origin().immutable().clone(),
             name.to_string(),
             version,
+            self.get_id(),
         );
 
         // Note: algo continues in parallel.
@@ -361,8 +372,12 @@ impl IDBOpenDBRequest {
         })
         .expect("Could not create delete database callback");
 
-        let delete_operation =
-            SyncOperation::DeleteDatabase(callback, global.origin().immutable().clone(), name);
+        let delete_operation = SyncOperation::DeleteDatabase(
+            callback,
+            global.origin().immutable().clone(),
+            name,
+            self.get_id(),
+        );
 
         if global
             .storage_threads()
