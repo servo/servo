@@ -222,7 +222,7 @@ wio = "0.2"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.68" }
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
-xml5ever = "0.36.1"
+xml5ever = "0.37.1"
 xpath = { path = "components/xpath" }
 
 # RSA key generation could be very slow without compilation
