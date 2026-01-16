@@ -974,6 +974,14 @@ pub trait WebViewDelegate {
     /// A console message was logged by content in this [`WebView`].
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     fn show_console_message(&self, _webview: WebView, _level: ConsoleLogLevel, _message: String) {}
+
+    /// There are new accessibility tree updates from this [`WebView`].
+    fn notify_accessibility_tree_update(
+        &self,
+        _webview: WebView,
+        _tree_update: accesskit::TreeUpdate,
+    ) {
+    }
 }
 
 pub(crate) struct DefaultWebViewDelegate;

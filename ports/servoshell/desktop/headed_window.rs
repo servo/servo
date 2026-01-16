@@ -756,8 +756,10 @@ impl HeadedWindow {
         }
     }
 
-    pub(crate) fn handle_winit_app_event(&self, app_event: AppEvent) {
+    pub(crate) fn handle_winit_app_event(&self, _window: &ServoShellWindow, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
+            // TODO(#41930): Forward accesskit_winit::WindowEvent events to Servo where appropriate
+
             if self
                 .gui
                 .borrow_mut()
@@ -1130,6 +1132,16 @@ impl PlatformWindow for HeadedWindow {
     fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {
         println!("{message}");
         log::log!(level.into(), "{message}");
+    }
+
+    fn notify_accessibility_tree_update(
+        &self,
+        _webview: WebView,
+        tree_update: accesskit::TreeUpdate,
+    ) {
+        self.gui
+            .borrow_mut()
+            .notify_accessibility_tree_update(tree_update);
     }
 }
 

@@ -1923,6 +1923,11 @@ impl ScriptThread {
                     .borrow_mut()
                     .remove(&user_content_manager_id);
             },
+            ScriptThreadMessage::AccessibilityTreeUpdate(webview_id, tree_update) => {
+                let _ = self.senders.pipeline_to_embedder_sender.send(
+                    EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update),
+                );
+            },
         }
     }
 

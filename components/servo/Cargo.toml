@@ -73,6 +73,7 @@ webxr = [
 ]
 
 [dependencies]
+accesskit = { workspace = true }
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
 bitflags = { workspace = true }
