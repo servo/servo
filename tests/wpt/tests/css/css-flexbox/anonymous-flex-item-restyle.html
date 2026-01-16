@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Flexbox Test: Flex item - anonymous flex items should be restyled properly</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-items">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"
+
+
+<body>
+    <style>
+        .green { color: green; }
+        div {
+            display: flex;
+            font: 100px/1 Ahem;
+            color: red
+        }
+    </style>
+
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="flex">X</div>
+
+    <script>
+        window.onload = () => {
+            flex.offsetLeft;
+            flex.classList.add("green")
+            document.documentElement.classList.remove("reftest-wait")
+        }
+    </script>
+</body>
+</html>

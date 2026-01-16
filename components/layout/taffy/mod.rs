@@ -44,7 +44,7 @@ impl TaffyContainer {
         let children = items
             .into_iter()
             .map(|item| {
-                let box_ = match item.kind {
+                let taffy_item_box = match item.kind {
                     ModernItemKind::InFlow(independent_formatting_context) => {
                         ArcRefCell::new(TaffyItemBox::new(TaffyItemBoxInner::InFlowBox(
                             independent_formatting_context,
@@ -64,11 +64,8 @@ impl TaffyContainer {
                     },
                 };
 
-                if let Some(box_slot) = item.box_slot {
-                    box_slot.set(LayoutBox::TaffyItemBox(box_.clone()));
-                }
-
-                box_
+                item.box_slot.set(LayoutBox::TaffyItemBox(taffy_item_box.clone()));
+                taffy_item_box
             })
             .collect();
 
