@@ -77,3 +77,24 @@ addEventListener("setBreakpoint", event => {
     }
     setBreakpointRecursive(script);
 });
+
+// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Frame.html>
+addEventListener("pause", event => {
+    dbg.onEnterFrame = function(frame) {
+        dbg.onEnterFrame = undefined;
+        // TODO: Some properties throw if terminated is true
+        // TODO: Check if start line / column is correct or we need the proper breakpoint
+        let result = {
+           // TODO: arguments: frame.arguments,
+           column: frame.script.startColumn,
+           displayName: frame.script.displayName,
+           line: frame.script.startLine,
+           onStack: frame.onStack,
+           oldest: frame.older == null,
+           terminated: frame.terminated,
+           type_: frame.type,
+           url: frame.script.url,
+        };
+        getFrameResult(event, result);
+    };
+});

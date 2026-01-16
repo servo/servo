@@ -29,7 +29,7 @@ pub(crate) struct ObjectActorMsg {
 
 pub(crate) struct ObjectActor {
     name: String,
-    _uuid: String,
+    _uuid: Option<String>,
 }
 
 impl Actor for ObjectActor {
@@ -42,12 +42,21 @@ impl Actor for ObjectActor {
 }
 
 impl ObjectActor {
-    pub fn register(registry: &ActorRegistry, uuid: String) -> String {
+    pub fn register(registry: &ActorRegistry, uuid: Option<String>) -> String {
+        let Some(uuid) = uuid else {
+            let name = registry.new_name::<Self>();
+            let actor = ObjectActor {
+                name: name.clone(),
+                _uuid: None,
+            };
+            registry.register(actor);
+            return name;
+        };
         if !registry.script_actor_registered(uuid.clone()) {
             let name = registry.new_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
-                _uuid: uuid.clone(),
+                _uuid: Some(uuid.clone()),
             };
 
             registry.register_script_actor(uuid, name.clone());
@@ -74,7 +83,7 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             is_error: false,
             preview: ObjectPreview {
                 kind: "ObjectWithURL".into(),
-                url: "".into(),
+                url: "".into(), // TODO: Use the correct url
             },
         }
     }

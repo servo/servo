@@ -309,6 +309,7 @@ pub enum DevtoolScriptControlMsg {
 
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
+    Pause(GenericSender<PauseFrameResult>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -622,4 +623,18 @@ pub struct RecommendedBreakpointLocation {
     pub line_number: u32,
     pub column_number: u32,
     pub is_step_start: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseFrameResult {
+    pub column: u32,
+    pub display_name: String,
+    pub line: u32,
+    pub on_stack: bool,
+    pub oldest: bool,
+    pub terminated: bool,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub url: String,
 }
