@@ -38,16 +38,15 @@ pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
-    /// TODO: remove names when connections close.
     #[no_trace]
-    db_with_connections: DomRefCell<HashMap<DBName, HashSet<Uuid>>>,
+    pending_connections: DomRefCell<HashMap<DBName, HashSet<Uuid>>>,
 }
 
 impl IDBFactory {
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
-            db_with_connections: Default::default(),
+            pending_connections: Default::default(),
         }
     }
 
@@ -56,14 +55,26 @@ impl IDBFactory {
     }
 
     fn note_start_of_open(&self, name: DBName, id: Uuid) {
-        let mut pending = self.db_with_connections.borrow_mut();
+        let mut pending = self.pending_connections.borrow_mut();
         let entry = pending.entry(name).or_default();
         entry.insert(id);
     }
 
+    pub(crate) fn note_end_of_open(&self, name: &DBName, id: &Uuid) {
+        let mut pending = self.pending_connections.borrow_mut();
+        let Some(entry) = pending.get_mut(name) else {
+            return debug_assert!(
+                false,
+                "There should be a pending connection for {:?}",
+                name.0
+            );
+        };
+        entry.remove(id);
+    }
+
     pub(crate) fn abort_pending_upgrades(&self) {
         let global = self.global();
-        let mut pending = self.db_with_connections.borrow_mut();
+        let mut pending = self.pending_connections.borrow_mut();
         let pending_upgrades = pending.drain().map(|(key, val)| (key.0, val)).collect();
         let origin = global.origin().immutable().clone();
         if global

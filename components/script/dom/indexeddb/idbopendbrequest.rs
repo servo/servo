@@ -45,7 +45,7 @@ impl OpenRequestListener {
         let request = self.open_request.root();
         let global = request.global();
         let name = DBName(name);
-        match response {
+        let finished = match response {
             OpenDatabaseResult::Connection { version, upgraded } => {
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
@@ -61,6 +61,7 @@ impl OpenRequestListener {
                     )
                 });
                 request.dispatch_success(&connection);
+                true
             },
             OpenDatabaseResult::Upgrade {
                 version,
@@ -76,15 +77,23 @@ impl OpenRequestListener {
                 );
                 request.pending_connection.set(Some(&connection));
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
+                false
             },
             OpenDatabaseResult::VersionError => {
                 // Step 2.1 If result is an error, see dispatch_error().
                 self.dispatch_error(Error::Version(None), can_gc);
+                true
             },
             OpenDatabaseResult::AbortError => {
                 // Step 2.1 If result is an error, see dispatch_error().
                 self.dispatch_error(Error::Abort(None), can_gc);
+                true
             },
+        };
+        if finished {
+            global
+                .get_indexeddb()
+                .note_end_of_open(&name, &request.get_id());
         }
     }
 
