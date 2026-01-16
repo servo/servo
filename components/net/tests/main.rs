@@ -49,6 +49,7 @@ use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashMap;
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use tokio::sync::Mutex as TokioMutex;
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
@@ -99,7 +100,6 @@ fn receive_credential_prompt_msgs(
                     let _ = response_sender.send(response);
                     break;
                 },
-                embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
                 _ => unreachable!(),
             }
         }
@@ -145,9 +145,9 @@ fn new_fetch_context2(
         state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
-        filemanager: Arc::new(Mutex::new(FileManager::new(sender2))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(sender2.clone()))),
         file_token: FileTokenCheck::NotRequired,
-        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(sender))),
+        request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(sender2))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

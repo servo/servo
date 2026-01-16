@@ -37,7 +37,8 @@ use servo_url::ServoUrl;
 use strum::{EnumMessage, IntoStaticStr};
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
-use tokio::sync::oneshot::Sender as TokioSender;
+use tokio::sync::mpsc::UnboundedSender as TokioSender;
+use tokio::sync::oneshot::Sender as TokioOneshotSender;
 use url::Url;
 use uuid::Uuid;
 use webrender_api::ExternalScrollId;
@@ -218,7 +219,7 @@ pub enum Cursor {
     ZoomOut,
 }
 
-pub trait EventLoopWaker: 'static + Send {
+pub trait EventLoopWaker: 'static + Send + Sync {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
     fn wake(&self) {}
 }
@@ -418,7 +419,12 @@ pub enum NetEmbedderMsg {
     SelectFiles(
         EmbedderControlId,
         FilePickerRequest,
-        TokioSender<Option<Vec<PathBuf>>>,
+        TokioOneshotSender<Option<Vec<PathBuf>>>,
+    ),
+    WebResourceRequested(
+        Option<WebViewId>,
+        WebResourceRequest,
+        TokioSender<WebResourceResponseMsg>,
     ),
 }
 
@@ -485,11 +491,6 @@ pub enum EmbedderMsg {
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
     NotifyLoadStatusChanged(WebViewId, LoadStatus),
-    WebResourceRequested(
-        Option<WebViewId>,
-        WebResourceRequest,
-        GenericSender<WebResourceResponseMsg>,
-    ),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.

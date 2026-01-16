@@ -41,6 +41,7 @@ use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use crate::connector::CACertificates;
@@ -99,7 +100,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Arc<Mutex<Sender<DevtoolsControlMsg>>>>,
     pub filemanager: Arc<Mutex<FileManager>>,
     pub file_token: FileTokenCheck,
-    pub request_interceptor: Arc<Mutex<RequestInterceptor>>,
+    pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
     pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
@@ -483,7 +484,9 @@ pub async fn main_fetch(
     context
         .request_interceptor
         .lock()
-        .intercept_request(request, &mut response, context);
+        .await
+        .intercept_request(request, &mut response, context)
+        .await;
 
     let mut response = match response {
         Some(res) => res,

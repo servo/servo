@@ -73,6 +73,7 @@ fn test_filemanager() {
                     let _ = response_sender.send(Some(file_picker_request.current_paths));
                     break;
                 },
+                _ => {},
             }
         }
 

@@ -20,6 +20,7 @@ use embedder_traits::{
     SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
+use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
@@ -181,12 +182,15 @@ pub struct WebResourceLoad {
 impl WebResourceLoad {
     pub(crate) fn new(
         web_resource_request: WebResourceRequest,
-        response_sender: GenericSender<WebResourceResponseMsg>,
+        response_sender: TokioSender<WebResourceResponseMsg>,
         error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             request: web_resource_request,
-            responder: IpcResponder::new(response_sender, WebResourceResponseMsg::DoNotIntercept),
+            responder: IpcResponder::new_same_process(
+                response_sender,
+                WebResourceResponseMsg::DoNotIntercept,
+            ),
             error_sender,
         }
     }
@@ -203,7 +207,7 @@ impl WebResourceLoad {
         }
         InterceptedWebResourceLoad {
             request: self.request.clone(),
-            response_sender: self.responder.into_inner(),
+            response_sender: self.responder,
             finished: false,
             error_sender: self.error_sender,
         }
@@ -217,7 +221,7 @@ impl WebResourceLoad {
 /// this interception will automatically be finished when dropped.
 pub struct InterceptedWebResourceLoad {
     pub request: WebResourceRequest,
-    pub(crate) response_sender: GenericSender<WebResourceResponseMsg>,
+    pub(crate) response_sender: IpcResponder<WebResourceResponseMsg>,
     pub(crate) finished: bool,
     pub(crate) error_sender: ServoErrorSender,
 }
@@ -225,7 +229,7 @@ pub struct InterceptedWebResourceLoad {
 impl InterceptedWebResourceLoad {
     /// Send a chunk of response body data. It's possible to make subsequent calls to
     /// this method when streaming body data.
-    pub fn send_body_data(&self, data: Vec<u8>) {
+    pub fn send_body_data(&mut self, data: Vec<u8>) {
         if let Err(error) = self
             .response_sender
             .send(WebResourceResponseMsg::SendBodyData(data))

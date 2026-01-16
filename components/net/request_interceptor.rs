@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel;
 use content_security_policy::Destination;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, WebResourceRequest, WebResourceResponseMsg};
+use embedder_traits::{EmbedderProxy2, NetEmbedderMsg, WebResourceRequest, WebResourceResponseMsg};
 use log::error;
 use net_traits::NetworkError;
 use net_traits::http_status::HttpStatus;
@@ -15,21 +14,21 @@ use crate::fetch::methods::FetchContext;
 
 #[derive(Clone)]
 pub struct RequestInterceptor {
-    embedder_proxy: EmbedderProxy,
+    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
 }
 
 impl RequestInterceptor {
-    pub fn new(embedder_proxy: EmbedderProxy) -> RequestInterceptor {
+    pub fn new(embedder_proxy: EmbedderProxy2<NetEmbedderMsg>) -> RequestInterceptor {
         RequestInterceptor { embedder_proxy }
     }
 
-    pub fn intercept_request(
+    pub async fn intercept_request(
         &self,
         request: &mut Request,
         response: &mut Option<Response>,
         context: &FetchContext,
     ) {
-        let (sender, receiver) = generic_channel::channel().unwrap();
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let is_for_main_frame = matches!(request.destination, Destination::Document);
         let web_resource_request = WebResourceRequest {
             method: request.method.clone(),
@@ -39,15 +38,16 @@ impl RequestInterceptor {
             is_redirect: request.redirect_count > 0,
         };
 
-        self.embedder_proxy.send(EmbedderMsg::WebResourceRequested(
-            request.target_webview_id,
-            web_resource_request,
-            sender,
-        ));
+        self.embedder_proxy
+            .send(NetEmbedderMsg::WebResourceRequested(
+                request.target_webview_id,
+                web_resource_request,
+                sender,
+            ));
 
         // TODO: use done_chan and run in CoreResourceThreadPool.
         let mut accumulated_body = Vec::new();
-        while let Ok(message) = receiver.recv() {
+        while let Some(message) = receiver.recv().await {
             match message {
                 WebResourceResponseMsg::Start(webresource_response) => {
                     let timing = context.timing.lock().clone();

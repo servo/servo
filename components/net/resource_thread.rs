@@ -45,6 +45,7 @@ use rustls_pki_types::pem::PemObject;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use tokio::sync::Mutex as TokioMutex;
 
 use crate::async_runtime::{init_async_runtime, spawn_task};
 use crate::connector::{
@@ -143,7 +144,6 @@ pub fn new_core_resource_thread(
             let resource_manager = CoreResourceManager::new(
                 devtools_sender,
                 time_profiler_chan,
-                embedder_proxy.clone(),
                 embedder_proxy2.clone(),
                 ca_certificates.clone(),
                 ignore_certificate_errors,
@@ -631,7 +631,6 @@ impl CoreResourceManager {
     pub fn new(
         devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
-        embedder_proxy: EmbedderProxy,
         embedder_proxy2: EmbedderProxy2<NetEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
@@ -639,8 +638,8 @@ impl CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy2),
-            request_interceptor: RequestInterceptor::new(embedder_proxy),
+            filemanager: FileManager::new(embedder_proxy2.clone()),
+            request_interceptor: RequestInterceptor::new(embedder_proxy2),
             ca_certificates,
             ignore_certificate_errors,
             preloaded_resources: Default::default(),
@@ -737,7 +736,7 @@ impl CoreResourceManager {
                 devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
                 filemanager: Arc::new(Mutex::new(filemanager)),
                 file_token,
-                request_interceptor: Arc::new(Mutex::new(request_interceptor)),
+                request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
                 cancellation_listener,
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
                 protocols,
@@ -822,7 +821,7 @@ impl CoreResourceManager {
                         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
                         filemanager: Arc::new(Mutex::new(filemanager)),
                         file_token: FileTokenCheck::NotRequired,
-                        request_interceptor: Arc::new(Mutex::new(request_interceptor)),
+                        request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
                         cancellation_listener,
                         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
                             request.timing_type(),

@@ -283,6 +283,31 @@ impl ServoInner {
                     );
                 }
             },
+            NetEmbedderMsg::WebResourceRequested(
+                webview_id,
+                web_resource_request,
+                response_sender,
+            ) => {
+                if let Some(webview) =
+                    webview_id.and_then(|webview_id| self.get_webview_handle(webview_id))
+                {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
+                        .delegate()
+                        .load_web_resource(webview, web_resource_load);
+                } else {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    self.delegate.borrow().load_web_resource(web_resource_load);
+                }
+            },
         }
     }
 
@@ -462,31 +487,6 @@ impl ServoInner {
                     webview
                         .delegate()
                         .notify_fullscreen_state_changed(webview, fullscreen);
-                }
-            },
-            EmbedderMsg::WebResourceRequested(
-                webview_id,
-                web_resource_request,
-                response_sender,
-            ) => {
-                if let Some(webview) =
-                    webview_id.and_then(|webview_id| self.get_webview_handle(webview_id))
-                {
-                    let web_resource_load = WebResourceLoad::new(
-                        web_resource_request,
-                        response_sender,
-                        self.servo_errors.sender(),
-                    );
-                    webview
-                        .delegate()
-                        .load_web_resource(webview, web_resource_load);
-                } else {
-                    let web_resource_load = WebResourceLoad::new(
-                        web_resource_request,
-                        response_sender,
-                        self.servo_errors.sender(),
-                    );
-                    self.delegate.borrow().load_web_resource(web_resource_load);
                 }
             },
             EmbedderMsg::Panic(webview_id, reason, backtrace) => {
