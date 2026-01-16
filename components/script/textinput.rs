@@ -11,23 +11,57 @@ use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use base::{Lines, Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
+use script_bindings::codegen::GenericBindings::HTMLFormElementBinding::SelectionMode;
 use script_bindings::match_domstring_ascii;
+use script_bindings::root::DomRoot;
 use script_bindings::trace::CustomTraceable;
 
 use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
+use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
-use crate::dom::event::Event;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::inputevent::InputEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::types::ClipboardEvent;
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::types::{ClipboardEvent, Element, HTMLInputElement, HTMLTextAreaElement};
 use crate::drag_data_store::Kind;
 use crate::script_runtime::CanGc;
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum TextInputElement {
+    /// An `<input>` element.
+    Input(DomRoot<HTMLInputElement>),
+    /// A `<textarea>` element.
+    TextArea(DomRoot<HTMLTextAreaElement>),
+    /// A mock element owner for a [`TextInput`] used for unit tests.
+    Mock,
+}
+
+impl TextInputElement {
+    fn set_dirty_value_flag(&self, value: bool) {
+        match self {
+            TextInputElement::Input(input_element) => input_element.set_dirty_value_flag(value),
+            TextInputElement::TextArea(textarea_element) => {
+                textarea_element.set_dirty_value_flag(value)
+            },
+            TextInputElement::Mock => {},
+        }
+    }
+
+    fn as_element(&self) -> &Element {
+        match self {
+            TextInputElement::Input(input_element) => input_element.upcast(),
+            TextInputElement::TextArea(textarea_element) => textarea_element.upcast(),
+            TextInputElement::Mock => unreachable!("Should not call DOM methods from unit tests"),
+        }
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -72,8 +106,14 @@ pub(crate) struct SelectionState {
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
+    /// Storage for the contents of this [`TextInput`]. This string contents are stored
+    /// in the [`Rope`] as UTF-8 strings, one per line.
     #[no_trace]
     rope: Rope,
+
+    /// The element that this [`TextInput`] belongs to. This can be `None` when this
+    /// [`TextInput`] is being used in unit tests.
+    element: TextInputElement,
 
     /// Current cursor input point
     #[no_trace]
@@ -230,6 +270,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     ) -> TextInput<T> {
         Self {
             rope: Rope::new(initial, lines),
+            element: TextInputElement::Mock,
             edit_point: Default::default(),
             selection_origin: None,
             clipboard_provider,
@@ -238,6 +279,10 @@ impl<T: ClipboardProvider> TextInput<T> {
             selection_direction,
             was_last_change_by_set_content: true,
         }
+    }
+
+    pub(crate) fn set_element(&mut self, element: TextInputElement) {
+        self.element = element;
     }
 
     pub fn edit_point(&self) -> RopeIndex {
@@ -816,7 +861,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             .map(|selection_origin| self.rope.clamp_index(selection_origin));
     }
 
-    pub fn set_selection_range_utf16(
+    pub(crate) fn set_selection_range_utf16(
         &mut self,
         start: Utf16CodeUnitLength,
         end: Utf16CodeUnitLength,
@@ -996,5 +1041,322 @@ impl<T: ClipboardProvider> TextInput<T> {
                 event.fire(&target, CanGc::note());
             }),
         );
+    }
+
+    /// An implementation of
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>,
+    /// which is used by both `<textarea>` and `<input>`.
+    pub(crate) fn dom_set_selection_range(
+        &mut self,
+        start: Utf16CodeUnitLength,
+        end: Utf16CodeUnitLength,
+        direction: Option<DOMString>,
+    ) -> ErrorResult {
+        // Step 2: Set the selection range with the value of this element's selectionStart
+        // attribute, the value of this element's selectionEnd attribute, and the given
+        // value.
+        self.dom_set_selection_range_inner(
+            Some(start),
+            Some(end),
+            direction.map(SelectionDirection::from),
+            None,
+        );
+        Ok(())
+    }
+
+    /// An implementation of <https://html.spec.whatwg.org/multipage/#set-the-selection-range>,
+    /// which is used by `setSelectionRange()` as well as other parts of the DOM implementation.
+    pub(crate) fn dom_set_selection_range_inner(
+        &mut self,
+        start: Option<Utf16CodeUnitLength>,
+        end: Option<Utf16CodeUnitLength>,
+        direction: Option<SelectionDirection>,
+        original_selection_state: Option<SelectionState>,
+    ) {
+        let original_selection_state =
+            original_selection_state.unwrap_or_else(|| self.selection_state());
+
+        // To set the selection range with an integer or null start, an integer or null or
+        // the special value infinity end, and optionally a string direction, run the
+        // following steps:
+        //
+        // Step 1: If start is null, let start be 0.
+        let start = start.unwrap_or_default();
+
+        // Step 2: If end is null, let end be 0.
+        let end = end.unwrap_or_default();
+
+        // Step 3: Set the selection of the text control to the sequence of code units
+        // within the relevant value starting with the code unit at the startth position
+        // (in logical order) and ending with the code unit at the (end-1)th position.
+        // Arguments greater than the length of the relevant value of the text control
+        // (including the special value infinity) must be treated as pointing at the end
+        // of the text control. If end is less than or equal to start, then the start of
+        // the selection and the end of the selection must both be placed immediately
+        // before the character with offset end. In UAs where there is no concept of an
+        // empty selection, this must set the cursor to be just before the character with
+        // offset end.
+        //
+        // Step 4: If direction is not identical to either "backward" or "forward", or if
+        // the direction argument was not given, set direction to "none".
+        //
+        // Step 5: Set the selection direction of the text control to direction.
+        self.set_selection_range_utf16(start, end, direction.unwrap_or(SelectionDirection::None));
+
+        // Step 6: If the previous steps caused the selection of the text control to be
+        // modified (in either extent or direction), then queue an element task on the
+        // user interaction task source given the element to fire an event named select at
+        // the element, with the bubbles attribute initialized to true.
+        let html_element = self.element.as_element();
+        if self.selection_state() != original_selection_state {
+            html_element
+                .owner_global()
+                .task_manager()
+                .user_interaction_task_source()
+                .queue_event(
+                    html_element.upcast(),
+                    atom!("select"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::NotCancelable,
+                );
+            html_element.upcast::<Node>().dirty(NodeDamage::Other);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
+    pub(crate) fn dom_select(&mut self) {
+        // Step 2 : Set the selection range with 0 and infinity.
+        self.dom_set_selection_range_inner(
+            Some(Utf16CodeUnitLength::zero()),
+            Some(Utf16CodeUnitLength(usize::MAX)),
+            None,
+            None,
+        );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
+    pub(crate) fn dom_get_selection_start(&self) -> Option<Utf16CodeUnitLength> {
+        // Step 2: If there is no selection, return the code unit offset within the
+        // relevant value to the character that immediately follows the text entry cursor.
+        // Step 3: Return the code unit offset within the relevant value to the character
+        // that immediately follows the start of the selection.
+        Some(self.selection_start_utf16())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
+    pub(crate) fn dom_set_selection_start(
+        &mut self,
+        start: Option<Utf16CodeUnitLength>,
+    ) -> ErrorResult {
+        // Step 2: Let end be the value of this element's selectionEnd attribute.
+        let mut end = self.selection_end_utf16();
+
+        // Step 3: If end is less than the given value, set end to the given value.
+        match start {
+            Some(start) if end < start => end = start,
+            _ => {},
+        }
+
+        // Step 4: Set the selection range with the given value, end, and the value of
+        // this element's selectionDirection attribute.
+        self.dom_set_selection_range_inner(
+            start,
+            Some(end),
+            Some(self.selection_direction()),
+            None,
+        );
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
+    pub(crate) fn dom_get_selection_end(&self) -> Option<Utf16CodeUnitLength> {
+        // Step 2: If there is no selection, return the code unit offset within the
+        // relevant value to the character that immediately follows the text entry cursor.
+        // Step 3: Return the code unit offset within the relevant value to the character
+        // that immediately follows the end of the selection.
+        Some(self.selection_end_utf16())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
+    pub(crate) fn dom_set_selection_end(
+        &mut self,
+        end: Option<Utf16CodeUnitLength>,
+    ) -> ErrorResult {
+        // Step 2: Set the selection range with the value of this element's selectionStart
+        // attribute, the given value, and the value of this element's selectionDirection
+        // attribute.
+        self.dom_set_selection_range_inner(
+            Some(self.selection_start_utf16()),
+            end,
+            Some(self.selection_direction()),
+            None,
+        );
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
+    pub(crate) fn dom_get_selection_direction(&self) -> Option<DOMString> {
+        // Step 2: Return this element's selection direction.
+        Some(DOMString::from(self.selection_direction()))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
+    pub(crate) fn dom_set_selection_direction(
+        &mut self,
+        direction: Option<DOMString>,
+    ) -> ErrorResult {
+        // Step 2: Set the selection range with the value of this element's selectionStart
+        // attribute, the value of this element's selectionEnd attribute, and the given
+        // valu
+        self.dom_set_selection_range_inner(
+            Some(self.selection_start_utf16()),
+            Some(self.selection_end_utf16()),
+            direction.map(SelectionDirection::from),
+            None,
+        );
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
+    pub(crate) fn dom_set_range_text(
+        &mut self,
+        replacement: DOMString,
+        start: Option<Utf16CodeUnitLength>,
+        end: Option<Utf16CodeUnitLength>,
+        selection_mode: SelectionMode,
+    ) -> ErrorResult {
+        // Step 2: Set this element's dirty value flag to true.
+        self.element.set_dirty_value_flag(true);
+
+        // Step 3: If the method has only one argument, then let start and end have the
+        // values of the selectionStart attribute and the selectionEnd attribute
+        // respectively.
+        //
+        // Otherwise, let start, end have the values of the second and third arguments
+        // respectively.
+        let mut selection_start = self.selection_end_utf16();
+        let mut selection_end = self.selection_end_utf16();
+        let mut start = start.unwrap_or(selection_start);
+        let mut end = end.unwrap_or(selection_end);
+
+        // Step 4: If start is greater than end, then throw an "IndexSizeError"
+        // DOMException.
+        if start > end {
+            return Err(Error::IndexSize(None));
+        }
+
+        // Save the original selection state to later pass to set_selection_range, because we will
+        // change the selection state in order to replace the text in the range.
+        let original_selection_state = self.selection_state();
+
+        // Step 5: If start is greater than the length of the relevant value of the text
+        // control, then set it to the length of the relevant value of the text control.
+        let content_length = self.len_utf16();
+        if start > content_length {
+            start = content_length;
+        }
+
+        // Step 6: If end is greater than the length of the relevant value of the text
+        // control, then set it to the length of the relevant value of the text controlV
+        if end > content_length {
+            end = content_length;
+        }
+
+        // Step 7: Let selection start be the current value of the selectionStart
+        // attribute.
+        // Step 8: Let selection end be the current value of the selectionEnd attribute.
+        //
+        // NOTE: These were assigned above.
+
+        {
+            // Step 9: If start is less than end, delete the sequence of code units within
+            // the element's relevant value starting with the code unit at the startth
+            // position and ending with the code unit at the (end-1)th position.
+            //
+            // Step: 10: Insert the value of the first argument into the text of the
+            // relevant value of the text control, immediately before the startth code
+            // unit.
+            self.set_selection_range_utf16(start, end, SelectionDirection::None);
+            self.replace_selection(&replacement);
+        }
+
+        // Step 11: Let *new length* be the length of the value of the first argument.
+        //
+        // Must come before the textinput.replace_selection() call, as replacement gets moved in
+        // that call.
+        let new_length = replacement.len_utf16();
+
+        // Step 12: Let new end be the sum of start and new length.
+        let new_end = start + new_length;
+
+        // Step 13: Run the appropriate set of substeps from the following list:
+        match selection_mode {
+            // ↪ If the fourth argument's value is "select"
+            //     Let selection start be start.
+            //     Let selection end be new end.
+            SelectionMode::Select => {
+                selection_start = start;
+                selection_end = new_end;
+            },
+
+            // ↪ If the fourth argument's value is "start"
+            //     Let selection start and selection end be start.
+            SelectionMode::Start => {
+                selection_start = start;
+                selection_end = start;
+            },
+
+            // ↪ If the fourth argument's value is "end"
+            //     Let selection start and selection end be new end
+            SelectionMode::End => {
+                selection_start = new_end;
+                selection_end = new_end;
+            },
+
+            //  ↪ If the fourth argument's value is "preserve"
+            // If the method has only one argument
+            SelectionMode::Preserve => {
+                // Sub-step 1: Let old length be end minus start.
+                let old_length = end.saturating_sub(start);
+
+                // Sub-step 2: Let delta be new length minus old length.
+                let delta = (new_length.0 as isize) - (old_length.0 as isize);
+
+                // Sub-step 3: If selection start is greater than end, then increment it
+                // by delta. (If delta is negative, i.e. the new text is shorter than the
+                // old text, then this will decrease the value of selection start.)
+                //
+                // Otherwise: if selection start is greater than start, then set it to
+                // start. (This snaps the start of the selection to the start of the new
+                // text if it was in the middle of the text that it replaced.)
+                if selection_start > end {
+                    selection_start =
+                        Utf16CodeUnitLength::from((selection_start.0 as isize) + delta);
+                } else if selection_start > start {
+                    selection_start = start;
+                }
+
+                // Sub-step 4: If selection end is greater than end, then increment it by
+                // delta in the same way.
+                //
+                // Otherwise: if selection end is greater than start, then set it to new
+                // end. (This snaps the end of the selection to the end of the new text if
+                // it was in the middle of the text that it replaced.)
+                if selection_end > end {
+                    selection_end = Utf16CodeUnitLength::from((selection_end.0 as isize) + delta);
+                } else if selection_end > start {
+                    selection_end = new_end;
+                }
+            },
+        }
+
+        // Step 14: Set the selection range with selection start and selection end.
+        self.dom_set_selection_range_inner(
+            Some(selection_start),
+            Some(selection_end),
+            None,
+            Some(original_selection_state),
+        );
+        Ok(())
     }
 }

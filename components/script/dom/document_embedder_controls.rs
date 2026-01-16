@@ -19,6 +19,8 @@ use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use script_bindings::codegen::GenericBindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use script_bindings::codegen::GenericBindings::HistoryBinding::HistoryMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
@@ -33,7 +35,6 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
-use crate::dom::textcontrol::TextControlElement;
 use crate::dom::types::{
     Element, HTMLAnchorElement, HTMLElement, HTMLImageElement, HTMLInputElement, HTMLSelectElement,
     HTMLTextAreaElement, Window,
@@ -529,28 +530,28 @@ impl Node {
 impl Element {
     fn has_selection(&self) -> bool {
         self.downcast::<HTMLTextAreaElement>()
-            .map(TextControlElement::has_selection)
+            .map(HTMLTextAreaElement::has_selection)
             .or(self
                 .downcast::<HTMLInputElement>()
-                .map(TextControlElement::has_selection))
+                .map(HTMLInputElement::has_selection))
             .unwrap_or_default()
     }
 
     fn has_selectable_text(&self) -> bool {
         self.downcast::<HTMLTextAreaElement>()
-            .map(TextControlElement::has_selectable_text)
+            .map(HTMLTextAreaElement::has_selectable_text)
             .or(self
                 .downcast::<HTMLInputElement>()
-                .map(TextControlElement::has_selectable_text))
+                .map(HTMLInputElement::has_selectable_text))
             .unwrap_or_default()
     }
 
     fn select_all(&self) {
         self.downcast::<HTMLTextAreaElement>()
-            .map(TextControlElement::select_all)
+            .map(HTMLTextAreaElement::Select)
             .or(self
                 .downcast::<HTMLInputElement>()
-                .map(TextControlElement::select_all))
+                .map(HTMLInputElement::Select))
             .unwrap_or_default()
     }
 }

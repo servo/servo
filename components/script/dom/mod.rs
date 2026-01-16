@@ -410,7 +410,6 @@ mod testing;
 #[cfg(feature = "testbinding")]
 pub(crate) use self::testing::*;
 pub(crate) mod text;
-pub(crate) mod textcontrol;
 pub(crate) mod textdecoder;
 pub(crate) mod textdecodercommon;
 pub(crate) mod textdecoderstream;
