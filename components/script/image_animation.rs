@@ -72,12 +72,10 @@ impl ImageAnimationManager {
                     .frame_data(state.active_frame)
                     .expect("No frame found")
                     .clone();
-                if let Some(descriptor) = image.webrender_image_descriptor_for_image_animation() {
-                    Some(ImageUpdate::UpdateAnimation(
-                        image.id.unwrap(),
-                        frame,
-                        descriptor,
-                    ))
+                if let Some(mut descriptor) = image.webrender_image_descriptor_for_image_animation()
+                {
+                    descriptor.offset = frame.byte_range.start as i32;
+                    Some(ImageUpdate::UpdateAnimation(image.id.unwrap(), descriptor))
                 } else {
                     error!("Doing normal image update which will be slow!");
                     None

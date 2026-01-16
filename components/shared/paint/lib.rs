@@ -710,7 +710,7 @@ pub enum ImageUpdate {
         Option<Epoch>,
     ),
     /// Update an animation for an existing image.
-    UpdateAnimation(ImageKey, ImageFrame, ImageDescriptor),
+    UpdateAnimation(ImageKey, ImageDescriptor),
 }
 
 impl Debug for ImageUpdate {
@@ -728,10 +728,9 @@ impl Debug for ImageUpdate {
                 .field(image_desc)
                 .field(epoch)
                 .finish(),
-            Self::UpdateAnimation(image_key, image_frame, image_desc) => f
+            Self::UpdateAnimation(image_key, image_desc) => f
                 .debug_tuple("UpdateAnimation")
                 .field(image_key)
-                .field(image_frame)
                 .field(image_desc)
                 .finish(),
         }

@@ -1053,7 +1053,7 @@ impl Painter {
                     }
                     txn.update_image(key, desc, data.into(), &DirtyRect::All)
                 },
-                ImageUpdate::UpdateAnimation(image_key, image_frame, desc) => {
+                ImageUpdate::UpdateAnimation(image_key, desc) => {
                     let Some(image) = self.animation_image_cache.get(&image_key) else {
                         info!("Could not find image key in image cache.");
                         break;
@@ -1061,7 +1061,7 @@ impl Painter {
                     txn.update_image(
                         image_key,
                         desc,
-                        ImageData::new(image[image_frame.byte_range].to_vec()),
+                        ImageData::new_shared(image.clone()),
                         &DirtyRect::All,
                     );
                 },
