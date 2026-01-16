@@ -919,8 +919,8 @@ pub(crate) fn upgrade_element(
     }
 
     // Step 9: handle with form-associated custom element
-    if let Some(html_element) = element.downcast::<HTMLElement>() {
-        if html_element.is_form_associated_custom_element() {
+    if let Some(html_element) = element.downcast::<HTMLElement>()
+        && html_element.is_form_associated_custom_element() {
             // We know this element is is form-associated, so we can use the implementation of
             // `FormControl` for HTMLElement, which makes that assumption.
             // Step 9.1: Reset the form owner of element
@@ -954,7 +954,6 @@ pub(crate) fn upgrade_element(
                 )
             }
         }
-    }
 
     // Step 10
     element.set_custom_element_state(CustomElementState::Custom);

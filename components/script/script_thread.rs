@@ -1664,8 +1664,8 @@ impl ScriptThread {
         };
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
-            if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
+            if let Some(pipeline_id) = pipeline_id
+                && pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
                     if self.print_pwm {
                         println!(
                             "Task took longer than max allowed ({:?}) {:?}",
@@ -1675,7 +1675,6 @@ impl ScriptThread {
                     }
                     doc.start_tti();
                 }
-            }
             doc.record_tti_if_necessary();
         }
         value
@@ -3836,8 +3835,8 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
-            if global.live_devtools_updates() {
+        if let Some(global) = self.documents.borrow().find_global(pipeline_id)
+            && global.live_devtools_updates() {
                 let css_error = CSSError {
                     filename,
                     line,
@@ -3847,7 +3846,6 @@ impl ScriptThread {
                 let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
                 sender.send(message).unwrap();
             }
-        }
     }
 
     fn handle_reload(&self, pipeline_id: PipelineId, can_gc: CanGc) {

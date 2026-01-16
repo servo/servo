@@ -465,7 +465,7 @@ impl Mp4Matcher {
             ((data[2] as u32) << 8) |
             (data[3] as u32)) as usize;
         // Step 5. If length is less than box-size or if box-size modulo 4 is not equal to 0, return false.
-        if (data.len() < box_size) || (box_size % 4 != 0) {
+        if (data.len() < box_size) || !box_size.is_multiple_of(4) {
             return false;
         }
 

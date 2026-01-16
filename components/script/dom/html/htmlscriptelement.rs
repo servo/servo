@@ -1203,13 +1203,11 @@ impl VirtualMethods for HTMLScriptElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
-        if *attr.local_name() == local_name!("src") {
-            if let AttributeMutation::Set(..) = mutation {
-                if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
+        if *attr.local_name() == local_name!("src")
+            && let AttributeMutation::Set(..) = mutation
+                && !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
                     self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
                 }
-            }
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-26>

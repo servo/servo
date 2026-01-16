@@ -206,14 +206,13 @@ impl InlineFormattingContextBuilder {
         assert!(self.currently_processing_inline_box());
         self.contains_floats = self.contains_floats || block_level_box.borrow().contains_floats();
 
-        if let Some(InlineItem::AnonymousBlock(anonymous_block)) = self.inline_items.last() {
-            if let BlockContainer::BlockLevelBoxes(ref mut block_level_boxes) =
+        if let Some(InlineItem::AnonymousBlock(anonymous_block)) = self.inline_items.last()
+            && let BlockContainer::BlockLevelBoxes(ref mut block_level_boxes) =
                 anonymous_block.borrow_mut().contents
             {
                 block_level_boxes.push(block_level_box);
                 return;
             }
-        }
         let info = &block_builder_info
             .with_pseudo_element(layout_context, PseudoElement::ServoAnonymousBox)
             .expect("Should never fail to create anonymous box");
@@ -646,8 +645,8 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
         let current_byte_index = byte_index;
         byte_index += character.len_utf8();
 
-        if let Some(next_index) = bounds.peek() {
-            if *next_index == current_byte_index {
+        if let Some(next_index) = bounds.peek()
+            && *next_index == current_byte_index {
                 bounds.next();
 
                 if current_byte_index != 0 || allow_word_at_start {
@@ -655,7 +654,6 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
                     continue;
                 }
             }
-        }
 
         output_string.push(character);
     }

@@ -226,11 +226,10 @@ impl Dialog {
                     );
                 });
 
-                if !is_open {
-                    if let Some(alert_dialog) = maybe_alert_dialog.take() {
+                if !is_open
+                    && let Some(alert_dialog) = maybe_alert_dialog.take() {
                         alert_dialog.confirm();
                     }
-                }
                 is_open
             },
             Dialog::Confirm(maybe_confirm_dialog) => {
@@ -684,12 +683,11 @@ impl Dialog {
                         is_open = false;
                     }
 
-                    if let Some(action) = selected_action {
-                        if let Some(context_menu) = menu.take() {
+                    if let Some(action) = selected_action
+                        && let Some(context_menu) = menu.take() {
                             context_menu.select(action);
                             return false;
                         }
-                    }
                 }
                 is_open
             },

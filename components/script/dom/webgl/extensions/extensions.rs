@@ -217,11 +217,10 @@ impl WebGLExtensions {
             .borrow()
             .iter()
             .filter(|v| {
-                if let WebGLExtensionSpec::Specific(version) = v.1.spec() {
-                    if self.webgl_version != version {
+                if let WebGLExtensionSpec::Specific(version) = v.1.spec()
+                    && self.webgl_version != version {
                         return false;
                     }
-                }
                 v.1.is_supported(self)
             })
             .map(|ref v| v.1.name())

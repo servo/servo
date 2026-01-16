@@ -25,7 +25,7 @@ use crate::script_runtime::CanGc;
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-wrap-key>
 pub(crate) fn wrap_key_aes_kw(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If plaintext is not a multiple of 64 bits in length, then throw an OperationError.
-    if plaintext.len() % 8 != 0 {
+    if !plaintext.len().is_multiple_of(8) {
         return Err(Error::Operation(Some(
             "The plaintext bit-length is not a multiple of 64".into(),
         )));

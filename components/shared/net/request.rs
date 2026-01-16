@@ -1170,8 +1170,8 @@ fn validate_range_header(value: &str) -> bool {
         let start = parts.next();
         let end = parts.next();
 
-        if let Some(start) = start {
-            if let Ok(start_num) = start.parse::<u64>() {
+        if let Some(start) = start
+            && let Ok(start_num) = start.parse::<u64>() {
                 return match end {
                     Some(e) if !e.is_empty() => {
                         e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
@@ -1179,7 +1179,6 @@ fn validate_range_header(value: &str) -> bool {
                     _ => true,
                 };
             }
-        }
     }
     false
 }

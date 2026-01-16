@@ -1213,20 +1213,18 @@ fn convert_seed_to_handles(
     let handles = match algo_name {
         ALG_ML_KEM_512 => {
             let (decapsulation_key, encapsulation_key) = MlKem512::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes {
-                if private_key_bytes != decapsulation_key.as_bytes().as_slice() {
+            if let Some(private_key_bytes) = private_key_bytes
+                && private_key_bytes != decapsulation_key.as_bytes().as_slice() {
                     return Err(Error::Data(Some(
                         "The expanded private key does not match the seed".to_string(),
                     )));
                 }
-            }
-            if let Some(public_key_bytes) = public_key_bytes {
-                if public_key_bytes != encapsulation_key.as_bytes().as_slice() {
+            if let Some(public_key_bytes) = public_key_bytes
+                && public_key_bytes != encapsulation_key.as_bytes().as_slice() {
                     return Err(Error::Data(Some(
                         "The public key does not match the seed".to_string(),
                     )));
                 }
-            }
 
             (
                 Handle::MlKem512PrivateKey((d, z)),
@@ -1235,20 +1233,18 @@ fn convert_seed_to_handles(
         },
         ALG_ML_KEM_768 => {
             let (decapsulation_key, encapsulation_key) = MlKem768::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes {
-                if private_key_bytes != decapsulation_key.as_bytes().as_slice() {
+            if let Some(private_key_bytes) = private_key_bytes
+                && private_key_bytes != decapsulation_key.as_bytes().as_slice() {
                     return Err(Error::Data(Some(
                         "The expanded private key does not match the seed".to_string(),
                     )));
                 }
-            }
-            if let Some(public_key_bytes) = public_key_bytes {
-                if public_key_bytes != encapsulation_key.as_bytes().as_slice() {
+            if let Some(public_key_bytes) = public_key_bytes
+                && public_key_bytes != encapsulation_key.as_bytes().as_slice() {
                     return Err(Error::Data(Some(
                         "The public key does not match the seed".to_string(),
                     )));
                 }
-            }
 
             (
                 Handle::MlKem768PrivateKey((d, z)),
@@ -1257,20 +1253,18 @@ fn convert_seed_to_handles(
         },
         ALG_ML_KEM_1024 => {
             let (decapsulation_key, encapsulation_key) = MlKem1024::generate_deterministic(&d, &z);
-            if let Some(private_key_bytes) = private_key_bytes {
-                if private_key_bytes != decapsulation_key.as_bytes().as_slice() {
+            if let Some(private_key_bytes) = private_key_bytes
+                && private_key_bytes != decapsulation_key.as_bytes().as_slice() {
                     return Err(Error::Data(Some(
                         "The expanded private key does not match the seed".to_string(),
                     )));
                 }
-            }
-            if let Some(public_key_bytes) = public_key_bytes {
-                if public_key_bytes != encapsulation_key.as_bytes().as_slice() {
+            if let Some(public_key_bytes) = public_key_bytes
+                && public_key_bytes != encapsulation_key.as_bytes().as_slice() {
                     return Err(Error::Data(Some(
                         "The public key does not match the seed".to_string(),
                     )));
                 }
-            }
 
             (
                 Handle::MlKem1024PrivateKey((d, z)),

@@ -882,11 +882,10 @@ impl RangeRequestBounds {
     pub fn get_final(&self, len: Option<u64>) -> Result<RelativePos, &'static str> {
         match self {
             RangeRequestBounds::Final(pos) => {
-                if let Some(len) = len {
-                    if pos.start <= len as i64 {
+                if let Some(len) = len
+                    && pos.start <= len as i64 {
                         return Ok(*pos);
                     }
-                }
                 Err("Tried to process RangeRequestBounds::Final without len")
             },
             RangeRequestBounds::Pending(offset) => Ok(RelativePos::from_opts(

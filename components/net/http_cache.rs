@@ -180,11 +180,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
             return true;
         }
     }
-    if let Some(pragma) = headers.typed_get::<Pragma>() {
-        if pragma.is_no_cache() {
+    if let Some(pragma) = headers.typed_get::<Pragma>()
+        && pragma.is_no_cache() {
             return false;
         }
-    }
     is_cacheable
 }
 
@@ -260,11 +259,10 @@ fn get_response_expiry(response: &Response) -> Duration {
             return heuristic_freshness;
         }
         // Other status codes can only use heuristic freshness if the public cache directive is present.
-        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
-            if directives.public() {
+        if let Some(ref directives) = response.headers.typed_get::<CacheControl>()
+            && directives.public() {
                 return heuristic_freshness;
             }
-        }
     }
     // Requires validation upon first use as default.
     Duration::ZERO
@@ -723,20 +721,16 @@ pub(crate) async fn invalidate(
         .headers
         .get(header::LOCATION)
         .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(location).is_ok() {
+        && request.current_url().join(location).is_ok() {
             invalidate_cached_resources(cached_resources).await;
         }
-    }
     if let Some(Ok(content_location)) = response
         .headers
         .get(header::CONTENT_LOCATION)
         .map(HeaderValue::to_str)
-    {
-        if request.current_url().join(content_location).is_ok() {
+        && request.current_url().join(content_location).is_ok() {
             invalidate_cached_resources(cached_resources).await;
         }
-    }
     invalidate_cached_resources(cached_resources).await;
 }
 

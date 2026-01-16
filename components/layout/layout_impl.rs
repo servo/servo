@@ -1317,9 +1317,9 @@ impl LayoutThread {
             &stacking_context_tree.paint_info,
             built_display_list,
         );
-        if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut() {
-            if lcp_candidate_collector.did_lcp_candidate_update {
-                if let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
+        if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut()
+            && lcp_candidate_collector.did_lcp_candidate_update
+                && let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
                     self.paint_api.send_lcp_candidate(
                         lcp_candidate,
                         self.webview_id,
@@ -1328,8 +1328,6 @@ impl LayoutThread {
                     );
                     lcp_candidate_collector.did_lcp_candidate_update = false;
                 }
-            }
-        }
 
         let (keys, instance_keys) = self
             .font_context

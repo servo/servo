@@ -368,11 +368,10 @@ impl KvsEngine for SqliteEngine {
     fn delete_database(self) -> Result<(), Self::Error> {
         // attempt to close the connection first
         let _ = self.connection.close();
-        if self.db_path.exists() {
-            if let Err(e) = std::fs::remove_dir_all(self.db_path.parent().unwrap()) {
+        if self.db_path.exists()
+            && let Err(e) = std::fs::remove_dir_all(self.db_path.parent().unwrap()) {
                 error!("Failed to delete database: {:?}", e);
             }
-        }
         Ok(())
     }
 

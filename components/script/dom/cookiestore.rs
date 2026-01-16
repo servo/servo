@@ -259,8 +259,8 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
             // 6.2. If this’s relevant global object is a Window object and parsed does not equal url with exclude fragments set to true,
             // then return a promise rejected with a TypeError.
-            if let Some(_window) = DomRoot::downcast::<Window>(self.global()) {
-                if parsed_url
+            if let Some(_window) = DomRoot::downcast::<Window>(self.global())
+                && parsed_url
                     .as_ref()
                     .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(&creation_url))
                 {
@@ -270,7 +270,6 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                     );
                     return p;
                 }
-            }
 
             // 6.3. If parsed’s origin and url’s origin are not the same origin,
             // then return a promise rejected with a TypeError.
@@ -373,8 +372,8 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
             // If this’s relevant global object is a Window object and parsed does not equal url with exclude fragments set to true,
             // then return a promise rejected with a TypeError.
-            if let Some(_window) = DomRoot::downcast::<Window>(self.global()) {
-                if parsed_url
+            if let Some(_window) = DomRoot::downcast::<Window>(self.global())
+                && parsed_url
                     .as_ref()
                     .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(&creation_url))
                 {
@@ -384,7 +383,6 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                     );
                     return p;
                 }
-            }
 
             // 5.3. If parsed’s origin and url’s origin are not the same origin,
             // then return a promise rejected with a TypeError.

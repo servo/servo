@@ -324,8 +324,8 @@ impl CompiledEventListener {
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
-                        if let Some(event) = event.downcast::<ErrorEvent>() {
-                            if object.is::<Window>() || object.is::<WorkerGlobalScope>() {
+                        if let Some(event) = event.downcast::<ErrorEvent>()
+                            && (object.is::<Window>() || object.is::<WorkerGlobalScope>()) {
                                 let cx = GlobalScope::get_cx();
                                 rooted!(in(*cx) let mut error: JSVal);
                                 event.Error(cx, error.handle_mut());
@@ -342,16 +342,14 @@ impl CompiledEventListener {
                                     can_gc,
                                 );
                                 // Step 4
-                                if let Ok(()) = return_value {
-                                    if rooted_return_value.handle().is_boolean() &&
+                                if let Ok(()) = return_value
+                                    && rooted_return_value.handle().is_boolean() &&
                                         rooted_return_value.handle().to_boolean()
                                     {
                                         event.upcast::<Event>().PreventDefault();
                                     }
-                                }
                                 return;
                             }
-                        }
 
                         rooted!(in(*GlobalScope::get_cx()) let mut rooted_return_value: JSVal);
                         let _ = handler.Call_(
@@ -643,11 +641,10 @@ impl EventTarget {
     pub(crate) fn remove_listener(&self, ty: &Atom, entry: &Rc<RefCell<EventListenerEntry>>) {
         let mut handlers = self.handlers.borrow_mut();
 
-        if let Some(entries) = handlers.get_mut(ty) {
-            if let Some(position) = entries.iter().position(|e| *e == *entry) {
+        if let Some(entries) = handlers.get_mut(ty)
+            && let Some(position) = entries.iter().position(|e| *e == *entry) {
                 entries.remove(position).borrow_mut().removed = true;
             }
-        }
     }
 
     /// Determines the `passive` attribute of an associated event listener
@@ -1077,11 +1074,10 @@ impl EventTarget {
             if !a_root.is::<ShadowRoot>() {
                 return a;
             }
-            if let Some(b_node) = b.downcast::<Node>() {
-                if a_root.is_shadow_including_inclusive_ancestor_of(b_node) {
+            if let Some(b_node) = b.downcast::<Node>()
+                && a_root.is_shadow_including_inclusive_ancestor_of(b_node) {
                     return a;
                 }
-            }
 
             // Step 2. Set A to A’s root’s host.
             a = DomRoot::from_ref(

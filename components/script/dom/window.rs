@@ -2428,11 +2428,10 @@ impl Window {
         // nullify the window_proxy.
         if let Some(proxy) = self.window_proxy.get() {
             let pipeline_id = self.pipeline_id();
-            if let Some(currently_active) = proxy.currently_active() {
-                if currently_active == pipeline_id {
+            if let Some(currently_active) = proxy.currently_active()
+                && currently_active == pipeline_id {
                     self.window_proxy.set(None);
                 }
-            }
         }
 
         if let Some(performance) = self.performance.get() {
@@ -3160,11 +3159,10 @@ impl Window {
         // Step 4 and 5
         let pipeline_id = self.pipeline_id();
         let window_proxy = self.window_proxy();
-        if let Some(active) = window_proxy.currently_active() {
-            if pipeline_id == active && doc.is_prompting_or_unloading() {
+        if let Some(active) = window_proxy.currently_active()
+            && pipeline_id == active && doc.is_prompting_or_unloading() {
                 return;
             }
-        }
 
         // Step 23. Let unloadPromptCanceled be the result of checking if unloading
         // is canceled for navigable's active document's inclusive descendant navigables.
@@ -3775,11 +3773,10 @@ impl Window {
             let document = this.Document();
 
             // Step 7.1.
-            if let Some(ref target_origin) = target_origin {
-                if !target_origin.same_origin(document.origin()) {
+            if let Some(ref target_origin) = target_origin
+                && !target_origin.same_origin(document.origin()) {
                     return;
                 }
-            }
 
             // Steps 7.2.-7.5.
             let cx = this.get_cx();

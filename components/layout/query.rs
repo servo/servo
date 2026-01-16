@@ -370,13 +370,11 @@ pub fn process_resolved_style_request(
         // > resolved value special case properties.
         //
         // > When an element generates a grid container box...
-        if display.inside() == DisplayInside::Grid {
-            if let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info {
-                if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
+        if display.inside() == DisplayInside::Grid
+            && let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info
+                && let Some(value) = resolve_grid_template(&info, style, longhand_id) {
                     return value;
                 }
-            }
-        }
 
         // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
         // > If the property applies to the element or pseudo-element and the resolved value of the

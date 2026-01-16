@@ -1120,11 +1120,10 @@ fn location_url_for_response(
         });
 
     // Step 4. If location is a URL whose fragment is null, then set location’s fragment to requestFragment.
-    if let Some(Ok(ref mut location)) = location {
-        if location.fragment().is_none() {
+    if let Some(Ok(ref mut location)) = location
+        && location.fragment().is_none() {
             location.set_fragment(request_fragment);
         }
-    }
     // Step 5. Return location.
     location
 }
@@ -1401,8 +1400,8 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 8.10 If contentLength is non-null and httpRequest’s keepalive is true, then:
-    if http_request.keep_alive {
-        if let Some(content_length) = content_length {
+    if http_request.keep_alive
+        && let Some(content_length) = content_length {
             // Step 8.10.1. Let inflightKeepaliveBytes be 0.
             // Step 8.10.2. Let group be httpRequest’s client’s fetch group.
             // Step 8.10.3. Let inflightRecords be the set of fetch records
@@ -1438,7 +1437,6 @@ async fn http_network_or_cache_fetch(
                 return Response::network_error(NetworkError::TooManyInFlightKeepAliveRequests);
             }
         }
-    }
 
     // Step 8.11: If httpRequest’s referrer is a URL, then:
     match http_request.referrer {
@@ -1467,11 +1465,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
     // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
-    if http_request.initiator == Initiator::Prefetch {
-        if let Ok(value) = HeaderValue::from_str("prefetch") {
+    if http_request.initiator == Initiator::Prefetch
+        && let Ok(value) = HeaderValue::from_str("prefetch") {
             http_request.headers.insert("Sec-Purpose", value);
         }
-    }
 
     // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
     // should append (`User-Agent`, default `User-Agent` value) to httpRequest’s header list.
@@ -1527,11 +1524,10 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.19: If httpRequest’s header list contains `Range`, then append (`Accept-Encoding`,
     // `identity`) to httpRequest’s header list.
-    if http_request.headers.contains_key(header::RANGE) {
-        if let Ok(value) = HeaderValue::from_str("identity") {
+    if http_request.headers.contains_key(header::RANGE)
+        && let Ok(value) = HeaderValue::from_str("identity") {
             http_request.headers.insert("Accept-Encoding", value);
         }
-    }
 
     // Step 8.20: Modify httpRequest’s header list per HTTP. Do not append a given header if
     // httpRequest’s header list contains that header’s name.
@@ -1559,11 +1555,10 @@ async fn http_network_or_cache_fetch(
             let mut authorization_value = None;
 
             // Substep 4
-            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) {
-                if !http_request.use_url_credentials || !has_credentials(&current_url) {
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin())
+                && (!http_request.use_url_credentials || !has_credentials(&current_url)) {
                     authorization_value = Some(basic);
                 }
-            }
 
             // Substep 5
             if authentication_fetch_flag &&
@@ -2183,12 +2178,11 @@ async fn http_network_fetch(
             .host_str()
             .is_some_and(|host| context.state.hsts_list.read().is_host_secure(host));
 
-        if url.scheme() == "https" {
-            if let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>() {
+        if url.scheme() == "https"
+            && let Some(sts) = res.headers().typed_get::<StrictTransportSecurity>() {
                 // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
                 hsts_enabled = sts.max_age().as_secs() > 0;
             }
-        }
         response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
     }
 
@@ -2673,11 +2667,10 @@ fn append_a_request_origin_header(request: &mut Request) {
                 ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
-                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
-                        if scheme == "https" && request.current_url().scheme() != "https" {
+                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin
+                        && scheme == "https" && request.current_url().scheme() != "https" {
                             serialized_origin = headers::Origin::NULL;
                         }
-                    }
                 },
                 ReferrerPolicy::SameOrigin => {
                     // If request’s origin is not same origin with request’s current URL’s origin,

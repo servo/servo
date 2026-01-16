@@ -195,9 +195,9 @@ impl TokenSink for PrefetchSink {
                 TokenSinkResult::Continue
             },
             (TagKind::StartTag, &local_name!("link")) if self.prefetching.get() => {
-                if let Some(rel) = self.get_attr(tag, local_name!("rel")) {
-                    if rel.value.eq_ignore_ascii_case("stylesheet") {
-                        if let Some(url) = self.get_url(tag, local_name!("href")) {
+                if let Some(rel) = self.get_attr(tag, local_name!("rel"))
+                    && rel.value.eq_ignore_ascii_case("stylesheet")
+                        && let Some(url) = self.get_url(tag, local_name!("href")) {
                             debug!("Prefetch {} {}", tag.name, url);
                             let cors_setting =
                                 self.get_cors_settings(tag, local_name!("crossorigin"));
@@ -230,8 +230,6 @@ impl TokenSink for PrefetchSink {
                                 .resource_threads
                                 .send(CoreResourceMsg::Fetch(request, FetchChannels::Prefetch));
                         }
-                    }
-                }
                 TokenSinkResult::Continue
             },
             (TagKind::StartTag, &local_name!("script")) => {
@@ -243,12 +241,11 @@ impl TokenSink for PrefetchSink {
                 TokenSinkResult::Script(PrefetchHandle)
             },
             (TagKind::StartTag, &local_name!("base")) => {
-                if let Some(url) = self.get_url(tag, local_name!("href")) {
-                    if self.base_url.borrow().is_none() {
+                if let Some(url) = self.get_url(tag, local_name!("href"))
+                    && self.base_url.borrow().is_none() {
                         debug!("Setting base {}", url);
                         *self.base_url.borrow_mut() = Some(url);
                     }
-                }
                 TokenSinkResult::Continue
             },
             _ => TokenSinkResult::Continue,

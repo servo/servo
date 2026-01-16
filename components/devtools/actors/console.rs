@@ -233,8 +233,8 @@ impl ConsoleActor {
             return;
         }
         let resource_type = resource.resource_type();
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
+        if id == self.current_unique_id(registry)
+            && let Root::BrowsingContext(bc) = &self.root {
                 registry.find::<BrowsingContextActor>(bc).resource_array(
                     resource,
                     resource_type,
@@ -242,7 +242,6 @@ impl ConsoleActor {
                     stream,
                 )
             };
-        }
     }
 
     pub(crate) fn send_clear_message(
@@ -251,8 +250,8 @@ impl ConsoleActor {
         registry: &ActorRegistry,
         stream: &mut TcpStream,
     ) {
-        if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
+        if id == self.current_unique_id(registry)
+            && let Root::BrowsingContext(bc) = &self.root {
                 registry.find::<BrowsingContextActor>(bc).resource_array(
                     ConsoleClearMessage {
                         level: "clear".to_owned(),
@@ -262,7 +261,6 @@ impl ConsoleActor {
                     stream,
                 )
             };
-        }
     }
 
     pub(crate) fn get_cached_messages(

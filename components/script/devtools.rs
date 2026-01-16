@@ -164,13 +164,12 @@ pub(crate) fn handle_get_children(
                 .collect();
 
             let mut children = vec![];
-            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
-                if !shadow_root.is_user_agent_widget() ||
-                    pref!(inspector_show_servo_internal_shadow_roots)
+            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root)
+                && (!shadow_root.is_user_agent_widget() ||
+                    pref!(inspector_show_servo_internal_shadow_roots))
                 {
                     children.push(shadow_root.upcast::<Node>().summarize(can_gc));
                 }
-            }
             let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
                 // Filter whitespace only text nodes that are not inline level
                 // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#whitespace-only-text-nodes

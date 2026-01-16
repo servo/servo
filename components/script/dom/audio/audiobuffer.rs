@@ -287,11 +287,10 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
             {
                 return Err(Error::IndexSize(None));
             }
-        } else if let Some(ref shared_channels) = *self.shared_channels.borrow() {
-            if let Some(shared_channel) = shared_channels.buffers.get(channel_number) {
+        } else if let Some(ref shared_channels) = *self.shared_channels.borrow()
+            && let Some(shared_channel) = shared_channels.buffers.get(channel_number) {
                 dest.extend_from_slice(&shared_channel.as_slice()[offset..offset + bytes_to_copy]);
             }
-        }
 
         destination.update(&dest);
 

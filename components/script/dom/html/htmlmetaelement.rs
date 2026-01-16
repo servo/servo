@@ -150,11 +150,10 @@ impl HTMLMetaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
     fn apply_csp_list(&self) {
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
+        if let Some(parent) = self.upcast::<Node>().GetParentElement()
+            && let Some(head) = parent.downcast::<HTMLHeadElement>() {
                 head.set_content_security_policy();
             }
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>

@@ -909,12 +909,11 @@ impl WebGLThread {
     ) -> Option<&GLContextData> {
         let data = self.contexts.get(&context_id);
 
-        if let Some(data) = data {
-            if Some(context_id) != self.bound_context_id {
+        if let Some(data) = data
+            && Some(context_id) != self.bound_context_id {
                 data.device.make_context_current(&data.ctx).unwrap();
                 self.bound_context_id = Some(context_id);
             }
-        }
 
         data
     }
@@ -925,12 +924,11 @@ impl WebGLThread {
         context_id: WebGLContextId,
     ) -> Option<&mut GLContextData> {
         let data = self.contexts.get_mut(&context_id);
-        if let Some(ref data) = data {
-            if Some(context_id) != self.bound_context_id {
+        if let Some(ref data) = data
+            && Some(context_id) != self.bound_context_id {
                 data.device.make_context_current(&data.ctx).unwrap();
                 self.bound_context_id = Some(context_id);
             }
-        }
 
         data
     }

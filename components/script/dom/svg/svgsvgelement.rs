@@ -92,13 +92,11 @@ impl SVGSVGElement {
         let root_node = self.upcast::<Node>();
 
         for node in root_node.traverse_preorder(ShadowIncluding::No) {
-            if let Some(element) = node.downcast::<Element>() {
-                if element.local_name() == &local_name!("use") {
-                    if let Some(cloned) = self.process_single_use_element(element, can_gc) {
+            if let Some(element) = node.downcast::<Element>()
+                && element.local_name() == &local_name!("use")
+                    && let Some(cloned) = self.process_single_use_element(element, can_gc) {
                         cloned_nodes.push(cloned);
                     }
-                }
-            }
         }
 
         cloned_nodes

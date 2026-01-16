@@ -393,15 +393,12 @@ impl VirtualMethods for HTMLOptionElement {
         if !self
             .upcast::<Element>()
             .has_attribute(&local_name!("label"))
-        {
-            if let Some(owner_select) = self.owner_select_element() {
-                if owner_select
+            && let Some(owner_select) = self.owner_select_element()
+                && owner_select
                     .selected_option()
                     .is_some_and(|selected_option| self == &*selected_option)
                 {
                     owner_select.update_shadow_tree(can_gc);
                 }
-            }
-        }
     }
 }

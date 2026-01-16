@@ -128,11 +128,10 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
         // We have a sender if the transaction is started manually, and they
         // probably want to know when it is finished
-        if let Some(sender) = sender {
-            if sender.send(Ok(())).is_err() {
+        if let Some(sender) = sender
+            && sender.send(Ok(())).is_err() {
                 warn!("IDBTransaction starter dropped its channel");
             }
-        }
     }
 
     fn has_key_generator(&self, store_name: &str) -> bool {
@@ -478,12 +477,11 @@ impl IndexedDBManager {
             };
             let mut pruned = false;
             let front_is_pending = queue.front().map(|record| record.is_pending());
-            if let Some(is_pending) = front_is_pending {
-                if !is_pending {
+            if let Some(is_pending) = front_is_pending
+                && !is_pending {
                     queue.pop_front().expect("Queue has a non-pending item.");
                     pruned = true
                 }
-            }
             (queue.is_empty(), pruned)
         };
         if is_empty {
@@ -541,11 +539,10 @@ impl IndexedDBManager {
                 };
                 for open_request in queue.drain(0..) {
                     let old = open_request.abort();
-                    if version_to_revert.is_none() {
-                        if let Some(old) = old {
+                    if version_to_revert.is_none()
+                        && let Some(old) = old {
                             version_to_revert = Some(old);
                         }
-                    }
                 }
             }
             if let Some(version) = version_to_revert {

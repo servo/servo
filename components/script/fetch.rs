@@ -184,22 +184,20 @@ fn abort_fetch_call(
     // Step 1. Reject promise with error.
     promise.reject(cx, abort_reason, can_gc);
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
-    if let Some(body) = request.body() {
-        if body.is_readable() {
+    if let Some(body) = request.body()
+        && body.is_readable() {
             body.cancel(cx, global, abort_reason, can_gc);
         }
-    }
     // Step 3. If responseObject is null, then return.
     // Step 4. Let response be responseObject’s response.
     let Some(response) = response_object else {
         return;
     };
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
-    if let Some(body) = response.body() {
-        if body.is_readable() {
+    if let Some(body) = response.body()
+        && body.is_readable() {
             body.error(abort_reason, can_gc);
         }
-    }
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
@@ -396,11 +394,10 @@ pub(crate) fn FetchLater(
         return Err(Error::Type("URL is not trustworthy".to_owned()));
     }
     // Step 10. If request’s body is not null, and request’s body length is null or zero, then throw a TypeError.
-    if let Some(body) = request.body.as_ref() {
-        if body.len().is_none_or(|len| len == 0) {
+    if let Some(body) = request.body.as_ref()
+        && body.len().is_none_or(|len| len == 0) {
             return Err(Error::Type("Body is empty".to_owned()));
         }
-    }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
     // origin is less than request’s total request length, then throw a "QuotaExceededError" DOMException.
     let quota = document.available_deferred_fetch_quota(request.url().origin());

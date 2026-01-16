@@ -582,13 +582,12 @@ impl WorkletThread {
                     self.process_control(control, cx);
                 }
                 self.gc(cx);
-            } else if self.control_buffer.is_none() {
-                if let Ok(control) = self.control_receiver.try_recv() {
+            } else if self.control_buffer.is_none()
+                && let Ok(control) = self.control_receiver.try_recv() {
                     self.control_buffer = Some(control);
                     let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
                     let _ = self.cold_backup_sender.send(msg);
                 }
-            }
             // If we are tight on memory, and we're a backup then perform a gc.
             // If we are tight on memory, and we're the primary then try to become the hot backup.
             // Hopefully this happens soon!

@@ -396,11 +396,10 @@ pub(crate) fn process_link_headers(
             continue;
         }
         // Step 2.5. If attribs["media"] exists and attribs["media"] does not match the environment, then continue.
-        if let Some(media) = link_object.value_for_key_in_link_header("media") {
-            if !MediaList::matches_environment(document, media) {
+        if let Some(media) = link_object.value_for_key_in_link_header("media")
+            && !MediaList::matches_environment(document, media) {
                 continue;
             }
-        }
         // Step 2.6. Let options be a new link processing options with
         let mut options = LinkProcessingOptions {
             href: link_object.url.clone(),

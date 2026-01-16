@@ -222,7 +222,6 @@ impl PositioningContext {
             return;
         }
 
-        // TODO: This could potentially use `extract_if` when that is stabilized.
         let (mut boxes_to_layout, mut boxes_to_continue_hoisting) = self
             .absolutes
             .drain(..)

@@ -1413,14 +1413,12 @@ impl Painter {
         if self
             .lcp_calculator
             .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
-        {
-            if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
+            && let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
                 webview_renderer
                     .ensure_pipeline_details(pipeline_id)
                     .largest_contentful_paint_metric
                     .set(PaintMetricState::Seen(epoch.into(), false));
-            }
-        };
+            };
     }
 
     /// Disable LCP feature when the user interacts with the page.

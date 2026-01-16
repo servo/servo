@@ -1444,13 +1444,12 @@ impl InitialFlexLineLayout<'_> {
 
     /// <https://drafts.csswg.org/css-flexbox/#algo-cross-line>
     fn cross_size<'items>(items: &'items [FlexLineItem<'items>], flex_context: &FlexContext) -> Au {
-        if flex_context.config.container_is_single_line {
-            if let SizeConstraint::Definite(size) =
+        if flex_context.config.container_is_single_line
+            && let SizeConstraint::Definite(size) =
                 flex_context.container_inner_size_constraint.cross
             {
                 return size;
             }
-        }
 
         let mut max_ascent = Au::zero();
         let mut max_descent = Au::zero();

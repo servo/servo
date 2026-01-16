@@ -101,8 +101,8 @@ impl StylesheetContext {
         };
 
         let mut style_content = std::mem::take(&mut self.data);
-        if let Some((input, mut output)) = create_temp_files() {
-            if execute_js_beautify(
+        if let Some((input, mut output)) = create_temp_files()
+            && execute_js_beautify(
                 input.path(),
                 output.try_clone().unwrap(),
                 BeautifyFileType::Css,
@@ -110,7 +110,6 @@ impl StylesheetContext {
                 output.seek(std::io::SeekFrom::Start(0)).unwrap();
                 output.read_to_end(&mut style_content).unwrap();
             }
-        }
         match create_output_file(unminified_dir, &file_url, None) {
             Ok(mut file) => {
                 file.write_all(&style_content).unwrap();

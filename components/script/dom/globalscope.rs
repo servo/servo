@@ -1316,18 +1316,16 @@ impl GlobalScope {
             // Step 7, a few preliminary steps.
 
             // - Check the worker is not closing.
-            if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-                if worker.is_closing() {
+            if let Some(worker) = self.downcast::<WorkerGlobalScope>()
+                && worker.is_closing() {
                     return;
                 }
-            }
 
             // - Check the associated document is fully-active.
-            if let Some(window) = self.downcast::<Window>() {
-                if !window.Document().is_fully_active() {
+            if let Some(window) = self.downcast::<Window>()
+                && !window.Document().is_fully_active() {
                     return;
                 }
-            }
 
             // - Check for a case-sensitive match for the name of the channel.
             let channel_name = DOMString::from_string(channel_name);

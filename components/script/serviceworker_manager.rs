@@ -276,16 +276,13 @@ impl ServiceWorkerManager {
     }
 
     fn handle_message_from_resource(&mut self, mediator: CustomResponseMediator) -> bool {
-        if serviceworker_enabled() {
-            if let Some(scope) = self.get_matching_scope(&mediator.load_url) {
-                if let Some(registration) = self.registrations.get(&scope) {
-                    if let Some(ref worker) = registration.active_worker {
+        if serviceworker_enabled()
+            && let Some(scope) = self.get_matching_scope(&mediator.load_url)
+                && let Some(registration) = self.registrations.get(&scope)
+                    && let Some(ref worker) = registration.active_worker {
                         worker.send_message(ServiceWorkerScriptMsg::Response(mediator));
                         return true;
                     }
-                }
-            }
-        }
         let _ = mediator.response_chan.send(None);
         true
     }
@@ -303,11 +300,10 @@ impl ServiceWorkerManager {
                 // TODO: https://w3c.github.io/ServiceWorker/#terminate-service-worker
             },
             ServiceWorkerMsg::ForwardDOMMessage(msg, scope_url) => {
-                if let Some(registration) = self.registrations.get_mut(&scope_url) {
-                    if let Some(ref worker) = registration.active_worker {
+                if let Some(registration) = self.registrations.get_mut(&scope_url)
+                    && let Some(ref worker) = registration.active_worker {
                         worker.forward_dom_message(msg);
                     }
-                }
             },
             ServiceWorkerMsg::ScheduleJob(job) => match job.job_type {
                 JobType::Register => {
@@ -396,14 +392,13 @@ impl ServiceWorkerManager {
             let newest_worker = registration.get_newest_worker();
 
             // Step 4.
-            if let Some(worker) = newest_worker {
-                if worker.script_url != job.script_url {
+            if let Some(worker) = newest_worker
+                && worker.script_url != job.script_url {
                     let _ = job
                         .client
                         .send(JobResult::RejectPromise(JobError::TypeError));
                     return;
                 }
-            }
 
             let scope_things = job
                 .scope_things

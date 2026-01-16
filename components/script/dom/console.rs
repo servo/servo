@@ -272,11 +272,10 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
             }
             parents.push(value_bits);
 
-            if value.is_object() {
-                if let Some(repr) = maybe_stringify_dom_object(cx, value) {
+            if value.is_object()
+                && let Some(repr) = maybe_stringify_dom_object(cx, value) {
                     return repr;
                 }
-            }
             unsafe { stringify_object_from_handle_value(*cx, value, parents) }
         }
         stringify_inner(cx, message, Vec::new())

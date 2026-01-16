@@ -220,13 +220,12 @@ impl WebGLBuffer {
 
     /// <https://registry.khronos.org/webgl/specs/latest/2.0/#5.1>
     fn can_bind_to(&self, new_target: u32) -> bool {
-        if let Some(current_target) = self.target.get() {
-            if [current_target, new_target]
+        if let Some(current_target) = self.target.get()
+            && [current_target, new_target]
                 .contains(&WebGLRenderingContextConstants::ELEMENT_ARRAY_BUFFER)
             {
                 return target_is_copy_buffer(new_target) || new_target == current_target;
             }
-        }
         true
     }
 

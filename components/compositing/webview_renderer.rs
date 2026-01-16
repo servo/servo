@@ -588,15 +588,14 @@ impl WebViewRenderer {
                     );
                     self.touch_handler
                         .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
-                    if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
-                        if info.prevent_move == TouchMoveAllowed::Pending {
+                    if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id)
+                        && info.prevent_move == TouchMoveAllowed::Pending {
                             info.prevent_move = TouchMoveAllowed::Allowed;
                             if let TouchSequenceState::PendingFling { velocity, point } = info.state
                             {
                                 info.state = TouchSequenceState::Flinging { velocity, point }
                             }
                         }
-                    }
                 },
                 TouchEventType::Up => {
                     let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) else {
@@ -1049,14 +1048,13 @@ impl WebViewRenderer {
                 );
         }
 
-        if let Some(wheel_event) = self.pending_wheel_events.remove(&id) {
-            if !result.contains(InputEventResult::DefaultPrevented) {
+        if let Some(wheel_event) = self.pending_wheel_events.remove(&id)
+            && !result.contains(InputEventResult::DefaultPrevented) {
                 // A scroll delta for a wheel event is the inverse of the wheel delta.
                 let scroll_delta =
                     DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
                 self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
             }
-        }
     }
 }
 

@@ -140,11 +140,10 @@ impl MessagePort {
             }
 
             // Step 4
-            if let Some(target_id) = target_port.as_ref() {
-                if port.message_port_id() == target_id {
+            if let Some(target_id) = target_port.as_ref()
+                && port.message_port_id() == target_id {
                     doomed = true;
                 }
-            }
         }
 
         // Step 5

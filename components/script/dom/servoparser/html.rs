@@ -136,13 +136,12 @@ fn start_element<S: Serializer>(element: &Element, serializer: &mut S) -> io::Re
 
     // The "is" value of an element is treated as if it was an attribute and it is serialized before all
     // other attributes. If the element already has an "is" attribute then the "is" value is ignored.
-    if !element.has_attribute(&LocalName::from("is")) {
-        if let Some(is_value) = element.get_is() {
+    if !element.has_attribute(&LocalName::from("is"))
+        && let Some(is_value) = element.get_is() {
             let qualified_name = QualName::new(None, ns!(), LocalName::from("is"));
 
             attributes.push((qualified_name, AttrValue::String(is_value.to_string())));
         }
-    }
 
     // Collect all the "normal" attributes
     attributes.extend(element.attrs().iter().map(|attr| {

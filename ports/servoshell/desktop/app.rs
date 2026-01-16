@@ -190,11 +190,10 @@ impl ApplicationHandler<AppEvent> for App {
             return;
         };
 
-        if let Some(window) = state.window(ServoShellWindowId::from(u64::from(window_id))) {
-            if let Some(headed_window) = window.platform_window().as_headed_window() {
+        if let Some(window) = state.window(ServoShellWindowId::from(u64::from(window_id)))
+            && let Some(headed_window) = window.platform_window().as_headed_window() {
                 headed_window.handle_winit_window_event(state.clone(), window, window_event);
             }
-        }
 
         if !self.pump_servo_event_loop(event_loop.into()) {
             event_loop.exit();
@@ -211,11 +210,9 @@ impl ApplicationHandler<AppEvent> for App {
         if let Some(window) = app_event
             .window_id()
             .and_then(|window_id| state.window(ServoShellWindowId::from(u64::from(window_id))))
-        {
-            if let Some(headed_window) = window.platform_window().as_headed_window() {
+            && let Some(headed_window) = window.platform_window().as_headed_window() {
                 headed_window.handle_winit_app_event(app_event);
             }
-        }
 
         if !self.pump_servo_event_loop(event_loop.into()) {
             event_loop.exit();

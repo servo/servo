@@ -395,11 +395,10 @@ impl WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn stop_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(false);
-        if let Some(document) = self.document() {
-            if !document.loader().events_inhibited() {
+        if let Some(document) = self.document()
+            && !document.loader().events_inhibited() {
                 ScriptThread::mark_document_with_no_blocked_loads(&document);
             }
-        }
     }
 
     // https://html.spec.whatwg.org/multipage/#disowned-its-opener
@@ -754,13 +753,12 @@ impl WindowProxy {
     }
 
     pub(crate) fn set_currently_active(&self, window: &Window, can_gc: CanGc) {
-        if let Some(pipeline_id) = self.currently_active() {
-            if pipeline_id == window.pipeline_id() {
+        if let Some(pipeline_id) = self.currently_active()
+            && pipeline_id == window.pipeline_id() {
                 return debug!(
                     "Attempt to set the currently active window to the currently active window."
                 );
             }
-        }
 
         let global_scope = window.as_global_scope();
         self.set_window(global_scope, WindowProxyHandler::proxy_handler(), can_gc);

@@ -128,12 +128,11 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrview-requestviewportscale>
     fn RequestViewportScale(&self, scale: Option<Finite<f64>>) {
-        if let Some(scale) = scale {
-            if *scale > 0.0 {
+        if let Some(scale) = scale
+            && *scale > 0.0 {
                 let clamped_scale = scale.clamp(0.0, 1.0);
                 self.requested_viewport_scale.set(clamped_scale);
             }
-        }
     }
 
     /// <https://www.w3.org/TR/webxr-ar-module-1/#dom-xrview-isfirstpersonobserver>

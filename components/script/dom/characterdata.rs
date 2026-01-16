@@ -91,12 +91,11 @@ impl CharacterData {
         // If this is a Text node, we might need to re-parse (say, if our parent
         // is a <style> element.) We don't need to if this is a Comment or
         // ProcessingInstruction.
-        if self.is::<Text>() {
-            if let Some(parent_node) = node.GetParentNode() {
+        if self.is::<Text>()
+            && let Some(parent_node) = node.GetParentNode() {
                 let mutation = ChildrenMutation::ChangeText;
                 vtable_for(&parent_node).children_changed(&mutation, CanGc::note());
             }
-        }
     }
 
     // Queue a MutationObserver record before changing the content.

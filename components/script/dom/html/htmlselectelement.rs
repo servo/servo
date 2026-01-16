@@ -206,11 +206,10 @@ impl HTMLSelectElement {
 
         if let Some(last_selected) = last_selected {
             last_selected.set_selectedness(true);
-        } else if self.display_size() == 1 {
-            if let Some(first_enabled) = first_enabled {
+        } else if self.display_size() == 1
+            && let Some(first_enabled) = first_enabled {
                 first_enabled.set_selectedness(true);
             }
-        }
     }
 
     pub(crate) fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
@@ -747,13 +746,12 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn handle_event(&self, event: &Event, can_gc: CanGc) {
         self.super_type().unwrap().handle_event(event, can_gc);
-        if let Some(event) = event.downcast::<FocusEvent>() {
-            if *event.upcast::<Event>().type_() != *"blur" {
+        if let Some(event) = event.downcast::<FocusEvent>()
+            && *event.upcast::<Event>().type_() != *"blur" {
                 self.owner_document()
                     .embedder_controls()
                     .hide_embedder_control(self.upcast());
             }
-        }
     }
 }
 

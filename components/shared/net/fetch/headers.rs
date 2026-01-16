@@ -135,11 +135,10 @@ fn collect_http_quoted_string(position: &mut Peekable<Chars>, extract_value: boo
 
     // Step 3, 4
     let should_be_quote = position.next();
-    if let Some(ch) = should_be_quote {
-        if !extract_value {
+    if let Some(ch) = should_be_quote
+        && !extract_value {
             value.push(ch)
         }
-    }
 
     // Step 5: While true:
     loop {

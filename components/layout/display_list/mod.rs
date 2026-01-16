@@ -596,8 +596,8 @@ impl Fragment {
     ) {
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
-        if let Some(inspector_highlight) = &mut builder.inspector_highlight {
-            if self.tag() == Some(inspector_highlight.tag) {
+        if let Some(inspector_highlight) = &mut builder.inspector_highlight
+            && self.tag() == Some(inspector_highlight.tag) {
                 inspector_highlight.register_fragment_of_highlighted_dom_node(
                     self,
                     spatial_id,
@@ -605,7 +605,6 @@ impl Fragment {
                     containing_block,
                 );
             }
-        }
 
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {

@@ -159,8 +159,8 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         self.buffer.set(new_buffer);
 
         // Step 5.
-        if self.source_node.has_start() {
-            if let Some(buffer) = self.buffer.get() {
+        if self.source_node.has_start()
+            && let Some(buffer) = self.buffer.get() {
                 let buffer = buffer.get_channels();
                 if buffer.is_some() {
                     self.source_node
@@ -170,7 +170,6 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
                         ));
                 }
             }
-        }
 
         Ok(())
     }
@@ -234,19 +233,17 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         offset: Option<Finite<f64>>,
         duration: Option<Finite<f64>>,
     ) -> Fallible<()> {
-        if let Some(offset) = offset {
-            if *offset < 0. {
+        if let Some(offset) = offset
+            && *offset < 0. {
                 return Err(Error::Range("'offset' must be a positive value".to_owned()));
             }
-        }
 
-        if let Some(duration) = duration {
-            if *duration < 0. {
+        if let Some(duration) = duration
+            && *duration < 0. {
                 return Err(Error::Range(
                     "'duration' must be a positive value".to_owned(),
                 ));
             }
-        }
 
         if let Some(buffer) = self.buffer.get() {
             let buffer = buffer.get_channels();

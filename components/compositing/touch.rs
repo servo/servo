@@ -290,11 +290,10 @@ impl TouchHandler {
 
     // try to remove touch sequence, if touch sequence end and not has pending action.
     pub(crate) fn try_remove_touch_sequence(&mut self, sequence_id: TouchSequenceId) {
-        if let Some(sequence) = self.touch_sequence_map.get(&sequence_id) {
-            if sequence.pending_touch_move_actions.is_empty() && sequence.state == Finished {
+        if let Some(sequence) = self.touch_sequence_map.get(&sequence_id)
+            && sequence.pending_touch_move_actions.is_empty() && sequence.state == Finished {
                 self.touch_sequence_map.remove(&sequence_id);
             }
-        }
     }
 
     pub(crate) fn remove_touch_sequence(&mut self, sequence_id: TouchSequenceId) {
@@ -511,11 +510,10 @@ impl TouchHandler {
         };
         // If the touch action is not `NoAction` and the first move has not been processed,
         //  set pending_touch_move_action.
-        if let Some(action) = action {
-            if touch_sequence.prevent_move == TouchMoveAllowed::Pending {
+        if let Some(action) = action
+            && touch_sequence.prevent_move == TouchMoveAllowed::Pending {
                 touch_sequence.add_pending_touch_move_action(action);
             }
-        }
 
         action
     }
@@ -643,14 +641,13 @@ impl TouchHandler {
         value: PaintHitTestResult,
         device_pixels_per_page: Scale<f32, CSSPixel, DevicePixel>,
     ) {
-        if let Some(sequence) = self.touch_sequence_map.get_mut(&self.current_sequence_id) {
-            if sequence.hit_test_result_cache.is_none() {
+        if let Some(sequence) = self.touch_sequence_map.get_mut(&self.current_sequence_id)
+            && sequence.hit_test_result_cache.is_none() {
                 sequence.hit_test_result_cache = Some(HitTestResultCache {
                     value,
                     device_pixels_per_page,
                 });
             }
-        }
     }
 
     pub(crate) fn add_pending_touch_input_event(

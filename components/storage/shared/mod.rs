@@ -28,11 +28,10 @@ pub const DB_IN_MEMORY_PRAGMAS: [&str; 1] = ["PRAGMA cache_size = 2000;"];
 pub(crate) fn is_sqlite_disk_full_error(error: &RusqliteError) -> bool {
     fn has_enospc(mut source: Option<&(dyn StdError + 'static)>) -> bool {
         while let Some(err) = source {
-            if let Some(io_err) = err.downcast_ref::<std::io::Error>() {
-                if io_err.raw_os_error() == Some(ENOSPC) {
+            if let Some(io_err) = err.downcast_ref::<std::io::Error>()
+                && io_err.raw_os_error() == Some(ENOSPC) {
                     return true;
                 }
-            }
             source = err.source();
         }
         false

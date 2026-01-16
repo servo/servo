@@ -2483,11 +2483,10 @@ impl FloatBox {
 
 fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mut [LineItem]) {
     for item in line_items.iter_mut() {
-        if let LineItem::Float(_, float_line_item) = item {
-            if float_line_item.needs_placement {
+        if let LineItem::Float(_, float_line_item) = item
+            && float_line_item.needs_placement {
                 ifc.place_float_fragment(&mut float_line_item.fragment.borrow_mut());
             }
-        }
     }
 }
 

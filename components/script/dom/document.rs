@@ -959,11 +959,10 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        if let Some(root) = self.GetDocumentElement() {
-            if root.upcast::<Node>().has_dirty_descendants() {
+        if let Some(root) = self.GetDocumentElement()
+            && root.upcast::<Node>().has_dirty_descendants() {
                 condition.insert(RestyleReason::DOMChanged);
             }
-        }
 
         if !self.pending_restyles.borrow().is_empty() {
             condition.insert(RestyleReason::PendingRestyles);
@@ -1433,8 +1432,8 @@ impl Document {
         trace_focus_chain("Old", old_focused_filtered, old_focus_state);
         trace_focus_chain("New", new_focused_filtered, new_focus_state);
 
-        if old_focused_filtered != new_focused_filtered {
-            if let Some(elem) = &old_focused_filtered {
+        if old_focused_filtered != new_focused_filtered
+            && let Some(elem) = &old_focused_filtered {
                 let node = elem.upcast::<Node>();
                 elem.set_focus_state(false);
                 // FIXME: pass appropriate relatedTarget
@@ -1442,7 +1441,6 @@ impl Document {
                     self.fire_focus_event(FocusEventType::Blur, node.upcast(), None, can_gc);
                 }
             }
-        }
 
         if old_focus_state != new_focus_state && !new_focus_state {
             self.fire_focus_event(FocusEventType::Blur, self.global().upcast(), None, can_gc);
@@ -1455,8 +1453,8 @@ impl Document {
             self.fire_focus_event(FocusEventType::Focus, self.global().upcast(), None, can_gc);
         }
 
-        if old_focused_filtered != new_focused_filtered {
-            if let Some(elem) = &new_focused_filtered {
+        if old_focused_filtered != new_focused_filtered
+            && let Some(elem) = &new_focused_filtered {
                 elem.set_focus_state(true);
                 let node = elem.upcast::<Node>();
                 // FIXME: pass appropriate relatedTarget
@@ -1484,7 +1482,6 @@ impl Document {
                     );
                 }
             }
-        }
 
         if focus_initiator != FocusInitiator::Local {
             return;

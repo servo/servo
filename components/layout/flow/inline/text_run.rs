@@ -506,11 +506,10 @@ impl TextRun {
             };
 
             // If the existing segment is compatible with the character, keep going.
-            if let Some(current) = current.as_mut() {
-                if current.update_if_compatible(layout_context, &font, script, bidi_level) {
+            if let Some(current) = current.as_mut()
+                && current.update_if_compatible(layout_context, &font, script, bidi_level) {
                     continue;
                 }
-            }
 
             // Add the new segment and finish the existing one, if we had one. If the first
             // characters in the run were control characters we may be creating the first

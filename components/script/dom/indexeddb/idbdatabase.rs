@@ -209,11 +209,10 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         let key_path = options.keyPath.as_ref();
 
         // Step 5
-        if let Some(path) = key_path {
-            if !is_valid_key_path(path)? {
+        if let Some(path) = key_path
+            && !is_valid_key_path(path)? {
                 return Err(Error::Syntax(None));
             }
-        }
 
         // Step 6
         if self.object_store_names.borrow().contains(&name) {

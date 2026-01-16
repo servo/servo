@@ -399,11 +399,10 @@ impl Slottable {
                 .upcast::<Node>()
                 .traverse_preorder(ShadowIncluding::No)
             {
-                if let Some(slot) = node.downcast::<HTMLSlotElement>() {
-                    if slot.manually_assigned_nodes.borrow().contains(self) {
+                if let Some(slot) = node.downcast::<HTMLSlotElement>()
+                    && slot.manually_assigned_nodes.borrow().contains(self) {
                         return Some(DomRoot::from_ref(slot));
                     }
-                }
             }
             return None;
         }
@@ -497,11 +496,10 @@ impl VirtualMethods for HTMLSlotElement {
         }
 
         let was_already_in_shadow_tree = context.is_shadow_tree == IsShadowTree::Yes;
-        if !was_already_in_shadow_tree {
-            if let Some(shadow_root) = self.containing_shadow_root() {
+        if !was_already_in_shadow_tree
+            && let Some(shadow_root) = self.containing_shadow_root() {
                 shadow_root.register_slot(self);
             }
-        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
@@ -509,12 +507,11 @@ impl VirtualMethods for HTMLSlotElement {
             s.unbind_from_tree(context, can_gc);
         }
 
-        if !self.upcast::<Node>().is_in_a_shadow_tree() {
-            if let Some(old_shadow_root) = self.containing_shadow_root() {
+        if !self.upcast::<Node>().is_in_a_shadow_tree()
+            && let Some(old_shadow_root) = self.containing_shadow_root() {
                 // If we used to be in a shadow root, but aren't anymore, then unregister this slot
                 old_shadow_root.unregister_slot(self.Name(), self);
             }
-        }
     }
 }
 

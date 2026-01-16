@@ -351,18 +351,16 @@ impl ServoCookie {
             if self.cookie.domain() != domain {
                 return false;
             }
-        } else if let (Some(domain), Some(cookie_domain)) = (domain, &self.cookie.domain()) {
-            if !ServoCookie::domain_match(domain, cookie_domain) {
+        } else if let (Some(domain), Some(cookie_domain)) = (domain, &self.cookie.domain())
+            && !ServoCookie::domain_match(domain, cookie_domain) {
                 return false;
             }
-        }
 
         // The retrieval's URI's path path-matches the cookie's path.
-        if let Some(cookie_path) = self.cookie.path() {
-            if !ServoCookie::path_match(url.path(), cookie_path) {
+        if let Some(cookie_path) = self.cookie.path()
+            && !ServoCookie::path_match(url.path(), cookie_path) {
                 return false;
             }
-        }
 
         // If the cookie's secure-only-flag is true, then the retrieval's URI must denote a "secure" connection
         if self.cookie.secure().unwrap_or(false) && !url.is_secure_scheme() {
@@ -500,8 +498,8 @@ impl ServoCookie {
         let (_, date_tokens) = cookie_date(string_in_bytes).ok()?;
         for date_token in date_tokens {
             // Step 2.1. If the found-time flag is not set and the token matches the time production,
-            if time_value.is_none() {
-                if let Ok((_, result)) = time(date_token) {
+            if time_value.is_none()
+                && let Ok((_, result)) = time(date_token) {
                     // set the found-time flag and set the hour-value, minute-value, and
                     // second-value to the numbers denoted by the digits in the date-token,
                     // respectively.
@@ -515,23 +513,21 @@ impl ServoCookie {
                     // Skip the remaining sub-steps and continue to the next date-token.
                     continue;
                 }
-            }
 
             // Step 2.2. If the found-day-of-month flag is not set and the date-token matches the
             // day-of-month production,
-            if day_of_month_value.is_none() {
-                if let Ok((_, result)) = day_of_month(date_token) {
+            if day_of_month_value.is_none()
+                && let Ok((_, result)) = day_of_month(date_token) {
                     // set the found-day-of-month flag and set the day-of-month-value to the number
                     // denoted by the date-token.
                     day_of_month_value = parse_ascii_u8(result);
                     // Skip the remaining sub-steps and continue to the next date-token.
                     continue;
                 }
-            }
 
             // Step 2.3. If the found-month flag is not set and the date-token matches the month production,
-            if month_value.is_none() {
-                if let Ok((_, result)) = month(date_token) {
+            if month_value.is_none()
+                && let Ok((_, result)) = month(date_token) {
                     // set the found-month flag and set the month-value to the month denoted by the date-token.
                     month_value = match std::str::from_utf8(result)
                         .unwrap()
@@ -555,34 +551,30 @@ impl ServoCookie {
                     // Skip the remaining sub-steps and continue to the next date-token.
                     continue;
                 }
-            }
 
             // Step 2.4. If the found-year flag is not set and the date-token matches the year production,
-            if year_value.is_none() {
-                if let Ok((_, result)) = year(date_token) {
+            if year_value.is_none()
+                && let Ok((_, result)) = year(date_token) {
                     // set the found-year flag and set the year-value to the number denoted by the date-token.
                     year_value = parse_ascii_i32(result);
                     // Skip the remaining sub-steps and continue to the next date-token.
                     continue;
                 }
-            }
         }
 
         // Step 3. If the year-value is greater than or equal to 70 and less than or equal to 99,
         // increment the year-value by 1900.
-        if let Some(value) = year_value {
-            if (70..=99).contains(&value) {
+        if let Some(value) = year_value
+            && (70..=99).contains(&value) {
                 year_value = Some(value + 1900);
             }
-        }
 
         // Step 4. If the year-value is greater than or equal to 0 and less than or equal to 69,
         // increment the year-value by 2000.
-        if let Some(value) = year_value {
-            if (0..=69).contains(&value) {
+        if let Some(value) = year_value
+            && (0..=69).contains(&value) {
                 year_value = Some(value + 2000);
             }
-        }
 
         // Step 5. Abort these steps and fail to parse the cookie-date if:
         // * at least one of the found-day-of-month, found-month, found-year, or found-time flags is not set,
@@ -594,25 +586,22 @@ impl ServoCookie {
             return None;
         }
         // * the day-of-month-value is less than 1 or greater than 31,
-        if let Some(value) = day_of_month_value {
-            if !(1..=31).contains(&value) {
+        if let Some(value) = day_of_month_value
+            && !(1..=31).contains(&value) {
                 return None;
             }
-        }
         // * the year-value is less than 1601,
-        if let Some(value) = year_value {
-            if value < 1601 {
+        if let Some(value) = year_value
+            && value < 1601 {
                 return None;
             }
-        }
         // * the hour-value is greater than 23,
         // * the minute-value is greater than 59, or
         // * the second-value is greater than 59.
-        if let Some((hour_value, minute_value, second_value)) = time_value {
-            if hour_value > 23 || minute_value > 59 || second_value > 59 {
+        if let Some((hour_value, minute_value, second_value)) = time_value
+            && (hour_value > 23 || minute_value > 59 || second_value > 59) {
                 return None;
             }
-        }
 
         // Step 6. Let the parsed-cookie-date be the date whose day-of-month, month, year, hour,
         // minute, and second (in UTC) are the day-of-month-value, the month-value, the year-value,

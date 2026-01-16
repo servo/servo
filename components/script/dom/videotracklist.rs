@@ -103,11 +103,10 @@ impl VideoTrackList {
 
     pub(crate) fn add(&self, track: &VideoTrack) {
         self.tracks.borrow_mut().push(Dom::from_ref(track));
-        if track.selected() {
-            if let Some(idx) = self.selected_index() {
+        if track.selected()
+            && let Some(idx) = self.selected_index() {
                 self.set_selected(idx, false);
             }
-        }
         track.add_track_list(self);
     }
 

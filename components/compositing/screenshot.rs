@@ -161,52 +161,44 @@ impl ScreenshotTaker {
             return;
         }
 
-        // TODO: This can eventually just be `extract_if`. We need to have ownership
-        // of the ScreenshotRequest in order to call the `FnOnce` callabck.
-        let screenshots = requests.drain(..);
-        *requests = screenshots
-            .filter_map(|screenshot_request| {
-                if !matches!(
-                    screenshot_request.phase,
-                    ScreenshotRequestPhase::WaitingOnFrame
-                ) {
-                    return Some(screenshot_request);
-                }
+        let ready_screenshot_requests = requests.extract_if(.., |screenshot_request| {
+            !matches!(
+                screenshot_request.phase,
+                ScreenshotRequestPhase::WaitingOnFrame
+            )
+        });
 
-                let callback = screenshot_request.callback;
-                let Some(webview_renderer) =
-                    renderer.webview_renderer(screenshot_request.webview_id)
-                else {
-                    callback(Err(ScreenshotCaptureError::WebViewDoesNotExist));
-                    return None;
-                };
+        for screenshot_request in ready_screenshot_requests {
+            let callback = screenshot_request.callback;
+            let Some(webview_renderer) = renderer.webview_renderer(screenshot_request.webview_id)
+            else {
+                callback(Err(ScreenshotCaptureError::WebViewDoesNotExist));
+                continue;
+            };
 
-                let viewport_rect = webview_renderer.rect.to_i32();
-                let viewport_size = viewport_rect.size();
-                let rect = screenshot_request.rect.map_or(viewport_rect, |rect| {
-                    // We need to convert to the bottom-left origin coordinate
-                    // system used by OpenGL
-                    // If dpi > 1, y can be computed to be -1 due to rounding issue, resulting in panic.
-                    // https://github.com/servo/servo/issues/39306#issuecomment-3342204869
-                    let x = rect.min.x as i32;
-                    let y = 0.max(
-                        (viewport_size.height as f32 - rect.min.y - rect.size().height) as i32,
-                    );
-                    let w = rect.size().width as i32;
-                    let h = rect.size().height as i32;
+            let viewport_rect = webview_renderer.rect.to_i32();
+            let viewport_size = viewport_rect.size();
+            let rect = screenshot_request.rect.map_or(viewport_rect, |rect| {
+                // We need to convert to the bottom-left origin coordinate
+                // system used by OpenGL
+                // If dpi > 1, y can be computed to be -1 due to rounding issue, resulting in panic.
+                // https://github.com/servo/servo/issues/39306#issuecomment-3342204869
+                let x = rect.min.x as i32;
+                let y =
+                    0.max((viewport_size.height as f32 - rect.min.y - rect.size().height) as i32);
+                let w = rect.size().width as i32;
+                let h = rect.size().height as i32;
 
-                    DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
-                });
-                if let Err(error) = renderer.rendering_context.make_current() {
-                    error!("Failed to make the rendering context current: {error:?}");
-                }
-                let result = renderer
-                    .rendering_context
-                    .read_to_image(rect)
-                    .ok_or(ScreenshotCaptureError::CouldNotReadImage);
-                callback(result);
-                None
-            })
-            .collect();
+                DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
+            });
+            if let Err(error) = renderer.rendering_context.make_current() {
+                error!("Failed to make the rendering context current: {error:?}");
+            }
+            let result = renderer
+                .rendering_context
+                .read_to_image(rect)
+                .ok_or(ScreenshotCaptureError::CouldNotReadImage);
+            callback(result);
+        }
     }
 }

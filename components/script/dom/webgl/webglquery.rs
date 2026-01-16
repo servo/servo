@@ -60,11 +60,10 @@ impl WebGLQuery {
         if self.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() {
-            if current_target != target {
+        if let Some(current_target) = self.gl_target.get()
+            && current_target != target {
                 return Err(InvalidOperation);
             }
-        }
         match target {
             constants::ANY_SAMPLES_PASSED |
             constants::ANY_SAMPLES_PASSED_CONSERVATIVE |
@@ -85,11 +84,10 @@ impl WebGLQuery {
         if self.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() {
-            if current_target != target {
+        if let Some(current_target) = self.gl_target.get()
+            && current_target != target {
                 return Err(InvalidOperation);
             }
-        }
         match target {
             constants::ANY_SAMPLES_PASSED |
             constants::ANY_SAMPLES_PASSED_CONSERVATIVE |

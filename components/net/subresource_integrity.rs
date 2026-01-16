@@ -105,12 +105,11 @@ pub fn get_strongest_metadata(integrity_metadata_list: Vec<SriEntry>) -> Vec<Sri
             get_prioritized_hash_function(&integrity_metadata.alg, &current_algorithm);
         if prioritized_hash.is_none() {
             result.push(integrity_metadata.clone());
-        } else if let Some(algorithm) = prioritized_hash {
-            if algorithm != current_algorithm {
+        } else if let Some(algorithm) = prioritized_hash
+            && algorithm != current_algorithm {
                 result = vec![integrity_metadata.clone()];
                 current_algorithm = algorithm;
             }
-        }
     }
 
     result

@@ -976,11 +976,10 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 
         // Handle flags that apply to the parent.
         let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.as_node().parent_element() {
+        if !parent_flags.is_empty()
+            && let Some(p) = self.as_node().parent_element() {
                 p.element.insert_selector_flags(flags);
             }
-        }
     }
 
     fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
@@ -1283,11 +1282,10 @@ impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
 
         // Handle flags that apply to the parent.
         let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.element.parent_element() {
+        if !parent_flags.is_empty()
+            && let Some(p) = self.element.parent_element() {
                 p.element.insert_selector_flags(flags);
             }
-        }
     }
 
     fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {

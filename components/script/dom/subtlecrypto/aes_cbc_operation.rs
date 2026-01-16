@@ -84,7 +84,7 @@ pub(crate) fn decrypt(
     if ciphertext.is_empty() {
         return Err(Error::Operation(Some("The ciphertext is empty".into())));
     }
-    if ciphertext.len() % 16 != 0 {
+    if !ciphertext.len().is_multiple_of(16) {
         return Err(Error::Operation(Some(
             "The ciphertext length is not a multiple of 16 bytes".into(),
         )));

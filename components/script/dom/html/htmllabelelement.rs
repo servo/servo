@@ -132,11 +132,10 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
             });
         // We now have the element that we would return, but only return it
         // if it's labelable.
-        if let Some(ref maybe_labelable) = maybe_found {
-            if maybe_labelable.is_labelable_element() {
+        if let Some(ref maybe_labelable) = maybe_found
+            && maybe_labelable.is_labelable_element() {
                 return maybe_found;
             }
-        }
         None
     }
 }

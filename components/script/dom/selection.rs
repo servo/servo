@@ -60,11 +60,10 @@ impl Selection {
         // If we are setting to literally the same Range object
         // (not just the same positions), then there's nothing changing
         // and no task to queue.
-        if let Some(existing) = self.range.get() {
-            if &*existing == range {
+        if let Some(existing) = self.range.get()
+            && &*existing == range {
                 return;
             }
-        }
         self.range.set(Some(range));
         range.associate_selection(self);
         self.queue_selectionchange_task();
@@ -214,12 +213,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removerange>
     fn RemoveRange(&self, range: &Range) -> ErrorResult {
-        if let Some(own_range) = self.range.get() {
-            if &*own_range == range {
+        if let Some(own_range) = self.range.get()
+            && &*own_range == range {
                 self.clear_range();
                 return Ok(());
             }
-        }
         Err(Error::NotFound(None))
     }
 

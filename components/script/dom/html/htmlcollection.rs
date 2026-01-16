@@ -445,14 +445,13 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
                 }
             }
             // Step 2.2
-            if *elem.namespace() == ns!(html) {
-                if let Some(name_atom) = elem.get_name() {
+            if *elem.namespace() == ns!(html)
+                && let Some(name_atom) = elem.get_name() {
                     let name_str = DOMString::from(&*name_atom);
                     if !result.contains(&name_str) {
                         result.push(name_str)
                     }
                 }
-            }
         }
 
         // Step 3

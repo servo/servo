@@ -672,11 +672,10 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             return Err(Error::InvalidState(None));
         }
         // Step 3:
-        if let Some(Some(ref layer)) = init.baseLayer {
-            if Dom::from_ref(layer.session()) != Dom::from_ref(self) {
+        if let Some(Some(ref layer)) = init.baseLayer
+            && Dom::from_ref(layer.session()) != Dom::from_ref(self) {
                 return Err(Error::InvalidState(None));
             }
-        }
 
         // Step 4:
         if init.inlineVerticalFieldOfView.is_some() && self.is_immersive() {

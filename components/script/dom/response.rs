@@ -444,8 +444,8 @@ fn initialize_response(
 
         // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
         // then append (`Content-Type`, body’s type) to response’s header list.
-        if let Some(content_type_contents) = &body.content_type {
-            if !response
+        if let Some(content_type_contents) = &body.content_type
+            && !response
                 .Headers(can_gc)
                 .Has(ByteString::new(b"Content-Type".to_vec()))
                 .unwrap()
@@ -454,8 +454,7 @@ fn initialize_response(
                     ByteString::new(b"Content-Type".to_vec()),
                     ByteString::new(content_type_contents.as_bytes().to_vec()),
                 )?;
-            }
-        };
+            };
     } else {
         // Reset FetchResponse to an in-memory stream with empty byte sequence here for
         // no-init-body case. This is because the Response/Body types here do not hold onto a

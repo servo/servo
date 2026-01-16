@@ -610,8 +610,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node {
-            if let Some(cdata) = start_node.downcast::<CharacterData>() {
+        if end_node == start_node
+            && let Some(cdata) = start_node.downcast::<CharacterData>() {
                 // Steps 4.1-2.
                 let data = cdata
                     .SubstringData(start_offset, end_offset - start_offset)
@@ -622,7 +622,6 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 4.4
                 return Ok(fragment);
             }
-        }
 
         // Steps 5-12.
         let ContainedChildren {
@@ -716,8 +715,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node {
-            if let Some(end_data) = end_node.downcast::<CharacterData>() {
+        if end_node == start_node
+            && let Some(end_data) = end_node.downcast::<CharacterData>() {
                 // Step 4.1.
                 let clone = end_node.CloneNode(/* deep */ true, can_gc)?;
                 // Step 4.2.
@@ -733,7 +732,6 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 4.5.
                 return Ok(fragment);
             }
-        }
 
         // Steps 5-12.
         let ContainedChildren {
@@ -946,14 +944,13 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let end_offset = self.end_offset();
 
         // Step 3.
-        if start_node == end_node {
-            if let Some(text) = start_node.downcast::<CharacterData>() {
+        if start_node == end_node
+            && let Some(text) = start_node.downcast::<CharacterData>() {
                 if end_offset > start_offset {
                     self.report_change();
                 }
                 return text.ReplaceData(start_offset, end_offset - start_offset, DOMString::new());
             }
-        }
 
         // Step 4.
         rooted_vec!(let mut contained_children);

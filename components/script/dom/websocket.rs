@@ -451,12 +451,11 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 return Err(Error::InvalidAccess(None));
             }
         }
-        if let Some(ref reason) = reason {
-            if reason.0.len() > 123 {
+        if let Some(ref reason) = reason
+            && reason.0.len() > 123 {
                 // reason cannot be larger than 123 bytes
                 return Err(Error::Syntax(Some("Reason too long".to_string())));
             }
-        }
 
         match self.ready_state.get() {
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => {}, // Do nothing

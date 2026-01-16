@@ -261,11 +261,10 @@ impl TextInputWidgetShadowTree {
             (true, _) => "\u{200B}".into(),
         };
 
-        if let Some(character_data) = self.value_character_data() {
-            if character_data.Data() != value_text {
+        if let Some(character_data) = self.value_character_data()
+            && character_data.Data() != value_text {
                 character_data.SetData(value_text);
             }
-        }
     }
 }
 
@@ -1082,11 +1081,10 @@ impl HTMLInputElement {
             // Step 4. If the element has a minimum and a maximum and there is no value greater than or equal to the
             // element's minimum and less than or equal to the element's maximum that, when subtracted from the step
             // base, is an integral multiple of the allowed value step, then return.
-            if let Some(stepped_minimum) = self.stepped_minimum() {
-                if stepped_minimum > max {
+            if let Some(stepped_minimum) = self.stepped_minimum()
+                && stepped_minimum > max {
                     return Ok(());
                 }
-            }
         }
 
         // Step 5. If applying the algorithm to convert a string to a number to the string given
@@ -1134,20 +1132,18 @@ impl HTMLInputElement {
         // Step 8. If the element has a minimum, and value is less than that minimum, then set value to the smallest
         // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
         // is more than or equal to that minimum.
-        if let Some(min) = minimum {
-            if value < min {
+        if let Some(min) = minimum
+            && value < min {
                 value = self.stepped_minimum().unwrap_or(value);
             }
-        }
 
         // Step 9. If the element has a maximum, and value is greater than that maximum, then set value to the largest
         // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
         // is less than or equal to that maximum.
-        if let Some(max) = maximum {
-            if value > max {
+        if let Some(max) = maximum
+            && value > max {
                 value = self.stepped_maximum().unwrap_or(value);
             }
-        }
 
         // Step 10. If either the method invoked was the stepDown() method and value is greater than
         // valueBeforeStepping, or the method invoked was the stepUp() method and value is less than
@@ -1379,17 +1375,15 @@ impl HTMLInputElement {
             }
         } else {
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-underflow-2
-            if let Some(min_value) = min_value {
-                if value_as_number < min_value {
+            if let Some(min_value) = min_value
+                && value_as_number < min_value {
                     failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
                 }
-            }
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-overflow-2
-            if let Some(max_value) = max_value {
-                if value_as_number > max_value {
+            if let Some(max_value) = max_value
+                && value_as_number > max_value {
                     failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
                 }
-            }
         }
 
         // https://html.spec.whatwg.org/multipage/#the-step-attribute%3Asuffering-from-a-step-mismatch
@@ -2500,16 +2494,14 @@ impl HTMLInputElement {
                     let mut fval = *fval;
                     // comparing max first, because if they contradict
                     // the spec wants min to be the one that applies
-                    if let Some(max) = self.maximum() {
-                        if fval > max {
+                    if let Some(max) = self.maximum()
+                        && fval > max {
                             fval = max;
                         }
-                    }
-                    if let Some(min) = self.minimum() {
-                        if fval < min {
+                    if let Some(min) = self.minimum()
+                        && fval < min {
                             fval = min;
                         }
-                    }
                     // https://html.spec.whatwg.org/multipage/#range-state-(type=range):suffering-from-a-step-mismatch
                     // Spec does not describe this in a way that lends itself to
                     // reproducible handling of floating-point rounding;
@@ -2527,16 +2519,14 @@ impl HTMLInputElement {
                             // but if after snapping we're now outside min..max
                             // we have to adjust! (adjusting to min last because
                             // that "wins" over max in the spec)
-                            if let Some(stepped_maximum) = self.stepped_maximum() {
-                                if fval > stepped_maximum {
+                            if let Some(stepped_maximum) = self.stepped_maximum()
+                                && fval > stepped_maximum {
                                     fval = stepped_maximum;
                                 }
-                            }
-                            if let Some(stepped_minimum) = self.stepped_minimum() {
-                                if fval < stepped_minimum {
+                            if let Some(stepped_minimum) = self.stepped_minimum()
+                                && fval < stepped_minimum {
                                     fval = stepped_minimum;
                                 }
-                            }
                         }
                     }
                     *value = DOMString::from(fval.to_string());
@@ -2836,11 +2826,10 @@ impl HTMLInputElement {
             // element's selected files."
             //
             // Note: This is annoying.
-            if self.Multiple() {
-                if let Some(filelist) = self.filelist.get() {
+            if self.Multiple()
+                && let Some(filelist) = self.filelist.get() {
                     files = filelist.iter_files().map(|file| file.as_rooted()).collect();
                 }
-            }
 
             let number_files_selected = response.as_ref().map(Vec::len).unwrap_or_default();
             pending_webdriver_reponse.finish(number_files_selected);

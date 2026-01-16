@@ -421,7 +421,7 @@ pub(crate) struct CommonCompressedTexImage2DValidatorResult {
 }
 
 fn valid_s3tc_dimension(level: u32, side_length: u32, block_size: u32) -> bool {
-    (side_length % block_size == 0) || (level > 0 && [0, 1, 2].contains(&side_length))
+    side_length.is_multiple_of(block_size) || (level > 0 && [0, 1, 2].contains(&side_length))
 }
 
 fn valid_compressed_data_len(
@@ -452,9 +452,9 @@ fn is_subimage_blockaligned(
     let block_width = compression.block_width as u32;
     let block_height = compression.block_height as u32;
 
-    (xoffset % block_width == 0 && yoffset % block_height == 0) &&
-        (width % block_width == 0 || xoffset + width == tex_info.width()) &&
-        (height % block_height == 0 || yoffset + height == tex_info.height())
+    (xoffset.is_multiple_of(block_width) && yoffset.is_multiple_of(block_height)) &&
+        (width.is_multiple_of(block_width) || xoffset + width == tex_info.width()) &&
+        (height.is_multiple_of(block_height) || yoffset + height == tex_info.height())
 }
 
 impl WebGLValidator for CommonCompressedTexImage2DValidator<'_> {

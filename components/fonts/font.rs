@@ -652,13 +652,12 @@ impl FontGroup {
             return font_or_synthesized_small_caps(font);
         }
 
-        if let Some(ref first_fallback) = first_fallback {
-            if char_in_template(first_fallback.template.clone()) &&
+        if let Some(ref first_fallback) = first_fallback
+            && char_in_template(first_fallback.template.clone()) &&
                 font_has_glyph_and_presentation(first_fallback)
             {
                 return font_or_synthesized_small_caps(first_fallback.clone());
             }
-        }
 
         if let Some(font) = self.find_fallback(
             font_context,

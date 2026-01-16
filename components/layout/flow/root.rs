@@ -113,11 +113,10 @@ impl BoxTree {
 
         root_box.borrow_mut().with_base_mut(|base| {
             let root_overflow = AxesOverflow::from(&*base.style);
-            if root_overflow.x == Overflow::Visible && root_overflow.y == Overflow::Visible {
-                if let Some(body_overflow) = propagate_from_body() {
+            if root_overflow.x == Overflow::Visible && root_overflow.y == Overflow::Visible
+                && let Some(body_overflow) = propagate_from_body() {
                     return body_overflow;
                 }
-            }
             base.base_fragment_info
                 .flags
                 .insert(FragmentFlags::PROPAGATED_OVERFLOW_TO_VIEWPORT);

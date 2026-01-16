@@ -345,13 +345,11 @@ impl Event {
 
             // Step 6.5. If isActivationEvent is true and target has activation behavior,
             // then set activationTarget to target.
-            if is_activation_event {
-                if let Some(element) = target.downcast::<Element>() {
-                    if element.as_maybe_activatable().is_some() {
+            if is_activation_event
+                && let Some(element) = target.downcast::<Element>()
+                    && element.as_maybe_activatable().is_some() {
                         activation_target = Some(DomRoot::from_ref(element));
                     }
-                }
-            }
 
             // Step 6.6. Let slottable be target, if target is a slottable and is assigned, and null otherwise.
             let mut slottable = if target
@@ -428,13 +426,11 @@ impl Event {
                 if parent.is::<Window>() || root_is_shadow_inclusive_ancestor {
                     // Step 6.9.6.1. If isActivationEvent is true, event’s bubbles attribute is true, activationTarget
                     // is null, and parent has activation behavior, then set activationTarget to parent.
-                    if is_activation_event && activation_target.is_none() && self.bubbles.get() {
-                        if let Some(element) = parent.downcast::<Element>() {
-                            if element.as_maybe_activatable().is_some() {
+                    if is_activation_event && activation_target.is_none() && self.bubbles.get()
+                        && let Some(element) = parent.downcast::<Element>()
+                            && element.as_maybe_activatable().is_some() {
                                 activation_target = Some(DomRoot::from_ref(element));
                             }
-                        }
-                    }
 
                     // Step 6.9.6.2. Append to an event path with event, parent, null, relatedTarget, touchTargets,
                     // and slot-in-closed-tree.
@@ -458,13 +454,11 @@ impl Event {
 
                     // Step 6.9.8.2. If isActivationEvent is true, activationTarget is null, and target has
                     // activation behavior, then set activationTarget to target.
-                    if is_activation_event && activation_target.is_none() {
-                        if let Some(element) = parent.downcast::<Element>() {
-                            if element.as_maybe_activatable().is_some() {
+                    if is_activation_event && activation_target.is_none()
+                        && let Some(element) = parent.downcast::<Element>()
+                            && element.as_maybe_activatable().is_some() {
                                 activation_target = Some(DomRoot::from_ref(element));
                             }
-                        }
-                    }
 
                     // Step 6.9.8.3. Append to an event path with event, parent, target, relatedTarget,
                     // touchTargets, and slot-in-closed-tree.
@@ -596,14 +590,12 @@ impl Event {
         // Compare:
         // https://w3c.github.io/uievents/#default-action
         // https://dom.spec.whatwg.org/#action-versus-occurance
-        if !self.DefaultPrevented() {
-            if let Some(target) = self.GetTarget() {
-                if let Some(node) = target.downcast::<Node>() {
+        if !self.DefaultPrevented()
+            && let Some(target) = self.GetTarget()
+                && let Some(node) = target.downcast::<Node>() {
                     let vtable = vtable_for(node);
                     vtable.handle_event(self, can_gc);
                 }
-            }
-        }
 
         // Step 8. Set event’s currentTarget attribute to null.
         self.current_target.set(None);

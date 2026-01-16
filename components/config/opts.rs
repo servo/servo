@@ -140,11 +140,10 @@ impl DiagnosticsLogging {
         // Disabled for production builds
         #[cfg(debug_assertions)]
         {
-            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS") {
-                if let Err(error) = config.extend_from_string(&diagnostics_var) {
+            if let Ok(diagnostics_var) = std::env::var("SERVO_DIAGNOSTICS")
+                && let Err(error) = config.extend_from_string(&diagnostics_var) {
                     eprintln!("Could not parse debug logging option: {error}");
                 }
-            }
         }
 
         config
