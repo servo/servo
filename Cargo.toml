@@ -307,10 +307,10 @@ codegen-units = 1
 #
 # Or for WebRender:
 #
-[patch."https://github.com/servo/webrender"]
-webrender = { path = "../webrender/webrender" }
-webrender_api = { path = "../webrender/webrender_api" }
-wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
+#[patch."https://github.com/servo/webrender"]
+#webrender = { path = "../webrender/webrender" }
+#webrender_api = { path = "../webrender/webrender_api" }
+#wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for another Git dependency:
 #
