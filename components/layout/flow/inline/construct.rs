@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
 use icu_segmenter::WordSegmenter;
+use layout_api::wrapper_traits::{SharedSelection, ThreadSafeLayoutNode};
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
@@ -42,6 +43,10 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// The current offset in the final text string of this [`InlineFormattingContext`],
     /// used to properly set the text range of new [`InlineItem::TextRun`]s.
     current_text_offset: usize,
+
+    /// If the [`InlineFormattingContext`] that we are building has a selection shared with its
+    /// originating node in the DOM, this will not be `None`.
+    pub shared_selection: Option<SharedSelection>,
 
     /// Whether the last processed node ended with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
@@ -85,17 +90,12 @@ pub(crate) struct InlineFormattingContextBuilder {
 
 impl InlineFormattingContextBuilder {
     pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
-        Self::new_for_shared_styles(vec![info.into()])
-    }
-
-    pub(crate) fn new_for_shared_styles(
-        shared_inline_styles_stack: Vec<SharedInlineStyles>,
-    ) -> Self {
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
             on_word_boundary: true,
             is_empty: true,
-            shared_inline_styles_stack,
+            shared_inline_styles_stack: vec![info.into()],
+            shared_selection: info.node.selection(),
             ..Default::default()
         }
     }
@@ -320,7 +320,6 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
-        let selection_range = info.get_selection_range();
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();
             self.last_inline_box_ended_with_collapsible_white_space =
@@ -341,7 +340,6 @@ impl InlineFormattingContextBuilder {
                 info.into(),
                 self.shared_inline_styles(),
                 new_range,
-                selection_range,
             ))));
     }
 

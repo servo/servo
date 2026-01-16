@@ -8,6 +8,8 @@ use app_units::Au;
 use bitflags::bitflags;
 use fonts::{FontMetrics, GlyphStore, TextByteRange};
 use itertools::Either;
+use layout_api::wrapper_traits::SharedSelection;
+use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -577,9 +579,8 @@ impl LineItemLayout<'_, '_> {
                 font_metrics: text_item.font_metrics,
                 font_key: text_item.font_key,
                 glyphs: text_item.text,
-                starting_glyph_offset: text_item.starting_glyph_offset,
                 justification_adjustment: self.justification_adjustment,
-                selection_range: text_item.selection_range,
+                offsets: text_item.offsets,
             })),
             content_rect,
         ));
@@ -786,18 +787,29 @@ impl LineItem {
     }
 }
 
+#[derive(MallocSizeOf)]
+pub(crate) struct TextRunOffsets {
+    /// The glyph offset of the starting glyph of this [`TextFragment`] within
+    /// its parent inline box.
+    pub starting_glyph_offset: usize,
+    /// The selection range of the containing inline formatting context.
+    #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
+    pub shared_selection: SharedSelection,
+    /// The text range of this [`TextRun`] within its inline formatting context.
+    pub text_range: TextByteRange,
+}
+
 pub(super) struct TextRunLineItem {
     pub base_fragment_info: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
     pub text: Vec<std::sync::Arc<GlyphStore>>,
     pub font_metrics: Arc<FontMetrics>,
-    /// The glyph offset of the starting glyph of this [`TextFragment`] within
-    /// its parent inline box.
-    pub starting_glyph_offset: usize,
     pub font_key: FontInstanceKey,
     /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
     pub bidi_level: Level,
-    pub selection_range: Option<TextByteRange>,
+    /// When necessary, this field store the [`TextRunOffsets`] for a particular
+    /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
+    pub offsets: Option<Box<TextRunOffsets>>,
 }
 
 impl TextRunLineItem {
@@ -859,8 +871,27 @@ impl TextRunLineItem {
         self.text.is_empty()
     }
 
-    pub(crate) fn can_merge(&self, font_key: FontInstanceKey, bidi_level: Level) -> bool {
-        self.font_key == font_key && self.bidi_level == bidi_level
+    pub(crate) fn merge_if_possible(
+        &mut self,
+        new_font_key: FontInstanceKey,
+        new_bidi_level: Level,
+        new_glyph_store: &Arc<GlyphStore>,
+        new_offsets: &Option<TextRunOffsets>,
+    ) -> bool {
+        if self.font_key != new_font_key || self.bidi_level != new_bidi_level {
+            return false;
+        }
+        self.text.push(new_glyph_store.clone());
+
+        assert_eq!(self.offsets.is_some(), new_offsets.is_some());
+        if let (Some(new_offsets), Some(existing_offsets)) = (new_offsets, self.offsets.as_mut()) {
+            existing_offsets.text_range = TextByteRange::new(
+                existing_offsets.text_range.start,
+                new_offsets.text_range.end,
+            );
+        }
+
+        true
     }
 }
 

@@ -50,7 +50,7 @@ impl ByteIndex {
 
 /// A range of UTF-8 bytes in a text run. This is used to identify glyphs in a `GlyphRun`
 /// by their original character byte offsets in the text.
-#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct TextByteRange(Range<ByteIndex>);
 
 impl TextByteRange {

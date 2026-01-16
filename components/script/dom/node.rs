@@ -8,7 +8,6 @@ use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
-use std::ops::Range;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -25,6 +24,7 @@ use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
+use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
     BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
     LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
@@ -41,7 +41,7 @@ use selectors::matching::{
     matches_selector_list,
 };
 use selectors::parser::SelectorList;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
@@ -1483,7 +1483,7 @@ impl Node {
         Ok(())
     }
 
-    pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub(crate) fn get_stylesheet(&self) -> Option<ServoArc<Stylesheet>> {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
@@ -1519,7 +1519,7 @@ impl Node {
         })
     }
 
-    pub(crate) fn style(&self) -> Option<Arc<ComputedValues>> {
+    pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
         self.owner_window().layout_reflow(QueryMsg::StyleQuery);
         self.style_data
             .borrow()
@@ -1722,7 +1722,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// that is implemented as an UA widget.
     fn is_text_container_of_single_line_input(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
-    fn selection(self) -> Option<Range<usize>>;
+    fn selection(self) -> Option<SharedSelection>;
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
     fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
@@ -1939,9 +1939,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     ///
     /// As we want to expose the selection on the inner text node of the widget's shadow
     /// DOM, we must find the shadow root and then access the containing element itself.
-    fn selection(self) -> Option<Range<usize>> {
-        if !self.is_in_ua_widget() || !self.is_text_node_for_layout() {
-            return None;
+    fn selection(self) -> Option<SharedSelection> {
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            return input.selection_for_layout();
+        }
+        if let Some(textarea) = self.downcast::<HTMLTextAreaElement>() {
+            return Some(textarea.selection_for_layout());
         }
 
         let shadow_root = self
@@ -1950,11 +1953,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         if let Some(input) = shadow_root.downcast::<HTMLInputElement>() {
             return input.selection_for_layout();
         }
-        if let Some(area) = shadow_root.downcast::<HTMLTextAreaElement>() {
-            return area.selection_for_layout();
-        }
-
-        None
+        shadow_root
+            .downcast::<HTMLTextAreaElement>()
+            .map(|textarea| textarea.selection_for_layout())
     }
 
     fn image_url(self) -> Option<ServoUrl> {
@@ -2883,7 +2884,7 @@ impl Node {
                 let new_pdb = pdb.read_with(&shared_lock.read()).clone();
                 return AttrValue::Declaration(
                     (**attr.value()).to_owned(),
-                    Arc::new(shared_lock.wrap(new_pdb)),
+                    ServoArc::new(shared_lock.wrap(new_pdb)),
                 );
             }
         }

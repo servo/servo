@@ -9,10 +9,9 @@ use std::fmt;
 use std::iter::FusedIterator;
 
 use base::id::{BrowsingContextId, PipelineId};
-use fonts::TextByteRange;
-use fonts_traits::ByteIndex;
 use layout_api::wrapper_traits::{
-    LayoutDataTrait, LayoutNode, PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+    LayoutDataTrait, LayoutNode, PseudoElementChain, SharedSelection, ThreadSafeLayoutElement,
+    ThreadSafeLayoutNode,
 };
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
@@ -380,11 +379,9 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         unsafe { self.get_jsmanaged().text_content() }
     }
 
-    fn selection(&self) -> Option<TextByteRange> {
+    fn selection(&self) -> Option<SharedSelection> {
         let this = unsafe { self.get_jsmanaged() };
-
         this.selection()
-            .map(|range| TextByteRange::new(ByteIndex(range.start), ByteIndex(range.end)))
     }
 
     fn image_url(&self) -> Option<ServoUrl> {

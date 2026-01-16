@@ -82,8 +82,9 @@ use std::sync::Arc;
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{FontMetrics, FontRef, GlyphStore, TextByteRange};
+use fonts::{FontMetrics, FontRef, GlyphStore};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
+use layout_api::wrapper_traits::SharedSelection;
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
@@ -118,6 +119,7 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
+use crate::flow::inline::line::TextRunOffsets;
 use crate::flow::{
     BlockContainer, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
     layout_in_flow_non_replaced_block_level_same_formatting_context,
@@ -172,6 +174,11 @@ pub(crate) struct InlineFormattingContext {
     /// Whether or not this is an [`InlineFormattingContext`] has right-to-left content, which
     /// will require reordering during layout.
     has_right_to_left_content: bool,
+
+    /// If this [`InlineFormattingContext`] has a selection shared with its originating
+    /// node in the DOM, this will not be `None`.
+    #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
+    shared_selection: Option<SharedSelection>,
 }
 
 /// [`TextRun`] and `TextFragment`s need a handle on their parent inline box (or inline
@@ -1544,8 +1551,7 @@ impl InlineFormattingContextLayout<'_> {
         text_run: &TextRun,
         font: &FontRef,
         bidi_level: Level,
-        range: TextByteRange,
-        starting_glyph_offset: usize,
+        offsets: Option<TextRunOffsets>,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1596,49 +1602,26 @@ impl InlineFormattingContextLayout<'_> {
         self.update_unbreakable_segment_for_new_content(&strut_size, inline_advance, flags);
 
         let current_inline_box_identifier = self.current_inline_box_identifier();
-        match self.current_line_segment.line_items.last_mut() {
-            Some(LineItem::TextRun(inline_box_identifier, line_item))
-                if *inline_box_identifier == current_inline_box_identifier &&
-                    line_item.can_merge(font_key, bidi_level) =>
+        if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
+            self.current_line_segment.line_items.last_mut()
+        {
+            if *inline_box_identifier == current_inline_box_identifier &&
+                line_item.merge_if_possible(font_key, bidi_level, &glyph_store, &offsets)
             {
-                line_item.text.push(glyph_store);
                 return;
-            },
-            _ => {},
-        }
-
-        let selection_range = if let Some(selection) = &text_run.selection_range {
-            let intersection = selection.intersect(&range);
-            if intersection.is_empty() {
-                let insertion_point_index = selection.start;
-                if range.contains_inclusive(insertion_point_index) {
-                    let selection_start = insertion_point_index - range.start;
-                    Some(TextByteRange::new(selection_start, selection_start))
-                } else {
-                    None
-                }
-            } else {
-                let selection_start = intersection.start - range.start;
-                Some(TextByteRange::new(
-                    selection_start,
-                    selection_start + intersection.len(),
-                ))
             }
-        } else {
-            None
-        };
+        }
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
             current_inline_box_identifier,
             TextRunLineItem {
                 text: vec![glyph_store],
-                starting_glyph_offset,
                 base_fragment_info: text_run.base_fragment_info,
                 inline_styles: text_run.inline_styles.clone(),
                 font_metrics: font_metrics.clone(),
                 font_key,
                 bidi_level,
-                selection_range,
+                offsets: offsets.map(Box::new),
             },
         ));
     }
@@ -1870,6 +1853,7 @@ impl InlineFormattingContext {
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
+            shared_selection: builder.shared_selection,
         }
     }
 

@@ -22,6 +22,7 @@ use super::{
 };
 use crate::SharedStyle;
 use crate::cell::ArcRefCell;
+use crate::flow::inline::line::TextRunOffsets;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
@@ -70,12 +71,11 @@ pub(crate) struct TextFragment {
     pub font_key: FontInstanceKey,
     #[conditional_malloc_size_of]
     pub glyphs: Vec<Arc<GlyphStore>>,
-    /// The glyph offset of the starting glyph of this [`TextFragment`] within
-    /// its parent inline box.
-    pub starting_glyph_offset: usize,
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
-    pub selection_range: Option<TextByteRange>,
+    /// When necessary, this field store the [`TextRunOffsets`] for a particular
+    /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
+    pub offsets: Option<Box<TextRunOffsets>>,
 }
 
 #[derive(MallocSizeOf)]
@@ -365,10 +365,6 @@ impl TextFragment {
         ));
     }
 
-    pub fn has_selection(&self) -> bool {
-        self.selection_range.is_some()
-    }
-
     /// Find the distance between for point relative to a [`TextFragment`] for the
     /// purposes of finding a glyph offset. This is used to identify the most relevant
     /// fragment for glyph offset queries during click handling.
@@ -392,7 +388,11 @@ impl TextFragment {
     /// Given a point relative to this [`TextFragment`], find the most appropriate glyph
     /// offset. Note that the point may be outside the [`TextFragment`]'s content rect.
     pub(crate) fn glyph_offset(&self, point_in_fragment: Point2D<Au, CSSPixel>) -> usize {
-        let mut current_glyph = self.starting_glyph_offset;
+        let Some(offsets) = self.offsets.as_ref() else {
+            return 0;
+        };
+
+        let mut current_glyph = offsets.starting_glyph_offset;
         let mut current_offset = Au::zero();
         for glyph_store in &self.glyphs {
             for glyph in glyph_store.iter_glyphs_for_byte_range(TextByteRange::new(

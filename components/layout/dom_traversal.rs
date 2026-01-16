@@ -4,7 +4,6 @@
 
 use std::borrow::Cow;
 
-use fonts::TextByteRange;
 use html5ever::LocalName;
 use layout_api::wrapper_traits::{
     PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -64,10 +63,6 @@ impl<'dom> NodeAndStyleInfo<'dom> {
             style,
             damage: self.damage,
         })
-    }
-
-    pub(crate) fn get_selection_range(&self) -> Option<TextByteRange> {
-        self.node.selection()
     }
 }
 
