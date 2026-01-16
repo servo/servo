@@ -113,7 +113,7 @@ impl FlexContainer {
         let children = items
             .into_iter()
             .map(|item| {
-                let box_ = match item.kind {
+                let flex_item_box = match item.kind {
                     ModernItemKind::InFlow(independent_formatting_context) => ArcRefCell::new(
                         FlexLevelBox::FlexItem(FlexItemBox::new(independent_formatting_context)),
                     ),
@@ -131,11 +131,9 @@ impl FlexContainer {
                     },
                 };
 
-                if let Some(box_slot) = item.box_slot {
-                    box_slot.set(LayoutBox::FlexLevel(box_.clone()));
-                }
-
-                box_
+                item.box_slot
+                    .set(LayoutBox::FlexLevel(flex_item_box.clone()));
+                flex_item_box
             })
             .collect();
 

@@ -12,7 +12,7 @@ use style::selector_parser::PseudoElement;
 
 use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox};
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
@@ -68,6 +68,7 @@ impl<'dom> ModernContainerJob<'dom> {
                 let block_formatting_context = BlockFormattingContext::from_block_container(
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
                 );
+
                 let info: &NodeAndStyleInfo = anonymous_info;
                 let formatting_context = IndependentFormattingContext::new(
                     LayoutBoxBase::new(info.into(), info.style.clone()),
@@ -77,7 +78,7 @@ impl<'dom> ModernContainerJob<'dom> {
                 Some(ModernItem {
                     kind: ModernItemKind::InFlow(formatting_context),
                     order: 0,
-                    box_slot: None,
+                    box_slot: anonymous_info.node.box_slot(),
                 })
             },
             ModernContainerJob::ElementOrPseudoElement {
@@ -103,7 +104,7 @@ impl<'dom> ModernContainerJob<'dom> {
                     return Some(ModernItem {
                         kind: ModernItemKind::ReusedBox(layout_box),
                         order,
-                        box_slot: Some(box_slot),
+                        box_slot,
                     });
                 }
 
@@ -131,7 +132,7 @@ impl<'dom> ModernContainerJob<'dom> {
                 Some(ModernItem {
                     kind,
                     order,
-                    box_slot: Some(box_slot),
+                    box_slot,
                 })
             },
         }
@@ -164,7 +165,7 @@ pub(crate) enum ModernItemKind {
 pub(crate) struct ModernItem<'dom> {
     pub kind: ModernItemKind,
     pub order: i32,
-    pub box_slot: Option<BoxSlot<'dom>>,
+    pub box_slot: BoxSlot<'dom>,
 }
 
 impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
