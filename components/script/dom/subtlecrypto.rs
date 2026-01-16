@@ -6,8 +6,8 @@ mod aes_cbc_operation;
 mod aes_common;
 mod aes_ctr_operation;
 mod aes_gcm_operation;
+mod aes_kw_operation;
 mod aes_ocb_operation;
-mod aes_operation;
 mod argon2_operation;
 mod chacha20_poly1305_operation;
 mod cshake_operation;
@@ -4202,7 +4202,7 @@ impl NormalizedAlgorithm {
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
             (ALG_AES_KW, NormalizedAlgorithm::AesKeyGenParams(algo)) => {
-                aes_operation::generate_key_aes_kw(global, algo, extractable, usages, can_gc)
+                aes_kw_operation::generate_key(global, algo, extractable, usages, can_gc)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
             (ALG_HMAC, NormalizedAlgorithm::HmacKeyGenParams(algo)) => {
@@ -4337,14 +4337,7 @@ impl NormalizedAlgorithm {
                 aes_gcm_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
             (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
-                aes_operation::import_key_aes_kw(
-                    global,
-                    format,
-                    key_data,
-                    extractable,
-                    usages,
-                    can_gc,
-                )
+                aes_kw_operation::import_key(global, format, key_data, extractable, usages, can_gc)
             },
             (ALG_HMAC, NormalizedAlgorithm::HmacImportParams(algo)) => hmac_operation::import_key(
                 global,
@@ -4432,7 +4425,7 @@ impl NormalizedAlgorithm {
     fn wrap_key(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
         match (self.name(), self) {
             (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
-                aes_operation::wrap_key_aes_kw(key, plaintext)
+                aes_kw_operation::wrap_key(key, plaintext)
             },
             _ => Err(Error::NotSupported(None)),
         }
@@ -4441,7 +4434,7 @@ impl NormalizedAlgorithm {
     fn unwrap_key(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
         match (self.name(), self) {
             (ALG_AES_KW, NormalizedAlgorithm::Algorithm(_algo)) => {
-                aes_operation::unwrap_key_aes_kw(key, ciphertext)
+                aes_kw_operation::unwrap_key(key, ciphertext)
             },
             _ => Err(Error::NotSupported(None)),
         }
@@ -4459,7 +4452,7 @@ impl NormalizedAlgorithm {
                 aes_gcm_operation::get_key_length(algo)
             },
             (ALG_AES_KW, NormalizedAlgorithm::AesDerivedKeyParams(algo)) => {
-                aes_operation::get_key_length_aes_kw(algo)
+                aes_kw_operation::get_key_length(algo)
             },
             (ALG_HMAC, NormalizedAlgorithm::HmacImportParams(algo)) => {
                 hmac_operation::get_key_length(algo)
@@ -4526,7 +4519,7 @@ fn perform_export_key_operation(format: KeyFormat, key: &CryptoKey) -> Result<Ex
         ALG_AES_CTR => aes_ctr_operation::export_key(format, key),
         ALG_AES_CBC => aes_cbc_operation::export_key(format, key),
         ALG_AES_GCM => aes_gcm_operation::export_key(format, key),
-        ALG_AES_KW => aes_operation::export_key_aes_kw(format, key),
+        ALG_AES_KW => aes_kw_operation::export_key(format, key),
         ALG_HMAC => hmac_operation::export_key(format, key),
         ALG_ML_KEM_512 | ALG_ML_KEM_768 | ALG_ML_KEM_1024 => {
             ml_kem_operation::export_key(format, key)

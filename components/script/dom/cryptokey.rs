@@ -37,9 +37,6 @@ pub(crate) enum Handle {
     P521PublicKey(p521::PublicKey),
     X25519PrivateKey(x25519_dalek::StaticSecret),
     X25519PublicKey(x25519_dalek::PublicKey),
-    Aes128(Vec<u8>),
-    Aes192(Vec<u8>),
-    Aes256(Vec<u8>),
     Aes128Key(aes::cipher::crypto_common::Key<aes::Aes128>),
     Aes192Key(aes::cipher::crypto_common::Key<aes::Aes192>),
     Aes256Key(aes::cipher::crypto_common::Key<aes::Aes256>),
@@ -219,9 +216,6 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
 impl Handle {
     pub(crate) fn as_bytes(&self) -> &[u8] {
         match self {
-            Self::Aes128(bytes) => bytes,
-            Self::Aes192(bytes) => bytes,
-            Self::Aes256(bytes) => bytes,
             Self::Pbkdf2(bytes) => bytes,
             Self::Hmac(bytes) => bytes,
             Self::Ed25519(bytes) => bytes,
@@ -243,9 +237,6 @@ impl MallocSizeOf for Handle {
             Handle::P521PublicKey(public_key) => public_key.size_of(ops),
             Handle::X25519PrivateKey(private_key) => private_key.size_of(ops),
             Handle::X25519PublicKey(public_key) => public_key.size_of(ops),
-            Handle::Aes128(bytes) => bytes.size_of(ops),
-            Handle::Aes192(bytes) => bytes.size_of(ops),
-            Handle::Aes256(bytes) => bytes.size_of(ops),
             Handle::Aes128Key(key) => key.size_of(ops),
             Handle::Aes192Key(key) => key.size_of(ops),
             Handle::Aes256Key(key) => key.size_of(ops),
