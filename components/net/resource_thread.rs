@@ -17,7 +17,7 @@ use base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{EmbedderProxy2, NetEmbedderMsg};
+use embedder_traits::EmbedderProxy2;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
@@ -53,6 +53,7 @@ use crate::connector::{
 };
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
+use crate::embedder::NetEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::{FetchParams, SharedPreloadedResources};
 use crate::fetch::methods::{

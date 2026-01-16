@@ -9,10 +9,11 @@ use std::path::PathBuf;
 use base::Epoch;
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern, NetEmbedderMsg,
+    EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
 };
 use ipc_channel::ipc;
 use net::async_runtime::init_async_runtime;
+use net::embedder::NetEmbedderMsg;
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{

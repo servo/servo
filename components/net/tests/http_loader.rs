@@ -1803,12 +1803,12 @@ fn test_dont_prompt_credentials_when_unauthorized_response_contains_no_www_authe
                 return;
             };
             match msg {
-                embedder_traits::NetEmbedderMsg::RequestAuthentication(..) => {
+                net::embedder::NetEmbedderMsg::RequestAuthentication(..) => {
                     panic!(
                         "Should not have requested authentication as there's no www-authenticate header"
                     );
                 },
-                embedder_traits::NetEmbedderMsg::WebResourceRequested(..) => {},
+                net::embedder::NetEmbedderMsg::WebResourceRequested(..) => {},
                 _ => unreachable!(),
             }
         }

@@ -10,8 +10,7 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, EmbedderProxy2, FilePickerRequest, NetEmbedderMsg,
-    SelectedFile,
+    EmbedderControlId, EmbedderControlResponse, EmbedderProxy2, FilePickerRequest, SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
@@ -35,6 +34,7 @@ use tokio::task::yield_now;
 use uuid::Uuid;
 
 use crate::async_runtime::spawn_task;
+use crate::embedder::NetEmbedderMsg;
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::protocols::get_range_request_bounds;
 

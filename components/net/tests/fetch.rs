@@ -1497,7 +1497,7 @@ fn test_fetch_request_intercepted() {
     std::thread::spawn(move || {
         let embedder_msg = embedder_receiver.recv().unwrap();
         match embedder_msg {
-            embedder_traits::NetEmbedderMsg::WebResourceRequested(
+            net::embedder::NetEmbedderMsg::WebResourceRequested(
                 _,
                 web_resource_request,
                 response_sender,

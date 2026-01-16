@@ -26,11 +26,10 @@ use std::sync::Arc;
 use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{
-    AuthenticationResponse, EmbedderMsg, EmbedderProxy, EmbedderProxy2, NetEmbedderMsg,
-};
+use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EmbedderProxy2};
 use net::async_runtime::spawn_blocking_task;
 use net::connector::{CACertificates, create_http_client, create_tls_config};
+use net::embedder::NetEmbedderMsg;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -95,16 +94,11 @@ fn receive_credential_prompt_msgs(
         loop {
             let embedder_msg = embedder_receiver.recv().unwrap();
             match embedder_msg {
-                embedder_traits::NetEmbedderMsg::RequestAuthentication(
-                    _,
-                    _,
-                    _,
-                    response_sender,
-                ) => {
+                NetEmbedderMsg::RequestAuthentication(_, _, _, response_sender) => {
                     let _ = response_sender.send(response);
                     break;
                 },
-                embedder_traits::NetEmbedderMsg::WebResourceRequested(..) => {},
+                NetEmbedderMsg::WebResourceRequested(..) => {},
                 _ => unreachable!(),
             }
         }

@@ -19,7 +19,6 @@ use std::ffi::c_void;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::Hash;
 use std::ops::Range;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
@@ -37,8 +36,6 @@ use servo_url::ServoUrl;
 use strum::{EnumMessage, IntoStaticStr};
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
-use tokio::sync::mpsc::UnboundedSender as TokioSender;
-use tokio::sync::oneshot::Sender as TokioOneshotSender;
 use url::Url;
 use uuid::Uuid;
 use webrender_api::ExternalScrollId;
@@ -412,27 +409,6 @@ impl From<ConsoleLogLevel> for log::Level {
             ConsoleLogLevel::Trace => log::Level::Trace,
         }
     }
-}
-
-pub enum NetEmbedderMsg {
-    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    SelectFiles(
-        EmbedderControlId,
-        FilePickerRequest,
-        TokioOneshotSender<Option<Vec<PathBuf>>>,
-    ),
-    WebResourceRequested(
-        Option<WebViewId>,
-        WebResourceRequest,
-        TokioSender<WebResourceResponseMsg>,
-    ),
-    /// Request authentication for a load or navigation from the embedder.
-    RequestAuthentication(
-        WebViewId,
-        ServoUrl,
-        bool, /* for proxy */
-        TokioOneshotSender<Option<AuthenticationResponse>>,
-    ),
 }
 
 /// Messages towards the embedder.
