@@ -349,6 +349,10 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointercancel-action>
     fn dispatch_pointercancel_action(&mut self, source_id: &str) {
+        // Perform implementation-specific action dispatch steps on browsing context equivalent
+        // to cancelling the any action of the pointer with
+        // pointerId equal to source's pointerId item. having type pointerType,
+        // in accordance with the requirements of [UI-EVENTS] and [POINTER-EVENTS].
         let PointerInputState {
             subtype,
             pointer_id,
