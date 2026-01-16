@@ -86,7 +86,8 @@ jobs:
     needs:
       - create-draft-release
       - upload-linux
-      - upload-win
+      - upload-win-nightly
+      - upload-win-release
       - upload-mac
       - upload-mac-arm64
       - upload-android
@@ -102,44 +103,45 @@ jobs:
       upload_zip: true
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
 
-  upload-win:
+  upload-win-nightly:
     # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    if: github.repository == 'servo/servo' && (github.event_name == 'workflow_dispatch' && !inputs.regular_release || github.event_name != 'workflow_dispatch')
     permissions:
       id-token: write
       attestations: write
     needs:
       - create-draft-release
       - build-win
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          sparse-checkout: |
-            .github
-            etc/ci
-          fetch-depth: '1'
-      - name: Setup Python
-        uses: ./.github/actions/setup-python
-      - uses: actions/download-artifact@v7
-        with:
-          name: production-binary-windows
-      - uses: actions/download-artifact@v7
-        with:
-          name: production-binary-windows-zip
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v3
-        with:
-          subject-path: 'Servo.exe,Servo.zip'
-      - name: Upload release artifacts
-        run: |
-          ./etc/ci/upload_nightly.py windows-msvc --secret-from-environment \
-            --github-release-id ${{ needs.create-draft-release.outputs.release-id }} \
-            Servo.exe \
-            Servo.zip
-        env: &upload_env
-          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-          RELEASE_REPO_TOKEN: ${{ inputs.regular_release && github.token || secrets.NIGHTLY_REPO_TOKEN }}
+    secrets:
+      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    uses: ./.github/workflows/upload_release.yml
+    with:
+      artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
+      artifact_platform: windows-msvc
+      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
+      target_repo: 'servo-nightly-builds'
+
+  upload-win-release:
+    # This job is only useful when run on upstream servo.
+    if: (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+    permissions:
+      id-token: write
+      attestations: write
+      # Necessary for the github token to upload artifacts to the release.
+      contents: write
+    needs:
+      - create-draft-release
+      - build-win
+    secrets:
+      github_upload_token: ${{ github.token }}
+      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    uses: ./.github/workflows/upload_release.yml
+    with:
+      artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
+      artifact_platform: windows-msvc
+      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
+      target_repo: 'servo'
 
 
   build-mac:
