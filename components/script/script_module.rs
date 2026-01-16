@@ -456,6 +456,39 @@ impl ModuleTree {
         *self.promise.borrow_mut() = Some(new_promise);
     }
 
+    pub(crate) fn append_waiting_handler(
+        &self,
+        global: &GlobalScope,
+        handler: &PromiseNativeHandler,
+        can_gc: CanGc,
+    ) {
+        let realm = enter_realm(global);
+        let comp = InRealm::Entered(&realm);
+        let _ais = AutoIncumbentScript::new(&global);
+
+        if let Some(promise) = self.promise.borrow().as_ref() {
+            return promise.append_native_handler(handler, comp, can_gc);
+        }
+
+        let new_promise = Promise::new_in_current_realm(comp, can_gc);
+        new_promise.append_native_handler(handler, comp, can_gc);
+        *self.promise.borrow_mut() = Some(new_promise);
+    }
+
+    pub(crate) fn resolve_with_network_error(&self, error: NetworkError, can_gc: CanGc) {
+        self.set_network_error(error);
+
+        if let Some(promise) = self.promise.borrow().as_ref() {
+            promise.resolve_native(&(), can_gc);
+        }
+    }
+
+    pub(crate) fn resolve(&self, can_gc: CanGc) {
+        if let Some(promise) = self.promise.borrow().as_ref() {
+            promise.resolve_native(&(), can_gc);
+        }
+    }
+
     pub(crate) fn find_descendant_inside_module_map(
         &self,
         global: &GlobalScope,
@@ -464,7 +497,7 @@ impl ModuleTree {
         self.loaded_modules
             .borrow()
             .get(specifier)
-            .and_then(|url| global.get_module_map().borrow().get(&url).cloned())
+            .and_then(|url| global.get_module_tree(&url))
     }
 
     pub(crate) fn insert_module_dependency(

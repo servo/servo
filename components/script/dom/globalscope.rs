@@ -2421,6 +2421,10 @@ impl GlobalScope {
         &self.module_map
     }
 
+    pub(crate) fn get_module_tree(&self, url: &ServoUrl) -> Option<Rc<ModuleTree>> {
+        self.module_map.borrow().get(&url).cloned()
+    }
+
     pub(crate) fn set_inline_module_map(&self, script_id: ScriptId, module: ModuleTree) {
         self.inline_module_map
             .borrow_mut()

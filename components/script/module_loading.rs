@@ -29,9 +29,8 @@ use servo_url::ServoUrl;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
@@ -45,7 +44,6 @@ use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
-use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
     ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
     create_a_javascript_module_script, gen_type_error, module_script_from_reference_private,
@@ -488,49 +486,46 @@ pub(crate) fn fetch_a_single_module_script(
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
     // Step 4. Let moduleMap be settingsObject's module map.
-    let module_tree = {
-        let module_map = global.get_module_map().borrow();
-        module_map.get(&url).cloned()
-    };
 
-    // TODO Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
-    // then queue a task on the networking task source to proceed with running the following steps.
-
-    // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
-    if let Some(module_tree) = module_tree {
-        if module_tree.get_record().borrow().is_some() ||
-            module_tree.get_network_error().borrow().is_some()
-        {
-            return on_complete(&global, module_tree);
+    let has_pending_fetch = {
+        if let Some(module_tree) = global.get_module_tree(&url) {
+            if module_tree.get_record().borrow().is_none() &&
+                module_tree.get_network_error().borrow().is_none()
+            {
+                true
+            } else {
+                // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
+                return on_complete(&global, module_tree);
+            }
+        } else {
+            // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
+            let module_tree = ModuleTree::new(url.clone(), true, HashSet::new());
+            global.set_module_map(url.clone(), module_tree);
+            false
         }
-    } else {
-        // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-        let module_tree = ModuleTree::new(url.clone(), true, HashSet::new());
-        global.set_module_map(url.clone(), module_tree);
-    }
+    };
 
     let global_scope = DomRoot::from_ref(&*global);
     let request_url = url.clone();
     let handler = ModuleHandler::new_boxed(Box::new(
         task!(fetched_resolve: |global_scope: DomRoot<GlobalScope>| {
             let url = request_url;
-            let module_tree = {
-                let module_map = global_scope.get_module_map().borrow();
-                module_map.get(&url).cloned().unwrap()
-            };
+            let module_tree = global_scope.get_module_tree(&url).unwrap();
 
             on_complete(&global_scope, module_tree);
         }),
     ));
-
     let handler = PromiseNativeHandler::new(&global, Some(handler), None, CanGc::note());
+    global
+        .get_module_tree(&url)
+        .unwrap()
+        .append_waiting_handler(&global, &handler, CanGc::note());
 
-    let realm = enter_realm(&*global);
-    let comp = InRealm::Entered(&realm);
-    let _ais = AutoIncumbentScript::new(&global);
-
-    let promise = Promise::new(&global, CanGc::note());
-    promise.append_native_handler(&handler, comp, CanGc::note());
+    // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
+    // then queue a task on the networking task source to proceed with running the following steps.
+    if has_pending_fetch {
+        return;
+    }
 
     let document: Option<DomRoot<Document>> = match &owner {
         ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
@@ -563,7 +558,6 @@ pub(crate) fn fetch_a_single_module_script(
 
     let context = ModuleContext {
         global: Trusted::new(&global),
-        promise: TrustedPromise::new(promise),
         data: vec![],
         metadata: None,
         url: url.clone(),
@@ -590,7 +584,6 @@ pub(crate) fn fetch_a_single_module_script(
 
 struct ModuleContext {
     global: Trusted<GlobalScope>,
-    promise: TrustedPromise,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -664,18 +657,13 @@ impl FetchResponseListener for ModuleContext {
 
         network_listener::submit_timing(&self, &response, &timing, CanGc::note());
 
+        let module_tree = global.get_module_tree(&self.url).unwrap();
+
         // Step 1. If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
         // then set moduleMap[(url, moduleType)] to null, run onComplete given null, and abort these steps.
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
-            global
-                .get_module_map()
-                .borrow()
-                .get(&self.url)
-                .expect("Guaranteed to not fail")
-                .set_network_error(error.clone());
-
-            return self.promise.root().resolve_native(&(), CanGc::note());
+            return module_tree.resolve_with_network_error(error.clone(), CanGc::note());
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -726,23 +714,18 @@ impl FetchResponseListener for ModuleContext {
             );
 
             // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
-            let module_map = global.get_module_map().borrow();
-            let module_tree = module_map.get(&self.url).expect("Guaranteed to not fail");
-
             if let Err(error) = result {
                 module_tree.set_rethrow_error(error);
             } else {
                 module_tree.set_record(ModuleObject::new(compiled_module.handle()));
             }
+            module_tree.resolve(CanGc::note())
         } else {
-            global
-                .get_module_map()
-                .borrow()
-                .get(&self.url)
-                .expect("Guaranteed to not fail")
-                .set_network_error(NetworkError::MimeType(format!("Failed to parse MIME type")));
+            module_tree.resolve_with_network_error(
+                NetworkError::MimeType(format!("Failed to parse MIME type")),
+                CanGc::note(),
+            );
         }
-        self.promise.root().resolve_native(&(), CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
