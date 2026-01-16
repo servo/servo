@@ -138,7 +138,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#contained>
-    fn contains(&self, node: &Node) -> bool {
+    pub(crate) fn contains(&self, node: &Node) -> bool {
         matches!(
             (
                 bp_position(node, 0, &self.start_container(), self.start_offset()),

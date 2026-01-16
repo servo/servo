@@ -5,7 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use style::properties::generated::longhands;
 
+use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
@@ -15,10 +17,12 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
+use crate::dom::text::Text;
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -35,6 +39,19 @@ pub(crate) struct Selection {
     range: MutNullableDom<Range>,
     direction: Cell<Direction>,
     task_queued: Cell<bool>,
+}
+
+// this should be changed once content-visibility gets implemented to check for content-visibility == visible too
+fn text_node_should_be_stringified(text_node: &Text, can_gc: CanGc) -> bool {
+    text_node
+        .upcast::<Node>()
+        .GetParentElement()
+        .and_then(|parent| parent.style(can_gc))
+        .is_some_and(|style| {
+            !style.get_box().display.is_none() &&
+                style.get_inherited_box().visibility ==
+                    longhands::visibility::computed_value::T::Visible
+        })
 }
 
 impl Selection {
@@ -515,14 +532,60 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>
     fn Stringifier(&self) -> DOMString {
-        // The spec as of Jan 31 2020 just says
-        // "See W3C bug 10583." for this method.
-        // Stringifying the range seems at least approximately right
-        // and passes the non-style-dependent case in the WPT tests.
-        if let Some(range) = self.range.get() {
-            range.Stringifier()
-        } else {
-            DOMString::from("")
+        let Some(range) = self.range.get() else {
+            return DOMString::from("");
+        };
+
+        let start_node = range.start_container();
+        let end_node = range.end_container();
+
+        let mut selection_text = DOMString::new();
+
+        if let Some(text_node) = start_node.downcast::<Text>() {
+            if text_node_should_be_stringified(text_node, CanGc::note()) {
+                let char_data = text_node.upcast::<CharacterData>();
+
+                if start_node == end_node {
+                    return char_data
+                        .SubstringData(
+                            range.start_offset(),
+                            range.end_offset() - range.start_offset(),
+                        )
+                        .unwrap();
+                }
+
+                selection_text.push_str(
+                    &char_data
+                        .SubstringData(
+                            range.start_offset(),
+                            char_data.Length() - range.start_offset(),
+                        )
+                        .unwrap(),
+                );
+            } else if start_node == end_node {
+                return selection_text;
+            }
         }
+
+        let ancestor = range.CommonAncestorContainer();
+        for child in start_node
+            .following_nodes(&ancestor)
+            .filter_map(DomRoot::downcast::<Text>)
+            .filter(|text_node| {
+                text_node_should_be_stringified(text_node, CanGc::note()) &&
+                    range.contains(text_node.upcast())
+            })
+        {
+            selection_text.push_str(&child.upcast::<CharacterData>().Data());
+        }
+
+        if let Some(text_node) = end_node.downcast::<Text>() {
+            if text_node_should_be_stringified(text_node, CanGc::note()) {
+                let char_data = text_node.upcast::<CharacterData>();
+                selection_text.push_str(&char_data.SubstringData(0, range.end_offset()).unwrap());
+            }
+        }
+
+        selection_text
     }
 }
