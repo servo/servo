@@ -93,7 +93,7 @@ impl FileManager {
         }
     }
 
-    pub fn read_file(
+    fn read_file(
         &self,
         sender: IpcSender<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
@@ -107,11 +107,11 @@ impl FileManager {
         });
     }
 
-    pub fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
+    pub(crate) fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
         self.store.get_token_for_file(file_id)
     }
 
-    pub fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
+    pub(crate) fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
         self.store.invalidate_token(token, file_id);
     }
 
@@ -119,7 +119,7 @@ impl FileManager {
     /// It gets the required headers synchronously and reads the actual content
     /// in a separate thread.
     #[expect(clippy::too_many_arguments)]
-    pub fn fetch_file(
+    pub(crate) fn fetch_file(
         &self,
         done_sender: &mut TokioSender<Data>,
         cancellation_listener: Arc<CancellationListener>,
@@ -140,7 +140,7 @@ impl FileManager {
         )
     }
 
-    pub fn promote_memory(
+    pub(crate) fn promote_memory(
         &self,
         id: Uuid,
         blob_buf: BlobBuf,
@@ -151,7 +151,7 @@ impl FileManager {
     }
 
     /// Message handler
-    pub fn handle(&self, msg: FileManagerThreadMsg) {
+    pub(crate) fn handle(&self, msg: FileManagerThreadMsg) {
         match msg {
             FileManagerThreadMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
                 let store = self.store.clone();
@@ -406,7 +406,7 @@ impl FileManagerStore {
     }
 
     /// Copy out the file backend implementation content
-    pub fn get_impl(
+    fn get_impl(
         &self,
         id: &Uuid,
         file_token: &FileTokenCheck,
@@ -433,7 +433,7 @@ impl FileManagerStore {
         }
     }
 
-    pub fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
+    fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
         if let FileTokenCheck::Required(token) = token {
             let mut entries = self.entries.write();
             if let Some(entry) = entries.get_mut(file_id) {
@@ -458,7 +458,7 @@ impl FileManagerStore {
         }
     }
 
-    pub fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
+    pub(crate) fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
         let mut entries = self.entries.write();
         let parent_id = match entries.get(file_id) {
             Some(entry) => {
