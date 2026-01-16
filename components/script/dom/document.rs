@@ -916,17 +916,12 @@ impl Document {
         // Step 1: If document is an iframe srcdoc document:
         let document_url = self.url();
         if document_url.as_str() == "about:srcdoc" {
-            let base_url = self
-                .browsing_context()
-                .and_then(|browsing_context| browsing_context.creator_base_url());
-
-            // Step 1.1: Assert: document's about base URL is non-null.
-            if base_url.is_none() {
-                error!("about:srcdoc page should always have a creator base URL");
-            }
-
             // Step 1.2: Return document's about base URL.
-            return base_url.unwrap_or(document_url);
+            return self
+                .browsing_context()
+                .and_then(|browsing_context| browsing_context.creator_base_url())
+                // Step 1.1: Assert: document's about base URL is non-null.
+                .expect("about:srcdoc page should always have a creator base URL");
         }
 
         // Step 2: If document's URL matches about:blank and document's about base URL is
