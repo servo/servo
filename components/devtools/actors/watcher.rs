@@ -420,7 +420,10 @@ impl WatcherActor {
             TargetConfigurationActor::new(actors.new_name::<TargetConfigurationActor>());
         let thread_configuration =
             ThreadConfigurationActor::new(actors.new_name::<ThreadConfigurationActor>());
-        let breakpoint_list = BreakpointListActor::new(actors.new_name::<BreakpointListActor>());
+        let breakpoint_list = BreakpointListActor::new(
+            actors.new_name::<BreakpointListActor>(),
+            browsing_context_actor.clone(),
+        );
 
         let watcher = Self {
             name: actors.new_name::<WatcherActor>(),

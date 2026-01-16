@@ -3,17 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::str::FromStr;
 
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{GenericSender, channel};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, DowncastableActorArc};
+use crate::actors::breakpoint::SetBreakpointRequestLocation;
 use crate::protocol::ClientRequest;
 
 /// A `sourceForm` as used in responses to thread `sources` requests.
@@ -43,6 +45,22 @@ pub(crate) struct SourceManager {
     source_actor_names: AtomicRefCell<BTreeSet<String>>,
 }
 
+impl SourceManager {
+    pub fn find_source(
+        &self,
+        registry: &ActorRegistry,
+        source_url: &str,
+    ) -> Option<DowncastableActorArc<SourceActor>> {
+        for name in self.source_actor_names.borrow().iter() {
+            let source = registry.find::<SourceActor>(name);
+            if source.url == ServoUrl::from_str(source_url).ok()? {
+                return Some(source);
+            }
+        }
+        None
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct SourceActor {
     /// Actor name.
@@ -58,12 +76,11 @@ pub(crate) struct SourceActor {
     pub content: AtomicRefCell<Option<String>>,
     content_type: Option<String>,
 
-    // TODO: use it in #37667, then remove this allow
-    spidermonkey_id: u32,
+    pub spidermonkey_id: u32,
     /// `introductionType` in SpiderMonkey `CompileOptionsWrapper`.
     introduction_type: String,
 
-    script_sender: GenericSender<DevtoolScriptControlMsg>,
+    pub script_sender: GenericSender<DevtoolScriptControlMsg>,
 }
 
 #[derive(Serialize)]
@@ -90,6 +107,17 @@ struct GetBreakpointPositionsCompressedReply {
     // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
     positions: BTreeMap<u32, BTreeSet<u32>>,
+}
+
+#[derive(Deserialize)]
+struct GetBreakpointPositionsQuery {
+    start: SetBreakpointRequestLocation,
+    end: SetBreakpointRequestLocation,
+}
+
+#[derive(Deserialize)]
+struct GetBreakpointPositionsRequest {
+    query: GetBreakpointPositionsQuery,
 }
 
 impl SourceManager {
@@ -184,7 +212,7 @@ impl Actor for SourceActor {
         request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
@@ -223,7 +251,7 @@ impl Actor for SourceActor {
                 let result = rx.recv().map_err(|_| ActorError::Internal)?;
                 let lines = result
                     .into_iter()
-                    .map(|entry| entry.line_number)
+                    .map(|location| location.line_number)
                     .collect::<BTreeSet<_>>();
                 let reply = GetBreakableLinesReply {
                     from: self.name(),
@@ -234,9 +262,11 @@ impl Actor for SourceActor {
             // Client wants to know which columns in the line can have breakpoints.
             // Sent when the user tries to set a breakpoint by clicking a line number in a source.
             "getBreakpointPositionsCompressed" => {
-                let Some((tx, rx)) = channel() else {
-                    return Err(ActorError::Internal);
-                };
+                let msg: GetBreakpointPositionsRequest =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+                let GetBreakpointPositionsQuery { start, end } = msg.query;
+
+                let (tx, rx) = channel().ok_or(ActorError::Internal)?;
                 self.script_sender
                     .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
                         self.spidermonkey_id,
@@ -244,15 +274,19 @@ impl Actor for SourceActor {
                     ))
                     .map_err(|_| ActorError::Internal)?;
                 let result = rx.recv().map_err(|_| ActorError::Internal)?;
+
                 let mut positions: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::default();
-                for entry in result {
+                for location in result {
                     // Line number are one-based. Column numbers are zero-based.
                     // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+                    if location.line_number < start.line || location.line_number > end.line {
+                        continue;
+                    }
                     positions
-                        .entry(entry.line_number)
+                        .entry(location.line_number)
                         .or_default()
-                        .insert(entry.column_number - 1);
+                        .insert(location.column_number - 1);
                 }
                 let reply = GetBreakpointPositionsCompressedReply {
                     from: self.name(),
@@ -263,5 +297,27 @@ impl Actor for SourceActor {
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
+    }
+}
+
+impl SourceActor {
+    pub fn find_offset(&self, line: u32, column: u32) -> (u32, u32) {
+        let (tx, rx) = channel().unwrap();
+        self.script_sender
+            .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
+                self.spidermonkey_id,
+                tx,
+            ))
+            .unwrap();
+        let result = rx.recv().unwrap();
+        for location in result {
+            // Line number are one-based. Column numbers are zero-based.
+            // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
+            if location.line_number == line && location.column_number - 1 == column {
+                return (location.script_id, location.offset);
+            }
+        }
+        panic!("There should be an entry with this column and line numbers");
     }
 }

@@ -30,6 +30,7 @@ use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpointsEvent, Event};
 #[cfg(feature = "testbinding")]
@@ -49,6 +50,8 @@ pub(crate) struct DebuggerGlobalScope {
     #[no_trace]
     get_possible_breakpoints_result_sender:
         RefCell<Option<GenericSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
+    #[no_trace]
+    set_breakpoint_result_sender: RefCell<Option<GenericSender<bool>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -95,6 +98,7 @@ impl DebuggerGlobalScope {
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
+            set_breakpoint_result_sender: RefCell::new(None),
         });
         let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx.into(), global);
 
@@ -181,6 +185,26 @@ impl DebuggerGlobalScope {
         assert!(
             DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_set_breakpoint(
+        &self,
+        can_gc: CanGc,
+        spidermonkey_id: u32,
+        script_id: u32,
+        offset: u32,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerSetBreakpointEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            script_id,
+            offset,
+            can_gc,
+        ));
+        assert!(
+            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerSetBreakpointEvent::new"
         );
     }
 }
@@ -295,6 +319,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             result
                 .into_iter()
                 .map(|entry| devtools_traits::RecommendedBreakpointLocation {
+                    script_id: entry.scriptId,
                     offset: entry.offset,
                     line_number: entry.lineNumber,
                     column_number: entry.columnNumber,

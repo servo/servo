@@ -39,14 +39,41 @@ addEventListener("addDebuggee", event => {
 addEventListener("getPossibleBreakpoints", event => {
     const {spidermonkeyId} = event;
     const script = sourceIdsToScripts.get(spidermonkeyId);
+    let result = [];
+
     function getPossibleBreakpointsRecursive(script) {
-        const result = script.getPossibleBreakpoints(/* TODO: `query` */);
-        for (const child of script.getChildScripts()) {
-            for (const location of getPossibleBreakpointsRecursive(child)) {
-                result.push(location);
-            }
+        for (const location of script.getPossibleBreakpoints()) {
+            location["scriptId"] = script.sourceStart;
+            result.push(location);
         }
-        return result;
+        for (const child of script.getChildScripts()) {
+            getPossibleBreakpointsRecursive(child);
+        }
     }
-    getPossibleBreakpointsResult(event, getPossibleBreakpointsRecursive(script));
+    getPossibleBreakpointsRecursive(script);
+
+    getPossibleBreakpointsResult(event, result);
+});
+
+addEventListener("setBreakpoint", event => {
+    const {spidermonkeyId, scriptId, offset} = event;
+    const script = sourceIdsToScripts.get(spidermonkeyId);
+
+    // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
+    function breakpointHandler(...args) {
+        // TODO: notify script to pause
+        // tell spidermonkey to pause
+       return {throw: "1"}
+    }
+
+    function setBreakpointRecursive(script) {
+        if (script.sourceStart == scriptId) {
+            script.setBreakpoint(offset, { hit: breakpointHandler });
+            return;
+        }
+        for (const child of script.getChildScripts()) {
+            setBreakpointRecursive(child);
+        }
+    }
+    setBreakpointRecursive(script);
 });

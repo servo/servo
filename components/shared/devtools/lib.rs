@@ -308,6 +308,7 @@ pub enum DevtoolScriptControlMsg {
     HighlightDomNode(PipelineId, Option<String>),
 
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
+    SetBreakpoint(u32, u32, u32),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -616,6 +617,7 @@ pub struct SourceInfo {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendedBreakpointLocation {
+    pub script_id: u32,
     pub offset: u32,
     pub line_number: u32,
     pub column_number: u32,
