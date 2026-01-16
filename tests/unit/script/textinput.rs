@@ -8,10 +8,11 @@
 // except according to those terms.
 
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{Lines, RopeIndex, RopeMovement};
+use base::{RopeIndex, RopeMovement};
 use keyboard_types::{Key, Modifiers, NamedKey};
 use script::test::DOMString;
 use script::test::textinput::{ClipboardProvider, Direction, SelectionDirection, TextInput};
+use script::textinput::Lines;
 
 pub struct DummyClipboardContext {
     content: String,
@@ -79,7 +80,7 @@ fn test_textinput_when_inserting_multiple_lines_over_a_selection_respects_max_le
     //                    ------
     //                   world"
     //                   ----
-    textinput.insert_string("cruel\nterrible\nbad");
+    textinput.insert("cruel\nterrible\nbad");
     assert_eq!(textinput.get_content(), "hcruel\nterrible\nd");
 }
 
@@ -95,7 +96,7 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
     );
 
     textinput.modify_edit_point(1, RopeMovement::Line);
-    textinput.insert_string("cruel\nterrible");
+    textinput.insert("cruel\nterrible");
     assert_eq!(textinput.get_content(), "hello\ncruel\nworld");
 }
 
@@ -111,7 +112,7 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
         SelectionDirection::None,
     );
 
-    textinput.insert_char('a');
+    textinput.insert('a');
 
     assert_eq!(textinput.get_content(), "abc");
 }
@@ -128,7 +129,7 @@ fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_wh
         SelectionDirection::None,
     );
 
-    textinput.insert_char('a');
+    textinput.insert('a');
 
     assert_eq!(textinput.get_content(), "abc\nd");
 }
@@ -189,11 +190,11 @@ fn test_single_line_textinput_with_max_length_multibyte() {
         SelectionDirection::None,
     );
 
-    textinput.insert_char('á');
+    textinput.insert('á');
     assert_eq!(textinput.get_content(), "á");
-    textinput.insert_char('é');
+    textinput.insert('é');
     assert_eq!(textinput.get_content(), "áé");
-    textinput.insert_char('i');
+    textinput.insert('i');
     assert_eq!(textinput.get_content(), "áé");
 }
 
@@ -208,13 +209,13 @@ fn test_single_line_textinput_with_max_length_multi_code_unit() {
         SelectionDirection::None,
     );
 
-    textinput.insert_char('\u{10437}');
+    textinput.insert('\u{10437}');
     assert_eq!(textinput.get_content(), "\u{10437}");
-    textinput.insert_char('\u{10437}');
+    textinput.insert('\u{10437}');
     assert_eq!(textinput.get_content(), "\u{10437}");
-    textinput.insert_char('x');
+    textinput.insert('x');
     assert_eq!(textinput.get_content(), "\u{10437}x");
-    textinput.insert_char('x');
+    textinput.insert('x');
     assert_eq!(textinput.get_content(), "\u{10437}x");
 }
 
@@ -229,7 +230,7 @@ fn test_single_line_textinput_with_max_length_inside_char() {
         SelectionDirection::None,
     );
 
-    textinput.insert_char('x');
+    textinput.insert('x');
     assert_eq!(textinput.get_content(), "\u{10437}");
 }
 
@@ -245,7 +246,7 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         SelectionDirection::None,
     );
 
-    textinput.insert_char('b');
+    textinput.insert('b');
     assert_eq!(textinput.get_content(), "a");
 }
 
@@ -281,22 +282,30 @@ fn test_textinput_delete_char() {
 }
 
 #[test]
-fn test_textinput_insert_char() {
+fn test_textinput_insert() {
     let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.modify_edit_point(2, RopeMovement::Grapheme);
-    textinput.insert_char('a');
+    textinput.insert('a');
     assert_eq!(textinput.get_content(), "abacdefg");
 
     textinput.modify_selection(2, RopeMovement::Grapheme);
-    textinput.insert_char('b');
+    textinput.insert('b');
     assert_eq!(textinput.get_content(), "ababefg");
 
     let mut textinput = text_input(Lines::Single, "a🌠c");
     // Same as "Right" key
     textinput.modify_edit_point(2, RopeMovement::Grapheme);
-    textinput.insert_char('b');
+    textinput.insert('b');
     // Not splitting surrogate pairs.
     assert_eq!(textinput.get_content(), "a🌠bc");
+
+    textinput.modify_edit_point(3, RopeMovement::Grapheme);
+    textinput.insert("\n1\n2\n3");
+    assert_eq!(
+        textinput.get_content(),
+        "a🌠bc 1 2 3",
+        "Newlines should be stripped"
+    );
 }
 
 #[test]
@@ -320,6 +329,24 @@ fn test_textinput_replace_selection() {
     textinput.modify_selection(2, RopeMovement::Grapheme);
     textinput.replace_selection(&DOMString::from("xyz"));
     assert_eq!(textinput.get_content(), "abxyzefg");
+
+    textinput.modify_selection(-3, RopeMovement::Grapheme);
+    textinput.replace_selection(&DOMString::from("\n1\n2\r3\r\n4\n"));
+    assert_eq!(
+        textinput.get_content(),
+        "ab 1 2 3 4 efg",
+        "Newlines should be stripped"
+    );
+
+    let mut textinput = text_input(Lines::Single, "abcdefg");
+    textinput.modify_edit_point(2, RopeMovement::Grapheme);
+    textinput.modify_selection(0, RopeMovement::Grapheme);
+    textinput.replace_selection(&DOMString::from("1\n\n\n\n\n2"));
+    assert_eq!(
+        textinput.get_content(),
+        "ab1     2cdefg",
+        "Consecutive newlines should become spaces"
+    );
 }
 
 #[test]

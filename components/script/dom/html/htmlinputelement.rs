@@ -10,9 +10,9 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
+use base::RopeMovement;
 use base::generic_channel::GenericSender;
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{Lines, RopeMovement};
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
@@ -88,7 +88,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::textinput::{
-    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput,
+    ClipboardEventFlags, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
