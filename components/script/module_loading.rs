@@ -726,18 +726,23 @@ impl FetchResponseListener for ModuleContext {
             );
 
             // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
-            {
-                let module_map = global.get_module_map().borrow();
-                let module_tree = module_map.get(&self.url).expect("Guaranteed to not fail");
+            let module_map = global.get_module_map().borrow();
+            let module_tree = module_map.get(&self.url).expect("Guaranteed to not fail");
 
-                if let Err(error) = result {
-                    module_tree.set_rethrow_error(error);
-                } else {
-                    module_tree.set_record(ModuleObject::new(compiled_module.handle()));
-                }
+            if let Err(error) = result {
+                module_tree.set_rethrow_error(error);
+            } else {
+                module_tree.set_record(ModuleObject::new(compiled_module.handle()));
             }
-            self.promise.root().resolve_native(&(), CanGc::note());
+        } else {
+            global
+                .get_module_map()
+                .borrow()
+                .get(&self.url)
+                .expect("Guaranteed to not fail")
+                .set_network_error(NetworkError::MimeType(format!("Failed to parse MIME type")));
         }
+        self.promise.root().resolve_native(&(), CanGc::note());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
