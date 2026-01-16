@@ -1467,8 +1467,17 @@ impl BoxFragment {
             let radii;
             if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
                 let builder = BuilderForBoxFragment::new(self, containing_block_rect, false, false);
-                // TODO(#41907): This only works well when `overflow-clip-margin` uses the border box.
-                radii = offset_radii(builder.border_radius, clip_margin_offset);
+                let mut offsets_from_border = SideOffsets2D::new_all_same(clip_margin_offset);
+                match overflow_clip_margin.visual_box {
+                    OverflowClipMarginBox::ContentBox => {
+                        offsets_from_border -= (self.border + self.padding).to_webrender();
+                    },
+                    OverflowClipMarginBox::PaddingBox => {
+                        offsets_from_border -= self.border.to_webrender();
+                    },
+                    OverflowClipMarginBox::BorderBox => {},
+                };
+                radii = offset_radii(builder.border_radius, offsets_from_border);
             } else if overflow.x != ComputedOverflow::Clip {
                 overflow_clip_rect.min.x = f32::MIN;
                 overflow_clip_rect.max.x = f32::MAX;
