@@ -229,7 +229,7 @@ fn create_http_states(
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: embedder_proxy,
+        embedder_proxy,
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))

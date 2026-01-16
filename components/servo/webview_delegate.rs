@@ -1068,15 +1068,13 @@ mod test {
 
     #[test]
     fn test_authentication_request() {
-        use base::generic_channel;
-
         use crate::responders::ServoErrorChannel;
 
         let url = Url::parse("https://example.com").expect("Guaranteed by argument");
 
         // Explicit response yields that response and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         request.authenticate("diffie".to_owned(), "hunter2".to_owned());
         assert_eq!(
@@ -1091,7 +1089,7 @@ mod test {
 
         // No response yields None response and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(request);
         assert_eq!(receiver.try_recv().ok(), Some(None));
@@ -1100,7 +1098,7 @@ mod test {
 
         // Explicit response when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(receiver);
         request.authenticate("diffie".to_owned(), "hunter2".to_owned());
@@ -1108,7 +1106,7 @@ mod test {
 
         // No response when receiver disconnected yields no error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::oneshot::channel();
         let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
         drop(receiver);
         drop(request);
@@ -1117,7 +1115,6 @@ mod test {
 
     #[test]
     fn test_web_resource_load() {
-        use base::generic_channel;
         use http::{HeaderMap, Method, StatusCode};
 
         use crate::responders::ServoErrorChannel;
@@ -1138,7 +1135,7 @@ mod test {
 
         // Explicit intercept with explicit cancel yields Start and Cancel and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         request.intercept(web_resource_response()).cancel();
         assert!(matches!(
@@ -1154,7 +1151,7 @@ mod test {
 
         // Explicit intercept with no further action yields Start and FinishLoad and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(request.intercept(web_resource_response()));
         assert!(matches!(
@@ -1170,7 +1167,7 @@ mod test {
 
         // No response yields DoNotIntercept and nothing else
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(request);
         assert!(matches!(
@@ -1182,7 +1179,7 @@ mod test {
 
         // Explicit intercept with explicit cancel when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(receiver);
         request.intercept(web_resource_response()).cancel();
@@ -1190,7 +1187,7 @@ mod test {
 
         // Explicit intercept with no further action when receiver disconnected yields error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(receiver);
         drop(request.intercept(web_resource_response()));
@@ -1198,7 +1195,7 @@ mod test {
 
         // No response when receiver disconnected yields no error
         let errors = ServoErrorChannel::default();
-        let (sender, receiver) = generic_channel::channel().expect("Failed to create IPC channel");
+        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
         let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
         drop(receiver);
         drop(request);
