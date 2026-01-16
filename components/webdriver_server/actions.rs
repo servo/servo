@@ -286,16 +286,16 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action>
-    fn dispatch_pause_action(&mut self, source_id: &str) {
+    fn dispatch_pause_action(&mut self, input_id: &str) {
         self.input_state_table_mut()
-            .entry(source_id.to_string())
+            .entry(input_id.to_string())
             .or_insert(InputSourceState::Null);
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
-    fn dispatch_keydown_action(&mut self, source_id: &str, action: &KeyDownAction) {
+    fn dispatch_keydown_action(&mut self, input_id: &str, action: &KeyDownAction) {
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match self.input_state_table_mut().get_mut(source_id).unwrap() {
+        let key_input_state = match self.input_state_table_mut().get_mut(input_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
@@ -313,7 +313,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
-    fn dispatch_keyup_action(&mut self, source_id: &str, action: &KeyUpAction) {
+    fn dispatch_keyup_action(&mut self, input_id: &str, action: &KeyUpAction) {
         let session = self.session_mut().unwrap();
 
         // Remove the last matching keyUp from `[input_cancel_list]` due to bugs in spec
@@ -321,7 +321,7 @@ impl Handler {
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         let input_cancel_list = &mut session.input_cancel_list;
         if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
-            id == source_id &&
+            id == input_id &&
                 matches!(item,
                         ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction { value })))
                     if *value == action.value )
@@ -331,7 +331,7 @@ impl Handler {
         }
 
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
+        let key_input_state = match session.input_state_table.get_mut(input_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
@@ -348,8 +348,8 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerdown-action>
-    fn dispatch_pointerdown_action(&mut self, source_id: &str, action: &PointerDownAction) {
-        let pointer_input_state = self.get_pointer_input_state_mut(source_id);
+    fn dispatch_pointerdown_action(&mut self, input_id: &str, action: &PointerDownAction) {
+        let pointer_input_state = self.get_pointer_input_state_mut(input_id);
         // Step 3. If the source's pressed property contains button return success with data null.
         if pointer_input_state.pressed.contains(&action.button) {
             return;
@@ -381,8 +381,8 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action>
-    fn dispatch_pointerup_action(&mut self, source_id: &str, action: &PointerUpAction) {
-        let pointer_input_state = self.get_pointer_input_state_mut(source_id);
+    fn dispatch_pointerup_action(&mut self, input_id: &str, action: &PointerUpAction) {
+        let pointer_input_state = self.get_pointer_input_state_mut(input_id);
         // Step 3. If the source's pressed property does not contain button, return success with data null.
         if !pointer_input_state.pressed.contains(&action.button) {
             return;
@@ -403,7 +403,7 @@ impl Handler {
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         let input_cancel_list = &mut self.session_mut().unwrap().input_cancel_list;
         if let Some(pos) = input_cancel_list.iter().position(|(id, item)| {
-            id == source_id &&
+            id == input_id &&
                 matches!(item, ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
                     PointerUpAction { button, .. },
                 ))) if *button == action.button )
@@ -434,7 +434,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action>
     fn dispatch_pointermove_action(
         &mut self,
-        source_id: &str,
+        input_id: &str,
         action: &PointerMoveAction,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
@@ -452,7 +452,7 @@ impl Handler {
         // Step 4. Let (x, y) be the result of trying to get coordinates relative to an origin
         // with source, x offset, y offset, origin, browsing context, and actions options.
 
-        let (x, y) = self.get_origin_relative_coordinates(origin, x_offset, y_offset, source_id)?;
+        let (x, y) = self.get_origin_relative_coordinates(origin, x_offset, y_offset, input_id)?;
 
         // Step 5. If x is less than 0 or greater than the width of the viewport in CSS pixels,
         // then return error with error code move target out of bounds.
@@ -474,7 +474,7 @@ impl Handler {
         }
 
         let (start_x, start_y) = {
-            let pointer_input_state = self.get_pointer_input_state(source_id);
+            let pointer_input_state = self.get_pointer_input_state(input_id);
             (pointer_input_state.x, pointer_input_state.y)
         };
 
@@ -482,7 +482,7 @@ impl Handler {
         // Perform a pointer move with arguments source, global key state, duration, start x, start y,
         // x, y, width, height, pressure, tangentialPressure, tiltX, tiltY, twist, altitudeAngle, azimuthAngle.
         // TODO: We have not considered pen pointer type
-        self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
+        self.perform_pointer_move(input_id, duration, start_x, start_y, x, y, tick_start);
 
         // Step 19. Return success with data null.
         Ok(())
@@ -492,7 +492,7 @@ impl Handler {
     #[expect(clippy::too_many_arguments)]
     fn perform_pointer_move(
         &mut self,
-        source_id: &str,
+        input_id: &str,
         duration: u64,
         start_x: f64,
         start_y: f64,
@@ -538,7 +538,7 @@ impl Handler {
                 subtype,
                 pressed,
                 pointer_id,
-            } = self.get_pointer_input_state(source_id);
+            } = self.get_pointer_input_state(input_id);
 
             // Step 7. If x != current x or y != current y, run the following steps:
             // FIXME: Actually "last" should not be checked here based on spec.
@@ -575,7 +575,7 @@ impl Handler {
                 }
 
                 // Step 7.3. Let input state's x property equal x and y property equal y.
-                let pointer_input_state = self.get_pointer_input_state_mut(source_id);
+                let pointer_input_state = self.get_pointer_input_state_mut(input_id);
                 pointer_input_state.x = x;
                 pointer_input_state.y = y;
             }
@@ -598,7 +598,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
     fn dispatch_scroll_action(
         &self,
-        source_id: &str,
+        input_id: &str,
         action: &WheelScrollAction,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
@@ -630,7 +630,7 @@ impl Handler {
         // Step 4. Let (x, y) be the result of trying to get coordinates relative to an origin
         // with source, x offset, y offset, origin, browsing context, and actions options.
         let (x, y) =
-            self.get_origin_relative_coordinates(origin, x_offset as _, y_offset as _, source_id)?;
+            self.get_origin_relative_coordinates(origin, x_offset as _, y_offset as _, input_id)?;
 
         // Step 5. If x is less than 0 or greater than the width of the viewport in CSS pixels,
         // then return error with error code move target out of bounds.
@@ -791,7 +791,7 @@ impl Handler {
         origin: &PointerOrigin,
         x_offset: f64,
         y_offset: f64,
-        source_id: &str,
+        input_id: &str,
     ) -> Result<(f64, f64), ErrorStatus> {
         match origin {
             PointerOrigin::Viewport => Ok((x_offset, y_offset)),
@@ -799,7 +799,7 @@ impl Handler {
                 // Step 1. Let start x be equal to the x property of source.
                 // Step 2. Let start y be equal to the y property of source.
                 let (start_x, start_y) = {
-                    let pointer_input_state = self.get_pointer_input_state(source_id);
+                    let pointer_input_state = self.get_pointer_input_state(input_id);
                     (pointer_input_state.x, pointer_input_state.y)
                 };
                 // Step 3. Let x equal start x + x offset and y equal start y + y offset.
@@ -930,21 +930,21 @@ impl Handler {
         &mut self.session_mut().unwrap().input_state_table
     }
 
-    fn get_pointer_input_state_mut(&mut self, source_id: &str) -> &mut PointerInputState {
+    fn get_pointer_input_state_mut(&mut self, input_id: &str) -> &mut PointerInputState {
         let InputSourceState::Pointer(pointer_input_state) =
-            self.input_state_table_mut().get_mut(source_id).unwrap()
+            self.input_state_table_mut().get_mut(input_id).unwrap()
         else {
             unreachable!();
         };
         pointer_input_state
     }
 
-    fn get_pointer_input_state(&self, source_id: &str) -> &PointerInputState {
+    fn get_pointer_input_state(&self, input_id: &str) -> &PointerInputState {
         let InputSourceState::Pointer(pointer_input_state) = self
             .session()
             .unwrap()
             .input_state_table
-            .get(source_id)
+            .get(input_id)
             .unwrap()
         else {
             unreachable!();
