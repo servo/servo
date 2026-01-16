@@ -1649,8 +1649,9 @@ dependencies = [
 
 [[package]]
 name = "content-security-policy"
-version = "0.5.4"
-source = "git+https://github.com/servo/rust-content-security-policy?branch=servo-csp#22b2831433f306ad22420dca4f5ff685b7fe4cc5"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52efb49c92268e4dcb64ea15d6733630f91bda721ef093f2e83959ea4fa241c0"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.10.0",
