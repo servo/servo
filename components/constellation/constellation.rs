@@ -1779,7 +1779,7 @@ where
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             ScriptToConstellationMessage::LoadComplete => {
-                self.handle_load_complete_msg(webview_id, source_pipeline_id)
+                self.handle_load_complete_msg(source_pipeline_id)
             },
             // Handle navigating to a fragment
             ScriptToConstellationMessage::NavigatedToFragment(new_url, replacement_enabled) => {
@@ -3157,46 +3157,6 @@ where
             ));
     }
 
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.browsing_context_id,
-            None => return warn!("{}: Subframe loaded after closure", pipeline_id),
-        };
-        let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(browsing_context) => browsing_context.parent_pipeline_id,
-            None => {
-                return warn!(
-                    "{}: Subframe loaded in closed {}",
-                    pipeline_id, browsing_context_id,
-                );
-            },
-        };
-        let Some(parent_pipeline_id) = parent_pipeline_id else {
-            return warn!("{}: Subframe has no parent", pipeline_id);
-        };
-        // https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
-        // When a Document in an iframe is marked as completely loaded,
-        // the user agent must run the iframe load event steps.
-        let msg = ScriptThreadMessage::DispatchIFrameLoadEvent {
-            target: browsing_context_id,
-            parent: parent_pipeline_id,
-            child: pipeline_id,
-        };
-        let result = match self.pipelines.get(&parent_pipeline_id) {
-            Some(parent) => parent.event_loop.send(msg),
-            None => {
-                return warn!(
-                    "{}: Parent pipeline browsing context loaded after closure",
-                    parent_pipeline_id
-                );
-            },
-        };
-        if let Err(e) = result {
-            self.handle_send_error(parent_pipeline_id, e);
-        }
-    }
-
     // The script thread associated with pipeline_id has loaded a URL in an
     // iframe via script. This will result in a new pipeline being spawned and
     // a child being added to the parent browsing context. This message is never
@@ -3732,22 +3692,10 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_load_complete_msg(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
+    fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
         if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
             debug!("{}: Marking as loaded", pipeline_id);
             pipeline.completely_loaded = true;
-        }
-
-        // Notify the embedder that the TopLevelBrowsingContext current document
-        // has finished loading.
-        // We need to make sure the pipeline that has finished loading is the current
-        // pipeline and that no pending pipeline will replace the current one.
-        let pipeline_is_top_level_pipeline = self
-            .browsing_contexts
-            .get(&BrowsingContextId::from(webview_id))
-            .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
-        if !pipeline_is_top_level_pipeline {
-            self.handle_subframe_loaded(pipeline_id);
         }
     }
 

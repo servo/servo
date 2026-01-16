@@ -1786,16 +1786,6 @@ impl ScriptThread {
             ScriptThreadMessage::WebFontLoaded(pipeline_id, success) => {
                 self.handle_web_font_loaded(pipeline_id, success)
             },
-            ScriptThreadMessage::DispatchIFrameLoadEvent {
-                target: browsing_context_id,
-                parent: parent_id,
-                child: child_id,
-            } => self.handle_iframe_load_event(
-                parent_id,
-                browsing_context_id,
-                child_id,
-                CanGc::from_cx(cx),
-            ),
             ScriptThreadMessage::DispatchStorageEvent(
                 pipeline_id,
                 storage,
@@ -3126,24 +3116,6 @@ impl ScriptThread {
         };
 
         storage.queue_storage_event(url, key, old_value, new_value);
-    }
-
-    /// Notify the containing document of a child iframe that has completed loading.
-    fn handle_iframe_load_event(
-        &self,
-        parent_id: PipelineId,
-        browsing_context_id: BrowsingContextId,
-        child_id: PipelineId,
-        can_gc: CanGc,
-    ) {
-        let iframe = self
-            .documents
-            .borrow()
-            .find_iframe(parent_id, browsing_context_id);
-        match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc),
-            None => warn!("Message sent to closed pipeline {}.", parent_id),
-        }
     }
 
     fn ask_constellation_for_top_level_info(
