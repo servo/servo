@@ -410,16 +410,34 @@ pub(crate) fn decrypt(
     //
     // NOTE: We currently support:
     // - IV: 96-bit, 128-bit, 256-bit
-    // - Tag length: 128-bit
+    // - Tag length: 96-bit, 104-bit, 112-bit, 120-bit, 128-bit
+    //
+    // NOTE: We currently do not support 32-bit and 64-bit tag length in decryption since the crate
+    // `aes-gcm` does not support 32-bit and 64-bit tag length.
     let iv = normalized_algorithm.iv.as_slice();
     let plaintext = match key.handle() {
         Handle::Aes128Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
+            (12, 96) => gcm_decrypt::<Aes128, U12, U12>(key, ciphertext, iv, additional_data)?,
+            (12, 104) => gcm_decrypt::<Aes128, U12, U13>(key, ciphertext, iv, additional_data)?,
+            (12, 112) => gcm_decrypt::<Aes128, U12, U14>(key, ciphertext, iv, additional_data)?,
+            (12, 120) => gcm_decrypt::<Aes128, U12, U15>(key, ciphertext, iv, additional_data)?,
             (12, 128) => gcm_decrypt::<Aes128, U12, U16>(key, ciphertext, iv, additional_data)?,
+
             // 128-bit nonce
+            (16, 96) => gcm_decrypt::<Aes128, U16, U12>(key, ciphertext, iv, additional_data)?,
+            (16, 104) => gcm_decrypt::<Aes128, U16, U13>(key, ciphertext, iv, additional_data)?,
+            (16, 112) => gcm_decrypt::<Aes128, U16, U14>(key, ciphertext, iv, additional_data)?,
+            (16, 120) => gcm_decrypt::<Aes128, U16, U15>(key, ciphertext, iv, additional_data)?,
             (16, 128) => gcm_decrypt::<Aes128, U16, U16>(key, ciphertext, iv, additional_data)?,
+
             // 256-bit nonce
+            (32, 96) => gcm_decrypt::<Aes128, U32, U12>(key, ciphertext, iv, additional_data)?,
+            (32, 104) => gcm_decrypt::<Aes128, U32, U13>(key, ciphertext, iv, additional_data)?,
+            (32, 112) => gcm_decrypt::<Aes128, U32, U14>(key, ciphertext, iv, additional_data)?,
+            (32, 120) => gcm_decrypt::<Aes128, U32, U15>(key, ciphertext, iv, additional_data)?,
             (32, 128) => gcm_decrypt::<Aes128, U32, U16>(key, ciphertext, iv, additional_data)?,
+
             _ => {
                 return Err(Error::Operation(Some(format!(
                     "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
@@ -430,11 +448,26 @@ pub(crate) fn decrypt(
         },
         Handle::Aes192Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
+            (12, 96) => gcm_decrypt::<Aes192, U12, U12>(key, ciphertext, iv, additional_data)?,
+            (12, 104) => gcm_decrypt::<Aes192, U12, U13>(key, ciphertext, iv, additional_data)?,
+            (12, 112) => gcm_decrypt::<Aes192, U12, U14>(key, ciphertext, iv, additional_data)?,
+            (12, 120) => gcm_decrypt::<Aes192, U12, U15>(key, ciphertext, iv, additional_data)?,
             (12, 128) => gcm_decrypt::<Aes192, U12, U16>(key, ciphertext, iv, additional_data)?,
+
             // 128-bit nonce
+            (16, 96) => gcm_decrypt::<Aes192, U16, U12>(key, ciphertext, iv, additional_data)?,
+            (16, 104) => gcm_decrypt::<Aes192, U16, U13>(key, ciphertext, iv, additional_data)?,
+            (16, 112) => gcm_decrypt::<Aes192, U16, U14>(key, ciphertext, iv, additional_data)?,
+            (16, 120) => gcm_decrypt::<Aes192, U16, U15>(key, ciphertext, iv, additional_data)?,
             (16, 128) => gcm_decrypt::<Aes192, U16, U16>(key, ciphertext, iv, additional_data)?,
+
             // 256-bit nonce
+            (32, 96) => gcm_decrypt::<Aes192, U32, U12>(key, ciphertext, iv, additional_data)?,
+            (32, 104) => gcm_decrypt::<Aes192, U32, U13>(key, ciphertext, iv, additional_data)?,
+            (32, 112) => gcm_decrypt::<Aes192, U32, U14>(key, ciphertext, iv, additional_data)?,
+            (32, 120) => gcm_decrypt::<Aes192, U32, U15>(key, ciphertext, iv, additional_data)?,
             (32, 128) => gcm_decrypt::<Aes192, U32, U16>(key, ciphertext, iv, additional_data)?,
+
             _ => {
                 return Err(Error::Operation(Some(format!(
                     "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
@@ -445,11 +478,26 @@ pub(crate) fn decrypt(
         },
         Handle::Aes256Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
+            (12, 96) => gcm_decrypt::<Aes256, U12, U12>(key, ciphertext, iv, additional_data)?,
+            (12, 104) => gcm_decrypt::<Aes256, U12, U13>(key, ciphertext, iv, additional_data)?,
+            (12, 112) => gcm_decrypt::<Aes256, U12, U14>(key, ciphertext, iv, additional_data)?,
+            (12, 120) => gcm_decrypt::<Aes256, U12, U15>(key, ciphertext, iv, additional_data)?,
             (12, 128) => gcm_decrypt::<Aes256, U12, U16>(key, ciphertext, iv, additional_data)?,
+
             // 128-bit nonce
+            (16, 96) => gcm_decrypt::<Aes256, U16, U12>(key, ciphertext, iv, additional_data)?,
+            (16, 104) => gcm_decrypt::<Aes256, U16, U13>(key, ciphertext, iv, additional_data)?,
+            (16, 112) => gcm_decrypt::<Aes256, U16, U14>(key, ciphertext, iv, additional_data)?,
+            (16, 120) => gcm_decrypt::<Aes256, U16, U15>(key, ciphertext, iv, additional_data)?,
             (16, 128) => gcm_decrypt::<Aes256, U16, U16>(key, ciphertext, iv, additional_data)?,
+
             // 256-bit nonce
+            (32, 96) => gcm_decrypt::<Aes256, U32, U12>(key, ciphertext, iv, additional_data)?,
+            (32, 104) => gcm_decrypt::<Aes256, U32, U13>(key, ciphertext, iv, additional_data)?,
+            (32, 112) => gcm_decrypt::<Aes256, U32, U14>(key, ciphertext, iv, additional_data)?,
+            (32, 120) => gcm_decrypt::<Aes256, U32, U15>(key, ciphertext, iv, additional_data)?,
             (32, 128) => gcm_decrypt::<Aes256, U32, U16>(key, ciphertext, iv, additional_data)?,
+
             _ => {
                 return Err(Error::Operation(Some(format!(
                     "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
