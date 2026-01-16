@@ -205,7 +205,7 @@ url = "2.5"
 urlpattern = "0.3"
 utf-8 = "0.7"
 uuid = { version = "1.19.0", features = ["v4", "v5"] }
-vello = "0.6"
+vello = "0.7"
 vello_cpu = "0.0.4"
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
