@@ -291,17 +291,10 @@ impl OpenRequest {
                 version: _,
                 pending_upgrade,
             } => {
-                let Some(VersionUpgrade { old, new: _ }) = pending_upgrade else {
-                    debug_assert!(
-                        false,
-                        "A pending open request should have a pending upgrade."
-                    );
-                    return None;
-                };
                 if sender.send(Ok(OpenDatabaseResult::AbortError)).is_err() {
                     error!("Failed to send OpenDatabaseResult::Connection to script.");
                 };
-                Some(*old)
+                pending_upgrade.as_ref().map(|upgrade| upgrade.old)
             },
             OpenRequest::Delete {
                 sender,
