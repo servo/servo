@@ -1355,44 +1355,7 @@ impl HTMLFormElement {
             .collect();
 
         for child in controls {
-            let child = child.upcast::<Node>();
-
-            match child.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLInputElement,
-                )) => {
-                    child.downcast::<HTMLInputElement>().unwrap().reset(can_gc);
-                },
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLSelectElement,
-                )) => {
-                    child.downcast::<HTMLSelectElement>().unwrap().reset();
-                },
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLTextAreaElement,
-                )) => {
-                    child
-                        .downcast::<HTMLTextAreaElement>()
-                        .unwrap()
-                        .reset(can_gc);
-                },
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLOutputElement,
-                )) => {
-                    child.downcast::<HTMLOutputElement>().unwrap().reset(can_gc);
-                },
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
-                    let html_element = child.downcast::<HTMLElement>().unwrap();
-                    if html_element.is_form_associated_custom_element() {
-                        ScriptThread::enqueue_callback_reaction(
-                            html_element.upcast::<Element>(),
-                            CallbackReaction::FormReset,
-                            None,
-                        )
-                    }
-                },
-                _ => {},
-            }
+            child.reset(can_gc);
         }
         self.marked_for_reset.set(false);
     }
@@ -1424,6 +1387,48 @@ impl HTMLFormElement {
             past_names_map.0.retain(|_k, v| v.0 != control);
         }
         self.update_validity(can_gc);
+    }
+}
+
+impl Element {
+    pub(crate) fn is_resettable(&self) -> bool {
+        let NodeTypeId::Element(ElementTypeId::HTMLElement(element_type)) =
+            self.upcast::<Node>().type_id()
+        else {
+            return false;
+        };
+        matches!(
+            element_type,
+            HTMLElementTypeId::HTMLInputElement |
+                HTMLElementTypeId::HTMLSelectElement |
+                HTMLElementTypeId::HTMLTextAreaElement |
+                HTMLElementTypeId::HTMLOutputElement |
+                HTMLElementTypeId::HTMLElement
+        )
+    }
+
+    pub(crate) fn reset(&self, can_gc: CanGc) {
+        if !self.is_resettable() {
+            return;
+        }
+
+        if let Some(input_element) = self.downcast::<HTMLInputElement>() {
+            input_element.reset(can_gc);
+        } else if let Some(select_element) = self.downcast::<HTMLSelectElement>() {
+            select_element.reset();
+        } else if let Some(textarea_element) = self.downcast::<HTMLTextAreaElement>() {
+            textarea_element.reset(can_gc);
+        } else if let Some(output_element) = self.downcast::<HTMLOutputElement>() {
+            output_element.reset(can_gc);
+        } else if let Some(html_element) = self.downcast::<HTMLElement>() {
+            if html_element.is_form_associated_custom_element() {
+                ScriptThread::enqueue_callback_reaction(
+                    html_element.upcast::<Element>(),
+                    CallbackReaction::FormReset,
+                    None,
+                )
+            }
+        }
     }
 }
 

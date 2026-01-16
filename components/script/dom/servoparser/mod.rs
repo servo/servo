@@ -69,7 +69,6 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::{Node, ShadowIncluding};
@@ -82,7 +81,7 @@ use crate::dom::processingoptions::{
 use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
-use crate::dom::types::HTMLMediaElement;
+use crate::dom::types::{HTMLElement, HTMLMediaElement};
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_realm;
@@ -1800,77 +1799,103 @@ fn create_element_for_token(
     custom_element_reaction_stack: &CustomElementReactionStack,
     can_gc: CanGc,
 ) -> DomRoot<Element> {
-    // Step 3.
+    // Step 1. If the active speculative HTML parser is not null, then return the result
+    // of creating a speculative mock element given namespace, token's tag name, and
+    // token's attributes.
+    // TODO: Implement
+
+    // Step 2: Otherwise, optionally create a speculative mock element given namespace,
+    // token's tag name, and token's attributes
+    // TODO: Implement.
+
+    // Step 3. Let document be intendedParent's node document.
+    // Passed as argument.
+
+    // Step 4. Let localName be token's tag name.
+    // Passed as argument
+
+    // Step 5. Let is be the value of the "is" attribute in token, if such an attribute
+    // exists; otherwise null.
     let is = attrs
         .iter()
         .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
         .map(|attr| LocalName::from(&attr.value));
 
-    // Step 4.
+    // Step 6. Let registry be the result of looking up a custom element registry given intendedParent.
+    // TODO: Implement registries other than `Document`.
+
+    // Step 7. Let definition be the result of looking up a custom element definition
+    // given registry, namespace, localName, and is.
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
-    // Step 5.
+    // Step 8. Let willExecuteScript be true if definition is non-null and the parser was
+    // not created as part of the HTML fragment parsing algorithm; otherwise false.
     let will_execute_script =
         definition.is_some() && parsing_algorithm != ParsingAlgorithm::Fragment;
 
-    // Step 6.
+    // Step 9. If willExecuteScript is true:
     if will_execute_script {
-        // Step 6.1.
+        // Step 9.1. Increment document's throw-on-dynamic-markup-insertion counter.
         document.increment_throw_on_dynamic_markup_insertion_counter();
-        // Step 6.2
+        // Step 6.2. If the JavaScript execution context stack is empty, then perform a
+        // microtask checkpoint.
         if is_execution_stack_empty() {
             document.window().perform_a_microtask_checkpoint(can_gc);
         }
-        // Step 6.3
+        // Step 9.3. Push a new element queue onto document's relevant agent's custom
+        // element reactions stack.
         custom_element_reaction_stack.push_new_element_queue()
     }
 
-    // Step 7.
+    // Step 10. Let element be the result of creating an element given document,
+    // localName, namespace, null, is, willExecuteScript, and registry.
     let creation_mode = if will_execute_script {
         CustomElementCreationMode::Synchronous
     } else {
         CustomElementCreationMode::Asynchronous
     };
-
     let element = Element::create(name, is, document, creator, creation_mode, None, can_gc);
 
-    // https://html.spec.whatwg.org/multipage#the-input-element:value-sanitization-algorithm-3
-    // says to invoke sanitization "when an input element is first created";
-    // however, since sanitization requires content attributes to function,
-    // it can't mean that literally.
-    // Indeed, to make sanitization work correctly, we need to _not_ sanitize
-    // until after all content attributes have been added
-
-    let maybe_input = element.downcast::<HTMLInputElement>();
-    if let Some(input) = maybe_input {
-        input.disable_sanitization();
-    }
-
-    // Step 8
+    // Step 11. Append each attribute in the given token to element.
     for attr in attrs {
         element.set_attribute_from_parser(attr.name, attr.value, None, can_gc);
     }
 
-    // _now_ we can sanitize (and we sanitize now even if the "value"
-    // attribute isn't present!)
-    if let Some(input) = maybe_input {
-        input.enable_sanitization();
-    }
-
-    // Step 9.
+    // Step 12. If willExecuteScript is true:
     if will_execute_script {
-        // Steps 9.1 - 9.2.
+        // Step 12.1. Let queue be the result of popping from document's relevant agent's
+        // custom element reactions stack. (This will be the same element queue as was
+        // pushed above.)
+        // Step 12.2 Invoke custom element reactions in queue.
         custom_element_reaction_stack.pop_current_element_queue(can_gc);
-        // Step 9.3.
+        // Step 12.3. Decrement document's throw-on-dynamic-markup-insertion counter.
         document.decrement_throw_on_dynamic_markup_insertion_counter();
     }
 
-    // TODO: Step 10.
-    // TODO: Step 11.
+    // Step 13. If element has an xmlns attribute in the XMLNS namespace whose value is
+    // not exactly the same as the element's namespace, that is a parse error. Similarly,
+    // if element has an xmlns:xlink attribute in the XMLNS namespace whose value is not
+    // the XLink Namespace, that is a parse error.
+    // TODO: Implement.
 
-    // Step 12 is handled in `associate_with_form`.
+    // Step 14. If element is a resettable element and not a form-associated custom
+    // element, then invoke its reset algorithm. (This initializes the element's value and
+    // checkedness based on the element's attributes.)
+    if let Some(html_element) = element.downcast::<HTMLElement>() {
+        if element.is_resettable() && !html_element.is_form_associated_custom_element() {
+            element.reset(can_gc);
+        }
+    }
 
-    // Step 13.
+    // Step 15. If element is a form-associated element and not a form-associated custom
+    // element, the form element pointer is not null, there is no template element on the
+    // stack of open elements, element is either not listed or doesn't have a form attribute,
+    // and the intendedParent is in the same tree as the element pointed to by the form
+    // element pointer, then associate element with the form element pointed to by the form
+    // element pointer and set element's parser inserted flag.
+    // TODO: Implement
+
+    // Step 16. Return element.
     element
 }
 
