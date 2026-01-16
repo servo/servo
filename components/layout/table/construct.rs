@@ -20,7 +20,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
@@ -54,7 +54,6 @@ pub(crate) enum AnonymousTableContent<'dom> {
         info: NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     },
 }
 
@@ -103,9 +102,8 @@ impl Table {
                     info,
                     display,
                     contents,
-                    box_slot,
                 } => {
-                    table_builder.handle_element(&info, display, contents, box_slot);
+                    table_builder.handle_element(&info, display, contents);
                 },
                 AnonymousTableContent::Text(..) => {
                     // This only happens if there was whitespace between our internal table elements.
@@ -699,9 +697,8 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
                     info,
                     display,
                     contents,
-                    box_slot,
                 } => {
-                    row_builder.handle_element(&info, display, contents, box_slot);
+                    row_builder.handle_element(&info, display, contents);
                 },
                 AnonymousTableContent::Text(info, text) => {
                     row_builder.handle_text(&info, text);
@@ -749,7 +746,6 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
         info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
         match display {
             DisplayGeneratingBox::LayoutInternal(internal) => match internal {
@@ -780,6 +776,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     self.current_row_group_index = None;
                     self.builder.incoming_rowspans.clear();
 
+                    let box_slot = info.node.box_slot();
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::TrackGroup(
                         row_group,
                     )));
@@ -804,9 +801,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         shared_background_style: SharedStyle::new(info.style.clone()),
                     });
                     self.push_table_row(row.clone());
+                    let box_slot = info.node.box_slot();
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
                 },
                 DisplayLayoutInternal::TableColumn => {
+                    let box_slot = info.node.box_slot();
                     let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
                     let old_column = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
@@ -856,11 +855,13 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         shared_background_style: SharedStyle::new(info.style.clone()),
                     });
                     self.builder.table.column_groups.push(column_group.clone());
+                    let box_slot = info.node.box_slot();
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::TrackGroup(
                         column_group,
                     )));
                 },
                 DisplayLayoutInternal::TableCaption => {
+                    let box_slot = info.node.box_slot();
                     let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
                     let old_caption = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)) => Some(caption),
@@ -895,7 +896,6 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                             info: info.clone(),
                             display,
                             contents,
-                            box_slot,
                         });
                 },
             },
@@ -905,7 +905,6 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         info: info.clone(),
                         display,
                         contents,
-                        box_slot,
                     });
             },
         }
@@ -967,9 +966,8 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
                     info,
                     display,
                     contents,
-                    box_slot,
                 } => {
-                    builder.handle_element(&info, display, contents, box_slot);
+                    builder.handle_element(&info, display, contents);
                 },
                 AnonymousTableContent::Text(info, text) => {
                     builder.handle_text(&info, text);
@@ -988,12 +986,10 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
             .builder
             .add_cell(new_table_cell.clone());
 
-        anonymous_info
-            .node
-            .box_slot()
-            .set(LayoutBox::TableLevelBox(TableLevelBox::Cell(
-                new_table_cell,
-            )));
+        let box_slot = anonymous_info.node.box_slot();
+        box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Cell(
+            new_table_cell,
+        )));
     }
 }
 
@@ -1009,7 +1005,6 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
         info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
         #[allow(clippy::collapsible_match)] //// TODO: Remove once the other cases are handled
         match display {
@@ -1017,6 +1012,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                 DisplayLayoutInternal::TableCell => {
                     self.finish_current_anonymous_cell_if_needed();
 
+                    let box_slot = info.node.box_slot();
                     let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
                     let old_cell = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)) => Some(cell),
@@ -1072,7 +1068,6 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                             info: info.clone(),
                             display,
                             contents,
-                            box_slot,
                         });
                 },
             },
@@ -1082,7 +1077,6 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                         info: info.clone(),
                         display,
                         contents,
-                        box_slot,
                     });
             },
         }
@@ -1101,8 +1095,8 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
         info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         _contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
+        let box_slot = info.node.box_slot();
         if !matches!(
             display,
             DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableColumn)

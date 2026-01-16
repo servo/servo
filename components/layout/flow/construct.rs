@@ -19,7 +19,7 @@ use super::inline::{InlineFormattingContext, SharedInlineStyles};
 use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{
     Contents, NodeAndStyleInfo, NonReplacedContents, PseudoElementContentItem, TraversalHandler,
 };
@@ -60,7 +60,6 @@ impl BlockFormattingContext {
 
 struct BlockLevelJob<'dom> {
     info: NodeAndStyleInfo<'dom>,
-    box_slot: BoxSlot<'dom>,
     propagated_data: PropagatedBoxTreeData,
     kind: BlockLevelCreator,
 }
@@ -299,10 +298,8 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
                 self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
             }
 
-            let box_slot = table_info.node.box_slot();
             self.block_level_boxes.push(BlockLevelJob {
                 info: table_info,
-                box_slot,
                 kind: BlockLevelCreator::AnonymousTable { table_block },
                 propagated_data: self.propagated_data,
             });
@@ -329,7 +326,6 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
         match display {
             DisplayGeneratingBox::OutsideInside { outside, inside } => {
@@ -337,20 +333,18 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
 
                 match outside {
                     DisplayOutside::Inline => {
-                        self.handle_inline_level_element(info, inside, contents, box_slot)
+                        self.handle_inline_level_element(info, inside, contents)
                     },
                     DisplayOutside::Block => {
                         let box_style = info.style.get_box();
                         // Floats and abspos cause blockification, so they only happen in this case.
                         // https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
                         if box_style.position.is_absolutely_positioned() {
-                            self.handle_absolutely_positioned_element(
-                                info, inside, contents, box_slot,
-                            )
+                            self.handle_absolutely_positioned_element(info, inside, contents)
                         } else if box_style.float.is_floating() {
-                            self.handle_float_element(info, inside, contents, box_slot)
+                            self.handle_float_element(info, inside, contents)
                         } else {
-                            self.handle_block_level_element(info, inside, contents, box_slot)
+                            self.handle_block_level_element(info, inside, contents)
                         }
                     },
                 };
@@ -361,7 +355,6 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
                         info: info.clone(),
                         display,
                         contents,
-                        box_slot,
                     });
             },
         }
@@ -408,14 +401,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         marker_info: &NodeAndStyleInfo<'dom>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
     ) {
-        let box_slot = marker_info.node.box_slot();
         self.handle_inline_level_element(
             marker_info,
             DisplayInside::Flow {
                 is_list_item: false,
             },
             Contents::for_pseudo_element(contents),
-            box_slot,
         );
     }
 
@@ -425,10 +416,8 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
         list_item_style: Arc<ComputedValues>,
     ) {
-        let box_slot = marker_info.node.box_slot();
         self.block_level_boxes.push(BlockLevelJob {
             info: marker_info.clone(),
-            box_slot,
             kind: BlockLevelCreator::OutsideMarker {
                 contents,
                 list_item_style,
@@ -442,8 +431,8 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
+        let box_slot = info.node.box_slot();
         let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
         let (is_list_item, non_replaced_contents) = match (display_inside, contents) {
             (
@@ -508,7 +497,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
         let propagated_data = self.propagated_data;
         let kind = match contents {
@@ -540,7 +528,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         };
         let job = BlockLevelJob {
             info: info.clone(),
-            box_slot,
             kind,
             propagated_data,
         };
@@ -565,7 +552,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
         // If the original display was inline-level, then we need an inline formatting context
         // in order to compute the static position correctly.
@@ -590,6 +576,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                     contents,
                 ))
             };
+            let box_slot = info.node.box_slot();
             let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
             let inline_level_box =
                 inline_builder.push_absolutely_positioned_box(constructor, old_layout_box);
@@ -603,7 +590,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         };
         self.block_level_boxes.push(BlockLevelJob {
             info: info.clone(),
-            box_slot,
             kind,
             propagated_data: self.propagated_data,
         });
@@ -614,7 +600,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             if !builder.is_empty {
@@ -627,6 +612,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
                         self.propagated_data,
                     ))
                 };
+                let box_slot = info.node.box_slot();
                 let old_layout_box = box_slot.take_layout_box_if_undamaged(info.damage);
                 let inline_level_box = builder.push_float_box(constructor, old_layout_box);
                 box_slot.set(LayoutBox::InlineLevel(inline_level_box));
@@ -640,7 +626,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         };
         self.block_level_boxes.push(BlockLevelJob {
             info: info.clone(),
-            box_slot,
             kind,
             propagated_data: self.propagated_data,
         });
@@ -660,10 +645,8 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             })
             .clone();
 
-        let box_slot = anonymous_info.node.box_slot();
         self.block_level_boxes.push(BlockLevelJob {
             info: anonymous_info,
-            box_slot,
             kind: BlockLevelCreator::SameFormattingContextBlock(
                 IntermediateBlockContainer::InlineFormattingContext(
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
@@ -679,11 +662,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
 impl BlockLevelJob<'_> {
     fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
+        let box_slot = info.node.box_slot();
 
         // If this `BlockLevelBox` is undamaged and it has been laid out before, reuse
         // the old one, while being sure to clear the layout cache.
         if !info.damage.has_box_damage() {
-            if let Some(block_level_box) = match &*self.box_slot.slot.borrow() {
+            if let Some(block_level_box) = match &*box_slot.slot.borrow() {
                 Some(LayoutBox::BlockLevel(block_level_box)) => Some(block_level_box.clone()),
                 _ => None,
             } {
@@ -760,8 +744,7 @@ impl BlockLevelJob<'_> {
             },
             BlockLevelCreator::AnonymousTable { table_block } => table_block,
         };
-        self.box_slot
-            .set(LayoutBox::BlockLevel(block_level_box.clone()));
+        box_slot.set(LayoutBox::BlockLevel(block_level_box.clone()));
         block_level_box
     }
 }

@@ -12,7 +12,7 @@ use style::selector_parser::PseudoElement;
 
 use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox};
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
@@ -38,7 +38,6 @@ enum ModernContainerJob<'dom> {
         info: NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     },
     TextRuns(Vec<ModernContainerTextRun<'dom>>),
 }
@@ -84,7 +83,6 @@ impl<'dom> ModernContainerJob<'dom> {
                 info,
                 display,
                 contents,
-                box_slot,
             } => {
                 let is_abspos = info.style.get_box().position.is_absolutely_positioned();
                 let order = if is_abspos {
@@ -93,6 +91,7 @@ impl<'dom> ModernContainerJob<'dom> {
                     info.style.clone_order()
                 };
 
+                let box_slot = info.node.box_slot();
                 if let Some(layout_box) = box_slot
                     .take_layout_box_if_undamaged(info.damage)
                     .and_then(|layout_box| match &layout_box {
@@ -181,7 +180,6 @@ impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
         info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     ) {
         self.wrap_any_text_in_anonymous_block_container();
 
@@ -189,7 +187,6 @@ impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
             info: info.clone(),
             display,
             contents,
-            box_slot,
         })
     }
 }

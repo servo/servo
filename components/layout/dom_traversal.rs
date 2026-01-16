@@ -20,7 +20,7 @@ use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
 
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::dom::{LayoutBox, NodeExt};
 use crate::flow::inline::SharedInlineStyles;
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
@@ -109,7 +109,6 @@ pub(super) trait TraversalHandler<'dom> {
         info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
-        box_slot: BoxSlot<'dom>,
     );
 
     /// Notify the handler that we are about to recurse into a `display: contents` element.
@@ -185,8 +184,7 @@ fn traverse_element<'dom>(
         Display::GeneratingBox(display) => {
             let contents = Contents::for_element(element, context);
             let display = display.used_value_for_contents(&contents);
-            let box_slot = element.box_slot();
-            handler.handle_element(&info, display, contents, box_slot);
+            handler.handle_element(&info, display, contents);
         },
     }
 }
@@ -223,9 +221,8 @@ fn traverse_eager_pseudo_element<'dom>(
         },
         Display::GeneratingBox(display) => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
-            let box_slot = pseudo_element_info.node.box_slot();
             let contents = Contents::for_pseudo_element(items);
-            handler.handle_element(&pseudo_element_info, display, contents, box_slot);
+            handler.handle_element(&pseudo_element_info, display, contents);
         },
     }
 }
@@ -256,12 +253,7 @@ fn traverse_pseudo_element_contents<'dom>(
                     Display::from(anonymous_info.style.get_box().display) ==
                         Display::GeneratingBox(display_inline)
                 );
-                handler.handle_element(
-                    anonymous_info,
-                    display_inline,
-                    Contents::Replaced(contents),
-                    anonymous_info.node.box_slot(),
-                )
+                handler.handle_element(anonymous_info, display_inline, Contents::Replaced(contents))
             },
         }
     }
