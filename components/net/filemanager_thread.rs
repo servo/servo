@@ -9,9 +9,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
-use base::generic_channel;
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy, FilePickerRequest,
+    EmbedderControlId, EmbedderControlResponse, EmbedderProxy2, FilePickerRequest, NetEmbedderMsg,
     SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
@@ -81,12 +80,12 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
-    embedder_proxy: EmbedderProxy,
+    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new(embedder_proxy: EmbedderProxy) -> FileManager {
+    pub fn new(embedder_proxy: EmbedderProxy2<NetEmbedderMsg>) -> FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
@@ -140,7 +139,7 @@ impl FileManager {
         )
     }
 
-    pub(crate) fn promote_memory(
+    pub fn promote_memory(
         &self,
         id: Uuid,
         blob_buf: BlobBuf,
@@ -151,7 +150,7 @@ impl FileManager {
     }
 
     /// Message handler
-    pub(crate) fn handle(&self, msg: FileManagerThreadMsg) {
+    pub fn handle(&self, msg: FileManagerThreadMsg) {
         match msg {
             FileManagerThreadMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
                 let store = self.store.clone();
@@ -543,19 +542,18 @@ impl FileManagerStore {
         &self,
         control_id: EmbedderControlId,
         file_picker_request: FilePickerRequest,
-        embedder_proxy: EmbedderProxy,
+        embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
     ) -> EmbedderControlResponse {
-        let (ipc_sender, ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
+        let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let origin = file_picker_request.origin.clone();
-        embedder_proxy.send(EmbedderMsg::SelectFiles(
+        embedder_proxy.send(NetEmbedderMsg::SelectFiles(
             control_id,
             file_picker_request,
-            ipc_sender,
+            sender,
         ));
 
-        let paths = match ipc_receiver.recv() {
+        let paths = match receiver.await {
             Ok(Some(result)) => result,
             Ok(None) => {
                 return EmbedderControlResponse::FilePicker(None);

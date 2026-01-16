@@ -138,6 +138,7 @@ struct ServoInner {
     paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
+    net_embedder_receiver: Receiver<NetEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
     site_data_manager: Rc<RefCell<SiteDataManager>>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
@@ -186,11 +187,30 @@ impl ServoInner {
         }
 
         // Only handle incoming embedder messages if `Paint` hasn't already started shutting down.
-        while let Ok(message) = self.embedder_receiver.try_recv() {
-            self.handle_embedder_message(message);
-
+        loop {
             if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
                 break;
+            }
+
+            let mut select = crossbeam_channel::Select::new();
+            let operation1 = select.recv(&self.embedder_receiver);
+            let operation2 = select.recv(&self.net_embedder_receiver);
+            let Ok(operation) = select.try_select() else {
+                break;
+            };
+            let index = operation.index();
+            if index == operation1 {
+                let Ok(message) = operation.recv(&self.embedder_receiver) else {
+                    continue;
+                };
+                self.handle_embedder_message(message);
+            } else if index == operation2 {
+                let Ok(message) = operation.recv(&self.net_embedder_receiver) else {
+                    continue;
+                };
+                self.handle_net_embedder_message(message);
+            } else {
+                unreachable!("No select operation registered for {index:?}");
             }
         }
 
@@ -243,6 +263,27 @@ impl ServoInner {
         debug!("Servo received message that Constellation shutdown is complete");
         self.shutdown_state.set(ShutdownState::FinishedShuttingDown);
         self.paint.borrow_mut().finish_shutting_down();
+    }
+
+    fn handle_net_embedder_message(&self, message: NetEmbedderMsg) {
+        match message {
+            NetEmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
+                if file_picker_request.accept_current_paths_for_testing {
+                    let _ = response_sender.send(Some(file_picker_request.current_paths));
+                    return;
+                }
+                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
+                    webview.delegate().show_embedder_control(
+                        webview,
+                        EmbedderControl::FilePicker(FilePicker {
+                            id: control_id,
+                            file_picker_request,
+                            response_sender: Some(response_sender),
+                        }),
+                    );
+                }
+            },
+        }
     }
 
     fn handle_embedder_message(&self, message: EmbedderMsg) {
@@ -461,23 +502,6 @@ impl ServoInner {
                         webview,
                         items,
                         response_sender,
-                    );
-                }
-            },
-            EmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
-                if file_picker_request.accept_current_paths_for_testing {
-                    let _ = response_sender.send(Some(file_picker_request.current_paths));
-                    return;
-                }
-                if let Some(webview) = self.get_webview_handle(control_id.webview_id) {
-                    webview.delegate().show_embedder_control(
-                        webview,
-                        EmbedderControl::FilePicker(FilePicker {
-                            id: control_id,
-                            file_picker_request,
-                            response_sender,
-                            response_sent: false,
-                        }),
                     );
                 }
             },
@@ -710,6 +734,8 @@ impl Servo {
         let (paint_proxy, paint_receiver) = create_paint_channel(event_loop_waker.clone());
         let (constellation_proxy, embedder_to_constellation_receiver) = ConstellationProxy::new();
         let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
+        let (net_embedder_proxy, net_embedder_receiver) =
+            create_embedder_channel2::<NetEmbedderMsg>(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
@@ -760,6 +786,7 @@ impl Servo {
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),
                 embedder_proxy.clone(),
+                net_embedder_proxy,
                 opts.config_dir.clone(),
                 opts.certificate_path.clone(),
                 opts.ignore_certificate_errors,
@@ -807,6 +834,7 @@ impl Servo {
             ))),
             constellation_proxy,
             embedder_receiver,
+            net_embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
@@ -909,6 +937,19 @@ fn create_embedder_channel(
     let (sender, receiver) = unbounded();
     (
         EmbedderProxy {
+            sender,
+            event_loop_waker,
+        },
+        receiver,
+    )
+}
+
+fn create_embedder_channel2<T>(
+    event_loop_waker: Box<dyn EventLoopWaker>,
+) -> (EmbedderProxy2<T>, Receiver<T>) {
+    let (sender, receiver) = unbounded();
+    (
+        EmbedderProxy2 {
             sender,
             event_loop_waker,
         },

@@ -37,6 +37,7 @@ use servo_url::ServoUrl;
 use strum::{EnumMessage, IntoStaticStr};
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
+use tokio::sync::oneshot::Sender as TokioSender;
 use url::Url;
 use uuid::Uuid;
 use webrender_api::ExternalScrollId;
@@ -227,14 +228,15 @@ impl Clone for Box<dyn EventLoopWaker> {
         self.clone_box()
     }
 }
+
 /// Sends messages to the embedder.
-pub struct EmbedderProxy {
-    pub sender: Sender<EmbedderMsg>,
+pub struct EmbedderProxy2<T> {
+    pub sender: Sender<T>,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
-impl EmbedderProxy {
-    pub fn send(&self, message: EmbedderMsg) {
+impl<T> EmbedderProxy2<T> {
+    pub fn send(&self, message: T) {
         // Send a message and kick the OS event loop awake.
         if let Err(err) = self.sender.send(message) {
             warn!("Failed to send response ({:?}).", err);
@@ -243,14 +245,16 @@ impl EmbedderProxy {
     }
 }
 
-impl Clone for EmbedderProxy {
-    fn clone(&self) -> EmbedderProxy {
-        EmbedderProxy {
+impl<T> Clone for EmbedderProxy2<T> {
+    fn clone(&self) -> Self {
+        Self {
             sender: self.sender.clone(),
             event_loop_waker: self.event_loop_waker.clone(),
         }
     }
 }
+
+pub type EmbedderProxy = EmbedderProxy2<EmbedderMsg>;
 
 /// A [`RefreshDriver`] is a trait that can be implemented by Servo embedders in
 /// order to drive let Servo know when to start preparing the next frame. For example,
@@ -409,6 +413,15 @@ impl From<ConsoleLogLevel> for log::Level {
     }
 }
 
+pub enum NetEmbedderMsg {
+    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
+    SelectFiles(
+        EmbedderControlId,
+        FilePickerRequest,
+        TokioSender<Option<Vec<PathBuf>>>,
+    ),
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
@@ -481,12 +494,6 @@ pub enum EmbedderMsg {
     Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
     GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
-    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    SelectFiles(
-        EmbedderControlId,
-        FilePickerRequest,
-        GenericSender<Option<Vec<PathBuf>>>,
-    ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
     /// Report a complete sampled profile

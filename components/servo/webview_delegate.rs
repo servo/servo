@@ -20,6 +20,7 @@ use embedder_traits::{
     SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
+use tokio::sync::oneshot::Sender;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -492,8 +493,7 @@ impl Drop for ColorPicker {
 pub struct FilePicker {
     pub(crate) id: EmbedderControlId,
     pub(crate) file_picker_request: FilePickerRequest,
-    pub(crate) response_sender: GenericSender<Option<Vec<PathBuf>>>,
-    pub(crate) response_sent: bool,
+    pub(crate) response_sender: Option<Sender<Option<Vec<PathBuf>>>>,
 }
 
 impl FilePicker {
@@ -522,23 +522,25 @@ impl FilePicker {
 
     /// Resolve the prompt with the options that have been selected by calling [select] previously.
     pub fn submit(mut self) {
-        let _ = self.response_sender.send(Some(std::mem::take(
-            &mut self.file_picker_request.current_paths,
-        )));
-        self.response_sent = true;
+        if let Some(sender) = self.response_sender.take() {
+            let _ = sender.send(Some(std::mem::take(
+                &mut self.file_picker_request.current_paths,
+            )));
+        }
     }
 
     /// Tell Servo that the file picker was dismissed with no selection.
     pub fn dismiss(mut self) {
-        let _ = self.response_sender.send(None);
-        self.response_sent = true;
+        if let Some(sender) = self.response_sender.take() {
+            let _ = sender.send(None);
+        }
     }
 }
 
 impl Drop for FilePicker {
     fn drop(&mut self) {
-        if !self.response_sent {
-            let _ = self.response_sender.send(None);
+        if let Some(sender) = self.response_sender.take() {
+            let _ = sender.send(None);
         }
     }
 }

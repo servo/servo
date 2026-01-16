@@ -26,7 +26,9 @@ use std::sync::Arc;
 use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
+use embedder_traits::{
+    AuthenticationResponse, EmbedderMsg, EmbedderProxy, EmbedderProxy2, NetEmbedderMsg,
+};
 use net::async_runtime::spawn_blocking_task;
 use net::connector::{CACertificates, create_http_client, create_tls_config};
 use net::fetch::cors_cache::CorsCache;
@@ -36,7 +38,8 @@ use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
 use net::test::HttpState;
 use net::test_util::{
-    create_embedder_proxy, make_body, make_server, make_ssl_server, replace_host_table,
+    create_embedder_proxy, create_embedder_proxy2, make_body, make_server, make_ssl_server,
+    replace_host_table,
 };
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
@@ -54,6 +57,10 @@ struct FetchResponseCollector {
 }
 
 fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>) {
+    create_embedder_proxy2_and_receiver::<EmbedderMsg>()
+}
+
+fn create_embedder_proxy2_and_receiver<T>() -> (EmbedderProxy2<T>, Receiver<T>) {
     let (sender, receiver) = unbounded();
     let event_loop_waker = || {
         struct DummyEventLoopWaker {}
@@ -72,8 +79,8 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>
         Box::new(DummyEventLoopWaker::new())
     };
 
-    let embedder_proxy = embedder_traits::EmbedderProxy {
-        sender: sender.clone(),
+    let embedder_proxy = embedder_traits::EmbedderProxy2 {
+        sender,
         event_loop_waker: event_loop_waker(),
     };
 
@@ -123,13 +130,22 @@ fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
 ) -> FetchContext {
+    new_fetch_context2(dc, fc, None)
+}
+
+fn new_fetch_context2(
+    dc: Option<Sender<DevtoolsControlMsg>>,
+    fc: Option<EmbedderProxy>,
+    fc2: Option<EmbedderProxy2<NetEmbedderMsg>>,
+) -> FetchContext {
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
+    let sender2 = fc2.unwrap_or_else(|| create_embedder_proxy2());
 
     FetchContext {
         state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
-        filemanager: Arc::new(Mutex::new(FileManager::new(sender.clone()))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(sender2))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(sender))),
         cancellation_listener: Arc::new(Default::default()),

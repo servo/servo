@@ -13,7 +13,7 @@ use net_traits::CoreResourceMsg;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
 
-use crate::create_embedder_proxy;
+use crate::{create_embedder_proxy, create_embedder_proxy2};
 
 fn ip(s: &str) -> IpAddr {
     s.parse().unwrap()
@@ -29,6 +29,7 @@ fn test_exit() {
         ProfilerChan(Some(tx)),
         MemProfilerChan(mtx),
         create_embedder_proxy(),
+        create_embedder_proxy2(),
         None,
         CACertificates::Default,
         false, /* ignore_certificate_errors */

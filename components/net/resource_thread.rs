@@ -17,7 +17,7 @@ use base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::EmbedderProxy;
+use embedder_traits::{EmbedderProxy, EmbedderProxy2, NetEmbedderMsg};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
@@ -85,6 +85,7 @@ pub fn new_resource_threads(
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
+    embedder_proxy2: EmbedderProxy2<NetEmbedderMsg>,
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
@@ -106,6 +107,7 @@ pub fn new_resource_threads(
         time_profiler_chan,
         mem_profiler_chan.clone(),
         embedder_proxy,
+        embedder_proxy2,
         config_dir.clone(),
         ca_certificates,
         ignore_certificate_errors,
@@ -125,6 +127,7 @@ pub fn new_core_resource_thread(
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: EmbedderProxy,
+    embedder_proxy2: EmbedderProxy2<NetEmbedderMsg>,
     config_dir: Option<PathBuf>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
@@ -141,6 +144,7 @@ pub fn new_core_resource_thread(
                 devtools_sender,
                 time_profiler_chan,
                 embedder_proxy.clone(),
+                embedder_proxy2.clone(),
                 ca_certificates.clone(),
                 ignore_certificate_errors,
             );
@@ -628,13 +632,14 @@ impl CoreResourceManager {
         devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
+        embedder_proxy2: EmbedderProxy2<NetEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
     ) -> CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy.clone()),
+            filemanager: FileManager::new(embedder_proxy2),
             request_interceptor: RequestInterceptor::new(embedder_proxy),
             ca_certificates,
             ignore_certificate_errors,

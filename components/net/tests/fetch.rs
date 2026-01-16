@@ -53,8 +53,9 @@ use uuid::Uuid;
 use crate::http_loader::{devtools_response_with_body, expect_devtools_http_request};
 use crate::{
     DEFAULT_USER_AGENT, create_embedder_proxy, create_embedder_proxy_and_receiver,
-    create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, make_body, make_server,
-    make_ssl_server, mock_origin, new_fetch_context,
+    create_embedder_proxy2, create_embedder_proxy2_and_receiver, create_http_state, fetch,
+    fetch_with_context, fetch_with_cors_cache, make_body, make_server, make_ssl_server,
+    mock_origin, new_fetch_context,
 };
 
 // TODO write a struct that impls Handler for storing test values
@@ -743,12 +744,13 @@ fn test_fetch_with_hsts() {
     let (server, url) = make_ssl_server(handler);
 
     let embedder_proxy = create_embedder_proxy();
+    let embedder_proxy2 = create_embedder_proxy2();
 
     let mut context = FetchContext {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy2))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -806,12 +808,13 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
     url.as_mut_url().set_scheme("https").unwrap();
 
     let embedder_proxy = create_embedder_proxy();
+    let embedder_proxy2 = create_embedder_proxy2();
 
     let mut context = FetchContext {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy2))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -874,12 +877,13 @@ fn test_fetch_self_signed() {
     url.as_mut_url().set_scheme("https").unwrap();
 
     let embedder_proxy = create_embedder_proxy();
+    let embedder_proxy2 = create_embedder_proxy2();
 
     let mut context = FetchContext {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy2))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -1492,6 +1496,7 @@ fn test_fetch_request_intercepted() {
     static STATUS_MESSAGE: &[u8] = b"custom status message";
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy2, _embedder_receiver2) = create_embedder_proxy2_and_receiver();
 
     std::thread::spawn(move || {
         let embedder_msg = embedder_receiver.recv().unwrap();
@@ -1529,7 +1534,7 @@ fn test_fetch_request_intercepted() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy2))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use base::Epoch;
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FilePickerRequest, FilterPattern,
+    EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern, NetEmbedderMsg,
 };
 use ipc_channel::ipc;
 use net::async_runtime::init_async_runtime;
@@ -21,7 +21,7 @@ use net_traits::filemanager_thread::{
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 
-use crate::create_embedder_proxy_and_receiver;
+use crate::create_embedder_proxy2_and_receiver;
 
 #[test]
 fn test_filemanager() {
@@ -30,7 +30,7 @@ fn test_filemanager() {
     preferences.dom_testing_html_input_element_select_files_enabled = true;
     servo_config::prefs::set(preferences);
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
     let filemanager = FileManager::new(embedder_proxy);
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
@@ -69,11 +69,10 @@ fn test_filemanager() {
                 .recv()
                 .expect("Should always read message properly");
             match message {
-                EmbedderMsg::SelectFiles(_, file_picker_request, response_sender) => {
+                NetEmbedderMsg::SelectFiles(_, file_picker_request, response_sender) => {
                     let _ = response_sender.send(Some(file_picker_request.current_paths));
                     break;
                 },
-                _ => {},
             }
         }
 
