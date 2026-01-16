@@ -12,6 +12,7 @@ from tests.classic.perform_actions.support.mouse import (
 from tests.classic.perform_actions.support.refine import get_events
 
 from . import assert_pointer_events, record_pointer_events
+import time
 
 
 def test_null_response_value(session, touch_chain):
@@ -63,8 +64,12 @@ def test_touch_pointer_cancel(session, test_actions_pointer_page, touch_chain):
     touch_chain.pointer_move(0, 0, origin=pointerArea) \
         .pointer_down() \
         .pointer_cancel() \
+        .pointer_up() \
         .perform()
 
+    # Use delay to allow potential
+    # simulated click to spin (which should not if pointerCancel works)
+    time.sleep(1)
     results = session.execute_script("return window.events;")
 
     assert results['touchstart']
