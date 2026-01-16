@@ -26,7 +26,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
 use crate::proxies::ConstellationProxy;
-use crate::responders::{IpcResponder, ServoErrorSender};
+use crate::responders::{IpcResponder, OneshotSender, ServoErrorSender};
 use crate::{RegisterOrUnregister, Servo, WebView, WebViewBuilder};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
@@ -140,13 +140,16 @@ impl AuthenticationRequest {
     pub(crate) fn new(
         url: Url,
         for_proxy: bool,
-        response_sender: GenericSender<Option<AuthenticationResponse>>,
+        response_sender: Sender<Option<AuthenticationResponse>>,
         error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             url,
             for_proxy,
-            responder: IpcResponder::new(response_sender, None),
+            responder: IpcResponder::new_same_process(
+                Box::new(OneshotSender::from(response_sender)),
+                None,
+            ),
             error_sender,
         }
     }
@@ -188,7 +191,7 @@ impl WebResourceLoad {
         Self {
             request: web_resource_request,
             responder: IpcResponder::new_same_process(
-                response_sender,
+                Box::new(response_sender),
                 WebResourceResponseMsg::DoNotIntercept,
             ),
             error_sender,

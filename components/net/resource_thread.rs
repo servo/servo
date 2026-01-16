@@ -17,7 +17,7 @@ use base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{EmbedderProxy, EmbedderProxy2, NetEmbedderMsg};
+use embedder_traits::{EmbedderProxy2, NetEmbedderMsg};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
@@ -85,8 +85,7 @@ pub fn new_resource_threads(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
-    embedder_proxy: EmbedderProxy,
-    embedder_proxy2: EmbedderProxy2<NetEmbedderMsg>,
+    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
@@ -108,7 +107,6 @@ pub fn new_resource_threads(
         time_profiler_chan,
         mem_profiler_chan.clone(),
         embedder_proxy,
-        embedder_proxy2,
         config_dir.clone(),
         ca_certificates,
         ignore_certificate_errors,
@@ -127,8 +125,7 @@ pub fn new_core_resource_thread(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
-    embedder_proxy: EmbedderProxy,
-    embedder_proxy2: EmbedderProxy2<NetEmbedderMsg>,
+    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
     config_dir: Option<PathBuf>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
@@ -144,7 +141,7 @@ pub fn new_core_resource_thread(
             let resource_manager = CoreResourceManager::new(
                 devtools_sender,
                 time_profiler_chan,
-                embedder_proxy2.clone(),
+                embedder_proxy.clone(),
                 ca_certificates.clone(),
                 ignore_certificate_errors,
             );
@@ -191,7 +188,7 @@ fn create_http_states(
     config_dir: Option<&Path>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
-    embedder_proxy: EmbedderProxy,
+    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::default();
     let mut auth_cache = AuthCache::default();
@@ -215,7 +212,7 @@ fn create_http_states(
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: Mutex::new(embedder_proxy.clone()),
+        embedder_proxy: embedder_proxy.clone(),
     };
 
     let override_manager = CertificateErrorOverrideManager::new();
@@ -231,7 +228,7 @@ fn create_http_states(
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: Mutex::new(embedder_proxy),
+        embedder_proxy: embedder_proxy,
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))
@@ -244,7 +241,7 @@ impl ResourceChannelManager {
         private_receiver: GenericReceiver<CoreResourceMsg>,
         memory_reporter: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
-        embedder_proxy: EmbedderProxy,
+        embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
             self.config_dir.as_deref(),
@@ -631,15 +628,15 @@ impl CoreResourceManager {
     pub fn new(
         devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
-        embedder_proxy2: EmbedderProxy2<NetEmbedderMsg>,
+        embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
     ) -> CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy2.clone()),
-            request_interceptor: RequestInterceptor::new(embedder_proxy2),
+            filemanager: FileManager::new(embedder_proxy.clone()),
+            request_interceptor: RequestInterceptor::new(embedder_proxy),
             ca_certificates,
             ignore_certificate_errors,
             preloaded_resources: Default::default(),

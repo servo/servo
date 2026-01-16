@@ -308,6 +308,19 @@ impl ServoInner {
                     self.delegate.borrow().load_web_resource(web_resource_load);
                 }
             },
+            NetEmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let authentication_request = AuthenticationRequest::new(
+                        url.into_url(),
+                        for_proxy,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
+                        .delegate()
+                        .request_authentication(webview, authentication_request);
+                }
+            },
         }
     }
 
@@ -503,19 +516,6 @@ impl ServoInner {
                         items,
                         response_sender,
                     );
-                }
-            },
-            EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let authentication_request = AuthenticationRequest::new(
-                        url.into_url(),
-                        for_proxy,
-                        response_sender,
-                        self.servo_errors.sender(),
-                    );
-                    webview
-                        .delegate()
-                        .request_authentication(webview, authentication_request);
                 }
             },
             EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
@@ -785,7 +785,6 @@ impl Servo {
                 devtools_sender.clone(),
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),
-                embedder_proxy.clone(),
                 net_embedder_proxy,
                 opts.config_dir.clone(),
                 opts.certificate_path.clone(),

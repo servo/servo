@@ -426,6 +426,13 @@ pub enum NetEmbedderMsg {
         WebResourceRequest,
         TokioSender<WebResourceResponseMsg>,
     ),
+    /// Request authentication for a load or navigation from the embedder.
+    RequestAuthentication(
+        WebViewId,
+        ServoUrl,
+        bool, /* for proxy */
+        TokioOneshotSender<Option<AuthenticationResponse>>,
+    ),
 }
 
 /// Messages towards the embedder.
@@ -443,13 +450,6 @@ pub enum EmbedderMsg {
     /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
     /// way that makes them impossible to mistake for browser UI.
     ShowSimpleDialog(WebViewId, SimpleDialogRequest),
-    /// Request authentication for a load or navigation from the embedder.
-    RequestAuthentication(
-        WebViewId,
-        ServoUrl,
-        bool, /* for proxy */
-        GenericSender<Option<AuthenticationResponse>>,
-    ),
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Request to (un)register protocol handler by page content.

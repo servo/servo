@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use base::generic_channel::{GenericSender, SendError, SendResult};
 use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
 use log::warn;
 use serde::Serialize;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
+use tokio::sync::oneshot::Sender as TokioOneshotSender;
 
 use crate::ServoError;
 
@@ -77,6 +80,26 @@ impl<T> AbstractSender for TokioSender<T> {
     }
 }
 
+pub(crate) struct OneshotSender<T>(RefCell<Option<TokioOneshotSender<T>>>);
+
+impl<T> From<TokioOneshotSender<T>> for OneshotSender<T> {
+    fn from(sender: TokioOneshotSender<T>) -> Self {
+        Self(RefCell::new(Some(sender)))
+    }
+}
+
+impl<T> AbstractSender for OneshotSender<T> {
+    type Message = T;
+    fn send(&self, value: T) -> SendResult {
+        let sender = self.0.borrow_mut().take();
+        if let Some(sender) = sender {
+            TokioOneshotSender::send(sender, value).map_err(|_| SendError::Disconnected)
+        } else {
+            Err(SendError::Disconnected)
+        }
+    }
+}
+
 /// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
 pub(crate) struct IpcResponder<T> {
     response_sender: Box<dyn AbstractSender<Message = T>>,
@@ -96,9 +119,12 @@ impl<T: Serialize + 'static> IpcResponder<T> {
 }
 
 impl<T: 'static> IpcResponder<T> {
-    pub(crate) fn new_same_process(response_sender: TokioSender<T>, default_response: T) -> Self {
+    pub(crate) fn new_same_process(
+        response_sender: Box<dyn AbstractSender<Message = T>>,
+        default_response: T,
+    ) -> Self {
         Self {
-            response_sender: Box::new(response_sender),
+            response_sender,
             response_sent: false,
             default_response: Some(default_response),
         }
