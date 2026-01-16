@@ -286,16 +286,16 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action>
-    fn dispatch_pause_action(&mut self, source_id: &str) {
+    fn dispatch_pause_action(&mut self, input_id: &str) {
         self.input_state_table_mut()
-            .entry(source_id.to_string())
+            .entry(input_id.to_string())
             .or_insert(InputSourceState::Null);
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
-    fn dispatch_keydown_action(&mut self, source_id: &str, action: &KeyDownAction) {
+    fn dispatch_keydown_action(&mut self, input_id: &str, action: &KeyDownAction) {
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match self.input_state_table_mut().get_mut(source_id).unwrap() {
+        let key_input_state = match self.input_state_table_mut().get_mut(input_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
@@ -313,7 +313,7 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keyup-action>
-    fn dispatch_keyup_action(&mut self, source_id: &str, action: &KeyUpAction) {
+    fn dispatch_keyup_action(&mut self, input_id: &str, action: &KeyUpAction) {
         let session = self.session_mut().unwrap();
 
         // Remove the last matching keyUp from `[input_cancel_list]` due to bugs in spec
@@ -321,7 +321,7 @@ impl Handler {
         // https://github.com/servo/servo/issues/37579#issuecomment-2990762713
         let input_cancel_list = &mut session.input_cancel_list;
         if let Some(pos) = input_cancel_list.iter().rposition(|(id, item)| {
-            id == source_id &&
+            id == input_id &&
                 matches!(item,
                         ActionItem::Key(KeyActionItem::Key(KeyAction::Up(KeyUpAction { value })))
                     if *value == action.value )
@@ -331,7 +331,7 @@ impl Handler {
         }
 
         let raw_key = action.value.chars().next().unwrap();
-        let key_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
+        let key_input_state = match session.input_state_table.get_mut(input_id).unwrap() {
             InputSourceState::Key(key_input_state) => key_input_state,
             _ => unreachable!(),
         };
