@@ -80,7 +80,6 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
-use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::types::{CharacterData, FocusEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -88,7 +87,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::textinput::{
-    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput,
+    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput, TextInputElement,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -662,17 +661,13 @@ static DEFAULT_MIN_LENGTH: i32 = -1;
 
 #[expect(non_snake_case)]
 impl HTMLInputElement {
-    fn new_inherited(
-        local_name: LocalName,
-        prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLInputElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
         let embedder_sender = document
             .window()
             .as_global_scope()
             .script_to_embedder_chan()
             .clone();
-        HTMLInputElement {
+        let input = Self {
             htmlelement: HTMLElement::new_inherited_with_state(
                 ElementState::ENABLED | ElementState::READWRITE,
                 local_name,
@@ -704,7 +699,12 @@ impl HTMLInputElement {
             validity_state: Default::default(),
             shadow_tree: Default::default(),
             pending_webdriver_response: Default::default(),
-        }
+        };
+        input
+            .textinput
+            .borrow_mut()
+            .set_element(TextInputElement::Input(DomRoot::from_ref(&input)));
+        input
     }
 
     pub(crate) fn new(
@@ -1516,6 +1516,29 @@ impl HTMLInputElement {
             },
         }
     }
+
+    pub(crate) fn has_selection(&self) -> bool {
+        self.textinput.borrow().has_selection()
+    }
+
+    pub(crate) fn has_selectable_text(&self) -> bool {
+        self.selection_api_applies() && !self.textinput.borrow().is_empty()
+    }
+
+    pub(crate) fn set_dirty_value_flag(&self, value: bool) {
+        self.value_dirty.set(value)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#concept-input-apply
+    //
+    // Defines input types to which the select() IDL method applies. These are a superset of the
+    // types for which selection_api_applies() returns true.
+    //
+    // Types omitted which could theoretically be included if they were
+    // rendered as a text control: file
+    pub(crate) fn selection_api_applies(&self) -> bool {
+        self.renders_as_text_input_widget()
+    }
 }
 
 pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
@@ -1586,44 +1609,6 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
             )),
             _ => None,
         }
-    }
-}
-
-impl TextControlElement for HTMLInputElement {
-    /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
-    fn selection_api_applies(&self) -> bool {
-        matches!(
-            self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Password
-        )
-    }
-
-    // https://html.spec.whatwg.org/multipage/#concept-input-apply
-    //
-    // Defines input types to which the select() IDL method applies. These are a superset of the
-    // types for which selection_api_applies() returns true.
-    //
-    // Types omitted which could theoretically be included if they were
-    // rendered as a text control: file
-    fn has_selectable_text(&self) -> bool {
-        self.renders_as_text_input_widget() && !self.textinput.borrow().get_content().is_empty()
-    }
-
-    fn has_selection(&self) -> bool {
-        self.textinput.borrow().has_selection()
-    }
-
-    fn set_dirty_value_flag(&self, value: bool) {
-        self.value_dirty.set(value)
-    }
-
-    fn select_all(&self) {
-        self.textinput.borrow_mut().select_all();
-        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 }
 
@@ -2017,44 +2002,94 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
     fn Select(&self) {
-        self.selection().dom_select();
+        // Step 1: If this element is an input element, and either select() does not apply
+        // to this element...return.
+        if !self.renders_as_text_input_widget() {
+            return;
+        }
+        // The rest of the step 1 and other steps take place internally.
+        self.textinput.borrow_mut().dom_select();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start().map(|start| start.0 as u32)
+        // Step 1: If this element is an input element, and selectionStart does not apply to this element, return null.
+        if !self.selection_api_applies() {
+            return None;
+        }
+        self.textinput
+            .borrow()
+            .dom_get_selection_start()
+            .map(|start| start.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_start(start.map(Utf16CodeUnitLength::from))
+        // Step 1: If this element is an input element, and selectionStart does not apply
+        // to this element, throw an "InvalidStateError" DOMException.
+        if !self.selection_api_applies() {
+            return Err(Error::InvalidState(None));
+        }
+        self.textinput
+            .borrow_mut()
+            .dom_set_selection_start(start.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end().map(|end| end.0 as u32)
+        // Step 1: If this element is an input element, and selectionEnd does not apply to
+        // this element, return null.
+        if !self.selection_api_applies() {
+            return None;
+        }
+        self.textinput
+            .borrow()
+            .dom_get_selection_end()
+            .map(|start| start.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_end(end.map(Utf16CodeUnitLength::from))
+        // Step 1: If this element is an input element, and selectionEnd does not apply to
+        // this element, throw an "InvalidStateError" DOMException.
+        if !self.selection_api_applies() {
+            return Err(Error::InvalidState(None));
+        }
+        self.textinput
+            .borrow_mut()
+            .dom_set_selection_end(end.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn GetSelectionDirection(&self) -> Option<DOMString> {
-        self.selection().dom_direction()
+        // Step 1: If this element is an input element, and selectionDirection does not
+        // apply to this element, return null.
+        if !self.selection_api_applies() {
+            return None;
+        }
+        self.textinput.borrow().dom_get_selection_direction()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_direction(direction)
+        // Step 1: If this element is an input element, and selectionDirection does not
+        // apply to this element, return null.
+        if !self.selection_api_applies() {
+            return Err(Error::InvalidState(None));
+        }
+        self.textinput
+            .borrow_mut()
+            .dom_set_selection_direction(direction)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_range(
+        // Step 1: If this element is an input element, and setSelectionRange() does not
+        // apply to this element, throw an "InvalidStateError" DOMException.
+        if !self.selection_api_applies() {
+            return Err(Error::InvalidState(None));
+        }
+        self.textinput.borrow_mut().dom_set_selection_range(
             Utf16CodeUnitLength::from(start),
             Utf16CodeUnitLength::from(end),
             direction,
@@ -2063,8 +2098,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, None, None, Default::default())
+        // Step 1: If this element is an input element, and setRangeText() does not apply
+        // to this element, throw an "InvalidStateError" DOMException.
+        if !self.selection_api_applies() {
+            return Err(Error::InvalidState(None));
+        }
+        self.textinput
+            .borrow_mut()
+            .dom_set_range_text(replacement, None, None, Default::default())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
@@ -2075,7 +2116,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection().set_dom_range_text(
+        self.textinput.borrow_mut().dom_set_range_text(
             replacement,
             Some(Utf16CodeUnitLength::from(start)),
             Some(Utf16CodeUnitLength::from(end)),
@@ -2570,11 +2611,6 @@ impl HTMLInputElement {
             InputType::Reset |
             InputType::Submit => (),
         }
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn selection(&self) -> TextControlSelection<'_, Self> {
-        TextControlSelection::new(self, &self.textinput)
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission

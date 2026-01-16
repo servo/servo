@@ -44,14 +44,13 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
-use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::types::{CharacterData, FocusEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput,
+    ClipboardEventFlags, IsComposing, KeyReaction, SelectionDirection, TextInput, TextInputElement,
 };
 
 #[dom_struct]
@@ -121,17 +120,13 @@ const DEFAULT_MAX_LENGTH: i32 = -1;
 const DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLTextAreaElement {
-    fn new_inherited(
-        local_name: LocalName,
-        prefix: Option<Prefix>,
-        document: &Document,
-    ) -> HTMLTextAreaElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
         let embedder_sender = document
             .window()
             .as_global_scope()
             .script_to_embedder_chan()
             .clone();
-        HTMLTextAreaElement {
+        let text_area = Self {
             htmlelement: HTMLElement::new_inherited_with_state(
                 ElementState::ENABLED | ElementState::READWRITE,
                 local_name,
@@ -155,7 +150,12 @@ impl HTMLTextAreaElement {
             labels_node_list: Default::default(),
             validity_state: Default::default(),
             shadow_node: Default::default(),
-        }
+        };
+        text_area
+            .textinput
+            .borrow_mut()
+            .set_element(TextInputElement::TextArea(DomRoot::from_ref(&text_area)));
+        text_area
     }
 
     pub(crate) fn new(
@@ -265,28 +265,17 @@ impl HTMLTextAreaElement {
             self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
         }
     }
-}
 
-impl TextControlElement for HTMLTextAreaElement {
-    fn selection_api_applies(&self) -> bool {
-        true
-    }
-
-    fn has_selectable_text(&self) -> bool {
-        !self.textinput.borrow().get_content().is_empty()
-    }
-
-    fn has_selection(&self) -> bool {
+    pub(crate) fn has_selection(&self) -> bool {
         self.textinput.borrow().has_selection()
     }
 
-    fn set_dirty_value_flag(&self, value: bool) {
+    pub(crate) fn set_dirty_value_flag(&self, value: bool) {
         self.value_dirty.set(value)
     }
 
-    fn select_all(&self) {
-        self.textinput.borrow_mut().select_all();
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+    pub(crate) fn has_selectable_text(&self) -> bool {
+        !self.textinput.borrow().is_empty()
     }
 }
 
@@ -423,44 +412,54 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
     fn Select(&self) {
-        self.selection().dom_select();
+        self.textinput.borrow_mut().dom_select();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
-        self.selection().dom_start().map(|start| start.0 as u32)
+        self.textinput
+            .borrow()
+            .dom_get_selection_start()
+            .map(|start| start.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_start(start.map(Utf16CodeUnitLength::from))
+        self.textinput
+            .borrow_mut()
+            .dom_set_selection_start(start.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
-        self.selection().dom_end().map(|end| end.0 as u32)
+        self.textinput
+            .borrow()
+            .dom_get_selection_end()
+            .map(|end| end.0 as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_end(end.map(Utf16CodeUnitLength::from))
+        self.textinput
+            .borrow_mut()
+            .dom_set_selection_end(end.map(Utf16CodeUnitLength::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn GetSelectionDirection(&self) -> Option<DOMString> {
-        self.selection().dom_direction()
+        self.textinput.borrow().dom_get_selection_direction()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_direction(direction)
+        self.textinput
+            .borrow_mut()
+            .dom_set_selection_direction(direction)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
-        self.selection().set_dom_range(
+        self.textinput.borrow_mut().dom_set_selection_range(
             Utf16CodeUnitLength::from(start),
             Utf16CodeUnitLength::from(end),
             direction,
@@ -469,8 +468,9 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.selection()
-            .set_dom_range_text(replacement, None, None, Default::default())
+        self.textinput
+            .borrow_mut()
+            .dom_set_range_text(replacement, None, None, Default::default())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
@@ -481,7 +481,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        self.selection().set_dom_range_text(
+        self.textinput.borrow_mut().dom_set_range_text(
             replacement,
             Some(Utf16CodeUnitLength::from(start)),
             Some(Utf16CodeUnitLength::from(end)),
@@ -533,11 +533,6 @@ impl HTMLTextAreaElement {
         self.value_dirty.set(false);
         self.textinput.borrow_mut().set_content(self.DefaultValue());
         self.handle_text_content_changed(can_gc);
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn selection(&self) -> TextControlSelection<'_, Self> {
-        TextControlSelection::new(self, &self.textinput)
     }
 
     fn handle_key_reaction(&self, action: KeyReaction, event: &Event, can_gc: CanGc) {
