@@ -10,7 +10,6 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
-use base::RopeMovement;
 use base::generic_channel::GenericSender;
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use dom_struct::dom_struct;
@@ -2914,6 +2913,18 @@ impl HTMLInputElement {
             unreachable!("Got unexpected FocusEvent {event_type:?}");
         }
     }
+
+    fn handle_mousedown(&self, event: &Event) {
+        // Only respond to mouse events if we are displayed as text input or a password. If the
+        // placeholder is displayed, also don't do any interactive mouse event handling.
+        if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
+            return;
+        }
+        let node = self.upcast();
+        if self.textinput.borrow_mut().handle_mousedown(node, event) {
+            node.dirty(NodeDamage::Other);
+        }
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -3223,24 +3234,7 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         if event.type_() == atom!("mousedown") && !event.DefaultPrevented() {
-            // WHATWG-specified activation behaviors are handled elsewhere;
-            // this is for all the other things a UI click might do
-            if self.input_type().is_textual_or_password() &&
-                // Check if we display a placeholder. Layout doesn't know about this.
-                !self.textinput.borrow().is_empty()
-            {
-                if let Some(grapheme_index) = self
-                    .owner_window()
-                    .text_index_query_on_node_for_event(self.upcast::<Node>(), event)
-                {
-                    let mut textinput = self.textinput.borrow_mut();
-                    textinput.clear_selection_to_start();
-                    textinput.modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
-                } else {
-                    self.textinput.borrow_mut().clear_selection_to_end();
-                }
-                self.upcast::<Node>().dirty(NodeDamage::Other);
-            }
+            self.handle_mousedown(event);
         } else if event.type_() == atom!("keydown") &&
             !event.DefaultPrevented() &&
             self.input_type().is_textual_or_password()

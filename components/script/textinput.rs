@@ -11,6 +11,7 @@ use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
+use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::trace::CustomTraceable;
 
@@ -25,7 +26,8 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::inputevent::InputEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::types::ClipboardEvent;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::types::{ClipboardEvent, UIEvent};
 use crate::drag_data_store::Kind;
 use crate::script_runtime::CanGc;
 
@@ -815,6 +817,50 @@ impl<T: ClipboardProvider> TextInput<T> {
             IsComposing::Composing,
             InputType::InsertCompositionText,
         )
+    }
+
+    /// Handle a "mousedown" event that happened on this [`TextInput`], belonging to the
+    /// given [`Node`].
+    ///
+    /// Returns `true` if the [`TextInput`] changed at all or `false` otherwise.
+    pub(crate) fn handle_mousedown(&mut self, node: &Node, event: &Event) -> bool {
+        assert_eq!(event.type_(), atom!("mousedown"));
+        let Some(ui_event) = event.downcast::<UIEvent>() else {
+            return false;
+        };
+
+        match ui_event.Detail() {
+            3 => {
+                let word_boundaries = self.rope.line_boundaries(self.edit_point);
+                self.edit_point = word_boundaries.end;
+                self.selection_origin = Some(word_boundaries.start);
+                true
+            },
+            2 => {
+                let word_boundaries = self.rope.relevant_word_boundaries(self.edit_point);
+                self.edit_point = word_boundaries.end;
+                self.selection_origin = Some(word_boundaries.start);
+                true
+            },
+            1 => {
+                if let Some(grapheme_index) = node
+                    .owner_window()
+                    .text_index_query_on_node_for_event(node, event)
+                {
+                    self.clear_selection_to_start();
+                    self.modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
+                } else {
+                    self.clear_selection_to_end();
+                }
+                true
+            },
+            _ => {
+                // We currently don't do anything for higher click counts, but some platforms do.
+                // We should re-examine this when implementing support for platform-specific editing
+                // behaviors.
+                false
+            },
+        }
     }
 
     /// Whether the content is empty.

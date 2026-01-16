@@ -367,6 +367,42 @@ impl Rope {
         }
         current_utf8_offset
     }
+
+    /// Find the boundaries of the word most relevant to the given [`RopeIndex`]. Word
+    /// returned in order or precedence:
+    ///
+    /// - If the index intersects the word or is the index directly preceding a word,
+    ///   the boundaries of that word are returned.
+    /// - The word preceding the cursor.
+    /// - If there is no word preceding the cursor, the start of the line to the end
+    ///   of the next word.
+    pub fn relevant_word_boundaries<'a>(&'a self, index: RopeIndex) -> RopeSlice<'a> {
+        let line = self.line_for_index(index);
+        let mut result_start = 0;
+        let mut result_end = None;
+        for (word_start, word) in line.unicode_word_indices() {
+            if word_start > index.code_point {
+                result_end = result_end.or_else(|| Some(word_start + word.len()));
+                break;
+            }
+            result_start = word_start;
+            result_end = Some(word_start + word.len());
+        }
+
+        let result_end = result_end.unwrap_or(result_start);
+        self.slice(
+            Some(RopeIndex::new(index.line, result_start)),
+            Some(RopeIndex::new(index.line, result_end)),
+        )
+    }
+
+    /// Return the boundaries of the line that contains the given [`RopeIndex`].
+    pub fn line_boundaries<'a>(&'a self, index: RopeIndex) -> RopeSlice<'a> {
+        self.slice(
+            Some(RopeIndex::new(index.line, 0)),
+            Some(self.last_index_in_line(index.line)),
+        )
+    }
 }
 
 /// An index into a [`Rope`] data structure. Used to efficiently identify a particular
@@ -401,9 +437,9 @@ pub struct RopeSlice<'a> {
     /// The underlying [`Rope`] of this [`RopeSlice`]
     rope: &'a Rope,
     /// The inclusive `RopeIndex` of the start of this [`RopeSlice`].
-    start: RopeIndex,
+    pub start: RopeIndex,
     /// The exclusive end `RopeIndex` of this [`RopeSlice`].
-    end: RopeIndex,
+    pub end: RopeIndex,
 }
 
 impl From<RopeSlice<'_>> for String {
@@ -692,4 +728,39 @@ fn test_rope_replace_slice() {
     let mut rope = Rope::new("AAA\nBBB\nCCC\nDDD");
     rope.replace_range(RopeIndex::new(0, 2)..RopeIndex::new(2, 1), "x");
     assert_eq!(rope.lines, ["AAxCC\n", "DDD"]);
+}
+
+#[test]
+fn test_rope_relevant_word() {
+    let rope = Rope::new("AAA    BBB   CCC");
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 0));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 3));
+
+    // Choose previous word if starting on whitespace.
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 4));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 3));
+
+    // Choose next word if starting at word start.
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 7));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 7));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 10));
+
+    // Choose word if starting at in middle.
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 8));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 7));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 10));
+
+    // Choose start of line to end of first word if in whitespace at start of line.
+    let rope = Rope::new("         AAA    BBB   CCC");
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 3));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 12));
+
+    // Works properly if line is empty.
+    let rope = Rope::new("");
+    let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 0));
+    assert_eq!(boundaries.start, RopeIndex::new(0, 0));
+    assert_eq!(boundaries.end, RopeIndex::new(0, 0));
 }
