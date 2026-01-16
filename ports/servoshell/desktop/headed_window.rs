@@ -1141,7 +1141,7 @@ impl PlatformWindow for HeadedWindow {
     ) {
         self.gui
             .borrow_mut()
-            .notify_accessibility_tree_update(|| tree_update);
+            .notify_accessibility_tree_update(tree_update);
     }
 }
 

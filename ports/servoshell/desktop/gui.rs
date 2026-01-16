@@ -609,10 +609,7 @@ impl Gui {
         self.context.egui_ctx.set_zoom_factor(factor);
     }
 
-    pub(crate) fn notify_accessibility_tree_update(
-        &mut self,
-        _updater: impl FnOnce() -> accesskit::TreeUpdate,
-    ) {
+    pub(crate) fn notify_accessibility_tree_update(&mut self, _tree_update: accesskit::TreeUpdate) {
         // TODO(#41930): Forward this update to `self.context.egui_winit.accesskit`
     }
 }
