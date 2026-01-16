@@ -1071,7 +1071,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = inner_radii(self.border_radius, self.fragment.border.to_webrender());
+        let radii = offset_radii(self.border_radius, -self.fragment.border.to_webrender());
         let maybe_clip =
             builder.maybe_create_clip(radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
@@ -1087,9 +1087,9 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = inner_radii(
+        let radii = offset_radii(
             self.border_radius,
-            (self.fragment.border + self.fragment.padding).to_webrender(),
+            -(self.fragment.border + self.fragment.padding).to_webrender(),
         );
         let maybe_clip =
             builder.maybe_create_clip(radii, *self.content_rect(), force_clip_creation);
@@ -1592,7 +1592,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             right: side,
             bottom: side,
             left: side,
-            radius: offset_radii(self.border_radius, offset),
+            radius: offset_radii(self.border_radius, SideOffsets2D::new_all_same(offset)),
             do_aa: true,
         });
         builder
@@ -1693,49 +1693,41 @@ fn glyphs_advance_by_index(
     point
 }
 
-/// Radii for the padding edge or content edge
-fn inner_radii(mut radii: wr::BorderRadius, insets: units::LayoutSideOffsets) -> wr::BorderRadius {
-    assert!(insets.left >= 0.0, "left inset must not be negative");
-    radii.top_left.width = (radii.top_left.width - insets.left).max(0.0);
-    radii.bottom_left.width = (radii.bottom_left.width - insets.left).max(0.0);
+/// Given a set of corner radii for a rectangle, this function returns the corresponding radii
+/// for the [outer rectangle][`euclid::Rect::outer_rect`] resulting from expanding the original
+/// rectangle by the given offsets.
+fn offset_radii(mut radii: BorderRadius, offsets: LayoutSideOffsets) -> BorderRadius {
+    let expand = |radius: &mut f32, offset: f32| {
+        // For negative offsets, just shrink the radius by that amount.
+        if offset < 0.0 {
+            *radius = (*radius + offset).max(0.0);
+            return;
+        }
 
-    assert!(insets.right >= 0.0, "left inset must not be negative");
-    radii.top_right.width = (radii.top_right.width - insets.right).max(0.0);
-    radii.bottom_right.width = (radii.bottom_right.width - insets.right).max(0.0);
-
-    assert!(insets.top >= 0.0, "top inset must not be negative");
-    radii.top_left.height = (radii.top_left.height - insets.top).max(0.0);
-    radii.top_right.height = (radii.top_right.height - insets.top).max(0.0);
-
-    assert!(insets.bottom >= 0.0, "bottom inset must not be negative");
-    radii.bottom_left.height = (radii.bottom_left.height - insets.bottom).max(0.0);
-    radii.bottom_right.height = (radii.bottom_right.height - insets.bottom).max(0.0);
-    radii
-}
-
-fn offset_radii(mut radii: wr::BorderRadius, offset: f32) -> wr::BorderRadius {
-    if offset == 0.0 {
-        return radii;
-    }
-    if offset < 0.0 {
-        return inner_radii(radii, units::LayoutSideOffsets::new_all_same(-offset));
-    }
-    let expand = |radius: &mut f32| {
-        // Expand the radius by the specified amount, but keeping sharp corners.
-        // TODO: this behavior is not continuous, it's being discussed in the CSSWG:
-        // https://github.com/w3c/csswg-drafts/issues/7103
+        // For positive offsets, expand the radius by that amount. But only if the
+        // radius is positive, in order to preserve sharp corners.
+        // TODO: this behavior is not continuous, we should use this algorithm instead:
+        // https://github.com/w3c/csswg-drafts/issues/7103#issuecomment-3357331922
         if *radius > 0.0 {
             *radius += offset;
         }
     };
-    expand(&mut radii.top_left.width);
-    expand(&mut radii.top_left.height);
-    expand(&mut radii.top_right.width);
-    expand(&mut radii.top_right.height);
-    expand(&mut radii.bottom_right.width);
-    expand(&mut radii.bottom_right.height);
-    expand(&mut radii.bottom_left.width);
-    expand(&mut radii.bottom_left.height);
+    if offsets.left != 0.0 {
+        expand(&mut radii.top_left.width, offsets.left);
+        expand(&mut radii.bottom_left.width, offsets.left);
+    }
+    if offsets.right != 0.0 {
+        expand(&mut radii.top_right.width, offsets.right);
+        expand(&mut radii.bottom_right.width, offsets.right);
+    }
+    if offsets.top != 0.0 {
+        expand(&mut radii.top_left.height, offsets.top);
+        expand(&mut radii.top_right.height, offsets.top);
+    }
+    if offsets.bottom != 0.0 {
+        expand(&mut radii.bottom_right.height, offsets.bottom);
+        expand(&mut radii.bottom_left.height, offsets.bottom);
+    }
     radii
 }
 
