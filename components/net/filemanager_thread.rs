@@ -21,7 +21,7 @@ use log::warn;
 use mime::{self, Mime};
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{
-    FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileOrigin, FileTokenCheck,
+    FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck,
     ReadFileProgress, RelativePos,
 };
 use net_traits::http_percent_encode;
@@ -29,10 +29,10 @@ use net_traits::response::{Response, ResponseBody};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
+use servo_url::ImmutableOrigin;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::task::yield_now;
-use url::Url;
 use uuid::Uuid;
 
 use crate::async_runtime::spawn_task;
@@ -44,7 +44,7 @@ pub const FILE_CHUNK_SIZE: usize = 32768; // 32 KB
 /// FileManagerStore's entry
 struct FileStoreEntry {
     /// Origin of the entry's "creator"
-    origin: FileOrigin,
+    origin: ImmutableOrigin,
     /// Backend implementation
     file_impl: FileImpl,
     /// Number of FileID holders that the ID is used to
@@ -97,7 +97,7 @@ impl FileManager {
         &self,
         sender: IpcSender<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
-        origin: FileOrigin,
+        origin: ImmutableOrigin,
     ) {
         let store = self.store.clone();
         spawn_task(async move {
@@ -125,7 +125,7 @@ impl FileManager {
         cancellation_listener: Arc<CancellationListener>,
         id: Uuid,
         file_token: &FileTokenCheck,
-        origin: FileOrigin,
+        origin: ImmutableOrigin,
         response: &mut Response,
         range: Option<Range>,
     ) -> Result<(), BlobURLStoreError> {
@@ -140,7 +140,13 @@ impl FileManager {
         )
     }
 
-    pub fn promote_memory(&self, id: Uuid, blob_buf: BlobBuf, set_valid: bool, origin: FileOrigin) {
+    pub fn promote_memory(
+        &self,
+        id: Uuid,
+        blob_buf: BlobBuf,
+        set_valid: bool,
+        origin: ImmutableOrigin,
+    ) {
         self.store.promote_memory(id, blob_buf, set_valid, origin);
     }
 
@@ -249,7 +255,7 @@ impl FileManager {
         cancellation_listener: Arc<CancellationListener>,
         id: &Uuid,
         file_token: &FileTokenCheck,
-        origin_in: &FileOrigin,
+        origin_in: &ImmutableOrigin,
         bounds: BlobBounds,
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
@@ -404,11 +410,11 @@ impl FileManagerStore {
         &self,
         id: &Uuid,
         file_token: &FileTokenCheck,
-        origin_in: &FileOrigin,
+        origin_in: &ImmutableOrigin,
     ) -> Result<FileImpl, BlobURLStoreError> {
         match self.entries.read().get(id) {
             Some(entry) => {
-                if *origin_in != *entry.origin {
+                if *origin_in != entry.origin {
                     Err(BlobURLStoreError::InvalidOrigin)
                 } else {
                     match file_token {
@@ -487,7 +493,7 @@ impl FileManagerStore {
         self.entries.write().remove(id);
     }
 
-    fn inc_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
+    fn inc_ref(&self, id: &Uuid, origin_in: &ImmutableOrigin) -> Result<(), BlobURLStoreError> {
         match self.entries.read().get(id) {
             Some(entry) => {
                 if entry.origin == *origin_in {
@@ -506,7 +512,7 @@ impl FileManagerStore {
         parent_id: Uuid,
         rel_pos: RelativePos,
         sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
-        origin_in: FileOrigin,
+        origin_in: ImmutableOrigin,
     ) {
         match self.inc_ref(&parent_id, &origin_in) {
             Ok(_) => {
@@ -563,7 +569,7 @@ impl FileManagerStore {
         let mut failed = false;
         let files: Vec<_> = paths
             .into_iter()
-            .filter_map(|path| match self.create_entry(&path, &origin) {
+            .filter_map(|path| match self.create_entry(&path, origin.clone()) {
                 Ok(entry) => Some(entry),
                 Err(error) => {
                     failed = true;
@@ -592,7 +598,7 @@ impl FileManagerStore {
     fn create_entry(
         &self,
         file_path: &Path,
-        origin: &str,
+        origin: ImmutableOrigin,
     ) -> Result<SelectedFile, FileManagerThreadError> {
         use net_traits::filemanager_thread::FileManagerThreadError::FileSystemError;
 
@@ -618,7 +624,7 @@ impl FileManagerStore {
         self.insert(
             id,
             FileStoreEntry {
-                origin: origin.to_string(),
+                origin,
                 file_impl,
                 refs: AtomicUsize::new(1),
                 // Invalid here since create_entry is called by file selection
@@ -647,7 +653,7 @@ impl FileManagerStore {
         sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
         id: &Uuid,
         file_token: &FileTokenCheck,
-        origin_in: &FileOrigin,
+        origin_in: &ImmutableOrigin,
         rel_pos: RelativePos,
     ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.get_impl(id, file_token, origin_in)?;
@@ -722,7 +728,7 @@ impl FileManagerStore {
         &self,
         sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
-        origin_in: FileOrigin,
+        origin_in: ImmutableOrigin,
     ) -> Result<(), BlobURLStoreError> {
         self.get_blob_buf(
             sender,
@@ -734,10 +740,10 @@ impl FileManagerStore {
         .await
     }
 
-    fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
+    fn dec_ref(&self, id: &Uuid, origin_in: &ImmutableOrigin) -> Result<(), BlobURLStoreError> {
         let (do_remove, opt_parent_id) = match self.entries.read().get(id) {
             Some(entry) => {
-                if *entry.origin == *origin_in {
+                if entry.origin == *origin_in {
                     let old_refs = entry.refs.fetch_sub(1, Ordering::Release);
 
                     if old_refs > 1 {
@@ -781,11 +787,13 @@ impl FileManagerStore {
         Ok(())
     }
 
-    fn promote_memory(&self, id: Uuid, blob_buf: BlobBuf, set_valid: bool, origin: FileOrigin) {
-        // parse to check sanity
-        if Url::parse(&origin).is_err() {
-            return;
-        }
+    fn promote_memory(
+        &self,
+        id: Uuid,
+        blob_buf: BlobBuf,
+        set_valid: bool,
+        origin: ImmutableOrigin,
+    ) {
         self.insert(
             id,
             FileStoreEntry {
@@ -802,11 +810,11 @@ impl FileManagerStore {
         &self,
         validity: bool,
         id: &Uuid,
-        origin_in: &FileOrigin,
+        origin_in: &ImmutableOrigin,
     ) -> Result<(), BlobURLStoreError> {
         let (do_remove, opt_parent_id, res) = match self.entries.read().get(id) {
             Some(entry) => {
-                if *entry.origin == *origin_in {
+                if entry.origin == *origin_in {
                     entry.is_valid_url.store(validity, Ordering::Release);
 
                     if !validity {

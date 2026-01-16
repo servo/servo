@@ -5,11 +5,9 @@
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
 use uuid::Uuid;
-
-use crate::filemanager_thread::FileOrigin;
 
 /// Errors returned to Blob URL Store request
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -41,7 +39,7 @@ pub struct BlobBuf {
 /// Parse URL as Blob URL scheme's definition
 ///
 /// <https://w3c.github.io/FileAPI/#DefinitionOfScheme>
-pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), &'static str> {
+pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'static str> {
     let url_inner = Url::parse(url.path()).map_err(|_| "Failed to parse URL path")?;
     let segs = url_inner
         .path_segments()
@@ -60,20 +58,5 @@ pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), &'static str
         let id = segs.first().ok_or("URL has no path segments")?;
         Uuid::from_str(id).map_err(|_| "Failed to parse UUID from path segment")?
     };
-    Ok((id, get_blob_origin(&ServoUrl::from_url(url_inner))))
-}
-
-/// Given an URL, returning the Origin that a Blob created under this
-/// URL should have.
-///
-/// HACK(izgzhen): Not well-specified on spec, and it is a bit a hack
-/// both due to ambiguity of spec and that we have to serialization the
-/// Origin here.
-pub fn get_blob_origin(url: &ServoUrl) -> FileOrigin {
-    if url.scheme() == "file" {
-        // NOTE: by default this is "null" (Opaque), which is not ideal
-        "file://".to_string()
-    } else {
-        url.origin().ascii_serialization()
-    }
+    Ok((id, ServoUrl::from_url(url_inner).origin()))
 }

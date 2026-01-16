@@ -10,14 +10,10 @@ use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use servo_url::ImmutableOrigin;
 use uuid::Uuid;
 
 use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
-
-// HACK: Not really process-safe now, we should send Origin
-//       directly instead of this in future, blocked on #11722
-/// File manager store entry's origin
-pub type FileOrigin = String;
 
 /// A token modulating access to a file for a blob URL.
 #[derive(Clone)]
@@ -133,11 +129,11 @@ pub enum FileManagerThreadMsg {
     ReadFile(
         IpcSender<FileManagerResult<ReadFileProgress>>,
         Uuid,
-        FileOrigin,
+        ImmutableOrigin,
     ),
 
     /// Add an entry as promoted memory-based blob
-    PromoteMemory(Uuid, BlobBuf, bool, FileOrigin),
+    PromoteMemory(Uuid, BlobBuf, bool, ImmutableOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
     /// as part of a valid Blob URL
@@ -145,17 +141,29 @@ pub enum FileManagerThreadMsg {
         Uuid,
         RelativePos,
         IpcSender<Result<Uuid, BlobURLStoreError>>,
-        FileOrigin,
+        ImmutableOrigin,
     ),
 
     /// Decrease reference count and send back the acknowledgement
-    DecRef(Uuid, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
+    DecRef(
+        Uuid,
+        ImmutableOrigin,
+        IpcSender<Result<(), BlobURLStoreError>>,
+    ),
 
     /// Activate an internal FileID so it becomes valid as part of a Blob URL
-    ActivateBlobURL(Uuid, IpcSender<Result<(), BlobURLStoreError>>, FileOrigin),
+    ActivateBlobURL(
+        Uuid,
+        IpcSender<Result<(), BlobURLStoreError>>,
+        ImmutableOrigin,
+    ),
 
     /// Revoke Blob URL and send back the acknowledgement
-    RevokeBlobURL(Uuid, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
+    RevokeBlobURL(
+        Uuid,
+        ImmutableOrigin,
+        IpcSender<Result<(), BlobURLStoreError>>,
+    ),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -52,7 +52,7 @@ use js::rust::{
     MutableHandleValue, ParentRuntime, Runtime, get_object_class, transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
+use net_traits::blob_url_store::BlobBuf;
 use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
@@ -1886,11 +1886,11 @@ impl GlobalScope {
     }
 
     fn decrement_file_ref(&self, id: Uuid) {
-        let origin = get_blob_origin(&self.get_url());
+        let origin = self.origin().immutable();
 
         let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
 
-        let msg = FileManagerThreadMsg::DecRef(id, origin, tx);
+        let msg = FileManagerThreadMsg::DecRef(id, origin.clone(), tx);
         self.send_to_file_manager(msg);
         let _ = rx.recv();
     }
@@ -2081,7 +2081,7 @@ impl GlobalScope {
         rel_pos: &RelativePos,
         parent_len: u64,
     ) -> Uuid {
-        let origin = get_blob_origin(&self.get_url());
+        let origin = self.origin().immutable();
 
         let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
         let msg =
@@ -2113,7 +2113,6 @@ impl GlobalScope {
     ///    valid or invalid Blob URL.
     pub(crate) fn promote(&self, blob_info: &mut BlobInfo, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
-        let global_url = self.get_url();
 
         match blob_info.blob_impl.blob_data_mut() {
             BlobData::Sliced(_, _) => {
@@ -2121,7 +2120,7 @@ impl GlobalScope {
             },
             BlobData::File(f) => {
                 if set_valid {
-                    let origin = get_blob_origin(&global_url);
+                    let origin = self.origin().immutable();
                     let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
 
                     let msg = FileManagerThreadMsg::ActivateBlobURL(f.get_id(), tx, origin.clone());
@@ -2140,7 +2139,7 @@ impl GlobalScope {
             BlobData::Memory(bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
-        let origin = get_blob_origin(&global_url);
+        let origin = self.origin().immutable();
 
         let blob_buf = BlobBuf {
             filename: None,
@@ -2241,8 +2240,8 @@ impl GlobalScope {
     fn send_msg(&self, id: Uuid) -> profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>> {
         let resource_threads = self.resource_threads();
         let (chan, recv) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
-        let origin = get_blob_origin(&self.get_url());
-        let msg = FileManagerThreadMsg::ReadFile(chan, id, origin);
+        let origin = self.origin().immutable();
+        let msg = FileManagerThreadMsg::ReadFile(chan, id, origin.clone());
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
         recv
     }

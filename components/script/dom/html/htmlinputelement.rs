@@ -28,7 +28,6 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
-use net_traits::blob_url_store::get_blob_origin;
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -2416,7 +2415,7 @@ impl HTMLInputElement {
             .show_embedder_control(
                 ControlElement::FileInput(DomRoot::from_ref(self)),
                 EmbedderControlRequest::FilePicker(FilePickerRequest {
-                    origin: get_blob_origin(&self.owner_window().get_url()),
+                    origin: self.owner_window().origin().immutable().clone(),
                     current_paths,
                     filter_patterns: filter_from_accept(&self.Accept()),
                     allow_select_multiple: self.Multiple(),
