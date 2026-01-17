@@ -42,7 +42,7 @@ fn test_filemanager() {
         .read_to_end(&mut test_file_content)
         .expect("Read components/net/tests/test.jpeg error");
 
-    let origin = ServoUrl::parse("test.com").unwrap().origin();
+    let origin = ServoUrl::parse("http://test.com").unwrap().origin();
 
     {
         // Try to select a dummy file "components/net/tests/test.jpeg"
