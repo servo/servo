@@ -20,19 +20,38 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUBindGroup {
+    #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    bind_group: WebGPUBindGroup,
+}
+
+impl Drop for DroppableGPUBindGroup {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropBindGroup(self.bind_group.0))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DropBindGroup({:?}) ({})",
+                self.bind_group.0, e
+            );
+        };
+    }
+}
 
 #[dom_struct]
 pub(crate) struct GPUBindGroup {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "channels are hard"]
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    bind_group: WebGPUBindGroup,
     #[no_trace]
     device: WebGPUDevice,
     layout: Dom<GPUBindGroupLayout>,
+    droppable: DroppableGPUBindGroup,
 }
 
 impl GPUBindGroup {
@@ -45,11 +64,13 @@ impl GPUBindGroup {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             label: DomRefCell::new(label),
-            bind_group,
             device,
             layout: Dom::from_ref(layout),
+            droppable: DroppableGPUBindGroup {
+                channel,
+                bind_group,
+            },
         }
     }
 
@@ -74,7 +95,7 @@ impl GPUBindGroup {
 
 impl GPUBindGroup {
     pub(crate) fn id(&self) -> &WebGPUBindGroup {
-        &self.bind_group
+        &self.droppable.bind_group
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
@@ -117,21 +138,6 @@ impl GPUBindGroup {
             descriptor.parent.label.clone(),
             can_gc,
         )
-    }
-}
-
-impl Drop for GPUBindGroup {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropBindGroup(self.bind_group.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropBindGroup({:?}) ({})",
-                self.bind_group.0, e
-            );
-        };
     }
 }
 
