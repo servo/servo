@@ -250,23 +250,16 @@ fn len_of_first_n_code_units(text: &DOMString, n: Utf16CodeUnitLength) -> Utf8Co
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub fn new(
-        lines: Lines,
-        initial: DOMString,
-        clipboard_provider: T,
-        max_length: Option<Utf16CodeUnitLength>,
-        min_length: Option<Utf16CodeUnitLength>,
-        selection_direction: SelectionDirection,
-    ) -> TextInput<T> {
+    pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T) -> TextInput<T> {
         Self {
             rope: Rope::new(initial),
             mode: lines,
             edit_point: Default::default(),
             selection_origin: None,
             clipboard_provider,
-            max_length,
-            min_length,
-            selection_direction,
+            max_length: Default::default(),
+            min_length: Default::default(),
+            selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
         }
     }
@@ -289,11 +282,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_direction
     }
 
-    pub(crate) fn set_max_length(&mut self, length: Option<Utf16CodeUnitLength>) {
+    pub fn set_max_length(&mut self, length: Option<Utf16CodeUnitLength>) {
         self.max_length = length;
     }
 
-    pub(crate) fn set_min_length(&mut self, length: Option<Utf16CodeUnitLength>) {
+    pub fn set_min_length(&mut self, length: Option<Utf16CodeUnitLength>) {
         self.min_length = length;
     }
 
