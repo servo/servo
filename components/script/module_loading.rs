@@ -13,7 +13,7 @@ use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper_serde::Serde;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{GetRequestedModuleSpecifier, GetRequestedModulesCount, JSObject};
+use js::jsapi::{GetRequestedModuleSpecifier, GetRequestedModulesCount, IsCyclicModule, JSObject};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers::JS_GetModulePrivate;
@@ -136,7 +136,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
     let visited_contains_module = state.visited.borrow().contains(&module_url);
 
     // Step 2. If module is a Cyclic Module Record, module.[[Status]] is new, and state.[[Visited]] does not contain module, then
-    if !visited_contains_module {
+    if unsafe { IsCyclicModule(module_handle.get()) } && !visited_contains_module {
         // a. Append module to state.[[Visited]].
         state.visited.borrow_mut().insert(module_url);
 
