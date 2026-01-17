@@ -17,8 +17,8 @@
 <script>
 promise_test(async test => {
     let targetRect = target.getBoundingClientRect();
-
     let middleOfFirstLine = (50 / 2) + targetRect.top;
+
     await new test_driver.Actions()
       .pointerMove(targetRect.left + 10, middleOfFirstLine)
       .pointerDown().pointerUp()
@@ -118,4 +118,20 @@ promise_test(async test => {
     assert_equals(target.selectionStart, 24);
     assert_equals(target.selectionEnd, 24);
 }, 'Mouse events move the edit point in <textarea>');
+
+promise_test(async test => {
+    let targetRect = target.getBoundingClientRect();
+    let middleOfFirstLine = (50 / 2) + targetRect.top;
+
+    target.setSelectionRange(2, 5);
+
+    const actions = new test_driver.Actions();
+    let options = { button: actions.ButtonType.RIGHT };
+    await actions
+      .pointerMove(targetRect.left + 2, middleOfFirstLine)
+      .pointerDown(options).pointerUp(options)
+          .send();
+    assert_equals(target.selectionStart, 2);
+    assert_equals(target.selectionEnd, 5);
+}, 'Non-primary mouse buttons should not adjust the edit point in <textarea>');
 </script>

@@ -11,6 +11,7 @@ use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
+use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::trace::CustomTraceable;
@@ -26,6 +27,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::inputevent::InputEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{ClipboardEvent, UIEvent};
 use crate::drag_data_store::Kind;
@@ -825,10 +827,23 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Returns `true` if the [`TextInput`] changed at all or `false` otherwise.
     pub(crate) fn handle_mousedown(&mut self, node: &Node, event: &Event) -> bool {
         assert_eq!(event.type_(), atom!("mousedown"));
+
+        // Only update the cursor in text fields when the primary buton is pressed.
+        //
+        // From <https://w3c.github.io/uievents/#dom-mouseevent-button>:
+        // > 0 MUST indicate the primary button of the device (in general, the left button
+        // > or the only button on single-button devices, used to activate a user interface
+        // > control or select text) or the un-initialized value.
+        if event
+            .downcast::<MouseEvent>()
+            .is_none_or(|mouse_event| mouse_event.Button() != 0)
+        {
+            return false;
+        }
+
         let Some(ui_event) = event.downcast::<UIEvent>() else {
             return false;
         };
-
         match ui_event.Detail() {
             3 => {
                 let word_boundaries = self.rope.line_boundaries(self.edit_point);
