@@ -301,7 +301,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     ///
     /// Returns true if any character was deleted
     pub fn delete_char(&mut self, direction: Direction) -> bool {
-        if self.selection_origin.is_none() || self.selection_origin == Some(self.edit_point) {
+        if !self.has_uncollapsed_selection() {
             let amount = match direction {
                 Direction::Forward => 1,
                 Direction::Backward => -1,
@@ -364,10 +364,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.rope.index_to_utf8_offset(self.selection_end())
     }
 
-    /// Whether or not there is an active selection (the selection may be zero-length)
+    /// Whether or not there is an active uncollapsed selection. This means that the
+    /// selection origin is set and it differs from the edit point.
     #[inline]
-    pub(crate) fn has_selection(&self) -> bool {
-        self.selection_origin.is_some()
+    pub(crate) fn has_uncollapsed_selection(&self) -> bool {
+        self.selection_origin
+            .is_some_and(|selection_origin| selection_origin != self.edit_point)
     }
 
     /// Return the selection range as byte offsets from the start of the content.
@@ -432,10 +434,6 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// single line mode this *will* strip newlines, as opposed to [`Self::set_content`],
     /// which does not.
     pub fn replace_selection(&mut self, insert: &DOMString) {
-        if !self.has_selection() {
-            return;
-        }
-
         let string_to_insert = if let Some(max_length) = self.max_length {
             let utf16_length_without_selection =
                 self.len_utf16().saturating_sub(self.selection_utf16_len());
@@ -465,7 +463,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         // When moving by lines or if we do not have a selection, we do actually move
         // the edit point from its position.
-        if matches!(movement, RopeMovement::Line) || !self.has_selection() {
+        if matches!(movement, RopeMovement::Line) || !self.has_uncollapsed_selection() {
             self.clear_selection();
             self.edit_point = self.rope.move_by(self.edit_point, movement, amount);
             return;
@@ -947,6 +945,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.edit_point = self.rope.utf8_offset_to_rope_index(start);
             },
         }
+
         self.assert_ok_selection();
     }
 

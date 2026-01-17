@@ -12919,6 +12919,15 @@
     ]
    },
    "input-events": {
+    "collapsed-selection-input-text.html": [
+     "c80ddeff12b0ebc6568c03dabe848ac57e44737b",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "dblclick-events-fired-every-two-clicks.html": [
      "9ad53ceaf05018bb48e4ff2424da4e45fbca6be6",
      [
