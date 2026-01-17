@@ -2344,19 +2344,33 @@ impl Document {
 
         // Step 2. Set document's completely loaded time to the current time.
         self.completely_loaded.set(true);
+        let window = self.window();
         // Step 3. Let container be document's node navigable's container.
-        // TODO
-
-        // Step 4. If container is an iframe element, then queue an element task
-        // on the DOM manipulation task source given container to run the iframe load event steps given container.
-        //
-        // Note: this will also result in the "iframe-load-event-steps" being run.
-        // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-        self.notify_constellation_load();
-
-        // Step 5. Otherwise, if container is non-null, then queue an element task on the DOM manipulation task source
-        // given container to fire an event named load at container.
-        // TODO
+        if let Some(container) = window.window_proxy().frame_element() {
+            // Step 4. If container is an iframe element, then queue an element task
+            // on the DOM manipulation task source given container to run the iframe load event steps given container.
+            if let Some(iframe_element) = container.downcast::<HTMLIFrameElement>() {
+                let pipeline_id = window.pipeline_id();
+                let iframe_element = Trusted::new(iframe_element);
+                self.owner_global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(run_load_event_steps: move || {
+                        iframe_element.root().iframe_load_event_steps(pipeline_id, CanGc::note());
+                    }));
+            } else {
+                // Step 5. Otherwise, if container is non-null, then queue an element task on the DOM manipulation task source
+                // given container to fire an event named load at container.
+                Event::new(
+                    window.upcast(),
+                    atom!("load"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    CanGc::note(),
+                )
+                .fire(container.upcast(), CanGc::note());
+            }
+        };
 
         // Step 13 of https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
         //
@@ -2440,6 +2454,8 @@ impl Document {
                 load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
                 window.dispatch_event_with_target_override(&load_event, CanGc::note());
+
+                document.notify_constellation_load();
 
                 // Step 9.6. Invoke WebDriver BiDi load complete with the Document's browsing context,
                 // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading navigation ID
