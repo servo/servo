@@ -44,11 +44,12 @@ use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::{
     ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
     create_a_javascript_module_script, gen_type_error, module_script_from_reference_private,
 };
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::NonSendTaskBox;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -77,6 +78,7 @@ pub(crate) struct LoadState {
     pub(crate) error_to_rethrow: RefCell<Option<RethrowError>>,
     #[no_trace]
     pub(crate) destination: Destination,
+    pub(crate) fetch_client: ModuleOwner,
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
@@ -85,16 +87,14 @@ struct GraphLoadingState {
     is_loading: Cell<bool>,
     pending_modules_count: Cell<u32>,
     visited: RefCell<HashSet<ServoUrl>>,
-    load_state: Rc<LoadState>,
-    owner: ModuleOwner,
+    load_state: Option<Rc<LoadState>>,
 }
 
 /// <https://tc39.es/ecma262/#sec-LoadRequestedModules>
 pub(crate) fn LoadRequestedModules(
     global: &GlobalScope,
     module: Rc<ModuleTree>,
-    load_state: Rc<LoadState>,
-    owner: ModuleOwner,
+    load_state: Option<Rc<LoadState>>,
 ) -> Rc<Promise> {
     // Step 1. If hostDefined is not present, let hostDefined be empty.
 
@@ -109,7 +109,6 @@ pub(crate) fn LoadRequestedModules(
         pending_modules_count: Cell::new(1),
         visited: RefCell::new(HashSet::new()),
         load_state,
-        owner,
     };
 
     // Step 4. Perform InnerModuleLoading(state, module).
@@ -181,7 +180,13 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
                         InnerModuleLoading(global, state, module);
                     },
                     // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
-                    None => HostLoadImportedModule(global, module.clone(), specifier, state),
+                    None => HostLoadImportedModule(
+                        cx,
+                        module.clone(),
+                        specifier,
+                        state.load_state.clone(),
+                        state,
+                    ),
                 }
             }
 
@@ -282,9 +287,10 @@ fn FinishLoadingImportedModule(
 
 /// <https://html.spec.whatwg.org/multipage/webappapis.html#hostloadimportedmodule>
 fn HostLoadImportedModule(
-    global_scope: &GlobalScope,
+    cx: SafeJSContext,
     referrer_module: Rc<ModuleTree>,
     specifier: String,
+    load_state: Option<Rc<LoadState>>,
     payload: &Rc<GraphLoadingState>,
 ) {
     let module_handle = referrer_module
@@ -294,11 +300,14 @@ fn HostLoadImportedModule(
         .map(|module| module.handle())
         .unwrap();
 
-    rooted!(in(*GlobalScope::get_cx()) let mut referrer = UndefinedValue());
+    rooted!(in(*cx) let mut referrer = UndefinedValue());
     unsafe { JS_GetModulePrivate(module_handle.get(), referrer.handle_mut()) };
     let referrer_handle = referrer.handle().into_handle();
 
     // Step 1. Let settingsObject be the current settings object.
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    let global_scope = unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+
     // Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
 
     // Step 3. Let referencingScript be null.
@@ -315,7 +324,7 @@ fn HostLoadImportedModule(
             Referrer::ReferrerUrl(module.base_url.clone()),
         ),
         None => (
-            ScriptFetchOptions::default_classic_script(global_scope),
+            ScriptFetchOptions::default_classic_script(&global_scope),
             global_scope.get_referrer(),
         ),
     };
@@ -326,7 +335,7 @@ fn HostLoadImportedModule(
     // Step 8 Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
     let url = ModuleTree::resolve_module_specifier(
-        global_scope,
+        &global_scope,
         referencing_script,
         DOMString::from_string(specifier.clone()),
         CanGc::note(),
@@ -335,22 +344,23 @@ fn HostLoadImportedModule(
     // Step 9 If the previous step threw an exception, then:
     let Ok(url) = url else {
         let resolution_error = gen_type_error(
-            global_scope,
+            &global_scope,
             "Wrong module specifier".to_string(),
             CanGc::note(),
         );
 
         // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
         // set loadState.[[ErrorToRethrow]] to resolutionError.
-        payload
-            .load_state
-            .error_to_rethrow
-            .borrow_mut()
-            .get_or_insert(resolution_error.clone());
+        if let Some(load_state) = load_state {
+            load_state
+                .error_to_rethrow
+                .borrow_mut()
+                .get_or_insert(resolution_error.clone());
+        }
 
         // Step 9.2. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(resolutionError)).
         FinishLoadingImportedModule(
-            global_scope,
+            &global_scope,
             referrer_module,
             specifier,
             payload.clone(),
@@ -368,13 +378,18 @@ fn HostLoadImportedModule(
     let fetch_options = original_fetch_options.descendant_fetch_options();
 
     // Step 11. Let destination be "script".
-    let destination = Destination::Script;
-
     // Step 12. Let fetchClient be settingsObject.
+    // Step 13. If loadState is not undefined, then:
+    let (destination, fetch_client) = match load_state.as_ref() {
+        // Step 13.1. Set destination to loadState.[[Destination]].
+        // Step 13.2. Set fetchClient to loadState.[[FetchClient]].
+        Some(load_state) => (load_state.destination, load_state.fetch_client.clone()),
+        None => (
+            Destination::Script,
+            ModuleOwner::new_dynamic(&global_scope, CanGc::note()),
+        ),
+    };
 
-    // TODO Step 13. If loadState is not undefined, then:
-
-    let owner = payload.owner.clone();
     let state = Rc::clone(payload);
 
     let on_single_fetch_complete = move |global: &GlobalScope, module_tree: Rc<ModuleTree>| {
@@ -394,12 +409,12 @@ fn HostLoadImportedModule(
             if let Some(error) = parse_error {
                 // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
                 // set loadState.[[ErrorToRethrow]] to parseError.
-                state
-                    .load_state
-                    .error_to_rethrow
-                    .borrow_mut()
-                    .get_or_insert(error.clone());
-
+                if let Some(load_state) = load_state {
+                    load_state
+                        .error_to_rethrow
+                        .borrow_mut()
+                        .get_or_insert(error.clone());
+                }
                 // Step 3.2 Set completion to ThrowCompletion(parseError).
                 Err(error)
             } else {
@@ -424,7 +439,7 @@ fn HostLoadImportedModule(
     // If loadState is not undefined and loadState.[[PerformFetch]] is not null, pass loadState.[[PerformFetch]] along as well.
     fetch_a_single_imported_module_script(
         url,
-        owner,
+        fetch_client,
         destination,
         fetch_options,
         fetch_referrer,

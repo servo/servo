@@ -1161,6 +1161,16 @@ impl ModuleOwner {
         }
     }
 
+    pub(crate) fn new_dynamic(global: &GlobalScope, can_gc: CanGc) -> Self {
+        let dynamic = DynamicModuleOwner::new(
+            global,
+            Promise::new(global, can_gc),
+            DynamicModuleId(Uuid::new_v4()),
+            can_gc,
+        );
+        ModuleOwner::DynamicModule(Trusted::new(&dynamic))
+    }
+
     fn notify_owner_to_finish(&self, module_identity: ModuleIdentity, can_gc: CanGc) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
@@ -2152,13 +2162,13 @@ fn fetch_the_descendants_and_link_module_script(
     let state = Rc::new(LoadState {
         error_to_rethrow: RefCell::new(None),
         destination,
+        fetch_client: owner.clone(),
     });
 
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise =
-        LoadRequestedModules(&global, module_script, Rc::clone(&state), owner.clone());
+    let loading_promise = LoadRequestedModules(&global, module_script, Some(Rc::clone(&state)));
 
     let fulfillment_owner = owner.clone();
     let fulfillment_identity = identity.clone();
