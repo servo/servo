@@ -35,6 +35,7 @@ use style::values::computed::{
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::NonNegative;
+use style::values::generics::color::ColorOrAuto;
 use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
@@ -1002,14 +1003,17 @@ impl Fragment {
                 containing_block.max_y().to_f32_px(),
             ),
         );
-        let insertion_point_common = builder.common_properties(insertion_point_rect, &parent_style);
 
-        // TODO: The color of the caret is currently hardcoded to the text color.
-        // We should be retrieving the caret color from the style properly.
+        let color = parent_style.clone_color();
+        let caret_color = match parent_style.clone_caret_color().0 {
+            ColorOrAuto::Color(caret_color) => caret_color.resolve_to_absolute(&color),
+            ColorOrAuto::Auto => color,
+        };
+        let insertion_point_common = builder.common_properties(insertion_point_rect, &parent_style);
         builder.wr().push_rect(
             &insertion_point_common,
             insertion_point_rect,
-            rgba(parent_style.clone_color()),
+            rgba(caret_color),
         );
     }
 }
