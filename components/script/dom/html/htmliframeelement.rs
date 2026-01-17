@@ -42,7 +42,6 @@ use crate::dom::element::{
     AttributeMutation, Element, LayoutElementHelpers, reflect_referrer_policy_attribute,
 };
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::trustedhtml::TrustedHTML;
@@ -808,26 +807,24 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
             .and_then(|id| self.script_window_proxies.find_window_proxy(id))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     /// <https://html.spec.whatwg.org/multipage/#concept-bcc-content-document>
     fn GetContentDocument(&self) -> Option<DomRoot<Document>> {
-        // Step 1.
+        // Step 1. If container's content navigable is null, then return null.
         let pipeline_id = self.pipeline_id.get()?;
 
-        // Step 2-3.
+        // Step 2. Let document be container's content navigable's active document.
         // Note that this lookup will fail if the document is dissimilar-origin,
         // so we should return None in that case.
         let document = ScriptThread::find_document(pipeline_id)?;
-
-        // Step 4.
-        let current = GlobalScope::current()
-            .expect("No current global object")
-            .as_window()
-            .Document();
-        if !current.origin().same_origin_domain(document.origin()) {
+        // Step 3. If document's origin and container's node document's origin are not same origin-domain, then return null.
+        if !self
+            .owner_document()
+            .origin()
+            .same_origin_domain(document.origin())
+        {
             return None;
         }
-        // Step 5.
+        // Step 4. Return document.
         Some(document)
     }
 
