@@ -19,6 +19,7 @@ use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
 use servo_config::prefs::Preferences;
+use servo_url::ServoUrl;
 use tokio::task::yield_now;
 
 use crate::create_embedder_proxy_and_receiver;
@@ -41,7 +42,7 @@ fn test_filemanager() {
         .read_to_end(&mut test_file_content)
         .expect("Read components/net/tests/test.jpeg error");
 
-    let origin = "test.com".to_string();
+    let origin = ServoUrl::parse("test.com").unwrap().origin();
 
     {
         // Try to select a dummy file "components/net/tests/test.jpeg"

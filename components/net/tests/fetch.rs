@@ -188,7 +188,7 @@ fn test_fetch_blob() {
         id.clone(),
         blob_buf,
         true,
-        "http://www.example.org".into(),
+        origin.origin(),
     );
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
 
