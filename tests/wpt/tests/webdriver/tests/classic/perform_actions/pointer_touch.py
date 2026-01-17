@@ -74,7 +74,7 @@ def test_touch_pointer_cancel(session, test_actions_pointer_page, touch_chain):
 
     assert results['touchstart']
     assert results["touchcancel"]
-    assert not results["touchend"]
+    assert results["touchend"]
     assert not results["click"]
 
 
