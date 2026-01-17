@@ -1910,11 +1910,8 @@ fn fetch_single_module_script(
             }
 
             match status {
-                ModuleStatus::Initial => unreachable!(
-                    "We have the module in module map so its status should not be `initial`"
-                ),
                 // Step 2.
-                ModuleStatus::Fetching => {},
+                ModuleStatus::Initial | ModuleStatus::Fetching => {},
                 // Step 3.
                 ModuleStatus::FetchingDescendants | ModuleStatus::Finished => {
                     module_tree.advance_finished_and_link(&global, can_gc);
