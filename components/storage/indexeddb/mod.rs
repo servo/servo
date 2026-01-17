@@ -584,14 +584,14 @@ impl IndexedDBManager {
                     };
                     queue.retain_mut(|open_request| {
                         if ids.contains(&open_request.get_id()) {
-                            false
-                        } else {
                             let old = open_request.abort();
                             if version_to_revert.is_none() {
                                 if let Some(old) = old {
                                     version_to_revert = Some(old);
                                 }
                             }
+                            false
+                        } else {
                             true
                         }
                     });

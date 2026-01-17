@@ -30,7 +30,7 @@ use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
 use crate::script_runtime::CanGc;
 
 /// A non-jstraceable string wrapper for use in `HashMapTracedValues`.
-#[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub(crate) struct DBName(pub(crate) String);
 
 #[dom_struct]
@@ -62,20 +62,32 @@ impl IDBFactory {
 
     pub(crate) fn note_end_of_open(&self, name: &DBName, id: &Uuid) {
         let mut pending = self.pending_connections.borrow_mut();
-        let Some(entry) = pending.get_mut(name) else {
-            return debug_assert!(
-                false,
-                "There should be a pending connection for {:?}",
-                name.0
-            );
+        let empty = {
+            let Some(entry) = pending.get_mut(name) else {
+                return debug_assert!(
+                    false,
+                    "There should be a pending connection for {:?}",
+                    name.0
+                );
+            };
+            entry.remove(id);
+            entry.is_empty()
         };
-        entry.remove(id);
+        if empty {
+            pending.remove(name);
+        }
     }
 
     pub(crate) fn abort_pending_upgrades(&self) {
         let global = self.global();
-        let mut pending = self.pending_connections.borrow_mut();
-        let pending_upgrades = pending.drain().map(|(key, val)| (key.0, val)).collect();
+
+        // Note: pending connections removed in `handle_open_db`.
+        let pending = self.pending_connections.borrow();
+        let pending_upgrades = pending
+            .clone()
+            .into_iter()
+            .map(|(key, val)| (key.0, val))
+            .collect();
         let origin = global.origin().immutable().clone();
         if global
             .storage_threads()
