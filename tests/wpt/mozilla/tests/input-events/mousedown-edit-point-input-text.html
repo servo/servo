@@ -12,17 +12,17 @@
 <script>
 promise_test(async test => {
     let targetRect = target.getBoundingClientRect();
-    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let verticalCenterOfLine = targetRect.top + (targetRect.height / 2);
 
     await new test_driver.Actions()
-      .pointerMove(targetRect.left + 1, middleOfBlock)
+      .pointerMove(targetRect.left + 1, verticalCenterOfLine)
       .pointerDown().pointerUp()
           .send();
     assert_equals(target.selectionStart, 0);
     assert_equals(target.selectionEnd, 0);
 
     await new test_driver.Actions()
-      .pointerMove(targetRect.left + 50, middleOfBlock)
+      .pointerMove(targetRect.left + 50, verticalCenterOfLine)
       .pointerDown().pointerUp()
           .send();
     assert_equals(target.selectionStart, 1);
@@ -32,7 +32,7 @@ promise_test(async test => {
 
     // Click on the right half of a character should move the cursor to the next index.
     await new test_driver.Actions()
-      .pointerMove(targetRect.left + 40, middleOfBlock)
+      .pointerMove(targetRect.left + 40, verticalCenterOfLine)
       .pointerDown().pointerUp()
           .send();
     assert_equals(target.selectionStart, 1);
@@ -42,7 +42,7 @@ promise_test(async test => {
 
     // Click on the right half of a character should move the cursor to the next index.
     await new test_driver.Actions()
-      .pointerMove(targetRect.left + (50 * 5), middleOfBlock)
+      .pointerMove(targetRect.left + (50 * 5), verticalCenterOfLine)
       .pointerDown().pointerUp()
           .send();
     assert_equals(target.selectionStart, 5);
@@ -52,10 +52,26 @@ promise_test(async test => {
 
     // Clicking past the end of the text should move the edit point to the end.
     await new test_driver.Actions()
-      .pointerMove(targetRect.left + (50 * 7), middleOfBlock)
+      .pointerMove(targetRect.left + (50 * 7), verticalCenterOfLine)
       .pointerDown().pointerUp()
           .send();
     assert_equals(target.selectionStart, 6);
     assert_equals(target.selectionEnd, 6);
 }, 'Mouse events move the edit point in <input type=text>');
+
+promise_test(async test => {
+    let targetRect = target.getBoundingClientRect();
+    let verticalCenterOfLine = targetRect.top + (targetRect.height / 2);
+
+    target.setSelectionRange(2, 5);
+
+    const actions = new test_driver.Actions();
+    let options = { button: actions.ButtonType.RIGHT };
+    await actions
+      .pointerMove(targetRect.left + 2, verticalCenterOfLine)
+      .pointerDown(options).pointerUp(options)
+          .send();
+    assert_equals(target.selectionStart, 2);
+    assert_equals(target.selectionEnd, 5);
+}, 'Non-primary mouse buttons should not adjust the edit point in <input type=text>');
 </script>
