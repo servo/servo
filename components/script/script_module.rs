@@ -80,8 +80,8 @@ use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
 use crate::module_loading::{
-    LoadRequestedModules, LoadState, ModuleHandler as NonSendModuleHandler,
-    fetch_a_single_module_script,
+    HostLoadImportedModule, LoadRequestedModules, LoadState, ModuleHandler as NonSendModuleHandler,
+    Payload, fetch_a_single_module_script,
 };
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
@@ -141,6 +141,12 @@ impl RethrowError {
 
     pub(crate) fn handle(&self) -> Handle<'_, JSVal> {
         self.0.handle()
+    }
+}
+
+impl Debug for RethrowError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        "RethrowError...)".fmt(fmt)
     }
 }
 
@@ -640,7 +646,7 @@ impl ModuleTree {
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// Step 5-2.
-    fn instantiate_module_tree(
+    pub(crate) fn instantiate_module_tree(
         global: &GlobalScope,
         module_record: HandleObject,
     ) -> Result<(), RethrowError> {
@@ -1561,12 +1567,20 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
 ) -> bool {
     // Step 1.
     let cx = unsafe { SafeJSContext::from_ptr(cx) };
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    let global_scope = unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+    // let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    // let global_scope = unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
     let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
 
+    let jsstr = ptr::NonNull::new(unsafe { GetModuleRequestSpecifier(*cx, specifier) }).unwrap();
+    let specifier = unsafe { jsstr_to_string(*cx, jsstr) };
+
+    let payload = Payload::PromiseRecord(promise.clone());
+    HostLoadImportedModule(cx, None, reference_private, specifier, None, payload);
+
+    return true;
+
     // Step 5 & 6.
-    if let Err(e) = fetch_an_import_module_script_graph(
+    /*if let Err(e) = fetch_an_import_module_script_graph(
         &global_scope,
         specifier,
         reference_private,
@@ -1577,7 +1591,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
         return false;
     }
 
-    true
+    true*/
 }
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
@@ -1852,7 +1866,7 @@ impl DynamicModuleList {
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
-struct DynamicModule {
+pub(crate) struct DynamicModule {
     #[conditional_malloc_size_of]
     promise: Rc<Promise>,
     #[ignore_malloc_size_of = "GC types are hard"]
