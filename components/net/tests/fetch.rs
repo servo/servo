@@ -184,12 +184,10 @@ fn test_fetch_blob() {
     let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
     let id = Uuid::new_v4();
-    context.filemanager.lock().promote_memory(
-        id.clone(),
-        blob_buf,
-        true,
-        "http://www.example.org".into(),
-    );
+    context
+        .filemanager
+        .lock()
+        .promote_memory(id.clone(), blob_buf, true, origin.origin());
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
 
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)

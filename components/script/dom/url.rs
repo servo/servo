@@ -8,7 +8,7 @@ use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use net_traits::CoreResourceMsg;
-use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
+use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::ipc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -84,20 +84,27 @@ impl URL {
         }
     }
 
-    /// <https://w3c.github.io/FileAPI/#unicodeSerializationOfBlobURL>
-    fn unicode_serialization_blob_url(origin: &str, id: &Uuid) -> String {
-        // Step 1, 2
+    /// <https://w3c.github.io/FileAPI/#unicodeBlobURL>
+    fn unicode_serialization_blob_url(origin: &ImmutableOrigin, id: &Uuid) -> String {
+        // Step 1. Let result be the empty string.
+        // Step 2. Append the string "blob:" to result.
         let mut result = "blob:".to_string();
 
-        // Step 3
-        result.push_str(origin);
+        // Step 3. Let settings be the current settings object.
+        // Step 4. Let origin be settings’s origin.
+        // Step 5. Let serialized be the ASCII serialization of origin.
+        // Step 6. If serialized is "null", set it to an implementation-defined value.
+        // Step 7. Append serialized to result.
+        // N.B. We leave it as "null" right now.
+        result.push_str(&origin.ascii_serialization());
 
-        // Step 4
+        // Step 8. Append U+0024 SOLIDUS (/) to result.
         result.push('/');
 
-        // Step 5
+        // Step 9. Generate a UUID [RFC4122] as a string and append it to result.
         result.push_str(&id.to_string());
 
+        // Step 10. Return result.
         result
     }
 }
@@ -189,11 +196,11 @@ impl URLMethods<crate::DomTypeHolder> for URL {
     fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
         // XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         //      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-        let origin = get_blob_origin(&global.get_url());
+        let origin = global.origin().immutable();
 
         let id = blob.get_blob_url_id();
 
-        DOMString::from(URL::unicode_serialization_blob_url(&origin, &id))
+        DOMString::from(URL::unicode_serialization_blob_url(origin, &id))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-revokeObjectURL>
@@ -201,14 +208,14 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // If the value provided for the url argument is not a Blob URL OR
         // if the value provided for the url argument does not have an entry in the Blob URL Store,
         // this method call does nothing. User agents may display a message on the error console.
-        let origin = get_blob_origin(&global.get_url());
+        let origin = global.origin().immutable();
 
         if let Ok(url) = ServoUrl::parse(&url.str()) {
-            if url.fragment().is_none() && origin == get_blob_origin(&url) {
+            if url.fragment().is_none() && *origin == url.origin() {
                 if let Ok((id, _)) = parse_blob_url(&url) {
                     let resource_threads = global.resource_threads();
                     let (tx, rx) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-                    let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
+                    let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin.clone(), tx);
                     let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 
                     let _ = rx.recv().unwrap();
