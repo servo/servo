@@ -49,9 +49,7 @@ use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::textinput::{
-    ClipboardEventFlags, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
-};
+use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, Lines, TextInput};
 
 #[dom_struct]
 pub(crate) struct HTMLTextAreaElement {
@@ -145,9 +143,6 @@ impl HTMLTextAreaElement {
                     embedder_sender,
                     webview_id: document.webview_id(),
                 },
-                None,
-                None,
-                SelectionDirection::None,
             )),
             value_dirty: Cell::new(false),
             form_owner: Default::default(),

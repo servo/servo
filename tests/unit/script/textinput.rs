@@ -36,14 +36,7 @@ impl ClipboardProvider for DummyClipboardContext {
 }
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
-    TextInput::new(
-        lines,
-        DOMString::from(s),
-        DummyClipboardContext::new(""),
-        None,
-        None,
-        SelectionDirection::None,
-    )
+    TextInput::new(lines, DOMString::from(s), DummyClipboardContext::new(""))
 }
 
 #[test]
@@ -52,11 +45,9 @@ fn test_set_content_ignores_max_length() {
         Lines::Single,
         DOMString::from(""),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength::one()),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength::one()));
     textinput.set_content(DOMString::from("mozilla rocks"));
     assert_eq!(textinput.get_content(), DOMString::from("mozilla rocks"));
 }
@@ -67,11 +58,9 @@ fn test_textinput_when_inserting_multiple_lines_over_a_selection_respects_max_le
         Lines::Multiple,
         DOMString::from("hello\nworld"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength(17)),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength(17)));
     textinput.modify_edit_point(1, RopeMovement::Grapheme);
     textinput.modify_selection(3, RopeMovement::Grapheme);
     textinput.modify_selection(1, RopeMovement::Line);
@@ -90,11 +79,9 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
         Lines::Multiple,
         DOMString::from("hello\nworld"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength(17)),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength(17)));
     textinput.modify_edit_point(1, RopeMovement::Line);
     textinput.insert("cruel\nterrible");
     assert_eq!(textinput.get_content(), "hello\ncruel\nworld");
@@ -107,13 +94,10 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
         Lines::Single,
         DOMString::from("abc"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength::one()),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength::one()));
     textinput.insert('a');
-
     assert_eq!(textinput.get_content(), "abc");
 }
 
@@ -124,13 +108,10 @@ fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_wh
         Lines::Multiple,
         DOMString::from("abc\nd"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength(5)),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength(5)));
     textinput.insert('a');
-
     assert_eq!(textinput.get_content(), "abc\nd");
 }
 
@@ -141,11 +122,9 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         Lines::Single,
         DOMString::from("abcde"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength(5)),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength(5)));
     textinput.modify_edit_point(1, RopeMovement::Grapheme);
     textinput.modify_selection(3, RopeMovement::Grapheme);
 
@@ -163,11 +142,9 @@ fn test_single_line_textinput_with_max_length_allows_deletion_when_replacing_a_s
         Lines::Single,
         DOMString::from("abcde"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength(1)),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength(1)));
     textinput.modify_edit_point(1, RopeMovement::Grapheme);
     textinput.modify_selection(2, RopeMovement::Grapheme);
 
@@ -185,11 +162,9 @@ fn test_single_line_textinput_with_max_length_multibyte() {
         Lines::Single,
         DOMString::from(""),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength(2)),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength(2)));
     textinput.insert('á');
     assert_eq!(textinput.get_content(), "á");
     textinput.insert('é');
@@ -204,11 +179,9 @@ fn test_single_line_textinput_with_max_length_multi_code_unit() {
         Lines::Single,
         DOMString::from(""),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength(3)),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength(3)));
     textinput.insert('\u{10437}');
     assert_eq!(textinput.get_content(), "\u{10437}");
     textinput.insert('\u{10437}');
@@ -225,11 +198,9 @@ fn test_single_line_textinput_with_max_length_inside_char() {
         Lines::Single,
         DOMString::from("\u{10437}"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength::one()),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength::one()));
     textinput.insert('x');
     assert_eq!(textinput.get_content(), "\u{10437}");
 }
@@ -241,11 +212,9 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         Lines::Single,
         DOMString::from("a"),
         DummyClipboardContext::new(""),
-        Some(Utf16CodeUnitLength::one()),
-        None,
-        SelectionDirection::None,
     );
 
+    textinput.set_max_length(Some(Utf16CodeUnitLength::one()));
     textinput.insert('b');
     assert_eq!(textinput.get_content(), "a");
 }
@@ -564,9 +533,6 @@ fn test_clipboard_paste() {
         Lines::Single,
         DOMString::from("defg"),
         DummyClipboardContext::new("abc"),
-        None,
-        None,
-        SelectionDirection::None,
     );
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point().code_point, 0);

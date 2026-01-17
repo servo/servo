@@ -85,9 +85,7 @@ use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::textinput::{
-    ClipboardEventFlags, IsComposing, KeyReaction, Lines, SelectionDirection, TextInput,
-};
+use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, Lines, TextInput};
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
@@ -686,9 +684,6 @@ impl HTMLInputElement {
                     embedder_sender,
                     webview_id: document.webview_id(),
                 },
-                None,
-                None,
-                SelectionDirection::None,
             )),
             value_dirty: Cell::new(false),
             filelist: MutNullableDom::new(None),
