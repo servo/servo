@@ -93,21 +93,38 @@ pub(crate) struct HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
-    /// step 1.
-    fn get_url(&self) -> ServoUrl {
+    /// <https://html.spec.whatwg.org/multipage/#shared-attribute-processing-steps-for-iframe-and-frame-elements>,
+    fn shared_attribute_processing_steps_for_iframe_and_frame_elements(
+        &self,
+        mode: &ProcessingMode,
+    ) -> ServoUrl {
         let element = self.upcast::<Element>();
-        element
+        // Step 2. If element has a src attribute specified, and its value is not the empty string, then:
+        let url = element
             .get_attribute(&ns!(), &local_name!("src"))
             .and_then(|src| {
                 let url = src.value();
                 if url.is_empty() {
                     None
                 } else {
+                    // Step 2.1. Let maybeURL be the result of encoding-parsing a URL given
+                    // that attribute's value, relative to element's node document.
+                    // Step 2.2. If maybeURL is not failure, then set url to maybeURL.
                     self.owner_document().base_url().join(&url).ok()
                 }
             })
-            .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
+            // Step 1. Let url be the URL record about:blank.
+            .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
+        // Step 3. If the inclusive ancestor navigables of element's node navigable contains a navigable
+        // whose active document's URL equals url with exclude fragments set to true, then return null.
+        // TODO
+        // Step 4. If url matches about:blank and initialInsertion is true, then perform the URL
+        // and history update steps given element's content navigable's active document and url.
+        if url.matches_about_blank() && *mode == ProcessingMode::FirstTime {
+            // TODO
+        }
+        // Step 5. Return url.
+        url
     }
 
     pub(crate) fn navigate_or_reload_child_browsing_context(
@@ -260,37 +277,62 @@ impl HTMLIFrameElement {
         self.pending_pipeline_id.get() == self.about_blank_pipeline_id.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#navigate-an-iframe-or-frame>
+    fn navigate_an_iframe_or_frame(
+        &self,
+        load_data: LoadData,
+        _mode: ProcessingMode,
+        can_gc: CanGc,
+    ) {
+        // Step 2. If element's content navigable's active document is not completely loaded,
+        // then set historyHandling to "replace".
+        let history_handling = if !self.owner_document().completely_loaded() {
+            NavigationHistoryBehavior::Replace
+        } else {
+            // Step 1. Let historyHandling be "auto".
+            NavigationHistoryBehavior::Auto
+        };
+        // Step 3. If element is an iframe, then set element's pending resource-timing start time
+        // to the current high resolution time given element's node document's relevant global object.
+        // TODO
+        // Step 4. Navigate element's content navigable to url using element's node document,
+        // with historyHandling set to historyHandling, referrerPolicy set to referrerPolicy,
+        // documentResource set to srcdocString, and initialInsertion set to initialInsertion.
+        self.owner_window()
+            .load_url(history_handling, false, load_data, can_gc);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
-        // > 1. If `element`'s `srcdoc` attribute is specified, then:
+        // Step 1. If element's srcdoc attribute is specified, then:
         if self
             .upcast::<Element>()
             .has_attribute(&local_name!("srcdoc"))
         {
+            // Step 1.1. Set element's current navigation was lazy loaded boolean to false.
+            // Step 1.2. If the will lazy load element steps given element return true, then:
+            // TODO
+            // Step 1.2.1. Set element's lazy load resumption steps to the rest of this algorithm starting with the step labeled navigate to the srcdoc resource.
+            // TODO
+            // Step 1.2.2. Set element's current navigation was lazy loaded boolean to true.
+            // TODO
+            // Step 1.2.3. Start intersection-observing a lazy loading element for element.
+            // TODO
+            // Step 1.2.4. Return.
+            // TODO
+            // Step 1.3. Navigate to the srcdoc resource: Navigate an iframe or frame given element,
+            // about:srcdoc, the empty string, and the value of element's srcdoc attribute.
             let url = ServoUrl::parse("about:srcdoc").unwrap();
-            let document = self.owner_document();
             let window = self.owner_window();
-            let pipeline_id = Some(window.pipeline_id());
-            let mut load_data = LoadData::new(
-                LoadOrigin::Script(document.origin().immutable().clone()),
-                url,
-                pipeline_id,
-                window.as_global_scope().get_referrer(),
-                document.get_referrer_policy(),
-                Some(window.as_global_scope().is_secure_context()),
-                Some(document.insecure_requests_policy()),
-                document.has_trustworthy_ancestor_or_current_origin(),
-                self.sandboxing_flag_set(),
-            );
+            let mut load_data = window.load_data_for_document(url, window.pipeline_id());
             load_data.destination = Destination::IFrame;
+            load_data.referrer_policy = ReferrerPolicy::EmptyString;
             load_data.policy_container = Some(window.as_global_scope().policy_container());
-            let element = self.upcast::<Element>();
-            load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
-            self.navigate_or_reload_child_browsing_context(
-                load_data,
-                NavigationHistoryBehavior::Push,
-                can_gc,
+            load_data.srcdoc = String::from(
+                self.upcast::<Element>()
+                    .get_string_attribute(&local_name!("srcdoc")),
             );
+            self.navigate_an_iframe_or_frame(load_data, mode, can_gc);
             return;
         }
 
@@ -310,17 +352,20 @@ impl HTMLIFrameElement {
             }
         }
 
-        if mode == ProcessingMode::FirstTime &&
-            !self.upcast::<Element>().has_attribute(&local_name!("src"))
-        {
+        // Step 2.1. Let url be the result of running the shared attribute processing steps
+        // for iframe and frame elements given element and initialInsertion.
+        let url = self.shared_attribute_processing_steps_for_iframe_and_frame_elements(&mode);
+
+        // Step 2.2. If url is null, then return.
+        // N/A must be a spec bug
+
+        // Step 2.3. If url matches about:blank and initialInsertion is true, then:
+        if url.matches_about_blank() && mode == ProcessingMode::FirstTime {
+            // Step 2.3.1. Run the iframe load event steps given element.
+            // TODO
+            // Step 2.3.2. Return.
             return;
         }
-
-        // > 2. Otherwise, if `element` has a `src` attribute specified, or
-        // >    `initialInsertion` is false, then run the shared attribute
-        // >    processing steps for `iframe` and `frame` elements given
-        // >    `element`.
-        let url = self.get_url();
 
         // Step 2.4: Let referrerPolicy be the current state of element's referrerpolicy content
         // attribute.
