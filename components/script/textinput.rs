@@ -790,6 +790,11 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub(crate) fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
         let insertion = event.data().str();
+        if insertion.is_empty() {
+            self.clear_selection();
+            return KeyReaction::RedrawSelection;
+        }
+
         self.insert(insertion.to_string());
         KeyReaction::DispatchInput(
             Some(insertion.to_string()),
@@ -800,15 +805,20 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub(crate) fn handle_compositionupdate(&mut self, event: &CompositionEvent) -> KeyReaction {
         let insertion = event.data().str();
+        if insertion.is_empty() {
+            return KeyReaction::Nothing;
+        }
+
         let start = self.selection_start_offset();
-        self.insert(insertion.to_string());
+        let insertion = insertion.to_string();
+        self.insert(insertion.clone());
         self.set_selection_range_utf8(
             start,
             start + event.data().len_utf8(),
             SelectionDirection::Forward,
         );
         KeyReaction::DispatchInput(
-            Some(insertion.to_string()),
+            Some(insertion),
             IsComposing::Composing,
             InputType::InsertCompositionText,
         )
