@@ -630,10 +630,6 @@ pub(crate) struct HTMLInputElement {
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
-    // not specified explicitly, but implied by the fact that sanitization can't
-    // happen until after all of step/min/max/value content attributes have
-    // been added
-    sanitization_flag: Cell<bool>,
 
     filelist: MutNullableDom<FileList>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -695,7 +691,6 @@ impl HTMLInputElement {
                 SelectionDirection::None,
             )),
             value_dirty: Cell::new(false),
-            sanitization_flag: Cell::new(true),
             filelist: MutNullableDom::new(None),
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
@@ -809,19 +804,6 @@ impl HTMLInputElement {
     pub(crate) fn is_submit_button(&self) -> bool {
         let input_type = self.input_type.get();
         input_type == InputType::Submit || input_type == InputType::Image
-    }
-
-    pub(crate) fn disable_sanitization(&self) {
-        self.sanitization_flag.set(false);
-    }
-
-    pub(crate) fn enable_sanitization(&self) {
-        self.sanitization_flag.set(true);
-        let mut textinput = self.textinput.borrow_mut();
-        let mut value = textinput.get_content();
-        self.sanitize_value(&mut value);
-        textinput.set_content(value);
-        self.upcast::<Node>().dirty(NodeDamage::Other);
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
@@ -2327,20 +2309,37 @@ impl HTMLInputElement {
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
+    /// <https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control>:
+    ///
+    /// > The reset algorithm for input elements is to set its user validity, dirty value
+    /// > flag, and dirty checkedness flag back to false, set the value of the element to
+    /// > the value of the value content attribute, if there is one, or the empty string
+    /// > otherwise, set the checkedness of the element to true if the element has a checked
+    /// > content attribute and false if it does not, empty the list of selected files, and
+    /// > then invoke the value sanitization algorithm, if the type attribute's current
+    /// > state defines one.
     pub(crate) fn reset(&self, can_gc: CanGc) {
-        match self.input_type() {
-            InputType::Radio | InputType::Checkbox => {
-                self.update_checked_state(self.DefaultChecked(), false, can_gc);
-                self.checked_changed.set(false);
-                self.value_changed(can_gc);
-            },
-            InputType::Image => (),
-            _ => (),
-        }
-        self.textinput.borrow_mut().set_content(self.DefaultValue());
         self.value_dirty.set(false);
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+
+        // We set the value and sanitize all in one go.
+        let mut value = self.DefaultValue();
+        self.sanitize_value(&mut value);
+        self.textinput.borrow_mut().set_content(value);
+
+        let input_type = self.input_type.get();
+        if matches!(input_type, InputType::Radio | InputType::Checkbox) {
+            self.update_checked_state(self.DefaultChecked(), false, can_gc);
+            self.checked_changed.set(false);
+        }
+
+        if input_type == InputType::File {
+            self.filelist
+                .set(Some(&FileList::new(&self.owner_window(), vec![], can_gc)));
+        } else {
+            self.filelist.set(None);
+        }
+
+        self.value_changed(can_gc);
     }
 
     /// <https://w3c.github.io/webdriver/#ref-for-dfn-clear-algorithm-3>
@@ -2353,18 +2352,23 @@ impl HTMLInputElement {
         self.textinput.borrow_mut().set_content(DOMString::from(""));
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checked_state(self.DefaultChecked(), false, can_gc);
-        self.value_changed(can_gc);
         // Step 4. Empty selected files
         if self.filelist.get().is_some() {
             let window = self.owner_window();
             let filelist = FileList::new(&window, vec![], can_gc);
             self.filelist.set(Some(&filelist));
         }
-        // Step 5. invoke the value sanitization algorithm iff
-        // the type attribute's current state defines one.
-        // This is covered in `fn sanitize_value` called below.
-        self.enable_sanitization();
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+
+        // Step 5. Invoke the value sanitization algorithm iff the type attribute's
+        // current state defines one.
+        {
+            let mut textinput = self.textinput.borrow_mut();
+            let mut value = textinput.get_content();
+            self.sanitize_value(&mut value);
+            textinput.set_content(value);
+        }
+
+        self.value_changed(can_gc);
     }
 
     fn update_placeholder_shown_state(&self) {
@@ -2426,13 +2430,6 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
     fn sanitize_value(&self, value: &mut DOMString) {
-        // if sanitization_flag is false, we are setting content attributes
-        // on an element we haven't really finished creating; we will
-        // enable the flag and really sanitize before this element becomes
-        // observable.
-        if !self.sanitization_flag.get() {
-            return;
-        }
         match self.input_type() {
             InputType::Text | InputType::Search | InputType::Tel | InputType::Password => {
                 value.strip_newlines();
@@ -3068,17 +3065,16 @@ impl VirtualMethods for HTMLInputElement {
                 self.get_or_create_shadow_tree(can_gc)
                     .update_placeholder_contents(self, can_gc);
             },
-            // FIXME(stevennovaryo): This is only reachable by Default and DefaultOn value mode. While others
-            //                       are being handled in [Self::SetValue]. Should we merge this two together?
             local_name!("value") if !self.value_dirty.get() => {
+                // This is only run when the `value` or `defaultValue` attribute is set. It
+                // has a different behavior than `SetValue` which is triggered by setting the
+                // value property in script.
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
 
                 self.sanitize_value(&mut value);
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
-
-                self.upcast::<Node>().dirty(NodeDamage::Other);
             },
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
