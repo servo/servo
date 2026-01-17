@@ -45,7 +45,7 @@ def test_pointer_down_closes_browsing_context(
             .perform()
 
 
-def test_touch_pointer_cancel(session, test_actions_pointer_page, touch_chain):
+def test_touch_pointer_cancel_and_up(session, test_actions_pointer_page, touch_chain):
     pointerArea = session.find.css("#pointerArea", all=False)
 
     session.execute_script("""
@@ -75,6 +75,38 @@ def test_touch_pointer_cancel(session, test_actions_pointer_page, touch_chain):
     assert results['touchstart']
     assert results["touchcancel"]
     assert results["touchend"]
+    assert not results["click"]
+
+
+def test_touch_pointer_cancel_without_up(session, test_actions_pointer_page, touch_chain):
+    pointerArea = session.find.css("#pointerArea", all=False)
+
+    session.execute_script("""
+        window.events = {
+            touchstart: false,
+            touchcancel: false,
+            touchend: false,
+            click: false
+        };
+        const area = document.getElementById("pointerArea");
+        ['touchstart', 'touchcancel', 'touchend', 'click'].forEach(type => {
+            area.addEventListener(type, () => { window.events[type] = true; });
+        });
+    """)
+
+    touch_chain.pointer_move(0, 0, origin=pointerArea) \
+        .pointer_down() \
+        .pointer_cancel() \
+        .perform()
+
+    # Use delay to allow potential
+    # simulated click to spin (which should not if pointerCancel works)
+    time.sleep(1)
+    results = session.execute_script("return window.events;")
+
+    assert results['touchstart']
+    assert results["touchcancel"]
+    assert not results["touchend"]
     assert not results["click"]
 
 
