@@ -3138,7 +3138,7 @@ impl Window {
             Some(self.IsSecureContext())
         };
         LoadData::new(
-            LoadOrigin::Script(self.origin().immutable().clone()),
+            LoadOrigin::Script(self.origin().snapshot()),
             url,
             Some(pipeline_id),
             Referrer::ReferrerUrl(source_document.url()),

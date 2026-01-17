@@ -22,6 +22,29 @@ pub enum ImmutableOrigin {
     Tuple(String, Host, u16),
 }
 
+pub trait DomainComparable {
+    fn has_domain(&self) -> bool;
+    fn immutable(&self) -> &ImmutableOrigin;
+}
+
+impl DomainComparable for OriginSnapshot {
+    fn has_domain(&self) -> bool {
+        self.1.is_some()
+    }
+    fn immutable(&self) -> &ImmutableOrigin {
+        &self.0
+    }
+}
+
+impl DomainComparable for MutableOrigin {
+    fn has_domain(&self) -> bool {
+        (self.0).1.borrow().is_some()
+    }
+    fn immutable(&self) -> &ImmutableOrigin {
+        &(self.0).0
+    }
+}
+
 impl ImmutableOrigin {
     pub fn new(origin: Origin) -> ImmutableOrigin {
         match origin {
@@ -30,11 +53,11 @@ impl ImmutableOrigin {
         }
     }
 
-    pub fn same_origin(&self, other: &MutableOrigin) -> bool {
+    pub fn same_origin(&self, other: &impl DomainComparable) -> bool {
         self == other.immutable()
     }
 
-    pub fn same_origin_domain(&self, other: &MutableOrigin) -> bool {
+    pub fn same_origin_domain(&self, other: &impl DomainComparable) -> bool {
         !other.has_domain() && self == other.immutable()
     }
 
@@ -139,6 +162,36 @@ pub enum OpaqueOrigin {
 }
 malloc_size_of_is_0!(OpaqueOrigin);
 
+/// A snapshot of a MutableOrigin at a moment in time.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct OriginSnapshot(ImmutableOrigin, Option<Host>);
+
+impl OriginSnapshot {
+    pub fn immutable(&self) -> &ImmutableOrigin {
+        &self.0
+    }
+
+    pub fn has_domain(&self) -> bool {
+        self.1.is_some()
+    }
+
+    pub fn same_origin(&self, other: &impl DomainComparable) -> bool {
+        self.immutable() == other.immutable()
+    }
+
+    pub fn same_origin_domain(&self, other: &OriginSnapshot) -> bool {
+        if let Some(ref self_domain) = self.1 {
+            if let Some(ref other_domain) = other.1 {
+                self_domain == other_domain && self.0.scheme() == other.0.scheme()
+            } else {
+                false
+            }
+        } else {
+            self.0.same_origin_domain(other)
+        }
+    }
+}
+
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
@@ -146,6 +199,10 @@ pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
 malloc_size_of_is_0!(MutableOrigin);
 
 impl MutableOrigin {
+    pub fn snapshot(&self) -> OriginSnapshot {
+        OriginSnapshot(self.0.0.clone(), self.0.1.borrow().clone())
+    }
+
     pub fn new(origin: ImmutableOrigin) -> MutableOrigin {
         MutableOrigin(Rc::new((origin, RefCell::new(None))))
     }

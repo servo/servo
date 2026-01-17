@@ -128,7 +128,7 @@ impl Location {
             NavigationType::ReloadByConstellation => DomRoot::from_ref(&*self.window),
         };
         let (load_origin, creator_pipeline_id) = (
-            navigation_origin_window.origin().immutable().clone(),
+            navigation_origin_window.origin().snapshot(),
             Some(navigation_origin_window.pipeline_id()),
         );
 

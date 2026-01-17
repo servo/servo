@@ -35,7 +35,7 @@ use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
@@ -77,7 +77,7 @@ pub enum LoadOrigin {
     /// A load originating in webdriver.
     WebDriver,
     /// A load originating in script.
-    Script(ImmutableOrigin),
+    Script(OriginSnapshot),
 }
 
 /// can be passed to `LoadUrl` to load a page with GET/POST

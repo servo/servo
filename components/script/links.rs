@@ -436,7 +436,7 @@ pub(crate) fn follow_hyperlink(
         let pipeline_id = target_window.as_global_scope().pipeline_id();
         let secure = target_window.as_global_scope().is_secure_context();
         let load_data = LoadData::new(
-            LoadOrigin::Script(document.origin().immutable().clone()),
+            LoadOrigin::Script(document.origin().snapshot()),
             url,
             Some(pipeline_id),
             referrer,

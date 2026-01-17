@@ -872,7 +872,7 @@ impl HTMLFormElement {
         // Step 21
         let target_window = target_document.window();
         let mut load_data = LoadData::new(
-            LoadOrigin::Script(doc.origin().immutable().clone()),
+            LoadOrigin::Script(doc.origin().snapshot()),
             action_components,
             None,
             target_window.as_global_scope().get_referrer(),

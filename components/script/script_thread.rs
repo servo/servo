@@ -92,7 +92,7 @@ use script_traits::{
     UpdatePipelineIdReason,
 };
 use servo_config::{opts, prefs};
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use style::thread_state::{self, ThreadState};
@@ -555,8 +555,8 @@ impl ScriptThread {
     /// for now only used to prevent cross-origin JS url evaluation.
     ///
     /// <https://github.com/whatwg/html/issues/2591>
-    pub(crate) fn check_load_origin(source: &LoadOrigin, target: &ImmutableOrigin) -> bool {
-        match (source, target) {
+    fn check_load_origin(source: &LoadOrigin, target: &OriginSnapshot) -> bool {
+        match (source, target.immutable()) {
             (LoadOrigin::Constellation, _) | (LoadOrigin::WebDriver, _) => {
                 // Always allow loads initiated by the constellation or webdriver.
                 true
@@ -567,7 +567,7 @@ impl ScriptThread {
                 // TODO: https://github.com/servo/servo/issues/22879
                 true
             },
-            (LoadOrigin::Script(source_origin), _) => source_origin == target,
+            (LoadOrigin::Script(source_origin), _) => source_origin.same_origin_domain(target),
         }
     }
 
@@ -631,7 +631,8 @@ impl ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>
     pub(crate) fn can_navigate_to_javascript_url(
-        global: &GlobalScope,
+        initiator_global: &GlobalScope,
+        target_global: &GlobalScope,
         load_data: &mut LoadData,
         container: Option<&Element>,
         can_gc: CanGc,
@@ -639,15 +640,15 @@ impl ScriptThread {
         // Step 3. If initiatorOrigin is not same origin-domain with targetNavigable's active document's origin, then return.
         //
         // Important re security. See https://github.com/servo/servo/issues/23373
-        if !Self::check_load_origin(&load_data.load_origin, &global.get_url().origin()) {
+        if !Self::check_load_origin(&load_data.load_origin, &target_global.origin().snapshot()) {
             return false;
         }
 
         // Step 5: If the result of should navigation request of type be blocked by
         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
-        if global
+        if initiator_global
             .get_csp_list()
-            .should_navigation_request_be_blocked(global, load_data, container, can_gc)
+            .should_navigation_request_be_blocked(initiator_global, load_data, container, can_gc)
         {
             return false;
         }
@@ -656,19 +657,25 @@ impl ScriptThread {
     }
 
     pub(crate) fn navigate_to_javascript_url(
-        global: &GlobalScope,
-        containing_global: &GlobalScope,
+        initiator_global: &GlobalScope,
+        target_global: &GlobalScope,
         load_data: &mut LoadData,
         container: Option<&Element>,
         can_gc: CanGc,
     ) -> bool {
-        if !Self::can_navigate_to_javascript_url(global, load_data, container, can_gc) {
+        if !Self::can_navigate_to_javascript_url(
+            initiator_global,
+            target_global,
+            load_data,
+            container,
+            can_gc,
+        ) {
             return false;
         }
 
         // Step 6. Let newDocument be the result of evaluating a javascript: URL given targetNavigable,
         // url, initiatorOrigin, and userInvolvement.
-        Self::eval_js_url(containing_global, load_data, can_gc);
+        Self::eval_js_url(target_global, load_data, can_gc);
         true
     }
 
