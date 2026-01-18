@@ -8,7 +8,7 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
 use std::mem;
-use std::ops::Index;
+use std::ops::{Deref, Index};
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -1510,7 +1510,7 @@ impl GlobalScope {
             if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut(), can_gc)
             {
                 // Note: if this port is used to transfer a stream, we handle the events in Rust.
-                if let Some(transform) = cross_realm_transform.as_ref() {
+                if let Some(transform) = cross_realm_transform.deref().as_ref() {
                     match transform {
                         // Add a handler for port’s message event with the following steps:
                         // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
@@ -1545,7 +1545,7 @@ impl GlobalScope {
                         can_gc,
                     );
                 }
-            } else if let Some(transform) = cross_realm_transform.as_ref() {
+            } else if let Some(transform) = cross_realm_transform.deref().as_ref() {
                 match transform {
                     // Add a handler for port’s messageerror event with the following steps:
                     // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
