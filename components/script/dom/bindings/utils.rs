@@ -14,7 +14,6 @@ use js::jsapi::{
 };
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::{DomHelpers, Interface};
 use script_bindings::settings_stack::StackEntry;
 
@@ -60,7 +59,12 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
     mut rval: MutableHandleValue,
     can_gc: CanGc,
 ) {
-    convertibles.safe_to_jsval(cx, rval.reborrow(), can_gc);
+    script_bindings::conversions::SafeToJSValConvertible::safe_to_jsval(
+        convertibles,
+        cx,
+        rval.reborrow(),
+        can_gc,
+    );
 
     rooted!(in(*cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
