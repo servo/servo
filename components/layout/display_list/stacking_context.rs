@@ -1378,10 +1378,10 @@ impl BoxFragment {
             );
         }
 
-        if matches!(&fragment, Fragment::Box(box_fragment) if matches!(
-            box_fragment.borrow().specific_layout_info(),
+        if matches!(
+            self.specific_layout_info(),
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
-        )) {
+        ) {
             stacking_context
                 .contents
                 .push(StackingContextContent::Fragment {
