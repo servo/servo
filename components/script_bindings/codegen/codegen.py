@@ -8651,7 +8651,7 @@ class CallbackMember(CGNativeMember):
         argval = arg.identifier.name
 
         if arg.variadic:
-            argval = f"{argval}[idx].get()"
+            argval = f"{argval}.get()"
             jsvalIndex = f"{i} + idx"
         else:
             jsvalIndex = f"{i}"
@@ -8662,8 +8662,9 @@ class CallbackMember(CGNativeMember):
             successCode="",
             pre="")
         if arg.variadic:
+            argname = arg.identifier.name
             conversion = (
-                f"for idx in 0..{arg.identifier.name}.len() {{\n"
+                f"for (idx, {argname}) in {argname}.iter().enumerate() {{\n"
                 f"{CGIndenter(CGGeneric(conversion)).define()}\n}}"
             )
         elif arg.optional and not arg.defaultValue:
