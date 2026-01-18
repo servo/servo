@@ -232,7 +232,7 @@ impl VirtualMethods for HTMLLinkElement {
         let local_name = attr.local_name();
         let is_removal = mutation.is_removal();
         if *local_name == local_name!("disabled") {
-            self.handle_disabled_attribute_change(!is_removal);
+            self.handle_disabled_attribute_change(is_removal);
             return;
         }
 
@@ -496,12 +496,39 @@ impl HTMLLinkElement {
 
     /// <https://html.spec.whatwg.org/multipage/#linked-resource-fetch-setup-steps>
     fn linked_resource_fetch_setup(&self, request: &mut RequestBuilder) -> bool {
+        // https://html.spec.whatwg.org/multipage/#rel-icon:linked-resource-fetch-setup-steps
         if self.relations.get().contains(LinkRelations::ICON) {
             // Step 1. Set request's destination to "image".
             request.destination = Destination::Image;
 
             // Step 2. Return true.
-            return true;
+            //
+            // Fall-through
+        }
+
+        // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:linked-resource-fetch-setup-steps
+        if self.relations.get().contains(LinkRelations::STYLESHEET) {
+            // Step 1. If el's disabled attribute is set, then return false.
+            if self
+                .upcast::<Element>()
+                .has_attribute(&local_name!("disabled"))
+            {
+                return false;
+            }
+            // Step 2. If el contributes a script-blocking style sheet, append el to its node document's script-blocking style sheet set.
+            //
+            // Implemented in `ElementStylesheetLoader::load_with_element`.
+
+            // Step 3. If el's media attribute's value matches the environment and el is potentially render-blocking, then block rendering on el.
+            //
+            // Implemented in `ElementStylesheetLoader::load_with_element`.
+
+            // Step 4. If el is currently render-blocking, then set request's render-blocking to true.
+            // TODO
+
+            // Step 5. Return true.
+            //
+            // Fall-through
         }
 
         true
@@ -607,12 +634,13 @@ impl HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-link-disabled>
-    fn handle_disabled_attribute_change(&self, disabled: bool) {
-        if !disabled {
+    fn handle_disabled_attribute_change(&self, is_removal: bool) {
+        // > Whenever the disabled attribute is removed, set the link element's explicitly enabled attribute to true.
+        if is_removal {
             self.is_explicitly_enabled.set(true);
         }
         if let Some(stylesheet) = self.get_stylesheet() {
-            if stylesheet.set_disabled(disabled) {
+            if stylesheet.set_disabled(!is_removal) {
                 self.stylesheet_list_owner().invalidate_stylesheets();
             }
         }
