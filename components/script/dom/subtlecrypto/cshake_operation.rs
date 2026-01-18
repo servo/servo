@@ -49,7 +49,11 @@ pub(crate) fn digest(
             hasher.update(message);
             hasher.finalize_boxed(length / 8).to_vec()
         },
-        _ => return Err(Error::NotSupported(None)),
+        algorithm_name => {
+            return Err(Error::NotSupported(Some(format!(
+                "{algorithm_name} is not supported"
+            ))));
+        },
     };
 
     // Step 6. Return result.
