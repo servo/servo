@@ -13,6 +13,9 @@ features:
 - name: fixed-positioning
   files:
   - 'position-fixed-*'
+- name: relative-positioning
+  files:
+  - 'position-relative-*'
 - name: z-index
   files:
   - '*z-index*'

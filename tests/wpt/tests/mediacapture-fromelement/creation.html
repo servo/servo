@@ -20,11 +20,15 @@ var makeAsyncTest = function(filename, numTracks) {
     var stream = video.captureStream();
     assert_not_equals(stream, null, "error generating stream");
 
+    const expectedTrackCount = numTracks.vid + numTracks.aud;
+    let addedTrackCount = 0;
     stream.onaddtrack = this.step_func_done(function() {
-      var tracks = stream.getTracks();
-      var idx;
+      if (++addedTrackCount < expectedTrackCount) {
+        return;
+      }
 
-      for (idx = 0; idx < tracks.length; idx += 1) {
+      var tracks = stream.getTracks();
+      for (let idx = 0; idx < tracks.length; idx += 1) {
         assert_equals(tracks[idx].readyState, 'live')
       }
 

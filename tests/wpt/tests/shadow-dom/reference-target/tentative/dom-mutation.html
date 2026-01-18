@@ -33,6 +33,7 @@ promise_test(async t => {
   const test_container = await setup_test();
   const host1 = test_container.querySelector("#host1");
   const label1 = host1.shadowRoot.querySelector("#label1");
+
   label1.id = "new_id";
   assert_equals(await test_driver.get_computed_label(input1), "");
 }, "Changing the ID of the referenced element results in an empty computed label");
@@ -109,7 +110,93 @@ promise_test(async t => {
   real_label1.id = "new_id";
   assert_equals(await test_driver.get_computed_label(input1), "");
 }, "Changing the ID of the nested referenced element results in an empty computed label");
-
 </script>
+
+<label id="label2" for="x-input2">Input 2</label>
+<x-input2 id="x-input2">
+  <template shadowrootmode="open" shadowrootreferencetarget="input2">
+    <input id="input2">
+  </template>
+</x-input2>
+
+<script>
+promise_test(async t => {
+    const x_input = document.getElementById('x-input2');
+    const input = x_input.shadowRoot.getElementById('input2');
+    const label = document.getElementById('label2');
+
+    label.htmlFor = '';
+    assert_array_equals(Array.from(input['labels']), []);
+
+    label.htmlFor = x_input.id;
+    assert_array_equals(Array.from(input['labels']), [label]);
+}, ".labels property is updated when for attribute changes on label outside of shadow root");
+</script>
+
+<label id="label3" for="x-input3">Input 3</label>
+<x-input3 id="x-input3">
+  <template shadowrootmode="open" shadowrootreferencetarget="input3">
+    <input id="input3">
+  </template>
+</x-input3>
+
+<script>
+promise_test(async t => {
+    const x_input = document.getElementById('x-input3');
+    const input = x_input.shadowRoot.getElementById('input3');
+    const label = document.getElementById('label3');
+
+    x_input.removeAttribute('id');
+    assert_array_equals(Array.from(input['labels']), []);
+
+    x_input.id = label.htmlFor;
+    assert_array_equals(Array.from(input['labels']), [label]);
+}, ".labels property is updated when ID changes on input");
+</script>
+
+<label id="label4" for="x-input4">Input 4</label>
+<x-input4 id="x-input4">
+  <template shadowrootmode="open" shadowrootreferencetarget="input4">
+    <input id="input4">
+  </template>
+</x-input4>
+
+<script>
+promise_test(async t => {
+    const x_input = document.getElementById('x-input4');
+    const input = x_input.shadowRoot.getElementById('input4');
+    const label = document.getElementById('label4');
+
+    x_input.shadowRoot.referenceTarget = null;
+    assert_array_equals(Array.from(input['labels']), []);
+
+    x_input.shadowRoot.referenceTarget = input.id;
+    assert_array_equals(Array.from(input['labels']), [label]);
+}, ".labels property is updated when reference target changes on shadow root");
+</script>
+
+<label id="label5-A">A
+  <x-input5 id="x-input5">
+    <template shadowrootmode="open" shadowrootreferencetarget="input5">
+      <input id="input5">
+    </template>
+  </x-input5>
+</label>
+<label id="label5-B"></label>
+
+<script>
+promise_test(async t => {
+    const x_input = document.getElementById('x-input5');
+    const input = x_input.shadowRoot.getElementById('input5');
+    const A = document.getElementById('label5-A');
+
+    assert_array_equals(Array.from(input['labels']), [A]);
+
+    const B = document.getElementById('label5-B');
+    B.appendChild(x_input);
+    assert_array_equals(Array.from(input['labels']), [B]);
+}, ".labels property is updated when wrapped label changes");
+</script>
+
 </body>
 </html>

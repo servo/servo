@@ -4,6 +4,9 @@ features:
   - has-*
   - "*-in-has.*"
   - "*-in-has-*"
+- name: link-selectors
+  files:
+  - "any-link-*"
 - name: media-pseudos
   files:
   - media-loading-pseudo-classes-in-has.html
@@ -38,6 +41,9 @@ features:
 - name: state
   files:
   - state-in-has.html
+- name: placeholder-shown
+  files:
+  - placeholder-shown.html
 - name: shadow-parts
   files:
   - part-dir.html

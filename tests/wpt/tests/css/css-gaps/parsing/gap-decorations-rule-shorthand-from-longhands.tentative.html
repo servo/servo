@@ -27,38 +27,38 @@ const testCases = [
   // The following test cases return an empty string because the longhands do not
   // line up.
   {
-    width: 'repeat(auto, thin medium)',
+    width: 'repeat(auto, thin, medium)',
     style: 'solid',
-    color: 'repeat(8, red blue)',
+    color: 'repeat(8, red, blue)',
     expected: ''
   },
   {
-    width: 'repeat(6, 15px thick)',
+    width: 'repeat(6, 15px, thick)',
     style: 'repeat(auto, solid)',
     color: 'repeat(auto, red)',
     expected: ''
   },
   {
-    width: '15px 25px 35px',
-    style: 'solid dotted',
+    width: '15px, 25px, 35px',
+    style: 'solid, dotted',
     color: 'green',
     expected: ''
   },
   {
     width: 'repeat(auto, 5px)',
-    style: 'solid double',
+    style: 'solid, double',
     color: 'repeat(7, red)',
     expected: ''
   },
   {
-    width: 'repeat(auto, 5px 8px 10px)',
-    style: 'repeat(auto, solid double)',
-    color: 'repeat(auto, red green blue)',
+    width: 'repeat(auto, 5px, 8px, 10px)',
+    style: 'repeat(auto, solid, double)',
+    color: 'repeat(auto, red, green, blue)',
     expected: ''
   },
   {
-    width: 'repeat(2, 1px 3px 5px)',
-    style: 'repeat(2, solid double)',
+    width: 'repeat(2, 1px, 3px, 5px)',
+    style: 'repeat(2, solid, double)',
     color: 'repeat(2, red)',
     expected: ''
   },

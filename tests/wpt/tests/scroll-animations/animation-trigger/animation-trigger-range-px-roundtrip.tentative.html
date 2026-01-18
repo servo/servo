@@ -15,13 +15,13 @@
           timeline: new ViewTimeline({
             subject: document.getElementById('subject'), axis: "y"
           }),
-          rangeStart: "100px",
-          rangeEnd: "300px"
+          entryRangeStart: "100px",
+          entryRangeEnd: "300px"
         }]);
 
-        assert_equals(trigger.ranges[0].rangeStart, "100px",
+        assert_equals(trigger.ranges[0].entryRangeStart, "100px",
           "correct range start returned");
-        assert_equals(trigger.ranges[0].rangeEnd, "300px", "correct range end returned");
+        assert_equals(trigger.ranges[0].entryRangeEnd, "300px", "correct range end returned");
       },  "Ranges of triggers created by script are read in CSS pixels");
     </script>
   </body>

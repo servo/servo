@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>cssom-view - scroll-behavior: smooth after hiding iframe</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#smooth-scrolling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  #scroller {
+    width: 300px;
+    height: 300px;
+    overflow-y: scroll;
+  }
+</style>
+<body>
+  <div id="scroller">
+    <div id="firstTab">
+      <iframe srcdoc='<html><style>body { height: 200vh; }</style><body></body></html>'></iframe>
+    </div>
+    <div id="secondTab" style="display: none">
+      <div style="width: 200px; height: 5000px;"></div>
+      <div style="width: 100px; height: 100px; background: green;"></div>
+    </div>
+  </div>
+
+  <script>
+    promise_test(async (t) => {
+      await waitForCompositorReady();
+
+      // Wait for initial layout/paint
+      await waitForCompositorCommit();
+
+      const firstTab = document.getElementById('firstTab');
+      const secondTab = document.getElementById('secondTab');
+      const scroller = document.getElementById('scroller');
+
+      // Hide first tab
+      firstTab.style.display = 'none';
+      await waitForCompositorCommit();
+
+      // Show second tab and scroll.
+      secondTab.style.display = 'block';
+
+      const scrollEndPromise = new Promise(resolve => {
+        scroller.addEventListener('scrollend', resolve, {once: true});
+      });
+
+      // Smooth scroll to the end.
+      scroller.scroll({top: 999999, left: 0, behavior: "smooth" });
+
+      await scrollEndPromise;
+
+      const scrolledToBottom = Math.abs(scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop) < 1;
+      assert_true(scrolledToBottom, "Scroller should be at the bottom after scrollend fires. Current scrollTop: " + scroller.scrollTop);
+    }, "Smooth scroll finishes correctly after hiding a tab with an iframe");
+  </script>
+</body>

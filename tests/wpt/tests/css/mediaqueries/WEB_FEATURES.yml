@@ -32,3 +32,38 @@ features:
 - name: color-gamut
   files:
   - mq-gamut-*
+- name: prefers-reduced-data
+  files:
+  - prefers-reduced-data.html
+  - preferences-reducedData.tentative.https.html
+- name: prefers-reduced-motion
+  files:
+  - prefers-reduced-motion.html
+  - preferences-reducedMotion.tentative.https.html
+- name: inverted-colors
+  files:
+  - inverted-colors.html
+- name: media-query-range-syntax
+  files:
+  - mq-range-*
+  - mq-negative-range-*
+- name: device-queries
+  files:
+  - device-aspect-ratio-*
+- name: media-queries
+  files:
+  - media-queries-*.xht
+  - min-width-*.xht
+  - min-width-*.html
+  - aspect-ratio-*.html
+  - mq-calc-*.html
+  - relative-units-*.html
+  - mq-deprecated-*.html
+  - mq-invalid-media-type-*.html
+  - match-media-parsing.html
+  - negation-*.html
+  - mq-case-insensitive-*.html
+  - media-query-matches-in-iframe.html
+  - mq-dynamic-empty-children.html
+  - duplicate-media-stylesheet-crash.html
+  - viewport-script-dynamic.html

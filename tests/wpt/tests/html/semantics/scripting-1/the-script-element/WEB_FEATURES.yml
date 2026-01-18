@@ -2,3 +2,6 @@ features:
 - name: charset
   files:
   - script-charset-03.html
+- name: data-urls
+  files:
+  - data-url.html

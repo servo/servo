@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Absolutely positioned objects with `text-indent: hanging'</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-indent-property">
+<link rel="match" href="reference/text-indent-abspos-hanging-001-ref.html">
+<style>
+.test {
+  line-height: 1;
+  width: 8ch;
+}
+.hanging {
+  text-indent: 2ch hanging;
+}
+.marker {
+  display: inline;
+  position: absolute;
+  width: 4ch;
+  height: 1em;
+  background: lime;
+}
+</style>
+<div class="test">
+  <div class="hanging">
+    <span class="marker"></span>
+    0000
+    0000
+  </div>
+  <div class="hanging">
+    <span class="marker"></span>
+  </div>
+</div>

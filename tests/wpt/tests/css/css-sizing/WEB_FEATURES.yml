@@ -20,8 +20,13 @@ features:
   files:
   - 'div-fit-content-*'
   - 'fit-content-*'
+  - '!fit-content-length-percentage-*'
   - 'margin-collapse-with-indefinite-block-size-004.html'
   - 'percentage-min-width.html'
+- name: fit-content-function
+  files:
+  - 'border-box-and-max-content-003.html'
+  - 'fit-content-length-percentage-*'
 - name: width-height
   files:
   - percentage-height-replaced-content-in-auto-cb.html

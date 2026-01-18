@@ -14,11 +14,11 @@
     <script>
       test(() => {
         target.style.rowRuleStyle = 'solid';
-        target.style.rowRuleColor = 'black black black';
-        var animation = target.animate([{}, {rowRuleColor: 'red blue rgb(255, 0, 0)'}], 1000);
+        target.style.rowRuleColor = 'black, black, black';
+        var animation = target.animate([{}, {rowRuleColor: 'red, blue, rgb(255, 0, 0)'}], 1000);
         animation.pause();
         animation.currentTime = 500;
-        assert_equals(getComputedStyle(target).rowRuleColor, 'rgb(128, 0, 0) rgb(0, 0, 128) rgb(128, 0, 0)');
+        assert_equals(getComputedStyle(target).rowRuleColor, 'rgb(128, 0, 0), rgb(0, 0, 128), rgb(128, 0, 0)');
       }, 'gap decorations row-rule-color value list supports neutral keyframe.');
     </script>
   </body>

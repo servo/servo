@@ -23,3 +23,6 @@ features:
   - highlight-paired-cascade-006.html
   - highlight-currentcolor-root-implicit-default-001.html
   - highlight-currentcolor-root-implicit-default-002.html
+- name: text-shadow
+  files:
+  - highlight-currentcolor-painting-text-shadow-*

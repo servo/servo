@@ -1,4 +1,13 @@
 features:
+- name: media-capture
+  files:
+  - "*"
+  - "!BrowserCaptureMediaStreamTrack-*"
+  - "!message-enumerateddevices*.js"
+  - "!permission-helper.js"
 - name: element-capture
   files:
   - 'BrowserCaptureMediaStreamTrack-restrictTo.https.html'
+- name: region-capture
+  files:
+  - 'BrowserCaptureMediaStreamTrack-cropTo.https.html'

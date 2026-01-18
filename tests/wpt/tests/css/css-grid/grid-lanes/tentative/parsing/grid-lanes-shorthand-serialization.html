@@ -34,8 +34,8 @@
   testValidGridLanes("10px 20px", "10% 20%", "none", "row", "10px 20px row");
   testValidGridLanes("none", "1fr 1fr 3fr", '"a a b"', 'column', '"a a b" 1fr 1fr 3fr column');
   testValidGridLanes("20% 40%", "none", '"b" "a"', 'row', '"b a" 20% 40% row');
-  testValidGridLanes("none", "fit-content(calc(0.5em + 10px))", "none", "column-reverse", "fit-content(calc(0.5em + 10px)) column-reverse");
-  testValidGridLanes("10% 20% 40%", "none", '"a" "b" "c"', "row-reverse", '"a b c" 10% 20% 40% row-reverse');
+  testValidGridLanes("none", "fit-content(calc(0.5em + 10px))", "none", "column track-reverse fill-reverse", "fit-content(calc(0.5em + 10px)) column track-reverse fill-reverse");
+  testValidGridLanes("10% 20% 40%", "none", '"a" "b" "c"', "row fill-reverse track-reverse", '"a b c" 10% 20% 40% row fill-reverse track-reverse');
   </script>
 </body>
 </html>

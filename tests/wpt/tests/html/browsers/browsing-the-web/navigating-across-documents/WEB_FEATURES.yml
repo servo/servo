@@ -1,0 +1,5 @@
+features:
+- name: data-urls
+  files:
+  - navigation-unload-data-url.window.js
+  - redirect-to-data.html

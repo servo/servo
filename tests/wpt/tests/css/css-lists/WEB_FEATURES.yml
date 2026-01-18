@@ -2,9 +2,6 @@ features:
 - name: counter-set
   files:
   - counter-set-*
-- name: text-stroke-fill
-  files:
-  - marker-webkit-text-fill-color.html
 - name: counter-reset-reversed
   files:
   - counter-reset-reversed-*
@@ -31,3 +28,9 @@ features:
   - "!li-value-reversed-022.html"
   - ol-change-display-type.html
   - pseudo-element-remove-update.html
+- name: list-style
+  files:
+  - list-style-*
+- name: text-stroke-fill
+  files:
+  - marker-webkit-text-fill-color.html

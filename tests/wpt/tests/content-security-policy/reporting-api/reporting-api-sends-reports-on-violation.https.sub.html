@@ -37,8 +37,8 @@
           assert_equals(reports[0].body.sample, "");
           assert_equals(reports[0].body.disposition, "enforce");
           assert_equals(reports[0].body.statusCode, 200);
-          assert_equals(reports[0].body.lineNumber, 53);
-          assert_equals(reports[0].body.columnNumber, 0);
+          assert_equals(reports[0].body.lineNumber, 54);
+          assert_equals(reports[0].body.columnNumber, 5);
         });
 
         t3.done();
@@ -46,9 +46,14 @@
       observer.observe();
     }, "Report is observable to ReportingObserver");
   </script>
-  <img src='/content-security-policy/support/fail.png'
+  <img id="theImage"
        onload='t1.unreached_func("The image should not have loaded");'
        onerror='t1.done();'>
+
+  <script>
+    const theImage = document.getElementById('theImage');
+    theImage.src = '/content-security-policy/support/fail.png';
+  </script>
 
   <script async defer src='../support/checkReport.sub.js?reportField=effectiveDirective&reportValue=img-src%20%27none%27'></script>
 </body>

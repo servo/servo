@@ -16,11 +16,11 @@ const properties = ["column-rule-color", "row-rule-color", "rule-color"];
 for (let property of properties) {
     test_invalid_value(property, "auto");
 
-    test_invalid_value(property, "red, blue, green");
-    test_invalid_value(property, "repeat(auto, red, blue, green)");
+    test_invalid_value(property, "red blue green");
+    test_invalid_value(property, "repeat(auto, red blue green)");
     test_invalid_value(property, "repeat(0, red, blue, green)");
     test_invalid_value(property, "repeat(-1, red, blue, green)");
-    test_invalid_value(property, "repeat(auto, red) red repeat(auto, blue)");
+    test_invalid_value(property, "repeat(auto, red), red, repeat(auto, blue)");
 }
 </script>
 </body>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Hit-test of &lt;text> with overlapping &lt;tspan> hits the top-most node</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+</style>
+<svg font-family="Ahem" font-size="100" fill="blue" width="600" height="300">
+  <text y="80">UNDER<tspan x="100">OVER</tspan></text>
+</svg>
+<script>
+test(function() {
+  assert_equals(document.elementFromPoint(250, 50),
+                document.querySelector('tspan'));
+});
+</script>

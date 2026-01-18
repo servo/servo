@@ -285,6 +285,24 @@ class SelectorProtocolPart(ProtocolPart):
 
     name = "select"
 
+    def element_by_selector_array(self, element_selectors):
+        elements = self.elements_by_selector_array(element_selectors)
+        if len(elements) == 0:
+            raise ValueError(f"Selector array '{element_selectors}' matches no elements")
+        elif len(elements) > 1:
+            raise ValueError(f"Selector array '{element_selectors}' matches multiple elements")
+        return elements[0]
+
+    @abstractmethod
+    def elements_by_selector_array(self, selectors):
+        """Select elements matching an array of selectors, such that the first
+        selector matches an element in the document root, and each successive
+        selector matches an element inside the shadow root of the previous.
+
+        :param List[str] selectors: The CSS selectors
+        :returns: A list of protocol-specific handles to elements"""
+        pass
+
     def element_by_selector(self, element_selector):
         elements = self.elements_by_selector(element_selector)
         if len(elements) == 0:

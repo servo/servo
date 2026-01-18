@@ -1,6 +1,17 @@
 features:
 - name: popover
-  files: "**"
+  files:
+  - "*"
+  - "!popover-hint-crash.html"
+  - "!popover-light-dismiss-hint.html"
+  - "!popover-top-layer-nesting-hints.html"
+  - "!popover-types-with-hints.html"
 - name: closewatcher
   files:
   - "popover-close-request.html"
+- name: popover-hint
+  files:
+  - popover-hint-crash.html
+  - popover-light-dismiss-hint.html
+  - popover-top-layer-nesting-hints.html
+  - popover-types-with-hints.html

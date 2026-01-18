@@ -29,6 +29,14 @@
     inherits: true;
     initial-value: 3px;
   }
+  @property --random-in-initial {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: random(1, 30);
+  }
+  #container {
+    font-size: 30px;
+  }
   .randomNoIdentifier {
     width: random(0px, 100px);
     height: random(0px, 100px);
@@ -80,7 +88,7 @@ const iterations = 5;
 // does not generate deterministic test failure output. Chrome relies on test
 // failure output to be deterministic and stable for failing test expectations.
 function test_random_equals(actual, expected, message = "Random values should be equal") {
-  assert_true(actual == expected, message);
+  assert_equals(actual, expected, message);
 }
 
 function test_random_computed_value(property, specified, computed, titleExtra, options = {}) {
@@ -256,7 +264,7 @@ function test_random_shared_by_property(property, random_value, random_element_s
     } finally {
       document.body.removeChild(holder);
     }
-  }, `Shared by property '${property}'`);
+  }, `Shared by property '${property}' with values '${random_value}', '${random_element_shared_value}'`);
 }
 
 const property = 'scale';
@@ -351,7 +359,7 @@ test_random_computed_value_has_fixed('translate', 'random(10%, 1%)', '10%', '1%'
 test_random_computed_value_has_fixed('translate', 'random(--identifier element-shared, 10%, 100%)', '10%', '100%');
 
 // Test resolvable percentage values
-test_random_computed_value('font-size', 'random(30%, 10%)', '4.8px');
+test_random_computed_value('font-size', 'random(30%, 10%)', '9px');
 test_random_computed_value('font-size', 'random(10px * 10% / 1%, 0%)', '100px');
 
 // Test out of range math functions for fixed value
@@ -365,6 +373,28 @@ test_random_computed_value('color', 'color-mix(in srgb, rgb(random(30, 10) 0 0),
 test_random_computed_value('math-depth', 'add(random(30, 10))', '30');
 test_random_computed_value('view-transition-name', 'ident("myident" random(30, 10))', 'myident30');
 test_random_computed_value('background-image', 'image-set(url("http://example.com/image.png") calc(random(fixed 0.3, 0, 10) * 1x))', 'image-set(url("http://example.com/image.png") 3dppx)');
+test_random_computed_value('aspect-ratio', 'random(3, 1) / random(9, 6)', '3 / 9');
+test_random_computed_value('filter', 'drop-shadow(random(3px, 1px) random(6px, 1px) random(9px, 1px) black)', 'drop-shadow(rgb(0, 0, 0) 3px 6px 9px)');
+test_random_computed_value('font-variation-settings', '"wght" random(300, 100)', '"wght" 300');
+test_random_computed_value('font-feature-settings', '"liga" random(3, 1)', '"liga" 3');
+test_random_computed_value('font-style', 'oblique random(90deg, 10deg)', 'oblique 90deg');
+test_random_computed_value('font-palette', 'palette-mix(in lch, --blue calc(90% * random(1, 0)), --yellow 10%)', 'palette-mix(in lch, --blue 90%, --yellow)');
+test_random_computed_value('font-palette', 'palette-mix(in lch, --blue random(90%, 10%), --yellow 10%)', 'palette-mix(in lch, --blue 90%, --yellow)');
+test_random_computed_value('animation-timeline', 'view(random(10px, 10px) random(30px, 10px))', 'view(10px 30px)');
+test_random_computed_value('color', 'light-dark(rgb(random(30, 10) random(60, 10) random(90, 10)),  rgb(random(30, 10) random(60, 10) random(90, 10)))',
+                                    'rgb(30, 60, 90)');
+test_random_computed_value('rotate',
+                           'random(1, 0) random(1, 0) 1 90deg',
+                           '1 1 1 90deg');
+test_random_computed_value('rotate',
+                           'x random(90deg, 30deg)',
+                           'x 90deg');
+test_random_computed_value('corner-shape',
+                           'superellipse(random(3, 1))',
+                           'superellipse(3)');
+test_random_computed_value('offset-path',
+                           'ray(random(30deg, 10deg))',
+                           'ray(30deg)');
 
 test_random_shared_by_property('color',
                                'color-mix(in srgb, rgb(from blue random(10, 30) random(g, g + 30) random(b, b)), rgb(random(10, 90) 0 0))',
@@ -373,6 +403,18 @@ test_random_shared_by_property('math-depth', 'add(random(1, 100))', 'add(random(
 test_random_shared_by_property('view-transition-name',
                                'ident("myident" random(1, 100))',
                                'ident("myident" random(element-shared, 1, 100))');
+test_random_shared_by_property('aspect-ratio', 'random(1, 3, 1) / random(3, 9, 1)', 'random(element-shared, 1, 3, 1) / random(element-shared, 3, 9, 1)');
+test_random_shared_by_property('filter', 'drop-shadow(random(1px, 3px) random(1px, 6px) random(1px, 9px) black)', 'drop-shadow(random(element-shared, 1px, 3px) random(element-shared, 1px, 6px) random(element-shared, 1px, 9px) black)');
+test_random_shared_by_property('font-variation-settings', '"wght" random(100, 900)', '"wght" random(element-shared, 100, 900)');
+test_random_shared_by_property('font-style', 'oblique random(10deg, 90deg)', 'oblique random(element-shared, 10deg, 90deg)');
+test_random_shared_by_property('font-palette', 'palette-mix(in lch, --blue calc(90% * random(0, 1)), --yellow)',
+                               'palette-mix(in lch, --blue calc(90% * random(element-shared, 0, 1)), --yellow)');
+test_random_shared_by_property('font-palette', 'palette-mix(in lch, --blue random(10%, 90%, 10%), --yellow)',
+                               'palette-mix(in lch, --blue random(element-shared, 10%, 90%, 10%), --yellow)');;
+test_random_shared_by_property('animation-timeline', 'view(random(10px, 30px) random(30px, 60px))', 'view(random(element-shared, 10px, 30px) random(element-shared, 30px, 60px))');
+test_random_shared_by_property('color', 'light-dark(rgb(random(10, 30) random(10, 60) random(10, 90)),  rgb(random(30, 10) random(60, 10) random(90, 10)))',
+                                        `light-dark(rgb(random(element-shared, 10, 30) random(element-shared, 10, 60) random(element-shared, 10, 90)),
+                                         rgb(random(element-shared, 30, 10) random(element-shared, 60, 10) random(element-shared, 90, 10)))`);
 
 // Test random value sharing
 test(() => {
@@ -760,5 +802,20 @@ test(() => {
     document.body.removeChild(holder);
   }
 }, `Different between elements with same identifier random(--identifier, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.className = 'randomNoIdentifier';
+    holder.appendChild(el);
+    const computedValue = getComputedStyle(el)['--random-in-initial'];
+    test_random_equals(computedValue, undefined);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() values should not be allowed as initial values in @property`);
 
 </script>

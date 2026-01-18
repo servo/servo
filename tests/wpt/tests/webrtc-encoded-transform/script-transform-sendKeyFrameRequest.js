@@ -1,6 +1,6 @@
 onrtctransform = event => {
   const transformer = event.transformer;
-  let gotFrame;
+  let gotFrameCallback;
 
   transformer.options.port.onmessage = event => {
     const {method} = event.data;

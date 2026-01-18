@@ -6,7 +6,7 @@ features:
   files:
   - host-context-*
   - host-in-host-context-selector.html
-- name: scope-psuedo
+- name: scope-pseudo
   files:
   - scope-pseudo*
 - name: host

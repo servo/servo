@@ -1,4 +1,6 @@
 features:
+- name: link
+  files: "**"
 - name: base
   files:
   - stylesheet-empty-href.html

@@ -10,7 +10,7 @@
 // Run captureStream() on different videos, and assert the mediastream is
 // ended when the source HTMLMediaElement finishes
 
-var makeAsyncTest = function(filename) {
+var makeAsyncTest = function(filename, trackCount) {
   async_test(function(test) {
     var video = document.createElement('video');
     video.src = "/media/" + filename;
@@ -21,7 +21,10 @@ var makeAsyncTest = function(filename) {
 
     var stream = video.captureStream();
 
+    let trackRemovedCount = 0;
     stream.onremovetrack = this.step_func_done(function() {
+      if (++trackRemovedCount < trackCount)
+        return;
       assert_true(video.ended, 'video must be ended');
       assert_equals(stream.getTracks().length, 0, 'stream must have no tracks');
       assert_false(stream.active, 'stream must be inactive');
@@ -31,9 +34,9 @@ var makeAsyncTest = function(filename) {
 };
 
 generate_tests(makeAsyncTest, [
-  [ "video-only", "test-v-128k-320x240-24fps-8kfr.webm" ],
-  [ "audio-only", "test-a-128k-44100Hz-1ch.webm" ],
-  [ "video+audio", "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm" ]
+  [ "video-only", "test-v-128k-320x240-24fps-8kfr.webm", 1],
+  [ "audio-only", "test-a-128k-44100Hz-1ch.webm" , 1],
+  [ "video+audio", "test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm", 2]
 ]);
 
 </script>

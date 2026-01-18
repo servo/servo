@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>position:overconstrained sticky elements with rtl direction</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that the left is adjusted when the sticky element is overconstrained and the direction of the containing block is rtl" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+
+.scroller {
+  width: 100px;
+  height: 100px;
+  overflow: auto;
+  position: relative;
+}
+.container {
+  display: flex;
+  position: relative;
+  width: 600px;
+  direction: rtl;
+}
+.padding {
+  width: 200px;
+  height: 100px;
+  flex: none;
+}
+.sticky {
+  position: sticky;
+  background: green;
+  left: 0;
+  right: 0;
+  width: 200px;
+  height: 100px;
+  flex: none;
+  direction: ltr;
+}
+</style>
+
+<body>
+  <div class="scroller">
+    <div class="container">
+      <div class="padding"></div>
+      <div class="sticky"></div>
+      <div class="padding"></div>
+    </div>
+  </div>
+</body>
+
+<script>
+test(() => {
+  const scroller = document.querySelector('.scroller');
+  const element = document.querySelector('.sticky');
+  scroller.scrollLeft = 0;
+  assert_equals(element.offsetLeft, 0);
+}, 'start of scroll container');
+
+test(() => {
+    const scroller = document.querySelector('.scroller');
+    const element = document.querySelector('.sticky');
+    scroller.scrollLeft = 180;
+    assert_equals(element.offsetLeft, 80);
+}, 'right before the in-flow position of the sticky box');
+
+test(() => {
+    const scroller = document.querySelector('.scroller');
+    const element = document.querySelector('.sticky');
+    scroller.scrollLeft = 220;
+    assert_equals(element.offsetLeft, 120);
+}, 'right after the in-flow position the sticky box');
+
+test(() => {
+  const scroller = document.querySelector('.scroller');
+  const element = document.querySelector('.sticky');
+  scroller.scrollLeft = 500;
+  assert_equals(element.offsetLeft, 400);
+}, 'end of scroll container');
+</script>

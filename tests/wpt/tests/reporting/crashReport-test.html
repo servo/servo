@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>CrashReportStorage API</title>
+<title>CrashReportContext API</title>
 <link rel="author" title="Dominic Farolino" href="mailto:dom@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -81,9 +81,9 @@ promise_test(async t => {
   assert_throws_dom('InvalidStateError', child_window.DOMException, () => {
     // Detach the document.
     iframe.remove();
-    cachedCrashReport.remove('key', 'value');
+    cachedCrashReport.delete('key', 'value');
   });
-}, 'crashReport.remove() throws InvalidStateError in detached Documents');
+}, 'crashReport.delete() throws InvalidStateError in detached Documents');
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
@@ -136,7 +136,7 @@ promise_test(async t => {
   const child_window = iframe.contentWindow;
   await child_window.crashReport.initialize(1024);
   child_window.crashReport.set('key', 'value');
-  child_window.crashReport.remove('key');
+  child_window.crashReport.delete('key');
 }, 'crashReport.set() and .remove() succeed after initialize() resolves');
 
 promise_test(async t => {
@@ -180,10 +180,10 @@ promise_test(async t => {
   assert_throws_dom('NotAllowedError', child_window.DOMException, () => {
     child_window.crashReport.set('b', 'b');
   });
-  child_window.crashReport.remove('a');
+  child_window.crashReport.delete('a');
   // Now `set()` will work again.
   child_window.crashReport.set('b', 'b');
-}, 'crashReport.remove() properly frees memory, and allows you to invoke ' +
+}, 'crashReport.delete() properly frees memory, and allows you to invoke ' +
    'set() again, assigning bytes to memory that was previously full');
 </script>
 </body>

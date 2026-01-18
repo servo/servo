@@ -171,6 +171,12 @@ class SeleniumSelectorProtocolPart(SelectorProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
+    def elements_by_selector_array(self, selectors):
+        if len(selectors) == 1:
+            return self.elements_by_selector(selectors[0])
+
+        raise NotImplementedError()
+
     def elements_by_selector(self, selector):
         return self.webdriver.find_elements_by_css_selector(selector)
 

@@ -14,7 +14,19 @@ features:
   files:
   - checked-indeterminate.window.js
   - indeterminate*
+- name: placeholder-shown
+  files:
+  - placeholder-shown-type-change.html
 - name: read-write-pseudos
   files:
   - readwrite-readonly-type-change.html
   - readwrite-readonly.html
+- name: form-validity-pseudos
+  files:
+  - valid-invalid.html
+  - valid-invalid-fieldset-disconnected.html
+  - invalid-after-clone.html
+  - required-optional.html
+  - required-optional-hidden.html
+  - inrange-outofrange.html
+  - inrange-outofrange-type-change.html

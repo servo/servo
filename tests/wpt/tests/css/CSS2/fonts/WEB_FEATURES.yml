@@ -12,3 +12,6 @@ features:
 - name: font-family
   files:
   - font-family-*
+- name: font-style
+  files:
+  - font-style-*

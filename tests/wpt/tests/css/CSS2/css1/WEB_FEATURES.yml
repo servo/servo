@@ -26,6 +26,19 @@ features:
 - name: letter-spacing
   files:
   - c542-letter-sp-*
+- name: list-style
+  files:
+  - c56*-list*
 - name: font-size
   files:
   - c526-font-sz-*
+- name: font-style
+  files:
+  - c523-font-style-000.xht
+- name: import
+  files:
+  - c11-import-000.xht
+- name: margin
+  files:
+  - "*-imrgn-*"
+  - "*-mrgn-*"

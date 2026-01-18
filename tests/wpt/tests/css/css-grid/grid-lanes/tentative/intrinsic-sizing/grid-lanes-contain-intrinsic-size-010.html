@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: replaced content</title>
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3">
+<link rel="match" href="../../../../css-sizing/contain-intrinsic-size/contain-intrinsic-size-012-ref.html">
+<meta name="assert" content="contain-intrinsic-size overrides replaced content's intrinsic dimensions">
+
+<style>
+#target {
+  display: grid-lanes;
+  contain-intrinsic-size: 100px 200px;
+  contain: size;
+}
+</style>
+
+<img id=target src="../../../../css-sizing/contain-intrinsic-size/resources/dice.png"></img>

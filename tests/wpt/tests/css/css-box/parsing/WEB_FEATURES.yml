@@ -11,6 +11,12 @@ features:
   files:
   - 'width-*'
   - 'height-*'
+- name: margin
+  files:
+  - 'margin-computed.html'
+  - 'margin-invalid.html'
+  - 'margin-shorthand.html'
+  - 'margin-valid.html'
 - name: padding
   files:
   - 'padding-*'

@@ -2,6 +2,8 @@ features:
 - name: img
   files:
   - "*"
+  # Exclude `data-urls`. Keep in sync with `data-urls` mappings below.
+  - "!data-url.html"
   # Exclude `loading-lazy`. Keep in sync with `loading-lazy` mappings below.
   - "!*loading-lazy*"
   - "!image-loading-subpixel-clip.html"
@@ -46,3 +48,7 @@ features:
   files:
   # Keep in sync with `img` mappings.
   - usemap-casing.html
+- name: data-urls
+  files:
+  # Keep in sync with `img` mappings.
+  - data-url.html

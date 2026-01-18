@@ -6,3 +6,7 @@ features:
   files:
   - painting-fill-05-b-manual.svg
   - painting-stroke-08-t-manual.svg
+- name: pointer-events
+  files:
+  - animate-interact-pevents-*
+  - interact-pevents-*

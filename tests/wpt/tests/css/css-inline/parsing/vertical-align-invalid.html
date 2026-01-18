@@ -26,6 +26,9 @@ test_invalid_value("vertical-align", "20% sub");
 // Two alignment-baseline values
 test_invalid_value("vertical-align", "baseline middle");
 test_invalid_value("vertical-align", "text-top, bottom");
+
+// Cannot specify `baseline-source: auto` value in shorthand
+test_invalid_value("vertical-align", "auto");
 </script>
 </body>
 </html>

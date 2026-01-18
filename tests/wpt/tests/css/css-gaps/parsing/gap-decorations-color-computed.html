@@ -23,8 +23,8 @@ for (let property of properties) {
   test_computed_value(property, "currentcolor", "rgb(0, 255, 0)");
   test_computed_value(property, "red", "rgb(255, 0, 0)");
   test_computed_value(property, "repeat(4, yellow)", "repeat(4, rgb(255, 255, 0))");
-  test_computed_value(property, "red green blue", "rgb(255, 0, 0) rgb(0, 128, 0) rgb(0, 0, 255)");
-  test_computed_value(property, "repeat(7, lime) repeat(3, red)", "repeat(7, rgb(0, 255, 0)) repeat(3, rgb(255, 0, 0))");
+  test_computed_value(property, "red, green, blue", "rgb(255, 0, 0), rgb(0, 128, 0), rgb(0, 0, 255)");
+  test_computed_value(property, "repeat(7, lime), repeat(3, red)", "repeat(7, rgb(0, 255, 0)), repeat(3, rgb(255, 0, 0))");
   test_computed_value(property, "repeat(auto, red)", "repeat(auto, rgb(255, 0, 0))");
 
   test_computed_value(property, "repeat(calc(5 + 3), salmon)", "repeat(8, rgb(250, 128, 114))");
