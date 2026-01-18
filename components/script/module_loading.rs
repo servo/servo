@@ -56,6 +56,19 @@ impl Callback for ModuleHandler {
     }
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct OnRejectedHandler {
+    #[conditional_malloc_size_of]
+    promise: Rc<Promise>,
+}
+
+impl Callback for OnRejectedHandler {
+    fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
+        // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « reason »).
+        self.promise.reject(cx.into(), v, CanGc::from_cx(cx));
+    }
+}
+
 pub(crate) enum Payload {
     GraphRecord(Rc<GraphLoadingState>),
     PromiseRecord(Rc<Promise>),
@@ -321,32 +334,10 @@ fn ContinueDynamicImport(
     // Step 4. Let rejectedClosure be a new Abstract Closure with parameters (reason)
     // that captures promiseCapability and performs the following steps when called:
     // Step 5. Let onRejected be CreateBuiltinFunction(rejectedClosure, 1, "", « »).
-    let rejection_promise = promise.clone();
-    let on_rejected = ModuleHandler::new_boxed(Box::new(
-        task!(on_rejected: |rejection_promise: Rc<Promise>| {
-            // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « reason »).
-            // TODO provide reason.
-            rejection_promise.reject_native(&(), CanGc::note());
-
-            // b. Return NormalCompletion(undefined).
-            return;
-        }),
-    ));
-
-    let rejection_promise = promise.clone();
-    let inner_rejected = ModuleHandler::new_boxed(Box::new(
-        task!(on_rejected: |rejection_promise: Rc<Promise>| {
-            // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « reason »).
-            // TODO provide reason.
-            rejection_promise.reject_native(&(), CanGc::note());
-
-            // b. Return NormalCompletion(undefined).
-            return;
-        }),
-    ));
+    // Note: implemented by OnRejectedHandler.
 
     let global_scope = DomRoot::from_ref(global);
-    let link_promise = promise.clone();
+    let inner_promise = promise.clone();
     let fulfilled_promise = promise.clone();
     let record = ModuleObject::new(unsafe { HandleObject::from_raw(module_handle) });
 
@@ -354,7 +345,7 @@ fn ContinueDynamicImport(
     // module, promiseCapability, and onRejected and performs the following steps when called:
     // Step 7. Let linkAndEvaluate be CreateBuiltinFunction(linkAndEvaluateClosure, 0, "", « »).
     let link_and_evaluate = ModuleHandler::new_boxed(Box::new(
-        task!(link_and_evaluate: |global_scope: DomRoot<GlobalScope>, link_promise: Rc<Promise>, record: ModuleObject| {
+        task!(link_and_evaluate: |global_scope: DomRoot<GlobalScope>, inner_promise: Rc<Promise>, record: ModuleObject| {
             let cx = GlobalScope::get_cx();
 
             // a. Let link be Completion(module.Link()).
@@ -363,7 +354,7 @@ fn ContinueDynamicImport(
             // b. If link is an abrupt completion, then
             if let Err(exception) = link {
                 // i. Perform ! Call(promiseCapability.[[Reject]], undefined, « link.[[Value]] »).
-                link_promise.reject(cx, exception.handle(), CanGc::note());
+                inner_promise.reject(cx, exception.handle(), CanGc::note());
 
                 // ii. Return NormalCompletion(undefined).
                 return;
@@ -377,7 +368,7 @@ fn ContinueDynamicImport(
 
             if !rval.is_object() {
                 let error = RethrowError::from_pending_exception(cx);
-                return link_promise.reject(cx, error.handle(), CanGc::note());
+                return inner_promise.reject(cx, error.handle(), CanGc::note());
             }
             evaluate_promise.set(rval.to_object());
             let evaluate_promise = Promise::new_with_js_promise(evaluate_promise.handle(), cx);
@@ -402,7 +393,14 @@ fn ContinueDynamicImport(
             })));
 
             // f. Perform PerformPromiseThen(evaluatePromise, onFulfilled, onRejected).
-            let handler = PromiseNativeHandler::new(&global_scope, Some(on_fulfilled), Some(inner_rejected), CanGc::note());
+            let handler = PromiseNativeHandler::new(
+                &global_scope,
+                Some(on_fulfilled),
+                Some(Box::new(OnRejectedHandler {
+                    promise: inner_promise.clone(),
+                })),
+                CanGc::note(),
+            );
             let realm = enter_realm(&*global_scope);
             let comp = InRealm::Entered(&realm);
             evaluate_promise.append_native_handler(&handler, comp, CanGc::note());
@@ -415,7 +413,9 @@ fn ContinueDynamicImport(
     let handler = PromiseNativeHandler::new(
         global,
         Some(link_and_evaluate),
-        Some(on_rejected),
+        Some(Box::new(OnRejectedHandler {
+            promise: promise.clone(),
+        })),
         CanGc::note(),
     );
     load_promise.append_native_handler(&handler, comp, CanGc::note());
