@@ -639,7 +639,7 @@ impl ServoParser {
         if self.last_chunk_received.get() {
             let chunk = self.network_decoder.borrow_mut().finish(&self.document);
             if !chunk.is_empty() {
-                self.network_input.push_back(chunk);
+                self.push_tendril_input_chunk(chunk);
             }
         }
 
