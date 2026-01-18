@@ -22,15 +22,35 @@ use crate::dom::webgpu::gpuconvert::convert_bind_group_layout_entry;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
-#[dom_struct]
-pub(crate) struct GPUBindGroupLayout {
-    reflector_: Reflector,
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUBindGroupLayout {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
-    label: DomRefCell<USVString>,
     #[no_trace]
     bind_group_layout: WebGPUBindGroupLayout,
+}
+
+impl Drop for DroppableGPUBindGroupLayout {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropBindGroupLayout(self.bind_group_layout.0))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DropBindGroupLayout({:?}) ({})",
+                self.bind_group_layout.0, e
+            );
+        };
+    }
+}
+
+#[dom_struct]
+pub(crate) struct GPUBindGroupLayout {
+    reflector_: Reflector,
+    label: DomRefCell<USVString>,
+    droppable: DroppableGPUBindGroupLayout,
 }
 
 impl GPUBindGroupLayout {
@@ -41,9 +61,11 @@ impl GPUBindGroupLayout {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             label: DomRefCell::new(label),
-            bind_group_layout,
+            droppable: DroppableGPUBindGroupLayout {
+                channel,
+                bind_group_layout,
+            },
         }
     }
 
@@ -68,7 +90,7 @@ impl GPUBindGroupLayout {
 
 impl GPUBindGroupLayout {
     pub(crate) fn id(&self) -> WebGPUBindGroupLayout {
-        self.bind_group_layout
+        self.droppable.bind_group_layout
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
@@ -114,21 +136,6 @@ impl GPUBindGroupLayout {
             descriptor.parent.label.clone(),
             can_gc,
         ))
-    }
-}
-
-impl Drop for GPUBindGroupLayout {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropBindGroupLayout(self.bind_group_layout.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropBindGroupLayout({:?}) ({})",
-                self.bind_group_layout.0, e
-            );
-        };
     }
 }
 
