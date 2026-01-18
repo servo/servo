@@ -229,9 +229,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
         state.is_loading.set(false);
 
         // b. For each Cyclic Module Record loaded of state.[[Visited]], do
-        // for loaded in state.visited {
         // i. If loaded.[[Status]] is new, set loaded.[[Status]] to unlinked.
-        // }
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
         debug!("Module loading process terminated.");
@@ -335,11 +333,11 @@ fn ContinueDynamicImport(
         .unwrap();
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
-    let load_promise = LoadRequestedModules(&global, module, None);
+    let load_promise = LoadRequestedModules(global, module, None);
 
     let realm = enter_realm(global);
     let comp = InRealm::Entered(&realm);
-    let _ais = AutoIncumbentScript::new(&global);
+    let _ais = AutoIncumbentScript::new(global);
 
     // Step 4. Let rejectedClosure be a new Abstract Closure with parameters (reason)
     // that captures promiseCapability and performs the following steps when called:
@@ -368,7 +366,7 @@ fn ContinueDynamicImport(
         }),
     ));
 
-    let global_scope = DomRoot::from_ref(&*global);
+    let global_scope = DomRoot::from_ref(global);
     let link_promise = promise.clone();
     let fulfilled_promise = promise.clone();
     let record = ModuleObject::new(unsafe { HandleObject::from_raw(module_handle) });
@@ -446,7 +444,7 @@ fn ContinueDynamicImport(
     // Step 9. Return unused.
 }
 
-/// <https://html.spec.whatwg.org/multipage/webappapis.html#hostloadimportedmodule>
+/// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 pub(crate) fn HostLoadImportedModule(
     cx: SafeJSContext,
     referrer_module: Option<Rc<ModuleTree>>,
@@ -541,8 +539,6 @@ pub(crate) fn HostLoadImportedModule(
         ),
     };
 
-    // let state = Rc::clone(payload);
-
     let on_single_fetch_complete = move |global: &GlobalScope, module_tree: Rc<ModuleTree>| {
         // Step 1. Let completion be null.
         // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
@@ -598,7 +594,7 @@ pub(crate) fn HostLoadImportedModule(
     );
 }
 
-/// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-imported-module-script>
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-single-imported-module-script>
 fn fetch_a_single_imported_module_script(
     url: ServoUrl,
     owner: ModuleOwner,
@@ -629,7 +625,7 @@ fn fetch_a_single_imported_module_script(
     );
 }
 
-/// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script>
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
 pub(crate) fn fetch_a_single_module_script(
     url: ServoUrl,
     owner: ModuleOwner,
@@ -805,7 +801,7 @@ impl FetchResponseListener for ModuleContext {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script>
+    /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
     /// Step 13
     fn process_response_eof(
         mut self,
@@ -888,7 +884,7 @@ impl FetchResponseListener for ModuleContext {
             module_tree.resolve(CanGc::note())
         } else {
             module_tree.resolve_with_network_error(
-                NetworkError::MimeType(format!("Failed to parse MIME type")),
+                NetworkError::MimeType("Failed to parse MIME type".to_string()),
                 CanGc::note(),
             );
         }

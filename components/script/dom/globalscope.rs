@@ -2422,7 +2422,7 @@ impl GlobalScope {
     }
 
     pub(crate) fn get_module_tree(&self, url: &ServoUrl) -> Option<Rc<ModuleTree>> {
-        self.module_map.borrow().get(&url).cloned()
+        self.module_map.borrow().get(url).cloned()
     }
 
     pub(crate) fn set_inline_module_map(&self, script_id: ScriptId, module: ModuleTree) {
@@ -3963,7 +3963,6 @@ fn evaluate_script(
             // the executing context of script might be different
             // from the dynamic import script's executing context.
             None,
-            false,
         ));
 
         unsafe {
