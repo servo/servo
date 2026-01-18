@@ -485,7 +485,9 @@ impl Layout for LayoutThread {
         point_in_node: Point2D<Au, CSSPixel>,
     ) -> Option<usize> {
         let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
-        find_glyph_offset_in_fragment_descendants(&node, point_in_node)
+        let stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let stacking_context_tree = stacking_context_tree.as_ref()?;
+        find_glyph_offset_in_fragment_descendants(&node, stacking_context_tree, point_in_node)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1662,7 +1664,8 @@ impl ReflowPhases {
                 QueryMsg::ElementsFromPoint |
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedStyleQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery => Self::StackingContextTreeConstruction,
+                QueryMsg::ScrollingAreaOrOffsetQuery |
+                QueryMsg::TextIndexQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::CurrentCSSZoomQuery |
                 QueryMsg::ElementInnerOuterTextQuery |
@@ -1670,8 +1673,7 @@ impl ReflowPhases {
                 QueryMsg::PaddingQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::ScrollParentQuery |
-                QueryMsg::StyleQuery |
-                QueryMsg::TextIndexQuery => Self::empty(),
+                QueryMsg::StyleQuery => Self::empty(),
             },
             ReflowGoal::UpdateScrollNode(..) | ReflowGoal::UpdateTheRendering => {
                 Self::StackingContextTreeConstruction | Self::DisplayListConstruction

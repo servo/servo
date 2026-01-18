@@ -47,7 +47,7 @@ use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, LengthPercentageOrAuto, PhysicalRect, PhysicalSides};
+use crate::geom::{AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides};
 use crate::style_ext::{ComputedValuesExt, TransformExt};
 
 #[derive(Clone)]
@@ -259,6 +259,46 @@ impl StackingContextTree {
                 horizontal_offset_bounds,
             }),
         )
+    }
+
+    /// Given a [`Fragment`] and a point in the viewport of the page, return the point in
+    /// the [`Fragment`]'s content rectangle in its transformed coordinate system
+    /// (untransformed CSS pixels). Note that the point may be outside the [`Fragment`]'s
+    /// boundaries.
+    ///
+    /// TODO: Currently, this only works for [`BoxFragment`], but we should extend it to
+    /// other types of [`Fragment`]s in the future.
+    pub(crate) fn offset_in_fragment(
+        &self,
+        fragment: &Fragment,
+        point_in_viewport: PhysicalPoint<Au>,
+    ) -> Option<Point2D<Au, CSSPixel>> {
+        let Fragment::Box(fragment) = fragment else {
+            return None;
+        };
+
+        let fragment = fragment.borrow();
+        let spatial_tree_node = fragment.spatial_tree_node()?;
+        let transform = self
+            .paint_info
+            .scroll_tree
+            .cumulative_root_to_node_transform(spatial_tree_node)?;
+        let transformed_point = transform
+            .project_point2d(point_in_viewport.map(Au::to_f32_px).cast_unit())?
+            .map(Au::from_f32_px)
+            .cast_unit();
+
+        // Find the origin of the fragment relative to its reference frame in the same coordinate system.
+        let reference_frame_origin = self
+            .paint_info
+            .scroll_tree
+            .reference_frame_offset(spatial_tree_node)
+            .map(Au::from_f32_px);
+        let fragment_origin =
+            fragment.cumulative_content_box_rect().origin - reference_frame_origin.cast_unit();
+
+        // Use that to find the offset from the fragment origin.
+        Some(transformed_point - fragment_origin)
     }
 }
 
@@ -947,7 +987,7 @@ impl Fragment {
 }
 
 struct ReferenceFrameData {
-    origin: crate::geom::PhysicalPoint<Au>,
+    origin: PhysicalPoint<Au>,
     transform: LayoutTransform,
     kind: wr::ReferenceFrameKind,
 }
