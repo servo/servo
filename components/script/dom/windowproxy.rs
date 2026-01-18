@@ -314,7 +314,7 @@ impl WindowProxy {
             .expect("A WindowProxy creating an auxiliary to have an active document");
         let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
         let load_data = LoadData::new(
-            LoadOrigin::Script(document.origin().immutable().clone()),
+            LoadOrigin::Script(document.origin().snapshot()),
             blank_url,
             // This has the effect of ensuring that the new `about:blank` URL has the
             // same origin as the `Document` that is creating the new browsing context.
@@ -558,7 +558,7 @@ impl WindowProxy {
             // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
             // FIXME: referrerPolicy may not be used properly here. exceptionsEnabled not used.
             let mut load_data = LoadData::new(
-                LoadOrigin::Script(existing_document.origin().immutable().clone()),
+                LoadOrigin::Script(existing_document.origin().snapshot()),
                 url,
                 Some(target_window.pipeline_id()),
                 referrer,
@@ -577,6 +577,7 @@ impl WindowProxy {
                 // Check CSP and report violations to the source (existing) window
                 if !ScriptThread::can_navigate_to_javascript_url(
                     &existing_global,
+                    target_window.as_global_scope(),
                     &mut load_data,
                     None,
                     can_gc,

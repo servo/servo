@@ -111,7 +111,7 @@ impl CspReporting for Option<CspList> {
         let mut request = Request {
             url: load_data.url.clone().into_url(),
             origin: match &load_data.load_origin {
-                LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
+                LoadOrigin::Script(origin) => origin.immutable().clone().into_url_origin(),
                 _ => Origin::new_opaque(),
             },
             // TODO: populate this field correctly

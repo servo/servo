@@ -272,7 +272,7 @@ impl HTMLIFrameElement {
             let window = self.owner_window();
             let pipeline_id = Some(window.pipeline_id());
             let mut load_data = LoadData::new(
-                LoadOrigin::Script(document.origin().immutable().clone()),
+                LoadOrigin::Script(document.origin().snapshot()),
                 url,
                 pipeline_id,
                 window.as_global_scope().get_referrer(),
@@ -368,7 +368,7 @@ impl HTMLIFrameElement {
 
         let propagate_encoding_to_child_document = url.origin().same_origin(window.origin());
         let mut load_data = LoadData::new(
-            LoadOrigin::Script(document.origin().immutable().clone()),
+            LoadOrigin::Script(document.origin().snapshot()),
             url,
             creator_pipeline_id,
             window.as_global_scope().get_referrer(),
@@ -412,7 +412,7 @@ impl HTMLIFrameElement {
         let window = self.owner_window();
         let pipeline_id = Some(window.pipeline_id());
         let mut load_data = LoadData::new(
-            LoadOrigin::Script(document.origin().immutable().clone()),
+            LoadOrigin::Script(document.origin().snapshot()),
             url,
             pipeline_id,
             window.as_global_scope().get_referrer(),
