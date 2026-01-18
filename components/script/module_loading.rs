@@ -6,12 +6,8 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
-use std::ffi::CStr;
 use std::rc::Rc;
 
-use encoding_rs::UTF_8;
-use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use hyper_serde::Serde;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModulesCount,
@@ -21,37 +17,20 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers::JS_GetModulePrivate;
 use js::rust::{HandleObject, HandleValue, IntoHandle};
-use mime::Mime;
-use net_traits::http_status::HttpStatus;
-use net_traits::request::{Destination, Referrer, RequestBuilder, RequestId, RequestMode};
-use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use net_traits::request::{Destination, Referrer};
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
-use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::AutoIncumbentScript;
-use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
-use crate::dom::node::NodeTraits;
-use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::window::Window;
-use crate::fetch::RequestWithGlobalScope;
-use crate::network_listener::{
-    self, FetchResponseListener, NetworkListener, ResourceTimingListener,
-};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::{
     ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
-    create_a_javascript_module_script, gen_type_error, module_script_from_reference_private,
+    fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::NonSendTaskBox;
@@ -623,286 +602,4 @@ fn fetch_a_single_imported_module_script(
         Some(IntroductionType::IMPORTED_MODULE),
         on_complete,
     );
-}
-
-/// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
-pub(crate) fn fetch_a_single_module_script(
-    url: ServoUrl,
-    owner: ModuleOwner,
-    destination: Destination,
-    options: ScriptFetchOptions,
-    referrer: Referrer,
-    is_top_level: bool,
-    introduction_type: Option<&'static CStr>,
-    on_complete: impl FnOnce(&GlobalScope, Rc<ModuleTree>) + 'static,
-) {
-    let global = owner.global();
-
-    // Step 1. Let moduleType be "javascript-or-wasm".
-
-    // Step 2. If moduleRequest was given, then set moduleType to the result of running the
-    // module type from module request steps given moduleRequest.
-
-    // Step 3. Assert: the result of running the module type allowed steps given moduleType and settingsObject is true.
-    // Otherwise, we would not have reached this point because a failure would have been raised
-    // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
-
-    // Step 4. Let moduleMap be settingsObject's module map.
-
-    let has_pending_fetch = {
-        if let Some(module_tree) = global.get_module_tree(&url) {
-            if module_tree.get_record().borrow().is_none() &&
-                module_tree.get_network_error().borrow().is_none()
-            {
-                true
-            } else {
-                // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
-                return on_complete(&global, module_tree);
-            }
-        } else {
-            // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-            let module_tree = ModuleTree::new(url.clone(), true, HashSet::new());
-            global.set_module_map(url.clone(), module_tree);
-            false
-        }
-    };
-
-    let global_scope = DomRoot::from_ref(&*global);
-    let request_url = url.clone();
-    let handler = ModuleHandler::new_boxed(Box::new(
-        task!(fetched_resolve: |global_scope: DomRoot<GlobalScope>| {
-            let url = request_url;
-            let module_tree = global_scope.get_module_tree(&url).unwrap();
-
-            on_complete(&global_scope, module_tree);
-        }),
-    ));
-    let handler = PromiseNativeHandler::new(&global, Some(handler), None, CanGc::note());
-    global
-        .get_module_tree(&url)
-        .unwrap()
-        .append_waiting_handler(&global, &handler, CanGc::note());
-
-    // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
-    // then queue a task on the networking task source to proceed with running the following steps.
-    if has_pending_fetch {
-        return;
-    }
-
-    let document: Option<DomRoot<Document>> = match &owner {
-        ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
-        ModuleOwner::Window(script) => Some(script.root().owner_document()),
-    };
-    let webview_id = document.as_ref().map(|document| document.webview_id());
-
-    // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
-
-    // Step 9. Set request's destination to the result of running the fetch destination from module type steps given destination and moduleType.
-
-    // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true, then set request's mode to "same-origin".
-    let mode = match destination {
-        Destination::Worker | Destination::SharedWorker if is_top_level => RequestMode::SameOrigin,
-        _ => RequestMode::CorsMode,
-    };
-
-    // Step 11. Set request's initiator type to "script".
-
-    // Step 12. Set up the module script request given request and options.
-    let request = RequestBuilder::new(webview_id, url.clone(), referrer)
-        .destination(destination)
-        .parser_metadata(options.parser_metadata)
-        .integrity_metadata(options.integrity_metadata.clone())
-        .credentials_mode(options.credentials_mode)
-        .referrer_policy(options.referrer_policy)
-        .mode(mode)
-        .with_global_scope(&global)
-        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
-
-    let context = ModuleContext {
-        global: Trusted::new(&global),
-        data: vec![],
-        metadata: None,
-        url: url.clone(),
-        options,
-        status: Ok(()),
-        introduction_type,
-    };
-
-    let network_listener = NetworkListener::new(
-        context,
-        global.task_manager().networking_task_source().to_sendable(),
-    );
-    match document {
-        Some(document) => {
-            document.loader_mut().fetch_async_with_callback(
-                LoadType::Script(url),
-                request,
-                network_listener.into_callback(),
-            );
-        },
-        None => global.fetch_with_network_listener(request, network_listener),
-    };
-}
-
-struct ModuleContext {
-    global: Trusted<GlobalScope>,
-    /// The response body received to date.
-    data: Vec<u8>,
-    /// The response metadata received to date.
-    metadata: Option<Metadata>,
-    /// The initial URL requested.
-    url: ServoUrl,
-    /// Options for the current script fetch
-    options: ScriptFetchOptions,
-    /// Indicates whether the request failed, and why
-    status: Result<(), NetworkError>,
-    /// `introductionType` value to set in the `CompileOptionsWrapper`.
-    introduction_type: Option<&'static CStr>,
-}
-
-impl FetchResponseListener for ModuleContext {
-    // TODO(cybai): Perhaps add custom steps to perform fetch here?
-    fn process_request_body(&mut self, _: RequestId) {}
-
-    // TODO(cybai): Perhaps add custom steps to perform fetch here?
-    fn process_request_eof(&mut self, _: RequestId) {}
-
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
-        self.metadata = metadata.ok().map(|meta| match meta {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        });
-
-        let status = self
-            .metadata
-            .as_ref()
-            .map(|m| m.status.clone())
-            .unwrap_or_else(HttpStatus::new_error);
-
-        self.status = {
-            if status.is_error() {
-                Err(NetworkError::ResourceLoadError(
-                    "No http status code received".to_owned(),
-                ))
-            } else if status.is_success() {
-                Ok(())
-            } else {
-                Err(NetworkError::ResourceLoadError(format!(
-                    "HTTP error code {}",
-                    status.code()
-                )))
-            }
-        };
-    }
-
-    fn process_response_chunk(&mut self, _: RequestId, mut chunk: Vec<u8>) {
-        if self.status.is_ok() {
-            self.data.append(&mut chunk);
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
-    /// Step 13
-    fn process_response_eof(
-        mut self,
-        _: RequestId,
-        response: Result<(), NetworkError>,
-        timing: ResourceFetchTiming,
-    ) {
-        let global = self.global.root();
-
-        if let Some(window) = global.downcast::<Window>() {
-            window
-                .Document()
-                .finish_load(LoadType::Script(self.url.clone()), CanGc::note());
-        }
-
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
-
-        let module_tree = global.get_module_tree(&self.url).unwrap();
-
-        // Step 1. If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
-        // then set moduleMap[(url, moduleType)] to null, run onComplete given null, and abort these steps.
-        if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
-            error!("Fetching module script failed {:?}", error);
-            return module_tree.resolve_with_network_error(error.clone(), CanGc::note());
-        }
-
-        let metadata = self.metadata.take().unwrap();
-        let final_url = metadata.final_url;
-
-        // Step 2. Let mimeType be the result of extracting a MIME type from response's header list.
-        let mime_type: Option<Mime> = metadata.content_type.map(Serde::into_inner).map(Into::into);
-
-        // Step 3. Let moduleScript be null.
-
-        // Step 4. Let referrerPolicy be the result of parsing the `Referrer-Policy` header given response. [REFERRERPOLICY]
-        let referrer_policy = metadata
-            .headers
-            .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
-            .into();
-
-        // Step 5. If referrerPolicy is not the empty string, set options's referrer policy to referrerPolicy.
-        if referrer_policy != ReferrerPolicy::EmptyString {
-            self.options.referrer_policy = referrer_policy;
-        }
-
-        // TODO Step 6. If mimeType's essence is "application/wasm" and moduleType is "javascript-or-wasm", then set
-        // moduleScript to the result of creating a WebAssembly module script given bodyBytes, settingsObject, response's URL, and options.
-
-        // TODO handle CSS and JSON module scripts
-
-        // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
-        let (mut source_text, _, _) = UTF_8.decode(&self.data);
-
-        // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
-        // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
-        if mime_type.is_some_and(|mime| SCRIPT_JS_MIMES.contains(&mime.essence_str())) {
-            if let Some(window) = global.downcast::<Window>() {
-                substitute_with_local_script(window, &mut source_text, final_url.clone());
-            }
-
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut compiled_module: *mut JSObject = std::ptr::null_mut());
-            let result = create_a_javascript_module_script(
-                &source_text,
-                final_url,
-                self.options,
-                compiled_module.handle_mut(),
-                None,
-                self.introduction_type,
-                true,
-                1,
-            );
-
-            // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
-            if let Err(error) = result {
-                module_tree.set_rethrow_error(error);
-            } else {
-                module_tree.set_record(ModuleObject::new(compiled_module.handle()));
-            }
-            module_tree.resolve(CanGc::note())
-        } else {
-            module_tree.resolve_with_network_error(
-                NetworkError::MimeType("Failed to parse MIME type".to_string()),
-                CanGc::note(),
-            );
-        }
-    }
-
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
-    }
-}
-
-impl ResourceTimingListener for ModuleContext {
-    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        let initiator_type = InitiatorType::LocalName("module".to_string());
-        (initiator_type, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.global.root()
-    }
 }
