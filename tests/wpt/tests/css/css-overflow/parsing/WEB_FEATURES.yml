@@ -2,7 +2,7 @@ features:
 - name: scroll-markers
   files:
   - scroll-markers*
-- name: scrollbar-buttons
+- name: scroll-buttons
   files:
   - scroll-button*
 - name: scrollbar-gutter

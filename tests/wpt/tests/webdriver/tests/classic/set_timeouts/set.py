@@ -50,32 +50,34 @@ def test_script_parameter_empty_no_change(session):
 
 
 @pytest.mark.parametrize("typ", ["implicit", "pageLoad", "script"])
+@pytest.mark.parametrize("value", [[], {}, False, "10"])
+def test_value_invalid_types(session, typ, value):
+    response = set_timeouts(session, {typ: value})
+    assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("typ", ["implicit", "pageLoad", "script"])
+@pytest.mark.parametrize("value", [-1, 2.5, 2**53])
+def test_invalid_value(session, typ, value):
+    response = set_timeouts(session, {typ: value})
+    assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("key", ["implicit", "pageLoad", "script"])
+def test_value_null(session, key):
+    response = set_timeouts(session, {key: None})
+    assert_success(response)
+
+    assert session.timeouts._get(key) is None
+
+
+@pytest.mark.parametrize("typ", ["implicit", "pageLoad", "script"])
 @pytest.mark.parametrize("value", [0, 2.0, 2**53 - 1])
 def test_positive_integer(session, typ, value):
     response = set_timeouts(session, {typ: value})
     assert_success(response)
 
     assert session.timeouts._get(typ) == value
-
-
-@pytest.mark.parametrize("typ", ["implicit", "pageLoad"])
-@pytest.mark.parametrize("value", [None, [], {}, False, "10"])
-def test_value_invalid_types(session, typ, value):
-    response = set_timeouts(session, {typ: value})
-    assert_error(response, "invalid argument")
-
-
-@pytest.mark.parametrize("value", [[], {}, False, "10"])
-def test_value_invalid_types_for_script(session, value):
-    response = set_timeouts(session, {"script": value})
-    assert_error(response, "invalid argument")
-
-
-@pytest.mark.parametrize("typ", ["implicit", "pageLoad", "script"])
-@pytest.mark.parametrize("value", [-1, 2.5, 2**53])
-def test_value_positive_integer(session, typ, value):
-    response = set_timeouts(session, {typ: value})
-    assert_error(response, "invalid argument")
 
 
 def test_set_all_fields(session):
@@ -86,10 +88,3 @@ def test_set_all_fields(session):
     assert session.timeouts.implicit == 10
     assert session.timeouts.page_load == 20
     assert session.timeouts.script == 30
-
-
-def test_script_value_null(session):
-    response = set_timeouts(session, {"script": None})
-    assert_success(response)
-
-    assert session.timeouts.script is None

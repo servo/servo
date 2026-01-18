@@ -1,5 +1,5 @@
 import pytest
-
+from webdriver.client import WebElement
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
@@ -139,3 +139,36 @@ def test_htmldocument(session, inline, using, value):
     value = assert_success(response)
     assert isinstance(value, list)
     assert len(value) == 1
+
+
+@pytest.mark.parametrize("value", [None, 1])
+def test_implicit_wait(session, inline, value):
+    session.url = inline(
+        """
+        <script>
+            setTimeout(() => {
+                document.body.innerHTML = '<div id="delayed"></div>';
+            }, 300);
+        </script>
+    """
+    )
+    session.timeouts.implicit = value
+
+    response = find_elements(session, "css selector", "#delayed")
+    value = assert_success(response)
+
+    expected = session.execute_script("return document.getElementById('delayed')")
+
+    element = WebElement.from_json(value[0], session)
+    assert_same_element(session, element, expected)
+
+
+def test_implicit_wait_timeout(session, inline):
+    session.url = inline("")
+    session.timeouts.implicit = 0.5
+
+    # Element never created
+    response = find_elements(session, "css selector", "#nonexistent")
+    elements = assert_success(response)
+
+    assert len(elements) == 0

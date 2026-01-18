@@ -39,6 +39,17 @@ def test_no_browsing_context(session, closed_frame, inline):
     assert session.url == doc
 
 
+def test_timeout_page_load_null(session, inline):
+    page = inline("<div id=foo>")
+
+    session.timeouts.page_load = None
+
+    navigate_to(session, page)
+
+    session.url == page
+    assert session.url == page
+
+
 @pytest.mark.parametrize("protocol,parameters", [
     ("http", ""),
     ("https", ""),

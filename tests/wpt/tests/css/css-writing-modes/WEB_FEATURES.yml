@@ -12,6 +12,9 @@ features:
 - name: text-combine-upright
   files:
   - "text-combine-upright-*"
+- name: text-shadow
+  files:
+  - text-shadow-*
 - name: layout-direction-override
   files:
   - "bidi-*"

@@ -246,9 +246,11 @@ def test_find_element_in_nested_shadow_root(session, get_test_page, mode):
     element = WebElement.from_json(value, session)
     assert element.text == expected_text
 
-def test_implicit_wait_shadow_root(session, get_test_page):
+
+@pytest.mark.parametrize("value", [None, 1])
+def test_implicit_wait_shadow_root(session, get_test_page, value):
     session.url = get_test_page()
-    session.timeouts.implicit = 1
+    session.timeouts.implicit = value
 
     session.execute_script("""
         setTimeout(() => {

@@ -39,6 +39,20 @@ def test_no_browsing_context(session, closed_frame, inline):
     assert session.find.css("#foo", all=False)
 
 
+def test_timeout_page_load_null(session, inline):
+    session.url = inline("<div id=foo>")
+
+    session.execute_script("""document.getElementById("foo").remove();""")
+    with pytest.raises(error.NoSuchElementException):
+        session.find.css("#foo", all=False)
+
+    session.timeouts.page_load = None
+
+    refresh(session)
+
+    session.find.css("#foo", all=False)
+
+
 @pytest.mark.parametrize("protocol,parameters", [
     ("http", ""),
     ("https", ""),

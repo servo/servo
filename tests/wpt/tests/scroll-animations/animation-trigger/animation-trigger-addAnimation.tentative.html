@@ -66,8 +66,8 @@
         const trigger = use_default_trigger ? new TimelineTrigger([{}])
             : new TimelineTrigger([{
               timeline: view_timeline,
-              rangeStart: `${TRIGGER_START_PX}px`,
-              rangeEnd: `${TRIGGER_END_PX}px`
+              entryRangeStart: `${TRIGGER_START_PX}px`,
+              entryRangeEnd: `${TRIGGER_END_PX}px`
             }]);
         return trigger;
       }
@@ -121,7 +121,7 @@
           "currentTime is 0");
         assert_array_equals(trigger.getAnimations(), [animation],
           "trigger has animation attached");
-      }, "Animation attached to untripped trigger is paused at the beginning.");
+      }, "Animation attached to untripped trigger is paused initially.");
 
       promise_test(async (test) => {
         await waitForScrollReset(test, scroller);

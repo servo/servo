@@ -2,6 +2,9 @@ features:
 - name: line-break
   files:
   - line-break-*
+- name: hanging-punctuation
+  files:
+  - hanging-punctuation-*
 - name: text-spacing-trim
   files:
   - text-spacing-trim-*

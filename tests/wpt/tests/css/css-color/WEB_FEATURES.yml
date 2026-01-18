@@ -12,6 +12,13 @@ features:
   files:
   - color-mix-*
   - nested-color-mix-with-currentcolor.html
+- name: currentcolor
+  files:
+  - currentcolor-*
+  - t44-currentcolor-*
+  - color-003.html
+  - currentcolor-visited-fallback.html
+  - t31-color-currentColor-b.xht
 - name: lab
   files:
   - lab-*

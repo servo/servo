@@ -79,8 +79,8 @@
       function setupAnimationTrigger(view_timeline) {
         const trigger = new TimelineTrigger([{
               timeline: view_timeline,
-              rangeStart: `${TRIGGER_START_PX}px`,
-              rangeEnd: `${TRIGGER_END_PX}px`
+              entryRangeStart: `${TRIGGER_START_PX}px`,
+              entryRangeEnd: `${TRIGGER_END_PX}px`
             }]);
         return trigger;
       }
@@ -101,15 +101,15 @@
           "trigger2 has no animation attached");
 
         trigger1.addAnimation(animation, "play-forwards", "reset");
-        trigger2.addAnimation(animation, "play-forwards", "reset");
+        assert_throws_dom('NotSupportedError', () => {
+          trigger2.addAnimation(animation, "play-forwards", "reset");
+        });
 
         // Test preconditions.
         assert_equals(animation.playState, "paused", "animation is idle");
         assert_equals(animation.currentTime, 0, "currentTime is 0");
         assert_array_equals(trigger1.getAnimations(), [animation],
           "trigger1 has animation attached");
-        assert_array_equals(trigger2.getAnimations(), [animation],
-          "trigger2 has animation attached");
 
         await rangeBoundaries1.enterTriggerRange();
         await animation.finished;
@@ -123,68 +123,7 @@
         assert_equals(animation.playState, "paused",
           "animation should be reset by trigger1");
         assert_times_equal(animation.currentTime, 0, "currentTime is 0");
-
-        // animation should be played by trigger2.
-        rangeBoundaries2.enterTriggerRange();
-        await animation.finished;
-        assert_equals(animation.playState, "finished",
-          "animation is paused, awaiting trigger event");
-        assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
-          `currentTime is ${ANIMATION_DURATION_MS}`);
-
-        // animation should be reversed by trigger2.
-        rangeBoundaries2.exitExitRangeBelow();
-        await waitForNextFrame();
-        assert_equals(animation.playState, "paused",
-          "animation is paused, awaiting trigger event");
-        assert_times_equal(animation.currentTime, 0, `currentTime is 0`);
-      }, "Triggers on same animation; no conflict.");
-
-      promise_test(async (test) => {
-        await waitForScrollReset(test, scroller);
-        const animation = setupAnimation();
-        const trigger1 = setupAnimationTrigger(view_timeline1);
-        const trigger2 = setupAnimationTrigger(view_timeline2);
-
-        // Test preconditions.
-        assert_equals(animation.playState, "idle", "animation is idle");
-        assert_equals(animation.currentTime, null, "currentTime is null");
-        assert_equals(scroller.scrollTop, 0, "scroller is not scrolled, i.e. " +
-          "not within the trigger range");
-        assert_array_equals(trigger1.getAnimations(), [],
-          "trigger1 has no animation attached");
-        assert_array_equals(trigger2.getAnimations(), [],
-          "trigger2 has no animation attached");
-
-        trigger1.addAnimation(animation, "play-forwards", "reset");
-        trigger2.addAnimation(animation, "play-forwards", "reset");
-
-        // Test preconditions.
-        assert_equals(animation.playState, "paused", "animation is paused");
-        assert_equals(animation.currentTime, 0, "currentTime is null");
-        assert_array_equals(trigger1.getAnimations(), [animation],
-          "trigger1 has animation attached");
-        assert_array_equals(trigger2.getAnimations(), [animation],
-          "trigger2 has animation attached");
-
-        await rangeBoundaries1.enterTriggerRange();
-        await animation.finished;
-        assert_equals(animation.playState, "finished",
-          "animation is played by trigger1");
-        assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
-          `currentTime is ${ANIMATION_DURATION_MS}`);
-
-        // Entering trigger2's trigger range exits trigger1's exit range.
-        // So trigger1 wants to do a reset and trigger2 wants to play the
-        // animation. As trigger2 was the most recently created, it wins and the
-        // animation is played.
-        rangeBoundaries2.enterTriggerRange();
-        await animation.finished;
-        assert_equals(animation.playState, "finished",
-          "animation is paused, awaiting trigger event");
-        assert_times_equal(animation.currentTime, ANIMATION_DURATION_MS,
-          `currentTime is ${ANIMATION_DURATION_MS}`);
-      }, "Triggers on same animation; conflict.");
+      }, "Multiple triggers on same animation throws.");
     </script>
   </body>
 </html>

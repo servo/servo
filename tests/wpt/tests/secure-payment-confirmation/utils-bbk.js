@@ -9,6 +9,16 @@ function base64urlToUint8Array(encoded) {
   return Uint8Array.from(base64urlDecode(encoded), c => c.charCodeAt(0));
 }
 
+// Given the Uint8Array of the encoded CoseKey return the key type. Key types
+// are enumerated in https://www.iana.org/assignments/cose/cose.xhtml#key-type
+function getCoseKeyType(encodedCoseKey) {
+  const parsed = new Cbor(encodedCoseKey);
+  const cbor = parsed.getCBOR();
+  // The index 1 represents the key type, see
+  // https://www.iana.org/assignments/cose/cose.xhtml#key-common-parameters
+  return cbor[1];
+}
+
 // The result of a browser bound key verification.
 const BrowserBoundKeyVerificationResult = Object.freeze({
   // No browser bound key was included.

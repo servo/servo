@@ -28,10 +28,19 @@ features:
   files:
   - backdrop-animate-002.html
   - backdrop-animate.html
+- name: placeholder
+  files:
+  - placeholder-*
 - name: before-after
   files:
   - before-*
   - pseudo-replaced-elements.html
+- name: text-shadow
+  files:
+  - highlight-painting-shadows-*
+  - marker-text-shadow.html
+  - svg-text-selection-shadow.html
+  - target-text-shadow-*
 - name: text-stroke-fill
   files:
   - highlight-styling-003.html

@@ -46,6 +46,7 @@ features:
   files:
   - round-function.html
   - round-mod-rem-*
+  - rem-length-degrees-crash.html
 - name: trig-functions
   files:
   - acos-asin-atan-atan2-*
@@ -83,3 +84,10 @@ features:
 - name: border-radius
   files:
   - getComputedStyle-border-radius-*
+- name: q-unit
+  files:
+  - q-unit-*
+- name: rem
+  files:
+  - rem-unit-*
+  - rem-root-*

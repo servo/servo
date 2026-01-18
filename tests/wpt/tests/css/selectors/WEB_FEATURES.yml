@@ -16,10 +16,18 @@ features:
 - name: has
   files:
   - has-*
+- name: link-selectors
+  files:
+  - "*visited*"
+  - "!has-visited*"
+- name: placeholder-shown
+  files:
+  - placeholder-shown.html
+  - selector-placeholder-shown-*
 - name: read-write-pseudos
   files:
   - selector-read-write-*
-- name: scope-psuedo
+- name: scope-pseudo
   files:
   - scope-*
 - name: modal
@@ -53,9 +61,6 @@ features:
   files:
   - user-invalid.html
   - user-valid.html
-- name: caret-color
-  files:
-  - caret-color-visited-inheritance.html
 - name: user-action-pseudos
   files:
   - hover-001-manual.html
@@ -90,3 +95,8 @@ features:
 - name: selection
   files:
   - selection-image-001.html
+- name: form-validity-pseudos
+  files:
+  - valid-invalid-form-fieldset.html
+  - selector-required.html
+  - selector-required-type-change-*

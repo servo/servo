@@ -30,14 +30,18 @@
     width: 100px;
     height: 100px;
   }
+
+  .display-none {
+    display: none;
+  }
 </style>
 
 <div id="container">
 <div id="scroll-container">
   <div class="anchor" style="anchor-name: --a1;">anchor1</div>
   <div class="anchor" style="anchor-name: --a2; position: relative; top: 100px">anchor2</div>
-  <div id="target1" class="target" style="position-anchor: --a1; position-area: bottom; background: green">target1</div>
-  <div id="target2" class="target" style="position-anchor: --a2; position-area: top; background: red">target2</div>
+  <div id="target1" class="target display-none" style="position-anchor: --a1; position-area: bottom; background: green">target1</div>
+  <div id="target2" class="target display-none" style="position-anchor: --a2; position-area: top; background: red">target2</div>
   <div style="height: 300px"></div>
 </div>
 </div>
@@ -46,6 +50,15 @@
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {
     document.getElementById('scroll-container').scrollTop = 50;
+    // Force position-area grid computation after the scroll.
+    // Initial scroll position causes position area grid for #target1 to have
+    // not enough height, as it is bounded by the absolute containing block [1].
+    // This causes #target1 to overflow the position area grid applied containing
+    // block, which would cause it to shift up [2], overlapping anchor1.
+    // [1]: https://drafts.csswg.org/css-anchor-position-1/#position-area-grid-resolution
+    // [2]: https://drafts.csswg.org/css-anchor-position-1/#position-area-alignment
+    target1.classList.remove('display-none');
+    target2.classList.remove('display-none');
     document.documentElement.classList.remove('reftest-wait');
   });
 });

@@ -10,7 +10,7 @@ features:
   - target-current-scroll-marker-update.html
   - targeted-column-scroll-marker*
   - targeted-scroll-marker*
-- name: scrollbar-buttons
+- name: scroll-buttons
   files:
   - root-scroll-button*
   - scroll-button*

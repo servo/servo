@@ -37,13 +37,13 @@
       }, `grid-lanes: ${value} should be valid.`);
     }
 
-    test_valid_value("grid-lanes", '"a" calc(10px) column-reverse');
+    test_valid_value("grid-lanes", '"a" calc(10px) column fill-reverse');
     test_valid_value("grid-lanes", 'minmax(calc(30% + 40vw), 10px)', 'minmax(calc(30% + 40vw), 10px) normal');
     test_valid_grid_lanes_value("grid-lanes", 'minmax(10px, 20px) row', 'minmax(10px, 20px) row');
     test_valid_grid_lanes_value("grid-lanes", '1px 2px', '1px 2px normal');
     test_valid_grid_lanes_value("grid-lanes", '"a" 10px', '"a" 10px normal');
     test_valid_grid_lanes_value("grid-lanes", '"a b" 10px 20px row');
-    test_valid_grid_lanes_value("grid-lanes", '"a b c" 10% 20% 30% row-reverse', '"a b c" 10% 20% 30% row-reverse');
+    test_valid_grid_lanes_value("grid-lanes", '"a b c" 10% 20% 30% row track-reverse', '"a b c" 10% 20% 30% row track-reverse');
     test_valid_grid_lanes_value("grid-lanes", 'repeat(5, auto) row');
     test_shorthand_value('grid-lanes', 'none', {
       'grid-template-columns': 'none',
@@ -65,10 +65,10 @@
       'grid-template-areas': '"b" "b" "a"',
       'grid-lanes-direction': 'row'
     });
-    test_shorthand_value('grid-lanes', 'repeat(2, auto) row-reverse', {
+    test_shorthand_value('grid-lanes', 'repeat(2, auto) row track-reverse fill-reverse', {
       'grid-template-rows': 'repeat(2, auto)',
       'grid-template-areas': 'none',
-      'grid-lanes-direction': 'row-reverse'
+      'grid-lanes-direction': 'row track-reverse fill-reverse'
     });
     test_shorthand_value('grid-lanes', '"b a" 20% 40% normal', {
       'grid-template-columns': '20% 40%',

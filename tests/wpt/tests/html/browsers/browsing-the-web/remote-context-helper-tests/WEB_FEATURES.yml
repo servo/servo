@@ -1,0 +1,4 @@
+features:
+- name: data-urls
+  files:
+  - addWindow-urlType-data.window.js

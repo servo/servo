@@ -6,6 +6,16 @@ features:
   - blocks-028.xht
   - cross-domain-iframe-paint-order.sub.html
   - dynamic-percentage-height.html
+- name: margin
+  files:
+  - auto-margins-*
+  - block-formatting-contexts-003.xht
+  - block-formatting-contexts-004.xht
+  - block-in-inline-margins-*
+  - containing-block-percent-margin-*
+  - margin-collapse-*
+  - margin-collapsing-*
+  - negative-margin-*
 - name: width-height
   files:
   - '*width*'

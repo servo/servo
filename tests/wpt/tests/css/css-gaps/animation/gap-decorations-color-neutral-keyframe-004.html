@@ -14,11 +14,11 @@
     <script>
       test(() => {
         target.style.rowRuleStyle = 'solid';
-        target.style.rowRuleColor = 'repeat(3, black black) repeat(1, red)';
-        var animation = target.animate([{}, {rowRuleColor: 'repeat(3, red red) repeat(1, black)'}], 1000);
+        target.style.rowRuleColor = 'repeat(3, black, black), repeat(1, red)';
+        var animation = target.animate([{}, {rowRuleColor: 'repeat(3, red, red), repeat(1, black)'}], 1000);
         animation.pause();
         animation.currentTime = 500;
-        assert_equals(getComputedStyle(target).rowRuleColor, 'rgb(128, 0, 0) rgb(128, 0, 0) rgb(128, 0, 0) rgb(128, 0, 0) rgb(128, 0, 0) rgb(128, 0, 0) rgb(128, 0, 0)');
+        assert_equals(getComputedStyle(target).rowRuleColor, 'rgb(128, 0, 0), rgb(128, 0, 0), rgb(128, 0, 0), rgb(128, 0, 0), rgb(128, 0, 0), rgb(128, 0, 0), rgb(128, 0, 0)');
       }, 'gap decorations row-rule-color with repeaters supports neutral keyframe.');
     </script>
   </body>

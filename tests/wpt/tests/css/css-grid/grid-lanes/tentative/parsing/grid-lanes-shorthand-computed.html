@@ -14,9 +14,10 @@
   <script>
     test_computed_value("grid-lanes", '"a b" 1fr 2fr row');
     test_computed_value("grid-lanes", "8px column");
-    test_computed_value("grid-lanes", '"a b c" 10% 20% 30% row-reverse', '"a b c" 10% 20% 30% row-reverse');
-    test_computed_value("grid-lanes", '"a b" 10px 20px column-reverse');
-    test_computed_value("grid-lanes", 'min-content row', 'min-content row');
+    test_computed_value("grid-lanes", "8px column track-reverse fill-reverse", "8px column fill-reverse track-reverse");
+    test_computed_value("grid-lanes", '"a b c" 10% 20% 30% row track-reverse', '"a b c" 10% 20% 30% row track-reverse');
+    test_computed_value("grid-lanes", '"a b" 10px 20px column fill-reverse');
+    test_computed_value("grid-lanes", 'min-content row fill-reverse track-reverse', 'min-content row fill-reverse track-reverse');
     test_computed_value("grid-lanes", 'repeat(5, auto)', 'repeat(5, auto) normal');
   </script>
 </body>

@@ -23,6 +23,12 @@
     test_invalid_value("grid-lanes", '[auto] 1px');
     test_invalid_value("grid-lanes", '20% 40% column, reverse');
     test_invalid_value("grid-lanes", 'none auto column-reverse reverse');
+    test_invalid_value("grid-lanes", '"a a" 1fr row normal fill-reverse');
+    test_invalid_value("grid-lanes", '"a a" 1fr normal track-reverse');
+    test_invalid_value("grid-lanes", '"a a" 1fr normal track-reverse fill-reverse');
+    test_invalid_value("grid-lanes", '"a a" 1fr normal fill-reverse track-reverse');
+    test_invalid_value("grid-lanes", 'repeat(auto-fill, 10px) row-reverse');
+    test_invalid_value("grid-lanes", '100px 100px column-reverse');
   </script>
 </body>
 </html>

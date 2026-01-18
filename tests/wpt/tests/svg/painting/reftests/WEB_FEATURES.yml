@@ -5,3 +5,6 @@ features:
 - name: paint-order
   files:
   - paint-order-*
+- name: text-shadow
+  files:
+  - text-shadow-*

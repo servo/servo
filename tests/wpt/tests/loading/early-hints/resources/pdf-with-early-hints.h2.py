@@ -20,7 +20,7 @@ def handle_headers(frame, request, response):
 
 def main(request, response):
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(current_dir, "example.pdf")
+    file_path = os.path.join(current_dir, os.pardir, os.pardir, os.pardir, "resources", "example.pdf")
     with open(file_path, "rb") as f:
         content = f.read()
     response.writer.write_data(item=content, last=True)

@@ -1,4 +1,7 @@
 features:
+- name: hardware-concurrency
+  files:
+  - WorkerNavigator-hardware-concurrency.any.js
 - name: request-animation-frame-workers
   files:
   - WorkerGlobalScope_requestAnimationFrame.worker.js
@@ -30,11 +33,13 @@ features:
 - name: dedicated-workers
   files:
   - '*'
+  - '!WorkerNavigator-hardware-concurrency.any.js'
   - '!WorkerGlobalScope_requestAnimationFrame.worker.js'
   - '!WorkerGlobalScope_setInterval.htm'
   - '!WorkerGlobalScope_setTimeout.htm'
   - '!WorkerNavigator_userAgentData.http.html'
   - '!WorkerNavigator_userAgentData.https.html'
+  - '!WorkerNavigator_onLine.htm'
   - '!Worker-postMessage-happens-in-parallel.https.html'
   - '!postMessage_*'
   - '!WorkerNavigator_userAgent.htm'
