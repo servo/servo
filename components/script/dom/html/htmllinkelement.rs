@@ -878,6 +878,12 @@ impl StylesheetOwner for HTMLLinkElement {
         self.parser_inserted.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#link-type-stylesheet:implicitly-potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool {
+        // > A link element of this type is implicitly potentially render-blocking if the element was created by its node document's parser.
+        self.parser_inserted()
+    }
+
     fn referrer_policy(&self) -> ReferrerPolicy {
         if self.RelList(CanGc::note()).Contains("noreferrer".into()) {
             return ReferrerPolicy::NoReferrer;
