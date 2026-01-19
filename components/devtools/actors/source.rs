@@ -262,9 +262,10 @@ impl Actor for SourceActor {
             // Client wants to know which columns in the line can have breakpoints.
             // Sent when the user tries to set a breakpoint by clicking a line number in a source.
             "getBreakpointPositionsCompressed" => {
-                let msg: GetBreakpointPositionsRequest =
-                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
-                let GetBreakpointPositionsQuery { start, end } = msg.query;
+                let query =
+                    serde_json::from_value::<GetBreakpointPositionsRequest>(msg.clone().into())
+                        .ok()
+                        .map(|msg| (msg.query.start, msg.query.end));
 
                 let (tx, rx) = channel().ok_or(ActorError::Internal)?;
                 self.script_sender
@@ -280,7 +281,9 @@ impl Actor for SourceActor {
                     // Line number are one-based. Column numbers are zero-based.
                     // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
-                    if location.line_number < start.line || location.line_number > end.line {
+                    if let Some((start, end)) = &query &&
+                        (location.line_number < start.line || location.line_number > end.line)
+                    {
                         continue;
                     }
                     positions
