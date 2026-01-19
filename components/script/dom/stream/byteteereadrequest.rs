@@ -19,7 +19,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::byteteeunderlyingsource::ByteTeeUnderlyingSource;
+use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;

@@ -16,7 +16,7 @@ use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::error::{ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector};
 use crate::dom::bindings::root::Dom;
-use crate::dom::byteteeunderlyingsource::ByteTeeUnderlyingSource;
+use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;

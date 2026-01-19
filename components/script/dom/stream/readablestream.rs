@@ -45,8 +45,8 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_w
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
-use crate::dom::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
-use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
+use crate::dom::stream::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
+use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::{wait_for_all_promise, Promise};
@@ -54,9 +54,9 @@ use crate::dom::stream::readablebytestreamcontroller::ReadableByteStreamControll
 use crate::dom::stream::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::stream::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::stream::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
-use crate::dom::defaultteeunderlyingsource::DefaultTeeCancelAlgorithm;
+use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
-use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;

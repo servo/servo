@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOr
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
+use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;

@@ -32,7 +32,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::script_runtime::{CanGc, JSContext, StreamConsumer};
 
 #[dom_struct]

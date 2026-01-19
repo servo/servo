@@ -33,7 +33,7 @@ use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
+use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ReadableStream, create_readable_stream};
@@ -41,7 +41,7 @@ use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::stream::writablestream::create_writable_stream;
 use crate::dom::stream::writablestreamdefaultcontroller::UnderlyingSinkType;
 use crate::dom::types::PromiseNativeHandler;
-use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

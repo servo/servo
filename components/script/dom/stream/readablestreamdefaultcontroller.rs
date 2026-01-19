@@ -31,7 +31,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
-use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
+use crate::dom::stream::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

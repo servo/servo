@@ -20,7 +20,7 @@ use super::types::ReadableStream;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::Dom;
-use crate::dom::byteteereadrequest::ByteTeeReadRequest;
+use crate::dom::stream::byteteereadrequest::ByteTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
