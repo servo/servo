@@ -9,19 +9,23 @@ use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
 use html5ever::local_name;
 use layout_api::wrapper_traits::ThreadSafeLayoutNode;
-use layout_api::{IFrameSize, LayoutImageDestination};
+use layout_api::{IFrameSize, LayoutImageDestination, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
+use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, StyleBuilder};
+use style::rule_cache::RuleCacheConditions;
 use style::servo::url::ComputedUrl;
+use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::values::CSSFloat;
 use style::values::computed::image::Image as ComputedImage;
+use style::values::computed::{Context, ToComputedValue};
 use url::Url;
 use webrender_api::ImageKey;
 
@@ -174,41 +178,7 @@ impl ReplacedContents {
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
             } else if let Some(svg_data) = node.as_svg() {
-                let svg_source = match svg_data.source {
-                    None => {
-                        // The SVGSVGElement is not yet serialized, so we add it to a list
-                        // and hand it over to script to peform the serialization.
-                        context
-                            .image_resolver
-                            .queue_svg_element_for_serialization(node);
-                        return None;
-                    },
-                    Some(Err(_)) => {
-                        // Don't attempt to serialize if previous attempt had errored.
-                        return None;
-                    },
-                    Some(Ok(svg_source)) => svg_source,
-                };
-
-                let result = context
-                    .image_resolver
-                    .get_cached_image_for_url(
-                        node.opaque(),
-                        svg_source,
-                        LayoutImageDestination::BoxTreeConstruction,
-                    )
-                    .ok();
-
-                let vector_image = result.map(|result| match result {
-                    Image::Vector(vector_image) => vector_image,
-                    _ => unreachable!("SVG element can't contain a raster image."),
-                });
-                let natural_size = NaturalSizes {
-                    width: svg_data.width.map(Au::from_px),
-                    height: svg_data.height.map(Au::from_px),
-                    ratio: svg_data.ratio,
-                };
-                (ReplacedContentKind::SVGElement(vector_image), natural_size)
+                Self::svg_kind_size(svg_data, context, node)?
             } else {
                 let element = node.as_html_element()?;
                 if !element.has_local_name(&local_name!("audio")) {
@@ -236,6 +206,89 @@ impl ReplacedContents {
             natural_size,
             base_fragment_info: node.into(),
         })
+    }
+
+    fn svg_kind_size(
+        svg_data: SVGElementData,
+        context: &LayoutContext,
+        node: ServoThreadSafeLayoutNode<'_>,
+    ) -> Option<(ReplacedContentKind, NaturalSizes)> {
+        let rule_cache_conditions = &mut RuleCacheConditions::default();
+
+        let parent_style = node.style(&context.style_context);
+        let style_builder = StyleBuilder::new(
+            context.style_context.stylist.device(),
+            Some(context.style_context.stylist),
+            Some(&parent_style),
+            None,
+            None,
+            false,
+        );
+
+        let to_computed_context = Context::new(
+            style_builder,
+            context.style_context.quirks_mode(),
+            rule_cache_conditions,
+            ContainerSizeQuery::none(),
+        );
+
+        let attr_to_computed = |attr_val: &AttrValue| {
+            if let AttrValue::Length(_, length) = attr_val {
+                length.to_computed_value(&to_computed_context)
+            } else {
+                None
+            }
+        };
+        let width = svg_data.width.and_then(attr_to_computed);
+        let height = svg_data.height.and_then(attr_to_computed);
+
+        let ratio = if let (Some(width), Some(height)) = (width, height) {
+            if !width.is_zero() && !height.is_zero() {
+                Some(width.px() / height.px())
+            } else {
+                None
+            }
+        } else {
+            svg_data.ratio_from_view_box()
+        };
+
+        let natural_size = NaturalSizes {
+            width: width.map(|w| Au::from_f32_px(w.px())),
+            height: height.map(|h| Au::from_f32_px(h.px())),
+            ratio,
+        };
+
+        let svg_source = match svg_data.source {
+            None => {
+                // The SVGSVGElement is not yet serialized, so we add it to a list
+                // and hand it over to script to peform the serialization.
+                context
+                    .image_resolver
+                    .queue_svg_element_for_serialization(node);
+                return None;
+            },
+            Some(Err(_)) => {
+                // Don't attempt to serialize if previous attempt had errored.
+                return None;
+            },
+            Some(Ok(svg_source)) => svg_source,
+        };
+
+        let result = context
+            .image_resolver
+            .get_cached_image_for_url(
+                node.opaque(),
+                svg_source,
+                LayoutImageDestination::BoxTreeConstruction,
+            )
+            .ok();
+
+        let vector_image = result.map(|result| match result {
+            Image::Vector(vector_image) => vector_image,
+            _ => unreachable!("SVG element can't contain a raster image."),
+        });
+
+        Some((ReplacedContentKind::SVGElement(vector_image), natural_size))
     }
 
     pub fn from_image_url(

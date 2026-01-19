@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SVG relative units</title>
+    <link rel="match" href="svg_relative_units_ref.html">
+    <style>
+      body {
+        font-size: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- width and height without px -->
+    <svg style="border: 1px solid black;" width="100" height="200" xmlns="http://www.w3.org/2000/svg"></svg>
+    <!-- width and height in em -->
+    <svg style="border: 1px solid black;" width="1em" height="2em" xmlns="http://www.w3.org/2000/svg"></svg>
+    <!-- width and height in em with style -->
+    <svg style="border: 1px solid black; font-size: 50px;"  width="2em" height="4em" xmlns="http://www.w3.org/2000/svg"></svg>
+  </body>
+</html>
+

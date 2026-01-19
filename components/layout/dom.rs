@@ -310,7 +310,7 @@ pub(crate) trait NodeExt<'dom> {
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
     fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
-    fn as_svg(&self) -> Option<SVGElementData>;
+    fn as_svg(&self) -> Option<SVGElementData<'dom>>;
     fn as_typeless_object_with_data_attribute(&self) -> Option<String>;
 
     fn ensure_inner_layout_data(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
@@ -343,7 +343,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         Some((resource, PhysicalSize::new(width, height)))
     }
 
-    fn as_svg(&self) -> Option<SVGElementData> {
+    fn as_svg(&self) -> Option<SVGElementData<'dom>> {
         self.svg_data()
     }
 

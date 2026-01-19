@@ -421,7 +421,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.media_data()
     }
 
-    fn svg_data(&self) -> Option<SVGElementData> {
+    fn svg_data(&self) -> Option<SVGElementData<'dom>> {
         let this = unsafe { self.get_jsmanaged() };
         this.svg_data()
     }
