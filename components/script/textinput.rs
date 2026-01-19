@@ -128,6 +128,9 @@ pub struct TextInput<T: ClipboardProvider> {
 
     /// Was last change made by set_content?
     was_last_change_by_set_content: bool,
+
+    /// Whether or not we are currently dragging in this [`TextInput`].
+    currently_dragging: bool,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -263,6 +266,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: Default::default(),
             selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
+            currently_dragging: Default::default(),
         }
     }
 
@@ -822,12 +826,48 @@ impl<T: ClipboardProvider> TextInput<T> {
         )
     }
 
+    fn edit_point_for_mouse_event(&self, node: &Node, event: &MouseEvent) -> RopeIndex {
+        node.owner_window()
+            .text_index_query_on_node_for_event(node, event)
+            .map(|grapheme_index| {
+                self.rope.move_by(
+                    Default::default(),
+                    RopeMovement::Grapheme,
+                    grapheme_index as isize,
+                )
+            })
+            .unwrap_or_else(|| self.rope.last_index())
+    }
+
+    /// Handle a mouse even that has happened in this [`TextInput`]. Returns `true` if the selection
+    /// in the input may have changed and `false` otherwise.
+    pub(crate) fn handle_mouse_event(&mut self, node: &Node, mouse_event: &MouseEvent) -> bool {
+        // Cancel any ongoing drags if we see a mouseup of any kind or notice
+        // that a button other than the primary button is pressed.
+        let event_type = mouse_event.upcast::<Event>().type_();
+        if event_type == atom!("mouseup") || mouse_event.Buttons() & 1 != 1 {
+            self.currently_dragging = false;
+        }
+
+        if event_type == atom!("mousedown") {
+            return self.handle_mousedown(node, mouse_event);
+        }
+
+        if event_type == atom!("mousemove") && self.currently_dragging {
+            self.edit_point = self.edit_point_for_mouse_event(node, mouse_event);
+            self.update_selection_direction();
+            return true;
+        }
+
+        false
+    }
+
     /// Handle a "mousedown" event that happened on this [`TextInput`], belonging to the
     /// given [`Node`].
     ///
     /// Returns `true` if the [`TextInput`] changed at all or `false` otherwise.
-    pub(crate) fn handle_mousedown(&mut self, node: &Node, event: &Event) -> bool {
-        assert_eq!(event.type_(), atom!("mousedown"));
+    fn handle_mousedown(&mut self, node: &Node, mouse_event: &MouseEvent) -> bool {
+        assert_eq!(mouse_event.upcast::<Event>().type_(), atom!("mousedown"));
 
         // Only update the cursor in text fields when the primary buton is pressed.
         //
@@ -835,39 +875,31 @@ impl<T: ClipboardProvider> TextInput<T> {
         // > 0 MUST indicate the primary button of the device (in general, the left button
         // > or the only button on single-button devices, used to activate a user interface
         // > control or select text) or the un-initialized value.
-        if event
-            .downcast::<MouseEvent>()
-            .is_none_or(|mouse_event| mouse_event.Button() != 0)
-        {
+        if mouse_event.Button() != 0 {
             return false;
         }
 
-        let Some(ui_event) = event.downcast::<UIEvent>() else {
-            return false;
-        };
-        match ui_event.Detail() {
+        self.currently_dragging = true;
+        match mouse_event.upcast::<UIEvent>().Detail() {
             3 => {
                 let word_boundaries = self.rope.line_boundaries(self.edit_point);
                 self.edit_point = word_boundaries.end;
                 self.selection_origin = Some(word_boundaries.start);
+                self.update_selection_direction();
                 true
             },
             2 => {
                 let word_boundaries = self.rope.relevant_word_boundaries(self.edit_point);
                 self.edit_point = word_boundaries.end;
                 self.selection_origin = Some(word_boundaries.start);
+                self.update_selection_direction();
                 true
             },
             1 => {
-                if let Some(grapheme_index) = node
-                    .owner_window()
-                    .text_index_query_on_node_for_event(node, event)
-                {
-                    self.clear_selection_to_start();
-                    self.modify_edit_point(grapheme_index as isize, RopeMovement::Grapheme);
-                } else {
-                    self.clear_selection_to_end();
-                }
+                self.clear_selection();
+                self.edit_point = self.edit_point_for_mouse_event(node, mouse_event);
+                self.selection_origin = Some(self.edit_point);
+                self.update_selection_direction();
                 true
             },
             _ => {

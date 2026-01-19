@@ -80,7 +80,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::types::{CharacterData, FocusEvent};
+use crate::dom::types::{CharacterData, FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -2894,15 +2894,23 @@ impl HTMLInputElement {
         }
     }
 
-    fn handle_mousedown(&self, event: &Event) {
+    fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
+        if mouse_event.upcast::<Event>().DefaultPrevented() {
+            return;
+        }
+
         // Only respond to mouse events if we are displayed as text input or a password. If the
         // placeholder is displayed, also don't do any interactive mouse event handling.
         if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
             return;
         }
         let node = self.upcast();
-        if self.textinput.borrow_mut().handle_mousedown(node, event) {
-            node.dirty(NodeDamage::Other);
+        if self
+            .textinput
+            .borrow_mut()
+            .handle_mouse_event(node, mouse_event)
+        {
+            self.maybe_update_shared_selection();
         }
     }
 }
@@ -3212,8 +3220,8 @@ impl VirtualMethods for HTMLInputElement {
             s.handle_event(event, can_gc);
         }
 
-        if event.type_() == atom!("mousedown") && !event.DefaultPrevented() {
-            self.handle_mousedown(event);
+        if let Some(mouse_event) = event.downcast::<MouseEvent>() {
+            self.handle_mouse_event(mouse_event);
         } else if event.type_() == atom!("keydown") &&
             !event.DefaultPrevented() &&
             self.input_type().is_textual_or_password()

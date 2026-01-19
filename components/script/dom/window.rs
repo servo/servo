@@ -3006,12 +3006,11 @@ impl Window {
     pub(crate) fn text_index_query_on_node_for_event(
         &self,
         node: &Node,
-        event: &Event,
+        mouse_event: &MouseEvent,
     ) -> Option<usize> {
         // dispatch_key_event (document.rs) triggers a click event when releasing
         // the space key. There's no nice way to catch this so let's use this for
         // now.
-        let mouse_event = event.downcast::<MouseEvent>()?;
         let point_in_viewport = mouse_event.point_in_viewport()?.map(Au::from_f32_px);
 
         self.layout_reflow(QueryMsg::TextIndexQuery);

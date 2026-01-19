@@ -12990,6 +12990,24 @@
       }
      ]
     ],
+    "mouse-text-selection-input-text.html": [
+     "c140004ae89fb8a73fb2a4d3c78382dde6134a07",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "mouse-text-selection-textarea.html": [
+     "f059a1dac29b36dec238580438b75138c8c89db9",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "mousedown-edit-point-input-text.html": [
      "69faa576c30300845a6e621c3b51093eae2a1c01",
      [

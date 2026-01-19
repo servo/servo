@@ -45,7 +45,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::types::{CharacterData, FocusEvent};
+use crate::dom::types::{CharacterData, FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -244,6 +244,26 @@ impl HTMLTextAreaElement {
             .upcast::<CharacterData>();
         if character_data.Data() != content {
             character_data.SetData(content);
+            self.maybe_update_shared_selection();
+        }
+    }
+
+    fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
+        if mouse_event.upcast::<Event>().DefaultPrevented() {
+            return;
+        }
+
+        // Only respond to mouse events if we are displayed as text input or a password. If the
+        // placeholder is displayed, also don't do any interactive mouse event handling.
+        if self.textinput.borrow().is_empty() {
+            return;
+        }
+        let node = self.upcast();
+        if self
+            .textinput
+            .borrow_mut()
+            .handle_mouse_event(node, mouse_event)
+        {
             self.maybe_update_shared_selection();
         }
     }
@@ -731,11 +751,8 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.handle_event(event, can_gc);
         }
 
-        let node = self.upcast();
-        if event.type_() == atom!("mousedown") && !event.DefaultPrevented() {
-            if self.textinput.borrow_mut().handle_mousedown(node, event) {
-                self.maybe_update_shared_selection();
-            }
+        if let Some(mouse_event) = event.downcast::<MouseEvent>() {
+            self.handle_mouse_event(mouse_event);
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
@@ -758,14 +775,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.handle_key_reaction(action, event, can_gc);
-                    node.dirty(NodeDamage::Other);
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
                     self.handle_key_reaction(action, event, can_gc);
-                    node.dirty(NodeDamage::Other);
+                    self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 self.maybe_update_shared_selection();
                 event.mark_as_handled();
