@@ -22,6 +22,7 @@ use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::globalscope::GlobalScope;
@@ -470,12 +471,8 @@ pub(crate) fn HostLoadImportedModule(
     );
 
     // Step 9 If the previous step threw an exception, then:
-    let Ok(url) = url else {
-        let resolution_error = gen_type_error(
-            &global_scope,
-            "Wrong module specifier".to_string(),
-            CanGc::note(),
-        );
+    if let Err(error) = url {
+        let resolution_error = gen_type_error(&global_scope, error, CanGc::note());
 
         // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
         // set loadState.[[ErrorToRethrow]] to resolutionError.
@@ -499,6 +496,7 @@ pub(crate) fn HostLoadImportedModule(
         return;
     };
 
+    let url = url.unwrap();
     debug!("Starting fetch for {specifier} {url}");
 
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
@@ -524,25 +522,24 @@ pub(crate) fn HostLoadImportedModule(
         let completion = if module_tree.get_network_error().borrow().is_some() {
             Err(gen_type_error(
                 global,
-                "Module fetching failed".to_string(),
+                Error::Type("Module fetching failed".to_string()),
                 CanGc::note(),
             ))
         } else {
-            // Step 3.1 Let parseError be moduleScript's parse error.
-            let parse_error = module_tree.get_rethrow_error().borrow().as_ref().cloned();
-
             // Step 3. Otherwise, if moduleScript's parse error is not null, then:
-            if let Some(error) = parse_error {
+            // Step 3.1 Let parseError be moduleScript's parse error.
+            if let Some(parse_error) = module_tree.get_parse_error().borrow().as_ref() {
                 // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
                 // set loadState.[[ErrorToRethrow]] to parseError.
                 if let Some(load_state) = load_state {
                     load_state
                         .error_to_rethrow
                         .borrow_mut()
-                        .get_or_insert(error.clone());
+                        .get_or_insert(parse_error.clone());
                 }
+
                 // Step 3.2 Set completion to ThrowCompletion(parseError).
-                Err(error)
+                Err(parse_error.clone())
             } else {
                 assert!(
                     module_tree

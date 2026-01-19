@@ -83,9 +83,9 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::NonSendTaskBox;
 
-pub(crate) fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> RethrowError {
+pub(crate) fn gen_type_error(global: &GlobalScope, error: Error, can_gc: CanGc) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut(), can_gc);
+    error.to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut(), can_gc);
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -213,6 +213,8 @@ pub(crate) struct ModuleTree {
     #[no_trace]
     visited_urls: DomRefCell<HashSet<ServoUrl>>,
     #[ignore_malloc_size_of = "mozjs"]
+    parse_error: DomRefCell<Option<RethrowError>>,
+    #[ignore_malloc_size_of = "mozjs"]
     rethrow_error: DomRefCell<Option<RethrowError>>,
     #[no_trace]
     network_error: DomRefCell<Option<NetworkError>>,
@@ -237,6 +239,7 @@ impl ModuleTree {
             descendant_urls: DomRefCell::new(IndexSet::new()),
             incomplete_fetch_urls: DomRefCell::new(IndexSet::new()),
             visited_urls: DomRefCell::new(visited_urls),
+            parse_error: DomRefCell::new(None),
             rethrow_error: DomRefCell::new(None),
             network_error: DomRefCell::new(None),
             promise: DomRefCell::new(None),
@@ -263,6 +266,14 @@ impl ModuleTree {
 
     pub(crate) fn set_record(&self, record: ModuleObject) {
         *self.record.borrow_mut() = Some(record);
+    }
+
+    pub(crate) fn get_parse_error(&self) -> &DomRefCell<Option<RethrowError>> {
+        &self.parse_error
+    }
+
+    pub(crate) fn set_parse_error(&self, parse_error: RethrowError) {
+        *self.parse_error.borrow_mut() = Some(parse_error);
     }
 
     pub(crate) fn get_rethrow_error(&self) -> &DomRefCell<Option<RethrowError>> {
@@ -524,8 +535,8 @@ impl ModuleTree {
             if module_script.is_null() {
                 warn!("fail to compile module script of {}", url);
 
-                let exception = RethrowError::from_pending_exception(cx);
-                return self.set_rethrow_error(exception);
+                self.set_parse_error(RethrowError::from_pending_exception(cx));
+                return;
             }
 
             let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
@@ -658,11 +669,8 @@ impl ModuleTree {
                 let script = module_script_from_reference_private(&private);
                 let url = ModuleTree::resolve_module_specifier(global, script, specifier, can_gc);
 
-                if url.is_err() {
-                    let specifier_error =
-                        gen_type_error(global, "Wrong module specifier".to_owned(), can_gc);
-
-                    return Err(specifier_error);
+                if let Err(specifier_error) = url {
+                    return Err(gen_type_error(global, specifier_error, can_gc));
                 }
 
                 specifier_urls.insert(url.unwrap());
@@ -999,7 +1007,7 @@ impl FetchResponseListener for ModuleContext {
             module_tree.compile_module_script(
                 self.owner.clone(),
                 Rc::new(DOMString::from(source_text)),
-                &self.url,
+                &final_url,
                 self.options,
                 false,
                 1,
@@ -1279,7 +1287,7 @@ pub(crate) fn fetch_an_external_module_script(
         Some(IntroductionType::SRC_SCRIPT),
         move |_, module_tree| {
             // Step 1.1. If result is null, run onComplete given null, and abort these steps.
-            if module_tree.get_record().borrow().is_none() {
+            if module_tree.get_network_error().borrow().is_some() {
                 return owner.notify_owner_to_finish(None, can_gc);
             }
 
@@ -1347,7 +1355,11 @@ fn fetch_the_descendants_and_link_module_script(
     // Step 1. Let record be moduleScript's record.
     // Step 2. If record is null, then:
     if module_script.get_record().borrow().is_none() {
+        let parse_error = module_script.get_parse_error().borrow().as_ref().cloned();
+
         // Step 2.1. Set moduleScript's error to rethrow to moduleScript's parse error.
+        module_script.set_rethrow_error(parse_error.unwrap());
+
         // Step 2.2. Run onComplete given moduleScript.
         owner.notify_owner_to_finish(Some(module_script), can_gc);
 
@@ -1453,10 +1465,13 @@ pub(crate) fn fetch_a_single_module_script(
     let has_pending_fetch = {
         if let Some(module_tree) = global.get_module_tree(&url) {
             if module_tree.get_record().borrow().is_none() &&
-                module_tree.get_network_error().borrow().is_none()
+                module_tree.get_network_error().borrow().is_none() &&
+                module_tree.get_rethrow_error().borrow().is_none()
             {
+                debug!("Found a pending fetch for {url}");
                 true
             } else {
+                debug!("Module map has a module ready for {url}");
                 // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
                 return on_complete(&global, module_tree);
             }
@@ -1489,6 +1504,8 @@ pub(crate) fn fetch_a_single_module_script(
     if has_pending_fetch {
         return;
     }
+
+    debug!("Starting fetch for {url}");
 
     let document: Option<DomRoot<Document>> = match &owner {
         ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
