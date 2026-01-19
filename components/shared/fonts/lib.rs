@@ -9,7 +9,7 @@ mod font_identifier;
 mod font_template;
 mod system_font_service_proxy;
 
-use std::ops::{Deref, Neg, Range};
+use std::ops::{Deref, Range};
 use std::sync::Arc;
 
 use base::generic_channel::GenericSharedMemory;
@@ -40,20 +40,11 @@ use webrender_api::euclid::num::One;
     Serialize,
     Zero,
 )]
-pub struct ByteIndex(pub isize);
+pub struct ByteIndex(pub usize);
 
-impl From<ByteIndex> for usize {
-    fn from(value: ByteIndex) -> Self {
-        value.0 as usize
-    }
-}
-
-impl Neg for ByteIndex {
-    type Output = Self;
-
-    #[inline]
-    fn neg(self) -> Self {
-        Self(-self.0)
+impl ByteIndex {
+    pub fn get(&self) -> usize {
+        self.0
     }
 }
 

@@ -153,7 +153,7 @@ fn shape_text_harfbuzz<ShapedGlyphData: HarfBuzzShapedGlyphData>(
 
         // Now byte_range is the ligature clump formed by the glyphs in glyph_span.
         // We will save these glyphs to the glyph store at the index of the first byte.
-        let byte_idx = ByteIndex(byte_range.start as isize);
+        let byte_idx = ByteIndex(byte_range.start);
 
         if glyph_span.len() == 1 {
             // Fast path: 1-to-1 mapping of byte offset to single glyph.

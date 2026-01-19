@@ -481,7 +481,7 @@ impl Font {
             });
 
             let glyph = GlyphData::new(glyph_id, advance, offset, true, true);
-            glyphs.add_glyph_for_byte_index(ByteIndex(i as isize), character, &glyph);
+            glyphs.add_glyph_for_byte_index(ByteIndex(i), character, &glyph);
             prev_glyph_id = Some(glyph_id);
         }
         glyphs.finalize_changes();
