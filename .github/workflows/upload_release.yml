@@ -42,6 +42,7 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           artifact-ids: ${{ inputs.artifact_ids }}
+          merge-multiple: true
           path: release-artifacts
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
