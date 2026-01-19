@@ -240,7 +240,7 @@ impl BrowsingContextActor {
 
         let tabdesc = TabDescriptorActor::new(actors, name.clone(), is_top_level_global);
 
-        let thread = ThreadActor::new(actors.new_name::<ThreadActor>());
+        let thread = ThreadActor::new(actors.new_name::<ThreadActor>(), script_sender.clone());
 
         let watcher = WatcherActor::new(
             actors,

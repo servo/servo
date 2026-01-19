@@ -186,7 +186,7 @@ impl ConsoleActor {
             ActorValue { class, uuid } => {
                 // TODO: Make initial ActorValue message include these properties?
                 let mut m = Map::new();
-                let actor = ObjectActor::register(registry, uuid);
+                let actor = ObjectActor::register(registry, Some(uuid));
 
                 m.insert("type".to_owned(), Value::String("object".to_owned()));
                 m.insert("class".to_owned(), Value::String(class));
@@ -199,6 +199,7 @@ impl ConsoleActor {
         };
 
         // TODO: Catch and return exception values from JS evaluation
+        // TODO: This should have a has_exception field
         let reply = EvaluateJSReply {
             from: self.name(),
             input,

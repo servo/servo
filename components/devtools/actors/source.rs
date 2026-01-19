@@ -46,6 +46,26 @@ pub(crate) struct SourceManager {
 }
 
 impl SourceManager {
+    pub fn new() -> Self {
+        Self {
+            source_actor_names: AtomicRefCell::new(BTreeSet::default()),
+        }
+    }
+
+    pub fn add_source(&self, actor_name: &str) {
+        self.source_actor_names
+            .borrow_mut()
+            .insert(actor_name.to_owned());
+    }
+
+    pub fn source_forms(&self, actors: &ActorRegistry) -> Vec<SourceForm> {
+        self.source_actor_names
+            .borrow()
+            .iter()
+            .map(|actor_name| actors.find::<SourceActor>(actor_name).source_form())
+            .collect()
+    }
+
     pub fn find_source(
         &self,
         registry: &ActorRegistry,
@@ -118,28 +138,6 @@ struct GetBreakpointPositionsQuery {
 #[derive(Deserialize)]
 struct GetBreakpointPositionsRequest {
     query: GetBreakpointPositionsQuery,
-}
-
-impl SourceManager {
-    pub fn new() -> Self {
-        Self {
-            source_actor_names: AtomicRefCell::new(BTreeSet::default()),
-        }
-    }
-
-    pub fn add_source(&self, actor_name: &str) {
-        self.source_actor_names
-            .borrow_mut()
-            .insert(actor_name.to_owned());
-    }
-
-    pub fn source_forms(&self, actors: &ActorRegistry) -> Vec<SourceForm> {
-        self.source_actor_names
-            .borrow()
-            .iter()
-            .map(|actor_name| actors.find::<SourceActor>(actor_name).source_form())
-            .collect()
-    }
 }
 
 impl SourceActor {

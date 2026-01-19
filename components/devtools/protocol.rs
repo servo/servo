@@ -142,6 +142,15 @@ impl<'req> ClientRequest<'req, '_> {
     /// allowing other messages to be sent after replying to a request.
     pub fn reply<T: Serialize>(self, reply: &T) -> Result<&'req mut TcpStream, ActorError> {
         debug_assert!(self.is_valid_reply(reply), "Message is not a valid reply");
+        self.reply_unchecked(reply)
+    }
+
+    /// Like `reply`, but it doesn't check if it is a valid reply.
+    /// Sometimes the client breaks the rules and expects an out of form message.
+    pub fn reply_unchecked<T: Serialize>(
+        self,
+        reply: &T,
+    ) -> Result<&'req mut TcpStream, ActorError> {
         self.stream.write_json_packet(reply)?;
         *self.sent = true;
         Ok(self.stream)
@@ -149,7 +158,6 @@ impl<'req> ClientRequest<'req, '_> {
 
     /// Like `reply`, but for cases where the actor no longer needs the stream.
     pub fn reply_final<T: Serialize>(self, reply: &T) -> Result<(), ActorError> {
-        debug_assert!(self.is_valid_reply(reply), "Message is not a valid reply");
         let _stream = self.reply(reply)?;
         Ok(())
     }
