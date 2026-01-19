@@ -145,33 +145,33 @@ pub(crate) struct InlineFormattingContext {
     /// [`InlineItem::StartInlineBox`] and [`InlineItem::EndInlineBox`] allow representing
     /// the tree of inline boxes within the formatting context, but a flat array allows
     /// easy iteration through all inline items.
-    pub(super) inline_items: Vec<InlineItem>,
+    inline_items: Vec<InlineItem>,
 
     /// The tree of inline boxes in this [`InlineFormattingContext`]. These are stored in
     /// a flat array with each being given a [`InlineBoxIdentifier`].
-    pub(super) inline_boxes: InlineBoxes,
+    inline_boxes: InlineBoxes,
 
     /// The text content of this inline formatting context.
-    pub(super) text_content: String,
+    text_content: String,
 
     /// The [`SharedInlineStyles`] for the root of this [`InlineFormattingContext`] that are used to
     /// share styles with all [`TextRun`] children.
-    pub(super) shared_inline_styles: SharedInlineStyles,
+    shared_inline_styles: SharedInlineStyles,
 
     /// Whether this IFC contains the 1st formatted line of an element:
     /// <https://www.w3.org/TR/css-pseudo-4/#first-formatted-line>.
-    pub(super) has_first_formatted_line: bool,
+    has_first_formatted_line: bool,
 
     /// Whether or not this [`InlineFormattingContext`] contains floats.
     pub(super) contains_floats: bool,
 
     /// Whether or not this is an [`InlineFormattingContext`] for a single line text input's inner
     /// text container.
-    pub(super) is_single_line_text_input: bool,
+    is_single_line_text_input: bool,
 
     /// Whether or not this is an [`InlineFormattingContext`] has right-to-left content, which
     /// will require reordering during layout.
-    pub(super) has_right_to_left_content: bool,
+    has_right_to_left_content: bool,
 }
 
 /// [`TextRun`] and `TextFragment`s need a handle on their parent inline box (or inline
@@ -759,13 +759,13 @@ impl UnbreakableSegmentUnderConstruction {
 }
 
 bitflags! {
-    pub struct InlineContainerStateFlags: u8 {
+    struct InlineContainerStateFlags: u8 {
         const CREATE_STRUT = 0b0001;
         const IS_SINGLE_LINE_TEXT_INPUT = 0b0010;
     }
 }
 
-pub(super) struct InlineContainerState {
+struct InlineContainerState {
     /// The style of this inline container.
     style: ServoArc<ComputedValues>,
 
@@ -801,7 +801,7 @@ pub(super) struct InlineContainerState {
     number_of_glyphs: Cell<usize>,
 }
 
-pub(super) struct InlineFormattingContextLayout<'layout_data> {
+struct InlineFormattingContextLayout<'layout_data> {
     positioning_context: &'layout_data mut PositioningContext,
     placement_state: PlacementState<'layout_data>,
     sequential_layout_state: Option<&'layout_data mut SequentialLayoutState>,
@@ -1491,7 +1491,7 @@ impl InlineFormattingContextLayout<'_> {
         inline_would_overflow
     }
 
-    pub(super) fn defer_forced_line_break(&mut self) {
+    fn defer_forced_line_break(&mut self) {
         // If the current portion of the unbreakable segment does not fit on the current line
         // we need to put it on a new line *before* actually triggering the hard line break.
         if !self.unbreakable_segment_fits_on_line() {
@@ -1523,7 +1523,7 @@ impl InlineFormattingContextLayout<'_> {
         }
     }
 
-    pub(super) fn possibly_flush_deferred_forced_line_break(&mut self) {
+    fn possibly_flush_deferred_forced_line_break(&mut self) {
         if !self.linebreak_before_new_content {
             return;
         }
@@ -1538,7 +1538,7 @@ impl InlineFormattingContextLayout<'_> {
             .push_line_item(line_item, self.inline_box_state_stack.len());
     }
 
-    pub(super) fn push_glyph_store_to_unbreakable_segment(
+    fn push_glyph_store_to_unbreakable_segment(
         &mut self,
         glyph_store: Arc<GlyphStore>,
         text_run: &TextRun,
@@ -1685,7 +1685,7 @@ impl InlineFormattingContextLayout<'_> {
         self.finish_current_line_and_reset(forced_line_break);
     }
 
-    pub(super) fn unbreakable_segment_fits_on_line(&mut self) -> bool {
+    fn unbreakable_segment_fits_on_line(&mut self) -> bool {
         let potential_line_size = LogicalVec2 {
             inline: self.current_line.inline_position + self.current_line_segment.inline_size -
                 self.current_line_segment.trailing_whitespace_size,
@@ -1701,7 +1701,7 @@ impl InlineFormattingContextLayout<'_> {
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
     /// segment to the current line, if it fits within the containing block and float
     /// placement boundaries, or do a line break and then commit the segment.
-    pub(super) fn process_soft_wrap_opportunity(&mut self) {
+    fn process_soft_wrap_opportunity(&mut self) {
         if self.current_line_segment.line_items.is_empty() {
             return;
         }
@@ -1772,7 +1772,7 @@ impl InlineFormattingContextLayout<'_> {
 }
 
 bitflags! {
-    pub struct SegmentContentFlags: u8 {
+    struct SegmentContentFlags: u8 {
         const COLLAPSIBLE_WHITESPACE = 0b00000001;
         const WRAPPABLE_AND_HANGABLE_WHITESPACE = 0b00000010;
     }
@@ -1814,7 +1814,7 @@ impl From<&InheritedText> for SegmentContentFlags {
 
 impl InlineFormattingContext {
     #[servo_tracing::instrument(name = "InlineFormattingContext::new_with_builder", skip_all)]
-    pub(super) fn new_with_builder(
+    fn new_with_builder(
         mut builder: InlineFormattingContextBuilder,
         layout_context: &LayoutContext,
         has_first_formatted_line: bool,
@@ -1882,10 +1882,7 @@ impl InlineFormattingContext {
         *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
     }
 
-    pub(crate) fn inline_start_for_first_line(
-        &self,
-        containing_block: IndefiniteContainingBlock,
-    ) -> Au {
+    fn inline_start_for_first_line(&self, containing_block: IndefiniteContainingBlock) -> Au {
         if !self.has_first_formatted_line {
             return Au::zero();
         }
