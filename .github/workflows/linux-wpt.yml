@@ -100,7 +100,6 @@ jobs:
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
           ./mach update-wpt --sync --patch
-      - run: |
       - name: Run tests
         run: |
           mkdir -p wpt-filtered-logs/linux
