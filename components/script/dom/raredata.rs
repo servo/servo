@@ -4,8 +4,9 @@
 
 use std::rc::Rc;
 
-use euclid::default::Rect;
+use euclid::Rect;
 use style::selector_parser::PseudoElement;
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
@@ -78,7 +79,7 @@ pub(crate) struct ElementRareData {
     pub(crate) name_attribute: Option<Atom>,
     /// The client rect reported by layout.
     #[no_trace]
-    pub(crate) client_rect: Option<LayoutValue<Rect<i32>>>,
+    pub(crate) client_rect: Option<LayoutValue<Rect<i32, CSSPixel>>>,
     /// <https://html.spec.whatwg.org/multipage#elementinternals>
     pub(crate) element_internals: Option<Dom<ElementInternals>>,
 

@@ -42,13 +42,13 @@ impl LargestContentfulPaintCandidateCollector {
             .intersection(&clip_rect)
             .unwrap_or(LayoutRect::zero());
         let transformed_rect = transform_au_rectangle(
-            f32_rect_to_au_rect(clipped_rect.to_rect().to_untyped()),
+            f32_rect_to_au_rect(clipped_rect.to_rect().cast_unit()),
             transform,
         )
         .unwrap_or_default();
         let transformed_rect = au_rect_to_f32_rect(transformed_rect);
         let visual_rect = transformed_rect
-            .intersection(&self.viewport_rect.to_rect().to_untyped())
+            .intersection(&self.viewport_rect.to_rect().cast_unit())
             .unwrap_or(Rect::zero());
         let area = visual_rect.size.width * visual_rect.size.height;
         if area == 0.0 {

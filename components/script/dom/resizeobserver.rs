@@ -6,12 +6,12 @@ use std::rc::Rc;
 
 use app_units::Au;
 use dom_struct::dom_struct;
-use euclid::Size2D;
-use euclid::default::Rect;
 use euclid::num::Zero;
+use euclid::{Rect, Size2D};
 use html5ever::ns;
 use js::rust::HandleObject;
 use layout_api::BoxAreaType;
+use style_traits::CSSPixel;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
@@ -371,7 +371,10 @@ fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
 /// For `ResizeObserverBoxOptions::Content_box` and `ResizeObserverBoxOptions::Border_box`,
 /// the values will be in `px`. For `ResizeObserverBoxOptions::Device_pixel_content_box` they
 /// will be in integral device pixels.
-fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions) -> Rect<f64> {
+fn calculate_box_size(
+    target: &Element,
+    observed_box: &ResizeObserverBoxOptions,
+) -> Rect<f64, CSSPixel> {
     match observed_box {
         ResizeObserverBoxOptions::Content_box => {
             // Note: only taking first fragment,

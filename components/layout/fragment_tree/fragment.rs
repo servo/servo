@@ -8,7 +8,7 @@ use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
-use euclid::{Point2D, Rect, Size2D, UnknownUnit};
+use euclid::{Point2D, Rect, Size2D};
 use fonts::{ByteIndex, FontMetrics, GlyphStore, TextByteRange};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
@@ -241,7 +241,7 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn client_rect(&self) -> Rect<i32, UnknownUnit> {
+    pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
         let rect = match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
@@ -267,8 +267,7 @@ impl Fragment {
                 }
             },
             _ => return Rect::zero(),
-        }
-        .to_untyped();
+        };
 
         let rect = Rect::new(
             Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),

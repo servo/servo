@@ -42,7 +42,7 @@ use embedder_traits::{
     WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::default::Rect as UntypedRect;
-use euclid::{Point2D, Scale, Size2D, Vector2D};
+use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
 use js::glue::DumpJSStack;
 use js::jsapi::{
@@ -2818,7 +2818,7 @@ impl Window {
         node: &Node,
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
-    ) -> Option<UntypedRect<Au>> {
+    ) -> Option<Rect<Au, CSSPixel>> {
         let layout = self.layout.borrow();
         layout.ensure_stacking_context_tree(self.viewport_details.get());
         layout.query_box_area(
@@ -2833,19 +2833,23 @@ impl Window {
         node: &Node,
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
-    ) -> Option<UntypedRect<Au>> {
+    ) -> Option<Rect<Au, CSSPixel>> {
         self.layout_reflow(QueryMsg::BoxArea);
         self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
-    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> Vec<UntypedRect<Au>> {
+    pub(crate) fn box_areas_query(
+        &self,
+        node: &Node,
+        area: BoxAreaType,
+    ) -> Vec<Rect<Au, CSSPixel>> {
         self.layout_reflow(QueryMsg::BoxAreas);
         self.layout
             .borrow()
             .query_box_areas(node.to_trusted_node_address(), area)
     }
 
-    pub(crate) fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
+    pub(crate) fn client_rect_query(&self, node: &Node) -> Rect<i32, CSSPixel> {
         self.layout_reflow(QueryMsg::ClientRectQuery);
         self.layout
             .borrow()
@@ -2861,7 +2865,7 @@ impl Window {
 
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
-    pub(crate) fn scrolling_area_query(&self, node: Option<&Node>) -> UntypedRect<i32> {
+    pub(crate) fn scrolling_area_query(&self, node: Option<&Node>) -> Rect<i32, CSSPixel> {
         self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery);
         self.layout
             .borrow()
@@ -2955,7 +2959,7 @@ impl Window {
     pub(crate) fn offset_parent_query(
         &self,
         node: &Node,
-    ) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
+    ) -> (Option<DomRoot<Element>>, Rect<Au, CSSPixel>) {
         self.layout_reflow(QueryMsg::OffsetParentQuery);
         let response = self
             .layout

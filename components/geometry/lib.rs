@@ -6,7 +6,7 @@ use std::f32;
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
-use euclid::{Box2D, Length, Point2D, Scale, SideOffsets2D, Size2D, Vector2D};
+use euclid::{Box2D, Length, Point2D, Rect, Scale, SideOffsets2D, Size2D, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
 use webrender::FastTransform;
 use webrender_api::units::{
@@ -94,8 +94,8 @@ impl MaxRect for LayoutRect {
 }
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
-pub fn f32_rect_to_au_rect(rect: UntypedRect<f32>) -> UntypedRect<Au> {
-    UntypedRect::new(
+pub fn f32_rect_to_au_rect<T>(rect: Rect<f32, T>) -> Rect<Au, T> {
+    Rect::new(
         Point2D::new(
             Au::from_f32_px(rect.origin.x),
             Au::from_f32_px(rect.origin.y),
@@ -108,8 +108,8 @@ pub fn f32_rect_to_au_rect(rect: UntypedRect<f32>) -> UntypedRect<Au> {
 }
 
 /// A helper function to convert a rect of `Au` pixels to a rect of f32 units.
-pub fn au_rect_to_f32_rect(rect: UntypedRect<Au>) -> UntypedRect<f32> {
-    UntypedRect::new(
+pub fn au_rect_to_f32_rect<T>(rect: Rect<Au, T>) -> Rect<f32, T> {
+    Rect::new(
         Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
         Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
     )

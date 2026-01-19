@@ -19,8 +19,7 @@ use compositing_traits::CrossProcessPaintApi;
 use compositing_traits::display_list::ScrollType;
 use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
-use euclid::default::Rect as UntypedRect;
-use euclid::{Point2D, Scale, Size2D};
+use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use layout_api::wrapper_traits::LayoutNode;
@@ -326,7 +325,7 @@ impl Layout for LayoutThread {
         node: TrustedNodeAddress,
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
-    ) -> Option<UntypedRect<Au>> {
+    ) -> Option<Rect<Au, CSSPixel>> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
         if self.fragment_tree.borrow().is_none() {
@@ -351,7 +350,11 @@ impl Layout for LayoutThread {
     ///
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<UntypedRect<Au>> {
+    fn query_box_areas(
+        &self,
+        node: TrustedNodeAddress,
+        area: BoxAreaType,
+    ) -> Vec<Rect<Au, CSSPixel>> {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
         if self.fragment_tree.borrow().is_none() {
@@ -367,7 +370,7 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_client_rect(&self, node: TrustedNodeAddress) -> UntypedRect<i32> {
+    fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel> {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_client_rect_request(node.to_threadsafe())
     }
@@ -473,7 +476,7 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> UntypedRect<i32> {
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel> {
         let node = node.map(|node| unsafe { ServoLayoutNode::new(&node).to_threadsafe() });
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }

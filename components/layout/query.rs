@@ -7,7 +7,6 @@ use std::rc::Rc;
 
 use app_units::Au;
 use compositing_traits::display_list::ScrollTree;
-use euclid::default::Rect as UntypedRect;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
@@ -93,7 +92,7 @@ pub(crate) fn process_box_area_request(
     node: ServoThreadSafeLayoutNode<'_>,
     area: BoxAreaType,
     exclude_transform_and_inline: bool,
-) -> Option<UntypedRect<Au>> {
+) -> Option<Rect<Au, CSSPixel>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
@@ -108,9 +107,9 @@ pub(crate) fn process_box_area_request(
     if rects.is_empty() {
         return None;
     }
-    let rect_union = rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
-        rect.to_untyped().union(&unioned_rect)
-    });
+    let rect_union = rects
+        .iter()
+        .fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
 
     if exclude_transform_and_inline {
         return Some(rect_union);
@@ -129,12 +128,11 @@ pub(crate) fn process_box_areas_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoThreadSafeLayoutNode<'_>,
     area: BoxAreaType,
-) -> Vec<UntypedRect<Au>> {
+) -> Vec<Rect<Au, CSSPixel>> {
     let fragments = node.fragments_for_pseudo(None);
     let box_areas = fragments
         .iter()
-        .filter_map(|node| node.cumulative_box_area_rect(area))
-        .map(|rect| rect.to_untyped());
+        .filter_map(|node| node.cumulative_box_area_rect(area));
 
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
@@ -149,7 +147,7 @@ pub(crate) fn process_box_areas_request(
         .collect()
 }
 
-pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> UntypedRect<i32> {
+pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> Rect<i32, CSSPixel> {
     node.fragments_for_pseudo(None)
         .first()
         .map(Fragment::client_rect)
@@ -179,7 +177,7 @@ pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
 pub fn process_node_scroll_area_request(
     requested_node: Option<ServoThreadSafeLayoutNode<'_>>,
     fragment_tree: Option<Rc<FragmentTree>>,
-) -> UntypedRect<i32> {
+) -> Rect<i32, CSSPixel> {
     let Some(tree) = fragment_tree else {
         return Rect::zero();
     };
@@ -199,7 +197,6 @@ pub fn process_node_scroll_area_request(
     )
     .round()
     .to_i32()
-    .to_untyped()
 }
 
 /// Return the resolved value of property for a given (pseudo)element.
@@ -698,7 +695,7 @@ pub fn process_offset_parent_query(
     let Some(offset_parent_fragment) = offset_parent_fragments(node) else {
         return Some(OffsetParentResponse {
             node_address: None,
-            rect: border_box.to_untyped(),
+            rect: border_box,
         });
     };
 
@@ -757,7 +754,7 @@ pub fn process_offset_parent_query(
 
     Some(OffsetParentResponse {
         node_address: parent_fragment.base.tag.map(|tag| tag.node.into()),
-        rect: border_box.to_untyped(),
+        rect: border_box,
     })
 }
 
@@ -1462,9 +1459,9 @@ where
 }
 
 pub(crate) fn transform_au_rectangle(
-    rect_to_transform: UntypedRect<Au>,
+    rect_to_transform: Rect<Au, CSSPixel>,
     transform: FastLayoutTransform,
-) -> Option<UntypedRect<Au>> {
+) -> Option<Rect<Au, CSSPixel>> {
     let rect_to_transform = &au_rect_to_f32_rect(rect_to_transform).cast_unit();
     let outer_transformed_rect = match transform {
         FastLayoutTransform::Offset(offset) => Some(rect_to_transform.translate(offset)),
@@ -1472,6 +1469,5 @@ pub(crate) fn transform_au_rectangle(
             transform.outer_transformed_rect(rect_to_transform)
         },
     };
-    outer_transformed_rect
-        .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()))
+    outer_transformed_rect.map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
 }
