@@ -142,7 +142,12 @@ impl RequestListener {
                 IdbResult::Keys(keys) => {
                     rooted!(in(*cx) let mut array = vec![JSVal::default(); keys.len()]);
                     for (i, key) in keys.into_iter().enumerate() {
-                        key_type_to_jsval(GlobalScope::get_cx(), &key, array.handle_mut_at(i), can_gc);
+                        key_type_to_jsval(
+                            GlobalScope::get_cx(),
+                            &key,
+                            array.handle_mut_at(i),
+                            can_gc,
+                        );
                     }
                     array.safe_to_jsval(cx, answer.handle_mut(), can_gc);
                 },
@@ -164,7 +169,12 @@ impl RequestListener {
                         let result = bincode::deserialize(&serialized_data)
                             .map_err(|_| Error::Data(None))
                             .and_then(|data| {
-                                structuredclone::read(&global, data, values.handle_mut_at(i), can_gc)
+                                structuredclone::read(
+                                    &global,
+                                    data,
+                                    values.handle_mut_at(i),
+                                    can_gc,
+                                )
                             });
                         if let Err(e) = result {
                             warn!("Error reading structuredclone data");
