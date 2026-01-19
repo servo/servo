@@ -318,7 +318,7 @@ impl DocumentEventHandler {
         if let Some(current_hover_target) = self.current_hover_target.get() {
             let current_hover_target = current_hover_target.upcast::<Node>();
             for element in current_hover_target
-                .inclusive_ancestors(ShadowIncluding::No)
+                .inclusive_ancestors(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 element.set_hover_state(false);
@@ -330,11 +330,9 @@ impl DocumentEventHandler {
                 .get()
                 .and_then(|point| self.window.hit_test_from_point_in_viewport(point))
             {
-                MouseEvent::new_simple(
+                MouseEvent::new_for_platform_motion_event(
                     &self.window,
                     FireMouseEventType::Out,
-                    EventBubbles::Bubbles,
-                    EventCancelable::Cancelable,
                     &hit_test_result,
                     input_event,
                     can_gc,
@@ -387,7 +385,7 @@ impl DocumentEventHandler {
 
         let common_ancestor = match related_target.as_ref() {
             Some(related_target) => event_target
-                .common_ancestor(related_target, ShadowIncluding::No)
+                .common_ancestor(related_target, ShadowIncluding::Yes)
                 .unwrap_or_else(|| DomRoot::from_ref(&*event_target)),
             None => DomRoot::from_ref(&*event_target),
         };
@@ -411,11 +409,9 @@ impl DocumentEventHandler {
         }
 
         for target in targets {
-            MouseEvent::new_simple(
+            MouseEvent::new_for_platform_motion_event(
                 &self.window,
                 event_type,
-                EventBubbles::DoesNotBubble,
-                EventCancelable::NotCancelable,
                 hit_test_result,
                 input_event,
                 can_gc,
@@ -437,7 +433,7 @@ impl DocumentEventHandler {
 
         let Some(new_target) = hit_test_result
             .node
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(DomRoot::downcast::<Element>)
         else {
             return;
@@ -470,11 +466,9 @@ impl DocumentEventHandler {
                     }
                 }
 
-                MouseEvent::new_simple(
+                MouseEvent::new_for_platform_motion_event(
                     &self.window,
                     FireMouseEventType::Out,
-                    EventBubbles::Bubbles,
-                    EventCancelable::Cancelable,
                     &hit_test_result,
                     input_event,
                     can_gc,
@@ -499,23 +493,21 @@ impl DocumentEventHandler {
             // Dispatch mouseover and mouseenter to new target.
             for element in new_target
                 .upcast::<Node>()
-                .inclusive_ancestors(ShadowIncluding::No)
+                .inclusive_ancestors(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 element.set_hover_state(true);
             }
 
-            MouseEvent::new_simple(
+            MouseEvent::new_for_platform_motion_event(
                 &self.window,
                 FireMouseEventType::Over,
-                EventBubbles::Bubbles,
-                EventCancelable::Cancelable,
                 &hit_test_result,
                 input_event,
                 can_gc,
             )
             .upcast::<Event>()
-            .fire(new_target.upcast(), can_gc);
+            .dispatch(new_target.upcast(), false, can_gc);
 
             let moving_from = self
                 .current_hover_target
@@ -534,11 +526,9 @@ impl DocumentEventHandler {
 
         // Send mousemove event to topmost target, unless it's an iframe, in which case
         // `Paint` should have also sent an event to the inner document.
-        MouseEvent::new_simple(
+        MouseEvent::new_for_platform_motion_event(
             &self.window,
             FireMouseEventType::Move,
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
             &hit_test_result,
             input_event,
             can_gc,
@@ -565,7 +555,7 @@ impl DocumentEventHandler {
         if let Some(target) = self.current_hover_target.get() {
             if let Some(anchor) = target
                 .upcast::<Node>()
-                .inclusive_ancestors(ShadowIncluding::No)
+                .inclusive_ancestors(ShadowIncluding::Yes)
                 .find_map(DomRoot::downcast::<HTMLAnchorElement>)
             {
                 let status = anchor
@@ -584,7 +574,7 @@ impl DocumentEventHandler {
         if previous_hover_target.is_none_or(|previous_hover_target| {
             previous_hover_target
                 .upcast::<Node>()
-                .inclusive_ancestors(ShadowIncluding::No)
+                .inclusive_ancestors(ShadowIncluding::Yes)
                 .any(|node| node.is::<HTMLAnchorElement>())
         }) {
             self.window
@@ -660,7 +650,7 @@ impl DocumentEventHandler {
                 .reset_click_count_if_necessary(event.button, hit_test_result.point_in_frame);
         }
 
-        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
+        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_button_event(
             mouse_event_type_string,
             event,
             input_event.pressed_mouse_buttons,
@@ -779,7 +769,7 @@ impl DocumentEventHandler {
 
         let click_count = self.click_counting_info.borrow().count;
         element.set_click_in_progress(true);
-        MouseEvent::for_platform_mouse_event(
+        MouseEvent::for_platform_button_event(
             "click",
             event,
             input_event.pressed_mouse_buttons,
@@ -802,7 +792,7 @@ impl DocumentEventHandler {
         // We follow the latter approach here, considering that every sequence of
         // even numbered clicks is a series of double clicks.
         if click_count % 2 == 0 {
-            MouseEvent::for_platform_mouse_event(
+            MouseEvent::for_platform_button_event(
                 "dblclick",
                 event,
                 input_event.pressed_mouse_buttons,
@@ -894,7 +884,7 @@ impl DocumentEventHandler {
 
         let Some(el) = hit_test_result
             .node
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(DomRoot::downcast::<Element>)
         else {
             self.update_active_touch_points_when_early_return(event);
@@ -1165,7 +1155,7 @@ impl DocumentEventHandler {
 
         let Some(el) = hit_test_result
             .node
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(DomRoot::downcast::<Element>)
         else {
             return Default::default();
@@ -1574,7 +1564,7 @@ impl DocumentEventHandler {
                 node::from_untrusted_node_address(UntrustedNodeAddress::from_id(node_id))
             };
             let Some(element) = node
-                .inclusive_ancestors(ShadowIncluding::No)
+                .inclusive_ancestors(ShadowIncluding::Yes)
                 .find_map(DomRoot::downcast::<Element>)
             else {
                 return;
