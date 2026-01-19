@@ -7,8 +7,6 @@ pub(crate) mod readablestreambyobrequest;
 pub(crate) mod readablestreamdefaultcontroller;
 pub(crate) mod readablestreamdefaultreader;
 pub(crate) mod readablestreamgenericreader;
-pub(crate) mod textdecoderstream;
-pub(crate) mod textencoderstream;
 pub(crate) mod transformstream;
 pub(crate) mod transformstreamdefaultcontroller;
 pub(crate) mod writablestream;
