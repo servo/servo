@@ -15,6 +15,9 @@ on:
         default: false
         type: boolean
     outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
       optional_job_status:
         description: "Status of optional jobs (as an object)"
         value: ${{ jobs.collect-job-results.outputs.collected_job_status }}
@@ -46,6 +49,7 @@ jobs:
       matrix:
         target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
     outputs:
+      artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
       - uses: actions/checkout@v5
@@ -109,21 +113,44 @@ jobs:
       - name: Upload shared library
         if: ${{ inputs.upload_library }}
         uses: actions/upload-artifact@v4
+        id: upload-library
         with:
           name: ${{ inputs.profile }}-library-ohos-${{ matrix.target }}
           path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
       - name: Upload signed HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
         uses: actions/upload-artifact@v4
+        id: upload-hap-signed
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
       - name: Upload unsigned HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
         uses: actions/upload-artifact@v4
+        id: upload-hap-unsigned
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
+      - name: Collect artifact IDs
+        if: matrix.target == 'aarch64-unknown-linux-ohos'
+        id: artifact_ids
+        shell: bash
+        run: |
+          if [[ -n "${{steps.upload-library.outputs.artifact-id}}" ]]; then
+            LIBRARY_ID="${{steps.upload-library.outputs.artifact-id}}"
+          else
+            LIBRARY_ID=""
+          fi
+          if [[ -n "${{steps.upload-hap-signed.outputs.artifact-id}}" ]]; then
+            HAP_ID="${{steps.upload-hap-signed.outputs.artifact-id}}"
+          else
+            HAP_ID="${{steps.upload-hap-unsigned.outputs.artifact-id}}"
+          fi
+          if [[ -n "$LIBRARY_ID" ]]; then
+            echo "artifact_ids=${LIBRARY_ID},${HAP_ID}" >> $GITHUB_OUTPUT
+          else
+            echo "artifact_ids=${HAP_ID}" >> $GITHUB_OUTPUT
+          fi
 
   bencher:
     needs: ["build"]

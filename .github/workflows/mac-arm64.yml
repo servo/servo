@@ -2,6 +2,10 @@ name: MacOS Arm64
 
 on:
   workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
     inputs:
       profile:
         required: false
@@ -74,6 +78,8 @@ jobs:
   build:
     name: MacOS 15 Build
     runs-on: macos-15
+    outputs:
+      artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     steps:
       # XProtect can cause random failures if it decides that the DMG we create
       # during the packaging phase is malware.
@@ -171,9 +177,15 @@ jobs:
           path: target/cargo-timings-*
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
+        id: upload-dmg
         with:
           name: ${{ inputs.profile }}-binary-mac-arm64
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
+      - name: Collect artifact IDs
+        id: artifact_ids
+        shell: bash
+        run: |
+          echo "artifact_ids=${{ steps.upload-dmg.outputs.artifact-id }}" >> $GITHUB_OUTPUT
       - name: Build package for target
         run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target

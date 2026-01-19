@@ -1,6 +1,10 @@
 name: Android
 on:
   workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
     inputs:
       profile:
         required: false
@@ -33,6 +37,8 @@ jobs:
   build:
     name: Android Build
     runs-on: ubuntu-22.04
+    outputs:
+      artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     strategy:
       matrix:
         target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'x86_64-linux-android']
@@ -112,14 +118,22 @@ jobs:
           path: target/cargo-timings-*
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
+        id: upload-apk
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
+        id: upload-aar
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+      - name: Collect artifact IDs
+        if: matrix.target == 'aarch64-linux-android'
+        id: artifact_ids
+        shell: bash
+        run: |
+          echo "artifact_ids=${{steps.upload-apk.outputs.artifact-id}},${{steps.upload-aar.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   bencher:
     needs: ["build"]
