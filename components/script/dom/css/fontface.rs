@@ -103,7 +103,6 @@ fn parse_font_face_descriptors(
         weight,
     } = input_descriptors;
 
-    let _ = variationSettings; // TODO: Stylo doesn't parse font-variation-settings yet.
     let maybe_sources = sources.map_or_else(String::new, |sources| format!("src: {sources};"));
     let font_face_rule = format!(
         r"
@@ -114,6 +113,7 @@ fn parse_font_face_descriptors(
         font-feature-settings: {featureSettings};
         font-stretch: {stretch};
         font-style: {style};
+        font-variation-settings: {variationSettings};
         font-weight: {weight};
         line-gap-override: {lineGapOverride};
         unicode-range: {unicodeRange};
