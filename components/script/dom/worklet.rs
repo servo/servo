@@ -118,6 +118,7 @@ impl Worklet {
         )
     }
 
+    #[cfg(feature = "testbinding")]
     pub(crate) fn worklet_id(&self) -> WorkletId {
         self.droppable_field.worklet_id
     }
