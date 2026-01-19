@@ -357,7 +357,7 @@ pub enum GlyphInfo<'a> {
 impl GlyphInfo<'_> {
     pub fn id(self) -> GlyphId {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[usize::from(entry_i)].id(),
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.get()].id(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store
                     .detail_store
@@ -370,7 +370,7 @@ impl GlyphInfo<'_> {
     #[inline(always)]
     pub fn advance(self) -> Au {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[usize::from(entry_i)].advance(),
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.get()].advance(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store
                     .detail_store
@@ -492,7 +492,7 @@ impl GlyphStore {
 
     #[inline]
     pub fn len(&self) -> ByteIndex {
-        ByteIndex(self.entry_buffer.len() as isize)
+        ByteIndex(self.entry_buffer.len())
     }
 
     #[inline]
@@ -524,7 +524,9 @@ impl GlyphStore {
     fn cache_total_advance_and_word_separators(&mut self) {
         let mut total_advance = Au::zero();
         let mut total_word_separators = 0;
-        for glyph in self.iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex(0), self.len())) {
+        for glyph in
+            self.iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex::zero(), self.len()))
+        {
             total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
                 total_word_separators += 1;
@@ -574,7 +576,7 @@ impl GlyphStore {
             entry.set_char_is_word_separator();
         }
 
-        self.entry_buffer[usize::from(i)] = entry;
+        self.entry_buffer[i.get()] = entry;
     }
 
     pub(crate) fn add_glyphs_for_byte_index(
@@ -613,7 +615,7 @@ impl GlyphStore {
             i, glyph_count, entry
         );
 
-        self.entry_buffer[usize::from(i)] = entry;
+        self.entry_buffer[i.get()] = entry;
     }
 
     #[inline]
@@ -635,7 +637,7 @@ impl GlyphStore {
         };
 
         range_it.into_iter().flat_map(move |range_idx| {
-            let entry = self.entry_buffer[usize::from(range_idx)];
+            let entry = self.entry_buffer[range_idx.get()];
             let result = if entry.is_simple() {
                 Either::Left(once(GlyphInfo::Simple(self, range_idx)))
             } else {
@@ -645,9 +647,9 @@ impl GlyphStore {
                     .detailed_glyphs_for_entry(range_idx, entry.glyph_count());
 
                 let complex_glyph_range =
-                    TextByteRange::new(ByteIndex::zero(), ByteIndex(glyphs.len() as isize));
+                    TextByteRange::new(ByteIndex::zero(), ByteIndex(glyphs.len()));
                 Either::Right(complex_glyph_range.map(move |i| {
-                    GlyphInfo::Detail(self, range_idx, usize::from(i) as u16 /* ??? */)
+                    GlyphInfo::Detail(self, range_idx, i.get() as u16 /* ??? */)
                 }))
             };
 
@@ -683,7 +685,7 @@ impl GlyphStore {
 
     pub(crate) fn char_is_word_separator(&self, i: ByteIndex) -> bool {
         assert!(i < self.len());
-        self.entry_buffer[usize::from(i)].char_is_word_separator()
+        self.entry_buffer[i.get()].char_is_word_separator()
     }
 }
 

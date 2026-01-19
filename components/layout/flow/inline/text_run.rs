@@ -160,7 +160,7 @@ impl TextRunSegment {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            let range_start = byte_processed + ByteIndex(self.range.start as isize);
+            let range_start = byte_processed + ByteIndex(self.range.start);
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.glyph_store.clone(),
                 text_run,
@@ -183,10 +183,7 @@ impl TextRunSegment {
             glyph_store: self
                 .font
                 .shape_text(&formatting_context_text[range.clone()], options),
-            range: TextByteRange::new(
-                ByteIndex(range.start as isize),
-                ByteIndex(range.end as isize),
-            ),
+            range: TextByteRange::new(ByteIndex(range.start), ByteIndex(range.end)),
         });
     }
 
