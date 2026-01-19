@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::{FontMetrics, GlyphStore, TextByteRange};
+use fonts::{FontMetrics, GlyphStore};
 use itertools::Either;
 use layout_api::wrapper_traits::SharedSelection;
 use malloc_size_of_derive::MallocSizeOf;
@@ -789,14 +790,12 @@ impl LineItem {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct TextRunOffsets {
-    /// The glyph offset of the starting glyph of this [`TextFragment`] within
-    /// its parent inline box.
-    pub starting_glyph_offset: usize,
     /// The selection range of the containing inline formatting context.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
     pub shared_selection: SharedSelection,
-    /// The text range of this [`TextRun`] within its inline formatting context.
-    pub text_range: TextByteRange,
+    /// The range of characters this [`TextRun`] represents within the entire text of its
+    /// inline formatting context.
+    pub character_range: Range<usize>,
 }
 
 pub(super) struct TextRunLineItem {
@@ -885,10 +884,7 @@ impl TextRunLineItem {
 
         assert_eq!(self.offsets.is_some(), new_offsets.is_some());
         if let (Some(new_offsets), Some(existing_offsets)) = (new_offsets, self.offsets.as_mut()) {
-            existing_offsets.text_range = TextByteRange::new(
-                existing_offsets.text_range.start,
-                new_offsets.text_range.end,
-            );
+            existing_offsets.character_range.end = new_offsets.character_range.end;
         }
 
         true

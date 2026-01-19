@@ -1304,7 +1304,7 @@ fn rendered_text_collection_steps(
     items
 }
 
-pub fn find_glyph_offset_in_fragment_descendants(
+pub fn find_character_offset_in_fragment_descendants(
     node: &ServoThreadSafeLayoutNode,
     stacking_context_tree: &StackingContextTree,
     point_in_viewport: Point2D<Au, CSSPixel>,
@@ -1360,7 +1360,7 @@ pub fn find_glyph_offset_in_fragment_descendants(
     }
 
     closest_relative_fragment.map(|(_, point_in_parent, text_fragment)| {
-        text_fragment.borrow().glyph_offset(point_in_parent)
+        text_fragment.borrow().character_offset(point_in_parent)
     })
 }
 

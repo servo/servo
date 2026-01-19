@@ -37,9 +37,9 @@ use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 use crate::platform::font::{FontTable, PlatformFont};
 use crate::platform::font_list::fallback_font_families;
 use crate::{
-    ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
-    FontTemplateRefMethods, GlyphData, GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
+    FontTemplateRefMethods, GlyphId, GlyphStore, LocalFontIdentifier, ShapedGlyph, Shaper,
 };
 
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
@@ -403,45 +403,27 @@ impl Font {
             }
         }
 
-        let is_single_preserved_newline = text.len() == 1 && text.starts_with('\n');
         let start_time = Instant::now();
-        let mut glyphs = GlyphStore::new(
-            text.len(),
-            options
-                .flags
-                .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
-            options
-                .flags
-                .contains(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG),
-            is_single_preserved_newline,
-            options.flags.contains(ShapingFlags::RTL_FLAG),
-        );
-
-        if self.can_do_fast_shaping(text, options) {
+        let glyphs = if self.can_do_fast_shaping(text, options) {
             debug!("shape_text: Using ASCII fast path.");
-            self.shape_text_fast(text, options, &mut glyphs);
+            self.shape_text_fast(text, options)
         } else {
             debug!("shape_text: Using Harfbuzz.");
-            self.shape_text_harfbuzz(text, options, &mut glyphs);
-        }
+            self.shaper
+                .get_or_init(|| Shaper::new(self))
+                .shape_text(text, options)
+        };
 
         let shaped_text = Arc::new(glyphs);
         let mut cache = self.cached_shape_data.write();
         cache.shaped_text.insert(lookup_key, shaped_text.clone());
 
-        let end_time = Instant::now();
         TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add(
-            (end_time.duration_since(start_time).as_nanos()) as usize,
+            ((Instant::now() - start_time).as_nanos()) as usize,
             Ordering::Relaxed,
         );
 
         shaped_text
-    }
-
-    fn shape_text_harfbuzz(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
-        self.shaper
-            .get_or_init(|| Shaper::new(self))
-            .shape_text(text, options, glyphs);
     }
 
     /// Whether not a particular text and [`ShapingOptions`] combination can use
@@ -460,13 +442,13 @@ impl Font {
     }
 
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
-    fn shape_text_fast(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+    fn shape_text_fast(&self, text: &str, options: &ShapingOptions) -> GlyphStore {
+        let mut glyph_store = GlyphStore::new(text, text.len(), options);
         let mut prev_glyph_id = None;
-        for (i, byte) in text.bytes().enumerate() {
+        for (string_byte_offset, byte) in text.bytes().enumerate() {
             let character = byte as char;
-            let glyph_id = match self.glyph_index(character) {
-                Some(id) => id,
-                None => continue,
+            let Some(glyph_id) = self.glyph_index(character) else {
+                continue;
             };
 
             let mut advance = advance_for_shaped_glyph(
@@ -480,11 +462,18 @@ impl Font {
                 Point2D::new(h_kerning, Au::zero())
             });
 
-            let glyph = GlyphData::new(glyph_id, advance, offset, true, true);
-            glyphs.add_glyph_for_byte_index(ByteIndex(i), character, &glyph);
+            glyph_store.add_glyph(
+                character,
+                &ShapedGlyph {
+                    glyph_id,
+                    string_byte_offset,
+                    advance,
+                    offset,
+                },
+            );
             prev_glyph_id = Some(glyph_id);
         }
-        glyphs.finalize_changes();
+        glyph_store
     }
 
     pub(crate) fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {

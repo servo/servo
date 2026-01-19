@@ -26,6 +26,7 @@ fn contents_vec(contents: impl Into<String>) -> Vec<String> {
 
 /// Describes a unit of movement for [`Rope::move_by`].
 pub enum RopeMovement {
+    Character,
     Grapheme,
     Word,
     Line,
@@ -205,7 +206,7 @@ impl Rope {
         }
 
         match unit {
-            RopeMovement::Grapheme | RopeMovement::Word => {
+            RopeMovement::Character | RopeMovement::Grapheme | RopeMovement::Word => {
                 self.move_by_iterator(origin, unit, amount)
             },
             RopeMovement::Line => self.move_by_lines(origin, amount),
@@ -257,6 +258,7 @@ impl Rope {
         };
 
         let iterator = match unit {
+            RopeMovement::Character => slice.char_indices(),
             RopeMovement::Grapheme => slice.grapheme_indices(),
             RopeMovement::Word => slice.word_indices(),
             _ => unreachable!("Should not be called for other movement types"),
@@ -268,7 +270,7 @@ impl Rope {
         };
 
         let mut iterations = amount.unsigned_abs();
-        for (mut index, _) in iterator {
+        for mut index in iterator {
             iterations = iterations.saturating_sub(1);
             if iterations == 0 {
                 // Instead of returning offsets for the absolute end of a line, return the
@@ -338,6 +340,21 @@ impl Rope {
             final_line_offset
     }
 
+    /// Convert a [`RopeIndex`] into a character offset from the start of the content.
+    pub fn index_to_character_offset(&self, rope_index: RopeIndex) -> usize {
+        let rope_index = self.clamp_index(rope_index);
+
+        // The offset might be past the end of the line due to being an exclusive offset.
+        let final_line = self.line(rope_index.line);
+        let final_line_offset = final_line[0..rope_index.code_point].chars().count();
+        self.lines
+            .iter()
+            .take(rope_index.line)
+            .map(|line| line.chars().count())
+            .sum::<usize>() +
+            final_line_offset
+    }
+
     /// Convert a byte offset from the start of the content into a [`RopeIndex`].
     pub fn utf8_offset_to_rope_index(&self, utf8_offset: Utf8CodeUnitLength) -> RopeIndex {
         let mut current_utf8_offset = utf8_offset.0;
@@ -402,6 +419,11 @@ impl Rope {
             Some(RopeIndex::new(index.line, 0)),
             Some(self.last_index_in_line(index.line)),
         )
+    }
+
+    fn character_at(&self, index: RopeIndex) -> Option<char> {
+        let line = self.line_for_index(index);
+        line[index.code_point..].chars().next()
     }
 }
 
@@ -468,32 +490,49 @@ impl<'a> RopeSlice<'a> {
                 slice: self,
                 end_of_forward_motion: |_, string| {
                     let (offset, character) = string.char_indices().next()?;
-                    Some((offset + character.len_utf8(), character))
+                    Some(offset + character.len_utf8())
                 },
-                start_of_backward_motion: |_, string: &str| string.char_indices().next_back(),
+                start_of_backward_motion: |_, string: &str| {
+                    Some(string.char_indices().next_back()?.0)
+                },
             },
         }
     }
 
-    fn grapheme_indices(self) -> RopeMovementIterator<'a, &'a str> {
+    fn char_indices(self) -> RopeMovementIterator<'a> {
+        RopeMovementIterator {
+            slice: self,
+            end_of_forward_motion: |_, string| {
+                let (offset, character) = string.char_indices().next()?;
+                Some(offset + character.len_utf8())
+            },
+            start_of_backward_motion: |_, string: &str| Some(string.char_indices().next_back()?.0),
+        }
+    }
+
+    fn grapheme_indices(self) -> RopeMovementIterator<'a> {
         RopeMovementIterator {
             slice: self,
             end_of_forward_motion: |_, string| {
                 let (offset, grapheme) = string.grapheme_indices(true).next()?;
-                Some((offset + grapheme.len(), grapheme))
+                Some(offset + grapheme.len())
             },
-            start_of_backward_motion: |_, string| string.grapheme_indices(true).next_back(),
+            start_of_backward_motion: |_, string| {
+                Some(string.grapheme_indices(true).next_back()?.0)
+            },
         }
     }
 
-    fn word_indices(self) -> RopeMovementIterator<'a, &'a str> {
+    fn word_indices(self) -> RopeMovementIterator<'a> {
         RopeMovementIterator {
             slice: self,
             end_of_forward_motion: |_, string| {
                 let (offset, word) = string.unicode_word_indices().next()?;
-                Some((offset + word.len(), word))
+                Some(offset + word.len())
             },
-            start_of_backward_motion: |_, string| string.unicode_word_indices().next_back(),
+            start_of_backward_motion: |_, string| {
+                Some(string.unicode_word_indices().next_back()?.0)
+            },
         }
     }
 }
@@ -503,14 +542,14 @@ impl<'a> RopeSlice<'a> {
 /// different. When moving forward, the end of the unit of movement is returned and when
 /// moving backward the start of the unit of movement is returned. This matches the
 /// expected behavior when interactively moving through editable text.
-struct RopeMovementIterator<'a, T> {
+struct RopeMovementIterator<'a> {
     slice: RopeSlice<'a>,
-    end_of_forward_motion: fn(&RopeSlice, &'a str) -> Option<(usize, T)>,
-    start_of_backward_motion: fn(&RopeSlice, &'a str) -> Option<(usize, T)>,
+    end_of_forward_motion: fn(&RopeSlice, &'a str) -> Option<usize>,
+    start_of_backward_motion: fn(&RopeSlice, &'a str) -> Option<usize>,
 }
 
-impl<T> Iterator for RopeMovementIterator<'_, T> {
-    type Item = (RopeIndex, T);
+impl Iterator for RopeMovementIterator<'_> {
+    type Item = RopeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
         // If the two indices have crossed over, iteration is done.
@@ -522,11 +561,11 @@ impl<T> Iterator for RopeMovementIterator<'_, T> {
         let line = self.slice.rope.line_for_index(self.slice.start);
 
         if self.slice.start.code_point < line.len() + 1 {
-            if let Some((end_offset, value)) =
+            if let Some(end_offset) =
                 (self.end_of_forward_motion)(&self.slice, &line[self.slice.start.code_point..])
             {
                 self.slice.start.code_point += end_offset;
-                return Some((self.slice.start, value));
+                return Some(self.slice.start);
             }
         }
 
@@ -536,7 +575,7 @@ impl<T> Iterator for RopeMovementIterator<'_, T> {
     }
 }
 
-impl<T> DoubleEndedIterator for RopeMovementIterator<'_, T> {
+impl DoubleEndedIterator for RopeMovementIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         // If the two indices have crossed over, iteration is done.
         if self.slice.end <= self.slice.start {
@@ -545,11 +584,11 @@ impl<T> DoubleEndedIterator for RopeMovementIterator<'_, T> {
 
         let line = self.slice.rope.line_for_index(self.slice.end);
         if self.slice.end.code_point > 0 {
-            if let Some((new_start_index, value)) =
+            if let Some(new_start_index) =
                 (self.start_of_backward_motion)(&self.slice, &line[..self.slice.end.code_point])
             {
                 self.slice.end.code_point = new_start_index;
-                return Some((self.slice.end, value));
+                return Some(self.slice.end);
             }
         }
 
@@ -561,19 +600,23 @@ impl<T> DoubleEndedIterator for RopeMovementIterator<'_, T> {
 
 /// A `Chars`-like iterator for [`Rope`].
 pub struct RopeChars<'a> {
-    movement_iterator: RopeMovementIterator<'a, char>,
+    movement_iterator: RopeMovementIterator<'a>,
 }
 
 impl Iterator for RopeChars<'_> {
     type Item = char;
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.movement_iterator.next()?.1)
+        self.movement_iterator
+            .next()
+            .and_then(|index| self.movement_iterator.slice.rope.character_at(index))
     }
 }
 
 impl DoubleEndedIterator for RopeChars<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        Some(self.movement_iterator.next_back()?.1)
+        self.movement_iterator
+            .next_back()
+            .and_then(|index| self.movement_iterator.slice.rope.character_at(index))
     }
 }
 

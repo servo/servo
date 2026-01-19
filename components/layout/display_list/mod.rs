@@ -8,9 +8,8 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
-use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
-use fonts::{GlyphStore, TextByteRange};
-use fonts_traits::ByteIndex;
+use euclid::{Point2D, Scale, SideOffsets2D, Size2D, Rect, UnknownUnit, Vector2D};
+use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
@@ -34,7 +33,7 @@ use style::values::computed::{
 };
 use style::values::generics::NonNegative;
 use style::values::generics::color::ColorOrAuto;
-use style::values::generics::rect::Rect;
+use style::values::generics::rect::Rect as StyleRect;
 use style::values::specified::text::TextDecorationLine;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{
@@ -140,7 +139,7 @@ struct InspectorHighlight {
 struct HighlightTraversalState {
     /// The smallest rectangle that fully encloses all fragments created by the highlighted
     /// dom node, if any.
-    content_box: euclid::Rect<Au, StyloCSSPixel>,
+    content_box: Rect<Au, StyloCSSPixel>,
 
     spatial_id: SpatialId,
 
@@ -554,7 +553,7 @@ impl InspectorHighlight {
         containing_block: &PhysicalRect<Au>,
     ) {
         let state = self.state.get_or_insert(HighlightTraversalState {
-            content_box: euclid::Rect::zero(),
+            content_box: Rect::zero(),
             spatial_id,
             clip_chain_id,
             maybe_box_fragment: None,
@@ -812,7 +811,8 @@ impl Fragment {
             fragment,
             builder,
             containing_block,
-            baseline_origin,
+            fragment.base.rect.min_x(),
+            fragment.justification_adjustment,
         );
 
         builder.wr().push_text(
@@ -927,8 +927,9 @@ impl Fragment {
         &self,
         fragment: &TextFragment,
         builder: &mut DisplayListBuilder<'_>,
-        containing_block: &PhysicalRect<Au>,
-        baseline_origin: PhysicalPoint<Au>,
+        containing_block_rect: &PhysicalRect<Au>,
+        fragment_x_offset: Au,
+        justification_adjustment: Au,
     ) {
         let Some(offsets) = fragment.offsets.as_ref() else {
             return;
@@ -938,38 +939,61 @@ impl Fragment {
         if !shared_selection.enabled {
             return;
         }
-        if offsets.text_range.start > shared_selection.range.end ||
-            offsets.text_range.end < shared_selection.range.start
+
+        if offsets.character_range.start > shared_selection.character_range.end ||
+            offsets.character_range.end < shared_selection.character_range.start
         {
             return;
         }
 
-        let intersected_range = offsets.text_range.intersect(&shared_selection.range);
-        let relative_byte_range = TextByteRange::new(
-            intersected_range.start - offsets.text_range.start,
-            intersected_range.end - offsets.text_range.start,
-        );
+        let mut current_character_index = offsets.character_range.start;
+        let mut current_advance = Au::zero();
+        let mut start_advance = None;
+        let mut end_advance = None;
+        for glyph_store in fragment.glyphs.iter() {
+            let glyph_store_character_count = glyph_store.total_characters();
+            if current_character_index + glyph_store_character_count <
+                shared_selection.character_range.start
+            {
+                current_advance += glyph_store.total_advance() +
+                    (justification_adjustment * glyph_store.total_word_separators() as i32);
+                current_character_index += glyph_store_character_count;
+                continue;
+            }
+
+            if current_character_index >= shared_selection.character_range.end {
+                break;
+            }
+
+            for glyph in glyph_store.glyphs() {
+                if current_character_index >= shared_selection.character_range.start {
+                    start_advance = start_advance.or(Some(current_advance));
+                }
+
+                current_character_index += glyph.character_count();
+                current_advance += glyph.advance();
+                if glyph.char_is_word_separator() {
+                    current_advance += justification_adjustment;
+                }
+
+                if current_character_index <= shared_selection.character_range.end {
+                    end_advance = Some(current_advance);
+                }
+            }
+        }
+
+        let start_x = start_advance.unwrap_or(current_advance);
+        let end_x = end_advance.unwrap_or(current_advance);
 
         let parent_style = fragment.base.style();
         if !shared_selection.range.is_empty() {
-            let start = glyphs_advance_by_index(
-                &fragment.glyphs,
-                relative_byte_range.start,
-                baseline_origin,
-                fragment.justification_adjustment,
-            );
+            let selection_rect = Rect::new(
+                containing_block_rect.origin +
+                    Vector2D::new(fragment_x_offset + start_x, Au::zero()),
+                Size2D::new(end_x - start_x, containing_block_rect.height()),
+            )
+            .to_webrender();
 
-            let end = glyphs_advance_by_index(
-                &fragment.glyphs,
-                relative_byte_range.end,
-                baseline_origin,
-                fragment.justification_adjustment,
-            );
-
-            let selection_rect = LayoutRect::new(
-                Point2D::new(start.x.to_f32_px(), containing_block.min_y().to_f32_px()),
-                Point2D::new(end.x.to_f32_px(), containing_block.max_y().to_f32_px()),
-            );
             if let Some(selection_color) = fragment
                 .selected_style
                 .borrow()
@@ -984,23 +1008,14 @@ impl Fragment {
             return;
         }
 
-        let edit_point = glyphs_advance_by_index(
-            &fragment.glyphs,
-            relative_byte_range.start,
-            baseline_origin,
-            fragment.justification_adjustment,
-        );
-
-        let insertion_point_rect = LayoutRect::new(
-            Point2D::new(
-                edit_point.x.to_f32_px(),
-                containing_block.min_y().to_f32_px(),
+        let insertion_point_rect = Rect::new(
+            containing_block_rect.origin + Vector2D::new(start_x + fragment_x_offset, Au::zero()),
+            Size2D::new(
+                INSERTION_POINT_LOGICAL_WIDTH,
+                containing_block_rect.height(),
             ),
-            Point2D::new(
-                edit_point.x.to_f32_px() + INSERTION_POINT_LOGICAL_WIDTH.to_f32_px(),
-                containing_block.max_y().to_f32_px(),
-            ),
-        );
+        )
+        .to_webrender();
 
         let color = parent_style.clone_color();
         let caret_color = match parent_style.clone_caret_color().0 {
@@ -1563,7 +1578,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             },
         };
 
-        let size = euclid::Size2D::new(width as i32, height as i32);
+        let size = Size2D::new(width as i32, height as i32);
 
         // If the size of the border is zero or the size of the border image is zero, just
         // don't render anything. Zero-sized gradients cause problems in WebRender.
@@ -1687,22 +1702,20 @@ fn glyphs(
     justification_adjustment: Au,
     include_whitespace: bool,
 ) -> Vec<wr::GlyphInstance> {
-    use fonts_traits::ByteIndex;
-
     let mut glyphs = vec![];
     for run in glyph_runs {
-        for glyph in run.iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex(0), run.len())) {
+        for glyph in run.glyphs() {
             if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
                     baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
                 );
-                let glyph = wr::GlyphInstance {
+                let glyph_instance = wr::GlyphInstance {
                     index: glyph.id(),
                     point,
                 };
-                glyphs.push(glyph);
+                glyphs.push(glyph_instance);
             }
 
             if glyph.char_is_word_separator() {
@@ -1714,25 +1727,8 @@ fn glyphs(
     glyphs
 }
 
-// TODO: The implementation here does not account for multiple glyph runs properly.
-fn glyphs_advance_by_index(
-    glyph_runs: &[Arc<GlyphStore>],
-    mut index: ByteIndex,
-    baseline_origin: PhysicalPoint<Au>,
-    justification_adjustment: Au,
-) -> PhysicalPoint<Au> {
-    let mut point = baseline_origin;
-    for run in glyph_runs {
-        let range = TextByteRange::new(ByteIndex(0), index.min(run.len()));
-        index = index - range.len();
-        let total_advance = run.advance_for_byte_range(range, justification_adjustment);
-        point.x += total_advance;
-    }
-    point
-}
-
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii
-/// for the [outer rectangle][`euclid::Rect::outer_rect`] resulting from expanding the original
+/// for the [outer rectangle][`Rect::outer_rect`] resulting from expanding the original
 /// rectangle by the given offsets.
 fn offset_radii(mut radii: BorderRadius, offsets: LayoutSideOffsets) -> BorderRadius {
     let expand = |radius: &mut f32, offset: f32| {
@@ -1819,7 +1815,7 @@ fn resolve_border_image_width(
 
 /// Resolve the WebRender border-image slice from the style values.
 fn resolve_border_image_slice(
-    border_image_slice: &Rect<NonNegative<NumberOrPercentage>>,
+    border_image_slice: &StyleRect<NonNegative<NumberOrPercentage>>,
     size: Size2D<i32, UnknownUnit>,
 ) -> SideOffsets2D<i32, DevicePixel> {
     fn resolve_percentage(value: NonNegative<NumberOrPercentage>, length: i32) -> i32 {

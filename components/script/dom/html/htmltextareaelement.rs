@@ -294,14 +294,21 @@ impl TextControlElement for HTMLTextAreaElement {
     fn maybe_update_shared_selection(&self) {
         let offsets = self.textinput.borrow().sorted_selection_offsets_range();
         let (start, end) = (offsets.start.0, offsets.end.0);
-        let shared_selection = ScriptSelection {
-            range: TextByteRange::new(ByteIndex(start), ByteIndex(end)),
-            enabled: self.upcast::<Element>().focus_state(),
-        };
-        if shared_selection == *self.shared_selection.borrow() {
+        let range = TextByteRange::new(ByteIndex(start), ByteIndex(end));
+        let enabled = self.upcast::<Element>().focus_state();
+
+        let mut shared_selection = self.shared_selection.borrow_mut();
+        if range == shared_selection.range && enabled == shared_selection.enabled {
             return;
         }
-        *self.shared_selection.borrow_mut() = shared_selection;
+        *shared_selection = ScriptSelection {
+            range,
+            character_range: self
+                .textinput
+                .borrow()
+                .sorted_selection_character_offsets_range(),
+            enabled,
+        };
         self.owner_window().layout().set_needs_new_display_list();
     }
 }

@@ -1564,34 +1564,22 @@ impl TextControlElement for HTMLInputElement {
     fn maybe_update_shared_selection(&self) {
         let offsets = self.textinput.borrow().sorted_selection_offsets_range();
         let (start, end) = (offsets.start.0, offsets.end.0);
+        let range = TextByteRange::new(ByteIndex(start), ByteIndex(end));
+        let enabled = self.renders_as_text_input_widget() && self.upcast::<Element>().focus_state();
 
-        // Password inputs convert their string to bullets in script, so we need to map
-        // selection ranges to the transformed text.
-        //
-        // TODO: Handle this in layout.
-        let textinput = self.textinput.borrow();
-        let (start, end) = if self.input_type() == InputType::Password {
-            // Translate indices from the raw value to indices in the replacement value.
-            let text = textinput.get_content();
-            let start_in_chars = text.str()[..start].chars().count();
-            let end_in_chars = start_in_chars + text.str()[start..end].chars().count();
-            let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
-            (
-                start_in_chars * bytes_per_char,
-                end_in_chars * bytes_per_char,
-            )
-        } else {
-            (start, end)
-        };
-
-        let shared_selection = ScriptSelection {
-            range: TextByteRange::new(ByteIndex(start), ByteIndex(end)),
-            enabled: self.renders_as_text_input_widget() && self.upcast::<Element>().focus_state(),
-        };
-        if shared_selection == *self.shared_selection.borrow() {
+        let mut shared_selection = self.shared_selection.borrow_mut();
+        if range == shared_selection.range && enabled == shared_selection.enabled {
             return;
         }
-        *self.shared_selection.borrow_mut() = shared_selection;
+
+        *shared_selection = ScriptSelection {
+            range,
+            character_range: self
+                .textinput
+                .borrow()
+                .sorted_selection_character_offsets_range(),
+            enabled,
+        };
         self.owner_window().layout().set_needs_new_display_list();
     }
 }

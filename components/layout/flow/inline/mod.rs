@@ -74,7 +74,7 @@ pub mod line;
 mod line_breaker;
 pub mod text_run;
 
-use std::cell::{Cell, OnceCell, RefCell};
+use std::cell::{OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -809,9 +809,6 @@ struct InlineContainerState {
 
     /// The font metrics of the non-fallback font for this container.
     font_metrics: Arc<FontMetrics>,
-
-    /// The current count of glyphs added to the inline container.
-    number_of_glyphs: Cell<usize>,
 }
 
 struct InlineFormattingContextLayout<'layout_data> {
@@ -2054,7 +2051,7 @@ impl InlineFormattingContext {
                 let parent_style = text_run.inline_styles.style.borrow();
                 text_run.shaped_text.iter().all(|segment| {
                     segment.runs.iter().all(|run| {
-                        run.glyph_store.is_whitespace() &&
+                        run.is_whitespace() &&
                             !run.is_single_preserved_newline() &&
                             !matches!(
                                 parent_style.get_inherited_text().white_space_collapse,
@@ -2153,7 +2150,6 @@ impl InlineContainerState {
             strut_block_sizes,
             baseline_offset,
             font_metrics,
-            number_of_glyphs: Default::default(),
         }
     }
 
@@ -2665,8 +2661,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                             self.line_break_opportunity();
                         }
 
-                        let advance = run.glyph_store.total_advance();
-                        if run.glyph_store.is_whitespace() {
+                        let advance = run.total_advance();
+                        if run.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
                             if run.is_single_preserved_newline() {
@@ -2704,7 +2700,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                         // but for `white-space: break-spaces` we place the first whitespace
                         // with the preceding text. That prevents a line break before that
                         // first space, but we still need to allow a line break after it.
-                        if can_wrap && run.glyph_store.ends_with_whitespace() {
+                        if can_wrap && run.ends_with_whitespace() {
                             self.line_break_opportunity();
                         }
                     }

@@ -90,7 +90,7 @@ use crate::display_list::{
     DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
 };
 use crate::query::{
-    find_glyph_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
+    find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
     process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
     process_resolved_font_style_query, process_resolved_style_request,
@@ -490,7 +490,7 @@ impl Layout for LayoutThread {
         let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
         let stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let stacking_context_tree = stacking_context_tree.as_ref()?;
-        find_glyph_offset_in_fragment_descendants(&node, stacking_context_tree, point_in_node)
+        find_character_offset_in_fragment_descendants(&node, stacking_context_tree, point_in_node)
     }
 
     #[servo_tracing::instrument(skip_all)]
