@@ -281,9 +281,9 @@ impl Actor for SourceActor {
                     // Line number are one-based. Column numbers are zero-based.
                     // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
-                    if let Some((start, end)) = &query &&
-                        (location.line_number < start.line || location.line_number > end.line)
-                    {
+                    if query.as_ref().is_some_and(|(start, end)| {
+                        location.line_number < start.line || location.line_number > end.line
+                    }) {
                         continue;
                     }
                     positions
