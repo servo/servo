@@ -56,3 +56,4 @@ jobs:
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.s3_upload_token }}
           RELEASE_REPO_TOKEN: ${{ secrets.github_upload_token }}
+          RELEASE_REPO: ${{ inputs.target_repo }}
