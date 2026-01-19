@@ -45,8 +45,7 @@ pub(crate) struct FrameActorMsg {
     display_name: String,
     oldest: bool,
     state: FrameState,
-    #[serde(rename = "this")]
-    this_: ObjectActorMsg,
+    this: ObjectActorMsg,
     #[serde(rename = "where")]
     where_: FrameWhere,
 }
@@ -132,7 +131,7 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
             async_cause,
             // TODO: Should be optional
             display_name: self.frame_result.display_name.clone(),
-            this_: registry.encode::<ObjectActor, _>(&self.object_actor),
+            this: registry.encode::<ObjectActor, _>(&self.object_actor),
             oldest: self.frame_result.oldest,
             state,
             where_: FrameWhere {

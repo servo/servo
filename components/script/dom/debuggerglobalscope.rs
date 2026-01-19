@@ -162,7 +162,7 @@ impl DebuggerGlobalScope {
             can_gc,
         ));
         assert!(
-            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerAddDebuggeeEvent::new"
         );
     }
@@ -185,7 +185,7 @@ impl DebuggerGlobalScope {
             can_gc,
         ));
         assert!(
-            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
         );
     }
@@ -205,7 +205,7 @@ impl DebuggerGlobalScope {
             can_gc,
         ));
         assert!(
-            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerSetBreakpointEvent::new"
         );
     }
@@ -222,7 +222,7 @@ impl DebuggerGlobalScope {
         );
         let event = DomRoot::upcast::<Event>(DebuggerPauseEvent::new(self.upcast(), can_gc));
         assert!(
-            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerPauseEvent::new"
         );
     }
