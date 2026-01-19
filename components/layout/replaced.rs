@@ -12,7 +12,6 @@ use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{IFrameSize, LayoutImageDestination, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
-use rayon::iter::IntoParallelRefIterator;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
