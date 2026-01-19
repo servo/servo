@@ -120,7 +120,7 @@ jobs:
       artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
       artifact_platform: windows-msvc
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo-nightly-builds'
+      target_repo: 'servo/servo-nightly-builds'
 
   upload-win-release:
     # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
@@ -141,7 +141,7 @@ jobs:
       artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
       artifact_platform: windows-msvc
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo'
+      target_repo: 'servo/servo'
 
 
   build-mac:
@@ -170,7 +170,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
       artifact_platform: mac
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo-nightly-builds'
+      target_repo: 'servo/servo-nightly-builds'
 
   upload-mac-release:
     # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
@@ -191,7 +191,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
       artifact_platform: mac
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo'
+      target_repo: 'servo/servo'
 
   build-mac-arm64:
     # This job is only useful when run on upstream servo.
@@ -219,7 +219,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
       artifact_platform: mac-arm64
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo-nightly-builds'
+      target_repo: 'servo/servo-nightly-builds'
 
   upload-mac-arm64-release:
     # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
@@ -240,7 +240,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
       artifact_platform: mac-arm64
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo'
+      target_repo: 'servo/servo'
 
   build-linux:
     # This job is only useful when run on upstream servo.
@@ -268,7 +268,7 @@ jobs:
       artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
       artifact_platform: linux
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo-nightly-builds'
+      target_repo: 'servo/servo-nightly-builds'
 
   upload-linux-release:
     # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
@@ -289,7 +289,7 @@ jobs:
       artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
       artifact_platform: linux
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo'
+      target_repo: 'servo/servo'
 
   build-android:
     # This job is only useful when run on upstream servo.
@@ -317,7 +317,7 @@ jobs:
       artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
       artifact_platform: android
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo-nightly-builds'
+      target_repo: 'servo/servo-nightly-builds'
 
   upload-android-release:
     # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
@@ -338,7 +338,7 @@ jobs:
       artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
       artifact_platform: android
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo'
+      target_repo: 'servo/servo'
 
 
   build-ohos:
@@ -368,7 +368,7 @@ jobs:
       artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
       artifact_platform: ohos
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo-nightly-builds'
+      target_repo: 'servo/servo-nightly-builds'
 
   upload-ohos-release:
     # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
@@ -389,4 +389,4 @@ jobs:
       artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
       artifact_platform: ohos
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo'
+      target_repo: 'servo/servo'
