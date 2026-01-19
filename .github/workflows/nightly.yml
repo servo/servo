@@ -58,7 +58,8 @@ jobs:
 
   publish-nightly-release:
     # This job is only useful when run on upstream servo.
-    if: always() && github.repository == 'servo/servo' && ((github.event_name == 'workflow_dispatch' && inputs.regular_release == true) || github.event_name != 'workflow_dispatch')
+    # We only auto-publish nightly releases, so we do not use this job for regular releases.
+    if: always() && github.repository == 'servo/servo' && ((github.event_name == 'workflow_dispatch' && inputs.regular_release == false) || github.event_name != 'workflow_dispatch')
     name: Publish GH Release
     runs-on: ubuntu-latest
     steps:
@@ -86,17 +87,11 @@ jobs:
     needs:
       - create-draft-release
       - upload-linux-nightly
-      - upload-linux-release
       - upload-win-nightly
-      - upload-win-release
       - upload-mac-nightly
-      - upload-mac-release
       - upload-mac-arm64-nightly
-      - upload-mac-arm64-release
       - upload-android-nightly
-      - upload-android-release
       - upload-ohos-nightly
-      - upload-ohos-release
 
   build-win:
     # This job is only useful when run on upstream servo.
