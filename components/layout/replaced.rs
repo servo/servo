@@ -12,6 +12,7 @@ use layout_api::wrapper_traits::ThreadSafeLayoutNode;
 use layout_api::{IFrameSize, LayoutImageDestination, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
+use rayon::iter::IntoParallelRefIterator;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
@@ -242,11 +243,12 @@ impl ReplacedContents {
         let width = svg_data.width.and_then(attr_to_computed);
         let height = svg_data.height.and_then(attr_to_computed);
 
-        let ratio = if let (Some(width), Some(height)) = (width, height) &&
-            !width.is_zero() &&
-            !height.is_zero()
-        {
-            Some(width.px() / height.px())
+        let ratio = if let (Some(width), Some(height)) = (width, height) {
+            if !width.is_zero() && !height.is_zero() {
+                Some(width.px() / height.px())
+            } else {
+                None
+            }
         } else {
             svg_data.ratio_from_view_box()
         };
