@@ -56,6 +56,7 @@ impl LargestContentfulPaintCalculator {
             .and_then(|container| container.calculate_largest_contentful_paint(paint_time))
     }
 
+    /// <https://www.w3.org/TR/largest-contentful-paint/#limitations>
     pub(crate) fn disable_for_webview(&mut self, webview_id: WebViewId) {
         self.disabled_lcp_for_webviews.insert(webview_id);
     }
