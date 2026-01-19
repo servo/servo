@@ -32,7 +32,7 @@ on:
         default: false
         type: boolean
     outputs:
-      release_artifact_ids:
+      artifact_ids:
         value: ${{ jobs.build.outputs.release_artifact_ids }}
         description: Comma-separated list of artifact IDs for the release artifacts
 
