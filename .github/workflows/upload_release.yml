@@ -20,8 +20,8 @@ on:
         description: "A comma-separated list of artifact IDs to upload."
     secrets:
       github_upload_token:
-        required: true
-        description: "A GitHub token with permission to upload release assets."
+        required: false
+        description: "A GitHub token with permission to upload release assets. If ommitted github.token will be used instead."
       s3_upload_token:
         required: true
         description: "A token with permission to upload release artifacts to our S3 bucket."
@@ -56,5 +56,5 @@ jobs:
             release-artifacts/*
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.s3_upload_token }}
-          RELEASE_REPO_TOKEN: ${{ secrets.github_upload_token }}
+          RELEASE_REPO_TOKEN: ${{ secrets.github_upload_token || github.token }}
           RELEASE_REPO: ${{ inputs.target_repo }}

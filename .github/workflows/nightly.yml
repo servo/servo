@@ -134,7 +134,6 @@ jobs:
       - create-draft-release
       - build-win
     secrets:
-      github_upload_token: ${{ github.token }}
       s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
     uses: ./.github/workflows/upload_release.yml
     with:
@@ -184,7 +183,6 @@ jobs:
       - create-draft-release
       - build-mac
     secrets:
-      github_upload_token: ${{ github.token }}
       s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
     uses: ./.github/workflows/upload_release.yml
     with:
@@ -233,7 +231,6 @@ jobs:
       - create-draft-release
       - build-mac-arm64
     secrets:
-      github_upload_token: ${{ github.token }}
       s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
     uses: ./.github/workflows/upload_release.yml
     with:
@@ -282,7 +279,6 @@ jobs:
       - create-draft-release
       - build-linux
     secrets:
-      github_upload_token: ${{ github.token }}
       s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
     uses: ./.github/workflows/upload_release.yml
     with:
@@ -331,7 +327,6 @@ jobs:
       - create-draft-release
       - build-android
     secrets:
-      github_upload_token: ${{ github.token }}
       s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
     uses: ./.github/workflows/upload_release.yml
     with:
@@ -382,7 +377,6 @@ jobs:
       - create-draft-release
       - build-ohos
     secrets:
-      github_upload_token: ${{ github.token }}
       s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
     uses: ./.github/workflows/upload_release.yml
     with:
