@@ -1247,6 +1247,13 @@ impl Node {
         }
     }
 
+    pub(crate) fn unrooted_ancestors(&self) -> impl UnrootedIterator {
+        UnrootedNodeIterator {
+            start: &self.parent_node,
+            next_node: |n| &n.parent_node,
+        }
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
     pub(crate) fn inclusive_ancestors(
         &self,
@@ -1297,6 +1304,13 @@ impl Node {
         SimpleNodeIterator {
             current: self.GetFirstChild(),
             next_node: |n| n.GetNextSibling(),
+        }
+    }
+
+    pub(crate) fn unrooted_children(&self) -> impl UnrootedIterator {
+        UnrootedNodeIterator {
+            start: &self.first_child,
+            next_node: |n| &n.next_sibling,
         }
     }
 
@@ -2124,6 +2138,89 @@ where
     }
 }
 
+/// An iterator that doesn't root items and exposes a subset of the
+/// regular `Iterator` trait that are safe with no rooting.
+pub(crate) trait UnrootedIterator {
+    fn any<F>(&self, closure: F) -> bool
+    where
+        F: Fn(&Node) -> bool;
+
+    fn all<F>(&self, closure: F) -> bool
+    where
+        F: Fn(&Node) -> bool;
+
+    fn is_empty(&self) -> bool;
+}
+
+struct UnrootedNodeIterator<'a, I>
+where
+    I: Fn(&Node) -> &MutNullableDom<Node>,
+{
+    start: &'a MutNullableDom<Node>,
+    next_node: I,
+}
+
+impl<'a, I> UnrootedNodeIterator<'a, I>
+where
+    I: Fn(&Node) -> &MutNullableDom<Node>,
+{
+    fn any_all_common<F>(&self, closure: F, expected: bool) -> bool
+    where
+        F: Fn(&Node) -> bool,
+    {
+        let mut current = self.start;
+        let mut done = false;
+        let mut result = !expected;
+
+        while let Some(node) = current.if_is_some(|p| {
+            // Update the state based on the closure result.
+            if closure(p) == expected {
+                done = true;
+                result = expected;
+            }
+
+            // Move the iterator along.
+            (self.next_node)(p)
+        }) {
+            if done {
+                break;
+            }
+            current = node
+        }
+
+        result
+    }
+}
+
+impl<'a, I> UnrootedIterator for UnrootedNodeIterator<'a, I>
+where
+    I: Fn(&Node) -> &MutNullableDom<Node>,
+{
+    fn any<F>(&self, closure: F) -> bool
+    where
+        F: Fn(&Node) -> bool,
+    {
+        self.any_all_common(closure, true)
+    }
+
+    fn all<F>(&self, closure: F) -> bool
+    where
+        F: Fn(&Node) -> bool,
+    {
+        self.any_all_common(closure, false)
+    }
+
+    fn is_empty(&self) -> bool {
+        let mut empty = true;
+        self.start.if_is_some(|_| {
+            empty = false;
+            &None::<Node>
+        });
+
+        empty
+    }
+}
+
 /// Whether a tree traversal should pass shadow tree boundaries.
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum ShadowIncluding {
@@ -2393,7 +2490,7 @@ impl Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
-                    if node.children().any(|c| c.is::<Text>()) {
+                    if node.unrooted_children().any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest(None));
                     }
                     match node.child_elements().count() {
@@ -2432,7 +2529,7 @@ impl Node {
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if parent.children().any(|c| c.is_doctype()) {
+                    if parent.unrooted_children().any(|c| c.is_doctype()) {
                         return Err(Error::HierarchyRequest(None));
                     }
                     match child {
@@ -3571,7 +3668,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
-                    if node.children().any(|c| c.is::<Text>()) {
+                    if node.unrooted_children().any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest(None));
                     }
                     match node.child_elements().count() {
@@ -3600,7 +3697,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children().any(|c| c.is_doctype() && &*c != child) {
+                    if self
+                        .unrooted_children()
+                        .any(|c| c.is_doctype() && c != child)
+                    {
                         return Err(Error::HierarchyRequest(None));
                     }
                     if self

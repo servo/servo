@@ -26,7 +26,7 @@ use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
-use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext, UnrootedIterator};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -302,7 +302,7 @@ impl VirtualMethods for HTMLButtonElement {
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
         if node
-            .ancestors()
+            .unrooted_ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
             el.check_ancestors_disabled_state_for_form_control();

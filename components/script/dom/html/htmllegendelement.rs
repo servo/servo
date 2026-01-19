@@ -15,7 +15,7 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::node::{BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, UnbindContext, UnrootedIterator};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -75,7 +75,7 @@ impl VirtualMethods for HTMLLegendElement {
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
         if node
-            .ancestors()
+            .unrooted_ancestors()
             .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
         {
             el.check_ancestors_disabled_state_for_form_control();
