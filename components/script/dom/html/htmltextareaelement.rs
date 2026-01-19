@@ -270,8 +270,8 @@ impl TextControlElement for HTMLTextAreaElement {
         !self.textinput.borrow().get_content().is_empty()
     }
 
-    fn has_selection(&self) -> bool {
-        self.textinput.borrow().has_selection()
+    fn has_uncollapsed_selection(&self) -> bool {
+        self.textinput.borrow().has_uncollapsed_selection()
     }
 
     fn set_dirty_value_flag(&self, value: bool) {

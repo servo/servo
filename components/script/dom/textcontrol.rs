@@ -23,7 +23,7 @@ use crate::textinput::{SelectionDirection, SelectionState, TextInput};
 pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
-    fn has_selection(&self) -> bool;
+    fn has_uncollapsed_selection(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
     fn select_all(&self);
 }
