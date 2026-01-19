@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::R
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::MutNullableDom;
-use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
+use crate::dom::stream::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::types::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

@@ -22,8 +22,8 @@ use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::compressionstream::convert_chunk_to_vec;
-use crate::dom::transformstreamdefaultcontroller::TransformerType;
+use crate::dom::stream::compressionstream::convert_chunk_to_vec;
+use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
     GlobalScope, ReadableStream, TransformStream, TransformStreamDefaultController, WritableStream,
 };

@@ -18,7 +18,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::readablestreamdefaultreader::ReadRequest;
+use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]

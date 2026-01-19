@@ -37,11 +37,11 @@ use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_alg
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ReadableStream, create_readable_stream};
-use crate::dom::transformstreamdefaultcontroller::TransformerType;
+use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
+use crate::dom::stream::writablestream::create_writable_stream;
+use crate::dom::stream::writablestreamdefaultcontroller::UnderlyingSinkType;
 use crate::dom::types::PromiseNativeHandler;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
-use crate::dom::writablestream::create_writable_stream;
-use crate::dom::writablestreamdefaultcontroller::UnderlyingSinkType;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

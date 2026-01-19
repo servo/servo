@@ -33,9 +33,11 @@ use crate::dom::decompressionstream::{
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::stream::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
+use crate::dom::stream::textencoderstream::{
+    Encoder, encode_and_enqueue_a_chunk, encode_and_flush,
+};
 use crate::dom::textdecodercommon::TextDecoderCommon;
-use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
-use crate::dom::textencoderstream::{Encoder, encode_and_enqueue_a_chunk, encode_and_flush};
 use crate::dom::types::DecompressionStream;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};

@@ -38,7 +38,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::stream::readablestream::ReadableStream;
 use crate::fetch::RequestWithGlobalScope;
 use crate::script_runtime::CanGc;
 

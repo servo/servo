@@ -19,7 +19,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::stream::readablestream::ReadableStream;
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};

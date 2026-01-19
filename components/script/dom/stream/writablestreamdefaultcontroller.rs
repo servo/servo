@@ -28,8 +28,8 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
+use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{AbortController, AbortSignal};
-use crate::dom::writablestream::WritableStream;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

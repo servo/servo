@@ -21,7 +21,7 @@ use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
-use crate::dom::transformstream::TransformStream;
+use crate::dom::stream::transformstream::TransformStream;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>

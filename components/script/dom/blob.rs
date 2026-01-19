@@ -28,7 +28,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::stream::readablestream::ReadableStream;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::CanGc;
 
