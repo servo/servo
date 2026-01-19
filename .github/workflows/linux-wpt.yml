@@ -108,7 +108,7 @@ jobs:
           nproc=$(nproc)
           ./mach test-wpt \
             $WPT_ALWAYS_SUCCEED_ARG \
-            --profile ${{ inputs.profile }} --processes $((nproc * ${{ inputs.wpt-args == '' && 2 || 1 }})) --timeout-multiplier 2 \
+            --profile ${{ inputs.profile }} --processes $((nproc * ${{ runner.environment == 'self-hosted' && 2 || 1 }})) --timeout-multiplier 2 \
             --total-chunks ${{ needs.runner-select.outputs.selected-runner-count }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
