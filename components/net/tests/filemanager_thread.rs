@@ -12,7 +12,7 @@ use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FilePickerRequest, FilterPattern,
 };
 use ipc_channel::ipc;
-use net::async_runtime::{async_runtime_initialized, init_async_runtime};
+use net::async_runtime::init_async_runtime;
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
@@ -20,7 +20,6 @@ use net_traits::filemanager_thread::{
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
-use tokio::task::yield_now;
 
 use crate::create_embedder_proxy_and_receiver;
 
