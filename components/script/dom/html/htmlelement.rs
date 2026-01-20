@@ -53,6 +53,7 @@ use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::medialist::MediaList;
 use crate::dom::node::{
     BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
 };
@@ -149,6 +150,18 @@ impl HTMLElement {
 
         // Step 2: Replace all with fragment within element.
         Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
+    pub(crate) fn media_attribute_matches_media_environment(&self) -> bool {
+        // A string matches the environment of the user if it is the empty string,
+        // a string consisting of only ASCII whitespace, or is a media query list that
+        // matches the user's environment according to the definitions given in Media Queries. [MQ]
+        self.upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("media"))
+            .is_none_or(|media| {
+                MediaList::matches_environment(&self.owner_document(), &media.value())
+            })
     }
 }
 

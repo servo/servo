@@ -56,6 +56,9 @@ pub(crate) trait StylesheetOwner {
     /// trigger a document-load-blocking load).
     fn parser_inserted(&self) -> bool;
 
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool;
+
     /// Which referrer policy should loads triggered by this owner follow
     fn referrer_policy(&self) -> ReferrerPolicy;
 
@@ -92,6 +95,10 @@ struct StylesheetContext {
     /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
+    /// <https://html.spec.whatwg.org/multipage/#contributes-a-script-blocking-style-sheet>
+    is_script_blocking: bool,
+    /// <https://html.spec.whatwg.org/multipage/#render-blocking>
+    is_render_blocking: bool,
 }
 
 impl StylesheetContext {
@@ -170,17 +177,37 @@ impl StylesheetContext {
             .is_none_or(|generation| generation == link.get_request_generation_id())
     }
 
-    fn decrement_load_and_render_blockers(&self, owner: &dyn StylesheetOwner, document: &Document) {
-        if !owner.parser_inserted() {
-            return;
+    /// <https://html.spec.whatwg.org/multipage/#contributes-a-script-blocking-style-sheet>
+    fn contributes_a_script_blocking_style_sheet(
+        &self,
+        element: &HTMLElement,
+        owner: &dyn StylesheetOwner,
+        document: &Document,
+    ) -> bool {
+        // el was created by that Document's parser.
+        owner.parser_inserted()
+        // el is either a style element or a link element that was an external resource link that
+        // contributes to the styling processing model when the el was created by the parser.
+        && element.downcast::<HTMLLinkElement>().is_none_or(|_| self.contributes_to_the_styling_processing_model(element))
+        // el's media attribute's value matches the environment.
+        && element.media_attribute_matches_media_environment()
+        // el's style sheet was enabled when the element was created by the parser.
+        // TODO
+
+        // The last time the event loop reached step 1, el's root was that Document.
+        && *element.owner_document() == *document
+        // The user agent hasn't given up on loading that particular style sheet yet.
+        // A user agent may give up on loading a style sheet at any time.
+        //
+        // This might happen when we time out a resource, but that happens in `fetch` instead
+    }
+
+    fn decrement_load_and_render_blockers(&self, document: &Document) {
+        if self.is_script_blocking {
+            document.decrement_script_blocking_stylesheet_count();
         }
 
-        document.decrement_script_blocking_stylesheet_count();
-
-        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-        // > A link element of this type is implicitly potentially render-blocking if the element
-        // > was created by its node document's parser.
-        if matches!(self.source, StylesheetContextSource::LinkElement) {
+        if self.is_render_blocking {
             document.decrement_render_blocking_element_count();
         }
     }
@@ -192,7 +219,7 @@ impl StylesheetContext {
         element: &HTMLElement,
         document: &Document,
     ) {
-        self.decrement_load_and_render_blockers(owner, document);
+        self.decrement_load_and_render_blockers(document);
         document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
 
         let Some(any_failed) = owner.load_finished(successful) else {
@@ -438,7 +465,7 @@ impl ElementStylesheetLoader<'_> {
         let generation = element
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);
-        let context = StylesheetContext {
+        let mut context = StylesheetContext {
             element: Trusted::new(element),
             source,
             media,
@@ -449,6 +476,8 @@ impl ElementStylesheetLoader<'_> {
             shadow_root,
             origin_clean: true,
             request_generation_id: generation,
+            is_script_blocking: false,
+            is_render_blocking: false,
         };
 
         let owner = element
@@ -458,15 +487,22 @@ impl ElementStylesheetLoader<'_> {
         let referrer_policy = owner.referrer_policy();
         owner.increment_pending_loads_count();
 
-        if owner.parser_inserted() {
-            document.increment_script_blocking_stylesheet_count();
+        // Final steps of https://html.spec.whatwg.org/multipage/#update-a-style-block
+        // and part of https://html.spec.whatwg.org/multipage/#link-type-stylesheet:linked-resource-fetch-setup-steps
 
-            // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-            // > A link element of this type is implicitly potentially render-blocking if the element
-            // > was created by its node document's parser.
-            if matches!(context.source, StylesheetContextSource::LinkElement) {
-                document.increment_render_blocking_element_count();
-            }
+        // If element contributes a script-blocking style sheet, append element to its node document's script-blocking style sheet set.
+        context.is_script_blocking =
+            context.contributes_a_script_blocking_style_sheet(element, owner, &document);
+        if context.is_script_blocking {
+            document.increment_script_blocking_stylesheet_count();
+        }
+
+        // If element's media attribute's value matches the environment and
+        // element is potentially render-blocking, then block rendering on element.
+        context.is_render_blocking = element.media_attribute_matches_media_environment() &&
+            owner.potentially_render_blocking();
+        if context.is_render_blocking {
+            document.increment_render_blocking_element_count();
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource

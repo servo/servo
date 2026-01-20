@@ -415,6 +415,12 @@ impl StylesheetOwner for HTMLStyleElement {
         self.parser_inserted.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-style-element:implicitly-potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool {
+        // > A style element is implicitly potentially render-blocking if the element was created by its node document's parser.
+        self.parser_inserted()
+    }
+
     fn referrer_policy(&self) -> ReferrerPolicy {
         ReferrerPolicy::EmptyString
     }
