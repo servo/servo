@@ -136,21 +136,7 @@ jobs:
         id: artifact_ids
         shell: bash
         run: |
-          if [[ -n "${{steps.upload-library.outputs.artifact-id}}" ]]; then
-            LIBRARY_ID="${{steps.upload-library.outputs.artifact-id}}"
-          else
-            LIBRARY_ID=""
-          fi
-          if [[ -n "${{steps.upload-hap-signed.outputs.artifact-id}}" ]]; then
-            HAP_ID="${{steps.upload-hap-signed.outputs.artifact-id}}"
-          else
-            HAP_ID="${{steps.upload-hap-unsigned.outputs.artifact-id}}"
-          fi
-          if [[ -n "$LIBRARY_ID" ]]; then
-            echo "artifact_ids=${LIBRARY_ID},${HAP_ID}" >> $GITHUB_OUTPUT
-          else
-            echo "artifact_ids=${HAP_ID}" >> $GITHUB_OUTPUT
-          fi
+          echo "artifact_ids=${{steps.upload-library.outputs.artifact-id}},${{steps.upload-hap-unsigned.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   bencher:
     needs: ["build"]
