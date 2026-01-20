@@ -81,7 +81,7 @@ use crate::dom::processingoptions::{
 use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
-use crate::dom::types::{HTMLElement, HTMLMediaElement};
+use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
 use crate::dom::virtualmethods::vtable_for;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_realm;
@@ -710,6 +710,7 @@ impl ServoParser {
             self.document.window().reflow_if_reflow_timer_expired();
             let script = match feed(&self.tokenizer) {
                 TokenizerResult::Done => return,
+                TokenizerResult::EncodingIndicator(_) => continue,
                 TokenizerResult::Script(script) => script,
             };
 
@@ -1786,6 +1787,11 @@ impl TreeSink for Sink {
         attributes: &[Attribute],
     ) -> bool {
         attach_declarative_shadow_inner(host, template, attributes)
+    }
+
+    fn maybe_clone_an_option_into_selectedcontent(&self, option: &Self::Handle) {
+        let option = option.downcast::<HTMLOptionElement>().unwrap();
+        option.maybe_clone_an_option_into_selectedcontent(CanGc::note())
     }
 }
 

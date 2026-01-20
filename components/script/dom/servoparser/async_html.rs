@@ -362,7 +362,8 @@ impl Tokenizer {
                 ToTokenizerMsg::TokenizerResultScript {
                     script: _,
                     updated_input: _,
-                } => continue,
+                } |
+                ToTokenizerMsg::EncodingIndicator(_) => continue,
                 ToTokenizerMsg::End => return,
             };
         }
@@ -677,6 +678,9 @@ fn run(
                     TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript {
                         script,
                         updated_input,
+                    },
+                    TokenizerResult::EncodingIndicator(encoding) => {
+                        ToTokenizerMsg::EncodingIndicator(SendTendril::from(encoding))
                     },
                 };
                 sender.send(res).unwrap();
