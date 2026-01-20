@@ -428,6 +428,13 @@ impl DocumentEventHandler {
             return;
         };
 
+        let old_mouse_move_point = self
+            .most_recent_mousemove_point
+            .replace(Some(hit_test_result.point_in_frame));
+        if old_mouse_move_point == Some(hit_test_result.point_in_frame) {
+            return;
+        }
+
         // Update the cursor when the mouse moves, if it has changed.
         self.set_cursor(Some(hit_test_result.cursor));
 
@@ -537,8 +544,6 @@ impl DocumentEventHandler {
         .fire(new_target.upcast(), can_gc);
 
         self.update_current_hover_target_and_status(Some(new_target));
-        self.most_recent_mousemove_point
-            .set(Some(hit_test_result.point_in_frame));
     }
 
     fn update_current_hover_target_and_status(&self, new_hover_target: Option<DomRoot<Element>>) {
