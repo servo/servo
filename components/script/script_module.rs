@@ -6,7 +6,6 @@
 //! related to `type=module` for script thread or worker threads.
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
 use std::ffi::CStr;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -16,21 +15,20 @@ use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
 use hyper_serde::Serde;
+use indexmap::IndexMap;
 use indexmap::map::Entry;
-use indexmap::{IndexMap, IndexSet};
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     CompileModule1, ExceptionStackBehavior, GetModuleRequestSpecifier, GetModuleResolveHook,
-    GetRequestedModuleSpecifier, GetRequestedModulesCount, Handle as RawHandle, HandleObject,
-    HandleValue as RawHandleValue, Heap, JS_ClearPendingException, JS_DefineProperty4,
-    JS_NewStringCopyN, JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
-    ModuleErrorBehaviour, ModuleEvaluate, ModuleLink, MutableHandleValue,
-    SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook,
-    SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value,
+    Handle as RawHandle, HandleObject, HandleValue as RawHandleValue, Heap,
+    JS_ClearPendingException, JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext,
+    JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour, ModuleEvaluate, ModuleLink,
+    MutableHandleValue, SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate,
+    SetModuleResolveHook, SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers::{JS_GetModulePrivate, JS_GetPendingException, JS_SetPendingException};
+use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException};
 use js::rust::{
     CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
     transform_str_to_source_text,
@@ -45,7 +43,6 @@ use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_url::ServoUrl;
-use uuid::Uuid;
 
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
@@ -62,10 +59,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::dynamicmoduleowner::{DynamicModuleId, DynamicModuleOwner};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlscriptelement::{HTMLScriptElement, SCRIPT_JS_MIMES, Script, ScriptId};
+use crate::dom::html::htmlscriptelement::{HTMLScriptElement, SCRIPT_JS_MIMES, Script};
 use crate::dom::htmlscriptelement::substitute_with_local_script;
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -159,61 +155,12 @@ impl ModuleScript {
     }
 }
 
-/// Identity for a module which will be
-/// used to retrieve the module when we'd
-/// like to get it from module map.
-///
-/// For example, we will save module parents with
-/// module identity so that we can get module tree
-/// from a descendant no matter the parent is an
-/// inline script or a external script
-#[derive(Clone, Debug, Eq, Hash, JSTraceable, PartialEq, MallocSizeOf)]
-pub(crate) enum ModuleIdentity {
-    ScriptId(ScriptId),
-    ModuleUrl(#[no_trace] ServoUrl),
-}
-
-impl ModuleIdentity {
-    pub(crate) fn get_module_tree(&self, global: &GlobalScope) -> Rc<ModuleTree> {
-        match self {
-            ModuleIdentity::ModuleUrl(url) => {
-                let module_map = global.get_module_map().borrow();
-                module_map.get(&url.clone()).unwrap().clone()
-            },
-            ModuleIdentity::ScriptId(script_id) => {
-                let inline_module_map = global.get_inline_module_map().borrow();
-                inline_module_map.get(script_id).unwrap().clone()
-            },
-        }
-    }
-}
-
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ModuleTree {
     #[no_trace]
     url: ServoUrl,
-    #[conditional_malloc_size_of]
-    text: DomRefCell<Rc<DOMString>>,
     #[ignore_malloc_size_of = "mozjs"]
     record: DomRefCell<Option<ModuleObject>>,
-    status: DomRefCell<ModuleStatus>,
-    // The spec maintains load order for descendants, so we use an indexset for descendants and
-    // parents. This isn't actually necessary for parents however the IndexSet APIs don't
-    // interop with HashSet, and IndexSet isn't very expensive
-    // (https://github.com/bluss/indexmap/issues/110)
-    //
-    // By default all maps in web specs are ordered maps
-    // (https://infra.spec.whatwg.org/#ordered-map), however we can usually get away with using
-    // stdlib maps and sets because we rarely iterate over them.
-    #[custom_trace]
-    parent_identities: DomRefCell<IndexSet<ModuleIdentity>>,
-    #[no_trace]
-    descendant_urls: DomRefCell<IndexSet<ServoUrl>>,
-    // A set to memoize which descendants are under fetching
-    #[no_trace]
-    incomplete_fetch_urls: DomRefCell<IndexSet<ServoUrl>>,
-    #[no_trace]
-    visited_urls: DomRefCell<HashSet<ServoUrl>>,
     #[ignore_malloc_size_of = "mozjs"]
     parse_error: DomRefCell<Option<RethrowError>>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -226,39 +173,23 @@ pub(crate) struct ModuleTree {
     promise: DomRefCell<Option<Rc<Promise>>>,
     #[no_trace]
     loaded_modules: DomRefCell<IndexMap<String, ServoUrl>>,
-    external: bool,
 }
 
 impl ModuleTree {
-    pub(crate) fn new(url: ServoUrl, external: bool, visited_urls: HashSet<ServoUrl>) -> Self {
+    fn new(url: ServoUrl) -> Self {
         ModuleTree {
             url,
-            text: DomRefCell::new(Rc::new(DOMString::new())),
             record: DomRefCell::new(None),
-            status: DomRefCell::new(ModuleStatus::Initial),
-            parent_identities: DomRefCell::new(IndexSet::new()),
-            descendant_urls: DomRefCell::new(IndexSet::new()),
-            incomplete_fetch_urls: DomRefCell::new(IndexSet::new()),
-            visited_urls: DomRefCell::new(visited_urls),
             parse_error: DomRefCell::new(None),
             rethrow_error: DomRefCell::new(None),
             network_error: DomRefCell::new(None),
             promise: DomRefCell::new(None),
             loaded_modules: DomRefCell::new(IndexMap::new()),
-            external,
         }
     }
 
     pub(crate) fn get_url(&self) -> ServoUrl {
         self.url.clone()
-    }
-
-    pub(crate) fn get_status(&self) -> ModuleStatus {
-        *self.status.borrow()
-    }
-
-    pub(crate) fn set_status(&self, status: ModuleStatus) {
-        *self.status.borrow_mut() = status;
     }
 
     pub(crate) fn get_record(&self) -> &DomRefCell<Option<ModuleObject>> {
@@ -291,97 +222,6 @@ impl ModuleTree {
 
     pub(crate) fn set_network_error(&self, network_error: NetworkError) {
         *self.network_error.borrow_mut() = Some(network_error);
-    }
-
-    pub(crate) fn get_text(&self) -> &DomRefCell<Rc<DOMString>> {
-        &self.text
-    }
-
-    pub(crate) fn set_text(&self, module_text: Rc<DOMString>) {
-        *self.text.borrow_mut() = module_text;
-    }
-
-    pub(crate) fn get_incomplete_fetch_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
-        &self.incomplete_fetch_urls
-    }
-
-    pub(crate) fn get_descendant_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
-        &self.descendant_urls
-    }
-
-    pub(crate) fn get_parent_urls(&self) -> IndexSet<ServoUrl> {
-        let parent_identities = self.parent_identities.borrow();
-
-        parent_identities
-            .iter()
-            .filter_map(|parent_identity| match parent_identity {
-                ModuleIdentity::ScriptId(_) => None,
-                ModuleIdentity::ModuleUrl(url) => Some(url.clone()),
-            })
-            .collect()
-    }
-
-    pub(crate) fn insert_parent_identity(&self, parent_identity: ModuleIdentity) {
-        self.parent_identities.borrow_mut().insert(parent_identity);
-    }
-
-    pub(crate) fn insert_incomplete_fetch_url(&self, dependency: &ServoUrl) {
-        self.incomplete_fetch_urls
-            .borrow_mut()
-            .insert(dependency.clone());
-    }
-
-    pub(crate) fn remove_incomplete_fetch_url(&self, dependency: &ServoUrl) {
-        self.incomplete_fetch_urls
-            .borrow_mut()
-            .shift_remove(dependency);
-    }
-
-    /// recursively checks if all of the transitive descendants are
-    /// in the FetchingDescendants or later status
-    fn recursive_check_descendants(
-        module_tree: &ModuleTree,
-        module_map: &HashMap<ServoUrl, Rc<ModuleTree>>,
-        discovered_urls: &mut HashSet<ServoUrl>,
-    ) -> bool {
-        discovered_urls.insert(module_tree.url.clone());
-
-        let descendant_urls = module_tree.descendant_urls.borrow();
-
-        for descendant_url in descendant_urls.iter() {
-            match module_map.get(&descendant_url.clone()) {
-                None => return false,
-                Some(descendant_module) => {
-                    if discovered_urls.contains(&descendant_module.url) {
-                        continue;
-                    }
-
-                    let descendant_status = descendant_module.get_status();
-                    if descendant_status < ModuleStatus::FetchingDescendants {
-                        return false;
-                    }
-
-                    let all_ready_descendants = ModuleTree::recursive_check_descendants(
-                        descendant_module,
-                        module_map,
-                        discovered_urls,
-                    );
-
-                    if !all_ready_descendants {
-                        return false;
-                    }
-                },
-            }
-        }
-
-        true
-    }
-
-    fn has_all_ready_descendants(&self, global: &GlobalScope) -> bool {
-        let module_map = global.get_module_map().borrow();
-        let mut discovered_urls = HashSet::new();
-
-        ModuleTree::recursive_check_descendants(self, &module_map.0, &mut discovered_urls)
     }
 
     pub(crate) fn append_waiting_handler(
@@ -454,14 +294,6 @@ impl ModuleTree {
             },
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
-pub(crate) enum ModuleStatus {
-    Initial,
-    Fetching,
-    FetchingDescendants,
-    Finished,
 }
 
 struct ModuleSource {
@@ -644,44 +476,6 @@ impl ModuleTree {
         }
     }
 
-    #[expect(unsafe_code)]
-    fn resolve_requested_module_specifiers(
-        &self,
-        global: &GlobalScope,
-        module_object: HandleObject,
-        can_gc: CanGc,
-    ) -> Result<IndexSet<ServoUrl>, RethrowError> {
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
-
-        let mut specifier_urls = IndexSet::new();
-
-        unsafe {
-            let length = GetRequestedModulesCount(*cx, module_object);
-
-            for index in 0..length {
-                let jsstr =
-                    std::ptr::NonNull::new(GetRequestedModuleSpecifier(*cx, module_object, index))
-                        .unwrap();
-                let specifier = DOMString::from_string(jsstr_to_string(*cx, jsstr));
-
-                rooted!(in(*cx) let mut private = UndefinedValue());
-                JS_GetModulePrivate(module_object.get(), private.handle_mut());
-                let private = private.handle().into_handle();
-                let script = module_script_from_reference_private(&private);
-                let url = ModuleTree::resolve_module_specifier(global, script, specifier, can_gc);
-
-                if let Err(specifier_error) = url {
-                    return Err(gen_type_error(global, specifier_error, can_gc));
-                }
-
-                specifier_urls.insert(url.unwrap());
-            }
-        }
-
-        Ok(specifier_urls)
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     pub(crate) fn resolve_module_specifier(
         global: &GlobalScope,
@@ -835,7 +629,7 @@ pub(crate) enum ModuleOwner {
     #[expect(dead_code)]
     Worker(TrustedWorkerAddress),
     Window(Trusted<HTMLScriptElement>),
-    DynamicModule(Trusted<DynamicModuleOwner>),
+    DynamicModule(Trusted<GlobalScope>),
 }
 
 impl ModuleOwner {
@@ -845,16 +639,6 @@ impl ModuleOwner {
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
-    }
-
-    pub(crate) fn new_dynamic(global: &GlobalScope, can_gc: CanGc) -> Self {
-        let dynamic = DynamicModuleOwner::new(
-            global,
-            Promise::new(global, can_gc),
-            DynamicModuleId(Uuid::new_v4()),
-            can_gc,
-        );
-        ModuleOwner::DynamicModule(Trusted::new(&dynamic))
     }
 
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
@@ -1236,37 +1020,6 @@ unsafe extern "C" fn HostPopulateImportMeta(
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct DynamicModuleList {
-    requests: Vec<RootedTraceableBox<DynamicModule>>,
-
-    #[ignore_malloc_size_of = "Define in uuid"]
-    next_id: DynamicModuleId,
-}
-
-impl DynamicModuleList {
-    pub(crate) fn new() -> Self {
-        Self {
-            requests: vec![],
-            next_id: DynamicModuleId(Uuid::new_v4()),
-        }
-    }
-}
-
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable, MallocSizeOf)]
-struct DynamicModule {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
-    #[ignore_malloc_size_of = "GC types are hard"]
-    specifier: Heap<*mut JSObject>,
-    #[ignore_malloc_size_of = "GC types are hard"]
-    referencing_private: Heap<JSVal>,
-    #[ignore_malloc_size_of = "Defined in uuid"]
-    id: DynamicModuleId,
-}
-
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
 pub(crate) fn fetch_an_external_module_script(
     url: ServoUrl,
@@ -1313,7 +1066,7 @@ pub(crate) fn fetch_inline_module_script(
     can_gc: CanGc,
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
-    let module_tree = Rc::new(ModuleTree::new(url.clone(), false, HashSet::new()));
+    let module_tree = Rc::new(ModuleTree::new(url.clone()));
     module_tree.compile_module_script(
         owner.clone(),
         module_script_text,
@@ -1459,7 +1212,7 @@ pub(crate) fn fetch_a_single_module_script(
             }
         } else {
             // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-            let module_tree = ModuleTree::new(url.clone(), true, HashSet::new());
+            let module_tree = ModuleTree::new(url.clone());
             global.set_module_map(url.clone(), module_tree);
             false
         }

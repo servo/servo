@@ -51,7 +51,6 @@ mod navigation;
 mod network_listener;
 mod realms;
 mod routed_promise;
-#[expect(dead_code)]
 mod script_module;
 mod script_mutation_observers;
 pub(crate) mod script_runtime;
