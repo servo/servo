@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>mousemove events that do not change the cursor position are ignored</title>
+    <link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <div id="target" style="width: 100px; height: 100px;"></div>
+    <script>
+        promise_test(async (t) => {
+            const target = document.getElementById("target");
+            const eventWatcher = new EventWatcher(t, target, ["mousemove", "click"]);
+
+            // We should only receive a single "mousemove" event if the cursor does not move.
+            const eventPromise = eventWatcher.wait_for(["mousemove", "click"]);
+
+            const actions_promise = await new test_driver.Actions()
+              .pointerMove(10, 10, {origin: target})
+              .pointerMove(10, 10, {origin: target})
+              .pointerMove(10, 10, {origin: target})
+              .pointerMove(10, 10, {origin: target})
+              .pointerDown().pointerUp()
+              .send();
+            await eventPromise;
+        });
+    </script>
+  </body>
+</html>
