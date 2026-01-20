@@ -11,6 +11,7 @@ use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
+use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
@@ -58,6 +59,10 @@ pub struct IDBTransaction {
     // An unique identifier, used to commit and revert this transaction
     // FIXME:(rasviitanen) Replace this with a channel
     serial_number: u64,
+
+    /// The id of the associated open request, if any.
+    #[no_trace]
+    open_request_id: Option<Uuid>,
 }
 
 impl IDBTransaction {
@@ -66,6 +71,7 @@ impl IDBTransaction {
         mode: IDBTransactionMode,
         scope: &DOMStringList,
         serial_number: u64,
+        open_request_id: Option<Uuid>,
     ) -> IDBTransaction {
         IDBTransaction {
             eventtarget: EventTarget::new_inherited(),
@@ -80,6 +86,7 @@ impl IDBTransaction {
             finished: Cell::new(false),
             pending_request_count: Cell::new(0),
             serial_number,
+            open_request_id,
         }
     }
 
@@ -99,6 +106,7 @@ impl IDBTransaction {
                 mode,
                 scope,
                 serial_number,
+                None,
             )),
             global,
             can_gc,
@@ -114,6 +122,7 @@ impl IDBTransaction {
         mode: IDBTransactionMode,
         scope: &DOMStringList,
         transaction_id: u64,
+        open_request_id: Option<Uuid>,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
         reflect_dom_object(
@@ -122,6 +131,7 @@ impl IDBTransaction {
                 mode,
                 scope,
                 transaction_id,
+                open_request_id,
             )),
             global,
             can_gc,
@@ -359,10 +369,17 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             let name = self.db.get_name().to_string();
             let global = self.global();
             let origin = global.origin().immutable().clone();
+            let Some(id) = self.open_request_id else {
+                debug_assert!(
+                    false,
+                    "A Versionchange transaction should have an open request id."
+                );
+                return Err(Error::InvalidState(None));
+            };
             if global
                 .storage_threads()
                 .send(IndexedDBThreadMsg::Sync(
-                    SyncOperation::AbortPendingUpgrade { name, origin },
+                    SyncOperation::AbortPendingUpgrade { name, id, origin },
                 ))
                 .is_err()
             {

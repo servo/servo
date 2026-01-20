@@ -8758,6 +8758,7 @@ dependencies = [
  "serde",
  "servo_malloc_size_of",
  "servo_url",
+ "uuid",
 ]
 
 [[package]]

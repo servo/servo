@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
@@ -11,6 +12,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
+use uuid::Uuid;
 
 // TODO Box<dyn Error> is not serializable, fix needs to be found
 pub type DbError = String;
@@ -435,10 +437,16 @@ pub enum SyncOperation {
     ),
 
     OpenDatabase(
-        GenericCallback<BackendResult<OpenDatabaseResult>>, // Returns the result
+        // Callback for the result.
+        GenericCallback<BackendResult<OpenDatabaseResult>>,
+        // Origin of the request.
         ImmutableOrigin,
-        String,      // Database
-        Option<u64>, // Eventual version
+        // Name of the database.
+        String,
+        // Requested db version(optional).
+        Option<u64>,
+        // The id of the request.
+        Uuid,
     ),
 
     /// Deletes the database
@@ -446,6 +454,7 @@ pub enum SyncOperation {
         GenericCallback<BackendResult<u64>>,
         ImmutableOrigin,
         String, // Database
+        Uuid,
     ),
 
     /// Returns an unique identifier that is used to be able to
@@ -475,13 +484,14 @@ pub enum SyncOperation {
 
     /// Abort pending database upgrades
     AbortPendingUpgrades {
-        names: Vec<String>,
+        pending_upgrades: HashMap<String, HashSet<Uuid>>,
         origin: ImmutableOrigin,
     },
 
     /// Abort the current pending upgrade.
     AbortPendingUpgrade {
         name: String,
+        id: Uuid,
         origin: ImmutableOrigin,
     },
 

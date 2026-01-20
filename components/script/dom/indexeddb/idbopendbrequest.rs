@@ -12,6 +12,7 @@ use storage_traits::indexeddb::{
     BackendError, BackendResult, IndexedDBThreadMsg, OpenDatabaseResult, SyncOperation,
 };
 use stylo_atoms::Atom;
+use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
@@ -44,7 +45,7 @@ impl OpenRequestListener {
         let request = self.open_request.root();
         let global = request.global();
         let name = DBName(name);
-        match response {
+        let finished = match response {
             OpenDatabaseResult::Connection { version, upgraded } => {
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
@@ -60,6 +61,7 @@ impl OpenRequestListener {
                     )
                 });
                 request.dispatch_success(&connection);
+                true
             },
             OpenDatabaseResult::Upgrade {
                 version,
@@ -75,15 +77,23 @@ impl OpenRequestListener {
                 );
                 request.pending_connection.set(Some(&connection));
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
+                false
             },
             OpenDatabaseResult::VersionError => {
                 // Step 2.1 If result is an error, see dispatch_error().
                 self.dispatch_error(Error::Version(None), can_gc);
+                true
             },
             OpenDatabaseResult::AbortError => {
                 // Step 2.1 If result is an error, see dispatch_error().
                 self.dispatch_error(Error::Abort(None), can_gc);
+                true
             },
+        };
+        if finished {
+            global
+                .get_indexeddb()
+                .note_end_of_open(&name, &request.get_id());
         }
     }
 
@@ -187,6 +197,9 @@ impl OpenRequestListener {
 pub struct IDBOpenDBRequest {
     idbrequest: IDBRequest,
     pending_connection: MutNullableDom<IDBDatabase>,
+
+    #[no_trace]
+    id: Uuid,
 }
 
 impl IDBOpenDBRequest {
@@ -194,11 +207,16 @@ impl IDBOpenDBRequest {
         IDBOpenDBRequest {
             idbrequest: IDBRequest::new_inherited(),
             pending_connection: Default::default(),
+            id: Uuid::new_v4(),
         }
     }
 
     pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBOpenDBRequest> {
         reflect_dom_object(Box::new(IDBOpenDBRequest::new_inherited()), global, can_gc)
+    }
+
+    pub(crate) fn get_id(&self) -> Uuid {
+        self.id
     }
 
     /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
@@ -223,6 +241,7 @@ impl IDBOpenDBRequest {
             IDBTransactionMode::Versionchange,
             &connection.object_stores(),
             transaction,
+            Some(self.get_id()),
             can_gc,
         );
         connection.set_transaction(&transaction);
@@ -330,6 +349,7 @@ impl IDBOpenDBRequest {
             global.origin().immutable().clone(),
             name.to_string(),
             version,
+            self.get_id(),
         );
 
         // Note: algo continues in parallel.
@@ -361,8 +381,12 @@ impl IDBOpenDBRequest {
         })
         .expect("Could not create delete database callback");
 
-        let delete_operation =
-            SyncOperation::DeleteDatabase(callback, global.origin().immutable().clone(), name);
+        let delete_operation = SyncOperation::DeleteDatabase(
+            callback,
+            global.origin().immutable().clone(),
+            name,
+            self.get_id(),
+        );
 
         if global
             .storage_threads()

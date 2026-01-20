@@ -6,7 +6,7 @@ mod engines;
 
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
@@ -225,6 +225,8 @@ enum OpenRequest {
         /// Optionnaly, a version pending ugrade.
         /// Used as <https://w3c.github.io/IndexedDB/#request-processed-flag>
         pending_upgrade: Option<VersionUpgrade>,
+
+        id: Uuid,
     },
     Delete {
         /// The callback used to send a result to script.
@@ -241,10 +243,33 @@ enum OpenRequest {
 
         /// <https://w3c.github.io/IndexedDB/#request-processed-flag>
         processed: bool,
+
+        id: Uuid,
     },
 }
 
 impl OpenRequest {
+    fn get_id(&self) -> Uuid {
+        let id = match self {
+            OpenRequest::Open {
+                sender: _,
+                origin: _,
+                db_name: _,
+                version: _,
+                pending_upgrade: _,
+                id,
+            } => id,
+            OpenRequest::Delete {
+                sender: _,
+                _origin: _,
+                _db_name: _,
+                processed: _,
+                id,
+            } => id,
+        };
+        *id
+    }
+
     fn is_open(&self) -> bool {
         match self {
             OpenRequest::Open {
@@ -253,12 +278,14 @@ impl OpenRequest {
                 db_name: _,
                 version: _,
                 pending_upgrade: _,
+                id: _,
             } => true,
             OpenRequest::Delete {
                 sender: _,
                 _origin: _,
                 _db_name: _,
                 processed: _,
+                id: _,
             } => false,
         }
     }
@@ -270,12 +297,14 @@ impl OpenRequest {
                 db_name: _,
                 version: _,
                 pending_upgrade,
+                id: _,
             } => pending_upgrade.is_some(),
             OpenRequest::Delete {
                 sender: _,
                 _origin: _,
                 _db_name: _,
                 processed,
+                id: _,
             } => !processed,
         }
     }
@@ -290,6 +319,7 @@ impl OpenRequest {
                 db_name: _,
                 version: _,
                 pending_upgrade,
+                id: _,
             } => {
                 if sender.send(Ok(OpenDatabaseResult::AbortError)).is_err() {
                     error!("Failed to send OpenDatabaseResult::Connection to script.");
@@ -301,6 +331,7 @@ impl OpenRequest {
                 _origin: _,
                 _db_name: _,
                 processed: _,
+                id: _,
             } => {
                 if sender.send(Err(BackendError::DbNotFound)).is_err() {
                     error!("Failed to send result of database delete to script.");
@@ -411,6 +442,7 @@ impl IndexedDBManager {
             db_name: _,
             version: _,
             pending_upgrade,
+            id: _,
         } = open_request
         else {
             return;
@@ -488,7 +520,7 @@ impl IndexedDBManager {
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
-    fn abort_pending_upgrade(&mut self, name: String, origin: ImmutableOrigin) {
+    fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin) {
         let key = IndexedDBDescription {
             name,
             origin: origin.clone(),
@@ -503,6 +535,12 @@ impl IndexedDBManager {
             let Some(open_request) = queue.pop_front() else {
                 return debug_assert!(false, "There should be an open request to upgrade.");
             };
+            if open_request.get_id() != id {
+                return debug_assert!(
+                    false,
+                    "Open request to abort should be at the head of the queue."
+                );
+            }
             open_request.abort()
         };
         if let Some(old_version) = old {
@@ -521,24 +559,39 @@ impl IndexedDBManager {
     /// Aborting all upgrades for an origin
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
-    fn abort_pending_upgrades(&mut self, names: Vec<String>, origin: ImmutableOrigin) {
-        for name in names.into_iter() {
+    fn abort_pending_upgrades(
+        &mut self,
+        pending_upgrades: HashMap<String, HashSet<Uuid>>,
+        origin: ImmutableOrigin,
+    ) {
+        for (name, ids) in pending_upgrades.into_iter() {
             let mut version_to_revert: Option<u64> = None;
             let key = IndexedDBDescription {
                 name,
                 origin: origin.clone(),
             };
             {
-                let Some(mut queue) = self.connection_queues.remove(&key) else {
-                    continue;
-                };
-                for open_request in queue.drain(0..) {
-                    let old = open_request.abort();
-                    if version_to_revert.is_none() {
-                        if let Some(old) = old {
-                            version_to_revert = Some(old);
+                let is_empty = {
+                    let Some(queue) = self.connection_queues.get_mut(&key) else {
+                        continue;
+                    };
+                    queue.retain_mut(|open_request| {
+                        if ids.contains(&open_request.get_id()) {
+                            let old = open_request.abort();
+                            if version_to_revert.is_none() {
+                                if let Some(old) = old {
+                                    version_to_revert = Some(old);
+                                }
+                            }
+                            false
+                        } else {
+                            true
                         }
-                    }
+                    });
+                    queue.is_empty()
+                };
+                if is_empty {
+                    self.connection_queues.remove(&key);
                 }
             }
             if let Some(version) = version_to_revert {
@@ -560,6 +613,7 @@ impl IndexedDBManager {
         origin: ImmutableOrigin,
         db_name: String,
         version: Option<u64>,
+        id: Uuid,
     ) {
         let key = IndexedDBDescription {
             name: db_name.clone(),
@@ -571,6 +625,7 @@ impl IndexedDBManager {
             db_name,
             version,
             pending_upgrade: None,
+            id,
         };
         let should_continue = {
             // Step 1: Let queue be the connection queue for storageKey and name.
@@ -635,6 +690,7 @@ impl IndexedDBManager {
             origin: _,
             db_name: _,
             version: _,
+            id: _,
             pending_upgrade,
         } = open_request
         else {
@@ -704,6 +760,7 @@ impl IndexedDBManager {
             origin,
             db_name,
             version,
+            id: _,
             pending_upgrade: _,
         } = open_request
         else {
@@ -833,6 +890,7 @@ impl IndexedDBManager {
     fn start_delete_database(
         &mut self,
         key: IndexedDBDescription,
+        id: Uuid,
         sender: GenericCallback<BackendResult<u64>>,
     ) {
         let open_request = OpenRequest::Delete {
@@ -840,6 +898,7 @@ impl IndexedDBManager {
             _origin: key.origin.clone(),
             _db_name: key.name.clone(),
             processed: false,
+            id,
         };
 
         let should_continue = {
@@ -871,6 +930,7 @@ impl IndexedDBManager {
             _origin: _,
             _db_name: _,
             processed,
+            id: _,
         } = open_request
         else {
             return debug_assert!(
@@ -1001,21 +1061,24 @@ impl IndexedDBManager {
                 }
                 let _ = sender.send(Ok(()));
             },
-            SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
-                self.open_a_database_connection(sender, origin, db_name, version);
+            SyncOperation::OpenDatabase(sender, origin, db_name, version, id) => {
+                self.open_a_database_connection(sender, origin, db_name, version, id);
             },
-            SyncOperation::AbortPendingUpgrades { names, origin } => {
-                self.abort_pending_upgrades(names, origin);
+            SyncOperation::AbortPendingUpgrades {
+                pending_upgrades,
+                origin,
+            } => {
+                self.abort_pending_upgrades(pending_upgrades, origin);
             },
-            SyncOperation::AbortPendingUpgrade { name, origin } => {
-                self.abort_pending_upgrade(name, origin);
+            SyncOperation::AbortPendingUpgrade { name, id, origin } => {
+                self.abort_pending_upgrade(name, id, origin);
             },
-            SyncOperation::DeleteDatabase(callback, origin, db_name) => {
+            SyncOperation::DeleteDatabase(callback, origin, db_name, id) => {
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
                 };
-                self.start_delete_database(idb_description, callback);
+                self.start_delete_database(idb_description, id, callback);
             },
             SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
                 let result = self

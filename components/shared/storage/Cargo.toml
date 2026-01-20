@@ -18,3 +18,4 @@ malloc_size_of_derive = { workspace = true }
 profile_traits = { path = "../profile" }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
+uuid = { workspace = true, features = ["serde"] }
