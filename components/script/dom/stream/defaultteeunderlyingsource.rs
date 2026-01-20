@@ -10,8 +10,8 @@ use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
-use super::bindings::root::{DomRoot, MutNullableDom};
-use super::types::{ReadableStream, ReadableStreamDefaultReader};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::Dom;

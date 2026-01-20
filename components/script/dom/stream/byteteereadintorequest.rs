@@ -9,8 +9,8 @@ use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
 use js::typedarray::ArrayBufferViewU8;
 
-use super::bindings::reflector::reflect_dom_object;
-use super::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::error::{ErrorToJsval, Fallible};

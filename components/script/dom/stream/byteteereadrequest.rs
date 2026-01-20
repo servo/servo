@@ -11,8 +11,8 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::typedarray::ArrayBufferViewU8;
 use script_bindings::error::Fallible;
 
-use super::bindings::reflector::reflect_dom_object;
-use super::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource};
 use crate::dom::bindings::error::{Error, ErrorToJsval};

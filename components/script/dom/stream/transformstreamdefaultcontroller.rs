@@ -13,11 +13,11 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
-use super::bindings::cell::DomRefCell;
-use super::bindings::codegen::Bindings::TransformerBinding::{
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::TransformerBinding::{
     TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
 };
-use super::types::TransformStream;
+use crate::dom::types::TransformStream;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::TransformerBinding::Transformer;

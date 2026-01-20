@@ -9,14 +9,14 @@ use js::jsapi::{CallArgs, JSContext};
 use js::jsval::{Int32Value, JSVal};
 use js::rust::HandleObject;
 
-use super::bindings::codegen::Bindings::FunctionBinding::Function;
-use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     CountQueuingStrategyMethods, QueuingStrategy, QueuingStrategyInit, QueuingStrategySize,
 };
-use super::bindings::error::{Error, Fallible};
-use super::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
-use super::bindings::root::DomRoot;
-use super::types::GlobalScope;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
 use crate::{native_fn, native_raw_obj_fn};
 

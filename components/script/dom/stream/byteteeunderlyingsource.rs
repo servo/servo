@@ -11,12 +11,12 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 use js::typedarray::ArrayBufferViewU8;
 
-use super::bindings::buffer_source::HeapBufferSource;
-use super::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
 use super::readablestream::ReaderType;
 use super::readablestreambyobreader::ReadIntoRequest;
-use super::types::ReadableStream;
+use crate::dom::types::ReadableStream;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::Dom;

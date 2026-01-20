@@ -386,6 +386,7 @@ pub(crate) mod staticrange;
 pub(crate) mod storage;
 pub(crate) mod storageevent;
 pub(crate) mod stream;
+pub(crate) use self::stream::*;
 pub(crate) mod submitevent;
 pub(crate) mod subtlecrypto;
 pub(crate) mod svg;

@@ -16,8 +16,8 @@ use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, Mutabl
 use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
 
-use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
-use super::bindings::root::Dom;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;

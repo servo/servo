@@ -7,10 +7,10 @@ use js::gc::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::trace::RootedTraceableBox;
 
-use super::bindings::buffer_source::HeapBufferSource;
-use super::bindings::cell::DomRefCell;
-use super::bindings::reflector::reflect_dom_object;
-use super::bindings::root::DomRoot;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::ReadableStreamBYOBRequestMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;

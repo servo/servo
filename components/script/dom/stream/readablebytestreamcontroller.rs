@@ -14,10 +14,10 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 
-use super::bindings::buffer_source::HeapBufferSource;
-use super::bindings::cell::DomRefCell;
-use super::bindings::reflector::reflect_dom_object;
-use super::bindings::root::Dom;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::Dom;
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
 use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};

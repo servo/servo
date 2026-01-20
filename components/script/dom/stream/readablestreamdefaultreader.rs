@@ -13,11 +13,11 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
-use super::bindings::reflector::reflect_dom_object;
-use super::bindings::root::MutNullableDom;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::MutNullableDom;
 use super::byteteereadrequest::ByteTeeReadRequest;
 use super::readablebytestreamcontroller::ReadableByteStreamController;
-use super::types::ReadableStreamDefaultController;
+use crate::dom::types::ReadableStreamDefaultController;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,

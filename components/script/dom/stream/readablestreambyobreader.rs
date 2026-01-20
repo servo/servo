@@ -16,12 +16,12 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::root::Dom;
 
-use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
-use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
-use super::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamReadResult;
-use super::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource};
+use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
+use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamReadResult;
+use crate::dom::bindings::reflector::reflect_dom_object;
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
-use super::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use super::readablebytestreamcontroller::ReadableByteStreamController;
 use super::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::bindings::cell::DomRefCell;
