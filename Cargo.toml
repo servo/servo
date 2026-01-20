@@ -151,7 +151,7 @@ resvg = "0.45.0"
 rsa = { version = "0.9.10", features = ["sha1", "sha2"] }
 rustc-hash = "2.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
-rustls-pki-types = "1.13"
+rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.6.2"
 script_traits = { path = "components/shared/script" }
 sea-query = { version = "1.0.0-rc.29", default-features = false, features = ["backend-sqlite", "derive"] }
