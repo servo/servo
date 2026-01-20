@@ -20,7 +20,7 @@ use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
     ImageResult, Limits, Rgba,
 };
-use log::debug;
+use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 pub use snapshot::*;
@@ -402,12 +402,12 @@ impl RasterImage {
     }
 
     /// This is not a general conversion function but special for some specific usecases.
-    fn pixel_format_to_webrender_image_format(format: PixelFormat) -> WebRenderImageFormat {
+    fn pixel_format_to_webrender_image_format(format: PixelFormat) -> Option<WebRenderImageFormat> {
         match format {
-            PixelFormat::BGRA8 => WebRenderImageFormat::BGRA8,
-            PixelFormat::RGBA8 => WebRenderImageFormat::RGBA8,
-            PixelFormat::RGB8 => WebRenderImageFormat::BGRA8,
-            PixelFormat::KA8 | PixelFormat::K8 => panic!("Not supported"),
+            PixelFormat::BGRA8 => Some(WebRenderImageFormat::BGRA8),
+            PixelFormat::RGBA8 => Some(WebRenderImageFormat::RGBA8),
+            PixelFormat::RGB8 => Some(WebRenderImageFormat::BGRA8),
+            PixelFormat::KA8 | PixelFormat::K8 => None,
         }
     }
 
@@ -451,14 +451,17 @@ impl RasterImage {
 
     /// For animations the image already exists in a cache in 'Painter'. We just send the description.
     /// Currently we do not support 'PixelFormat::RGB8'
-    pub fn webrender_image_descriptor_for_image_animation(&self) -> Option<ImageDescriptor> {
+    pub fn webrender_image_descriptor_and_offset_for_frame(&self) -> Option<ImageDescriptor> {
         if self.format == PixelFormat::RGB8 ||
             self.format == PixelFormat::K8 ||
             self.format == PixelFormat::KA8
         {
             return None;
         }
-        let format = Self::pixel_format_to_webrender_image_format(self.format);
+        let Some(format) = Self::pixel_format_to_webrender_image_format(self.format) else {
+            error!("Pixel format currently not supported");
+            return None;
+        };
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 

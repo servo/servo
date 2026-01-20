@@ -6,10 +6,9 @@ use std::cell::Cell;
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositing_traits::{ImageUpdate, SerializableImageData};
 use layout_api::AnimatingImages;
 use malloc_size_of::MallocSizeOf;
-use paint_api::{ImageUpdate, SerializableImageData};
+use paint_api::ImageUpdate;
 use parking_lot::RwLock;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use timers::{TimerEventRequest, TimerId};
@@ -72,7 +71,8 @@ impl ImageAnimationManager {
                     .frame_data(state.active_frame)
                     .expect("No frame found")
                     .clone();
-                if let Some(mut descriptor) = image.webrender_image_descriptor_for_image_animation()
+                if let Some(mut descriptor) =
+                    image.webrender_image_descriptor_and_offset_for_frame()
                 {
                     descriptor.offset = frame.byte_range.start as i32;
                     Some(ImageUpdate::UpdateAnimation(image.id.unwrap(), descriptor))

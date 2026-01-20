@@ -125,7 +125,8 @@ pub(crate) struct Painter {
     /// Calculater for largest-contentful-paint.
     lcp_calculator: LargestContentfulPaintCalculator,
 
-    /// A local image only used for animation images
+    /// A cache that stores data for all animating images uploaded to WebRender. This is used
+    /// for animated images, which only need to update their offset in the data.
     animation_image_cache: FxHashMap<ImageKey, Arc<Vec<u8>>>,
 }
 
@@ -1026,19 +1027,30 @@ impl Painter {
             .prepare_screenshot_requests_for_render(self)
     }
 
+    fn maybe_add_to_cache(
+        &mut self,
+        key: ImageKey,
+        data: SerializableImageData,
+        animated: bool,
+    ) -> ImageData {
+        match data {
+            SerializableImageData::Raw(shared_memory) => {
+                let data = Arc::new(shared_memory.to_vec());
+                if animated {
+                    self.animation_image_cache.insert(key, Arc::clone(&data));
+                }
+                ImageData::Raw(data)
+            },
+            SerializableImageData::External(image) => ImageData::External(image),
+        }
+    }
+
     pub(crate) fn update_images(&mut self, updates: SmallVec<[ImageUpdate; 1]>) {
         let mut txn = Transaction::new();
         for update in updates {
             match update {
-                ImageUpdate::AddImage(key, desc, data) => {
-                    let data = match data {
-                        SerializableImageData::Raw(shared_memory) => {
-                            let data = Arc::new(shared_memory.to_vec());
-                            self.animation_image_cache.insert(key, Arc::clone(&data));
-                            ImageData::Raw(data)
-                        },
-                        SerializableImageData::External(image) => ImageData::External(image),
-                    };
+                ImageUpdate::AddImage(key, desc, data, animated) => {
+                    let data = self.maybe_add_to_cache(key, data, animated);
                     txn.add_image(key, desc, data, None);
                 },
                 ImageUpdate::DeleteImage(key) => {
