@@ -718,6 +718,29 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
         },
     };
 
+    // <https://fetch.spec.whatwg.org/#concept-body-consume-body>
+    // Otherwise, fully read object’s body given successSteps, errorSteps, and object’s relevant global object.
+    //
+    // <https://fetch.spec.whatwg.org/#body-fully-read>
+    // Let reader be the result of getting a reader for body’s stream.
+    // Read all bytes from reader, given successSteps and errorSteps.
+    //
+    // <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
+    // Set stream.[[disturbed]] to true.
+    // Otherwise, if stream.[[state]] is "errored", perform readRequest’s error steps given stream.[[storedError]].
+    //
+    // If the body stream is already errored (for example, the fetch was aborted after the Response exists),
+    // the normal fully read path would reject with [[storedError]] but would also mark the stream disturbed.
+    // Once the stream is disturbed, later calls reject with TypeError ("disturbed or locked") instead of the
+    // original AbortError. This early return rejects with the same [[storedError]] without disturbing the
+    // stream, so repeated calls (for example, calling text() twice) keep rejecting with AbortError.
+    if stream.is_errored() {
+        rooted!(in(*cx) let mut stored_error = UndefinedValue());
+        stream.get_stored_error(stored_error.handle_mut());
+        promise.reject(cx, stored_error.handle(), can_gc);
+        return promise;
+    }
+
     // Note: from `fully_read`.
     // Let reader be the result of getting a reader for body’s stream.
     // If that threw an exception,
