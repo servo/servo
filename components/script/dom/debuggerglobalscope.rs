@@ -26,14 +26,15 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::codegen::Bindings::DebuggerPauseEventBinding::PauseFrameResult;
 use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::debuggerpauseevent::DebuggerPauseEvent;
 use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpointsEvent, Event};
-#[cfg(feature = "testbinding")]
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::realms::{enter_auto_realm, enter_realm};
@@ -51,7 +52,7 @@ pub(crate) struct DebuggerGlobalScope {
     get_possible_breakpoints_result_sender:
         RefCell<Option<GenericSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
     #[no_trace]
-    set_breakpoint_result_sender: RefCell<Option<GenericSender<bool>>>,
+    get_frame_result_sender: RefCell<Option<GenericSender<devtools_traits::PauseFrameResult>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -98,7 +99,7 @@ impl DebuggerGlobalScope {
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
-            set_breakpoint_result_sender: RefCell::new(None),
+            get_frame_result_sender: RefCell::new(None),
         });
         let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx.into(), global);
 
@@ -160,7 +161,7 @@ impl DebuggerGlobalScope {
             can_gc,
         ));
         assert!(
-            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerAddDebuggeeEvent::new"
         );
     }
@@ -183,7 +184,7 @@ impl DebuggerGlobalScope {
             can_gc,
         ));
         assert!(
-            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
         );
     }
@@ -203,8 +204,25 @@ impl DebuggerGlobalScope {
             can_gc,
         ));
         assert!(
-            DomRoot::upcast::<Event>(event).fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerSetBreakpointEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_pause(
+        &self,
+        can_gc: CanGc,
+        result_sender: GenericSender<devtools_traits::PauseFrameResult>,
+    ) {
+        assert!(
+            self.get_frame_result_sender
+                .replace(Some(result_sender))
+                .is_none()
+        );
+        let event = DomRoot::upcast::<Event>(DebuggerPauseEvent::new(self.upcast(), can_gc));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerPauseEvent::new"
         );
     }
 }
@@ -327,5 +345,23 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 })
                 .collect(),
         );
+    }
+
+    fn GetFrameResult(&self, event: &DebuggerPauseEvent, result: &PauseFrameResult) {
+        info!("GetFrameResult: {event:?} {result:?}");
+        let sender = self
+            .get_frame_result_sender
+            .take()
+            .expect("Guaranteed by Self::fire_get_frame()");
+        let _ = sender.send(devtools_traits::PauseFrameResult {
+            column: result.column,
+            display_name: result.displayName.clone().into(),
+            line: result.line,
+            on_stack: result.onStack,
+            oldest: result.oldest,
+            terminated: result.terminated,
+            type_: result.type_.clone().into(),
+            url: result.url.clone().into(),
+        });
     }
 }

@@ -78,7 +78,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@44317e3cd86c5ff2ef0b08878b90da246bc237da
+        uses: servo/ci-runners/actions/runner-select@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: windows-2022
@@ -96,7 +96,7 @@ jobs:
     name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@44317e3cd86c5ff2ef0b08878b90da246bc237da
+      - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”

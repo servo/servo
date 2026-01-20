@@ -1708,17 +1708,7 @@ impl InlineFormattingContextLayout<'_> {
         if self.text_wrap_mode == TextWrapMode::Nowrap {
             return;
         }
-
-        let potential_line_size = LogicalVec2 {
-            inline: self.current_line.inline_position + self.current_line_segment.inline_size -
-                self.current_line_segment.trailing_whitespace_size,
-            block: self
-                .current_line_max_block_size_including_nested_containers()
-                .max(&self.current_line_segment.max_block_size)
-                .resolve(),
-        };
-
-        if self.new_potential_line_size_causes_line_break(&potential_line_size) {
+        if !self.unbreakable_segment_fits_on_line() {
             self.process_line_break(false /* forced_line_break */);
         }
         self.commit_current_segment_to_line();

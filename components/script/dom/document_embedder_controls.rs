@@ -309,7 +309,7 @@ impl DocumentEmbedderControls {
         }
 
         if let Some(text_input_element) = &text_input_element {
-            let has_selection = text_input_element.has_selection();
+            let has_selection = text_input_element.has_uncollapsed_selection();
 
             info.flags
                 .insert(ContextMenuElementInformationFlags::EditableText);
@@ -527,12 +527,12 @@ impl Node {
 }
 
 impl Element {
-    fn has_selection(&self) -> bool {
+    fn has_uncollapsed_selection(&self) -> bool {
         self.downcast::<HTMLTextAreaElement>()
-            .map(TextControlElement::has_selection)
+            .map(TextControlElement::has_uncollapsed_selection)
             .or(self
                 .downcast::<HTMLInputElement>()
-                .map(TextControlElement::has_selection))
+                .map(TextControlElement::has_uncollapsed_selection))
             .unwrap_or_default()
     }
 

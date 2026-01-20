@@ -222,7 +222,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
-    fn svg_data(&self) -> Option<SVGElementData>;
+    fn svg_data(&self) -> Option<SVGElementData<'dom>>;
 
     fn media_data(&self) -> Option<HTMLMediaData>;
 

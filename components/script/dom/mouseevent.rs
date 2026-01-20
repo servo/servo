@@ -180,36 +180,6 @@ impl MouseEvent {
         ev
     }
 
-    pub(crate) fn new_simple(
-        window: &Window,
-        event_name: FireMouseEventType,
-        can_bubble: EventBubbles,
-        cancelable: EventCancelable,
-        hit_test_result: &HitTestResult,
-        input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
-    ) -> DomRoot<Self> {
-        Self::new(
-            window,
-            DOMString::from(event_name.as_str()),
-            can_bubble,
-            cancelable,
-            Some(window),
-            0i32,
-            hit_test_result.point_in_frame.to_i32(),
-            hit_test_result.point_in_frame.to_i32(),
-            hit_test_result
-                .point_relative_to_initial_containing_block
-                .to_i32(),
-            input_event.active_keyboard_modifiers,
-            0i16,
-            input_event.pressed_mouse_buttons,
-            None,
-            None,
-            can_gc,
-        )
-    }
-
     /// <https://w3c.github.io/uievents/#initialize-a-mouseevent>
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn initialize_mouse_event(
@@ -249,14 +219,57 @@ impl MouseEvent {
         self.uievent.set_which(w);
     }
 
-    pub(crate) fn point_in_viewport(&self) -> Option<Point2D<f32, CSSPixel>> {
-        Some(self.client_point.get().to_f32())
+    pub(crate) fn new_for_platform_motion_event(
+        window: &Window,
+        event_name: FireMouseEventType,
+        hit_test_result: &HitTestResult,
+        input_event: &ConstellationInputEvent,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        // These values come from the event tables in
+        // <https://w3c.github.io/uievents/#events-mouse-types>.
+        let (bubbles, cancelable, composed) = match event_name {
+            FireMouseEventType::Move | FireMouseEventType::Over | FireMouseEventType::Out => {
+                (EventBubbles::Bubbles, EventCancelable::Cancelable, true)
+            },
+            FireMouseEventType::Enter | FireMouseEventType::Leave => (
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                false,
+            ),
+        };
+
+        let mouse_event = Self::new(
+            window,
+            DOMString::from(event_name.as_str()),
+            bubbles,
+            cancelable,
+            Some(window),
+            0i32,
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result.point_in_frame.to_i32(),
+            hit_test_result
+                .point_relative_to_initial_containing_block
+                .to_i32(),
+            input_event.active_keyboard_modifiers,
+            0i16,
+            input_event.pressed_mouse_buttons,
+            None,
+            None,
+            can_gc,
+        );
+
+        let event = mouse_event.upcast::<Event>();
+        event.set_composed(composed);
+        event.set_trusted(true);
+
+        mouse_event
     }
 
     /// Create a [MouseEvent] triggered by the embedder
     /// <https://w3c.github.io/uievents/#create-a-cancelable-mouseevent-id>
     #[expect(clippy::too_many_arguments)]
-    pub(crate) fn for_platform_mouse_event(
+    pub(crate) fn for_platform_button_event(
         event_type_string: &'static str,
         event: embedder_traits::MouseButtonEvent,
         pressed_mouse_buttons: u16,
@@ -271,7 +284,7 @@ impl MouseEvent {
             .point_relative_to_initial_containing_block
             .to_i32();
 
-        let mouse_event = MouseEvent::new(
+        let mouse_event = Self::new(
             window,
             event_type_string.into(),
             EventBubbles::Bubbles,
@@ -293,6 +306,10 @@ impl MouseEvent {
         mouse_event.upcast::<Event>().set_composed(true);
 
         mouse_event
+    }
+
+    pub(crate) fn point_in_viewport(&self) -> Option<Point2D<f32, CSSPixel>> {
+        Some(self.client_point.get().to_f32())
     }
 }
 

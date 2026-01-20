@@ -352,7 +352,7 @@ impl DevtoolsInstance {
             assert!(self.pipelines.contains_key(&pipeline_id));
             assert!(self.browsing_contexts.contains_key(&browsing_context_id));
 
-            let thread = ThreadActor::new(actors.new_name::<ThreadActor>());
+            let thread = ThreadActor::new(actors.new_name::<ThreadActor>(), script_sender.clone());
             let thread_name = thread.name();
             actors.register(thread);
 

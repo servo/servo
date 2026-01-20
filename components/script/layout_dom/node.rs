@@ -383,12 +383,8 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
     fn selection(&self) -> Option<TextByteRange> {
         let this = unsafe { self.get_jsmanaged() };
 
-        this.selection().map(|range| {
-            TextByteRange::new(
-                ByteIndex(range.start as isize),
-                ByteIndex(range.end as isize),
-            )
-        })
+        this.selection()
+            .map(|range| TextByteRange::new(ByteIndex(range.start), ByteIndex(range.end)))
     }
 
     fn image_url(&self) -> Option<ServoUrl> {
@@ -421,7 +417,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.media_data()
     }
 
-    fn svg_data(&self) -> Option<SVGElementData> {
+    fn svg_data(&self) -> Option<SVGElementData<'dom>> {
         let this = unsafe { self.get_jsmanaged() };
         this.svg_data()
     }

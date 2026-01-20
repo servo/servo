@@ -103,9 +103,11 @@ pub(crate) mod module {
     pub(crate) use crate::codegen::{PrototypeList, RegisterBindings};
     pub(crate) use crate::constant::{ConstantSpec, ConstantVal};
     pub(crate) use crate::constructor::call_default_constructor;
+    #[cfg(feature = "testbinding")]
+    pub(crate) use crate::conversions::native_from_handlevalue;
     pub(crate) use crate::conversions::{
         DOM_OBJECT_SLOT, StringificationBehavior, is_array_like, jsid_to_string,
-        native_from_handlevalue, native_from_object_static,
+        native_from_object_static,
     };
     pub(crate) use crate::error::{Error, ErrorResult};
     pub(crate) use crate::finalize::{
@@ -121,14 +123,18 @@ pub(crate) mod module {
         define_guarded_properties, get_per_interface_object_handle, is_exposed_in,
     };
     pub(crate) use crate::iterable::{Iterable, IterableIterator, IteratorType};
-    pub(crate) use crate::like::{Maplike, Setlike};
+    #[cfg(feature = "testbinding")]
+    pub(crate) use crate::like::Maplike;
+    pub(crate) use crate::like::Setlike;
     pub(crate) use crate::mem::malloc_size_of_including_raw_self;
     pub(crate) use crate::namespace::{NamespaceObjectClass, create_namespace_object};
     pub(crate) use crate::proxyhandler::{
         ensure_expando_object, get_expando_object, set_property_descriptor,
     };
     pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
-    pub(crate) use crate::root::{Dom, DomSlice, MaybeUnreflectedDom, Root};
+    #[cfg(feature = "testbinding")]
+    pub(crate) use crate::root::{Dom, DomSlice};
+    pub(crate) use crate::root::{MaybeUnreflectedDom, Root};
     pub(crate) use crate::script_runtime::CanGc;
     pub(crate) use crate::utils::{
         AsVoidPtr, DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, DOMClass, DOMJSClass, JSCLASS_DOM_GLOBAL,
