@@ -382,7 +382,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
  "x11rb",
 ]
 
@@ -4697,7 +4697,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
- "hashbrown 0.15.5",
+ "hashbrown 0.16.0",
 ]
 
 [[package]]
@@ -5593,15 +5593,15 @@ dependencies = [
 
 [[package]]
 name = "napi-build-ohos"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef6dd17c07ec87e01862688b0e2f14bc052e7f55cef2ac25002a85773b4d4700"
+checksum = "bcd28e4f8ae2bebf45f0a051bc2396259cb7b7b27d3f4c8c5058c9ee2942d9bf"
 
 [[package]]
 name = "napi-derive-backend-ohos"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca7d4fb6b8d47af586495031a373cec4047f3ab2618aaa9f4e117326a62ae012"
+checksum = "2cea8c5fcecd200491cb05ec15c205e5b408d6ce51ccd6e80c098022b87c2eed"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -5612,9 +5612,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-ohos"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d543de2165ff521c753b97ae7f155c66cefeb399f2ee3eeb722990cada1ad78"
+checksum = "c62e951b5919c4e8572e78d0e101c461ea445c777637cde66b0c273cf9f5d7f3"
 dependencies = [
  "convert_case",
  "ctor",
@@ -5626,9 +5626,9 @@ dependencies = [
 
 [[package]]
 name = "napi-ohos"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cf07b1e86c3c1064708ce2b7f633d21d0541bbace0c5cf4f6f4efbe77c8d5bf"
+checksum = "300401a6c16e3a166bfb43d196e3bafe98362332e918377e18c8443bd7318e40"
 dependencies = [
  "bitflags 2.10.0",
  "ctor",
@@ -5641,9 +5641,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys-ohos"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93ebf413b230ae4865c00d269a3d264f928a5e92c6320bfa79bf53033da55875"
+checksum = "c26511521495f458de78601477e42455e3d5553e96163be6f8725882497aa383"
 dependencies = [
  "libloading 0.9.0",
 ]
