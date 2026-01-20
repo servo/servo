@@ -31,8 +31,10 @@ use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
+use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
+use crate::mime_classifier::{ApacheBugFlag, MimeClassifier};
 use crate::request::{PreloadId, Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
 
@@ -1101,6 +1103,27 @@ impl Metadata {
             .as_mut()
             .unwrap()
             .typed_insert::<ReferrerPolicyHeader>(referrer_policy.into());
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#content-type>
+    pub fn resource_content_type_metadata(&self, load_context: LoadContext, data: &[u8]) -> Mime {
+        // The Content-Type metadata of a resource must be obtained and interpreted in a manner consistent with the requirements of MIME Sniffing. [MIMESNIFF]
+        let no_sniff = self
+            .headers
+            .as_deref()
+            .is_some_and(determine_nosniff)
+            .into();
+        let mime = self
+            .content_type
+            .clone()
+            .map(|content_type| content_type.into_inner().into());
+        MimeClassifier::default().classify(
+            load_context,
+            no_sniff,
+            ApacheBugFlag::from_content_type(mime.as_ref()),
+            &mime,
+            data,
+        )
     }
 }
 
