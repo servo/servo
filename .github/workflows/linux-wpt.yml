@@ -61,7 +61,7 @@ jobs:
           # <https://github.com/servo/servo/settings/variables/actions>
           NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
           # Any other boolean conditions that disable self-hosted runners go here.
-          force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
+          force-github-hosted-runner: ${{ inputs.wpt-args != '' }}
   linux-wpt:
     needs:
       - runner-select
