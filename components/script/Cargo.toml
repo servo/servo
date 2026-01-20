@@ -128,6 +128,7 @@ script_traits = { workspace = true }
 sec1 = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+serde_bytes = { workspace = true }
 serde_json = { workspace = true }
 servo-media = { workspace = true }
 servo_arc = { workspace = true }

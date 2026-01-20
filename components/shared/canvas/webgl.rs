@@ -9,22 +9,22 @@ use std::ops::Deref;
 
 use base::Epoch;
 /// Receiver type used in WebGLCommands.
-pub use base::generic_channel::GenericReceiver as WebGLReceiver;
+pub use base::generic_channel::GenericReceiver;
 /// Sender type used in WebGLCommands.
-pub use base::generic_channel::GenericSender as WebGLSender;
-use base::generic_channel::GenericSharedMemory;
+pub use base::generic_channel::GenericSender;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use base::generic_channel::SendResult as WebGLSendResult;
+use base::generic_channel::{GenericOneshotSender, GenericSharedMemory};
 use base::id::PainterId;
 use euclid::default::{Rect, Size2D};
 use glow::{
     self as gl, NativeBuffer, NativeFence, NativeFramebuffer, NativeProgram, NativeQuery,
     NativeRenderbuffer, NativeSampler, NativeShader, NativeTexture, NativeVertexArray,
 };
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::{PixelFormat, SnapshotAlphaMode};
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
 use webrender_api::ImageKey;
 use webxr_api::{
     ContextId as WebXRContextId, Error as WebXRError, LayerId as WebXRLayerId,
@@ -32,7 +32,7 @@ use webxr_api::{
 };
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
-pub fn webgl_channel<T>() -> Option<(WebGLSender<T>, WebGLReceiver<T>)>
+pub fn webgl_channel<T>() -> Option<(GenericSender<T>, GenericReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
@@ -41,7 +41,7 @@ where
 
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WebGLChan(pub WebGLSender<WebGLMsg>);
+pub struct WebGLChan(pub GenericSender<WebGLMsg>);
 
 impl WebGLChan {
     #[inline]
@@ -70,7 +70,7 @@ pub struct WebGLCommandBacktrace {
 
 /// WebGL Threading API entry point that lives in the constellation.
 #[derive(Clone)]
-pub struct WebGLThreads(pub WebGLSender<WebGLMsg>);
+pub struct WebGLThreads(pub GenericSender<WebGLMsg>);
 
 impl WebGLThreads {
     /// Gets the WebGLThread handle for each script pipeline.
@@ -80,7 +80,7 @@ impl WebGLThreads {
     }
 
     /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
-    pub fn exit(&self, sender: IpcSender<()>) -> WebGLSendResult {
+    pub fn exit(&self, sender: GenericOneshotSender<()>) -> WebGLSendResult {
         self.0.send(WebGLMsg::Exit(sender))
     }
 
@@ -101,12 +101,16 @@ pub enum WebGLMsg {
         WebGLVersion,
         Size2D<u32>,
         GLContextAttributes,
-        WebGLSender<Result<WebGLCreateContextResult, String>>,
+        GenericSender<Result<WebGLCreateContextResult, String>>,
     ),
     /// Set an [`ImageKey`] on a `WebGLContext`.
     SetImageKey(WebGLContextId, ImageKey),
     /// Resizes a WebGLContext.
-    ResizeContext(WebGLContextId, Size2D<u32>, WebGLSender<Result<(), String>>),
+    ResizeContext(
+        WebGLContextId,
+        Size2D<u32>,
+        GenericSender<Result<(), String>>,
+    ),
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
@@ -125,7 +129,7 @@ pub enum WebGLMsg {
     /// released in the WebGLThread while the contents are being rendered by WebRender.
     FinishedRenderingToContext(WebGLContextId),
     /// Frees all resources and closes the thread.
-    Exit(IpcSender<()>),
+    Exit(GenericOneshotSender<()>),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -207,7 +211,7 @@ impl WebGLMsgSender {
     pub fn send_resize(
         &self,
         size: Size2D<u32>,
-        sender: WebGLSender<Result<(), String>>,
+        sender: GenericSender<Result<(), String>>,
     ) -> WebGLSendResult {
         self.sender
             .send(WebGLMsg::ResizeContext(self.ctx_id, size, sender))
@@ -249,7 +253,7 @@ impl<T> Deref for TruncatedDebug<T> {
 /// WebGL Commands for a specific WebGLContext
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLCommand {
-    GetContextAttributes(WebGLSender<GLContextAttributes>),
+    GetContextAttributes(GenericSender<GLContextAttributes>),
     ActiveTexture(u32),
     BlendColor(f32, f32, f32, f32),
     BlendEquation(u32),
@@ -259,9 +263,9 @@ pub enum WebGLCommand {
     AttachShader(WebGLProgramId, WebGLShaderId),
     DetachShader(WebGLProgramId, WebGLShaderId),
     BindAttribLocation(WebGLProgramId, u32, String),
-    BufferData(u32, IpcBytesReceiver, u32),
-    BufferSubData(u32, isize, IpcBytesReceiver),
-    GetBufferSubData(u32, usize, usize, IpcBytesSender),
+    BufferData(u32, GenericReceiver<ByteBuf>, u32),
+    BufferSubData(u32, isize, GenericReceiver<ByteBuf>),
+    GetBufferSubData(u32, usize, usize, GenericSender<ByteBuf>),
     CopyBufferSubData(u32, u32, i64, i64, i64),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
@@ -278,12 +282,12 @@ pub enum WebGLCommand {
     CompileShader(WebGLShaderId, String),
     CopyTexImage2D(u32, i32, u32, i32, i32, i32, i32, i32),
     CopyTexSubImage2D(u32, i32, i32, i32, i32, i32, i32, i32),
-    CreateBuffer(WebGLSender<Option<WebGLBufferId>>),
-    CreateFramebuffer(WebGLSender<Option<WebGLFramebufferId>>),
-    CreateRenderbuffer(WebGLSender<Option<WebGLRenderbufferId>>),
-    CreateTexture(WebGLSender<Option<WebGLTextureId>>),
-    CreateProgram(WebGLSender<Option<WebGLProgramId>>),
-    CreateShader(u32, WebGLSender<Option<WebGLShaderId>>),
+    CreateBuffer(GenericSender<Option<WebGLBufferId>>),
+    CreateFramebuffer(GenericSender<Option<WebGLFramebufferId>>),
+    CreateRenderbuffer(GenericSender<Option<WebGLRenderbufferId>>),
+    CreateTexture(GenericSender<Option<WebGLTextureId>>),
+    CreateProgram(GenericSender<Option<WebGLProgramId>>),
+    CreateShader(u32, GenericSender<Option<WebGLShaderId>>),
     DeleteBuffer(WebGLBufferId),
     DeleteFramebuffer(WebGLFramebufferId),
     DeleteRenderbuffer(WebGLRenderbufferId),
@@ -299,23 +303,23 @@ pub enum WebGLCommand {
     EnableVertexAttribArray(u32),
     FramebufferRenderbuffer(u32, u32, u32, Option<WebGLRenderbufferId>),
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
-    GetExtensions(WebGLSender<String>),
-    GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
-    GetFragDataLocation(WebGLProgramId, String, WebGLSender<i32>),
-    GetUniformLocation(WebGLProgramId, String, WebGLSender<i32>),
-    GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
-    GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
-    GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
-    GetRenderbufferParameter(u32, u32, WebGLSender<i32>),
-    CreateTransformFeedback(WebGLSender<u32>),
+    GetExtensions(GenericSender<String>),
+    GetShaderPrecisionFormat(u32, u32, GenericSender<(i32, i32, i32)>),
+    GetFragDataLocation(WebGLProgramId, String, GenericSender<i32>),
+    GetUniformLocation(WebGLProgramId, String, GenericSender<i32>),
+    GetShaderInfoLog(WebGLShaderId, GenericSender<String>),
+    GetProgramInfoLog(WebGLProgramId, GenericSender<String>),
+    GetFramebufferAttachmentParameter(u32, u32, u32, GenericSender<i32>),
+    GetRenderbufferParameter(u32, u32, GenericSender<i32>),
+    CreateTransformFeedback(GenericSender<u32>),
     DeleteTransformFeedback(u32),
-    IsTransformFeedback(u32, WebGLSender<bool>),
+    IsTransformFeedback(u32, GenericSender<bool>),
     BindTransformFeedback(u32, u32),
     BeginTransformFeedback(u32),
     EndTransformFeedback(),
     PauseTransformFeedback(),
     ResumeTransformFeedback(),
-    GetTransformFeedbackVarying(WebGLProgramId, u32, WebGLSender<(i32, u32, String)>),
+    GetTransformFeedbackVarying(WebGLProgramId, u32, GenericSender<(i32, u32, String)>),
     TransformFeedbackVaryings(WebGLProgramId, Vec<String>, u32),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
@@ -324,7 +328,7 @@ pub enum WebGLCommand {
         Rect<u32>,
         u32,
         u32,
-        IpcSender<(GenericSharedMemory, SnapshotAlphaMode)>,
+        GenericSender<(GenericSharedMemory, SnapshotAlphaMode)>,
     ),
     ReadPixelsPP(Rect<i32>, u32, u32, usize),
     SampleCoverage(f32, bool),
@@ -335,16 +339,16 @@ pub enum WebGLCommand {
     StencilMaskSeparate(u32, u32),
     StencilOp(u32, u32, u32),
     StencilOpSeparate(u32, u32, u32, u32),
-    FenceSync(WebGLSender<WebGLSyncId>),
-    IsSync(WebGLSyncId, WebGLSender<bool>),
-    ClientWaitSync(WebGLSyncId, u32, u64, WebGLSender<u32>),
+    FenceSync(GenericSender<WebGLSyncId>),
+    IsSync(WebGLSyncId, GenericSender<bool>),
+    ClientWaitSync(WebGLSyncId, u32, u64, GenericSender<u32>),
     WaitSync(WebGLSyncId, u32, i64),
-    GetSyncParameter(WebGLSyncId, u32, WebGLSender<u32>),
+    GetSyncParameter(WebGLSyncId, u32, GenericSender<u32>),
     DeleteSync(WebGLSyncId),
     Hint(u32, u32),
     LineWidth(f32),
     PixelStorei(u32, i32),
-    LinkProgram(WebGLProgramId, WebGLSender<ProgramLinkInfo>),
+    LinkProgram(WebGLProgramId, GenericSender<ProgramLinkInfo>),
     Uniform1f(i32, f32),
     Uniform1fv(i32, Vec<f32>),
     Uniform1i(i32, i32),
@@ -459,29 +463,29 @@ pub enum WebGLCommand {
         format: u32,
         data: TruncatedDebug<GenericSharedMemory>,
     },
-    DrawingBufferWidth(WebGLSender<i32>),
-    DrawingBufferHeight(WebGLSender<i32>),
-    Finish(WebGLSender<()>),
+    DrawingBufferWidth(GenericSender<i32>),
+    DrawingBufferHeight(GenericSender<i32>),
+    Finish(GenericSender<()>),
     Flush,
     GenerateMipmap(u32),
-    CreateVertexArray(WebGLSender<Option<WebGLVertexArrayId>>),
+    CreateVertexArray(GenericSender<Option<WebGLVertexArrayId>>),
     DeleteVertexArray(WebGLVertexArrayId),
     BindVertexArray(Option<WebGLVertexArrayId>),
-    GetParameterBool(ParameterBool, WebGLSender<bool>),
-    GetParameterBool4(ParameterBool4, WebGLSender<[bool; 4]>),
-    GetParameterInt(ParameterInt, WebGLSender<i32>),
-    GetParameterInt2(ParameterInt2, WebGLSender<[i32; 2]>),
-    GetParameterInt4(ParameterInt4, WebGLSender<[i32; 4]>),
-    GetParameterFloat(ParameterFloat, WebGLSender<f32>),
-    GetParameterFloat2(ParameterFloat2, WebGLSender<[f32; 2]>),
-    GetParameterFloat4(ParameterFloat4, WebGLSender<[f32; 4]>),
-    GetProgramValidateStatus(WebGLProgramId, WebGLSender<bool>),
-    GetProgramActiveUniforms(WebGLProgramId, WebGLSender<i32>),
-    GetCurrentVertexAttrib(u32, WebGLSender<[f32; 4]>),
-    GetTexParameterFloat(u32, TexParameterFloat, WebGLSender<f32>),
-    GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
-    GetTexParameterBool(u32, TexParameterBool, WebGLSender<bool>),
-    GetInternalFormatIntVec(u32, u32, InternalFormatIntVec, WebGLSender<Vec<i32>>),
+    GetParameterBool(ParameterBool, GenericSender<bool>),
+    GetParameterBool4(ParameterBool4, GenericSender<[bool; 4]>),
+    GetParameterInt(ParameterInt, GenericSender<i32>),
+    GetParameterInt2(ParameterInt2, GenericSender<[i32; 2]>),
+    GetParameterInt4(ParameterInt4, GenericSender<[i32; 4]>),
+    GetParameterFloat(ParameterFloat, GenericSender<f32>),
+    GetParameterFloat2(ParameterFloat2, GenericSender<[f32; 2]>),
+    GetParameterFloat4(ParameterFloat4, GenericSender<[f32; 4]>),
+    GetProgramValidateStatus(WebGLProgramId, GenericSender<bool>),
+    GetProgramActiveUniforms(WebGLProgramId, GenericSender<i32>),
+    GetCurrentVertexAttrib(u32, GenericSender<[f32; 4]>),
+    GetTexParameterFloat(u32, TexParameterFloat, GenericSender<f32>),
+    GetTexParameterInt(u32, TexParameterInt, GenericSender<i32>),
+    GetTexParameterBool(u32, TexParameterBool, GenericSender<bool>),
+    GetInternalFormatIntVec(u32, u32, InternalFormatIntVec, GenericSender<Vec<i32>>),
     TexParameteri(u32, u32, i32),
     TexParameterf(u32, u32, f32),
     TexStorage2D(u32, u32, TexFormat, u32, u32),
@@ -514,35 +518,35 @@ pub enum WebGLCommand {
         index: u32,
         divisor: u32,
     },
-    GetUniformBool(WebGLProgramId, i32, WebGLSender<bool>),
-    GetUniformBool2(WebGLProgramId, i32, WebGLSender<[bool; 2]>),
-    GetUniformBool3(WebGLProgramId, i32, WebGLSender<[bool; 3]>),
-    GetUniformBool4(WebGLProgramId, i32, WebGLSender<[bool; 4]>),
-    GetUniformInt(WebGLProgramId, i32, WebGLSender<i32>),
-    GetUniformInt2(WebGLProgramId, i32, WebGLSender<[i32; 2]>),
-    GetUniformInt3(WebGLProgramId, i32, WebGLSender<[i32; 3]>),
-    GetUniformInt4(WebGLProgramId, i32, WebGLSender<[i32; 4]>),
-    GetUniformUint(WebGLProgramId, i32, WebGLSender<u32>),
-    GetUniformUint2(WebGLProgramId, i32, WebGLSender<[u32; 2]>),
-    GetUniformUint3(WebGLProgramId, i32, WebGLSender<[u32; 3]>),
-    GetUniformUint4(WebGLProgramId, i32, WebGLSender<[u32; 4]>),
-    GetUniformFloat(WebGLProgramId, i32, WebGLSender<f32>),
-    GetUniformFloat2(WebGLProgramId, i32, WebGLSender<[f32; 2]>),
-    GetUniformFloat3(WebGLProgramId, i32, WebGLSender<[f32; 3]>),
-    GetUniformFloat4(WebGLProgramId, i32, WebGLSender<[f32; 4]>),
-    GetUniformFloat9(WebGLProgramId, i32, WebGLSender<[f32; 9]>),
-    GetUniformFloat16(WebGLProgramId, i32, WebGLSender<[f32; 16]>),
-    GetUniformFloat2x3(WebGLProgramId, i32, WebGLSender<[f32; 2 * 3]>),
-    GetUniformFloat2x4(WebGLProgramId, i32, WebGLSender<[f32; 2 * 4]>),
-    GetUniformFloat3x2(WebGLProgramId, i32, WebGLSender<[f32; 3 * 2]>),
-    GetUniformFloat3x4(WebGLProgramId, i32, WebGLSender<[f32; 3 * 4]>),
-    GetUniformFloat4x2(WebGLProgramId, i32, WebGLSender<[f32; 4 * 2]>),
-    GetUniformFloat4x3(WebGLProgramId, i32, WebGLSender<[f32; 4 * 3]>),
-    GetUniformBlockIndex(WebGLProgramId, String, WebGLSender<u32>),
-    GetUniformIndices(WebGLProgramId, Vec<String>, WebGLSender<Vec<u32>>),
-    GetActiveUniforms(WebGLProgramId, Vec<u32>, u32, WebGLSender<Vec<i32>>),
-    GetActiveUniformBlockName(WebGLProgramId, u32, WebGLSender<String>),
-    GetActiveUniformBlockParameter(WebGLProgramId, u32, u32, WebGLSender<Vec<i32>>),
+    GetUniformBool(WebGLProgramId, i32, GenericSender<bool>),
+    GetUniformBool2(WebGLProgramId, i32, GenericSender<[bool; 2]>),
+    GetUniformBool3(WebGLProgramId, i32, GenericSender<[bool; 3]>),
+    GetUniformBool4(WebGLProgramId, i32, GenericSender<[bool; 4]>),
+    GetUniformInt(WebGLProgramId, i32, GenericSender<i32>),
+    GetUniformInt2(WebGLProgramId, i32, GenericSender<[i32; 2]>),
+    GetUniformInt3(WebGLProgramId, i32, GenericSender<[i32; 3]>),
+    GetUniformInt4(WebGLProgramId, i32, GenericSender<[i32; 4]>),
+    GetUniformUint(WebGLProgramId, i32, GenericSender<u32>),
+    GetUniformUint2(WebGLProgramId, i32, GenericSender<[u32; 2]>),
+    GetUniformUint3(WebGLProgramId, i32, GenericSender<[u32; 3]>),
+    GetUniformUint4(WebGLProgramId, i32, GenericSender<[u32; 4]>),
+    GetUniformFloat(WebGLProgramId, i32, GenericSender<f32>),
+    GetUniformFloat2(WebGLProgramId, i32, GenericSender<[f32; 2]>),
+    GetUniformFloat3(WebGLProgramId, i32, GenericSender<[f32; 3]>),
+    GetUniformFloat4(WebGLProgramId, i32, GenericSender<[f32; 4]>),
+    GetUniformFloat9(WebGLProgramId, i32, GenericSender<[f32; 9]>),
+    GetUniformFloat16(WebGLProgramId, i32, GenericSender<[f32; 16]>),
+    GetUniformFloat2x3(WebGLProgramId, i32, GenericSender<[f32; 2 * 3]>),
+    GetUniformFloat2x4(WebGLProgramId, i32, GenericSender<[f32; 2 * 4]>),
+    GetUniformFloat3x2(WebGLProgramId, i32, GenericSender<[f32; 3 * 2]>),
+    GetUniformFloat3x4(WebGLProgramId, i32, GenericSender<[f32; 3 * 4]>),
+    GetUniformFloat4x2(WebGLProgramId, i32, GenericSender<[f32; 4 * 2]>),
+    GetUniformFloat4x3(WebGLProgramId, i32, GenericSender<[f32; 4 * 3]>),
+    GetUniformBlockIndex(WebGLProgramId, String, GenericSender<u32>),
+    GetUniformIndices(WebGLProgramId, Vec<String>, GenericSender<Vec<u32>>),
+    GetActiveUniforms(WebGLProgramId, Vec<u32>, u32, GenericSender<Vec<i32>>),
+    GetActiveUniformBlockName(WebGLProgramId, u32, GenericSender<String>),
+    GetActiveUniformBlockParameter(WebGLProgramId, u32, u32, GenericSender<Vec<i32>>),
     UniformBlockBinding(WebGLProgramId, u32, u32),
     InitializeFramebuffer {
         color: bool,
@@ -552,15 +556,15 @@ pub enum WebGLCommand {
     BeginQuery(u32, WebGLQueryId),
     DeleteQuery(WebGLQueryId),
     EndQuery(u32),
-    GenerateQuery(WebGLSender<WebGLQueryId>),
-    GetQueryState(WebGLSender<u32>, WebGLQueryId, u32),
-    GenerateSampler(WebGLSender<WebGLSamplerId>),
+    GenerateQuery(GenericSender<WebGLQueryId>),
+    GetQueryState(GenericSender<u32>, WebGLQueryId, u32),
+    GenerateSampler(GenericSender<WebGLSamplerId>),
     DeleteSampler(WebGLSamplerId),
     BindSampler(u32, WebGLSamplerId),
     SetSamplerParameterFloat(WebGLSamplerId, u32, f32),
     SetSamplerParameterInt(WebGLSamplerId, u32, i32),
-    GetSamplerParameterFloat(WebGLSamplerId, u32, WebGLSender<f32>),
-    GetSamplerParameterInt(WebGLSamplerId, u32, WebGLSender<i32>),
+    GetSamplerParameterFloat(WebGLSamplerId, u32, GenericSender<f32>),
+    GetSamplerParameterInt(WebGLSamplerId, u32, GenericSender<i32>),
     BindBufferBase(u32, u32, Option<WebGLBufferId>),
     BindBufferRange(u32, u32, Option<WebGLBufferId>, i64, i64),
     ClearBufferfv(u32, i32, Vec<f32>),
@@ -577,24 +581,24 @@ pub enum WebGLCommand {
 /// WebXR layer management
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebXRCommand {
-    CreateLayerManager(WebGLSender<Result<WebXRLayerManagerId, WebXRError>>),
+    CreateLayerManager(GenericSender<Result<WebXRLayerManagerId, WebXRError>>),
     DestroyLayerManager(WebXRLayerManagerId),
     CreateLayer(
         WebXRLayerManagerId,
         WebXRContextId,
         WebXRLayerInit,
-        WebGLSender<Result<WebXRLayerId, WebXRError>>,
+        GenericSender<Result<WebXRLayerId, WebXRError>>,
     ),
     DestroyLayer(WebXRLayerManagerId, WebXRContextId, WebXRLayerId),
     BeginFrame(
         WebXRLayerManagerId,
         Vec<(WebXRContextId, WebXRLayerId)>,
-        WebGLSender<Result<Vec<WebXRSubImages>, WebXRError>>,
+        GenericSender<Result<Vec<WebXRSubImages>, WebXRError>>,
     ),
     EndFrame(
         WebXRLayerManagerId,
         Vec<(WebXRContextId, WebXRLayerId)>,
-        WebGLSender<Result<(), WebXRError>>,
+        GenericSender<Result<(), WebXRError>>,
     ),
 }
 

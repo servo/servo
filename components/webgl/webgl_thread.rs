@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::{slice, thread};
 
 use base::Epoch;
-use base::generic_channel::{GenericSharedMemory, RoutedReceiver};
+use base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory, RoutedReceiver};
 use base::id::PainterId;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
@@ -23,9 +23,9 @@ use canvas_traits::webgl::{
     GLContextAttributes, GLLimits, GlType, InternalFormatIntVec, ProgramLinkInfo, TexDataType,
     TexFormat, WebGLBufferId, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
     WebGLCreateContextResult, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLMsg,
-    WebGLMsgSender, WebGLProgramId, WebGLQueryId, WebGLReceiver, WebGLRenderbufferId,
-    WebGLSLVersion, WebGLSamplerId, WebGLSender, WebGLShaderId, WebGLSyncId, WebGLTextureId,
-    WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
+    WebGLMsgSender, WebGLProgramId, WebGLQueryId, WebGLRenderbufferId, WebGLSLVersion,
+    WebGLSamplerId, WebGLShaderId, WebGLSyncId, WebGLTextureId, WebGLVersion, WebGLVertexArrayId,
+    YAxisTreatment,
 };
 use euclid::default::Size2D;
 use glow::{
@@ -232,7 +232,7 @@ pub(crate) struct WebGLThread {
     /// The receiver that will be used for processing WebGL messages.
     receiver: RoutedReceiver<WebGLMsg>,
     /// The receiver that should be used to send WebGL messages for processing.
-    sender: WebGLSender<WebGLMsg>,
+    sender: GenericSender<WebGLMsg>,
     /// The swap chains used by webrender
     webrender_swap_chains: SwapChains<WebGLContextId, Device>,
     /// The per-painter details of the underlying surfman connection.
@@ -250,8 +250,8 @@ pub(crate) struct WebGLThread {
 pub(crate) struct WebGLThreadInit {
     pub paint_api: CrossProcessPaintApi,
     pub external_image_id_manager: WebRenderExternalImageIdManager,
-    pub sender: WebGLSender<WebGLMsg>,
-    pub receiver: WebGLReceiver<WebGLMsg>,
+    pub sender: GenericSender<WebGLMsg>,
+    pub receiver: GenericReceiver<WebGLMsg>,
     pub webrender_swap_chains: SwapChains<WebGLContextId, Device>,
     pub painter_surfman_details_map: PainterSurfmanDetailsMap,
     pub busy_webgl_context_map: WebGLContextBusyMap,
@@ -1046,8 +1046,6 @@ impl WebGLImpl {
         command: WebGLCommand,
         _backtrace: WebGLCommandBacktrace,
     ) {
-        debug!("WebGLImpl::apply({:?})", command);
-
         // Ensure there are no pending GL errors from other parts of the pipeline.
         debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
 
@@ -1097,7 +1095,8 @@ impl WebGLImpl {
                     gl::MAP_READ_BIT,
                 );
                 let data: &[u8] = slice::from_raw_parts(ptr as _, length);
-                sender.send(data).unwrap();
+                let buffer = serde_bytes::ByteBuf::from(data);
+                sender.send(buffer).unwrap();
                 gl.unmap_buffer(buffer_type);
             },
             WebGLCommand::Clear(mask) => {
@@ -2625,7 +2624,7 @@ impl WebGLImpl {
         }
     }
 
-    fn finish(gl: &Gl, chan: &WebGLSender<()>) {
+    fn finish(gl: &Gl, chan: &GenericSender<()>) {
         unsafe { gl.finish() };
         chan.send(()).unwrap();
     }
@@ -2634,7 +2633,7 @@ impl WebGLImpl {
         gl: &Gl,
         shader_type: u32,
         precision_type: u32,
-        chan: &WebGLSender<(i32, i32, i32)>,
+        chan: &GenericSender<(i32, i32, i32)>,
     ) {
         let ShaderPrecisionFormat {
             range_min,
@@ -2654,7 +2653,7 @@ impl WebGLImpl {
 
     /// This is an implementation of `getSupportedExtensions()` from
     /// <https://registry.khronos.org/webgl/specs/latest/1.0/#5.14>
-    fn get_extensions(gl: &Gl, result_sender: &WebGLSender<String>) {
+    fn get_extensions(gl: &Gl, result_sender: &GenericSender<String>) {
         let _ = result_sender.send(gl.supported_extensions().iter().join(" "));
     }
 
@@ -2664,7 +2663,7 @@ impl WebGLImpl {
         target: u32,
         attachment: u32,
         pname: u32,
-        chan: &WebGLSender<i32>,
+        chan: &GenericSender<i32>,
     ) {
         let parameter =
             unsafe { gl.get_framebuffer_attachment_parameter_i32(target, attachment, pname) };
@@ -2672,12 +2671,17 @@ impl WebGLImpl {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
-    fn get_renderbuffer_parameter(gl: &Gl, target: u32, pname: u32, chan: &WebGLSender<i32>) {
+    fn get_renderbuffer_parameter(gl: &Gl, target: u32, pname: u32, chan: &GenericSender<i32>) {
         let parameter = unsafe { gl.get_renderbuffer_parameter_i32(target, pname) };
         chan.send(parameter).unwrap();
     }
 
-    fn uniform_location(gl: &Gl, program_id: WebGLProgramId, name: &str, chan: &WebGLSender<i32>) {
+    fn uniform_location(
+        gl: &Gl,
+        program_id: WebGLProgramId,
+        name: &str,
+        chan: &GenericSender<i32>,
+    ) {
         let location = unsafe {
             gl.get_uniform_location(program_id.glow(), &to_name_in_compiled_shader(name))
         };
@@ -2686,52 +2690,52 @@ impl WebGLImpl {
             .unwrap();
     }
 
-    fn shader_info_log(gl: &Gl, shader_id: WebGLShaderId, chan: &WebGLSender<String>) {
+    fn shader_info_log(gl: &Gl, shader_id: WebGLShaderId, chan: &GenericSender<String>) {
         let log = unsafe { gl.get_shader_info_log(shader_id.glow()) };
         chan.send(log).unwrap();
     }
 
-    fn program_info_log(gl: &Gl, program_id: WebGLProgramId, chan: &WebGLSender<String>) {
+    fn program_info_log(gl: &Gl, program_id: WebGLProgramId, chan: &GenericSender<String>) {
         let log = unsafe { gl.get_program_info_log(program_id.glow()) };
         chan.send(log).unwrap();
     }
 
-    fn create_buffer(gl: &Gl, chan: &WebGLSender<Option<WebGLBufferId>>) {
+    fn create_buffer(gl: &Gl, chan: &GenericSender<Option<WebGLBufferId>>) {
         let buffer = unsafe { gl.create_buffer() }
             .ok()
             .map(WebGLBufferId::from_glow);
         chan.send(buffer).unwrap();
     }
 
-    fn create_framebuffer(gl: &Gl, chan: &WebGLSender<Option<WebGLFramebufferId>>) {
+    fn create_framebuffer(gl: &Gl, chan: &GenericSender<Option<WebGLFramebufferId>>) {
         let framebuffer = unsafe { gl.create_framebuffer() }
             .ok()
             .map(WebGLFramebufferId::from_glow);
         chan.send(framebuffer).unwrap();
     }
 
-    fn create_renderbuffer(gl: &Gl, chan: &WebGLSender<Option<WebGLRenderbufferId>>) {
+    fn create_renderbuffer(gl: &Gl, chan: &GenericSender<Option<WebGLRenderbufferId>>) {
         let renderbuffer = unsafe { gl.create_renderbuffer() }
             .ok()
             .map(WebGLRenderbufferId::from_glow);
         chan.send(renderbuffer).unwrap();
     }
 
-    fn create_texture(gl: &Gl, chan: &WebGLSender<Option<WebGLTextureId>>) {
+    fn create_texture(gl: &Gl, chan: &GenericSender<Option<WebGLTextureId>>) {
         let texture = unsafe { gl.create_texture() }
             .ok()
             .map(WebGLTextureId::from_glow);
         chan.send(texture).unwrap();
     }
 
-    fn create_program(gl: &Gl, chan: &WebGLSender<Option<WebGLProgramId>>) {
+    fn create_program(gl: &Gl, chan: &GenericSender<Option<WebGLProgramId>>) {
         let program = unsafe { gl.create_program() }
             .ok()
             .map(WebGLProgramId::from_glow);
         chan.send(program).unwrap();
     }
 
-    fn create_shader(gl: &Gl, shader_type: u32, chan: &WebGLSender<Option<WebGLShaderId>>) {
+    fn create_shader(gl: &Gl, shader_type: u32, chan: &GenericSender<Option<WebGLShaderId>>) {
         let shader = unsafe { gl.create_shader(shader_type) }
             .ok()
             .map(WebGLShaderId::from_glow);

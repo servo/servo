@@ -317,6 +317,15 @@ pub struct GenericReceiver<T>(GenericReceiverVariants<T>)
 where
     T: for<'de> Deserialize<'de> + Serialize;
 
+impl<T> std::fmt::Debug for GenericReceiver<T>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("GenericReceiver").finish()
+    }
+}
+
 #[derive(MallocSizeOf)]
 enum GenericReceiverVariants<T>
 where

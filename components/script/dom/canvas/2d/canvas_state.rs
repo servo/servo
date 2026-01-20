@@ -8,8 +8,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use app_units::Au;
-use base::Epoch;
 use base::generic_channel::GenericSender;
+use base::{Epoch, generic_channel};
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
     FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
@@ -24,7 +24,6 @@ use fonts::{
     FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
-use ipc_channel::ipc;
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
@@ -1793,7 +1792,7 @@ impl CanvasState {
         };
 
         let data = if self.is_paintable() {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
             self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(Some(read_rect), sender));
 
             let mut snapshot = receiver.recv().unwrap().to_owned();

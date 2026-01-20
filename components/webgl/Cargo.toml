@@ -30,6 +30,7 @@ paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../pixels" }
 rustc-hash = { workspace = true }
+serde_bytes = { workspace = true }
 surfman = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
