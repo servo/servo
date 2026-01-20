@@ -547,7 +547,6 @@ impl ModuleTree {
             );
 
             self.set_record(ModuleObject::new(module_script.handle()));
-            debug!("module script of {} compile done", url);
         }
     }
 
@@ -806,13 +805,13 @@ impl ModuleTree {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-struct ModuleHandler {
+pub(crate) struct ModuleHandler {
     #[ignore_malloc_size_of = "Measuring trait objects is hard"]
     task: DomRefCell<Option<Box<dyn NonSendTaskBox>>>,
 }
 
 impl ModuleHandler {
-    fn new_boxed(task: Box<dyn NonSendTaskBox>) -> Box<dyn Callback> {
+    pub(crate) fn new_boxed(task: Box<dyn NonSendTaskBox>) -> Box<dyn Callback> {
         Box::new(Self {
             task: DomRefCell::new(Some(task)),
         })
@@ -1439,6 +1438,7 @@ fn fetch_the_descendants_and_link_module_script(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn fetch_a_single_module_script(
     url: ServoUrl,
     owner: ModuleOwner,
@@ -1451,27 +1451,24 @@ pub(crate) fn fetch_a_single_module_script(
 ) {
     let global = owner.global();
 
-    // Step 1. Let moduleType be "javascript-or-wasm".
+    // TODO Step 1. Let moduleType be "javascript-or-wasm".
 
-    // Step 2. If moduleRequest was given, then set moduleType to the result of running the
+    // TODO Step 2. If moduleRequest was given, then set moduleType to the result of running the
     // module type from module request steps given moduleRequest.
 
-    // Step 3. Assert: the result of running the module type allowed steps given moduleType and settingsObject is true.
+    // TODO Step 3. Assert: the result of running the module type allowed steps given moduleType and settingsObject is true.
     // Otherwise, we would not have reached this point because a failure would have been raised
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
     // Step 4. Let moduleMap be settingsObject's module map.
-
     let has_pending_fetch = {
         if let Some(module_tree) = global.get_module_tree(&url) {
             if module_tree.get_record().borrow().is_none() &&
                 module_tree.get_network_error().borrow().is_none() &&
                 module_tree.get_rethrow_error().borrow().is_none()
             {
-                debug!("Found a pending fetch for {url}");
                 true
             } else {
-                debug!("Module map has a module ready for {url}");
                 // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
                 return on_complete(&global, module_tree);
             }
@@ -1504,8 +1501,6 @@ pub(crate) fn fetch_a_single_module_script(
     if has_pending_fetch {
         return;
     }
-
-    debug!("Starting fetch for {url}");
 
     let document: Option<DomRoot<Document>> = match &owner {
         ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,

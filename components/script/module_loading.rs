@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! An implementation of ecma262's [LoadRequestedModules](https://tc39.es/ecma262/#sec-LoadRequestedModules)
+//! Partly inspired by mozjs implementation. Due to the inability to access ModuleObject internals (eg. ModuleRequest records),
+//! this implementation deviates from the spec in some aspects.
+
 #![expect(non_snake_case, unsafe_code)]
 
 use std::cell::{Cell, RefCell};
@@ -21,7 +25,6 @@ use net_traits::request::{Destination, Referrer};
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::AutoIncumbentScript;
@@ -30,32 +33,10 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::{
-    ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
+    ModuleHandler, ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
-use crate::task::NonSendTaskBox;
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct ModuleHandler {
-    #[ignore_malloc_size_of = "Measuring trait objects is hard"]
-    task: DomRefCell<Option<Box<dyn NonSendTaskBox>>>,
-}
-
-impl ModuleHandler {
-    pub(crate) fn new_boxed(task: Box<dyn NonSendTaskBox>) -> Box<dyn Callback> {
-        Box::new(Self {
-            task: DomRefCell::new(Some(task)),
-        })
-    }
-}
-
-impl Callback for ModuleHandler {
-    fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
-        let task = self.task.borrow_mut().take().unwrap();
-        task.run_box(cx);
-    }
-}
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OnRejectedHandler {
@@ -84,7 +65,7 @@ pub(crate) struct LoadState {
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
-struct GraphLoadingState {
+pub(crate) struct GraphLoadingState {
     promise: Rc<Promise>,
     is_loading: Cell<bool>,
     pending_modules_count: Cell<u32>,
@@ -144,28 +125,25 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
 
         // b. Let requestedModulesCount be the number of elements in module.[[RequestedModules]].
         let requested_modules_count = unsafe { GetRequestedModulesCount(*cx, module_handle) };
-        debug!(
-            "Requested modules count for module with url {} is {requested_modules_count}.",
-            module.get_url()
-        );
 
         // c. Set state.[[PendingModulesCount]] to state.[[PendingModulesCount]] + requestedModulesCount.
+        let pending_modules_count = state.pending_modules_count.get();
         state
             .pending_modules_count
-            .update(|count| count + requested_modules_count);
+            .set(pending_modules_count + requested_modules_count);
 
         // d. For each ModuleRequest Record request of module.[[RequestedModules]], do
         for index in 0..requested_modules_count {
-            // Here Gecko will call hasFirstUnsupportedAttributeKey on each module request,
+            // i. If AllImportAttributesSupported(request.[[Attributes]]) is false, then
+            // Note: Gecko will call hasFirstUnsupportedAttributeKey on each module request,
             // GetRequestedModuleSpecifier will do it for us.
             let jsstr = unsafe { GetRequestedModuleSpecifier(*cx, module_handle, index) };
 
             if jsstr.is_null() {
-                debug!("Failed to get module specifier.");
-                // Step 1. Let error be ThrowCompletion(a newly created SyntaxError object).
+                // 1. Let error be ThrowCompletion(a newly created SyntaxError object).
                 let error = RethrowError::from_pending_exception(cx);
 
-                // Step 2. Perform ContinueModuleLoading(state, error).
+                // 2. Perform ContinueModuleLoading(state, error).
                 ContinueModuleLoading(global, state, Err(error));
             } else {
                 let specifier =
@@ -177,10 +155,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
 
                 match loaded_module {
                     // 1. Perform InnerModuleLoading(state, record.[[Module]]).
-                    Some(module) => {
-                        debug!("Starting module loading for module with specifier: {specifier}.");
-                        InnerModuleLoading(global, state, module);
-                    },
+                    Some(module) => InnerModuleLoading(global, state, module),
                     // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
                     None => {
                         rooted!(in(*cx) let mut referrer = UndefinedValue());
@@ -209,12 +184,8 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
     assert!(state.pending_modules_count.get() >= 1);
 
     // Step 4. Set state.[[PendingModulesCount]] to state.[[PendingModulesCount]] - 1.
-    state.pending_modules_count.update(|count| count - 1);
-
-    debug!(
-        "Pending modules count is {}",
-        state.pending_modules_count.get()
-    );
+    let pending_modules_count = state.pending_modules_count.get();
+    state.pending_modules_count.set(pending_modules_count - 1);
 
     // Step 5. If state.[[PendingModulesCount]] = 0, then
     if state.pending_modules_count.get() == 0 {
@@ -225,7 +196,6 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
         // i. If loaded.[[Status]] is new, set loaded.[[Status]] to unlinked.
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
-        debug!("Module loading process terminated.");
         state.promise.resolve_native(&(), CanGc::note());
     }
 
@@ -254,7 +224,6 @@ fn ContinueModuleLoading(
             state.is_loading.set(false);
 
             // b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-            debug!("Module loading failed, rejecting promise.");
             state
                 .promise
                 .reject(GlobalScope::get_cx(), exception.handle(), CanGc::note());
@@ -265,7 +234,6 @@ fn ContinueModuleLoading(
 }
 
 /// <https://tc39.es/ecma262/#sec-FinishLoadingImportedModule>
-/// We should use a map whose keys are module requests, for now we use module request's specifier
 fn FinishLoadingImportedModule(
     global: &GlobalScope,
     referrer_module: Option<Rc<ModuleTree>>,
@@ -281,7 +249,6 @@ fn FinishLoadingImportedModule(
 
             // Step 1. If result is a normal completion, then
             if let Ok(ref module) = result {
-                debug!("Module fetching was successful");
                 // a. If referrer.[[LoadedModules]] contains a LoadedModuleRequest Record record such that
                 // ModuleRequestsEqual(record, moduleRequest) is true, then
                 module_tree.insert_module_dependency(module, module_request_specifier);
@@ -437,23 +404,24 @@ pub(crate) fn HostLoadImportedModule(
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     let global_scope = unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
 
-    // Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
+    // TODO Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
 
     // Step 3. Let referencingScript be null.
+    // Step 6.1. Set referencingScript to referrer.[[HostDefined]].
     let referencing_script = unsafe { module_script_from_reference_private(&referrer) };
-
-    // Step 4. Let originalFetchOptions be the default script fetch options.
-
-    // Step 5. Let fetchReferrer be "client".
 
     // Step 6. If referrer is a Script Record or a Cyclic Module Record, then:
     let (original_fetch_options, fetch_referrer) = match referencing_script {
         Some(module) => (
+            // Step 6.4. Set originalFetchOptions to referencingScript's fetch options.
             module.options.clone(),
+            // Step 6.3. Set fetchReferrer to referencingScript's base URL.
             Referrer::ReferrerUrl(module.base_url.clone()),
         ),
         None => (
+            // Step 4. Let originalFetchOptions be the default script fetch options.
             ScriptFetchOptions::default_classic_script(&global_scope),
+            // Step 5. Let fetchReferrer be "client".
             global_scope.get_referrer(),
         ),
     };
@@ -495,9 +463,6 @@ pub(crate) fn HostLoadImportedModule(
         // Step 9.3. Return.
         return;
     };
-
-    let url = url.unwrap();
-    debug!("Starting fetch for {specifier} {url}");
 
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
     // originalFetchOptions, url, and settingsObject.
@@ -561,7 +526,7 @@ pub(crate) fn HostLoadImportedModule(
     // fetchReferrer, moduleRequest, and onSingleFetchComplete as defined below.
     // If loadState is not undefined and loadState.[[PerformFetch]] is not null, pass loadState.[[PerformFetch]] along as well.
     fetch_a_single_imported_module_script(
-        url,
+        url.unwrap(),
         fetch_client,
         destination,
         fetch_options,
@@ -579,12 +544,12 @@ fn fetch_a_single_imported_module_script(
     referrer: Referrer,
     on_complete: impl FnOnce(&GlobalScope, Rc<ModuleTree>) + 'static,
 ) {
-    // Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
+    // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
     // because we only asked for "type" attributes in HostGetSupportedImportAttributes.
 
-    // Step 2. Let moduleType be the result of running the module type from module request steps given moduleRequest.
+    // TODO Step 2. Let moduleType be the result of running the module type from module request steps given moduleRequest.
 
-    // Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
+    // TODO Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
     // then run onComplete given null, and return.
 
     // Step 4. Fetch a single module script given url, fetchClient, destination, options, settingsObject, referrer,
