@@ -7,10 +7,10 @@ use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
 
+use base::generic_channel::GenericSharedMemory;
 use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
-use base::generic_channel::GenericSharedMemory;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;

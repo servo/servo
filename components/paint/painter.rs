@@ -29,8 +29,7 @@ use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
-    ImageUpdate, PipelineExitSource, SendableFrameTree, WebRenderExternalImageHandlers,
-    WebRenderImageHandlerType, WebViewTrait,
+    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableImageData, WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -1031,21 +1030,20 @@ impl Painter {
         for update in updates {
             match update {
                 ImageUpdate::AddImage(key, desc, data) => {
-                    if let compositing_traits::SerializableImageData::Raw(ref ipc_shared_memory) =
-                        data
-                    {
-                        self.animation_image_cache
-                            .insert(key, Arc::new(ipc_shared_memory.to_vec()));
-                    } else {
-                        info!(
-                            "Transaction does have external Serializeableimage. We will not have it in the animation cache."
-                        )
-                    }
-                    txn.add_image(key, desc, data.into(), None);
+                    let data = match data {
+                        SerializableImageData::Raw(shared_memory) => {
+                            let data = Arc::new(shared_memory.to_vec());
+                            self.animation_image_cache.insert(key, Arc::clone(&data));
+                            ImageData::Raw(data)
+                        },
+                        SerializableImageData::External(image) => ImageData::External(image),
+                    };
+                    txn.add_image(key, desc, data, None);
                 },
                 ImageUpdate::DeleteImage(key) => {
                     txn.delete_image(key);
                     self.frame_delayer.delete_image(key);
+                    self.animation_image_cache.remove(&key);
                 },
                 ImageUpdate::UpdateImage(key, desc, data, epoch) => {
                     if let Some(epoch) = epoch {
