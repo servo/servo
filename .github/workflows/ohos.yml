@@ -36,7 +36,7 @@ env:
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
-  HITRACE_BENCH_VERSION: 0.9.0
+  HITRACE_BENCH_VERSION: 0.9.1
 
 jobs:
   build:
@@ -359,9 +359,9 @@ jobs:
         run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
       - name: Uploading to bencher.dev
         # Post to bencher if at least one of the benchmarks succeeded.
-        if: | 
-          ${{ !cancelled() && steps.setup_complete.outcome == 'success' 
-                && (steps.hitrace_bench.outcome == 'success' 
+        if: |
+          ${{ !cancelled() && steps.setup_complete.outcome == 'success'
+                && (steps.hitrace_bench.outcome == 'success'
                       || steps.speedometer.outcome == 'success')
           }}
         # Note: That e.g. `--start-point` is ignored if it is an empty string,
