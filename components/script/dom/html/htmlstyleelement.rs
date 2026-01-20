@@ -201,7 +201,7 @@ impl HTMLStyleElement {
         //     Step 8. If element's media attribute's value matches the environment
         //     and element is potentially render-blocking, then block rendering on element.
 
-        // Finally, update our stylesheet, regardless which scenario we ran into
+        // Finally, update our stylesheet, regardless of which scenario we ran into
         self.clean_stylesheet_ownership();
         self.set_stylesheet(sheet, cache_key);
     }
