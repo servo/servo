@@ -6518,7 +6518,6 @@ dependencies = [
  "media",
  "paint_api",
  "profile_traits",
- "quick_cache",
  "rayon",
  "rustc-hash 2.1.1",
  "servo-tracing",

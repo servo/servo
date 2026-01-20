@@ -14,7 +14,6 @@ use embedder_traits::{AnimationState, EventLoopWaker};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
-use pixels::ImageFrame;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use strum::IntoStaticStr;

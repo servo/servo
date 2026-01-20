@@ -29,7 +29,8 @@ use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
-    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableImageData, WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait
+    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableImageData,
+    WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -125,7 +126,7 @@ pub(crate) struct Painter {
     lcp_calculator: LargestContentfulPaintCalculator,
 
     /// A local image only used for animation images
-    animation_image_cache: quick_cache::unsync::Cache<ImageKey, Arc<Vec<u8>>>,
+    animation_image_cache: FxHashMap<ImageKey, Arc<Vec<u8>>>,
 }
 
 impl Drop for Painter {
@@ -270,7 +271,7 @@ impl Painter {
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
             lcp_calculator: LargestContentfulPaintCalculator::new(),
-            animation_image_cache: quick_cache::unsync::Cache::new(5),
+            animation_image_cache: FxHashMap::default(),
         };
         painter.assert_gl_framebuffer_complete();
         painter.clear_background();
@@ -1053,8 +1054,8 @@ impl Painter {
                 },
                 ImageUpdate::UpdateAnimation(image_key, desc) => {
                     let Some(image) = self.animation_image_cache.get(&image_key) else {
-                        info!("Could not find image key in image cache.");
-                        break;
+                        error!("Could not find image key in image cache.");
+                        continue;
                     };
                     txn.update_image(
                         image_key,
