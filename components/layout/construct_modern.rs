@@ -5,7 +5,7 @@
 //! Layout construction code that is shared between modern layout modes (Flexbox and CSS Grid)
 
 use std::borrow::Cow;
-use std::sync::LazyLock;
+use std::sync::OnceLock;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use style::selector_parser::PseudoElement;
@@ -26,6 +26,9 @@ use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox};
 pub(crate) struct ModernContainerBuilder<'a, 'dom> {
     context: &'a LayoutContext<'a>,
     info: &'a NodeAndStyleInfo<'dom>,
+    /// A [`NodeAndStyleInfo`] to use for anonymous box children. Only initialized if
+    /// there is such a child.
+    anonymous_info: OnceLock<NodeAndStyleInfo<'dom>>,
     propagated_data: PropagatedBoxTreeData,
     contiguous_text_runs: Vec<ModernContainerTextRun<'dom>>,
     /// To be run in parallel with rayon in `finish`
@@ -40,17 +43,13 @@ enum ModernContainerJob<'dom> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     },
-    TextRuns(Vec<ModernContainerTextRun<'dom>>),
+    TextRuns(Vec<ModernContainerTextRun<'dom>>, BoxSlot<'dom>),
 }
 
 impl<'dom> ModernContainerJob<'dom> {
-    fn finish(
-        self,
-        builder: &ModernContainerBuilder,
-        anonymous_info: &LazyLock<NodeAndStyleInfo<'dom>, impl FnOnce() -> NodeAndStyleInfo<'dom>>,
-    ) -> Option<ModernItem<'dom>> {
+    fn finish(self, builder: &ModernContainerBuilder) -> Option<ModernItem<'dom>> {
         match self {
-            ModernContainerJob::TextRuns(runs) => {
+            ModernContainerJob::TextRuns(runs, box_slot) => {
                 let mut inline_formatting_context_builder =
                     InlineFormattingContextBuilder::new(builder.info);
                 for flex_text_run in runs.into_iter() {
@@ -69,7 +68,7 @@ impl<'dom> ModernContainerJob<'dom> {
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
                 );
 
-                let info: &NodeAndStyleInfo = anonymous_info;
+                let info = builder.anonymous_info();
                 let formatting_context = IndependentFormattingContext::new(
                     LayoutBoxBase::new(info.into(), info.style.clone()),
                     IndependentFormattingContextContents::Flow(block_formatting_context),
@@ -78,7 +77,7 @@ impl<'dom> ModernContainerJob<'dom> {
                 Some(ModernItem {
                     kind: ModernItemKind::InFlow(formatting_context),
                     order: 0,
-                    box_slot: anonymous_info.node.box_slot(),
+                    box_slot,
                 })
             },
             ModernContainerJob::ElementOrPseudoElement {
@@ -204,6 +203,7 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
         ModernContainerBuilder {
             context,
             info,
+            anonymous_info: Default::default(),
             propagated_data: propagated_data.disallowing_percentage_table_columns(),
             contiguous_text_runs: Vec::new(),
             jobs: Vec::new(),
@@ -211,36 +211,42 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
         }
     }
 
+    fn anonymous_info(&self) -> &NodeAndStyleInfo<'dom> {
+        self.anonymous_info.get_or_init(|| {
+            self.info
+                .with_pseudo_element(self.context, PseudoElement::ServoAnonymousBox)
+                .expect("Should always be able to construct info for anonymous boxes.")
+        })
+    }
+
     fn wrap_any_text_in_anonymous_block_container(&mut self) {
         let runs = std::mem::take(&mut self.contiguous_text_runs);
+
+        // If there is no text run or they all only contain document white space
+        // characters, do nothing.
         if runs
             .iter()
             .all(ModernContainerTextRun::is_only_document_white_space)
         {
-            // There is no text run, or they all only contain document white space characters
-        } else {
-            self.jobs.push(ModernContainerJob::TextRuns(runs));
-            self.has_text_runs = true;
+            return;
         }
+
+        let box_slot = self.anonymous_info().node.box_slot();
+        self.jobs.push(ModernContainerJob::TextRuns(runs, box_slot));
+        self.has_text_runs = true;
     }
 
     pub(crate) fn finish(mut self) -> Vec<ModernItem<'dom>> {
         self.wrap_any_text_in_anonymous_block_container();
 
-        let anonymous_info = LazyLock::new(|| {
-            self.info
-                .with_pseudo_element(self.context, PseudoElement::ServoAnonymousBox)
-                .expect("Should always be able to construct info for anonymous boxes.")
-        });
-
         let jobs = std::mem::take(&mut self.jobs);
         let mut children: Vec<_> = if self.context.use_rayon {
             jobs.into_par_iter()
-                .filter_map(|job| job.finish(&self, &anonymous_info))
+                .filter_map(|job| job.finish(&self))
                 .collect()
         } else {
             jobs.into_iter()
-                .filter_map(|job| job.finish(&self, &anonymous_info))
+                .filter_map(|job| job.finish(&self))
                 .collect()
         };
 
