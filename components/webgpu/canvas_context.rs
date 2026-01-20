@@ -9,11 +9,11 @@ use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use base::Epoch;
+use base::generic_channel::GenericSender;
 use compositing_traits::{
     CrossProcessPaintApi, ExternalImageSource, SerializableImageData, WebRenderExternalImageApi,
 };
 use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::{SharedSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
@@ -465,7 +465,11 @@ impl ContextData {
 
     /// Destroy the context that this [`ContextData`] represents,
     /// freeing all of its buffers, and deleting the associated WebRender image.
-    fn destroy(mut self, script_sender: &IpcSender<WebGPUMsg>, paint_api: &CrossProcessPaintApi) {
+    fn destroy(
+        mut self,
+        script_sender: &GenericSender<WebGPUMsg>,
+        paint_api: &CrossProcessPaintApi,
+    ) {
         // This frees the id in the `ScriptThread`.
         for staging_buffer in self.inactive_staging_buffers {
             if let Err(error) = script_sender.send(WebGPUMsg::FreeBuffer(staging_buffer.buffer_id))
@@ -560,7 +564,7 @@ impl crate::WGPU {
         &self,
         context_id: WebGPUContextId,
         pending_texture: Option<PendingTexture>,
-        sender: IpcSender<SharedSnapshot>,
+        sender: GenericSender<SharedSnapshot>,
     ) {
         let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();

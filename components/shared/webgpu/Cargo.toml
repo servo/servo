@@ -14,7 +14,6 @@ path = "lib.rs"
 [dependencies]
 arrayvec = { workspace = true }
 base = { workspace = true }
-ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 pixels = { path = "../../pixels" }
 serde = { workspace = true }

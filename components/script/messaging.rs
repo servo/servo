@@ -400,7 +400,7 @@ pub(crate) struct ScriptThreadReceivers {
     /// WebGPU context, this will be [`crossbeam_channel::never()`].
     #[no_trace]
     #[cfg(feature = "webgpu")]
-    pub(crate) webgpu_receiver: RefCell<Receiver<WebGPUMsg>>,
+    pub(crate) webgpu_receiver: RefCell<RoutedReceiver<WebGPUMsg>>,
 }
 
 impl ScriptThreadReceivers {
@@ -436,7 +436,7 @@ impl ScriptThreadReceivers {
             }) -> msg => {
                 #[cfg(feature = "webgpu")]
                 {
-                    MixedMessage::FromWebGPUServer(msg.unwrap())
+                    MixedMessage::FromWebGPUServer(msg.unwrap().unwrap())
                 }
                 #[cfg(not(feature = "webgpu"))]
                 {
@@ -475,7 +475,7 @@ impl ScriptThreadReceivers {
         }
         #[cfg(feature = "webgpu")]
         if let Ok(message) = self.webgpu_receiver.borrow().try_recv() {
-            return MixedMessage::FromWebGPUServer(message).into();
+            return MixedMessage::FromWebGPUServer(message.unwrap()).into();
         }
         None
     }

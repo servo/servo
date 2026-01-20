@@ -8,12 +8,11 @@ use std::borrow::Cow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::GenericSharedMemory;
+use base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory};
 use base::id::PipelineId;
 use compositing_traits::{
     CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
 };
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use log::{info, warn};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
@@ -95,9 +94,9 @@ impl<P> Pass<P> {
 
 #[expect(clippy::upper_case_acronyms)] // Name of the library
 pub(crate) struct WGPU {
-    receiver: IpcReceiver<WebGPURequest>,
-    sender: IpcSender<WebGPURequest>,
-    pub(crate) script_sender: IpcSender<WebGPUMsg>,
+    receiver: GenericReceiver<WebGPURequest>,
+    sender: GenericSender<WebGPURequest>,
+    pub(crate) script_sender: GenericSender<WebGPUMsg>,
     pub(crate) global: Arc<wgc::global::Global>,
     devices: Arc<Mutex<FxHashMap<DeviceId, DeviceScope>>>,
     // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
@@ -118,9 +117,9 @@ pub(crate) struct WGPU {
 
 impl WGPU {
     pub(crate) fn new(
-        receiver: IpcReceiver<WebGPURequest>,
-        sender: IpcSender<WebGPURequest>,
-        script_sender: IpcSender<WebGPUMsg>,
+        receiver: GenericReceiver<WebGPURequest>,
+        sender: GenericSender<WebGPURequest>,
+        script_sender: GenericSender<WebGPUMsg>,
         paint_api: CrossProcessPaintApi,
         webrender_external_image_id_manager: WebRenderExternalImageIdManager,
         wgpu_image_map: WebGpuExternalImageMap,

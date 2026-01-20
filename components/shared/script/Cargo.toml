@@ -29,7 +29,6 @@ devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
-ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
