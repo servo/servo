@@ -136,7 +136,7 @@ jobs:
         id: artifact_ids
         shell: bash
         run: |
-          echo "artifact_ids=${{steps.upload-library.outputs.artifact-id}},${{steps.upload-hap-unsigned.outputs.artifact-id}}" >> $GITHUB_OUTPUT
+          echo "artifact_ids=${{steps.upload-library.outputs.artifact-id}},${{steps.upload-hap-signed.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   bencher:
     needs: ["build"]
