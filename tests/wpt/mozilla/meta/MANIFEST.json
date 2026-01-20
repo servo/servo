@@ -13016,6 +13016,15 @@
        "testdriver": true
       }
      ]
+    ],
+    "spurious-mouse-move-events.html": [
+     "9cfa22aaf90a0d3399fd03a80aa87dd0f16f76d6",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
     ]
    },
    "mozilla": {
