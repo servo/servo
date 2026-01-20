@@ -21,7 +21,7 @@ on:
     secrets:
       github_upload_token:
         required: false
-        description: "A GitHub token with permission to upload release assets. If ommitted github.token will be used instead."
+        description: "A GitHub token with permission to upload release assets. If omitted github.token will be used instead."
       s3_upload_token:
         required: true
         description: "A token with permission to upload release artifacts to our S3 bucket."
