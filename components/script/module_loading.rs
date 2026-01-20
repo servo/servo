@@ -13,14 +13,14 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use js::conversions::jsstr_to_string;
-use js::jsapi::{
-    GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModulesCount,
-    HandleValue as RawHandleValue, IsCyclicModule, JSObject, ModuleEvaluate,
-};
+use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers::JS_GetModulePrivate;
-use js::rust::{HandleObject, HandleValue, IntoHandle};
+use js::rust::wrappers::{
+    GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModulesCount, JS_GetModulePrivate,
+    ModuleEvaluate,
+};
+use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
@@ -293,7 +293,7 @@ fn continue_dynamic_import(
 
     // Step 2. Let module be moduleCompletion.[[Value]].
     let module = module_completion.unwrap();
-    let module_handle = module.get_record().map(|module| module.handle()).unwrap();
+    let record = ModuleObject::new(module.get_record().map(|module| module.handle()).unwrap());
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
     let load_promise = load_requested_modules(global, module, None);
@@ -310,7 +310,6 @@ fn continue_dynamic_import(
     let global_scope = DomRoot::from_ref(global);
     let inner_promise = promise.clone();
     let fulfilled_promise = promise.clone();
-    let record = ModuleObject::new(unsafe { HandleObject::from_raw(module_handle) });
 
     // Step 6. Let linkAndEvaluateClosure be a new Abstract Closure with no parameters that captures
     // module, promiseCapability, and onRejected and performs the following steps when called:
@@ -335,7 +334,7 @@ fn continue_dynamic_import(
             rooted!(in(*cx) let mut evaluate_promise = std::ptr::null_mut::<JSObject>());
 
             // c. Let evaluatePromise be module.Evaluate().
-            assert!(unsafe { ModuleEvaluate(*cx, record.handle(), rval.handle_mut().into()) });
+            assert!(unsafe { ModuleEvaluate(*cx, record.handle(), rval.handle_mut()) });
 
             if !rval.is_object() {
                 let error = RethrowError::from_pending_exception(cx);

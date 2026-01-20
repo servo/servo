@@ -18,17 +18,20 @@ use hyper_serde::Serde;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
 use js::conversions::jsstr_to_string;
+use js::gc::MutableHandleValue;
 use js::jsapi::{
     CompileModule1, ExceptionStackBehavior, GetModuleRequestSpecifier, GetModuleResolveHook,
-    Handle as RawHandle, HandleObject, HandleValue as RawHandleValue, Heap,
-    JS_ClearPendingException, JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext,
-    JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour, ModuleEvaluate, ModuleLink,
-    MutableHandleValue, SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate,
-    SetModuleResolveHook, SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value,
+    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_ClearPendingException,
+    JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE,
+    JSRuntime, ModuleErrorBehaviour, SetModuleDynamicImportHook, SetModuleMetadataHook,
+    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
+    ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException};
+use js::rust::wrappers::{
+    JS_GetPendingException, JS_SetPendingException, ModuleEvaluate, ModuleLink,
+};
 use js::rust::{
     CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
     transform_str_to_source_text,
@@ -97,8 +100,8 @@ impl ModuleObject {
         ModuleObject(RootedTraceableBox::from_box(Heap::boxed(obj.get())))
     }
 
-    pub(crate) fn handle(&self) -> HandleObject {
-        self.0.handle().into()
+    pub(crate) fn handle(&'_ self) -> js::gc::HandleObject<'_> {
+        self.0.handle()
     }
 }
 
@@ -397,7 +400,7 @@ impl ModuleTree {
     /// Step 5-2.
     pub(crate) fn instantiate_module_tree(
         global: &GlobalScope,
-        module_record: HandleObject,
+        module_record: js::gc::HandleObject,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
@@ -428,15 +431,15 @@ impl ModuleTree {
     pub(crate) fn execute_module(
         &self,
         global: &GlobalScope,
-        module_record: HandleObject,
-        eval_result: MutableHandleValue,
+        module_record: js::gc::HandleObject,
+        mut eval_result: MutableHandleValue,
         _can_gc: CanGc,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         unsafe {
-            let ok = ModuleEvaluate(*cx, module_record, eval_result);
+            let ok = ModuleEvaluate(*cx, module_record, eval_result.reborrow());
             assert!(ok, "module evaluation failed");
 
             rooted!(in(*cx) let mut evaluation_promise = ptr::null_mut::<JSObject>());
