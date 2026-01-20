@@ -1275,7 +1275,6 @@ pub(crate) fn fetch_an_external_module_script(
     can_gc: CanGc,
 ) {
     let referrer = owner.global().get_referrer();
-    let identity = ModuleIdentity::ModuleUrl(url.clone());
 
     // Step 1. Fetch a single module script given url, settingsObject, "script", options, settingsObject, "client", true,
     // and with the following steps given result:
@@ -1298,7 +1297,6 @@ pub(crate) fn fetch_an_external_module_script(
                 module_tree,
                 Destination::Script,
                 owner,
-                identity,
                 can_gc,
             );
         },
@@ -1310,7 +1308,6 @@ pub(crate) fn fetch_inline_module_script(
     owner: ModuleOwner,
     module_script_text: Rc<DOMString>,
     url: ServoUrl,
-    script_id: ScriptId,
     options: ScriptFetchOptions,
     line_number: u32,
     can_gc: CanGc,
@@ -1328,20 +1325,8 @@ pub(crate) fn fetch_inline_module_script(
         can_gc,
     );
 
-    owner
-        .global()
-        .get_inline_module_map()
-        .borrow_mut()
-        .insert(script_id, Rc::clone(&module_tree));
-
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
-    fetch_the_descendants_and_link_module_script(
-        module_tree,
-        Destination::Script,
-        owner,
-        ModuleIdentity::ScriptId(script_id),
-        can_gc,
-    );
+    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, can_gc);
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
@@ -1349,7 +1334,6 @@ fn fetch_the_descendants_and_link_module_script(
     module_script: Rc<ModuleTree>,
     destination: Destination,
     owner: ModuleOwner,
-    identity: ModuleIdentity,
     can_gc: CanGc,
 ) {
     let global = owner.global();
@@ -1380,47 +1364,43 @@ fn fetch_the_descendants_and_link_module_script(
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise = load_requested_modules(&global, module_script, Some(Rc::clone(&state)));
+    let loading_promise =
+        load_requested_modules(&global, module_script.clone(), Some(Rc::clone(&state)));
 
     let fulfillment_owner = owner.clone();
-    let fulfillment_identity = identity.clone();
+    let fulfilled_module = module_script.clone();
 
     // Step 6. Upon fulfillment of loadingPromise, run the following steps:
     let loading_promise_fulfillment = ModuleHandler::new_boxed(Box::new(
-        task!(fetched_resolve: |fulfillment_owner: ModuleOwner, fulfillment_identity: ModuleIdentity| {
+        task!(fulfilled_steps: |fulfillment_owner: ModuleOwner| {
             let global = fulfillment_owner.global();
 
-            let module_tree = fulfillment_identity.get_module_tree(&global);
-            if let Some(record) = module_tree.get_record().borrow().as_ref() {
+            if let Some(record) = fulfilled_module.get_record().borrow().as_ref() {
                 // Step 6.1. Perform record.Link().
                 let instantiated = ModuleTree::instantiate_module_tree(&global, record.handle());
 
                 // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
                 if let Err(exception) = instantiated {
-                    module_tree.set_rethrow_error(exception);
+                    fulfilled_module.set_rethrow_error(exception);
                 }
             }
 
             // Step 6.2. Run onComplete given moduleScript.
-            fulfillment_owner.notify_owner_to_finish(Some(module_tree), CanGc::note());
+            fulfillment_owner.notify_owner_to_finish(Some(fulfilled_module), CanGc::note());
         }),
     ));
 
     let rejection_owner = owner.clone();
-    let rejection_identity = identity.clone();
+    let rejected_module = module_script.clone();
 
     // Step 7. Upon rejection of loadingPromise, run the following steps:
     let loading_promise_rejection = ModuleHandler::new_boxed(Box::new(
-        task!(fetched_resolve: |rejection_owner: ModuleOwner, rejection_identity: ModuleIdentity, state: Rc<LoadState>| {
-            let global = rejection_owner.global();
-
-            let module_tree = rejection_identity.get_module_tree(&global);
-
+        task!(rejected_steps: |rejection_owner: ModuleOwner, state: Rc<LoadState>| {
             // Step 7.1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
             // and run onComplete given moduleScript.
             if let Some(error) = state.error_to_rethrow.borrow().as_ref() {
-                module_tree.set_rethrow_error(error.clone());
-                rejection_owner.notify_owner_to_finish(Some(module_tree), CanGc::note());
+                rejected_module.set_rethrow_error(error.clone());
+                rejection_owner.notify_owner_to_finish(Some(rejected_module), CanGc::note());
             } else {
                 // Step 7.2. Otherwise, run onComplete given null.
                 rejection_owner.notify_owner_to_finish(None, CanGc::note());
