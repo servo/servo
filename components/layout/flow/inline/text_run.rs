@@ -29,6 +29,7 @@ use super::line_breaker::LineBreaker;
 use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
+use crate::flow::inline::line::TextRunOffsets;
 use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -133,7 +134,7 @@ impl TextRunSegment {
             soft_wrap_policy = SegmentStartSoftWrapPolicy::Force;
         }
 
-        let mut byte_processed = ByteIndex(0);
+        let mut range_start = ByteIndex(self.range.start);
         for (run_index, run) in self.runs.iter().enumerate() {
             ifc.possibly_flush_deferred_forced_line_break();
 
@@ -150,7 +151,7 @@ impl TextRunSegment {
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
             if run.is_single_preserved_newline() {
-                byte_processed = byte_processed + run.range.len();
+                range_start = range_start + run.range.len();
                 ifc.defer_forced_line_break();
                 continue;
             }
@@ -160,16 +161,24 @@ impl TextRunSegment {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            let range_start = byte_processed + ByteIndex(self.range.start);
+            let offsets = ifc
+                .ifc
+                .shared_selection
+                .clone()
+                .map(|shared_selection| TextRunOffsets {
+                    starting_glyph_offset,
+                    shared_selection,
+                    text_range: TextByteRange::new(range_start, range_start + run.range.len()),
+                });
+
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.glyph_store.clone(),
                 text_run,
                 &self.font,
                 self.bidi_level,
-                TextByteRange::new(range_start, range_start + run.range.len()),
-                starting_glyph_offset,
+                offsets,
             );
-            byte_processed = byte_processed + run.range.len();
+            range_start = range_start + run.range.len();
         }
     }
 
@@ -353,10 +362,6 @@ pub(crate) struct TextRun {
     /// The text of this [`TextRun`] with a font selected, broken into unbreakable
     /// segments, and shaped.
     pub shaped_text: Vec<TextRunSegment>,
-
-    /// The selection range for the DOM text node that originated this [`TextRun`]. This
-    /// comes directly from the DOM.
-    pub selection_range: Option<TextByteRange>,
 }
 
 impl TextRun {
@@ -364,7 +369,6 @@ impl TextRun {
         base_fragment_info: BaseFragmentInfo,
         inline_styles: SharedInlineStyles,
         text_range: Range<usize>,
-        selection_range: Option<TextByteRange>,
     ) -> Self {
         Self {
             base_fragment_info,
@@ -372,7 +376,6 @@ impl TextRun {
             inline_styles,
             text_range,
             shaped_text: Vec::new(),
-            selection_range,
         }
     }
 

@@ -7,7 +7,7 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
-use atomic_refcell::AtomicRef;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use base::id::{BrowsingContextId, PipelineId};
 use fonts::TextByteRange;
 use html5ever::{LocalName, Namespace};
@@ -205,8 +205,8 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// Note: This should only be called on text nodes.
     fn text_content(self) -> Cow<'dom, str>;
 
-    /// If selection intersects this node, return it. Otherwise, returns `None`.
-    fn selection(&self) -> Option<TextByteRange>;
+    /// If this node manages a selection, this returns the shared selection for the node.
+    fn selection(&self) -> Option<SharedSelection>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;
@@ -432,3 +432,17 @@ impl PseudoElementChain {
         self.primary.is_none()
     }
 }
+
+/// A selection shared between script and layout. This selection is managed by the DOM
+/// node that maintains it, and can be modified from script. Once modified, layout is
+/// expected to reflect the new selection visual on the next display list update.
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
+pub struct ScriptSelection {
+    /// The range of this selection in the DOM node that manages it.
+    pub range: TextByteRange,
+    /// Whether or not this selection is enabled. Selections may be disabled
+    /// when their node loses focus.
+    pub enabled: bool,
+}
+
+pub type SharedSelection = std::sync::Arc<AtomicRefCell<ScriptSelection>>;

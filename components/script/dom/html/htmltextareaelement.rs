@@ -4,13 +4,14 @@
 
 use std::cell::{Cell, RefCell};
 use std::default::Default;
-use std::ops::Range;
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use base::text::Utf16CodeUnitLength;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
+use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
+use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::root::Dom;
 use style::attr::AttrValue;
@@ -65,34 +66,22 @@ pub(crate) struct HTMLTextAreaElement {
     /// A DOM [`Text`] node that is the stored in the root of this [`HTMLTextArea`]'s
     /// shadow tree. This how content from the text area is exposed to layout.
     shadow_node: DomRefCell<Option<Dom<Text>>>,
+    /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
+    /// and layout should reflect the new value after a display list update.
+    #[no_trace]
+    #[conditional_malloc_size_of]
+    shared_selection: SharedSelection,
 }
 
 pub(crate) trait LayoutHTMLTextAreaElementHelpers {
-    fn selection_for_layout(self) -> Option<Range<usize>>;
+    fn selection_for_layout(self) -> SharedSelection;
     fn get_cols(self) -> u32;
     fn get_rows(self) -> u32;
 }
 
-#[expect(unsafe_code)]
-impl<'dom> LayoutDom<'dom, HTMLTextAreaElement> {
-    fn textinput_sorted_selection_offsets_range(self) -> Range<Utf8CodeUnitLength> {
-        unsafe {
-            self.unsafe_get()
-                .textinput
-                .borrow_for_layout()
-                .sorted_selection_offsets_range()
-        }
-    }
-}
-
 impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
-    fn selection_for_layout(self) -> Option<Range<usize>> {
-        if !self.upcast::<Element>().focus_state() {
-            return None;
-        }
-        Some(Utf8CodeUnitLength::unwrap_range(
-            self.textinput_sorted_selection_offsets_range(),
-        ))
+    fn selection_for_layout(self) -> SharedSelection {
+        self.unsafe_get().shared_selection.clone()
     }
 
     fn get_cols(self) -> u32 {
@@ -149,6 +138,7 @@ impl HTMLTextAreaElement {
             labels_node_list: Default::default(),
             validity_state: Default::default(),
             shadow_node: Default::default(),
+            shared_selection: Default::default(),
         }
     }
 
@@ -182,11 +172,6 @@ impl HTMLTextAreaElement {
     }
 
     fn handle_focus_event(&self, event: &FocusEvent) {
-        // The focus state can afect the selection (see `selection_for_layout()`),
-        // thus dirty the node so that it is laid out again.
-        // TODO: Selection changes shouldn't require a new layout.
-        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
-
         let event_type = event.upcast::<Event>().type_();
         if *event_type == *"blur" {
             self.owner_document()
@@ -208,6 +193,9 @@ impl HTMLTextAreaElement {
         } else {
             unreachable!("Got unexpected FocusEvent {event_type:?}");
         }
+
+        // Focus changes can activate or deactivate a selection.
+        self.maybe_update_shared_selection();
     }
 
     fn handle_text_content_changed(&self, can_gc: CanGc) {
@@ -256,7 +244,7 @@ impl HTMLTextAreaElement {
             .upcast::<CharacterData>();
         if character_data.Data() != content {
             character_data.SetData(content);
-            self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+            self.maybe_update_shared_selection();
         }
     }
 }
@@ -280,7 +268,21 @@ impl TextControlElement for HTMLTextAreaElement {
 
     fn select_all(&self) {
         self.textinput.borrow_mut().select_all();
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.maybe_update_shared_selection();
+    }
+
+    fn maybe_update_shared_selection(&self) {
+        let offsets = self.textinput.borrow().sorted_selection_offsets_range();
+        let (start, end) = (offsets.start.0, offsets.end.0);
+        let shared_selection = ScriptSelection {
+            range: TextByteRange::new(ByteIndex(start), ByteIndex(end)),
+            enabled: self.upcast::<Element>().focus_state(),
+        };
+        if shared_selection == *self.shared_selection.borrow() {
+            return;
+        }
+        *self.shared_selection.borrow_mut() = shared_selection;
+        self.owner_window().layout().set_needs_new_display_list();
     }
 }
 
@@ -551,7 +553,7 @@ impl HTMLTextAreaElement {
                 event.mark_as_handled();
             },
             KeyReaction::RedrawSelection => {
-                self.upcast::<Node>().dirty(NodeDamage::Other);
+                self.maybe_update_shared_selection();
                 event.mark_as_handled();
             },
             KeyReaction::Nothing => (),
@@ -732,7 +734,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         let node = self.upcast();
         if event.type_() == atom!("mousedown") && !event.DefaultPrevented() {
             if self.textinput.borrow_mut().handle_mousedown(node, event) {
-                node.dirty(NodeDamage::Other);
+                self.maybe_update_shared_selection();
             }
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
@@ -765,6 +767,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     self.handle_key_reaction(action, event, can_gc);
                     node.dirty(NodeDamage::Other);
                 }
+                self.maybe_update_shared_selection();
                 event.mark_as_handled();
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {

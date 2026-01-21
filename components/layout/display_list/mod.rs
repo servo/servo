@@ -740,7 +740,7 @@ impl Fragment {
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
         let include_whitespace =
-            fragment.has_selection() || text_decorations.iter().any(|item| !item.line.is_empty());
+            fragment.offsets.is_some() || text_decorations.iter().any(|item| !item.line.is_empty());
 
         let glyphs = glyphs(
             &fragment.glyphs,
@@ -748,6 +748,7 @@ impl Fragment {
             fragment.justification_adjustment,
             include_whitespace,
         );
+
         if glyphs.is_empty() {
             return;
         }
@@ -808,69 +809,12 @@ impl Fragment {
             }
         }
 
-        // TODO: This caret/text selection implementation currently does not account for vertical text
-        // and RTL text properly.
-        if let Some(range) = fragment.selection_range.clone() {
-            let baseline_origin = rect.origin;
-            if !range.is_empty() {
-                let start = glyphs_advance_by_index(
-                    &fragment.glyphs,
-                    range.start,
-                    baseline_origin,
-                    fragment.justification_adjustment,
-                );
-
-                let end = glyphs_advance_by_index(
-                    &fragment.glyphs,
-                    range.end,
-                    baseline_origin,
-                    fragment.justification_adjustment,
-                );
-
-                let selection_rect = LayoutRect::new(
-                    Point2D::new(start.x.to_f32_px(), containing_block.min_y().to_f32_px()),
-                    Point2D::new(end.x.to_f32_px(), containing_block.max_y().to_f32_px()),
-                );
-                if let Some(selection_color) = fragment
-                    .selected_style
-                    .borrow()
-                    .clone_background_color()
-                    .as_absolute()
-                {
-                    let selection_common = builder.common_properties(selection_rect, &parent_style);
-                    builder.wr().push_rect(
-                        &selection_common,
-                        selection_rect,
-                        rgba(*selection_color),
-                    );
-                }
-            } else {
-                let insertion_point = glyphs_advance_by_index(
-                    &fragment.glyphs,
-                    range.start,
-                    baseline_origin,
-                    fragment.justification_adjustment,
-                );
-
-                let insertion_point_rect = LayoutRect::new(
-                    Point2D::new(
-                        insertion_point.x.to_f32_px(),
-                        containing_block.min_y().to_f32_px(),
-                    ),
-                    Point2D::new(
-                        insertion_point.x.to_f32_px() + INSERTION_POINT_LOGICAL_WIDTH.to_f32_px(),
-                        containing_block.max_y().to_f32_px(),
-                    ),
-                );
-                let insertion_point_common =
-                    builder.common_properties(insertion_point_rect, &parent_style);
-                // TODO: The color of the caret is currently hardcoded to the text color.
-                // We should be retrieving the caret color from the style properly.
-                builder
-                    .wr()
-                    .push_rect(&insertion_point_common, insertion_point_rect, rgba(color));
-            }
-        }
+        self.build_display_list_for_text_selection(
+            fragment,
+            builder,
+            containing_block,
+            baseline_origin,
+        );
 
         builder.wr().push_text(
             &common,
@@ -975,6 +919,97 @@ impl Fragment {
                 radius: BorderRadius::zero(),
                 do_aa: true,
             }),
+        );
+    }
+
+    // TODO: This caret/text selection implementation currently does not account for vertical text
+    // and RTL text properly.
+    fn build_display_list_for_text_selection(
+        &self,
+        fragment: &TextFragment,
+        builder: &mut DisplayListBuilder<'_>,
+        containing_block: &PhysicalRect<Au>,
+        baseline_origin: PhysicalPoint<Au>,
+    ) {
+        let Some(offsets) = fragment.offsets.as_ref() else {
+            return;
+        };
+
+        let shared_selection = offsets.shared_selection.borrow();
+        if !shared_selection.enabled {
+            return;
+        }
+        if offsets.text_range.start > shared_selection.range.end ||
+            offsets.text_range.end < shared_selection.range.start
+        {
+            return;
+        }
+
+        let intersected_range = offsets.text_range.intersect(&shared_selection.range);
+        let relative_byte_range = TextByteRange::new(
+            intersected_range.start - offsets.text_range.start,
+            intersected_range.end - offsets.text_range.start,
+        );
+
+        let parent_style = fragment.base.style();
+        if !shared_selection.range.is_empty() {
+            let start = glyphs_advance_by_index(
+                &fragment.glyphs,
+                relative_byte_range.start,
+                baseline_origin,
+                fragment.justification_adjustment,
+            );
+
+            let end = glyphs_advance_by_index(
+                &fragment.glyphs,
+                relative_byte_range.end,
+                baseline_origin,
+                fragment.justification_adjustment,
+            );
+
+            let selection_rect = LayoutRect::new(
+                Point2D::new(start.x.to_f32_px(), containing_block.min_y().to_f32_px()),
+                Point2D::new(end.x.to_f32_px(), containing_block.max_y().to_f32_px()),
+            );
+            if let Some(selection_color) = fragment
+                .selected_style
+                .borrow()
+                .clone_background_color()
+                .as_absolute()
+            {
+                let selection_common = builder.common_properties(selection_rect, &parent_style);
+                builder
+                    .wr()
+                    .push_rect(&selection_common, selection_rect, rgba(*selection_color));
+            }
+            return;
+        }
+
+        let edit_point = glyphs_advance_by_index(
+            &fragment.glyphs,
+            relative_byte_range.start,
+            baseline_origin,
+            fragment.justification_adjustment,
+        );
+
+        let insertion_point_rect = LayoutRect::new(
+            Point2D::new(
+                edit_point.x.to_f32_px(),
+                containing_block.min_y().to_f32_px(),
+            ),
+            Point2D::new(
+                edit_point.x.to_f32_px() + INSERTION_POINT_LOGICAL_WIDTH.to_f32_px(),
+                containing_block.max_y().to_f32_px(),
+            ),
+        );
+        let insertion_point_common = builder.common_properties(insertion_point_rect, &parent_style);
+
+        // TODO: The color of the caret is currently hardcoded to the text color.
+        // We should be retrieving the caret color from the style properly.
+        builder.wr().push_rect(
+            &insertion_point_common,
+            insertion_point_rect,
+            rgba(parent_style.clone_color()),
         );
     }
 }

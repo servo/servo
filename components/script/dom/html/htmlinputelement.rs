@@ -4,20 +4,20 @@
 
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
-use std::ops::Range;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
 use base::generic_channel::GenericSender;
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use base::text::Utf16CodeUnitLength;
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
     RgbColor, SelectedFile,
 };
 use encoding_rs::Encoding;
+use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use itertools::Itertools;
 use js::jsapi::{
@@ -27,6 +27,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
+use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -628,6 +629,11 @@ pub(crate) struct HTMLInputElement {
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
+    /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
+    /// and layout should reflect the new value after a display list update.
+    #[no_trace]
+    #[conditional_malloc_size_of]
+    shared_selection: SharedSelection,
 
     filelist: MutNullableDom<FileList>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -686,6 +692,7 @@ impl HTMLInputElement {
                 },
             )),
             value_dirty: Cell::new(false),
+            shared_selection: Default::default(),
             filelist: MutNullableDom::new(None),
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
@@ -1445,7 +1452,7 @@ impl HTMLInputElement {
                 event.mark_as_handled();
             },
             KeyReaction::RedrawSelection => {
-                self.upcast::<Node>().dirty(NodeDamage::Other);
+                self.maybe_update_shared_selection();
                 event.mark_as_handled();
             },
             KeyReaction::Nothing => (),
@@ -1495,32 +1502,7 @@ impl HTMLInputElement {
 
 pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
     fn size_for_layout(self) -> u32;
-    fn selection_for_layout(self) -> Option<Range<usize>>;
-}
-
-#[expect(unsafe_code)]
-impl<'dom> LayoutDom<'dom, HTMLInputElement> {
-    fn get_raw_textinput_value(self) -> DOMString {
-        unsafe {
-            self.unsafe_get()
-                .textinput
-                .borrow_for_layout()
-                .get_content()
-        }
-    }
-
-    fn input_type(self) -> InputType {
-        self.unsafe_get().input_type.get()
-    }
-
-    fn textinput_sorted_selection_offsets_range(self) -> Range<Utf8CodeUnitLength> {
-        unsafe {
-            self.unsafe_get()
-                .textinput
-                .borrow_for_layout()
-                .sorted_selection_offsets_range()
-        }
-    }
+    fn selection_for_layout(self) -> Option<SharedSelection>;
 }
 
 impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElement> {
@@ -1537,30 +1519,8 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         self.unsafe_get().size.get()
     }
 
-    fn selection_for_layout(self) -> Option<Range<usize>> {
-        if !self.upcast::<Element>().focus_state() {
-            return None;
-        }
-
-        let sorted_selection_offsets_range = self.textinput_sorted_selection_offsets_range();
-
-        match self.input_type() {
-            InputType::Password => {
-                let text = self.get_raw_textinput_value();
-                let sel = Utf8CodeUnitLength::unwrap_range(sorted_selection_offsets_range);
-
-                // Translate indices from the raw value to indices in the replacement value.
-                let char_start = text.str()[..sel.start].chars().count();
-                let char_end = char_start + text.str()[sel].chars().count();
-
-                let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
-                Some(char_start * bytes_per_char..char_end * bytes_per_char)
-            },
-            input_type if input_type.is_textual() => Some(Utf8CodeUnitLength::unwrap_range(
-                sorted_selection_offsets_range,
-            )),
-            _ => None,
-        }
+    fn selection_for_layout(self) -> Option<SharedSelection> {
+        Some(self.unsafe_get().shared_selection.clone())
     }
 }
 
@@ -1598,7 +1558,41 @@ impl TextControlElement for HTMLInputElement {
 
     fn select_all(&self) {
         self.textinput.borrow_mut().select_all();
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.maybe_update_shared_selection();
+    }
+
+    fn maybe_update_shared_selection(&self) {
+        let offsets = self.textinput.borrow().sorted_selection_offsets_range();
+        let (start, end) = (offsets.start.0, offsets.end.0);
+
+        // Password inputs convert their string to bullets in script, so we need to map
+        // selection ranges to the transformed text.
+        //
+        // TODO: Handle this in layout.
+        let textinput = self.textinput.borrow();
+        let (start, end) = if self.input_type() == InputType::Password {
+            // Translate indices from the raw value to indices in the replacement value.
+            let text = textinput.get_content();
+            let start_in_chars = text.str()[..start].chars().count();
+            let end_in_chars = start_in_chars + text.str()[start..end].chars().count();
+            let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
+            (
+                start_in_chars * bytes_per_char,
+                end_in_chars * bytes_per_char,
+            )
+        } else {
+            (start, end)
+        };
+
+        let shared_selection = ScriptSelection {
+            range: TextByteRange::new(ByteIndex(start), ByteIndex(end)),
+            enabled: self.renders_as_text_input_widget() && self.upcast::<Element>().focus_state(),
+        };
+        if shared_selection == *self.shared_selection.borrow() {
+            return;
+        }
+        *self.shared_selection.borrow_mut() = shared_selection;
+        self.owner_window().layout().set_needs_new_display_list();
     }
 }
 
@@ -1743,6 +1737,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 // scope to prevent the borrow checker issue. This is normally
                 // being done in the attributed mutated.
                 self.update_placeholder_shown_state();
+                self.maybe_update_shared_selection();
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
@@ -2769,6 +2764,7 @@ impl HTMLInputElement {
     }
 
     fn value_changed(&self, can_gc: CanGc) {
+        self.maybe_update_shared_selection();
         self.update_related_validity_states(can_gc);
         self.get_or_create_shadow_tree(can_gc).update(self, can_gc);
     }
@@ -2871,13 +2867,6 @@ impl HTMLInputElement {
     }
 
     fn handle_focus_event(&self, event: &FocusEvent) {
-        // The focus state can afect the selection (see `selection_for_layout()`),
-        // thus dirty the node so that it is laid out again.
-        // TODO: Selection changes shouldn't require a new layout.
-        if self.renders_as_text_input_widget() {
-            self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
-        }
-
         let event_type = event.upcast::<Event>().type_();
         if *event_type == *"blur" {
             self.owner_document()
