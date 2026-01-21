@@ -14,6 +14,7 @@ use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style::values::specified::Length;
 use style_traits::ParsingMode;
+use uuid::Uuid;
 use xml5ever::serialize::TraversalScope;
 
 use crate::dom::attr::Attr;
@@ -35,6 +36,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
+    uuid: String,
     // The XML source of subtree rooted at this SVG element, serialized into
     // a base64 encoded `data:` url. This is cached to avoid recomputation
     // on each layout and must be invalidated when the subtree changes.
@@ -50,6 +52,7 @@ impl SVGSVGElement {
     ) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
+            uuid: Uuid::new_v4().to_string(),
             cached_serialized_data_url: Default::default(),
         }
     }

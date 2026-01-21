@@ -904,9 +904,9 @@ impl ImageCache for ImageCacheImpl {
             return None;
         };
 
-        if let Some(svg_id) = svg_id {
+        if let Some(svg_uuid) = svg_uuid {
             if let Some(old_mapped_image_id) =
-                self.svg_id_image_id_map.lock().insert(svg_id, image_id)
+                self.svg_id_image_id_map.lock().insert(svg_uuid, image_id)
             {
                 store.vector_images.remove(&old_mapped_image_id);
                 store
