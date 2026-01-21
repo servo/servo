@@ -49,7 +49,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
 
 use crate::{
-    create_embedder_proxy2_and_receiver, fetch, fetch_with_context, make_body, make_server,
+    create_generic_embedder_proxy_and_receiver, fetch, fetch_with_context, make_body, make_server,
     make_ssl_server, mock_origin, new_fetch_context, receive_credential_prompt_msgs,
     replace_host_table, spawn_blocking_task,
 };
@@ -1691,7 +1691,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
     request.traversable_for_user_prompts =
         TraversableForUserPrompts::TraversableNavigable(Default::default());
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {
@@ -1749,7 +1749,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {
@@ -1796,7 +1796,7 @@ fn test_dont_prompt_credentials_when_unauthorized_response_contains_no_www_authe
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let handle = std::thread::spawn(move || {
         loop {
             let Ok(msg) = embedder_receiver.recv() else {
@@ -1858,7 +1858,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(embedder_receiver, None);
     let mut context = new_fetch_context(None, Some(embedder_proxy));
 
@@ -1905,7 +1905,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {
@@ -1958,7 +1958,7 @@ fn test_prompt_credentials_user_input_incorrect_mode() {
         .policy_container(Default::default())
         .build();
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some(AuthenticationResponse {

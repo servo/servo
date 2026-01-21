@@ -22,7 +22,7 @@ use net_traits::filemanager_thread::{
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 
-use crate::create_embedder_proxy2_and_receiver;
+use crate::create_generic_embedder_proxy_and_receiver;
 
 #[test]
 fn test_filemanager() {
@@ -31,7 +31,7 @@ fn test_filemanager() {
     preferences.dom_testing_html_input_element_select_files_enabled = true;
     servo_config::prefs::set(preferences);
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
     let filemanager = FileManager::new(embedder_proxy);
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree

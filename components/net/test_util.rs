@@ -35,10 +35,10 @@ static ASYNC_RUNTIME: LazyLock<Arc<Mutex<Box<dyn AsyncRuntime>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(init_async_runtime())));
 
 pub fn create_embedder_proxy() -> EmbedderProxy {
-    create_embedder_proxy2::<EmbedderMsg>()
+    create_generic_embedder_proxy::<EmbedderMsg>()
 }
 
-pub fn create_embedder_proxy2<T>() -> GenericEmbedderProxy<T> {
+pub fn create_generic_embedder_proxy<T>() -> GenericEmbedderProxy<T> {
     if !async_runtime_initialized() {
         let _init = ASYNC_RUNTIME.clone();
     }

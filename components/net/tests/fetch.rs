@@ -53,7 +53,7 @@ use uuid::Uuid;
 
 use crate::http_loader::{devtools_response_with_body, expect_devtools_http_request};
 use crate::{
-    DEFAULT_USER_AGENT, create_embedder_proxy2, create_embedder_proxy2_and_receiver,
+    DEFAULT_USER_AGENT, create_generic_embedder_proxy, create_generic_embedder_proxy_and_receiver,
     create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, make_body, make_server,
     make_ssl_server, mock_origin, new_fetch_context,
 };
@@ -743,7 +743,7 @@ fn test_fetch_with_hsts() {
 
     let (server, url) = make_ssl_server(handler);
 
-    let embedder_proxy = create_embedder_proxy2();
+    let embedder_proxy = create_generic_embedder_proxy();
 
     let mut context = FetchContext {
         state: Arc::new(create_http_state(None)),
@@ -806,7 +806,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
     let (server, mut url) = make_ssl_server(handler);
     url.as_mut_url().set_scheme("https").unwrap();
 
-    let embedder_proxy = create_embedder_proxy2();
+    let embedder_proxy = create_generic_embedder_proxy();
 
     let mut context = FetchContext {
         state: Arc::new(create_http_state(None)),
@@ -874,7 +874,7 @@ fn test_fetch_self_signed() {
     let (server, mut url) = make_ssl_server(handler);
     url.as_mut_url().set_scheme("https").unwrap();
 
-    let embedder_proxy = create_embedder_proxy2();
+    let embedder_proxy = create_generic_embedder_proxy();
 
     let mut context = FetchContext {
         state: Arc::new(create_http_state(None)),
@@ -1492,7 +1492,7 @@ fn test_fetch_request_intercepted() {
     static HEADERVALUE: &str = "custom-value";
     static STATUS_MESSAGE: &[u8] = b"custom status message";
 
-    let (embedder_proxy, embedder_receiver) = create_embedder_proxy2_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
 
     std::thread::spawn(move || {
         let embedder_msg = embedder_receiver.recv().unwrap();

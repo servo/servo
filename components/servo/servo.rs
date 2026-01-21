@@ -753,7 +753,7 @@ impl Servo {
         let (constellation_proxy, embedder_to_constellation_receiver) = ConstellationProxy::new();
         let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
         let (net_embedder_proxy, net_embedder_receiver) =
-            create_embedder_channel2::<NetToEmbedderMsg>(event_loop_waker.clone());
+            create_generic_embedder_channel::<NetToEmbedderMsg>(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
@@ -961,7 +961,7 @@ fn create_embedder_channel(
     )
 }
 
-fn create_embedder_channel2<T>(
+fn create_generic_embedder_channel<T>(
     event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (GenericEmbedderProxy<T>, Receiver<T>) {
     let (sender, receiver) = unbounded();

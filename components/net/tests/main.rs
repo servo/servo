@@ -37,7 +37,7 @@ use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
 use net::test::HttpState;
 use net::test_util::{
-    create_embedder_proxy2, make_body, make_server, make_ssl_server, replace_host_table,
+    create_generic_embedder_proxy, make_body, make_server, make_ssl_server, replace_host_table,
 };
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
@@ -56,10 +56,10 @@ struct FetchResponseCollector {
 }
 
 fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>) {
-    create_embedder_proxy2_and_receiver::<EmbedderMsg>()
+    create_generic_embedder_proxy_and_receiver::<EmbedderMsg>()
 }
 
-fn create_embedder_proxy2_and_receiver<T>() -> (GenericEmbedderProxy<T>, Receiver<T>) {
+fn create_generic_embedder_proxy_and_receiver<T>() -> (GenericEmbedderProxy<T>, Receiver<T>) {
     let (sender, receiver) = unbounded();
     let event_loop_waker = || {
         struct DummyEventLoopWaker {}
@@ -121,7 +121,7 @@ fn create_http_state(fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>) -> Http
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: fc.unwrap_or_else(|| create_embedder_proxy2()),
+        embedder_proxy: fc.unwrap_or_else(|| create_generic_embedder_proxy()),
     }
 }
 
@@ -129,7 +129,7 @@ fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>,
 ) -> FetchContext {
-    let sender = fc.unwrap_or_else(|| create_embedder_proxy2());
+    let sender = fc.unwrap_or_else(|| create_generic_embedder_proxy());
 
     FetchContext {
         state: Arc::new(create_http_state(Some(sender.clone()))),
