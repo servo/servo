@@ -1,6 +1,6 @@
 <!doctype html>
-<title>Should be able to interactively scroll an overflow: auto element with a margin</title>
-<link rel="help" href="https://github.com/servo/servo/pull/41707">
+<title>Should be able to interactively scroll an overflow: auto element with a margin and transform</title>
+<link rel="help" href="https://github.com/servo/servo/pull/42005">
 <link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -18,6 +18,7 @@
   background-color: red;
   overflow: auto;
   scrollbar-width: none;
+  transform: translate(-300%, -300%);
 }
 #item {
   position: relative;
@@ -47,5 +48,5 @@
     let [horizontal_delta, vertical_delta] = await scroll_delta_promise;
     assert_equals(horizontal_delta, 50, "Element scrolled horizontally");
     assert_equals(vertical_delta, 50, "Element scrolled vertically");
-  }, "Margins should not interfere with interactive scrolling of a scroll container");
+  }, "Margin and transform should not interfere with interactive scrolling of a scroll container");
 </script>

@@ -1144,7 +1144,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.build_hit_test(
                 builder,
                 self.fragment
-                    .offset_by_containing_block(&self.fragment.scrollable_overflow())
+                    .scrollable_overflow()
+                    .translate(self.containing_block.origin.to_vector())
                     .to_webrender(),
             );
             return;
