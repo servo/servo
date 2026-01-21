@@ -75,7 +75,9 @@ use crate::dom::types::Console;
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
-use crate::module_loading::{HostLoadImportedModule, LoadRequestedModules, LoadState, Payload};
+use crate::module_loading::{
+    LoadState, Payload, host_load_imported_module, load_requested_modules,
+};
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
@@ -1092,7 +1094,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let specifier = unsafe { jsstr_to_string(*cx, jsstr) };
 
     let payload = Payload::PromiseRecord(promise.clone());
-    HostLoadImportedModule(cx, None, reference_private, specifier, None, payload);
+    host_load_imported_module(cx, None, reference_private, specifier, None, payload);
 
     true
 }
@@ -1310,7 +1312,7 @@ pub(crate) fn fetch_inline_module_script(
     url: ServoUrl,
     script_id: ScriptId,
     options: ScriptFetchOptions,
-    line_number: u64,
+    line_number: u32,
     can_gc: CanGc,
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
@@ -1321,7 +1323,7 @@ pub(crate) fn fetch_inline_module_script(
         &url,
         options,
         true,
-        line_number as u32,
+        line_number,
         Some(IntroductionType::INLINE_SCRIPT),
         can_gc,
     );
@@ -1378,7 +1380,7 @@ fn fetch_the_descendants_and_link_module_script(
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise = LoadRequestedModules(&global, module_script, Some(Rc::clone(&state)));
+    let loading_promise = load_requested_modules(&global, module_script, Some(Rc::clone(&state)));
 
     let fulfillment_owner = owner.clone();
     let fulfillment_identity = identity.clone();
@@ -1522,7 +1524,7 @@ pub(crate) fn fetch_a_single_module_script(
         _ => RequestMode::CorsMode,
     };
 
-    // Step 11. Set request's initiator type to "script".
+    // TODO Step 11. Set request's initiator type to "script".
 
     // Step 12. Set up the module script request given request and options.
     let request = RequestBuilder::new(webview_id, url.clone(), referrer)

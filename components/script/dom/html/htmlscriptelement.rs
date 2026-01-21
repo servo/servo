@@ -915,7 +915,7 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         self.id,
                         options,
-                        self.line_number,
+                        self.line_number as u32,
                         can_gc,
                     );
                 },

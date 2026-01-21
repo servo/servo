@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! An implementation of ecma262's [LoadRequestedModules](https://tc39.es/ecma262/#sec-LoadRequestedModules)
-//! Partly inspired by mozjs implementation. Due to the inability to access ModuleObject internals (eg. ModuleRequest records),
-//! this implementation deviates from the spec in some aspects.
+//! Partly inspired by mozjs implementation: <https://searchfox.org/firefox-main/source/js/src/vm/Modules.cpp#1450>
+//! Since we can't access ModuleObject internals (eg. ModuleRequest records), we deviate from the spec in some aspects.
 
-#![expect(non_snake_case, unsafe_code)]
+#![expect(unsafe_code)]
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
@@ -79,7 +79,7 @@ pub(crate) struct GraphLoadingState {
 }
 
 /// <https://tc39.es/ecma262/#sec-LoadRequestedModules>
-pub(crate) fn LoadRequestedModules(
+pub(crate) fn load_requested_modules(
     global: &GlobalScope,
     module: Rc<ModuleTree>,
     load_state: Option<Rc<LoadState>>,
@@ -102,14 +102,18 @@ pub(crate) fn LoadRequestedModules(
     };
 
     // Step 4. Perform InnerModuleLoading(state, module).
-    InnerModuleLoading(global, &Rc::new(state), module);
+    inner_module_loading(global, &Rc::new(state), module);
 
     // Step 5. Return pc.[[Promise]].
     promise
 }
 
 /// <https://tc39.es/ecma262/#sec-InnerModuleLoading>
-fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, module: Rc<ModuleTree>) {
+fn inner_module_loading(
+    global: &GlobalScope,
+    state: &Rc<GraphLoadingState>,
+    module: Rc<ModuleTree>,
+) {
     let cx = GlobalScope::get_cx();
 
     // Step 1. Assert: state.[[IsLoading]] is true.
@@ -152,7 +156,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
                 let error = RethrowError::from_pending_exception(cx);
 
                 // 2. Perform ContinueModuleLoading(state, error).
-                ContinueModuleLoading(global, state, Err(error));
+                continue_module_loading(global, state, Err(error));
             } else {
                 let specifier =
                     unsafe { jsstr_to_string(*cx, std::ptr::NonNull::new(jsstr).unwrap()) };
@@ -163,14 +167,14 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
 
                 match loaded_module {
                     // 1. Perform InnerModuleLoading(state, record.[[Module]]).
-                    Some(module) => InnerModuleLoading(global, state, module),
+                    Some(module) => inner_module_loading(global, state, module),
                     // iii. Else,
                     None => {
                         rooted!(in(*cx) let mut referrer = UndefinedValue());
                         unsafe { JS_GetModulePrivate(module_handle.get(), referrer.handle_mut()) };
 
                         // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
-                        HostLoadImportedModule(
+                        host_load_imported_module(
                             cx,
                             Some(module.clone()),
                             referrer.handle().into_handle(),
@@ -213,7 +217,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
 }
 
 /// <https://tc39.es/ecma262/#sec-ContinueModuleLoading>
-fn ContinueModuleLoading(
+fn continue_module_loading(
     global: &GlobalScope,
     state: &Rc<GraphLoadingState>,
     module_completion: Result<Rc<ModuleTree>, RethrowError>,
@@ -226,7 +230,7 @@ fn ContinueModuleLoading(
     match module_completion {
         // Step 2. If moduleCompletion is a normal completion, then
         // a. Perform InnerModuleLoading(state, moduleCompletion.[[Value]]).
-        Ok(module) => InnerModuleLoading(global, state, module),
+        Ok(module) => inner_module_loading(global, state, module),
 
         // Step 3. Else,
         Err(exception) => {
@@ -244,7 +248,7 @@ fn ContinueModuleLoading(
 }
 
 /// <https://tc39.es/ecma262/#sec-FinishLoadingImportedModule>
-fn FinishLoadingImportedModule(
+fn finish_loading_imported_module(
     global: &GlobalScope,
     referrer_module: Option<Rc<ModuleTree>>,
     module_request_specifier: String,
@@ -263,19 +267,19 @@ fn FinishLoadingImportedModule(
             }
 
             // a. Perform ContinueModuleLoading(payload, result).
-            ContinueModuleLoading(global, &state, result);
+            continue_module_loading(global, &state, result);
         },
 
         // Step 3. Else,
         // a. Perform ContinueDynamicImport(payload, result).
-        Payload::PromiseRecord(promise) => ContinueDynamicImport(global, promise, result),
+        Payload::PromiseRecord(promise) => continue_dynamic_import(global, promise, result),
     }
 
     // 4. Return unused.
 }
 
 /// <https://tc39.es/ecma262/#sec-ContinueDynamicImport>
-fn ContinueDynamicImport(
+fn continue_dynamic_import(
     global: &GlobalScope,
     promise: Rc<Promise>,
     module_completion: Result<Rc<ModuleTree>, RethrowError>,
@@ -301,7 +305,7 @@ fn ContinueDynamicImport(
         .unwrap();
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
-    let load_promise = LoadRequestedModules(global, module, None);
+    let load_promise = load_requested_modules(global, module, None);
 
     let realm = enter_realm(global);
     let comp = InRealm::Entered(&realm);
@@ -400,7 +404,7 @@ fn ContinueDynamicImport(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
-pub(crate) fn HostLoadImportedModule(
+pub(crate) fn host_load_imported_module(
     cx: SafeJSContext,
     referrer_module: Option<Rc<ModuleTree>>,
     referrer: RawHandleValue,
@@ -463,7 +467,7 @@ pub(crate) fn HostLoadImportedModule(
         }
 
         // Step 9.2. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(resolutionError)).
-        FinishLoadingImportedModule(
+        finish_loading_imported_module(
             &global_scope,
             referrer_module,
             specifier,
@@ -531,7 +535,7 @@ pub(crate) fn HostLoadImportedModule(
         };
 
         // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-        FinishLoadingImportedModule(global, referrer_module, specifier, payload, completion);
+        finish_loading_imported_module(global, referrer_module, specifier, payload, completion);
     };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
