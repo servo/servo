@@ -365,7 +365,7 @@ pub(crate) mod quotaexceedederror;
 pub(crate) mod radionodelist;
 pub(crate) mod range;
 pub(crate) mod raredata;
-#[expect(dead_code)]
+#[allow(dead_code)]
 pub(crate) mod reportingendpoint;
 pub(crate) mod reportingobserver;
 pub(crate) mod request;

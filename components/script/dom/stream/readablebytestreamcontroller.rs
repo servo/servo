@@ -267,6 +267,7 @@ impl ReadableByteStreamController {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn set_stream(&self, stream: &ReadableStream) {
         self.stream.set(Some(stream))
     }
