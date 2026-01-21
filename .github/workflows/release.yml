@@ -16,7 +16,6 @@ on:
         required: true
         type: string
         description: 'The tag to create for the release'
-
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
@@ -124,7 +123,7 @@ jobs:
       artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
       artifact_platform: windows-msvc
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   upload-win-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
@@ -143,7 +142,7 @@ jobs:
       artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
       artifact_platform: windows-msvc
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
 
   build-mac:
@@ -174,7 +173,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
       artifact_platform: mac
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   upload-mac-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
@@ -193,7 +192,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
       artifact_platform: mac
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   build-mac-arm64:
     # This job is only useful when run on upstream servo.
@@ -223,7 +222,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
       artifact_platform: mac-arm64
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   upload-mac-arm64-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
@@ -242,7 +241,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
       artifact_platform: mac-arm64
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   build-linux:
     # This job is only useful when run on upstream servo.
@@ -272,7 +271,7 @@ jobs:
       artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
       artifact_platform: linux
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   upload-linux-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
@@ -291,7 +290,7 @@ jobs:
       artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
       artifact_platform: linux
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   build-android:
     # This job is only useful when run on upstream servo.
@@ -321,7 +320,7 @@ jobs:
       artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
       artifact_platform: android
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   upload-android-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
@@ -340,7 +339,7 @@ jobs:
       artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
       artifact_platform: android
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
 
   build-ohos:
@@ -372,7 +371,7 @@ jobs:
       artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
       artifact_platform: ohos
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   upload-ohos-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
@@ -391,4 +390,4 @@ jobs:
       artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
       artifact_platform: ohos
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ env.RELEASE_REPO }}
+      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
