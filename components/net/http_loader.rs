@@ -9,7 +9,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel;
 use base::generic_channel::GenericSharedMemory;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
@@ -17,7 +16,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent, SecurityInfoUpdate,
 };
-use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
+use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
 use headers::{
@@ -82,6 +81,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
+use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
@@ -112,7 +112,7 @@ pub struct HttpState {
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: ServoClient,
     pub override_manager: CertificateErrorOverrideManager,
-    pub embedder_proxy: Mutex<EmbedderProxy>,
+    pub embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
 }
 
 impl HttpState {
@@ -131,7 +131,7 @@ impl HttpState {
         ]
     }
 
-    fn request_authentication(
+    async fn request_authentication(
         &self,
         request: &Request,
         response: &Response,
@@ -145,15 +145,15 @@ impl HttpState {
             return None;
         }
 
-        let embedder_proxy = self.embedder_proxy.lock();
-        let (ipc_sender, ipc_receiver) = generic_channel::channel().unwrap();
-        embedder_proxy.send(EmbedderMsg::RequestAuthentication(
-            webview_id,
-            request.url(),
-            for_proxy,
-            ipc_sender,
-        ));
-        ipc_receiver.recv().ok()?
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.embedder_proxy
+            .send(NetToEmbedderMsg::RequestAuthentication(
+                webview_id,
+                request.url(),
+                for_proxy,
+                sender,
+            ));
+        receiver.await.ok()?
     }
 }
 
@@ -1717,7 +1717,11 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !request.use_url_credentials || authentication_fetch_flag {
-            let Some(credentials) = context.state.request_authentication(request, &response) else {
+            let Some(credentials) = context
+                .state
+                .request_authentication(request, &response)
+                .await
+            else {
                 return response;
             };
 
@@ -1771,7 +1775,11 @@ async fn http_network_or_cache_fetch(
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
         // window and store the result as a proxy-authentication entry.
-        let Some(credentials) = context.state.request_authentication(request, &response) else {
+        let Some(credentials) = context
+            .state
+            .request_authentication(request, &response)
+            .await
+        else {
             return response;
         };
 

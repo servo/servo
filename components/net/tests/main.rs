@@ -26,9 +26,10 @@ use std::sync::Arc;
 use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
+use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, GenericEmbedderProxy};
 use net::async_runtime::spawn_blocking_task;
 use net::connector::{CACertificates, create_http_client, create_tls_config};
+use net::embedder::NetToEmbedderMsg;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -36,7 +37,7 @@ use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
 use net::test::HttpState;
 use net::test_util::{
-    create_embedder_proxy, make_body, make_server, make_ssl_server, replace_host_table,
+    create_generic_embedder_proxy, make_body, make_server, make_ssl_server, replace_host_table,
 };
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
@@ -46,6 +47,7 @@ use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashMap;
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use tokio::sync::Mutex as TokioMutex;
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
@@ -54,6 +56,10 @@ struct FetchResponseCollector {
 }
 
 fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>) {
+    create_generic_embedder_proxy_and_receiver::<EmbedderMsg>()
+}
+
+fn create_generic_embedder_proxy_and_receiver<T>() -> (GenericEmbedderProxy<T>, Receiver<T>) {
     let (sender, receiver) = unbounded();
     let event_loop_waker = || {
         struct DummyEventLoopWaker {}
@@ -72,8 +78,8 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>
         Box::new(DummyEventLoopWaker::new())
     };
 
-    let embedder_proxy = embedder_traits::EmbedderProxy {
-        sender: sender.clone(),
+    let embedder_proxy = embedder_traits::GenericEmbedderProxy {
+        sender,
         event_loop_waker: event_loop_waker(),
     };
 
@@ -81,25 +87,25 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>
 }
 
 fn receive_credential_prompt_msgs(
-    embedder_receiver: Receiver<EmbedderMsg>,
+    embedder_receiver: Receiver<NetToEmbedderMsg>,
     response: Option<AuthenticationResponse>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         loop {
             let embedder_msg = embedder_receiver.recv().unwrap();
             match embedder_msg {
-                embedder_traits::EmbedderMsg::RequestAuthentication(_, _, _, response_sender) => {
+                NetToEmbedderMsg::RequestAuthentication(_, _, _, response_sender) => {
                     let _ = response_sender.send(response);
                     break;
                 },
-                embedder_traits::EmbedderMsg::WebResourceRequested(..) => {},
+                NetToEmbedderMsg::WebResourceRequested(..) => {},
                 _ => unreachable!(),
             }
         }
     })
 }
 
-fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
+fn create_http_state(fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>) -> HttpState {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
     let override_manager = net::connector::CertificateErrorOverrideManager::new();
@@ -115,15 +121,15 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: Mutex::new(fc.unwrap_or_else(|| create_embedder_proxy())),
+        embedder_proxy: fc.unwrap_or_else(|| create_generic_embedder_proxy()),
     }
 }
 
 fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
-    fc: Option<EmbedderProxy>,
+    fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>,
 ) -> FetchContext {
-    let sender = fc.unwrap_or_else(|| create_embedder_proxy());
+    let sender = fc.unwrap_or_else(|| create_generic_embedder_proxy());
 
     FetchContext {
         state: Arc::new(create_http_state(Some(sender.clone()))),
@@ -131,7 +137,7 @@ fn new_fetch_context(
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
         filemanager: Arc::new(Mutex::new(FileManager::new(sender.clone()))),
         file_token: FileTokenCheck::NotRequired,
-        request_interceptor: Arc::new(Mutex::new(RequestInterceptor::new(sender))),
+        request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(sender))),
         cancellation_listener: Arc::new(Default::default()),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,

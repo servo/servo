@@ -40,6 +40,7 @@ servo_url = { path = "../../url" }
 strum = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 url = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }

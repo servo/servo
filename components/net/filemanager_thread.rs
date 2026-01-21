@@ -9,9 +9,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
-use base::generic_channel;
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy, FilePickerRequest,
+    EmbedderControlId, EmbedderControlResponse, FilePickerRequest, GenericEmbedderProxy,
     SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
@@ -36,6 +35,7 @@ use tokio::task::yield_now;
 use uuid::Uuid;
 
 use crate::async_runtime::spawn_task;
+use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::protocols::get_range_request_bounds;
 
@@ -81,19 +81,19 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
-    embedder_proxy: EmbedderProxy,
+    embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new(embedder_proxy: EmbedderProxy) -> FileManager {
+    pub fn new(embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>) -> FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
         }
     }
 
-    pub fn read_file(
+    fn read_file(
         &self,
         sender: IpcSender<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
@@ -107,11 +107,11 @@ impl FileManager {
         });
     }
 
-    pub fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
+    pub(crate) fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
         self.store.get_token_for_file(file_id)
     }
 
-    pub fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
+    pub(crate) fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
         self.store.invalidate_token(token, file_id);
     }
 
@@ -119,7 +119,7 @@ impl FileManager {
     /// It gets the required headers synchronously and reads the actual content
     /// in a separate thread.
     #[expect(clippy::too_many_arguments)]
-    pub fn fetch_file(
+    pub(crate) fn fetch_file(
         &self,
         done_sender: &mut TokioSender<Data>,
         cancellation_listener: Arc<CancellationListener>,
@@ -406,7 +406,7 @@ impl FileManagerStore {
     }
 
     /// Copy out the file backend implementation content
-    pub fn get_impl(
+    fn get_impl(
         &self,
         id: &Uuid,
         file_token: &FileTokenCheck,
@@ -433,7 +433,7 @@ impl FileManagerStore {
         }
     }
 
-    pub fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
+    fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
         if let FileTokenCheck::Required(token) = token {
             let mut entries = self.entries.write();
             if let Some(entry) = entries.get_mut(file_id) {
@@ -458,7 +458,7 @@ impl FileManagerStore {
         }
     }
 
-    pub fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
+    pub(crate) fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
         let mut entries = self.entries.write();
         let parent_id = match entries.get(file_id) {
             Some(entry) => {
@@ -543,19 +543,18 @@ impl FileManagerStore {
         &self,
         control_id: EmbedderControlId,
         file_picker_request: FilePickerRequest,
-        embedder_proxy: EmbedderProxy,
+        embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     ) -> EmbedderControlResponse {
-        let (ipc_sender, ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
+        let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let origin = file_picker_request.origin.clone();
-        embedder_proxy.send(EmbedderMsg::SelectFiles(
+        embedder_proxy.send(NetToEmbedderMsg::SelectFiles(
             control_id,
             file_picker_request,
-            ipc_sender,
+            sender,
         ));
 
-        let paths = match ipc_receiver.recv() {
+        let paths = match receiver.await {
             Ok(Some(result)) => result,
             Ok(None) => {
                 return EmbedderControlResponse::FilePicker(None);

@@ -2,10 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use base::generic_channel::{GenericSender, SendError, SendResult};
 use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
 use log::warn;
 use serde::Serialize;
+use tokio::sync::mpsc::UnboundedSender as TokioSender;
+use tokio::sync::oneshot::Sender as TokioOneshotSender;
 
 use crate::ServoError;
 
@@ -57,35 +61,85 @@ impl ServoErrorChannel {
     }
 }
 
+pub(crate) trait AbstractSender {
+    type Message;
+    fn send(&self, value: Self::Message) -> SendResult;
+}
+
+impl<T: Serialize> AbstractSender for GenericSender<T> {
+    type Message = T;
+    fn send(&self, value: T) -> SendResult {
+        GenericSender::send(self, value)
+    }
+}
+
+impl<T> AbstractSender for TokioSender<T> {
+    type Message = T;
+    fn send(&self, value: T) -> SendResult {
+        TokioSender::send(self, value).map_err(|_| SendError::Disconnected)
+    }
+}
+
+pub(crate) struct OneshotSender<T>(RefCell<Option<TokioOneshotSender<T>>>);
+
+impl<T> From<TokioOneshotSender<T>> for OneshotSender<T> {
+    fn from(sender: TokioOneshotSender<T>) -> Self {
+        Self(RefCell::new(Some(sender)))
+    }
+}
+
+impl<T> AbstractSender for OneshotSender<T> {
+    type Message = T;
+    fn send(&self, value: T) -> SendResult {
+        let sender = self.0.borrow_mut().take();
+        if let Some(sender) = sender {
+            TokioOneshotSender::send(sender, value).map_err(|_| SendError::Disconnected)
+        } else {
+            Err(SendError::Disconnected)
+        }
+    }
+}
+
 /// Sends a response over an IPC channel, or a default response on [`Drop`] if no response was sent.
-pub(crate) struct IpcResponder<T: Serialize> {
-    response_sender: GenericSender<T>,
+pub(crate) struct IpcResponder<T> {
+    response_sender: Box<dyn AbstractSender<Message = T>>,
     response_sent: bool,
     /// Always present, except when taken by [`Drop`].
     default_response: Option<T>,
 }
 
-impl<T: Serialize> IpcResponder<T> {
+impl<T: Serialize + 'static> IpcResponder<T> {
     pub(crate) fn new(response_sender: GenericSender<T>, default_response: T) -> Self {
+        Self {
+            response_sender: Box::new(response_sender),
+            response_sent: false,
+            default_response: Some(default_response),
+        }
+    }
+}
+
+impl<T: 'static> IpcResponder<T> {
+    pub(crate) fn new_same_process(
+        response_sender: Box<dyn AbstractSender<Message = T>>,
+        default_response: T,
+    ) -> Self {
         Self {
             response_sender,
             response_sent: false,
             default_response: Some(default_response),
         }
     }
+}
 
+impl<T> IpcResponder<T> {
     pub(crate) fn send(&mut self, response: T) -> SendResult {
         let result = self.response_sender.send(response);
         self.response_sent = true;
         result
     }
-
-    pub(crate) fn into_inner(self) -> GenericSender<T> {
-        self.response_sender.clone()
-    }
 }
 
-impl<T: Serialize> Drop for IpcResponder<T> {
+impl<T> Drop for IpcResponder<T> {
     fn drop(&mut self) {
         if !self.response_sent {
             let response = self
