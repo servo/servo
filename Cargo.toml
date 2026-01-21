@@ -59,7 +59,7 @@ chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
 compositing_traits = { path = "components/shared/compositing" }
 constellation_traits = { path = "components/shared/constellation" }
-content-security-policy = { git = "https://github.com/servo/rust-content-security-policy", branch = "servo-csp", features = ["serde"] }
+content-security-policy = { git = "https://github.com/servo/rust-content-security-policy", rev = "22b2831433f306ad22420dca4f5ff685b7fe4cc5", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.36", features = ["serde"] }
@@ -153,16 +153,16 @@ script_traits = { path = "components/shared/script" }
 sea-query = { version = "1.0.0-rc.29", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+selectors = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo-media = { git = "https://github.com/servo/media" }
-servo-media-dummy = { git = "https://github.com/servo/media" }
-servo-media-gstreamer = { git = "https://github.com/servo/media" }
+servo-media = { git = "https://github.com/servo/media", rev = "0c7edc70be3141067bdaf38e8dc8e1bf6180e644" }
+servo-media-dummy = { git = "https://github.com/servo/media", rev = "0c7edc70be3141067bdaf38e8dc8e1bf6180e644" }
+servo-media-gstreamer = { git = "https://github.com/servo/media", rev = "0c7edc70be3141067bdaf38e8dc8e1bf6180e644" }
 servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -171,12 +171,12 @@ smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.9"
 strum = { version = "0.27", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
-stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
-stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
-stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
-stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-11-01" }
+stylo = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
+stylo_config = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "ee0b989dbe43a8e2e98fdb1be791cf22d1bac045" }
 surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -205,8 +205,8 @@ vello_cpu = "0.0.4"
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
-webrender = { git = "https://github.com/servo/webrender", branch = "0.68", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", branch = "0.68" }
+webrender = { git = "https://github.com/servo/webrender", rev = "6cafc606096db4715a6119a6e16391aed9af47a5", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "6cafc606096db4715a6119a6e16391aed9af47a5" }
 webxr-api = { path = "components/shared/webxr" }
 wgpu-core = "26"
 wgpu-types = "26"
@@ -214,7 +214,7 @@ winapi = "0.3"
 windows-sys = "0.61"
 winit = "0.30.12"
 wio = "0.2"
-wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.68" }
+wr_malloc_size_of = { git = "https://github.com/servo/webrender", rev = "6cafc606096db4715a6119a6e16391aed9af47a5" }
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
 xml5ever = "0.36.1"
