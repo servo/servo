@@ -27,6 +27,10 @@ impl<T> ArcRefCell<T> {
             value: Arc::downgrade(&self.value),
         }
     }
+
+    pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.value, &other.value)
+    }
 }
 
 impl<T> Clone for ArcRefCell<T> {

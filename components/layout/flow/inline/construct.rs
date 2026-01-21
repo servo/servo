@@ -330,15 +330,23 @@ impl InlineFormattingContextBuilder {
         self.current_text_offset = new_range.end;
         self.text_segments.push(new_text);
 
+        let current_inline_styles = self.shared_inline_styles();
+
         if let Some(InlineItem::TextRun(text_run)) = self.inline_items.last() {
-            text_run.borrow_mut().text_range.end = new_range.end;
-            return;
+            if text_run
+                .borrow()
+                .inline_styles
+                .ptr_eq(&current_inline_styles)
+            {
+                text_run.borrow_mut().text_range.end = new_range.end;
+                return;
+            }
         }
 
         self.inline_items
             .push(InlineItem::TextRun(ArcRefCell::new(TextRun::new(
                 info.into(),
-                self.shared_inline_styles(),
+                current_inline_styles,
                 new_range,
             ))));
     }
