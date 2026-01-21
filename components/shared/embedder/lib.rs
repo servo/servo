@@ -228,12 +228,12 @@ impl Clone for Box<dyn EventLoopWaker> {
 }
 
 /// Sends messages to the embedder.
-pub struct EmbedderProxy2<T> {
+pub struct GenericEmbedderProxy<T> {
     pub sender: Sender<T>,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
-impl<T> EmbedderProxy2<T> {
+impl<T> GenericEmbedderProxy<T> {
     pub fn send(&self, message: T) {
         // Send a message and kick the OS event loop awake.
         if let Err(err) = self.sender.send(message) {
@@ -243,7 +243,7 @@ impl<T> EmbedderProxy2<T> {
     }
 }
 
-impl<T> Clone for EmbedderProxy2<T> {
+impl<T> Clone for GenericEmbedderProxy<T> {
     fn clone(&self) -> Self {
         Self {
             sender: self.sender.clone(),
@@ -252,7 +252,7 @@ impl<T> Clone for EmbedderProxy2<T> {
     }
 }
 
-pub type EmbedderProxy = EmbedderProxy2<EmbedderMsg>;
+pub type EmbedderProxy = GenericEmbedderProxy<EmbedderMsg>;
 
 /// A [`RefreshDriver`] is a trait that can be implemented by Servo embedders in
 /// order to drive let Servo know when to start preparing the next frame. For example,

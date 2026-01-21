@@ -951,10 +951,10 @@ fn create_embedder_channel(
 
 fn create_embedder_channel2<T>(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (EmbedderProxy2<T>, Receiver<T>) {
+) -> (GenericEmbedderProxy<T>, Receiver<T>) {
     let (sender, receiver) = unbounded();
     (
-        EmbedderProxy2 {
+        GenericEmbedderProxy {
             sender,
             event_loop_waker,
         },

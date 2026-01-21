@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, EmbedderProxy2, FilePickerRequest, SelectedFile,
+    EmbedderControlId, EmbedderControlResponse, GenericEmbedderProxy, FilePickerRequest, SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
@@ -80,12 +80,12 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
-    embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
+    embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new(embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>) -> FileManager {
+    pub fn new(embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>) -> FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
@@ -542,7 +542,7 @@ impl FileManagerStore {
         &self,
         control_id: EmbedderControlId,
         file_picker_request: FilePickerRequest,
-        embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
+        embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     ) -> EmbedderControlResponse {
         let (sender, receiver) = tokio::sync::oneshot::channel();
 

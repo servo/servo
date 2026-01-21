@@ -16,7 +16,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent, SecurityInfoUpdate,
 };
-use embedder_traits::{AuthenticationResponse, EmbedderProxy2};
+use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
 use headers::{
@@ -112,7 +112,7 @@ pub struct HttpState {
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: ServoClient,
     pub override_manager: CertificateErrorOverrideManager,
-    pub embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
+    pub embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
 }
 
 impl HttpState {

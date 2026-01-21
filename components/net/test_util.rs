@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex};
 
 use crossbeam_channel::unbounded;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderProxy2, EventLoopWaker};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, GenericEmbedderProxy, EventLoopWaker};
 use futures::future::ready;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Empty, Full};
@@ -38,7 +38,7 @@ pub fn create_embedder_proxy() -> EmbedderProxy {
     create_embedder_proxy2::<EmbedderMsg>()
 }
 
-pub fn create_embedder_proxy2<T>() -> EmbedderProxy2<T> {
+pub fn create_embedder_proxy2<T>() -> GenericEmbedderProxy<T> {
     if !async_runtime_initialized() {
         let _init = ASYNC_RUNTIME.clone();
     }
@@ -60,7 +60,7 @@ pub fn create_embedder_proxy2<T>() -> EmbedderProxy2<T> {
         Box::new(DummyEventLoopWaker::new())
     };
 
-    EmbedderProxy2 {
+    GenericEmbedderProxy {
         sender: sender,
         event_loop_waker: event_loop_waker(),
     }

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use content_security_policy::Destination;
-use embedder_traits::{EmbedderProxy2, WebResourceRequest, WebResourceResponseMsg};
+use embedder_traits::{GenericEmbedderProxy, WebResourceRequest, WebResourceResponseMsg};
 use log::error;
 use net_traits::NetworkError;
 use net_traits::http_status::HttpStatus;
@@ -15,11 +15,11 @@ use crate::fetch::methods::FetchContext;
 
 #[derive(Clone)]
 pub struct RequestInterceptor {
-    embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
+    embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
 }
 
 impl RequestInterceptor {
-    pub fn new(embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>) -> RequestInterceptor {
+    pub fn new(embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>) -> RequestInterceptor {
         RequestInterceptor { embedder_proxy }
     }
 

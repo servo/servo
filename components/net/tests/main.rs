@@ -26,7 +26,7 @@ use std::sync::Arc;
 use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EmbedderProxy2};
+use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, GenericEmbedderProxy};
 use net::async_runtime::spawn_blocking_task;
 use net::connector::{CACertificates, create_http_client, create_tls_config};
 use net::embedder::NetToEmbedderMsg;
@@ -59,7 +59,7 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, Receiver<EmbedderMsg>
     create_embedder_proxy2_and_receiver::<EmbedderMsg>()
 }
 
-fn create_embedder_proxy2_and_receiver<T>() -> (EmbedderProxy2<T>, Receiver<T>) {
+fn create_embedder_proxy2_and_receiver<T>() -> (GenericEmbedderProxy<T>, Receiver<T>) {
     let (sender, receiver) = unbounded();
     let event_loop_waker = || {
         struct DummyEventLoopWaker {}
@@ -78,7 +78,7 @@ fn create_embedder_proxy2_and_receiver<T>() -> (EmbedderProxy2<T>, Receiver<T>) 
         Box::new(DummyEventLoopWaker::new())
     };
 
-    let embedder_proxy = embedder_traits::EmbedderProxy2 {
+    let embedder_proxy = embedder_traits::GenericEmbedderProxy {
         sender,
         event_loop_waker: event_loop_waker(),
     };
@@ -105,7 +105,7 @@ fn receive_credential_prompt_msgs(
     })
 }
 
-fn create_http_state(fc: Option<EmbedderProxy2<NetToEmbedderMsg>>) -> HttpState {
+fn create_http_state(fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>) -> HttpState {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
     let override_manager = net::connector::CertificateErrorOverrideManager::new();
@@ -127,7 +127,7 @@ fn create_http_state(fc: Option<EmbedderProxy2<NetToEmbedderMsg>>) -> HttpState 
 
 fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
-    fc: Option<EmbedderProxy2<NetToEmbedderMsg>>,
+    fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>,
 ) -> FetchContext {
     let sender = fc.unwrap_or_else(|| create_embedder_proxy2());
 
