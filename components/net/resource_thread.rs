@@ -53,7 +53,7 @@ use crate::connector::{
 };
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
-use crate::embedder::NetEmbedderMsg;
+use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::{FetchParams, SharedPreloadedResources};
 use crate::fetch::methods::{
@@ -86,7 +86,7 @@ pub fn new_resource_threads(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
-    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+    embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
@@ -126,7 +126,7 @@ pub fn new_core_resource_thread(
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
-    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+    embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
     config_dir: Option<PathBuf>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
@@ -189,7 +189,7 @@ fn create_http_states(
     config_dir: Option<&Path>,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
-    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+    embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::default();
     let mut auth_cache = AuthCache::default();
@@ -242,7 +242,7 @@ impl ResourceChannelManager {
         private_receiver: GenericReceiver<CoreResourceMsg>,
         memory_reporter: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
-        embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+        embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
             self.config_dir.as_deref(),
@@ -629,7 +629,7 @@ impl CoreResourceManager {
     pub fn new(
         devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
-        embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+        embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
     ) -> CoreResourceManager {

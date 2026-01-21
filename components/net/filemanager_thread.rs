@@ -34,7 +34,7 @@ use tokio::task::yield_now;
 use uuid::Uuid;
 
 use crate::async_runtime::spawn_task;
-use crate::embedder::NetEmbedderMsg;
+use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::protocols::get_range_request_bounds;
 
@@ -80,12 +80,12 @@ enum FileImpl {
 
 #[derive(Clone)]
 pub struct FileManager {
-    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+    embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
     store: Arc<FileManagerStore>,
 }
 
 impl FileManager {
-    pub fn new(embedder_proxy: EmbedderProxy2<NetEmbedderMsg>) -> FileManager {
+    pub fn new(embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>) -> FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
@@ -542,12 +542,12 @@ impl FileManagerStore {
         &self,
         control_id: EmbedderControlId,
         file_picker_request: FilePickerRequest,
-        embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+        embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
     ) -> EmbedderControlResponse {
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let origin = file_picker_request.origin.clone();
-        embedder_proxy.send(NetEmbedderMsg::SelectFiles(
+        embedder_proxy.send(NetToEmbedderMsg::SelectFiles(
             control_id,
             file_picker_request,
             sender,

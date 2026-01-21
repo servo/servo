@@ -51,7 +51,7 @@ use layout::LayoutFactoryImpl;
 use layout_api::ScriptThreadFactory;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
-use net::embedder::NetEmbedderMsg;
+use net::embedder::NetToEmbedderMsg;
 use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
@@ -139,7 +139,7 @@ struct ServoInner {
     paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
-    net_embedder_receiver: Receiver<NetEmbedderMsg>,
+    net_embedder_receiver: Receiver<NetToEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
     site_data_manager: Rc<RefCell<SiteDataManager>>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
@@ -266,9 +266,9 @@ impl ServoInner {
         self.paint.borrow_mut().finish_shutting_down();
     }
 
-    fn handle_net_embedder_message(&self, message: NetEmbedderMsg) {
+    fn handle_net_embedder_message(&self, message: NetToEmbedderMsg) {
         match message {
-            NetEmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
+            NetToEmbedderMsg::SelectFiles(control_id, file_picker_request, response_sender) => {
                 if file_picker_request.accept_current_paths_for_testing {
                     let _ = response_sender.send(Some(file_picker_request.current_paths));
                     return;
@@ -284,7 +284,7 @@ impl ServoInner {
                     );
                 }
             },
-            NetEmbedderMsg::WebResourceRequested(
+            NetToEmbedderMsg::WebResourceRequested(
                 webview_id,
                 web_resource_request,
                 response_sender,
@@ -309,7 +309,12 @@ impl ServoInner {
                     self.delegate.borrow().load_web_resource(web_resource_load);
                 }
             },
-            NetEmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
+            NetToEmbedderMsg::RequestAuthentication(
+                webview_id,
+                url,
+                for_proxy,
+                response_sender,
+            ) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let authentication_request = AuthenticationRequest::new(
                         url.into_url(),
@@ -736,7 +741,7 @@ impl Servo {
         let (constellation_proxy, embedder_to_constellation_receiver) = ConstellationProxy::new();
         let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
         let (net_embedder_proxy, net_embedder_receiver) =
-            create_embedder_channel2::<NetEmbedderMsg>(event_loop_waker.clone());
+            create_embedder_channel2::<NetToEmbedderMsg>(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),

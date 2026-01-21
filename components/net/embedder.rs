@@ -14,7 +14,7 @@ use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender as TokioOneshotSender;
 
 /// Messages sent from the network threads to the embedder.
-pub enum NetEmbedderMsg {
+pub enum NetToEmbedderMsg {
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(
         EmbedderControlId,

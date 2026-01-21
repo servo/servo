@@ -13,7 +13,7 @@ use embedder_traits::{
 };
 use ipc_channel::ipc;
 use net::async_runtime::init_async_runtime;
-use net::embedder::NetEmbedderMsg;
+use net::embedder::NetToEmbedderMsg;
 use net::filemanager_thread::FileManager;
 use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
@@ -70,7 +70,7 @@ fn test_filemanager() {
                 .recv()
                 .expect("Should always read message properly");
             match message {
-                NetEmbedderMsg::SelectFiles(_, file_picker_request, response_sender) => {
+                NetToEmbedderMsg::SelectFiles(_, file_picker_request, response_sender) => {
                     let _ = response_sender.send(Some(file_picker_request.current_paths));
                     break;
                 },

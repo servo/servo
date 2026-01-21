@@ -81,7 +81,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
-use crate::embedder::NetEmbedderMsg;
+use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
@@ -112,7 +112,7 @@ pub struct HttpState {
     pub history_states: RwLock<FxHashMap<HistoryStateId, Vec<u8>>>,
     pub client: ServoClient,
     pub override_manager: CertificateErrorOverrideManager,
-    pub embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+    pub embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
 }
 
 impl HttpState {
@@ -147,7 +147,7 @@ impl HttpState {
 
         let (sender, receiver) = tokio::sync::oneshot::channel();
         self.embedder_proxy
-            .send(NetEmbedderMsg::RequestAuthentication(
+            .send(NetToEmbedderMsg::RequestAuthentication(
                 webview_id,
                 request.url(),
                 for_proxy,

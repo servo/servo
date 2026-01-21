@@ -10,16 +10,16 @@ use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 
-use crate::embedder::NetEmbedderMsg;
+use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::methods::FetchContext;
 
 #[derive(Clone)]
 pub struct RequestInterceptor {
-    embedder_proxy: EmbedderProxy2<NetEmbedderMsg>,
+    embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>,
 }
 
 impl RequestInterceptor {
-    pub fn new(embedder_proxy: EmbedderProxy2<NetEmbedderMsg>) -> RequestInterceptor {
+    pub fn new(embedder_proxy: EmbedderProxy2<NetToEmbedderMsg>) -> RequestInterceptor {
         RequestInterceptor { embedder_proxy }
     }
 
@@ -40,7 +40,7 @@ impl RequestInterceptor {
         };
 
         self.embedder_proxy
-            .send(NetEmbedderMsg::WebResourceRequested(
+            .send(NetToEmbedderMsg::WebResourceRequested(
                 request.target_webview_id,
                 web_resource_request,
                 sender,
