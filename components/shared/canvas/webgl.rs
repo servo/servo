@@ -24,7 +24,6 @@ use glow::{
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::{PixelFormat, SnapshotAlphaMode};
 use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
 use webrender_api::ImageKey;
 use webxr_api::{
     ContextId as WebXRContextId, Error as WebXRError, LayerId as WebXRLayerId,
@@ -263,9 +262,9 @@ pub enum WebGLCommand {
     AttachShader(WebGLProgramId, WebGLShaderId),
     DetachShader(WebGLProgramId, WebGLShaderId),
     BindAttribLocation(WebGLProgramId, u32, String),
-    BufferData(u32, GenericReceiver<ByteBuf>, u32),
-    BufferSubData(u32, isize, GenericReceiver<ByteBuf>),
-    GetBufferSubData(u32, usize, usize, GenericSender<ByteBuf>),
+    BufferData(u32, GenericReceiver<GenericSharedMemory>, u32),
+    BufferSubData(u32, isize, GenericReceiver<GenericSharedMemory>),
+    GetBufferSubData(u32, usize, usize, GenericSender<GenericSharedMemory>),
     CopyBufferSubData(u32, u32, i64, i64, i64),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),

@@ -1401,7 +1401,7 @@ impl WebGLRenderingContext {
             offset as isize,
             receiver,
         ));
-        let buffer = serde_bytes::ByteBuf::from(data);
+        let buffer = GenericSharedMemory::from_bytes(data);
         sender.send(buffer).unwrap();
     }
 

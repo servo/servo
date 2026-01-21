@@ -182,7 +182,7 @@ impl WebGLBuffer {
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.upcast()
             .send_command(WebGLCommand::BufferData(target, receiver, usage));
-        let buffer = serde_bytes::ByteBuf::from(data);
+        let buffer = generic_channel::GenericSharedMemory::from_bytes(data);
         sender.send(buffer).unwrap();
         Ok(())
     }

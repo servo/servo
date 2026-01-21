@@ -1554,7 +1554,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         ));
         let src_end = src_byte_offset + copy_bytes;
         let data: &[u8] = unsafe { &src_data.as_slice()[src_byte_offset..src_end] };
-        let buffer = serde_bytes::ByteBuf::from(data);
+        let buffer = GenericSharedMemory::from_bytes(data);
         sender.send(buffer).unwrap();
     }
 

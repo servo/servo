@@ -1095,7 +1095,7 @@ impl WebGLImpl {
                     gl::MAP_READ_BIT,
                 );
                 let data: &[u8] = slice::from_raw_parts(ptr as _, length);
-                let buffer = serde_bytes::ByteBuf::from(data);
+                let buffer = GenericSharedMemory::from_bytes(data);
                 sender.send(buffer).unwrap();
                 gl.unmap_buffer(buffer_type);
             },
