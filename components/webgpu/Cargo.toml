@@ -16,7 +16,6 @@ arrayvec = { workspace = true, features = ["serde"] }
 base = { workspace = true }
 compositing_traits = { workspace = true }
 euclid = { workspace = true }
-ipc-channel = { workspace = true }
 log = { workspace = true }
 pixels = { path = "../pixels" }
 rustc-hash = { workspace = true }

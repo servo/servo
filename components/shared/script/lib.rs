@@ -36,7 +36,6 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use fonts_traits::SystemFontServiceProxySender;
-use ipc_channel::ipc::IpcReceiver;
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
@@ -274,7 +273,7 @@ pub enum ScriptThreadMessage {
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
     #[cfg(feature = "webgpu")]
-    SetWebGPUPort(IpcReceiver<WebGPUMsg>),
+    SetWebGPUPort(GenericReceiver<WebGPUMsg>),
     /// `Paint` scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
     SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),

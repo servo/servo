@@ -1850,8 +1850,7 @@ impl ScriptThread {
             },
             #[cfg(feature = "webgpu")]
             ScriptThreadMessage::SetWebGPUPort(port) => {
-                *self.receivers.webgpu_receiver.borrow_mut() =
-                    ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
+                *self.receivers.webgpu_receiver.borrow_mut() = port.route_preserving_errors();
             },
             ScriptThreadMessage::TickAllAnimations(_webviews) => {
                 self.set_needs_rendering_update();

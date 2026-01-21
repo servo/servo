@@ -7888,7 +7888,6 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "fonts_traits",
- "ipc-channel",
  "keyboard-types",
  "log",
  "malloc_size_of_derive",
@@ -10373,7 +10372,6 @@ dependencies = [
  "base",
  "compositing_traits",
  "euclid",
- "ipc-channel",
  "log",
  "pixels",
  "rustc-hash 2.1.1",
@@ -10390,7 +10388,6 @@ version = "0.0.1"
 dependencies = [
  "arrayvec",
  "base",
- "ipc-channel",
  "pixels",
  "serde",
  "servo_malloc_size_of",

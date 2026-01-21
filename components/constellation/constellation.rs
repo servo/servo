@@ -144,7 +144,6 @@ use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
 use ipc_channel::Error as IpcError;
-use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
@@ -2702,7 +2701,8 @@ where
             .values()
             .flat_map(|browsing_context_group| {
                 browsing_context_group.webgpus.values().map(|webgpu| {
-                    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+                    let (sender, receiver) =
+                        generic_channel::oneshot().expect("Failed to create IPC channel!");
                     if let Err(e) = webgpu.exit(sender) {
                         warn!("Exit WebGPU Thread failed ({})", e);
                         None

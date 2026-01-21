@@ -6,9 +6,8 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 
 use arrayvec::ArrayVec;
-use base::Epoch;
+use base::{Epoch, generic_channel};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self};
 use pixels::Snapshot;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use webgpu_traits::{
@@ -74,7 +73,7 @@ impl GPUCanvasContext {
         canvas: HTMLCanvasElementOrOffscreenCanvas,
         channel: WebGPU,
     ) -> Self {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let size = canvas.size().cast().cast_unit();
         let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
         for _ in 0..PRESENTATION_BUFFER_COUNT {
@@ -278,7 +277,7 @@ impl CanvasContext for GPUCanvasContext {
         Some(if self.cleared.get() {
             Snapshot::cleared(self.size())
         } else {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = generic_channel::channel().unwrap();
             self.channel
                 .0
                 .send(WebGPURequest::GetImage {

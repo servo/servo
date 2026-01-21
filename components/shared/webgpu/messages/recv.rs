@@ -7,9 +7,10 @@
 
 use arrayvec::ArrayVec;
 use base::Epoch;
-use base::generic_channel::{GenericCallback, GenericSharedMemory};
+use base::generic_channel::{
+    GenericCallback, GenericOneshotSender, GenericSender, GenericSharedMemory,
+};
 use base::id::PipelineId;
-use ipc_channel::ipc::IpcSender;
 use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
 use webrender_api::ImageKey;
@@ -163,7 +164,7 @@ pub enum WebGPURequest {
     CreateContext {
         buffer_ids: ArrayVec<BufferId, PRESENTATION_BUFFER_COUNT>,
         size: DeviceIntSize,
-        sender: IpcSender<WebGPUContextId>,
+        sender: GenericSender<WebGPUContextId>,
     },
     /// Present texture to WebRender
     Present {
@@ -177,7 +178,7 @@ pub enum WebGPURequest {
     GetImage {
         context_id: WebGPUContextId,
         pending_texture: Option<PendingTexture>,
-        sender: IpcSender<SharedSnapshot>,
+        sender: GenericSender<SharedSnapshot>,
     },
     ValidateTextureDescriptor {
         device_id: DeviceId,
@@ -218,7 +219,7 @@ pub enum WebGPURequest {
     DropQuerySet(QuerySetId),
     DropComputePass(ComputePassEncoderId),
     DropRenderPass(RenderPassEncoderId),
-    Exit(IpcSender<()>),
+    Exit(GenericOneshotSender<()>),
     RenderBundleEncoderFinish {
         render_bundle_encoder: RenderBundleEncoder,
         descriptor: RenderBundleDescriptor<'static>,
