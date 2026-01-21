@@ -8745,16 +8745,20 @@ class CallbackMethod(CallbackMember):
 
     def getCall(self) -> str:
         if self.argCount > 0:
-            argv = "&HandleValueArray::from(&argv)"
+            argv = "std::ops::Deref::deref(&argv).as_ptr()"
+            argc = "argc"
         else:
-            argv = "&HandleValueArray::empty()"
+            argv = "ptr::null_mut()"
+            argc = "0"
         suffix = "" if self.usingOutparam else ".handle_mut()"
         return (f"{self.getCallableDecl()}"
                 f"rooted!(&in(cx) let rootedThis = {self.getThisObj()});\n"
                 f"let ok = {self.getCallGuard()}Call(\n"
                 "    cx.raw_cx(), rootedThis.handle(), callable.handle(),\n"
-                f"   {argv} , rval{suffix}\n"
-                ");\n"
+                "    &HandleValueArray {\n"
+                f"        length_: {argc} as ::libc::size_t,\n"
+                f"        elements_: {argv}\n"
+                f"    }}, rval{suffix});\n"
                 "maybe_resume_unwind();\n"
                 "if !ok {\n"
                 "    return Err(JSFailed);\n"
