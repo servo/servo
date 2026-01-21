@@ -897,7 +897,7 @@ impl ImageCache for ImageCacheImpl {
         &self,
         image_id: PendingImageId,
         requested_size: DeviceIntSize,
-        svg_uuid: Option<String>,
+        svg_id: Option<String>,
     ) -> Option<RasterImage> {
         let mut store = self.store.lock();
         let Some(vector_image) = store.vector_images.get(&image_id).cloned() else {
@@ -916,9 +916,9 @@ impl ImageCache for ImageCacheImpl {
             return Some(result.clone());
         }
 
-        if let Some(svg_uuid) = svg_uuid {
+        if let Some(svg_id) = svg_id {
             if let Some(old_mapped_image_id) =
-                self.svg_id_image_id_map.lock().insert(svg_uuid, image_id)
+                self.svg_id_image_id_map.lock().insert(svg_id, image_id)
             {
                 store.vector_images.remove(&old_mapped_image_id);
                 store
@@ -991,6 +991,13 @@ impl ImageCache for ImageCacheImpl {
     fn add_listener(&self, listener: ImageLoadListener) {
         let mut store = self.store.lock();
         self.add_listener_with_store(&mut store, listener);
+    }
+
+    fn evict_rasterized_image(&self, svg_id: &str) {
+        let mut store = self.store.lock();
+        if let Some(mapped_image_id) = self.svg_id_image_id_map.lock().get(svg_id) {
+            store.vector_images.remove(mapped_image_id);
+        }
     }
 
     /// Inform the image cache about a response for a pending request.

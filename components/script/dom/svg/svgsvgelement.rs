@@ -27,7 +27,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::node::{
-    ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding,
+    ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding
 };
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -249,5 +249,11 @@ impl VirtualMethods for SVGSVGElement {
         }
 
         self.invalidate_cached_serialized_subtree();
+    }
+
+    fn unbind_from_tree(&self, _context: &UnbindContext<'_>, _can_gc: CanGc) {
+        self.owner_window()
+            .image_cache()
+            .evict_rasterized_image(&self.uuid);
     }
 }
