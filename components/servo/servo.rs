@@ -134,6 +134,11 @@ mod media_platform {
     }
 }
 
+enum Message {
+    FromNet(NetToEmbedderMsg),
+    FromUnknown(EmbedderMsg),
+}
+
 struct ServoInner {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
     paint: Rc<RefCell<Paint>>,
@@ -188,30 +193,13 @@ impl ServoInner {
         }
 
         // Only handle incoming embedder messages if `Paint` hasn't already started shutting down.
-        loop {
+        while let Some(message) = self.receive_one_message() {
+            match message {
+                Message::FromUnknown(message) => self.handle_embedder_message(message),
+                Message::FromNet(message) => self.handle_net_embedder_message(message),
+            }
             if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
                 break;
-            }
-
-            let mut select = crossbeam_channel::Select::new();
-            let operation1 = select.recv(&self.embedder_receiver);
-            let operation2 = select.recv(&self.net_embedder_receiver);
-            let Ok(operation) = select.try_select() else {
-                break;
-            };
-            let index = operation.index();
-            if index == operation1 {
-                let Ok(message) = operation.recv(&self.embedder_receiver) else {
-                    continue;
-                };
-                self.handle_embedder_message(message);
-            } else if index == operation2 {
-                let Ok(message) = operation.recv(&self.net_embedder_receiver) else {
-                    continue;
-                };
-                self.handle_net_embedder_message(message);
-            } else {
-                unreachable!("No select operation registered for {index:?}");
             }
         }
 
@@ -231,6 +219,30 @@ impl ServoInner {
         }
 
         true
+    }
+
+    fn receive_one_message(&self) -> Option<Message> {
+        let mut select = crossbeam_channel::Select::new();
+        let embedder_receiver_index = select.recv(&self.embedder_receiver);
+        let net_embedder_receiver_index = select.recv(&self.net_embedder_receiver);
+        let Ok(operation) = select.try_select() else {
+            return None;
+        };
+        let index = operation.index();
+        if index == embedder_receiver_index {
+            let Ok(message) = operation.recv(&self.embedder_receiver) else {
+                return None;
+            };
+            Some(Message::FromUnknown(message))
+        } else if index == net_embedder_receiver_index {
+            let Ok(message) = operation.recv(&self.net_embedder_receiver) else {
+                return None;
+            };
+            Some(Message::FromNet(message))
+        } else {
+            log::error!("No select operation registered for {index:?}");
+            None
+        }
     }
 
     fn send_new_frame_ready_messages(&self) {

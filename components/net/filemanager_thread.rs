@@ -10,7 +10,8 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, GenericEmbedderProxy, FilePickerRequest, SelectedFile,
+    EmbedderControlId, EmbedderControlResponse, FilePickerRequest, GenericEmbedderProxy,
+    SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
