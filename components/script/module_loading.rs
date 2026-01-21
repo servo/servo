@@ -66,10 +66,15 @@ pub(crate) struct LoadState {
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
 pub(crate) struct GraphLoadingState {
+    /// [[PromiseCapability]]
     promise: Rc<Promise>,
+    /// [[IsLoading]]
     is_loading: Cell<bool>,
+    /// [[PendingModulesCount]]
     pending_modules_count: Cell<u32>,
+    /// [[Visited]]
     visited: RefCell<HashSet<ServoUrl>>,
+    /// [[HostDefined]]
     load_state: Option<Rc<LoadState>>,
 }
 
@@ -80,6 +85,8 @@ pub(crate) fn LoadRequestedModules(
     load_state: Option<Rc<LoadState>>,
 ) -> Rc<Promise> {
     // Step 1. If hostDefined is not present, let hostDefined be empty.
+    //
+    // Not required, since we implement it as an `Option`
 
     // Step 2. Let pc be ! NewPromiseCapability(%Promise%).
     let promise = Promise::new(global, CanGc::note());
@@ -119,6 +126,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
     let visited_contains_module = state.visited.borrow().contains(&module_url);
 
     // Step 2. If module is a Cyclic Module Record, module.[[Status]] is new, and state.[[Visited]] does not contain module, then
+    // Note: mozjs doesn't expose a way to check the ModuleStatus of a ModuleObject.
     if unsafe { IsCyclicModule(module_handle.get()) } && !visited_contains_module {
         // a. Append module to state.[[Visited]].
         state.visited.borrow_mut().insert(module_url);
@@ -156,11 +164,12 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
                 match loaded_module {
                     // 1. Perform InnerModuleLoading(state, record.[[Module]]).
                     Some(module) => InnerModuleLoading(global, state, module),
-                    // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
+                    // iii. Else,
                     None => {
                         rooted!(in(*cx) let mut referrer = UndefinedValue());
                         unsafe { JS_GetModulePrivate(module_handle.get(), referrer.handle_mut()) };
 
+                        // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
                         HostLoadImportedModule(
                             cx,
                             Some(module.clone()),
@@ -194,6 +203,7 @@ fn InnerModuleLoading(global: &GlobalScope, state: &Rc<GraphLoadingState>, modul
 
         // b. For each Cyclic Module Record loaded of state.[[Visited]], do
         // i. If loaded.[[Status]] is new, set loaded.[[Status]] to unlinked.
+        // Note: mozjs defaults to the unlinked status.
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
         state.promise.resolve_native(&(), CanGc::note());
@@ -249,8 +259,6 @@ fn FinishLoadingImportedModule(
 
             // Step 1. If result is a normal completion, then
             if let Ok(ref module) = result {
-                // a. If referrer.[[LoadedModules]] contains a LoadedModuleRequest Record record such that
-                // ModuleRequestsEqual(record, moduleRequest) is true, then
                 module_tree.insert_module_dependency(module, module_request_specifier);
             }
 
@@ -426,6 +434,9 @@ pub(crate) fn HostLoadImportedModule(
         ),
     };
 
+    // Step 6.2. Set settingsObject to referencingScript's settings object.
+    // Note: We later set fetchClient to the `ModuleOwner` provided by loadState.
+
     // TODO It seems that Gecko doesn't implement this step, and currently we don't handle module types.
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
 
@@ -468,15 +479,16 @@ pub(crate) fn HostLoadImportedModule(
     // originalFetchOptions, url, and settingsObject.
     let fetch_options = original_fetch_options.descendant_fetch_options();
 
-    // Step 11. Let destination be "script".
-    // Step 12. Let fetchClient be settingsObject.
     // Step 13. If loadState is not undefined, then:
+    // Note: loadState is undefined only in dynamic imports
     let (destination, fetch_client) = match load_state.as_ref() {
         // Step 13.1. Set destination to loadState.[[Destination]].
         // Step 13.2. Set fetchClient to loadState.[[FetchClient]].
         Some(load_state) => (load_state.destination, load_state.fetch_client.clone()),
         None => (
+            // Step 11. Let destination be "script".
             Destination::Script,
+            // Step 12. Let fetchClient be settingsObject.
             ModuleOwner::new_dynamic(&global_scope, CanGc::note()),
         ),
     };

@@ -127,7 +127,7 @@ impl RethrowError {
 
 impl Debug for RethrowError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        "RethrowError...)".fmt(fmt)
+        "RethrowError(...)".fmt(fmt)
     }
 }
 
@@ -223,7 +223,6 @@ pub(crate) struct ModuleTree {
     #[conditional_malloc_size_of]
     promise: DomRefCell<Option<Rc<Promise>>>,
     #[no_trace]
-    #[ignore_malloc_size_of = "mozjs"]
     loaded_modules: DomRefCell<IndexMap<String, ServoUrl>>,
     external: bool,
 }
@@ -439,6 +438,8 @@ impl ModuleTree {
             .borrow_mut()
             .entry(module_request_specifier)
         {
+            // a. If referrer.[[LoadedModules]] contains a LoadedModuleRequest Record record such that
+            // ModuleRequestsEqual(record, moduleRequest) is true, then
             Entry::Occupied(entry) => {
                 // i. Assert: record.[[Module]] and result.[[Value]] are the same Module Record.
                 assert_eq!(*entry.get(), url);
@@ -1382,13 +1383,14 @@ fn fetch_the_descendants_and_link_module_script(
     let fulfillment_owner = owner.clone();
     let fulfillment_identity = identity.clone();
 
+    // Step 6. Upon fulfillment of loadingPromise, run the following steps:
     let loading_promise_fulfillment = ModuleHandler::new_boxed(Box::new(
         task!(fetched_resolve: |fulfillment_owner: ModuleOwner, fulfillment_identity: ModuleIdentity| {
             let global = fulfillment_owner.global();
 
             let module_tree = fulfillment_identity.get_module_tree(&global);
             if let Some(record) = module_tree.get_record().borrow().as_ref() {
-                // Step 1. Perform record.Link().
+                // Step 6.1. Perform record.Link().
                 let instantiated = ModuleTree::instantiate_module_tree(&global, record.handle());
 
                 // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
@@ -1397,7 +1399,7 @@ fn fetch_the_descendants_and_link_module_script(
                 }
             }
 
-            // Step 2. Run onComplete given moduleScript.
+            // Step 6.2. Run onComplete given moduleScript.
             fulfillment_owner.notify_owner_to_finish(Some(module_tree), CanGc::note());
         }),
     ));
@@ -1405,19 +1407,20 @@ fn fetch_the_descendants_and_link_module_script(
     let rejection_owner = owner.clone();
     let rejection_identity = identity.clone();
 
+    // Step 7. Upon rejection of loadingPromise, run the following steps:
     let loading_promise_rejection = ModuleHandler::new_boxed(Box::new(
         task!(fetched_resolve: |rejection_owner: ModuleOwner, rejection_identity: ModuleIdentity, state: Rc<LoadState>| {
             let global = rejection_owner.global();
 
             let module_tree = rejection_identity.get_module_tree(&global);
 
-            // Step 1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
+            // Step 7.1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
             // and run onComplete given moduleScript.
             if let Some(error) = state.error_to_rethrow.borrow().as_ref() {
                 module_tree.set_rethrow_error(error.clone());
                 rejection_owner.notify_owner_to_finish(Some(module_tree), CanGc::note());
             } else {
-                // Step 2. Otherwise, run onComplete given null.
+                // Step 7.2. Otherwise, run onComplete given null.
                 rejection_owner.notify_owner_to_finish(None, CanGc::note());
             }
         }),
