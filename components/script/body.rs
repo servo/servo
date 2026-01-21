@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::io::Cursor;
 use std::rc::Rc;
-use std::{ptr, slice, str};
+use std::{fs, ptr, slice, str};
 
 use base::generic_channel::GenericSharedMemory;
 use constellation_traits::BlobImpl;
 use encoding_rs::{Encoding, UTF_8};
+use http::HeaderMap;
+use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JS_ClearPendingException, JSObject, Value as JSValue};
@@ -17,6 +20,7 @@ use js::rust::HandleValue;
 use js::rust::wrappers::{JS_GetPendingException, JS_ParseJSON};
 use js::typedarray::{ArrayBufferU8, Uint8};
 use mime::{self, Mime};
+use mime_multipart_hyper1::{Node, read_multipart_body};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
@@ -27,12 +31,14 @@ use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMeth
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{Blob, normalize_type_string};
+use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::{encode_multipart_form_data, generate_boundary};
@@ -904,6 +910,124 @@ fn run_blob_data_algorithm(
     Ok(FetchedData::BlobData(blob))
 }
 
+fn extract_name_from_content_disposition(headers: &HeaderMap) -> Option<String> {
+    let cd = headers.get(CONTENT_DISPOSITION)?.to_str().ok()?;
+
+    for part in cd.split(';').map(|s| s.trim()) {
+        if let Some(rest) = part.strip_prefix("name=") {
+            let v = rest.trim();
+            let v = v.strip_prefix('"').unwrap_or(v);
+            let v = v.strip_suffix('"').unwrap_or(v);
+            return Some(v.to_string());
+        }
+    }
+    None
+}
+
+fn extract_filename_from_content_disposition(headers: &HeaderMap) -> Option<String> {
+    let cd = headers.get(CONTENT_DISPOSITION)?.to_str().ok()?;
+    if cd.contains("filename") {
+        if let Some(index) = cd.find("filename=") {
+            let start = index + "filename=".len();
+            return Some(
+                cd.get(start..)
+                    .unwrap_or_default()
+                    .trim_matches('"')
+                    .to_owned(),
+            );
+        }
+        if let Some(index) = cd.find("filename*=UTF-8''") {
+            let start = index + "filename*=UTF-8''".len();
+            return Some(
+                cd.get(start..)
+                    .unwrap_or_default()
+                    .trim_matches('"')
+                    .to_owned(),
+            );
+        }
+    }
+    None
+}
+
+fn decode_utf8_without_bom(bytes: &[u8]) -> String {
+    let bytes = if bytes.starts_with(b"\xEF\xBB\xBF") {
+        &bytes[3..]
+    } else {
+        bytes
+    };
+    String::from_utf8_lossy(bytes).into_owned()
+}
+
+fn content_type_from_headers(headers: &HeaderMap) -> Result<String, Error> {
+    match headers.get(CONTENT_TYPE) {
+        Some(value) => Ok(value
+            .to_str()
+            .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?
+            .to_string()),
+        None => Ok("text/plain".to_string()),
+    }
+}
+
+fn append_form_data_entry_from_part(
+    root: &GlobalScope,
+    formdata: &FormData,
+    headers: &HeaderMap,
+    body: Vec<u8>,
+    can_gc: CanGc,
+) -> Fallible<()> {
+    let Some(name) = extract_name_from_content_disposition(headers) else {
+        return Ok(());
+    };
+    // A part whose `Content-Disposition` header contains a `name` parameter whose value is `_charset_` is parsed like any other part. It does not change the encoding.
+    let filename = extract_filename_from_content_disposition(headers);
+    if let Some(filename) = filename {
+        // Each part whose `Content-Disposition` header contains a `filename` parameter must be parsed into an entry whose value is a File object whose contents are the contents of the part.
+        //
+        // The name attribute of the File object must have the value of the `filename` parameter of the part.
+        //
+        // The type attribute of the File object must have the value of the `Content-Type` header of the part if the part has such header, and `text/plain` (...) otherwise.
+        let content_type = content_type_from_headers(headers)?;
+        let file = File::new(
+            root,
+            BlobImpl::new_from_bytes(body, normalize_type_string(&content_type)),
+            DOMString::from(filename),
+            None,
+            can_gc,
+        );
+        let blob = file.upcast::<Blob>();
+        formdata.Append_(USVString(name), blob, None);
+    } else {
+        // Each part whose `Content-Disposition` header does not contain a `filename` parameter must be parsed into an entry whose value is the UTF-8 decoded without BOM content of the part. This is done regardless of the presence or the value of a `Content-Type` header and regardless of the presence or the value of a `charset` parameter.
+        let value = decode_utf8_without_bom(&body);
+        formdata.Append(USVString(name), USVString(value));
+    }
+    Ok(())
+}
+
+fn append_multipart_nodes(
+    root: &GlobalScope,
+    formdata: &FormData,
+    nodes: Vec<Node>,
+    can_gc: CanGc,
+) -> Fallible<()> {
+    for node in nodes {
+        match node {
+            Node::Part(part) => {
+                append_form_data_entry_from_part(root, formdata, &part.headers, part.body, can_gc)?;
+            },
+            Node::File(file_part) => {
+                let body = fs::read(&file_part.path)
+                    .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+                append_form_data_entry_from_part(root, formdata, &file_part.headers, body, can_gc)?;
+            },
+            Node::Multipart((_, inner)) => {
+                append_multipart_nodes(root, formdata, inner, can_gc)?;
+            },
+        }
+    }
+    Ok(())
+}
+
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A2>
 fn run_form_data_algorithm(
     root: &GlobalScope,
@@ -916,133 +1040,38 @@ fn run_form_data_algorithm(
         .parse()
         .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
 
+    // Let mimeType be the result of get the MIME type with this.
+    //
     // If mimeType is non-null, then switch on mimeType’s essence and run the corresponding steps:
-
-    // "multipart/form-data"
     if mime.type_() == mime::MULTIPART && mime.subtype() == mime::FORM_DATA {
         // Parse bytes, using the value of the `boundary` parameter from mimeType, per the rules set forth in Returning Values from Forms: multipart/form-data. [RFC7578]
-        let boundary = mime
-            .get_param("boundary")
-            .map(|v| v.as_str().to_string())
-            .ok_or_else(|| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            CONTENT_TYPE,
+            mime_str
+                .parse()
+                .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?,
+        );
+
+        let mut cursor = Cursor::new(bytes);
+        // If that fails for some reason, then throw a TypeError.
+        let nodes = read_multipart_body(&mut cursor, &headers, false)
+            .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
 
         // Return a new FormData object, appending each entry, resulting from the parsing operation, to its entry list.
         let formdata = FormData::new(None, root, can_gc);
 
-        let delimiter = format!("--{}", boundary).into_bytes();
-        let delimiter_crlf = {
-            let mut v = b"\r\n".to_vec();
-            v.extend_from_slice(&delimiter);
-            v
-        };
-
-        fn find_subslice(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
-            if needle.is_empty() || hay.len() < needle.len() || from >= hay.len() {
-                return None;
-            }
-            let end = hay.len().saturating_sub(needle.len());
-            for i in from..=end {
-                if &hay[i..i + needle.len()] == needle {
-                    return Some(i);
-                }
-            }
-            None
-        }
-
-        let hay = bytes.as_slice();
-
-        // If that fails for some reason, then throw a TypeError.
-        let mut pos = find_subslice(hay, &delimiter, 0)
-            .ok_or_else(|| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
-
-        loop {
-            pos += delimiter.len();
-
-            // If that fails for some reason, then throw a TypeError.
-            if hay.get(pos..pos + 2) == Some(b"--") {
-                break;
-            }
-
-            if hay.get(pos..pos + 2) == Some(b"\r\n") {
-                pos += 2;
-            }
-
-            // If that fails for some reason, then throw a TypeError.
-            let next = match find_subslice(hay, &delimiter_crlf, pos) {
-                Some(n) => n,
-                None => match find_subslice(hay, &delimiter, pos) {
-                    Some(n) => n,
-                    None => {
-                        return Err(Error::Type("Inappropriate MIME-type for Body".to_string()));
-                    },
-                },
-            };
-
-            let mut part = &hay[pos..next];
-            if part.ends_with(b"\r\n") {
-                part = &part[..part.len() - 2];
-            }
-
-            // If that fails for some reason, then throw a TypeError.
-            let header_end = find_subslice(part, b"\r\n\r\n", 0)
-                .ok_or_else(|| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
-            let headers = &part[..header_end];
-            let body = &part[header_end + 4..];
-
-            let mut name: Option<String> = None;
-            let mut filename: Option<String> = None;
-
-            for line in headers.split(|&b| b == b'\n') {
-                let line = if line.ends_with(b"\r") {
-                    &line[..line.len() - 1]
-                } else {
-                    line
-                };
-                let line_str = String::from_utf8_lossy(line);
-                let lower = line_str.to_ascii_lowercase();
-
-                if lower.starts_with("content-disposition:") {
-                    for p in line_str.split(';').skip(1).map(|s| s.trim()) {
-                        if let Some(v) = p.strip_prefix("name=") {
-                            name = Some(v.trim().trim_matches('"').to_string());
-                        } else if let Some(v) = p.strip_prefix("filename=") {
-                            filename = Some(v.trim().trim_matches('"').to_string());
-                        }
-                    }
-                }
-            }
-
-            if let Some(name) = name {
-                if filename.is_none() {
-                    // Each part whose `Content-Disposition` header does not contain a `filename`
-                    // parameter must be parsed into an entry whose value is the UTF-8 decoded without BOM content of the part.
-                    let value = run_text_data_algorithm(body.to_vec())?;
-                    if let FetchedData::Text(s) = value {
-                        formdata.Append(USVString(name), USVString(s));
-                    }
-                } else {
-                    // Each part whose `Content-Disposition` header contains a `filename`
-                    // parameter must be parsed into an entry whose value is a File object whose contents are the contents of the part.
-                    // If that fails for some reason, then throw a TypeError.
-                    return Err(Error::Type("Inappropriate MIME-type for Body".to_string()));
-                }
-            }
-
-            pos = next;
-            if hay.get(pos..pos + 2) == Some(b"\r\n") {
-                pos += 2;
-            }
-        }
+        append_multipart_nodes(root, &formdata, nodes, can_gc)?;
 
         return Ok(FetchedData::FormData(formdata));
     }
 
-    // "application/x-www-form-urlencoded"
     if mime.type_() == mime::APPLICATION && mime.subtype() == mime::WWW_FORM_URLENCODED {
+        // "application/x-www-form-urlencoded"
         // Let entries be the result of parsing bytes.
-        let entries = form_urlencoded::parse(&bytes);
-
+        //
         // Return a new FormData object whose entry list is entries.
+        let entries = form_urlencoded::parse(&bytes);
         let formdata = FormData::new(None, root, can_gc);
         for (k, e) in entries {
             formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
