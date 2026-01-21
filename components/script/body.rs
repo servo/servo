@@ -985,7 +985,7 @@ fn append_form_data_entry_from_part(
         //
         // The name attribute of the File object must have the value of the `filename` parameter of the part.
         //
-        // The type attribute of the File object must have the value of the `Content-Type` header of the part if the part has such header, and `text/plain` (...) otherwise.
+        // The type attribute of the File object must have the value of the `Content-Type` header of the part if the part has such header, and `text/plain` (the default defined by [RFC7578] section 4.4) otherwise.
         let content_type = content_type_from_headers(headers)?;
         let file = File::new(
             root,
@@ -1035,6 +1035,8 @@ fn run_form_data_algorithm(
     mime: &[u8],
     can_gc: CanGc,
 ) -> Fallible<FetchedData> {
+    // The formData() method steps are to return the result of running consume body
+    // with this and the following steps given a byte sequence bytes:
     let mime_str = str::from_utf8(mime).unwrap_or_default();
     let mime: Mime = mime_str
         .parse()
@@ -1044,7 +1046,9 @@ fn run_form_data_algorithm(
     //
     // If mimeType is non-null, then switch on mimeType’s essence and run the corresponding steps:
     if mime.type_() == mime::MULTIPART && mime.subtype() == mime::FORM_DATA {
-        // Parse bytes, using the value of the `boundary` parameter from mimeType, per the rules set forth in Returning Values from Forms: multipart/form-data. [RFC7578]
+        // "multipart/form-data"
+        // Parse bytes, using the value of the `boundary` parameter from mimeType,
+        // per the rules set forth in Returning Values from Forms: multipart/form-data. [RFC7578]
         let mut headers = HeaderMap::new();
         headers.insert(
             CONTENT_TYPE,
@@ -1066,6 +1070,8 @@ fn run_form_data_algorithm(
         // If that fails for some reason, then throw a TypeError.
         let nodes = read_multipart_body(&mut cursor, &headers, false)
             .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+        // The above is a rough approximation of what is needed for `multipart/form-data`,
+        // a more detailed parsing specification is to be written. Volunteers welcome.
 
         // Return a new FormData object, appending each entry, resulting from the parsing operation, to its entry list.
         let formdata = FormData::new(None, root, can_gc);
