@@ -530,7 +530,7 @@ impl ImageCacheStore {
     ) {
         self.key_cache
             .evicted_images
-            .insert((image_id.clone(), requested_size.clone()));
+            .insert((*image_id, *requested_size));
     }
 
     fn fetch_more_image_keys(&mut self) {
@@ -601,7 +601,6 @@ impl ImageCacheStore {
             Some(load) => load,
             None => return,
         };
-
         let url = pending_load.final_url.clone();
         let image_response = match load_result {
             LoadResult::LoadedRasterImage(raster_image) => {
@@ -678,13 +677,11 @@ impl ImageCacheStore {
             // KeyCache that it was evicted.
             if entry.result.is_none() {
                 self.evict_image_from_keycache(image_id, device_size);
-            } else {
-                if let Some(image_id) = entry.result.as_ref().unwrap().id {
-                    self.paint_api.update_images(
-                        self.webview_id.into(),
-                        vec![ImageUpdate::DeleteImage(image_id)].into(),
-                    );
-                }
+            } else if let Some(image_id) = entry.result.as_ref().unwrap().id {
+                self.paint_api.update_images(
+                    self.webview_id.into(),
+                    vec![ImageUpdate::DeleteImage(image_id)].into(),
+                );
             }
         }
     }
@@ -993,10 +990,12 @@ impl ImageCache for ImageCacheImpl {
             if let Some(old_mapped_image_id) =
                 self.svg_id_image_id_map.lock().insert(svg_id, image_id)
             {
-                store.vector_images.remove(&old_mapped_image_id);
-                store
-                    .rasterized_vector_images
-                    .remove(&(old_mapped_image_id, requested_size));
+                if old_mapped_image_id != image_id {
+                    store.vector_images.remove(&old_mapped_image_id);
+                    store
+                        .rasterized_vector_images
+                        .remove(&(old_mapped_image_id, requested_size));
+                }
             }
         }
         if let Some(requested_sizes_for_id) = self.image_id_size_map.lock().get_mut(&image_id) {
@@ -1090,7 +1089,7 @@ impl ImageCache for ImageCacheImpl {
             store.vector_images.remove(&mapped_image_id);
             if let Some(requested_sizes) = self.image_id_size_map.lock().remove(&mapped_image_id) {
                 for requested_size in requested_sizes.iter() {
-                    store.remove_rasterized_vector_image(&mapped_image_id, &requested_size);
+                    store.remove_rasterized_vector_image(&mapped_image_id, requested_size);
                 }
             }
         }
@@ -1161,9 +1160,9 @@ impl ImageCache for ImageCacheImpl {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {
-                        let mut store = self.store.lock();
-                        if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
-                            let (bytes, cors_status, content_type) = {
+                        let (bytes, cors_status, content_type) = {
+                            let mut store = self.store.lock();
+                            if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
                                 pending_load.result = Some(Ok(()));
                                 debug!("Async decoding {} ({:?})", pending_load.url, key);
                                 (
@@ -1171,24 +1170,19 @@ impl ImageCache for ImageCacheImpl {
                                     pending_load.cors_status,
                                     pending_load.content_type.clone(),
                                 )
-                            };
+                            } else {
+                                debug!("Pending load for id {:?} already evicted from cache", id);
+                                return;
+                            }
+                        };
 
-                            let local_store = self.store.clone();
-                            let fontdb = self.fontdb.clone();
-                            self.thread_pool.spawn(move || {
-                                let msg = decode_bytes_sync(
-                                    key,
-                                    &bytes,
-                                    cors_status,
-                                    content_type,
-                                    fontdb,
-                                );
-                                debug!("Image decoded");
-                                local_store.lock().handle_decoder(msg);
-                            });
-                        } else {
-                            debug!("Pending load for id {:?} already evicted from cache", id);
-                        }
+                        let local_store = self.store.clone();
+                        let fontdb = self.fontdb.clone();
+                        self.thread_pool.spawn(move || {
+                            let msg =
+                                decode_bytes_sync(key, &bytes, cors_status, content_type, fontdb);
+                            local_store.lock().handle_decoder(msg);
+                        });
                     },
                     Err(error) => {
                         debug!("Processing error for {key:?}: {error:?}");
