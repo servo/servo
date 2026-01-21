@@ -916,11 +916,133 @@ fn run_form_data_algorithm(
         .parse()
         .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
 
-    // TODO
-    // ... Parser for Mime(TopLevel::Multipart, SubLevel::FormData, _)
-    // ... is not fully determined yet.
+    // If mimeType is non-null, then switch on mimeType’s essence and run the corresponding steps:
+
+    // "multipart/form-data"
+    if mime.type_() == mime::MULTIPART && mime.subtype() == mime::FORM_DATA {
+        // Parse bytes, using the value of the `boundary` parameter from mimeType, per the rules set forth in Returning Values from Forms: multipart/form-data. [RFC7578]
+        let boundary = mime
+            .get_param("boundary")
+            .map(|v| v.as_str().to_string())
+            .ok_or_else(|| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+
+        // Return a new FormData object, appending each entry, resulting from the parsing operation, to its entry list.
+        let formdata = FormData::new(None, root, can_gc);
+
+        let delimiter = format!("--{}", boundary).into_bytes();
+        let delimiter_crlf = {
+            let mut v = b"\r\n".to_vec();
+            v.extend_from_slice(&delimiter);
+            v
+        };
+
+        fn find_subslice(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
+            if needle.is_empty() || hay.len() < needle.len() || from >= hay.len() {
+                return None;
+            }
+            let end = hay.len().saturating_sub(needle.len());
+            for i in from..=end {
+                if &hay[i..i + needle.len()] == needle {
+                    return Some(i);
+                }
+            }
+            None
+        }
+
+        let hay = bytes.as_slice();
+
+        // If that fails for some reason, then throw a TypeError.
+        let mut pos = find_subslice(hay, &delimiter, 0)
+            .ok_or_else(|| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+
+        loop {
+            pos += delimiter.len();
+
+            // If that fails for some reason, then throw a TypeError.
+            if hay.get(pos..pos + 2) == Some(b"--") {
+                break;
+            }
+
+            if hay.get(pos..pos + 2) == Some(b"\r\n") {
+                pos += 2;
+            }
+
+            // If that fails for some reason, then throw a TypeError.
+            let next = match find_subslice(hay, &delimiter_crlf, pos) {
+                Some(n) => n,
+                None => match find_subslice(hay, &delimiter, pos) {
+                    Some(n) => n,
+                    None => {
+                        return Err(Error::Type("Inappropriate MIME-type for Body".to_string()));
+                    },
+                },
+            };
+
+            let mut part = &hay[pos..next];
+            if part.ends_with(b"\r\n") {
+                part = &part[..part.len() - 2];
+            }
+
+            // If that fails for some reason, then throw a TypeError.
+            let header_end = find_subslice(part, b"\r\n\r\n", 0)
+                .ok_or_else(|| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+            let headers = &part[..header_end];
+            let body = &part[header_end + 4..];
+
+            let mut name: Option<String> = None;
+            let mut filename: Option<String> = None;
+
+            for line in headers.split(|&b| b == b'\n') {
+                let line = if line.ends_with(b"\r") {
+                    &line[..line.len() - 1]
+                } else {
+                    line
+                };
+                let line_str = String::from_utf8_lossy(line);
+                let lower = line_str.to_ascii_lowercase();
+
+                if lower.starts_with("content-disposition:") {
+                    for p in line_str.split(';').skip(1).map(|s| s.trim()) {
+                        if let Some(v) = p.strip_prefix("name=") {
+                            name = Some(v.trim().trim_matches('"').to_string());
+                        } else if let Some(v) = p.strip_prefix("filename=") {
+                            filename = Some(v.trim().trim_matches('"').to_string());
+                        }
+                    }
+                }
+            }
+
+            if let Some(name) = name {
+                if filename.is_none() {
+                    // Each part whose `Content-Disposition` header does not contain a `filename`
+                    // parameter must be parsed into an entry whose value is the UTF-8 decoded without BOM content of the part.
+                    let value = run_text_data_algorithm(body.to_vec())?;
+                    if let FetchedData::Text(s) = value {
+                        formdata.Append(USVString(name), USVString(s));
+                    }
+                } else {
+                    // Each part whose `Content-Disposition` header contains a `filename`
+                    // parameter must be parsed into an entry whose value is a File object whose contents are the contents of the part.
+                    // If that fails for some reason, then throw a TypeError.
+                    return Err(Error::Type("Inappropriate MIME-type for Body".to_string()));
+                }
+            }
+
+            pos = next;
+            if hay.get(pos..pos + 2) == Some(b"\r\n") {
+                pos += 2;
+            }
+        }
+
+        return Ok(FetchedData::FormData(formdata));
+    }
+
+    // "application/x-www-form-urlencoded"
     if mime.type_() == mime::APPLICATION && mime.subtype() == mime::WWW_FORM_URLENCODED {
+        // Let entries be the result of parsing bytes.
         let entries = form_urlencoded::parse(&bytes);
+
+        // Return a new FormData object whose entry list is entries.
         let formdata = FormData::new(None, root, can_gc);
         for (k, e) in entries {
             formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
@@ -928,6 +1050,7 @@ fn run_form_data_algorithm(
         return Ok(FetchedData::FormData(formdata));
     }
 
+    // Throw a TypeError.
     Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
 }
 
