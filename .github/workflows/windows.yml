@@ -212,7 +212,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-windows-zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.zip
-      - name: Collect artifact IDs of release artifacts
+      - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
         run: |

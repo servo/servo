@@ -128,7 +128,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
-      - name: Collect artifact IDs
+      - name: Collect artifact IDs needed by the release workflow
         if: matrix.target == 'aarch64-linux-android'
         id: artifact_ids
         shell: bash

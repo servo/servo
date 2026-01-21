@@ -189,7 +189,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-mac
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
-      - name: Collect artifact IDs
+      - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
         run: |
