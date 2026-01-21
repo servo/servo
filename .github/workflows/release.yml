@@ -57,9 +57,11 @@ jobs:
       release-id: ${{ steps.create-release.outputs.RELEASE_ID }}
 
   publish-nightly-release:
-    # This job is only useful when run on upstream servo.
     # We only auto-publish nightly releases, so we do not use this job for regular releases.
-    if: always() && github.repository == 'servo/servo' && ((github.event_name == 'workflow_dispatch' && inputs.regular_release == false) || github.event_name != 'workflow_dispatch')
+    if: |
+      always() 
+        && (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+        && (inputs.regular_release || false) == false
     name: Publish GH Release
     runs-on: ubuntu-latest
     steps:
@@ -104,8 +106,10 @@ jobs:
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
 
   upload-win-nightly:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' && (github.event_name == 'workflow_dispatch' && !inputs.regular_release || github.event_name != 'workflow_dispatch')
+    # Only run scheduled nightly builds on upstream servo.
+    if: |
+      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+        && (inputs.regular_release || false) == false
     permissions:
       id-token: write
       attestations: write
@@ -120,11 +124,10 @@ jobs:
       artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
       artifact_platform: windows-msvc
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo-nightly-builds'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   upload-win-release:
-    # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
-    if: github.repository == 'servo/servo' && github.event_name == 'workflow_dispatch' && inputs.regular_release
+    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
     permissions:
       id-token: write
       attestations: write
@@ -140,7 +143,7 @@ jobs:
       artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
       artifact_platform: windows-msvc
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo'
+      target_repo: ${{ env.RELEASE_REPO }}
 
 
   build-mac:
@@ -153,8 +156,10 @@ jobs:
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
 
   upload-mac-nightly:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' && (github.event_name == 'workflow_dispatch' && !inputs.regular_release || github.event_name != 'workflow_dispatch')
+    # Only run scheduled nightly builds on upstream servo.
+    if: |
+      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+        && (inputs.regular_release || false) == false
     permissions:
       id-token: write
       attestations: write
@@ -169,11 +174,10 @@ jobs:
       artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
       artifact_platform: mac
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo-nightly-builds'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   upload-mac-release:
-    # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
-    if: github.repository == 'servo/servo' && github.event_name == 'workflow_dispatch' && inputs.regular_release
+    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
     permissions:
       id-token: write
       attestations: write
@@ -189,7 +193,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
       artifact_platform: mac
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   build-mac-arm64:
     # This job is only useful when run on upstream servo.
@@ -201,8 +205,10 @@ jobs:
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
 
   upload-mac-arm64-nightly:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' && (github.event_name == 'workflow_dispatch' && !inputs.regular_release || github.event_name != 'workflow_dispatch')
+    # Only run scheduled nightly builds on upstream servo.
+    if: |
+      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+        && (inputs.regular_release || false) == false
     permissions:
       id-token: write
       attestations: write
@@ -217,11 +223,10 @@ jobs:
       artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
       artifact_platform: mac-arm64
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo-nightly-builds'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   upload-mac-arm64-release:
-    # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
-    if: github.repository == 'servo/servo' && github.event_name == 'workflow_dispatch' && inputs.regular_release
+    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
     permissions:
       id-token: write
       attestations: write
@@ -237,7 +242,7 @@ jobs:
       artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
       artifact_platform: mac-arm64
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   build-linux:
     # This job is only useful when run on upstream servo.
@@ -249,8 +254,10 @@ jobs:
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
 
   upload-linux-nightly:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' && (github.event_name == 'workflow_dispatch' && !inputs.regular_release || github.event_name != 'workflow_dispatch')
+    # Only run scheduled nightly builds on upstream servo.
+    if: |
+      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+        && (inputs.regular_release || false) == false
     permissions:
       id-token: write
       attestations: write
@@ -265,11 +272,10 @@ jobs:
       artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
       artifact_platform: linux
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo-nightly-builds'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   upload-linux-release:
-    # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
-    if: github.repository == 'servo/servo' && github.event_name == 'workflow_dispatch' && inputs.regular_release
+    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
     permissions:
       id-token: write
       attestations: write
@@ -285,7 +291,7 @@ jobs:
       artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
       artifact_platform: linux
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   build-android:
     # This job is only useful when run on upstream servo.
@@ -297,8 +303,10 @@ jobs:
     secrets: inherit
 
   upload-android-nightly:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' && (github.event_name == 'workflow_dispatch' && !inputs.regular_release || github.event_name != 'workflow_dispatch')
+    # Only run scheduled nightly builds on upstream servo.
+    if: |
+      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+        && (inputs.regular_release || false) == false
     permissions:
       id-token: write
       attestations: write
@@ -313,11 +321,10 @@ jobs:
       artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
       artifact_platform: android
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo-nightly-builds'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   upload-android-release:
-    # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
-    if: github.repository == 'servo/servo' && github.event_name == 'workflow_dispatch' && inputs.regular_release
+    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
     permissions:
       id-token: write
       attestations: write
@@ -333,7 +340,7 @@ jobs:
       artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
       artifact_platform: android
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo'
+      target_repo: ${{ env.RELEASE_REPO }}
 
 
   build-ohos:
@@ -347,8 +354,10 @@ jobs:
     secrets: inherit
 
   upload-ohos-nightly:
-    # This job is only useful when run on upstream servo.
-    if: github.repository == 'servo/servo' && (github.event_name == 'workflow_dispatch' && !inputs.regular_release || github.event_name != 'workflow_dispatch')
+    # Only run scheduled nightly builds on upstream servo.
+    if: |
+      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+        && (inputs.regular_release || false) == false
     permissions:
       id-token: write
       attestations: write
@@ -363,11 +372,10 @@ jobs:
       artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
       artifact_platform: ohos
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo-nightly-builds'
+      target_repo: ${{ env.RELEASE_REPO }}
 
   upload-ohos-release:
-    # This job is only useful when run explicitly on upstream servo with the `release` inputs set.
-    if: github.repository == 'servo/servo' && github.event_name == 'workflow_dispatch' && inputs.regular_release
+    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
     permissions:
       id-token: write
       attestations: write
@@ -383,4 +391,4 @@ jobs:
       artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
       artifact_platform: ohos
       github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: 'servo/servo'
+      target_repo: ${{ env.RELEASE_REPO }}
