@@ -1053,6 +1053,15 @@ fn run_form_data_algorithm(
                 .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?,
         );
 
+        if let Some(boundary) = mime.get_param(mime::BOUNDARY) {
+            let closing_boundary = format!("--{}--", boundary.as_str()).into_bytes();
+            let trimmed_bytes = bytes.strip_suffix(b"\r\n").unwrap_or(&bytes);
+            if trimmed_bytes == closing_boundary {
+                let formdata = FormData::new(None, root, can_gc);
+                return Ok(FetchedData::FormData(formdata));
+            }
+        }
+
         let mut cursor = Cursor::new(bytes);
         // If that fails for some reason, then throw a TypeError.
         let nodes = read_multipart_body(&mut cursor, &headers, false)
