@@ -131,7 +131,9 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
-      - name: Collect artifact IDs
+      - name: Collect artifact IDs needed by the release workflow
+        # The implicit assumption here is that `upload_library` is true and the signed hap is uploaded,
+        # since this output will only be consumed by the release workflow.
         if: matrix.target == 'aarch64-unknown-linux-ohos'
         id: artifact_ids
         shell: bash
