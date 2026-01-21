@@ -133,8 +133,9 @@ pub fn start_server(
     port: u16,
     embedder_sender: Sender<WebDriverCommandMsg>,
     event_loop_waker: Box<dyn EventLoopWaker>,
+    default_preferences: Preferences,
 ) {
-    let handler = Handler::new(embedder_sender, event_loop_waker);
+    let handler = Handler::new(embedder_sender, event_loop_waker, default_preferences);
 
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
@@ -182,6 +183,9 @@ struct Handler {
 
     /// Number of pending actions of which WebDriver is waiting for responses.
     num_pending_actions: Cell<u32>,
+
+    /// The base set of preferences to treat as default when resetting.
+    default_preferences: Preferences,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -444,6 +448,7 @@ impl Handler {
     fn new(
         embedder_sender: Sender<WebDriverCommandMsg>,
         event_loop_waker: Box<dyn EventLoopWaker>,
+        default_preferences: Preferences,
     ) -> Handler {
         // Create a pair of both an IPC and a threaded channel,
         // keep the IPC sender to clone and pass to the constellation for each load,
@@ -459,6 +464,7 @@ impl Handler {
             session: None,
             embedder_sender,
             event_loop_waker,
+            default_preferences,
             pending_input_event_receivers: Default::default(),
             num_pending_actions: Cell::new(0),
         }
@@ -2541,13 +2547,12 @@ impl Handler {
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let (new_preferences, map) = if parameters.prefs.is_empty() {
-            (Preferences::default(), BTreeMap::new())
+            (self.default_preferences.clone(), BTreeMap::new())
         } else {
             // If we only want to reset some of the preferences.
             let mut new_preferences = prefs::get().clone();
-            let default_preferences = Preferences::default();
             for key in parameters.prefs.iter() {
-                new_preferences.set_value(key, default_preferences.get_value(key))
+                new_preferences.set_value(key, self.default_preferences.get_value(key))
             }
 
             let map = parameters

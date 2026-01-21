@@ -271,7 +271,7 @@ impl App {
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
         let mut servo_builder = ServoBuilder::default()
             .opts(init.opts)
-            .preferences(init.preferences)
+            .preferences(init.preferences.clone())
             .event_loop_waker(init.event_loop_waker.clone());
         #[cfg(feature = "webxr")]
         let servo_builder = servo_builder
@@ -290,6 +290,7 @@ impl App {
             init.servoshell_preferences,
             init.event_loop_waker,
             user_content_manager,
+            init.preferences,
         ));
 
         Rc::new(Self {
