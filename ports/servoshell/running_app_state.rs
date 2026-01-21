@@ -19,10 +19,10 @@ use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
     DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
     GenericSender, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
-    MediaSessionEvent, PermissionRequest, PrefValue, ScreenshotCaptureError, Servo, ServoDelegate,
-    ServoError, TraversalId, UserContentManager, WebDriverCommandMsg, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
-    WebViewId, pref,
+    MediaSessionEvent, PermissionRequest, PrefValue, Preferences, ScreenshotCaptureError, Servo,
+    ServoDelegate, ServoError, TraversalId, UserContentManager, WebDriverCommandMsg,
+    WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
+    WebViewDelegate, WebViewId, pref,
 };
 use url::Url;
 
@@ -205,6 +205,7 @@ impl RunningAppState {
         servoshell_preferences: ServoShellPreferences,
         event_loop_waker: Box<dyn EventLoopWaker>,
         user_content_manager: Rc<UserContentManager>,
+        default_preferences: Preferences,
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
@@ -217,7 +218,12 @@ impl RunningAppState {
 
         let webdriver_receiver = servoshell_preferences.webdriver_port.get().map(|port| {
             let (embedder_sender, embedder_receiver) = unbounded();
-            webdriver_server::start_server(port, embedder_sender, event_loop_waker);
+            webdriver_server::start_server(
+                port,
+                embedder_sender,
+                event_loop_waker,
+                default_preferences,
+            );
             embedder_receiver
         });
 

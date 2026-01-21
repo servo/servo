@@ -122,6 +122,7 @@ impl App {
             self.servoshell_preferences.clone(),
             self.waker.clone(),
             user_content_manager,
+            self.preferences.clone(),
         ));
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 
