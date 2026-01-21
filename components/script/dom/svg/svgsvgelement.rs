@@ -168,6 +168,7 @@ pub(crate) trait LayoutSVGSVGElementHelpers<'dom> {
 impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
     #[expect(unsafe_code)]
     fn data(self) -> SVGElementData<'dom> {
+        let svg_id = self.unsafe_get().uuid.clone();
         let element = self.upcast::<Element>();
         let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
         let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
@@ -182,6 +183,7 @@ impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
             width,
             height,
             view_box,
+            svg_id,
         }
     }
 }

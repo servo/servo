@@ -138,6 +138,7 @@ pub struct SVGElementData<'dom> {
     pub source: Option<Result<ServoUrl, ()>>,
     pub width: Option<&'dom AttrValue>,
     pub height: Option<&'dom AttrValue>,
+    pub svg_id: String,
     pub view_box: Option<&'dom AttrValue>,
 }
 

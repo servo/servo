@@ -37,6 +37,7 @@ pub enum Image {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct VectorImage {
     pub id: VectorImageId,
+    pub svg_id: Option<String>,
     pub metadata: ImageMetadata,
     pub cors_status: CorsStatus,
 }

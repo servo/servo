@@ -595,6 +595,7 @@ impl ImageCacheStore {
 
                 let vector_image = VectorImage {
                     id: key,
+                    svg_id: None,
                     metadata,
                     cors_status: vector_image.cors_status,
                 };
@@ -904,17 +905,6 @@ impl ImageCache for ImageCacheImpl {
             return None;
         };
 
-        if let Some(svg_uuid) = svg_uuid {
-            if let Some(old_mapped_image_id) =
-                self.svg_id_image_id_map.lock().insert(svg_uuid, image_id)
-            {
-                store.vector_images.remove(&old_mapped_image_id);
-                store
-                    .rasterized_vector_images
-                    .remove(&(old_mapped_image_id, requested_size));
-            }
-        }
-
         // This early return relies on the fact that the result of image rasterization cannot
         // ever be `None`. If that were the case we would need to check whether the entry
         // in the `HashMap` was `Occupied` or not.
@@ -924,6 +914,17 @@ impl ImageCache for ImageCacheImpl {
             .or_default();
         if let Some(result) = entry.result.as_ref() {
             return Some(result.clone());
+        }
+
+        if let Some(svg_uuid) = svg_uuid {
+            if let Some(old_mapped_image_id) =
+                self.svg_id_image_id_map.lock().insert(svg_uuid, image_id)
+            {
+                store.vector_images.remove(&old_mapped_image_id);
+                store
+                    .rasterized_vector_images
+                    .remove(&(old_mapped_image_id, requested_size));
+            }
         }
 
         let store = self.store.clone();

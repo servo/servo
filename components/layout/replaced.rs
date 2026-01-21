@@ -284,7 +284,10 @@ impl ReplacedContents {
             .ok();
 
         let vector_image = result.map(|result| match result {
-            Image::Vector(vector_image) => vector_image,
+            Image::Vector(mut vector_image) => {
+                vector_image.svg_id = Some(svg_data.svg_id);
+                vector_image
+            },
             _ => unreachable!("SVG element can't contain a raster image."),
         });
 
@@ -443,7 +446,12 @@ impl ReplacedContents {
                         let tag = self.base_fragment_info.tag?;
                         layout_context
                             .image_resolver
-                            .rasterize_vector_image(vector_image.id, size, tag.node)
+                            .rasterize_vector_image(
+                                vector_image.id,
+                                size,
+                                tag.node,
+                                vector_image.svg_id.clone(),
+                            )
                             .and_then(|i| i.id)
                     },
                 })
@@ -532,7 +540,12 @@ impl ReplacedContents {
                 let tag = self.base_fragment_info.tag.unwrap();
                 layout_context
                     .image_resolver
-                    .rasterize_vector_image(vector_image.id, raster_size, tag.node)
+                    .rasterize_vector_image(
+                        vector_image.id,
+                        raster_size,
+                        tag.node,
+                        vector_image.svg_id.clone(),
+                    )
                     .and_then(|image| image.id)
                     .map(|image_key| {
                         Fragment::Image(ArcRefCell::new(ImageFragment {
