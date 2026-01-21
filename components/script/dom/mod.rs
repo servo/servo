@@ -425,6 +425,7 @@ pub(crate) mod url;
 pub(crate) mod urlhelper;
 pub(crate) mod urlpattern;
 pub(crate) mod urlsearchparams;
+pub(crate) mod useractivation;
 pub(crate) mod userscripts;
 pub(crate) mod validation;
 pub(crate) mod validitystate;

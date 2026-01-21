@@ -474,6 +474,10 @@ pub(crate) struct Window {
 
     /// [`VisualViewport`] dimension changed and we need to process it on the next tick.
     has_changed_visual_viewport_dimension: Cell<bool>,
+
+    /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
+    #[no_trace]
+    last_activation_timestamp: Cell<CrossProcessInstant>,
 }
 
 impl Window {
@@ -3548,6 +3552,10 @@ impl Window {
         self.navigation_start.set(CrossProcessInstant::now());
     }
 
+    pub(crate) fn set_last_activation_timestamp(&self, time: CrossProcessInstant) {
+        self.last_activation_timestamp.set(time);
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.as_global_scope()
             .script_to_embedder_chan()
@@ -3643,6 +3651,20 @@ impl Window {
             svg.serialize_and_cache_subtree();
             node.dirty(NodeDamage::Other);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#sticky-activation>
+    pub(crate) fn has_sticky_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, W is said to have sticky activation.
+        CrossProcessInstant::now() > self.last_activation_timestamp.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#transient-activation>
+    pub(crate) fn has_transient_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
+        // > timestamp in W plus the transient activation duration, then W is said to have transient activation.
+        CrossProcessInstant::now() - self.last_activation_timestamp.get() <=
+            Duration::milliseconds(pref!(dom_transient_activation_duration_ms))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -3774,6 +3796,7 @@ impl Window {
             visual_viewport: Default::default(),
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
+            last_activation_timestamp: Cell::new(CrossProcessInstant::inf()),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
