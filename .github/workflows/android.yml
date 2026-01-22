@@ -60,7 +60,7 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        run: sudo apt update && ./mach bootstrap --skip-lints --skip-nextest
+        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:

@@ -69,7 +69,7 @@ jobs:
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
           sudo apt update
-          ./mach bootstrap --skip-nextest
+          ./mach bootstrap --yes --skip-nextest
       - name: Clippy
         run: |
           ./mach clippy --locked --github-annotations -- -- --deny warnings

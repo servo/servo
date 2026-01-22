@@ -64,7 +64,7 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        run: sudo apt update && ./mach bootstrap --skip-lints --skip-nextest
+        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Setup OpenHarmony SDK
         id: setup_sdk
         uses: openharmony-rs/setup-ohos-sdk@v0.2.3

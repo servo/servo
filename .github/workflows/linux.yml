@@ -149,7 +149,7 @@ jobs:
           sudo apt update
           echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
           sudo apt install -qy tshark
-          ./mach bootstrap --skip-lints
+          ./mach bootstrap --yes --skip-lints
 
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
@@ -327,7 +327,7 @@ jobs:
         shell: bash
         run: |
           sudo apt update
-          ./mach bootstrap --skip-lints
+          ./mach bootstrap --yes --skip-lints
       - name: Determine options
         id: options
         run: |

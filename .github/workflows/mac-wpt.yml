@@ -47,7 +47,7 @@ jobs:
         timeout-minutes: 60
         run: |
           gtar -xzf target.tar.gz
-          ./mach bootstrap --skip-lints --skip-nextest
+          ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Smoketest
         run: ./mach smoketest --profile ${{ inputs.profile }}
       - name: Run tests
