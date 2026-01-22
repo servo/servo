@@ -96,6 +96,7 @@ use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
+use style::computed_values::word_break::T as WordBreak;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::properties::ComputedValues;
@@ -1813,7 +1814,7 @@ impl InlineFormattingContext {
         let bidi_info = BidiInfo::new(&text_content, Some(starting_bidi_level));
         let has_right_to_left_content = bidi_info.has_rtl();
 
-        let mut new_linebreaker = LineBreaker::new(text_content.as_str());
+        let mut new_linebreaker = LineBreaker::new(text_content.as_str(), builder.shared_inline_styles_stack.last().expect("Should have at least one SharedInlineStyle for the root of an IFC").clone().style.get_inherited_text().word_break);
         for item in &mut builder.inline_items {
             match item {
                 InlineItem::TextRun(text_run) => {
