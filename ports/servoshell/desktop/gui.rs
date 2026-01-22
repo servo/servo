@@ -133,6 +133,14 @@ impl Gui {
             .memory(|memory| memory.focused().is_some())
     }
 
+    pub(crate) fn surrender_focus(&self) {
+        self.context.egui_ctx.memory_mut(|memory| {
+            if let Some(focused) = memory.focused() {
+                memory.surrender_focus(focused);
+            }
+        });
+    }
+
     pub(crate) fn on_window_event(
         &mut self,
         winit_window: &Window,

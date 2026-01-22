@@ -614,7 +614,10 @@ impl HeadedWindow {
                 consumed = true;
             },
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
-                if !forward_mouse_event_to_egui(None) => {},
+                if !forward_mouse_event_to_egui(None) =>
+            {
+                self.gui.borrow().surrender_focus();
+            },
             WindowEvent::KeyboardInput { .. } if !self.gui.borrow().has_keyboard_focus() => {
                 // Keyboard events should go to the WebView unless some other GUI
                 // component has keyboard focus.
