@@ -8583,8 +8583,8 @@ class CallbackMember(CGNativeMember):
 
     def getImpl(self) -> str:
         argvDecl = (
-            "rooted_vec!(let mut argv);\n"
-            f"argv.extend((0..{self.argCountStr}).map(|_| Heap::default()));\n"
+            "rooted!(&in(cx) let mut argv = vec![]);\n"
+            f"argv.extend((0..{self.argCountStr}).map(|_| JSVal::default()));\n"
         ) if self.argCount > 0 else ""  # Avoid weird 0-sized arrays
 
         # Newlines and semicolons are in the values
@@ -8651,22 +8651,20 @@ class CallbackMember(CGNativeMember):
         argval = arg.identifier.name
 
         if arg.variadic:
-            argval = f"{argval}[idx].get()"
+            argval = f"{argval}.get()"
             jsvalIndex = f"{i} + idx"
         else:
             jsvalIndex = f"{i}"
 
         conversion = wrapForType(
-            "argv_root.handle_mut()", result=argval,
-            successCode=("{\n"
-                         f"let arg = &mut argv[{jsvalIndex.removeprefix('0 + ')}];\n"
-                         "*arg = Heap::default();\n"
-                         "arg.set(argv_root.get());\n"
-                         "}"),
-            pre="rooted!(&in(cx) let mut argv_root = UndefinedValue());")
+            f"argv.handle_mut_at({jsvalIndex.removeprefix('0 + ')})",
+            result=argval,
+            successCode="",
+            pre="")
         if arg.variadic:
+            argname = arg.identifier.name
             conversion = (
-                f"for idx in 0..{arg.identifier.name}.len() {{\n"
+                f"for (idx, {argname}) in {argname}.iter().enumerate() {{\n"
                 f"{CGIndenter(CGGeneric(conversion)).define()}\n}}"
             )
         elif arg.optional and not arg.defaultValue:
@@ -8676,7 +8674,7 @@ class CallbackMember(CGNativeMember):
                 "    // This is our current trailing argument; reduce argc\n"
                 "    argc -= 1;\n"
                 "} else {\n"
-                f"    argv[{i}] = Heap::default();\n"
+                f"    argv.set_index({i}, Default::default());\n"
                 "}"
             )
         return conversion
@@ -8747,7 +8745,7 @@ class CallbackMethod(CallbackMember):
 
     def getCall(self) -> str:
         if self.argCount > 0:
-            argv = "argv.as_ptr() as *const JSVal"
+            argv = "std::ops::Deref::deref(&argv).as_ptr()"
             argc = "argc"
         else:
             argv = "ptr::null_mut()"
@@ -8919,7 +8917,7 @@ class CGIterableMethodGenerator(CGGeneric):
                 rooted!(&in(cx) let arg0 = ObjectValue(arg0));
                 rooted!(&in(cx) let mut call_arg1 = UndefinedValue());
                 rooted!(&in(cx) let mut call_arg2 = UndefinedValue());
-                rooted_vec!(let mut call_args);
+                rooted!(&in(cx) let mut call_args = vec![]);
                 call_args.push(UndefinedValue());
                 call_args.push(UndefinedValue());
                 call_args.push(ObjectValue(*_obj));
@@ -8936,8 +8934,8 @@ class CGIterableMethodGenerator(CGGeneric):
                 while i < (*this).get_iterable_length() {
                   (*this).get_value_at_index(i).to_jsval(cx.raw_cx(), call_arg1.handle_mut());
                   (*this).get_key_at_index(i).to_jsval(cx.raw_cx(), call_arg2.handle_mut());
-                  call_args[0] = call_arg1.handle().get();
-                  call_args[1] = call_arg2.handle().get();
+                  call_args.set_index(0, call_arg1.handle().get());
+                  call_args.set_index(1, call_arg2.handle().get());
                   let call_args_handle = HandleValueArray::from(&call_args);
                   if !Call(cx.raw_cx(), arg1, arg0.handle(), &call_args_handle,
                            ignoredReturnVal.handle_mut()) {

@@ -140,11 +140,14 @@ impl RequestListener {
                     key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut(), can_gc)
                 },
                 IdbResult::Keys(keys) => {
-                    rooted_vec!(let mut array);
-                    for key in keys.into_iter() {
-                        rooted!(in(*cx) let mut val = UndefinedValue());
-                        key_type_to_jsval(GlobalScope::get_cx(), &key, val.handle_mut(), can_gc);
-                        array.push(Heap::boxed(val.get()));
+                    rooted!(in(*cx) let mut array = vec![JSVal::default(); keys.len()]);
+                    for (i, key) in keys.into_iter().enumerate() {
+                        key_type_to_jsval(
+                            GlobalScope::get_cx(),
+                            &key,
+                            array.handle_mut_at(i),
+                            can_gc,
+                        );
                     }
                     array.safe_to_jsval(cx, answer.handle_mut(), can_gc);
                 },
@@ -161,20 +164,23 @@ impl RequestListener {
                     };
                 },
                 IdbResult::Values(serialized_values) => {
-                    rooted_vec!(let mut values);
-                    for serialized_data in serialized_values.into_iter() {
-                        rooted!(in(*cx) let mut val = UndefinedValue());
+                    rooted!(in(*cx) let mut values = vec![JSVal::default(); serialized_values.len()]);
+                    for (i, serialized_data) in serialized_values.into_iter().enumerate() {
                         let result = bincode::deserialize(&serialized_data)
                             .map_err(|_| Error::Data(None))
                             .and_then(|data| {
-                                structuredclone::read(&global, data, val.handle_mut(), can_gc)
+                                structuredclone::read(
+                                    &global,
+                                    data,
+                                    values.handle_mut_at(i),
+                                    can_gc,
+                                )
                             });
                         if let Err(e) = result {
                             warn!("Error reading structuredclone data");
                             Self::handle_async_request_error(&global, cx, request, e);
                             return;
                         };
-                        values.push(Heap::boxed(val.get()));
                     }
                     values.safe_to_jsval(cx, answer.handle_mut(), can_gc);
                 },
