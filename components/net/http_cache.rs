@@ -647,7 +647,7 @@ pub(crate) fn construct_response(
 
 /// Freshening Stored Responses upon Validation.
 /// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
-pub async fn refresh(
+pub fn refresh(
     request: &Request,
     response: Response,
     done_chan: &mut DoneChannel,
@@ -762,7 +762,7 @@ impl HttpCache {
     /// Wake-up consumers of cached resources
     /// whose response body was still receiving data when the resource was constructed,
     /// and whose response has now either been completed or cancelled.
-    pub async fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
+    pub(crate) async fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
         let entry_key = CacheKey::new(request);
 
         let cached_resources = match self.entries.get(&entry_key) {
@@ -808,7 +808,7 @@ impl HttpCache {
     }
 
     /// Returns descriptors for cache entries currently stored in this cache.
-    pub fn cache_entry_descriptors(&self) -> Vec<CacheEntryDescriptor> {
+    pub(crate) fn cache_entry_descriptors(&self) -> Vec<CacheEntryDescriptor> {
         self.entries
             .iter()
             .map(|(key, _)| CacheEntryDescriptor::new(key.url.to_string()))
@@ -816,14 +816,14 @@ impl HttpCache {
     }
 
     /// Clear the contents of this cache.
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
         self.entries.clear();
     }
 
     /// Insert a response for `request` into the cache (used by tests that need direct access).
     pub async fn store(&self, request: &Request, response: &Response) {
         let guard = self.get_or_guard(CacheKey::new(request)).await;
-        guard.insert(request, response).await;
+        guard.insert(request, response);
     }
 
     /// Try to construct a cached response for `request`.
@@ -839,7 +839,7 @@ impl HttpCache {
     }
 
     /// Invalidate cache entries referenced by Location/Content-Location headers.
-    pub async fn invalidate_related_urls(
+    pub(crate) async fn invalidate_related_urls(
         &self,
         request: &Request,
         response: &Response,
@@ -884,7 +884,7 @@ pub enum CachedResourcesOrGuard<'a> {
 
 impl<'a> CachedResourcesOrGuard<'a> {
     /// Insert into the cache according to http spec
-    pub async fn insert(self, request: &Request, response: &Response) {
+    pub fn insert(self, request: &Request, response: &Response) {
         if pref!(network_http_cache_disabled) {
             return;
         }

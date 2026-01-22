@@ -1639,8 +1639,7 @@ async fn http_network_or_cache_fetch(
                 // since the network response will be replaced by the revalidated stored one.
                 *done_chan = None;
                 if let Some(guard) = cache_guard.try_as_mut() {
-                    response =
-                        refresh(http_request, forward_response.clone(), done_chan, guard).await;
+                    response = refresh(http_request, forward_response.clone(), done_chan, guard);
                 }
 
                 if let Some(response) = &mut response {
@@ -1658,7 +1657,7 @@ async fn http_network_or_cache_fetch(
                 if http_request.cache_mode != CacheMode::NoStore {
                     // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
                     //             "Storing Responses in Caches" chapter of HTTP Caching.
-                    cache_guard.insert(http_request, forward_response).await;
+                    cache_guard.insert(http_request, forward_response);
                 }
             }
             false
