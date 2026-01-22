@@ -144,7 +144,7 @@ impl IDBFactory {
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbfactory-open>
-    /// The error dispatching part from within a task part. 
+    /// The error dispatching part from within a task part.
     fn dispatch_error(&self, name: DBName, request_id: Uuid, dom_exception: Error, can_gc: CanGc) {
         // Step 5.3.1: If result is an error, then:
         let request = {
@@ -170,10 +170,10 @@ impl IDBFactory {
         request.set_error(Some(dom_exception), can_gc);
 
         // Step 5.3.1.3: Set request’s done flag to true.
-        // TODO. 
+        // TODO.
 
-        // Step 5.3.1.4: Fire an event named error at request 
-        // with its bubbles 
+        // Step 5.3.1.4: Fire an event named error at request
+        // with its bubbles
         // and cancelable attributes initialized to true.
         let event = Event::new(
             &global,
@@ -198,7 +198,7 @@ impl IDBFactory {
         {
             let mut pending = self.pending_connections.borrow_mut();
             let outer = pending.entry(DBName(name.to_string())).or_default();
-            outer.insert(request_id.clone(), Dom::from_ref(request));
+            outer.insert(request_id, Dom::from_ref(request));
         }
 
         let response_listener = Trusted::new(self);
@@ -212,7 +212,7 @@ impl IDBFactory {
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
             let response_listener = response_listener.clone();
             let name = name_copy.clone();
-            let request_id = request_id.clone();
+            let request_id = request_id;
             let backend_result = match message {
                 Ok(inner) => inner,
                 Err(err) => Err(BackendError::DbErr(format!("{err:?}"))),

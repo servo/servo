@@ -134,7 +134,7 @@ impl IDBOpenDBRequest {
     }
 
     pub(crate) fn set_connection(&self, connection: &IDBDatabase) {
-        self.pending_connection.set(Some(&connection));
+        self.pending_connection.set(Some(connection));
     }
 
     /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
