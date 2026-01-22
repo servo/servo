@@ -2934,7 +2934,8 @@ dependencies = [
 [[package]]
 name = "fontsan"
 version = "0.6.1"
-source = "git+https://github.com/servo/fontsan#ec58e75f566648a256a4fe7264ea6ffa2b83f201"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52fd401b496627c46f35318272508fcdcb77927868507ed2ad796408aa903923"
 dependencies = [
  "cc",
  "fontsan-woff2",
@@ -2946,7 +2947,8 @@ dependencies = [
 [[package]]
 name = "fontsan-woff2"
 version = "0.1.1"
-source = "git+https://github.com/servo/fontsan#ec58e75f566648a256a4fe7264ea6ffa2b83f201"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "106ebe29445505f3860765d2597ddad20a3e90174d6e8539a10d58253b3e5c0f"
 dependencies = [
  "brotli-decompressor",
  "cc",
