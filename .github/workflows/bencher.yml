@@ -97,7 +97,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
-          ./mach bootstrap --skip-lints --skip-nextest
+          ./mach bootstrap --yes --skip-lints --skip-nextest
       - uses: bencherdev/bencher@main
       - name: File size
         if: ${{ inputs.file-size == true }}

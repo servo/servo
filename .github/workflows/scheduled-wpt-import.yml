@@ -37,7 +37,7 @@ jobs:
       - name: Prep environment
         run: |
           sudo apt update
-          ./mach bootstrap --skip-lints --skip-nextest
+          ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Add upstream remote
         run: |
           git config --local user.email "ghbot+wpt-sync@servo.org"
