@@ -439,7 +439,8 @@ pub(crate) fn host_load_imported_module(
     };
 
     // Step 6.2. Set settingsObject to referencingScript's settings object.
-    // Note: We later set fetchClient to the `ModuleOwner` provided by loadState.
+    // Note: We later set fetchClient to the `ModuleOwner` provided by loadState,
+    // which provides the `GlobalScope` that we will use for fetching.
 
     // TODO It seems that Gecko doesn't implement this step, and currently we don't handle module types.
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
