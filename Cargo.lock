@@ -3971,8 +3971,9 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.37.1"
-source = "git+https://github.com/simonwuelker/html5ever?branch=selectedcontent-fixes#c5b938be01fa94a3d59315f229200633cbbaab97"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1054432bae2f14e0061e33d23402fbaa67a921d319d56adc6bcf887ddad1cbc2"
 dependencies = [
  "log",
  "markup5ever",
@@ -5332,8 +5333,9 @@ dependencies = [
 
 [[package]]
 name = "markup5ever"
-version = "0.37.1"
-source = "git+https://github.com/simonwuelker/html5ever?branch=selectedcontent-fixes#c5b938be01fa94a3d59315f229200633cbbaab97"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8983d30f2915feeaaab2d6babdd6bc7e9ed1a00b66b5e6d74df19aa9c0e91862"
 dependencies = [
  "log",
  "tendril",
@@ -7815,6 +7817,7 @@ dependencies = [
  "deny_public_fields",
  "dom_struct",
  "domobject_derive",
+ "encoding_rs",
  "html5ever",
  "indexmap",
  "jstraceable_derive",
@@ -9141,7 +9144,8 @@ dependencies = [
 [[package]]
 name = "tendril"
 version = "0.5.0"
-source = "git+https://github.com/simonwuelker/html5ever?branch=selectedcontent-fixes#c5b938be01fa94a3d59315f229200633cbbaab97"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4790fc369d5a530f4b544b094e31388b9b3a37c0f4652ade4505945f5660d24"
 dependencies = [
  "encoding_rs",
  "new_debug_unreachable",
@@ -10263,7 +10267,8 @@ dependencies = [
 [[package]]
 name = "web_atoms"
 version = "0.2.1"
-source = "git+https://github.com/simonwuelker/html5ever?branch=selectedcontent-fixes#c5b938be01fa94a3d59315f229200633cbbaab97"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30e588f10c7bc3465f5fc1ab087fc97877ec1064a7ec89fb685ac4ee998dac4a"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -11326,8 +11331,9 @@ checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
 
 [[package]]
 name = "xml5ever"
-version = "0.37.1"
-source = "git+https://github.com/simonwuelker/html5ever?branch=selectedcontent-fixes#c5b938be01fa94a3d59315f229200633cbbaab97"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3dc9559429edf0cd3f327cc0afd9d6b36fa8cec6d93107b7fbe64f806b5f2d9"
 dependencies = [
  "log",
  "markup5ever",

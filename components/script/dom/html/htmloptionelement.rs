@@ -154,7 +154,7 @@ impl HTMLOptionElement {
         label
     }
 
-    /// <https://html.spec.whatwg.org/#option-element-nearest-ancestor-select>
+    /// <https://html.spec.whatwg.org/multipage/#option-element-nearest-ancestor-select>
     fn nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
         // Step 1. Let ancestorOptgroup be null.
         // NOTE: We only care whether the value is non-null, so a boolean is enough
@@ -195,7 +195,7 @@ impl HTMLOptionElement {
         None
     }
 
-    /// <https://html.spec.whatwg.org/#maybe-clone-an-option-into-selectedcontent>
+    /// <https://html.spec.whatwg.org/multipage/#maybe-clone-an-option-into-selectedcontent>
     pub(crate) fn maybe_clone_an_option_into_selectedcontent(&self, can_gc: CanGc) {
         // Step 1. Let select be option's option element nearest ancestor select.
         let select = self.nearest_ancestor_select();
@@ -214,7 +214,7 @@ impl HTMLOptionElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/#clone-an-option-into-a-selectedcontent>
+    /// <https://html.spec.whatwg.org/multipage/#clone-an-option-into-a-selectedcontent>
     fn clone_an_option_into_selectedcontent(&self, selectedcontent: &Element, can_gc: CanGc) {
         // Step 1. Let documentFragment be a new DocumentFragment whose node document is option's node document.
         let document_fragment = DocumentFragment::new(&self.owner_document(), can_gc);

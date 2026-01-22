@@ -446,7 +446,7 @@ impl HTMLSelectElement {
         !el.disabled_state()
     }
 
-    /// <https://html.spec.whatwg.org/#select-enabled-selectedcontent>
+    /// <https://html.spec.whatwg.org/multipage/#select-enabled-selectedcontent>
     pub(crate) fn get_enabled_selectedcontent(&self) -> Option<DomRoot<Element>> {
         // Step 1. If select has the multiple attribute, then return null.
         if self.Multiple() {
@@ -455,18 +455,14 @@ impl HTMLSelectElement {
 
         // Step 2. Let selectedcontent be the first selectedcontent element descendant
         // of select in tree order if any such element exists; otherwise return null.
-        let selectedcontent = self
-            .upcast::<Node>()
+        // TODO: Step 3. If selectedcontent's disabled is true, then return null.
+        // NOTE: We don't actually implement selectedcontent yet
+        // Step 4. Return selectedcontent.
+        self.upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .skip(1)
             .filter_map(DomRoot::downcast::<Element>)
-            .find(|element| element.local_name() == &local_name!("selectedcontent"));
-
-        // TODO: Step 3. If selectedcontent's disabled is true, then return null.
-        // NOTE: We don't actually implement selectedcontent yet
-
-        // Step 4. Return selectedcontent.
-        selectedcontent
+            .find(|element| element.local_name() == &local_name!("selectedcontent"))
     }
 }
 
