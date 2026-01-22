@@ -37,13 +37,17 @@ use crate::dom::promise::Promise;
 use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
 use crate::script_runtime::CanGc;
 
+/// A non-jstraceable string wrapper for use in `HashMapTracedValues`.
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub(crate) struct DBName(pub(crate) String);
+
 #[dom_struct]
 pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections pending #open-a-database-connection.
     pending_connections:
-        DomRefCell<HashMapTracedValues<String, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
+        DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
 }
 
 impl IDBFactory {
@@ -67,6 +71,7 @@ impl IDBFactory {
         request_id: Uuid,
         can_gc: CanGc,
     ) {
+        let name = DBName(name);
         let request = {
             let mut pending = self.pending_connections.borrow_mut();
             let Some(entry) = pending.get_mut(&name) else {
@@ -88,7 +93,7 @@ impl IDBFactory {
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                request.dispatch_success(name.clone(), version, upgraded, can_gc);
+                request.dispatch_success(name.0.clone(), version, upgraded, can_gc);
                 true
             },
             OpenDatabaseResult::Upgrade {
@@ -99,7 +104,7 @@ impl IDBFactory {
                 // TODO: link with backend connection concept.
                 let connection = IDBDatabase::new(
                     &global,
-                    DOMString::from_string(name.clone()),
+                    DOMString::from_string(name.0.clone()),
                     version,
                     can_gc,
                 );
@@ -131,7 +136,7 @@ impl IDBFactory {
         can_gc: CanGc,
     ) {
         self.dispatch_error(
-            name,
+            DBName(name),
             request_id,
             map_backend_error_to_dom_error(backend_error),
             can_gc,
@@ -144,7 +149,7 @@ impl IDBFactory {
     // set request’s done flag,
     // and fire an event named error at request
     // with its bubbles and cancelable attributes initialized to true.
-    fn dispatch_error(&self, name: String, request_id: Uuid, dom_exception: Error, can_gc: CanGc) {
+    fn dispatch_error(&self, name: DBName, request_id: Uuid, dom_exception: Error, can_gc: CanGc) {
         let request = {
             let mut pending = self.pending_connections.borrow_mut();
             let Some(entry) = pending.get_mut(&name) else {
@@ -184,7 +189,7 @@ impl IDBFactory {
 
         {
             let mut pending = self.pending_connections.borrow_mut();
-            let outer = pending.entry(name.to_string()).or_default();
+            let outer = pending.entry(DBName(name.to_string())).or_default();
             outer.insert(request_id.clone(), Dom::from_ref(request));
         }
 
@@ -235,7 +240,7 @@ impl IDBFactory {
         Ok(())
     }
 
-    pub(crate) fn note_end_of_open(&self, name: &String, id: &Uuid) {
+    pub(crate) fn note_end_of_open(&self, name: &DBName, id: &Uuid) {
         let mut pending = self.pending_connections.borrow_mut();
         let empty = {
             let Some(entry) = pending.get_mut(name) else {
@@ -258,7 +263,7 @@ impl IDBFactory {
             .iter()
             .map(|(key, val)| {
                 let ids: HashSet<Uuid> = val.iter().map(|(k, _v)| *k).collect();
-                (key.clone(), ids)
+                (key.0.clone(), ids)
             })
             .collect();
         let origin = global.origin().immutable().clone();
@@ -306,7 +311,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
 
         // Step 5: Runs in parallel
-        if self.open_database(name.clone(), version, &request).is_err() {
+        if self.open_database(name, version, &request).is_err() {
             return Err(Error::Operation(None));
         }
 
