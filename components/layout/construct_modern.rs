@@ -14,6 +14,7 @@ use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
+use crate::flow::inline::SharedInlineStyles;
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
 use crate::formatting_contexts::{
@@ -34,6 +35,11 @@ pub(crate) struct ModernContainerBuilder<'a, 'dom> {
     /// To be run in parallel with rayon in `finish`
     jobs: Vec<ModernContainerJob<'dom>>,
     has_text_runs: bool,
+    /// A stack of `display: contents` styles currently in scope. This matters because
+    /// `display: contents` elements do not generate boxes but still provide styling
+    /// for their children, and text runs which get different styles due to that can be
+    /// wrapped into the same anonymous flex/grid item.
+    display_contents_shared_styles: Vec<SharedInlineStyles>,
 }
 
 enum ModernContainerJob<'dom> {
@@ -52,7 +58,28 @@ impl<'dom> ModernContainerJob<'dom> {
             ModernContainerJob::TextRuns(runs, box_slot) => {
                 let mut inline_formatting_context_builder =
                     InlineFormattingContextBuilder::new(builder.info);
+                let mut last_style_from_display_contents: Option<SharedInlineStyles> = None;
                 for flex_text_run in runs.into_iter() {
+                    match (
+                        last_style_from_display_contents.as_ref(),
+                        flex_text_run.style_from_display_contents.as_ref(),
+                    ) {
+                        (None, None) => {},
+                        (Some(old_style), Some(new_style)) if old_style.ptr_eq(new_style) => {},
+                        _ => {
+                            // If we have nested `display: contents`, then this logic will leave the
+                            // outer one before entering the new one. This is fine, because the inline
+                            // formatting context builder only uses the last style on the stack.
+                            if last_style_from_display_contents.is_some() {
+                                inline_formatting_context_builder.leave_display_contents();
+                            }
+                            if let Some(ref new_style) = flex_text_run.style_from_display_contents {
+                                inline_formatting_context_builder
+                                    .enter_display_contents(new_style.clone());
+                            }
+                        },
+                    }
+                    last_style_from_display_contents = flex_text_run.style_from_display_contents;
                     inline_formatting_context_builder
                         .push_text(flex_text_run.text, &flex_text_run.info);
                 }
@@ -141,6 +168,7 @@ impl<'dom> ModernContainerJob<'dom> {
 struct ModernContainerTextRun<'dom> {
     info: NodeAndStyleInfo<'dom>,
     text: Cow<'dom, str>,
+    style_from_display_contents: Option<SharedInlineStyles>,
 }
 
 impl ModernContainerTextRun<'_> {
@@ -172,7 +200,16 @@ impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
         self.contiguous_text_runs.push(ModernContainerTextRun {
             info: info.clone(),
             text,
+            style_from_display_contents: self.display_contents_shared_styles.last().cloned(),
         })
+    }
+
+    fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
+        self.display_contents_shared_styles.push(styles);
+    }
+
+    fn leave_display_contents(&mut self) {
+        self.display_contents_shared_styles.pop();
     }
 
     /// Or pseudo-element
@@ -208,6 +245,7 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
             contiguous_text_runs: Vec::new(),
             jobs: Vec::new(),
             has_text_runs: false,
+            display_contents_shared_styles: Vec::new(),
         }
     }
 

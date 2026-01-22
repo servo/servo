@@ -191,6 +191,12 @@ pub(crate) struct SharedInlineStyles {
     pub selected: SharedStyle,
 }
 
+impl SharedInlineStyles {
+    pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
+        self.style.ptr_eq(&other.style) && self.selected.ptr_eq(&other.selected)
+    }
+}
+
 impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
     fn from(info: &NodeAndStyleInfo) -> Self {
         Self {
