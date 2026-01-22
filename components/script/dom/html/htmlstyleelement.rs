@@ -210,7 +210,6 @@ impl HTMLStyleElement {
     //
     // With the reuse of `StylesheetContent` for same stylesheet string content,
     // this function has a bit difference with `HTMLLinkElement::set_stylesheet` now.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_stylesheet(
         &self,
         s: Arc<Stylesheet>,
