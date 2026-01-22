@@ -16,6 +16,6 @@ set -o pipefail
 # 3. sort the packages alphabetically
 # 4. Transform to space separated list
 # 5. Trim whitespace
-PACKAGE_LIST=$(cat "${@}" | grep -v '^#' | sort | tr '\n' ' ' | awk '{$1=$1;print}')
+PACKAGE_LIST=$(cat "${@}" | grep -v '^#' | sort --ignore-case | tr '\n' ' ' | awk '{$1=$1;print}')
 
 echo "${PACKAGE_LIST}"
