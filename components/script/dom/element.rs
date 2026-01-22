@@ -5473,7 +5473,10 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         // > If error is true:
         // > - Append (fullscreenerror, this) to pendingDoc’s list of pending fullscreen events.
         // > - Reject promise with a TypeError exception and terminate these steps.
-        if self.document.root() != document || !element.fullscreen_element_ready_check() || self.error {
+        if self.document.root() != document ||
+            !element.fullscreen_element_ready_check() ||
+            self.error
+        {
             // TODO(#31866): we should queue this and fire them in update the rendering.
             document
                 .upcast::<EventTarget>()
@@ -5485,11 +5488,10 @@ impl TaskOnce for ElementPerformFullscreenEnter {
             return;
         }
 
-        // TODO: Step 11-13
-        // The following operations is based on the old version of the specs. Now they are a part of the step 13.
+        // TODO(#42067): Implement step 11-13
+        // The following operations is based on the old version of the specs.
         element.set_fullscreen_state(true);
         document.set_fullscreen_element(Some(&element));
-        // TODO(#31866): we should queue this and fire them in update the rendering.
         document
             .upcast::<EventTarget>()
             .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
@@ -5515,20 +5517,24 @@ impl ElementPerformFullscreenExit {
 }
 
 impl TaskOnce for ElementPerformFullscreenExit {
+    /// Step 9-16 of <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
     fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
         let document = element.owner_document();
-        // TODO Step 9.1-5
-        // Step 9.6
+        // Step 9.
+        // > Run the fully unlock the screen orientation steps with doc.
+        // TODO: Need to implement ScreenOrientation API first
+
+        // TODO(#42067): Implement step 10-15
+        // The following operations is based on the old version of the specs.
         element.set_fullscreen_state(false);
         document.set_fullscreen_element(None);
-
-        // Step 9.8
         document
             .upcast::<EventTarget>()
             .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
 
-        // Step 9.10
+        // Step 16
+        // > Resolve promise with undefined.
         self.promise.root().resolve_native(&(), CanGc::from_cx(cx));
     }
 }

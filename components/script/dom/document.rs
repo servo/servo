@@ -4327,7 +4327,6 @@ impl Document {
         // Step 1
         // > Let pendingDoc be this’s node document.
         // `Self` is the pending document.
-        let window = self.window();
 
         // Step 2
         // > Let promise be a new promise.
@@ -4337,7 +4336,10 @@ impl Document {
         // Step 3
         // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() {
-            promise.reject_error(Error::Type("Request fullscreen with not fully active `Document`".to_owned()), can_gc);
+            promise.reject_error(
+                Error::Type("Request fullscreen with not fully active `Document`".to_owned()),
+                can_gc,
+            );
         }
 
         // Step 4
@@ -4374,9 +4376,12 @@ impl Document {
             }
 
             // > - Fullscreen is supported.
+            // <https://fullscreen.spec.whatwg.org/#fullscreen-is-supported>
+            // > Fullscreen is supported if there is no previously-established user preference, security risk, or platform limitation.
+            // TODO: Add checks for whether fullscreen is supported as definition.
 
             // > - This’s relevant global object has transient activation or the algorithm is triggered by a user generated orientation change.
-            // TODO(stevennovaryo): Implement this with user activation.
+            // TODO: Implement with user activation.
         }
 
         if pref!(dom_fullscreen_test) {
@@ -4391,29 +4396,31 @@ impl Document {
 
         // Step 6
         // > If error is false, then consume user activation given pendingDoc’s relevant global object.
-        // TODO(stevennovaryo): Implement this with user activation.
-
-        // Step 7
-        // > Return promise, and run the remaining steps in parallel.
+        // TODO: Implement with user activation.
 
         // Step 8.
         // > If error is false, then resize pendingDoc’s node navigable’s top-level traversable’s active document’s viewport’s dimensions,
         // > optionally taking into account options["navigationUI"]:
-        // TODO(#42064): Implement fullscreen options.
+        // TODO(#21600): Improve spec compliance of steps 7-13 paralelism.
+        // TODO(#42064): Implement fullscreen options, and ensure that this is spec compliant for all embedder.
         if !error {
             let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), true);
             self.send_to_embedder(event);
         }
 
-        // Then run the remaining steps in paralel by queuing a message.
-        // TODO(#21600): These steps should be running in parallel
-        // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+        // Step 7
+        // > Return promise, and run the remaining steps in parallel.
         let pipeline_id = self.window().pipeline_id();
 
         let trusted_pending = Trusted::new(pending);
         let trusted_pending_doc = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let handler = ElementPerformFullscreenEnter::new(trusted_pending, trusted_pending_doc, trusted_promise, error);
+        let handler = ElementPerformFullscreenEnter::new(
+            trusted_pending,
+            trusted_pending_doc,
+            trusted_promise,
+            error,
+        );
         let script_msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::EnterFullscreen,
             handler,
@@ -4421,39 +4428,44 @@ impl Document {
             TaskSourceName::DOMManipulation,
         );
         let msg = MainThreadScriptMsg::Common(script_msg);
-        window.main_thread_script_chan().send(msg).unwrap();
+        self.window().main_thread_script_chan().send(msg).unwrap();
 
         promise
     }
 
-    // https://fullscreen.spec.whatwg.org/#exit-fullscreen
+    /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
     pub(crate) fn exit_fullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
+
         // Step 1
+        // > Let promise be a new promise
         let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+
         // Step 2
-        if self.fullscreen_element.get().is_none() {
+        // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
+        if !self.is_fully_active() || self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")), can_gc);
             return promise;
         }
-        // TODO Step 3-6
+
+        // TODO(#42067): Implement step 3-7, handling fullscreen's propagation across navigables.
+
         let element = self.fullscreen_element.get().unwrap();
-
-        // Step 7 Parallel start
-
         let window = self.window();
-        // Step 8
+
+        // Step 10
+        // > If resize is true, resize doc’s viewport to its "normal" dimensions.
+        // TODO(#21600): Improve spec compliance of steps 8-15 paralelism.
         let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), false);
         self.send_to_embedder(event);
 
-        // Step 9
+        // Step 8
+        // > Return promise, and run the remaining steps in parallel.
         let trusted_element = Trusted::new(&*element);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
         let pipeline_id = Some(global.pipeline_id());
-        // NOTE: This steps should be running in parallel
-        // https://fullscreen.spec.whatwg.org/#exit-fullscreen
         let script_msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::ExitFullscreen,
             handler,
