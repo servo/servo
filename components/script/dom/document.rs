@@ -3486,7 +3486,7 @@ impl Document {
             match value {
                 // Step 3.1: If value is a TrustedHTML object, then append value's associated data to string.
                 TrustedHTMLOrString::TrustedHTML(trusted_html) => {
-                    strings.push(trusted_html.to_string().to_owned());
+                    strings.push(trusted_html.to_string());
                 },
                 TrustedHTMLOrString::String(str_) => {
                     // Step 2: Let isTrusted be false if text contains a string; otherwise true.
