@@ -19,6 +19,10 @@ textarea {
   font-size: 0.8333em;
 }
 
+textarea:disabled {
+  color: grey;
+}
+
 input::-servo-text-control-inner-editor {
   overflow-wrap: normal;
   pointer-events: auto;
@@ -51,6 +55,10 @@ input::placeholder {
   position: absolute !important;
 }
 
+input:disabled::-servo-text-control-inner-editor {
+  color: grey;
+}
+
 input::color-swatch {
   box-sizing: border-box;
   border: 1px solid gray;
@@ -76,6 +84,14 @@ input[type="reset"] {
   border-right: solid 1px #999999;
   border-bottom: solid 1px #999999;
   color: black;
+}
+
+button:disabled,
+input[type="button" i]:disabled,
+input[type="submit" i]:disabled,
+input[type="reset" i]:disabled {
+  color: gray;
+  border-color: gray;
 }
 
 input[type="hidden"] { display: none !important }
@@ -111,6 +127,11 @@ input[type="radio"]::before {
   text-align: center;
 }
 
+input[type="radio"]:disabled,
+input[type="checkbox"]:disabled {
+  color: grey;
+}
+
 input[type="radio"]:checked::before { content: "●"; line-height: 1em; }
 
 input[type="file"]::before {
@@ -120,6 +141,11 @@ input[type="file"]::before {
   border-left: solid 1px #CCCCCC;
   border-right: solid 1px #999999;
   border-bottom: solid 1px #999999;
+}
+
+input[type="file"]:disabled::before {
+  color: gray;
+  border-color: gray;
 }
 
 input[type="file"] {
@@ -135,6 +161,10 @@ input[type="color"] {
   border-radius: 2px;
   background: lightgrey;
   border: 1px solid gray;
+}
+
+input[type="color"]:disabled {
+  border-color: lightgrey;
 }
 
 td[align="left"]    { text-align: left; }
@@ -156,6 +186,10 @@ input:not([type=radio i], [type=checkbox i], [type=reset i], [type=button i], [t
   white-space: pre;
 }
 
+input:not([type=radio i], [type=checkbox i], [type=reset i], [type=button i], [type=submit i]):disabled {
+  cursor: unset;
+}
+
 input:is([type=submit i], [type=reset i], [type=button i], [type=checkbox i], [type=radio i], [type=color i]) {
   cursor: default;
 }
@@ -163,6 +197,10 @@ input:is([type=submit i], [type=reset i], [type=button i], [type=checkbox i], [t
 textarea {
   cursor: text;
   overflow: auto;
+}
+
+textarea:disabled {
+  cursor: unset;
 }
 
 /* https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements */
@@ -328,6 +366,11 @@ select {
   color: black;
   vertical-align: baseline;
   appearance: auto;
+}
+
+select:disabled {
+  color: gray;
+  border-color: gray;
 }
 
 /* Matches https://searchfox.org/mozilla-central/rev/a1f4cb9fc03d81be41ca2ba81294592df784364d/layout/style/res/forms.css#120-132 */
