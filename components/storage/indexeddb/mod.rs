@@ -16,7 +16,7 @@ use base::threadpool::ThreadPool;
 use log::{debug, error, warn};
 use profile_traits::generic_callback::GenericCallback;
 use rusqlite::Error as RusqliteError;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
@@ -85,9 +85,20 @@ impl IndexedDBDescription {
     }
 }
 
+/// <https://w3c.github.io/IndexedDB/#connection>
+#[derive(Eq, Hash, PartialEq)]
+struct Connection {
+    /// <https://w3c.github.io/IndexedDB/#connection-version>
+    version: u64,
+
+    /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
+    close_pending: bool,
+}
+
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
     transactions: FxHashMap<u64, KvsTransaction>,
+    connections: FxHashSet<Connection>,
 }
 
 impl<E: KvsEngine> IndexedDBEnvironment<E> {
@@ -95,6 +106,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         IndexedDBEnvironment {
             engine,
             transactions: FxHashMap::default(),
+            connections: Default::default(),
         }
     }
 
@@ -849,9 +861,16 @@ impl IndexedDBManager {
             return;
         }
 
-        // Let connection be a new connection to db.
-        // Set connection’s version to version.
-        // TODO: track connections in the backend(each script `IDBDatabase` should have a matching connection).
+        // Step 8: Let connection be a new connection to db.
+        // Step 9: Set connection’s version to version.
+        let connection = Connection {
+            version,
+            close_pending: false,
+        };
+        let Some(db) = self.databases.get_mut(&idb_description) else {
+            unreachable!("Database is present at this point.");
+        };
+        db.connections.insert(connection);
 
         // Step 10: If db’s version is less than version, then:
         if db_version < version {
