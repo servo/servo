@@ -1790,7 +1790,16 @@ impl TreeSink for Sink {
     }
 
     fn maybe_clone_an_option_into_selectedcontent(&self, option: &Self::Handle) {
-        let option = option.downcast::<HTMLOptionElement>().unwrap();
+        let Some(option) = option.downcast::<HTMLOptionElement>() else {
+            if cfg!(debug_assertions) {
+                unreachable!();
+            }
+            log::error!(
+                "Received non-option element in maybe_clone_an_option_into_selectedcontent"
+            );
+            return;
+        };
+
         option.maybe_clone_an_option_into_selectedcontent(CanGc::note())
     }
 }

@@ -463,6 +463,7 @@ impl HTMLSelectElement {
             .find(|element| element.local_name() == &local_name!("selectedcontent"));
 
         // TODO: Step 3. If selectedcontent's disabled is true, then return null.
+        // NOTE: We don't actually implement selectedcontent yet
 
         // Step 4. Return selectedcontent.
         selectedcontent
