@@ -1786,21 +1786,24 @@ impl Element {
     /// [HTMLTextAreaElement].
     pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
         if self.is_focusable_area() {
-            Some(DomRoot::from_ref(self))
-        } else if self.upcast::<Node>().implemented_pseudo_element() ==
+            return Some(DomRoot::from_ref(self));
+        }
+
+        if self.upcast::<Node>().implemented_pseudo_element() ==
             Some(PseudoElement::ServoTextControlInnerEditor)
         {
-            let containing_shadow_host = self.containing_shadow_root().map(|root| root.Host());
-            debug_assert!(
-                containing_shadow_host
-                    .as_ref()
-                    .is_some_and(|e| e.is_focusable_area()),
-                "Containing shadow host is not focusable"
-            );
-            containing_shadow_host
-        } else {
-            None
+            // The containing shadow host might not be a focusable area if it is disabled.
+            let containing_shadow_host = self
+                .containing_shadow_root()
+                .map(|root| root.Host())
+                .expect("Text control inner shadow DOM should always have a shadow host.");
+            if !containing_shadow_host.is_focusable_area() {
+                return None;
+            }
+            return Some(containing_shadow_host);
         }
+
+        None
     }
 
     pub(crate) fn is_actually_disabled(&self) -> bool {
