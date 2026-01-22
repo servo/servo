@@ -880,10 +880,13 @@ impl IndexedDBManager {
             // Note: done above with `open_connections`.
 
             // Step 10.2: For each entry of openConnections
-            for conn in open_connections
+            for _conn in open_connections
                 .into_iter()
                 .filter(|conn| conn.close_pending)
-            {}
+            {
+                // TODO: queue a database task to fire a version change event
+                // named versionchange at entry with db’s version and version.
+            }
 
             // that does not have its close pending flag set to true,
             // queue a database task to fire a version change event
