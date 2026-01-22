@@ -26,6 +26,7 @@ use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::globalscope::GlobalScope;
@@ -494,7 +495,7 @@ pub(crate) fn host_load_imported_module(
             // Step 11. Let destination be "script".
             Destination::Script,
             // Step 12. Let fetchClient be settingsObject.
-            ModuleOwner::new_dynamic(&global_scope, CanGc::note()),
+            ModuleOwner::DynamicModule(Trusted::new(&global_scope)),
         ),
     };
 

@@ -913,7 +913,6 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         text_rc,
                         base_url.clone(),
-                        self.id,
                         options,
                         self.line_number as u32,
                         can_gc,

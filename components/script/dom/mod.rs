@@ -291,7 +291,6 @@ pub(crate) mod domrectreadonly;
 pub(crate) mod domstringlist;
 pub(crate) mod domstringmap;
 pub(crate) mod domtokenlist;
-pub(crate) mod dynamicmoduleowner;
 #[expect(dead_code)]
 pub(crate) mod element;
 pub(crate) mod elementinternals;

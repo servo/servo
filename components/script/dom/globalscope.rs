@@ -120,7 +120,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::html::htmlscriptelement::ScriptId;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -148,8 +147,7 @@ use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    DynamicModuleList, ImportMap, ModuleScript, ModuleTree, ResolvedModule, RethrowError,
-    ScriptFetchOptions,
+    ImportMap, ModuleScript, ModuleTree, ResolvedModule, RethrowError, ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -256,9 +254,6 @@ pub(crate) struct GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
     #[ignore_malloc_size_of = "mozjs"]
     module_map: DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>>,
-
-    #[ignore_malloc_size_of = "mozjs"]
-    inline_module_map: DomRefCell<FxHashMap<ScriptId, Rc<ModuleTree>>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -376,9 +371,6 @@ pub(crate) struct GlobalScope {
     ///
     /// <https://console.spec.whatwg.org/#count>
     console_count_map: DomRefCell<HashMap<DOMString, usize>>,
-
-    /// List of ongoing dynamic module imports.
-    dynamic_modules: DomRefCell<DynamicModuleList>,
 
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
@@ -799,7 +791,6 @@ impl GlobalScope {
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
-            inline_module_map: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
@@ -826,7 +817,6 @@ impl GlobalScope {
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
             console_count_map: Default::default(),
-            dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
             unminified_js_dir: unminify_js.then(|| unminified_path("unminified-js")),
             byte_length_queuing_strategy_size_function: OnceCell::new(),
@@ -2425,16 +2415,6 @@ impl GlobalScope {
         self.module_map.borrow().get(url).cloned()
     }
 
-    pub(crate) fn set_inline_module_map(&self, script_id: ScriptId, module: ModuleTree) {
-        self.inline_module_map
-            .borrow_mut()
-            .insert(script_id, Rc::new(module));
-    }
-
-    pub(crate) fn get_inline_module_map(&self) -> &DomRefCell<FxHashMap<ScriptId, Rc<ModuleTree>>> {
-        &self.inline_module_map
-    }
-
     #[expect(unsafe_code)]
     pub(crate) fn get_cx() -> SafeJSContext {
         let cx = Runtime::get()
@@ -3303,10 +3283,6 @@ impl GlobalScope {
             },
             None => Err(()),
         }
-    }
-
-    pub(crate) fn dynamic_module_list(&self) -> RefMut<'_, DynamicModuleList> {
-        self.dynamic_modules.borrow_mut()
     }
 
     pub(crate) fn structured_clone(
