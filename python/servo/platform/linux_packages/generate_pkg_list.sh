@@ -13,8 +13,9 @@ set -o pipefail
 
 # 1. Read all input files
 # 2. Remove comments (lines beginning with #)
-# 3. Transform to space separated list
-# 4. Trim whitespace
-PACKAGE_LIST=$(cat "${@}" | grep -v '^#' | tr '\n' ' ' | awk '{$1=$1;print}')
+# 3. sort the packages alphabetically
+# 4. Transform to space separated list
+# 5. Trim whitespace
+PACKAGE_LIST=$(cat "${@}" | grep -v '^#' | sort | tr '\n' ' ' | awk '{$1=$1;print}')
 
 echo "${PACKAGE_LIST}"
