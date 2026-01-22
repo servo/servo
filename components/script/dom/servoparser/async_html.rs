@@ -158,26 +158,21 @@ enum ParseOperation {
 enum ToTokenizerMsg {
     // From HtmlTokenizer
     TokenizerResultDone {
-        #[ignore_malloc_size_of = "Defined in html5ever"]
         updated_input: VecDeque<SendTendril<UTF8>>,
     },
     TokenizerResultScript {
         script: ParseNode,
-        #[ignore_malloc_size_of = "Defined in html5ever"]
         updated_input: VecDeque<SendTendril<UTF8>>,
     },
+    EncodingIndicator(SendTendril<UTF8>),
     End, // Sent to Tokenizer to signify HtmlTokenizer's end method has returned
-
     // From Sink
     ProcessOperation(ParseOperation),
 }
 
 #[derive(MallocSizeOf)]
 enum ToHtmlTokenizerMsg {
-    Feed {
-        #[ignore_malloc_size_of = "Defined in html5ever"]
-        input: VecDeque<SendTendril<UTF8>>,
-    },
+    Feed { input: VecDeque<SendTendril<UTF8>> },
     End,
     SetPlainTextState,
 }
@@ -367,7 +362,8 @@ impl Tokenizer {
                 ToTokenizerMsg::TokenizerResultScript {
                     script: _,
                     updated_input: _,
-                } => continue,
+                } |
+                ToTokenizerMsg::EncodingIndicator(_) => continue,
                 ToTokenizerMsg::End => return,
             };
         }
@@ -682,6 +678,9 @@ fn run(
                     TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript {
                         script,
                         updated_input,
+                    },
+                    TokenizerResult::EncodingIndicator(encoding) => {
+                        ToTokenizerMsg::EncodingIndicator(SendTendril::from(encoding))
                     },
                 };
                 sender.send(res).unwrap();

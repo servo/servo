@@ -55,6 +55,9 @@ impl Tokenizer {
                         return TokenizerResult::Script(DomRoot::from_ref(script));
                     }
                 },
+                TokenizerResult::EncodingIndicator(encoding) => {
+                    return TokenizerResult::EncodingIndicator(encoding);
+                },
             }
         }
     }

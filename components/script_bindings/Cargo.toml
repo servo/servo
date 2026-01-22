@@ -22,6 +22,7 @@ crossbeam-channel = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
 dom_struct = { path = "../dom_struct" }
 domobject_derive = { path = "../domobject_derive" }
+encoding_rs = { workspace = true }
 html5ever = { workspace = true }
 indexmap = { workspace = true }
 js = { workspace = true }

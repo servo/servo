@@ -29,8 +29,12 @@ use crate::dom::html::htmlformelement::HTMLFormElement;
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, ShadowIncluding,
+    UnbindContext,
+};
 use crate::dom::text::Text;
+use crate::dom::types::DocumentFragment;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -148,6 +152,91 @@ impl HTMLOptionElement {
         }
 
         label
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#option-element-nearest-ancestor-select>
+    fn nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
+        // Step 1. Let ancestorOptgroup be null.
+        // NOTE: We only care whether the value is non-null, so a boolean is enough
+        let mut did_see_ancestor_optgroup = false;
+
+        // Step 2. For each ancestor of option's ancestors, in reverse tree order:
+        for ancestor in self
+            .upcast::<Node>()
+            .ancestors()
+            .filter_map(DomRoot::downcast::<Element>)
+        {
+            // Step 2.1 If ancestor is a datalist, hr, or option element, then return null.
+            if matches!(
+                ancestor.local_name(),
+                &local_name!("datalist") | &local_name!("hr") | &local_name!("option")
+            ) {
+                return None;
+            }
+
+            // Step 2.2 If ancestor is an optgroup element
+            if ancestor.local_name() == &local_name!("optgroup") {
+                // Step 2.1 If ancestorOptgroup is not null, then return null.
+                if did_see_ancestor_optgroup {
+                    return None;
+                }
+
+                // Step 2.2 Set ancestorOptgroup to ancestor.
+                did_see_ancestor_optgroup = true;
+            }
+
+            // Step 2.3 If ancestor is a select, then return ancestor.
+            if let Some(select) = DomRoot::downcast::<HTMLSelectElement>(ancestor) {
+                return Some(select);
+            }
+        }
+
+        // Step 3. Return null.
+        None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#maybe-clone-an-option-into-selectedcontent>
+    pub(crate) fn maybe_clone_an_option_into_selectedcontent(&self, can_gc: CanGc) {
+        // Step 1. Let select be option's option element nearest ancestor select.
+        let select = self.nearest_ancestor_select();
+
+        // Step 2. If all of the following conditions are true:
+        // * select is not null;
+        // * option's selectedness is true; and
+        // * select's enabled selectedcontent is not null,
+        // * then run clone an option into a selectedcontent given option and select's enabled selectedcontent.
+        if self.selectedness.get() {
+            if let Some(selectedcontent) =
+                select.and_then(|select| select.get_enabled_selectedcontent())
+            {
+                self.clone_an_option_into_selectedcontent(&selectedcontent, can_gc);
+            }
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#clone-an-option-into-a-selectedcontent>
+    fn clone_an_option_into_selectedcontent(&self, selectedcontent: &Element, can_gc: CanGc) {
+        // Step 1. Let documentFragment be a new DocumentFragment whose node document is option's node document.
+        let document_fragment = DocumentFragment::new(&self.owner_document(), can_gc);
+
+        // Step 2. For each child of option's children:
+        for child in self.upcast::<Node>().children() {
+            // Step 2.1 Let childClone be the result of running clone given child with subtree set to true.
+            let child_clone =
+                Node::clone(&child, None, CloneChildrenFlag::CloneChildren, None, can_gc);
+
+            // Step 2.2 Append childClone to documentFragment.
+            let _ = document_fragment
+                .upcast::<Node>()
+                .AppendChild(&child_clone, can_gc);
+        }
+
+        // Step 3. Replace all with documentFragment within selectedcontent.
+        Node::replace_all(
+            Some(document_fragment.upcast()),
+            selectedcontent.upcast(),
+            can_gc,
+        );
     }
 }
 

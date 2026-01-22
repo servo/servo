@@ -45,7 +45,7 @@ use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, 
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::types::FocusEvent;
@@ -444,6 +444,25 @@ impl HTMLSelectElement {
     fn may_have_embedder_control(&self) -> bool {
         let el = self.upcast::<Element>();
         !el.disabled_state()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#select-enabled-selectedcontent>
+    pub(crate) fn get_enabled_selectedcontent(&self) -> Option<DomRoot<Element>> {
+        // Step 1. If select has the multiple attribute, then return null.
+        if self.Multiple() {
+            return None;
+        }
+
+        // Step 2. Let selectedcontent be the first selectedcontent element descendant
+        // of select in tree order if any such element exists; otherwise return null.
+        // TODO: Step 3. If selectedcontent's disabled is true, then return null.
+        // NOTE: We don't actually implement selectedcontent yet
+        // Step 4. Return selectedcontent.
+        self.upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+            .skip(1)
+            .filter_map(DomRoot::downcast::<Element>)
+            .find(|element| element.local_name() == &local_name!("selectedcontent"))
     }
 }
 
