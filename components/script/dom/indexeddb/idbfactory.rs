@@ -143,13 +143,10 @@ impl IDBFactory {
         );
     }
 
-    // Step 2.1 If result is an error,
-    // set request’s result to undefined,
-    // set request’s error to result,
-    // set request’s done flag,
-    // and fire an event named error at request
-    // with its bubbles and cancelable attributes initialized to true.
+    /// <https://w3c.github.io/IndexedDB/#dom-idbfactory-open>
+    /// The error dispatching part from within a task part. 
     fn dispatch_error(&self, name: DBName, request_id: Uuid, dom_exception: Error, can_gc: CanGc) {
+        // Step 5.3.1: If result is an error, then:
         let request = {
             let mut pending = self.pending_connections.borrow_mut();
             let Some(entry) = pending.get_mut(&name) else {
@@ -165,8 +162,19 @@ impl IDBFactory {
             request.as_rooted()
         };
         let global = request.global();
+
+        // Step 5.3.1.1: Set request’s result to undefined.
         request.set_result(HandleValue::undefined());
+
+        // Step 5.3.1.2: Set request’s error to result.
         request.set_error(Some(dom_exception), can_gc);
+
+        // Step 5.3.1.3: Set request’s done flag to true.
+        // TODO. 
+
+        // Step 5.3.1.4: Fire an event named error at request 
+        // with its bubbles 
+        // and cancelable attributes initialized to true.
         let event = Event::new(
             &global,
             Atom::from("error"),
