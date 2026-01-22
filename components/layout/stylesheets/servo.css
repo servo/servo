@@ -330,6 +330,11 @@ select {
   appearance: auto;
 }
 
+select:disabled {
+    color: gray;
+    border-color: gray;
+}
+
 /* Matches https://searchfox.org/mozilla-central/rev/a1f4cb9fc03d81be41ca2ba81294592df784364d/layout/style/res/forms.css#120-132 */
 input,
 textarea,
