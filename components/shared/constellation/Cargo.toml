@@ -18,7 +18,6 @@ webgpu = ["wgpu-core"]
 [dependencies]
 base = { workspace = true }
 canvas_traits = { workspace = true }
-compositing_traits = { workspace = true }
 content-security-policy = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -32,6 +31,7 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
+paint_api = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }

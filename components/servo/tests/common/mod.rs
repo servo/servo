@@ -8,9 +8,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
+use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
     EmbedderControl, JSValue, JavaScriptEvaluationError, LoadStatus, Preferences, Servo,
     ServoBuilder, SimpleDialog, WebView, WebViewDelegate,

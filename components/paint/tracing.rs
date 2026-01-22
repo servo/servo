@@ -27,7 +27,7 @@ mod from_constellation {
         };
     }
 
-    impl LogTarget for compositing_traits::PaintMessage {
+    impl LogTarget for paint_api::PaintMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),

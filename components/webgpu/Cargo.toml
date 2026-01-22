@@ -14,9 +14,9 @@ path = "lib.rs"
 [dependencies]
 arrayvec = { workspace = true, features = ["serde"] }
 base = { workspace = true }
-compositing_traits = { workspace = true }
 euclid = { workspace = true }
 log = { workspace = true }
+paint_api = { workspace = true }
 pixels = { path = "../pixels" }
 rustc-hash = { workspace = true }
 servo_config = { path = "../config" }

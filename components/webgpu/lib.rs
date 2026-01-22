@@ -15,7 +15,7 @@ mod wgpu_thread;
 
 use std::borrow::Cow;
 
-use compositing_traits::{CrossProcessPaintApi, WebRenderExternalImageIdManager};
+use paint_api::{CrossProcessPaintApi, WebRenderExternalImageIdManager};
 use servo_config::pref;
 
 pub mod canvas_context;

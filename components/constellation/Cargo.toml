@@ -31,7 +31,6 @@ base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas = { path = "../canvas" }
 canvas_traits = { workspace = true }
-compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -46,6 +45,7 @@ log = { workspace = true }
 media = { path = "../media" }
 net = { path = "../net" }
 net_traits = { workspace = true }
+paint_api = { workspace = true }
 parking_lot = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use compositing_traits::largest_contentful_paint_candidate::{
+use euclid::Rect;
+use paint_api::largest_contentful_paint_candidate::{
     LCPCandidate, LCPCandidateID, LargestContentfulPaintType,
 };
-use euclid::Rect;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use webrender_api::units::{LayoutRect, LayoutSize};
 

@@ -10,13 +10,13 @@ use std::thread;
 use app_units::Au;
 use base::generic_channel::{self, GenericReceiver};
 use base::id::PainterId;
-use compositing_traits::CrossProcessPaintApi;
 use fonts_traits::{
     FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
     SystemFontServiceMessage, SystemFontServiceProxySender,
 };
 use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
 use malloc_size_of_derive::MallocSizeOf;
+use paint_api::CrossProcessPaintApi;
 use profile_traits::mem::{
     ProcessReports, ProfilerChan, Report, ReportKind, ReportsChan, perform_memory_report,
 };

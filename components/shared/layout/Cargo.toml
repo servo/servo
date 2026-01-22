@@ -17,7 +17,6 @@ atomic_refcell = { workspace = true }
 background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
-compositing_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../../fonts" }
@@ -27,6 +26,7 @@ libc = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
+paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }

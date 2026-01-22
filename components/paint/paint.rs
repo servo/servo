@@ -13,11 +13,6 @@ use base::generic_channel::{GenericSender, RoutedReceiver};
 use base::id::{PainterId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
-use compositing_traits::rendering_context::RenderingContext;
-use compositing_traits::{
-    PaintMessage, PaintProxy, PainterSurfmanDetails, PainterSurfmanDetailsMap,
-    WebRenderExternalImageIdManager, WebViewTrait,
-};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
@@ -29,6 +24,11 @@ use euclid::{Scale, Size2D};
 use image::RgbaImage;
 use ipc_channel::ipc::{self};
 use log::{debug, warn};
+use paint_api::rendering_context::RenderingContext;
+use paint_api::{
+    PaintMessage, PaintProxy, PainterSurfmanDetails, PainterSurfmanDetailsMap,
+    WebRenderExternalImageIdManager, WebViewTrait,
+};
 use profile_traits::mem::{
     ProcessReports, ProfilerRegistration, Report, ReportKind, perform_memory_report,
 };

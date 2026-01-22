@@ -7,7 +7,6 @@ use std::rc::Rc;
 
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
-use compositing_traits::rendering_context::RenderingContext;
 use constellation_traits::EmbedderToConstellationMessage;
 #[cfg(feature = "gamepad")]
 use embedder_traits::GamepadHapticEffectType;
@@ -20,6 +19,7 @@ use embedder_traits::{
     SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
+use paint_api::rendering_context::RenderingContext;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender;
 use url::Url;

@@ -9,13 +9,13 @@ mod media_thread;
 
 use std::sync::Mutex;
 
-use compositing_traits::{
-    ExternalImageSource, WebRenderExternalImageApi, WebRenderExternalImageHandlers,
-    WebRenderImageHandlerType,
-};
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
 use log::warn;
+use paint_api::{
+    ExternalImageSource, WebRenderExternalImageApi, WebRenderExternalImageHandlers,
+    WebRenderImageHandlerType,
+};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 pub use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};

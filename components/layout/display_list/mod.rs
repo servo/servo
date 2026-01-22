@@ -8,15 +8,13 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
-use compositing_traits::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use compositing_traits::largest_contentful_paint_candidate::{
-    LCPCandidateID, LargestContentfulPaintType,
-};
 use euclid::{Point2D, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::{GlyphStore, TextByteRange};
 use fonts_traits::ByteIndex;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
+use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
+use paint_api::largest_contentful_paint_candidate::{LCPCandidateID, LargestContentfulPaintType};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
 use servo_geometry::MaxRect;

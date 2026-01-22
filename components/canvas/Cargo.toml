@@ -19,13 +19,13 @@ vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive"]
 base = { workspace = true }
 bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
 canvas_traits = { workspace = true }
-compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
 futures-intrusive = { version = "0.5", optional = true }
 kurbo = { workspace = true }
 log = { workspace = true }
+paint_api = { workspace = true }
 peniko = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }

@@ -120,7 +120,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
             "script::dom::bindings::error",
             // Show GL errors by default.
             "canvas::webgl_thread",
-            "compositing::paint",
+            "paint::paint",
             "constellation::constellation",
         ];
         let mut filter_builder = FilterBuilder::new();

@@ -112,10 +112,6 @@ use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
-use compositing_traits::{
-    PaintMessage, PaintProxy, PipelineExitSource, SendableFrameTree,
-    WebRenderExternalImageIdManager,
-};
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
@@ -152,6 +148,10 @@ use media::WindowGLContext;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::registered_domain_name;
 use net_traits::{self, AsyncRuntime, ResourceThreads, exit_fetch_thread, start_fetch_thread};
+use paint_api::{
+    PaintMessage, PaintProxy, PipelineExitSource, SendableFrameTree,
+    WebRenderExternalImageIdManager,
+};
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;

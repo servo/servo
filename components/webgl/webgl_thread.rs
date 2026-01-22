@@ -27,10 +27,6 @@ use canvas_traits::webgl::{
     WebGLSLVersion, WebGLSamplerId, WebGLSender, WebGLShaderId, WebGLSyncId, WebGLTextureId,
     WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
 };
-use compositing_traits::{
-    CrossProcessPaintApi, PainterSurfmanDetailsMap, SerializableImageData,
-    WebRenderExternalImageIdManager, WebRenderImageHandlerType,
-};
 use euclid::default::Size2D;
 use glow::{
     self as gl, ActiveTransformFeedback, Context as Gl, HasContext, NativeTransformFeedback,
@@ -40,6 +36,10 @@ use glow::{
 use half::f16;
 use itertools::Itertools;
 use log::{debug, error, trace, warn};
+use paint_api::{
+    CrossProcessPaintApi, PainterSurfmanDetailsMap, SerializableImageData,
+    WebRenderExternalImageIdManager, WebRenderImageHandlerType,
+};
 use parking_lot::RwLock;
 use pixels::{self, PixelFormat, SnapshotAlphaMode, unmultiply_inplace};
 use rustc_hash::FxHashMap;

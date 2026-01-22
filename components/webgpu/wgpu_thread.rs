@@ -10,10 +10,8 @@ use std::sync::{Arc, Mutex};
 
 use base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory};
 use base::id::PipelineId;
-use compositing_traits::{
-    CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType,
-};
 use log::{info, warn};
+use paint_api::{CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use rustc_hash::FxHashMap;
 use servo_config::pref;
 use webgpu_traits::{

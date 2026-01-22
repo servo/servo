@@ -4,8 +4,8 @@
 
 use base::Epoch;
 use canvas_traits::canvas::*;
-use compositing_traits::CrossProcessPaintApi;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
+use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
 use webrender_api::ImageKey;
 

@@ -6,9 +6,9 @@ use std::cell::Cell;
 
 use base::Epoch;
 use base::id::PipelineId;
-use compositing_traits::display_list::ScrollTree;
-use compositing_traits::{CompositionPipeline, PipelineExitSource};
 use euclid::Scale;
+use paint_api::display_list::ScrollTree;
+use paint_api::{CompositionPipeline, PipelineExitSource};
 use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
 
