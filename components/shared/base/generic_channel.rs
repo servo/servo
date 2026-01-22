@@ -21,10 +21,9 @@ use servo_config::opts;
 mod callback;
 pub use callback::GenericCallback;
 mod oneshot;
-/// We want to discourage anybody from using the ipc_channel crate in servo and use 'GenericChannels' instead.
-/// 'GenericSharedMemory' is, however, still useful so we reexport it under a different name for future optimization.
-pub use ipc_channel::ipc::IpcSharedMemory as GenericSharedMemory;
+mod shared_memory;
 pub use oneshot::{GenericOneshotReceiver, GenericOneshotSender, oneshot};
+pub use shared_memory::GenericSharedMemory;
 mod generic_channelset;
 pub use generic_channelset::{GenericReceiverSet, GenericSelectionResult};
 
