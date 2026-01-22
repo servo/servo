@@ -46,6 +46,7 @@ pub mod layout_dom;
 pub(crate) mod messaging;
 mod microtask;
 pub(crate) mod mime;
+mod module_loading;
 mod navigation;
 mod network_listener;
 mod realms;

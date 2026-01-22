@@ -62,7 +62,7 @@ use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_module::{
-    ImportMap, ModuleOwner, ModuleTree, ScriptFetchOptions, fetch_external_module_script,
+    ImportMap, ModuleOwner, ModuleTree, ScriptFetchOptions, fetch_an_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
@@ -842,10 +842,9 @@ impl HTMLScriptElement {
                 },
                 ScriptType::Module => {
                     // Step 31.11. Fetch an external module script graph.
-                    fetch_external_module_script(
-                        ModuleOwner::Window(Trusted::new(self)),
+                    fetch_an_external_module_script(
                         url.clone(),
-                        Destination::Script,
+                        ModuleOwner::Window(Trusted::new(self)),
                         options,
                         can_gc,
                     );
@@ -916,7 +915,7 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         self.id,
                         options,
-                        self.line_number,
+                        self.line_number as u32,
                         can_gc,
                     );
                 },
