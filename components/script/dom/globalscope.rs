@@ -29,9 +29,13 @@ use constellation_traits::{
 use content_security_policy::CspList;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
-use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
+use devtools_traits::{
+    ConsoleMessageArgument, ConsoleMessageBuilder, PageError, ScriptToDevtoolsControlMsg,
+};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
+use embedder_traits::{
+    ConsoleLogLevel, EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan,
+};
 use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::ipc::{self};
@@ -3777,6 +3781,32 @@ impl GlobalScope {
 
         // Step 5. Return timerKey.
         timer_key
+    }
+
+    pub(crate) fn complain_about_web_compatibility_issue(
+        &self,
+        message: String,
+        filename: String,
+        line_number: u32,
+        column_number: u32,
+    ) {
+        // TODO: Add a dedicated embedder API for this, similar to EmbedderMsg::ShowConsoleApiMessage?
+        let Some(sender) = self.devtools_chan() else {
+            return;
+        };
+
+        let worker_id = self
+            .downcast::<WorkerGlobalScope>()
+            .map(|worker| worker.worker_id());
+        let mut console_message =
+            ConsoleMessageBuilder::new(ConsoleLogLevel::Warn, filename, line_number, column_number);
+        console_message.add_argument(ConsoleMessageArgument::String(message));
+        let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
+            self.pipeline_id(),
+            console_message.finish(),
+            worker_id,
+        );
+        sender.send(devtools_message).unwrap();
     }
 }
 
