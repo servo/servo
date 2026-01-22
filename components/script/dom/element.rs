@@ -5437,6 +5437,7 @@ impl TagName {
 
 pub(crate) struct ElementPerformFullscreenEnter {
     element: Trusted<Element>,
+    document: Trusted<Document>,
     promise: TrustedPromise,
     error: bool,
 }
@@ -5444,11 +5445,13 @@ pub(crate) struct ElementPerformFullscreenEnter {
 impl ElementPerformFullscreenEnter {
     pub(crate) fn new(
         element: Trusted<Element>,
+        document: Trusted<Document>,
         promise: TrustedPromise,
         error: bool,
     ) -> Box<ElementPerformFullscreenEnter> {
         Box::new(ElementPerformFullscreenEnter {
             element,
+            document,
             promise,
             error,
         })
@@ -5456,13 +5459,22 @@ impl ElementPerformFullscreenEnter {
 }
 
 impl TaskOnce for ElementPerformFullscreenEnter {
+    /// Step 9-14 of <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
     fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
         let promise = self.promise.root();
         let document = element.owner_document();
 
-        // Step 7.1
-        if self.error || !element.fullscreen_element_ready_check() {
+        // Step 9
+        // > If any of the following conditions are false, then set error to true:
+        // > - This’s node document is pendingDoc.
+        // > - The fullscreen element ready check for this returns true.
+        // Step 10
+        // > If error is true:
+        // > - Append (fullscreenerror, this) to pendingDoc’s list of pending fullscreen events.
+        // > - Reject promise with a TypeError exception and terminate these steps.
+        if self.document.root() != document || !element.fullscreen_element_ready_check() || self.error {
+            // TODO(#31866): we should queue this and fire them in update the rendering.
             document
                 .upcast::<EventTarget>()
                 .fire_event(atom!("fullscreenerror"), CanGc::from_cx(cx));
@@ -5473,17 +5485,17 @@ impl TaskOnce for ElementPerformFullscreenEnter {
             return;
         }
 
-        // TODO Step 7.2-4
-        // Step 7.5
+        // TODO: Step 11-13
+        // The following operations is based on the old version of the specs. Now they are a part of the step 13.
         element.set_fullscreen_state(true);
         document.set_fullscreen_element(Some(&element));
-
-        // Step 7.6
+        // TODO(#31866): we should queue this and fire them in update the rendering.
         document
             .upcast::<EventTarget>()
             .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
 
-        // Step 7.7
+        // Step 14.
+        // > Resolve promise with undefined.
         promise.resolve_native(&(), CanGc::from_cx(cx));
     }
 }
