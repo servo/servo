@@ -1,6 +1,10 @@
 name: Linux
 on:
   workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.build.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
     inputs:
       profile:
         required: false
@@ -121,6 +125,8 @@ jobs:
       - runner-select
     name: Linux Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    outputs:
+      artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     steps:
       - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
       - name: Free Disk Space (Ubuntu)
@@ -197,9 +203,15 @@ jobs:
         run: ./mach package --profile ${{ inputs.profile }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
+        id: upload-tarball
         with:
           name: ${{ inputs.profile }}-binary-linux
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+      - name: Collect artifact IDs needed by the release workflow
+        id: artifact_ids
+        shell: bash
+        run: |
+          echo "artifact_ids=${{steps.upload-tarball.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   wpt-2020:
     if: ${{ inputs.wpt }}
