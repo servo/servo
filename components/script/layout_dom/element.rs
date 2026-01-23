@@ -1117,7 +1117,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
 ///
 /// Lazy pseudo-elements in Servo only allows selectors using safe properties,
 /// i.e., local_name, attributes, so they can only be used for **private**
-/// pseudo-elements (like `::-servo-details-content`).
+/// pseudo-elements (like `::details-content`).
 ///
 /// Probably a few more of this functions can be implemented (like `has_class`, etc.),
 /// but they have no use right now.
