@@ -3421,9 +3421,13 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image):input-activation-behavior
-            InputType::Submit | InputType::Reset | InputType::File | InputType::Image => {
-                self.is_mutable()
-            },
+            //
+            // Although they do not have implicit activation behaviors, `type=button` is an activatable input event.
+            InputType::Submit |
+            InputType::Reset |
+            InputType::File |
+            InputType::Image |
+            InputType::Button => self.is_mutable(),
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
