@@ -1530,6 +1530,7 @@ impl XMLHttpRequest {
             win,
             HasBrowsingContext::No,
             parsed_url,
+            None,
             doc.origin().clone(),
             is_html_document,
             content_type,

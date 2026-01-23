@@ -318,8 +318,12 @@ pub(crate) struct Document {
     is_html_document: bool,
     #[no_trace]
     activity: Cell<DocumentActivity>,
+    /// <https://html.spec.whatwg.org/multipage/#the-document%27s-address>
     #[no_trace]
     url: DomRefCell<ServoUrl>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-about-base-url>
+    #[no_trace]
+    about_base_url: DomRefCell<Option<ServoUrl>>,
     #[ignore_malloc_size_of = "defined in selectors"]
     #[no_trace]
     quirks_mode: Cell<QuirksMode>,
@@ -3688,6 +3692,7 @@ impl Document {
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
+        about_base_url: Option<ServoUrl>,
         origin: MutableOrigin,
         is_html_document: IsHTMLDocument,
         content_type: Option<Mime>,
@@ -3752,6 +3757,7 @@ impl Document {
             content_type,
             last_modified,
             url: DomRefCell::new(url),
+            about_base_url: DomRefCell::new(about_base_url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             event_handler: DocumentEventHandler::new(window),
@@ -3980,6 +3986,7 @@ impl Document {
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
+        about_base_url: Option<ServoUrl>,
         origin: MutableOrigin,
         doctype: IsHTMLDocument,
         content_type: Option<Mime>,
@@ -4003,6 +4010,7 @@ impl Document {
             None,
             has_browsing_context,
             url,
+            about_base_url,
             origin,
             doctype,
             content_type,
@@ -4029,6 +4037,7 @@ impl Document {
         proto: Option<HandleObject>,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
+        about_base_url: Option<ServoUrl>,
         origin: MutableOrigin,
         doctype: IsHTMLDocument,
         content_type: Option<Mime>,
@@ -4052,6 +4061,7 @@ impl Document {
                 window,
                 has_browsing_context,
                 url,
+                about_base_url,
                 origin,
                 doctype,
                 content_type,
@@ -4186,6 +4196,7 @@ impl Document {
                 let new_doc = Document::new(
                     self.window(),
                     HasBrowsingContext::No,
+                    None,
                     None,
                     // https://github.com/whatwg/html/issues/2109
                     MutableOrigin::new(ImmutableOrigin::new_opaque()),
@@ -4931,12 +4942,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
+        // The new Document() constructor steps are to set this’s origin to the origin of current global object’s associated Document. [HTML]
         let doc = window.Document();
         let docloader = DocumentLoader::new(&doc.loader());
         Ok(Document::new_with_proto(
             window,
             proto,
             HasBrowsingContext::No,
+            None,
             None,
             doc.origin().clone(),
             IsHTMLDocument::NonHTMLDocument,
@@ -4987,6 +5000,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             window,
             HasBrowsingContext::No,
             Some(ServoUrl::parse("about:blank").unwrap()),
+            None,
             doc.origin().clone(),
             IsHTMLDocument::HTMLDocument,
             Some(content_type),
