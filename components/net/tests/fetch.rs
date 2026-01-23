@@ -187,7 +187,6 @@ fn test_fetch_blob() {
     let id = Uuid::new_v4();
     context
         .filemanager
-        .lock()
         .promote_memory(id.clone(), blob_buf, true, origin.origin());
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
 
@@ -749,7 +748,7 @@ fn test_fetch_with_hsts() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: FileManager::new(embedder_proxy.clone()),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -812,7 +811,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: FileManager::new(embedder_proxy.clone()),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -880,7 +879,7 @@ fn test_fetch_self_signed() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: FileManager::new(embedder_proxy.clone()),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -1530,7 +1529,7 @@ fn test_fetch_request_intercepted() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: Arc::new(Mutex::new(FileManager::new(embedder_proxy.clone()))),
+        filemanager: FileManager::new(embedder_proxy.clone()),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),

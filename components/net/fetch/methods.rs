@@ -97,7 +97,7 @@ pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    pub filemanager: Arc<Mutex<FileManager>>,
+    pub filemanager: FileManager,
     pub file_token: FileTokenCheck,
     pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
     pub cancellation_listener: Arc<CancellationListener>,

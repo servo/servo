@@ -135,7 +135,7 @@ fn new_fetch_context(
         state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan,
-        filemanager: Arc::new(Mutex::new(FileManager::new(sender.clone()))),
+        filemanager: FileManager::new(sender.clone()),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(sender))),
         cancellation_listener: Arc::new(Default::default()),
