@@ -147,7 +147,7 @@ use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    ImportMap, ModuleScript, ModuleTree, ResolvedModule, RethrowError, ScriptFetchOptions,
+    ImportMap, ModuleScript, ModuleStatus, ResolvedModule, RethrowError, ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -253,7 +253,7 @@ pub(crate) struct GlobalScope {
     /// module map is used when importing JavaScript modules
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
     #[ignore_malloc_size_of = "mozjs"]
-    module_map: DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>>,
+    module_map: DomRefCell<HashMapTracedValues<ServoUrl, ModuleStatus>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -2401,18 +2401,10 @@ impl GlobalScope {
         &self.consumed_rejections
     }
 
-    pub(crate) fn set_module_map(&self, url: ServoUrl, module: ModuleTree) {
-        self.module_map.borrow_mut().insert(url, Rc::new(module));
-    }
-
     pub(crate) fn get_module_map(
         &self,
-    ) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
+    ) -> &DomRefCell<HashMapTracedValues<ServoUrl, ModuleStatus>> {
         &self.module_map
-    }
-
-    pub(crate) fn get_module_tree(&self, url: &ServoUrl) -> Option<Rc<ModuleTree>> {
-        self.module_map.borrow().get(url).cloned()
     }
 
     #[expect(unsafe_code)]
