@@ -626,6 +626,14 @@ impl FetchResponseListener for FetchContext {
     ) {
         let response_object = self.response_object.root();
         let _ac = enter_realm(&*response_object);
+        if let Err(e) = response.clone() {
+            if e == NetworkError::DecompressionError {
+                response_object.error_stream(
+                    Error::Type("Network error occurred".to_string()),
+                    CanGc::note(),
+                );
+            }
+        }
         response_object.finish(CanGc::note());
         // TODO
         // ... trailerObject is not supported in Servo yet.
