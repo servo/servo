@@ -6,16 +6,18 @@ use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::{Stylesheet, StylesheetInDocument, UrlExtraData};
+use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -29,6 +31,7 @@ use crate::dom::css::stylesheetcontentscache::{
 };
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
+use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
@@ -51,6 +54,8 @@ pub(crate) struct HTMLStyleElement {
     in_stack_of_open_elements: Cell<bool>,
     pending_loads: Cell<u32>,
     any_failed_load: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-style-blocking>
+    blocking: MutNullableDom<DOMTokenList>,
 }
 
 impl HTMLStyleElement {
@@ -69,6 +74,7 @@ impl HTMLStyleElement {
             in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
+            blocking: Default::default(),
         }
     }
 
@@ -414,10 +420,18 @@ impl StylesheetOwner for HTMLStyleElement {
         self.parser_inserted.get()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#the-style-element:implicitly-potentially-render-blocking>
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
     fn potentially_render_blocking(&self) -> bool {
+        // An element is potentially render-blocking if its blocking tokens set contains "render",
+        // or if it is implicitly potentially render-blocking, which will be defined at the individual elements.
+        // By default, an element is not implicitly potentially render-blocking.
+        //
+        // https://html.spec.whatwg.org/multipage/#the-style-element:implicitly-potentially-render-blocking
         // > A style element is implicitly potentially render-blocking if the element was created by its node document's parser.
-        self.parser_inserted()
+        self.parser_inserted() ||
+            self.blocking
+                .get()
+                .is_some_and(|list| list.Contains("render".into()))
     }
 
     fn referrer_policy(&self) -> ReferrerPolicy {
@@ -461,4 +475,16 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
 
     // <https://html.spec.whatwg.org/multipage/#attr-style-media>
     make_setter!(SetMedia, "media");
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-style-blocking>
+    fn Blocking(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+        self.blocking.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("blocking"),
+                Some(vec![Atom::from("render")]),
+                can_gc,
+            )
+        })
+    }
 }
