@@ -166,7 +166,11 @@ impl StylesheetContext {
             &self.data,
             UrlExtraData(metadata.final_url.get_arc()),
             metadata.charset.as_deref(),
-            // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+            // The CSS environment encoding is the result of running the following steps: [CSSSYNTAX]
+            // If el has a charset attribute, get an encoding from that attribute's value. If that succeeds, return the resulting encoding. [ENCODING]
+            // Otherwise, return the document's character encoding. [DOM]
+            //
+            // TODO: Need to implement encoding http://dev.w3.org/csswg/css-syntax/#environment-encoding
             Some(UTF_8),
             Origin::Author,
             self.media.clone(),
@@ -207,12 +211,13 @@ impl StylesheetContext {
         owner.parser_inserted()
         // el is either a style element or a link element that was an external resource link that
         // contributes to the styling processing model when the el was created by the parser.
-        && element.downcast::<HTMLLinkElement>().is_none_or(|_| self.contributes_to_the_styling_processing_model(element))
+        && element.downcast::<HTMLLinkElement>().is_none_or(|link|
+            self.contributes_to_the_styling_processing_model(element)
+            // el's style sheet was enabled when the element was created by the parser.
+            && !link.is_effectively_disabled()
+        )
         // el's media attribute's value matches the environment.
         && element.media_attribute_matches_media_environment()
-        // el's style sheet was enabled when the element was created by the parser.
-        // TODO
-
         // The last time the event loop reached step 1, el's root was that Document.
         && *element.owner_document() == *document
         // The user agent hasn't given up on loading that particular style sheet yet.
@@ -231,41 +236,6 @@ impl StylesheetContext {
         }
     }
 
-    fn finish_load(
-        self,
-        successful: bool,
-        owner: &dyn StylesheetOwner,
-        element: &HTMLElement,
-        document: &Document,
-    ) {
-        self.decrement_load_and_render_blockers(document);
-        document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
-
-        let Some(any_failed) = owner.load_finished(successful) else {
-            return;
-        };
-
-        // Do not fire any events on disconnected nodes.
-        if !element.upcast::<Element>().is_connected() {
-            return;
-        }
-
-        // We need to fire an event even if this load is for an ignored stylsheet (such as
-        // one from a previous generation). Events are delayed until all loads are complete,
-        // so we may need to fire the load event for the real load that happened earlier.
-        //
-        // TODO(mrobinson): This is a pretty confusing way of doing things and could potentially
-        // delay the "load" event. Loads from previous generations should likely not count for
-        // delaying the event.
-        let event = match any_failed {
-            true => atom!("error"),
-            false => atom!("load"),
-        };
-        element
-            .upcast::<EventTarget>()
-            .fire_event(event, CanGc::note());
-    }
-
     fn do_post_parse_tasks(self, success: bool, stylesheet: Arc<Stylesheet>) {
         let element = self.element.root();
         let document = self.document.root();
@@ -274,27 +244,24 @@ impl StylesheetContext {
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
 
-        // From <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>:
-        // > If `el` no longer creates an external resource link that contributes to the
-        // > styling processing model, or if, since the resource in question was fetched, it
-        // > has become appropriate to fetch it again, then:
-        // >   1. Remove el from el's node document's script-blocking style sheet set.
-        // >   2. Return.
-        if !self.contributes_to_the_styling_processing_model(&element) {
-            // Always consider ignored loads as successful, as they shouldn't cause any subsequent
-            // successful loads to fire an "error" event.
-            self.finish_load(true, owner, &element, &document);
-            return;
-        }
-
         match &self.source {
+            // https://html.spec.whatwg.org/multipage/#link-type-stylesheet%3Aprocess-the-linked-resource
             StylesheetContextSource::LinkElement => {
                 let link = element
                     .downcast::<HTMLLinkElement>()
                     .expect("Should be HTMLinkElement due to StylesheetContextSource");
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+                // > When the disabled attribute of a link element with a stylesheet keyword is set,
+                // > disable the associated CSS style sheet.
                 if link.is_effectively_disabled() {
                     stylesheet.set_disabled(true);
                 }
+                // Step 3. If el has an associated CSS style sheet, remove the CSS style sheet.
+                // Step 4. If success is true, then:
+                // Step 4.1. Create a CSS style sheet with the following properties:
+                //
+                // Note that even in the failure case, we should create an empty stylesheet.
+                // That's why `set_stylesheet` also removes the previous stylesheet
                 link.set_stylesheet(stylesheet);
             },
             StylesheetContextSource::Import(import_rule) => {
@@ -318,7 +285,30 @@ impl StylesheetContext {
         }
         owner.set_origin_clean(self.origin_clean);
 
-        self.finish_load(success, owner, &element, &document);
+        // Remaining steps are a combination of
+        // https://html.spec.whatwg.org/multipage/#link-type-stylesheet%3Aprocess-the-linked-resource
+        // and https://html.spec.whatwg.org/multipage/#the-style-element%3Acritical-subresources
+
+        // Step 4.2. Fire an event named load at el.
+        // Step 5. Otherwise, fire an event named error at el.
+        if let Some(any_failed) = owner.load_finished(success) {
+            // Only fire an event if we have no more pending events
+            // (in which case `owner.load_finished` would return None)
+            let event = match any_failed {
+                true => atom!("error"),
+                false => atom!("load"),
+            };
+            element
+                .upcast::<EventTarget>()
+                .fire_event(event, CanGc::note());
+        }
+        // Regardless if there are other pending events, we need to unblock
+        // rendering for this particular request and signal that the load has finished
+
+        // Step 6. If el contributes a script-blocking style sheet, then:
+        // Step 7. Unblock rendering on el.
+        self.decrement_load_and_render_blockers(&document);
+        document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
     }
 }
 
