@@ -26,8 +26,7 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use compositing_traits::CrossProcessPaintApi;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
-use euclid::Point2D;
-use euclid::default::Rect;
+use euclid::{Point2D, Rect};
 use fonts::{FontContext, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
 use libc::c_void;
@@ -342,9 +341,13 @@ pub trait Layout {
         node: TrustedNodeAddress,
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
-    ) -> Option<Rect<Au>>;
-    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> Vec<Rect<Au>>;
-    fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
+    ) -> Option<Rect<Au, CSSPixel>>;
+    fn query_box_areas(
+        &self,
+        node: TrustedNodeAddress,
+        area: BoxAreaType,
+    ) -> Vec<Rect<Au, CSSPixel>>;
+    fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel>;
     fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
@@ -370,7 +373,7 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
-    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel>;
     fn query_text_index(
         &self,
         node: TrustedNodeAddress,
@@ -420,7 +423,7 @@ pub struct PhysicalSides {
 #[derive(Clone, Default)]
 pub struct OffsetParentResponse {
     pub node_address: Option<UntrustedNodeAddress>,
-    pub rect: Rect<Au>,
+    pub rect: Rect<Au, CSSPixel>,
 }
 
 bitflags! {

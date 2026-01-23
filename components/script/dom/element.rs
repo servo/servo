@@ -16,7 +16,7 @@ use app_units::Au;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use euclid::default::{Rect, Size2D};
+use euclid::Rect;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
@@ -57,6 +57,7 @@ use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
 use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use xml5ever::serialize::TraversalScope::{
@@ -861,7 +862,7 @@ impl Element {
         block: ScrollAxisState,
         inline: ScrollAxisState,
         container: Option<&Element>,
-        inner_target_rect: Option<Rect<Au>>,
+        inner_target_rect: Option<Rect<Au, CSSPixel>>,
     ) {
         let get_target_rect = || match inner_target_rect {
             None => self.upcast::<Node>().border_box().unwrap_or_default(),
@@ -4994,7 +4995,7 @@ impl Element {
             .inspect(|states| states.for_each_state(callback));
     }
 
-    pub(crate) fn client_rect(&self) -> Rect<i32> {
+    pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
         let doc = self.node.owner_doc();
 
         if let Some(rect) = self
@@ -5014,8 +5015,7 @@ impl Element {
         if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
             (!in_quirks_mode && self.is_document_element())
         {
-            let viewport_dimensions = doc.window().viewport_details().size.round().to_i32();
-            rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
+            rect.size = doc.window().viewport_details().size.round().to_i32();
         }
 
         self.ensure_rare_data().client_rect = Some(self.owner_window().cache_layout_value(rect));

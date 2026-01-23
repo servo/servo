@@ -6,9 +6,12 @@ use std::cell::RefCell;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter;
 
+use app_units::Au;
 use dom_struct::dom_struct;
+use euclid::Rect;
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
+use style_traits::CSSPixel;
 
 use crate::dom::abstractrange::{AbstractRange, BoundaryPoint, bp_position};
 use crate::dom::bindings::cell::DomRefCell;
@@ -329,9 +332,7 @@ impl Range {
         self.abstract_range().Collapsed()
     }
 
-    fn client_rects(
-        &self,
-    ) -> impl Iterator<Item = euclid::Rect<app_units::Au, euclid::UnknownUnit>> {
+    fn client_rects(&self) -> impl Iterator<Item = Rect<Au, CSSPixel>> {
         // FIXME: For text nodes that are only partially selected, this should return the client
         // rect of the selected part, not the whole text node.
         let start = self.start_container();

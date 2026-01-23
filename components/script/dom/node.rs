@@ -17,8 +17,8 @@ use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use embedder_traits::UntrustedNodeAddress;
-use euclid::Point2D;
-use euclid::default::{Rect, Size2D};
+use euclid::default::Size2D;
+use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
@@ -51,6 +51,7 @@ use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
+use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
@@ -991,33 +992,33 @@ impl Node {
         self.owner_window().padding_query_without_reflow(self)
     }
 
-    pub(crate) fn content_box(&self) -> Option<Rect<Au>> {
+    pub(crate) fn content_box(&self) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
             .box_area_query(self, BoxAreaType::Content, false)
     }
 
-    pub(crate) fn border_box(&self) -> Option<Rect<Au>> {
+    pub(crate) fn border_box(&self) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
             .box_area_query(self, BoxAreaType::Border, false)
     }
 
-    pub(crate) fn padding_box(&self) -> Option<Rect<Au>> {
+    pub(crate) fn padding_box(&self) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
             .box_area_query(self, BoxAreaType::Padding, false)
     }
 
-    pub(crate) fn border_boxes(&self) -> Vec<Rect<Au>> {
+    pub(crate) fn border_boxes(&self) -> Vec<Rect<Au, CSSPixel>> {
         self.owner_window()
             .box_areas_query(self, BoxAreaType::Border)
     }
 
-    pub(crate) fn client_rect(&self) -> Rect<i32> {
+    pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
         self.owner_window().client_rect_query(self)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
-    pub(crate) fn scroll_area(&self) -> Rect<i32> {
+    pub(crate) fn scroll_area(&self) -> Rect<i32, CSSPixel> {
         // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
 
@@ -1029,7 +1030,7 @@ impl Node {
         // "3. Let viewport width/height be the width of the viewport excluding the width/height of the
         // scroll bar, if any, or zero if there is no viewport."
         let window = document.window();
-        let viewport = Size2D::new(window.InnerWidth(), window.InnerHeight());
+        let viewport = Size2D::new(window.InnerWidth(), window.InnerHeight()).cast_unit();
 
         let in_quirks_mode = document.quirks_mode() == QuirksMode::Quirks;
         let is_root = self.downcast::<Element>().is_some_and(|e| e.is_root());

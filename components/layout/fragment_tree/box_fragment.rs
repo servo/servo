@@ -418,7 +418,7 @@ impl BoxFragment {
             .and_then(|transform| {
                 transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
             })
-            .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect.to_untyped()).cast_unit())
+            .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
             .unwrap_or(overflow)
     }
 
