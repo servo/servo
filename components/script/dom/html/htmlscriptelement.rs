@@ -1049,8 +1049,7 @@ impl HTMLScriptElement {
         // Step 6.
         {
             let module_error = module_tree.get_rethrow_error().borrow();
-            let network_error = module_tree.get_network_error();
-            if module_error.is_some() && network_error.is_none() {
+            if module_error.is_some() {
                 module_tree.report_error(global, can_gc);
                 return;
             }

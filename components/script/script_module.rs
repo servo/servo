@@ -176,28 +176,10 @@ pub(crate) struct ModuleTree {
     #[ignore_malloc_size_of = "mozjs"]
     rethrow_error: DomRefCell<Option<RethrowError>>,
     #[no_trace]
-    network_error: OnceCell<NetworkError>,
-    // A promise for owners to execute when the module tree
-    // is finished
-    #[conditional_malloc_size_of]
-    promise: DomRefCell<Option<Rc<Promise>>>,
-    #[no_trace]
     loaded_modules: DomRefCell<IndexMap<String, ServoUrl>>,
 }
 
 impl ModuleTree {
-    fn new(url: ServoUrl) -> Self {
-        ModuleTree {
-            url,
-            record: OnceCell::new(),
-            parse_error: OnceCell::new(),
-            rethrow_error: DomRefCell::new(None),
-            network_error: OnceCell::new(),
-            promise: DomRefCell::new(None),
-            loaded_modules: DomRefCell::new(IndexMap::new()),
-        }
-    }
-
     pub(crate) fn get_url(&self) -> ServoUrl {
         self.url.clone()
     }
@@ -206,20 +188,8 @@ impl ModuleTree {
         self.record.get()
     }
 
-    fn set_record(&self, record: ModuleObject) {
-        if self.record.set(record).is_err() {
-            unreachable!("Record should never be set more than once");
-        }
-    }
-
     pub(crate) fn get_parse_error(&self) -> Option<&RethrowError> {
         self.parse_error.get()
-    }
-
-    fn set_parse_error(&self, parse_error: RethrowError) {
-        if self.parse_error.set(parse_error).is_err() {
-            unreachable!("Parse error should never be set more than once");
-        }
     }
 
     pub(crate) fn get_rethrow_error(&self) -> &DomRefCell<Option<RethrowError>> {
@@ -228,10 +198,6 @@ impl ModuleTree {
 
     pub(crate) fn set_rethrow_error(&self, rethrow_error: RethrowError) {
         *self.rethrow_error.borrow_mut() = Some(rethrow_error);
-    }
-
-    pub(crate) fn get_network_error(&self) -> Option<&NetworkError> {
-        self.network_error.get()
     }
 
     pub(crate) fn find_descendant_inside_module_map(
@@ -308,24 +274,31 @@ impl crate::unminify::ScriptSource for ModuleSource {
 
 impl ModuleTree {
     #[expect(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
     /// Although the CanGc argument appears unused, it represents the GC operations that
     /// can occur as part of compiling a script.
-    fn compile_module_script(
-        &self,
+    fn create_a_module_script(
+        source: Rc<DOMString>,
         owner: ModuleOwner,
-        module_script_text: Rc<DOMString>,
         url: &ServoUrl,
         options: ScriptFetchOptions,
-        inline: bool,
+        external: bool,
         line_number: u32,
         introduction_type: Option<&'static CStr>,
         _can_gc: CanGc,
-    ) {
+    ) -> Self {
         let cx = GlobalScope::get_cx();
         let global = owner.global();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+
+        let module = ModuleTree {
+            url: url.clone(),
+            record: OnceCell::new(),
+            parse_error: OnceCell::new(),
+            rethrow_error: DomRefCell::new(None),
+            loaded_modules: DomRefCell::new(IndexMap::new()),
+        };
 
         let mut compile_options =
             unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
@@ -333,9 +306,9 @@ impl ModuleTree {
             compile_options.set_introduction_type(introduction_type);
         }
         let mut module_source = ModuleSource {
-            source: module_script_text,
+            source,
             unminified_dir: global.unminified_js_dir(),
-            external: !inline,
+            external,
             url: url.clone(),
         };
         crate::unminify::unminify_js(&mut module_source);
@@ -351,8 +324,8 @@ impl ModuleTree {
             if module_script.is_null() {
                 warn!("fail to compile module script of {}", url);
 
-                self.set_parse_error(RethrowError::from_pending_exception(cx));
-                return;
+                module.parse_error.set(RethrowError::from_pending_exception(cx));
+                return module;
             }
 
             let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
@@ -362,8 +335,10 @@ impl ModuleTree {
                 &PrivateValue(Rc::into_raw(module_script_data) as *const _),
             );
 
-            self.set_record(ModuleObject::new(module_script.handle()));
+            module.record.set(ModuleObject::new(module_script.handle()));
         }
+
+        module
     }
 
     #[expect(unsafe_code)]
@@ -781,18 +756,17 @@ impl FetchResponseListener for ModuleContext {
                 substitute_with_local_script(window, &mut source_text, final_url.clone());
             }
 
-            let module_tree = ModuleTree::new(self.url.clone());
-            module_tree.compile_module_script(
-                self.owner.clone(),
+            let module_tree = Rc::new(ModuleTree::create_a_module_script(
                 Rc::new(DOMString::from(source_text)),
+                self.owner.clone(),
                 &final_url,
                 self.options,
-                false,
+                true,
                 1,
                 self.introduction_type,
                 CanGc::note(),
-            );
-            module_script = Some(Rc::new(module_tree));
+            ));
+            module_script = Some(module_tree);
         }
         module_map.insert(self.url.clone(), ModuleStatus::Loaded(module_script));
 
@@ -1061,17 +1035,16 @@ pub(crate) fn fetch_inline_module_script(
     can_gc: CanGc,
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
-    let module_tree = Rc::new(ModuleTree::new(url.clone()));
-    module_tree.compile_module_script(
-        owner.clone(),
+    let module_tree = Rc::new(ModuleTree::create_a_module_script(
         module_script_text,
+        owner.clone(),
         &url,
         options,
-        true,
+        false,
         line_number,
         Some(IntroductionType::INLINE_SCRIPT),
         can_gc,
-    );
+    ));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
     fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, can_gc);
