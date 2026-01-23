@@ -30,6 +30,7 @@ use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
 };
 use crate::style_ext::LayoutStyle;
+use crate::taffy::stylo_taffy::direction_to_taffy;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
@@ -307,6 +308,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
             axis: taffy::RequestedAxis::Horizontal,
             vertical_margins_are_collapsible: taffy::Line::FALSE,
 
+            direction: direction_to_taffy(self.style.clone_direction()),
             known_dimensions: taffy::Size::NONE,
             parent_size: taffy::Size::NONE,
             available_space: taffy::Size::MAX_CONTENT,
@@ -420,6 +422,7 @@ impl TaffyContainer {
             axis: taffy::RequestedAxis::Vertical,
             vertical_margins_are_collapsible: taffy::Line::FALSE,
 
+            direction: direction_to_taffy(self.style.clone_direction()),
             known_dimensions,
             parent_size: taffy_containing_block,
             available_space: taffy_containing_block.map(AvailableSpace::from),
