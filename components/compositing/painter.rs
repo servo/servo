@@ -1265,12 +1265,14 @@ impl Painter {
                 InputEvent::MouseLeftViewport(_) => {
                     self.last_mouse_move_position = None;
                 },
-                _ => {},
+                _ => {
+                    // Disable LCP calculation on any other input event except mouse moves.
+                    self.lcp_calculator.disable_for_webview(webview_id);
+                },
             }
 
             webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event);
         }
-        self.disable_lcp_calculation_for_webview(webview_id);
     }
 
     pub(crate) fn notify_scroll_event(
@@ -1282,7 +1284,8 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
         }
-        self.disable_lcp_calculation_for_webview(webview_id);
+        // Disable LCP calculation on any scroll event.
+        self.lcp_calculator.disable_for_webview(webview_id);
     }
 
     pub(crate) fn pinch_zoom(
@@ -1421,11 +1424,6 @@ impl Painter {
                     .set(PaintMetricState::Seen(epoch.into(), false));
             }
         };
-    }
-
-    /// Disable LCP feature when the user interacts with the page.
-    fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
-        self.lcp_calculator.disable_for_webview(webview_id);
     }
 }
 
