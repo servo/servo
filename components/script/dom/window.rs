@@ -3137,6 +3137,7 @@ impl Window {
         LoadData::new(
             LoadOrigin::Script(self.origin().snapshot()),
             url,
+            source_document.about_base_url(),
             Some(pipeline_id),
             Referrer::ReferrerUrl(source_document.url()),
             source_document.get_referrer_policy(),

@@ -915,31 +915,32 @@ impl Document {
         *self.url.borrow_mut() = url;
     }
 
+    pub(crate) fn about_base_url(&self) -> Option<ServoUrl> {
+        self.about_base_url.borrow().clone()
+    }
+
+    pub(crate) fn set_about_base_url(&self, about_base_url: Option<ServoUrl>) {
+        *self.about_base_url.borrow_mut() = about_base_url;
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#fallback-base-url>
     pub(crate) fn fallback_base_url(&self) -> ServoUrl {
-        // Step 1: If document is an iframe srcdoc document:
         let document_url = self.url();
+        // Step 1: If document is an iframe srcdoc document:
         if document_url.as_str() == "about:srcdoc" {
-            let base_url = self
-                .browsing_context()
-                .and_then(|browsing_context| browsing_context.creator_base_url());
-
             // Step 1.1: Assert: document's about base URL is non-null.
-            if base_url.is_none() {
-                error!("about:srcdoc page should always have a creator base URL");
-            }
-
             // Step 1.2: Return document's about base URL.
-            return base_url.unwrap_or(document_url);
+            return self
+                .about_base_url()
+                .expect("about:srcdoc page should always have an about base URL");
         }
 
         // Step 2: If document's URL matches about:blank and document's about base URL is
         // non-null, then return document's about base URL.
         if document_url.matches_about_blank() {
-            return self
-                .browsing_context()
-                .and_then(|browsing_context| browsing_context.creator_base_url())
-                .unwrap_or(document_url);
+            if let Some(about_base_url) = self.about_base_url() {
+                return about_base_url;
+            }
         }
 
         // Step 3: Return document's URL.

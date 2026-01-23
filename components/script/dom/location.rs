@@ -65,16 +65,18 @@ impl Location {
     ) {
         // Step 1. Let navigable be location's relevant global object's navigable.
         let navigable = &self.window;
+        let navigable_document = navigable.Document();
         // Step 2. Let sourceDocument be the incumbent global object's associated Document.
         let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
-        let load_data = incumbent_global
+        let mut load_data = incumbent_global
             .as_window()
             .load_data_for_document(url, navigable.pipeline_id());
+        load_data.about_base_url = navigable_document.about_base_url();
         // Step 3. If location's relevant Document is not yet completely loaded,
         // and the incumbent global object does not have transient activation, then set historyHandling to "replace".
         //
         // TODO: check for transient activation
-        let history_handling = if !navigable.Document().completely_loaded() {
+        let history_handling = if !navigable_document.completely_loaded() {
             NavigationHistoryBehavior::Replace
         } else {
             history_handling
@@ -143,6 +145,7 @@ impl Location {
         let load_data = LoadData::new(
             LoadOrigin::Script(load_origin),
             url,
+            source_document.about_base_url(),
             creator_pipeline_id,
             referrer,
             referrer_policy,
