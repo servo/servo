@@ -213,30 +213,31 @@ impl FlexLineItem<'_> {
             },
         );
 
-        if let Some(item_baseline) = self
-            .layout_result
-            .flex_alignment_baseline_relative_to_margin_box
-            .as_ref()
-        {
-            let item_baseline = *item_baseline + item_content_cross_start_position -
+        let adjust_baseline = |baseline: Au| {
+            baseline + item_content_cross_start_position -
                 self.item.border.cross_start -
                 self.item.padding.cross_start -
-                item_margin.cross_start;
-            all_baselines.first.get_or_insert(item_baseline);
-            all_baselines.last = Some(item_baseline);
-        }
+                item_margin.cross_start
+        };
 
-        if all_baselines.first.is_none() {
-            let content_baselines = &self.layout_result.content_baselines_relative_to_margin_box;
-
-            if let Some(baseline) = content_baselines.first {
-                let item_baseline = baseline + item_content_cross_start_position -
-                    self.item.border.cross_start -
-                    self.item.padding.cross_start -
-                    item_margin.cross_start;
-
-                all_baselines.first.get_or_insert(item_baseline);
-                all_baselines.last = Some(item_baseline);
+        let baselines = self.layout_result.content_baselines_relative_to_margin_box;
+        if flex_context.config.flex_direction_is_reversed {
+            if let Some(last_baseline) = baselines.last {
+                all_baselines
+                    .last
+                    .get_or_insert_with(|| adjust_baseline(last_baseline));
+            }
+            if let Some(first_baseline) = baselines.first {
+                all_baselines.first = Some(adjust_baseline(first_baseline));
+            }
+        } else {
+            if let Some(first_baseline) = baselines.first {
+                all_baselines
+                    .first
+                    .get_or_insert_with(|| adjust_baseline(first_baseline));
+            }
+            if let Some(last_baseline) = baselines.last {
+                all_baselines.last = Some(adjust_baseline(last_baseline));
             }
         }
 
@@ -1602,34 +1603,16 @@ impl InitialFlexLineLayout<'_> {
                         .layout(item.used_main_size, flex_context, Some(used_cross_size));
             }
 
-            let flex_alignment_baseline: Option<Au> = match item.item.align_self.0.value() {
-                AlignFlags::BASELINE => Some(
-                    item.layout_result
-                        .content_baselines_relative_to_margin_box
-                        .first
-                        .unwrap_or_else(|| {
-                            item.item
-                                .synthesized_baseline_relative_to_margin_box(used_cross_size)
-                        }),
-                ),
-                AlignFlags::LAST_BASELINE => Some(
-                    item.layout_result
-                        .content_baselines_relative_to_margin_box
-                        .last
-                        .unwrap_or_else(|| {
-                            item.item
-                                .synthesized_baseline_relative_to_margin_box(used_cross_size)
-                        }),
-                ),
-                _ => None,
-            };
-            if let Some(baseline) = flex_alignment_baseline {
-                item.layout_result
-                    .flex_alignment_baseline_relative_to_margin_box = Some(baseline);
-
+            let baseline = item.get_or_synthesize_baseline_with_cross_size(used_cross_size);
+            if matches!(
+                item.item.align_self.0.value(),
+                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
+            ) {
                 shared_alignment_baseline =
                     Some(shared_alignment_baseline.unwrap_or(baseline).max(baseline));
             }
+            item.layout_result
+                .flex_alignment_baseline_relative_to_margin_box = Some(baseline);
 
             item_margins.push(item.item.resolve_auto_margins(
                 flex_context,
@@ -1902,7 +1885,7 @@ impl FlexItem<'_> {
             FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
         };
 
-        let baselines_relative_to_margin_box = if has_compatible_baseline {
+        let content_baselines_relative_to_margin_box = if has_compatible_baseline {
             content_box_baselines.offset(
                 self.margin.cross_start.auto_is(Au::zero) +
                     self.padding.cross_start +
@@ -1912,12 +1895,19 @@ impl FlexItem<'_> {
             Baselines::default()
         };
 
+        let flex_alignment_baseline_relative_to_margin_box = match self.align_self.0.value() {
+            // ‘baseline’ computes to ‘first baseline’.
+            AlignFlags::BASELINE => content_baselines_relative_to_margin_box.first,
+            AlignFlags::LAST_BASELINE => content_baselines_relative_to_margin_box.last,
+            _ => None,
+        };
+
         FlexItemLayoutResult {
             hypothetical_cross_size,
             fragments,
             positioning_context,
-            content_baselines_relative_to_margin_box: baselines_relative_to_margin_box,
-            flex_alignment_baseline_relative_to_margin_box: None,
+            content_baselines_relative_to_margin_box,
+            flex_alignment_baseline_relative_to_margin_box,
             content_block_size,
             containing_block_size: item_as_containing_block.size,
             depends_on_block_constraints,
