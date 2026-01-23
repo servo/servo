@@ -45,13 +45,13 @@ refcell_backtrace = ["script/refcell_backtrace"]
 testbinding = ["script/testbinding"]
 tracing = [
     "dep:tracing",
-    "paint/tracing",
+    "compositing/tracing",
+    "compositing_traits/tracing",
     "constellation/tracing",
     "fonts/tracing",
     "layout/tracing",
     "profile_traits/tracing",
     "script/tracing",
-    "compositing_traits/tracing",
 ]
 vello = ["constellation/vello"]
 webgl_backtrace = [

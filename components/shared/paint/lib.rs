@@ -215,14 +215,13 @@ pub struct CompositionPipeline {
 #[derive(Serialize, Deserialize)]
 pub struct DisplayListForPainter {
     pub display_list_info: PaintDisplayListInfo,
-
     pub display_list_data: DisplayListPayloadSerializeable,
 }
 
 /// A serializable version of `DisplayListPayload`
 #[derive(Serialize, Deserialize)]
 pub struct DisplayListPayloadSerializeable {
-    /// Serde encoded bytes. Mostly DisplayItems, but some mixed in slices.
+    /// Serde encoded bytes. Mostly DisplayItems
     #[serde(with = "serde_bytes")]
     pub items_data: Vec<u8>,
 
