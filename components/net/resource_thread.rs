@@ -680,7 +680,7 @@ impl CoreResourceManager {
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
-        let dc = self.devtools_sender.clone();
+        let devtools_chan = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
 
@@ -731,7 +731,7 @@ impl CoreResourceManager {
             let context = FetchContext {
                 state: http_state,
                 user_agent: servo_config::pref!(user_agent),
-                devtools_chan: dc,
+                devtools_chan,
                 filemanager: Arc::new(Mutex::new(filemanager)),
                 file_token,
                 request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
@@ -787,7 +787,7 @@ impl CoreResourceManager {
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
-        let dc = self.devtools_sender.clone();
+        let devtools_chan = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
 
@@ -816,7 +816,7 @@ impl CoreResourceManager {
                     let context = FetchContext {
                         state: http_state,
                         user_agent: servo_config::pref!(user_agent),
-                        devtools_chan: dc,
+                        devtools_chan,
                         filemanager: Arc::new(Mutex::new(filemanager)),
                         file_token: FileTokenCheck::NotRequired,
                         request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
