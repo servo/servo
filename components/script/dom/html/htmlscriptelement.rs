@@ -1049,18 +1049,14 @@ impl HTMLScriptElement {
         // Step 6.
         {
             let module_error = module_tree.get_rethrow_error().borrow();
-            let network_error = module_tree.get_network_error().borrow();
+            let network_error = module_tree.get_network_error();
             if module_error.is_some() && network_error.is_none() {
                 module_tree.report_error(global, can_gc);
                 return;
             }
         }
 
-        let record = module_tree
-            .get_record()
-            .borrow()
-            .as_ref()
-            .map(|record| record.handle());
+        let record = module_tree.get_record().map(|record| record.handle());
 
         if let Some(record) = record {
             rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());

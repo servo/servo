@@ -5,7 +5,7 @@
 //! The script module mod contains common traits and structs
 //! related to `type=module` for script thread or worker threads.
 
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::ffi::CStr;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -41,6 +41,7 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
+use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_url::ServoUrl;
 
@@ -160,13 +161,13 @@ pub(crate) struct ModuleTree {
     #[no_trace]
     url: ServoUrl,
     #[ignore_malloc_size_of = "mozjs"]
-    record: DomRefCell<Option<ModuleObject>>,
+    record: OnceCell<ModuleObject>,
     #[ignore_malloc_size_of = "mozjs"]
-    parse_error: DomRefCell<Option<RethrowError>>,
+    parse_error: OnceCell<RethrowError>,
     #[ignore_malloc_size_of = "mozjs"]
     rethrow_error: DomRefCell<Option<RethrowError>>,
     #[no_trace]
-    network_error: DomRefCell<Option<NetworkError>>,
+    network_error: OnceCell<NetworkError>,
     // A promise for owners to execute when the module tree
     // is finished
     #[conditional_malloc_size_of]
@@ -179,10 +180,10 @@ impl ModuleTree {
     fn new(url: ServoUrl) -> Self {
         ModuleTree {
             url,
-            record: DomRefCell::new(None),
-            parse_error: DomRefCell::new(None),
+            record: OnceCell::new(),
+            parse_error: OnceCell::new(),
             rethrow_error: DomRefCell::new(None),
-            network_error: DomRefCell::new(None),
+            network_error: OnceCell::new(),
             promise: DomRefCell::new(None),
             loaded_modules: DomRefCell::new(IndexMap::new()),
         }
@@ -192,20 +193,24 @@ impl ModuleTree {
         self.url.clone()
     }
 
-    pub(crate) fn get_record(&self) -> &DomRefCell<Option<ModuleObject>> {
-        &self.record
+    pub(crate) fn get_record(&self) -> Option<&ModuleObject> {
+        self.record.get()
     }
 
-    pub(crate) fn set_record(&self, record: ModuleObject) {
-        *self.record.borrow_mut() = Some(record);
+    fn set_record(&self, record: ModuleObject) {
+        if self.record.set(record).is_err() {
+            unreachable!("Record should never be set more than once");
+        }
     }
 
-    pub(crate) fn get_parse_error(&self) -> &DomRefCell<Option<RethrowError>> {
-        &self.parse_error
+    pub(crate) fn get_parse_error(&self) -> Option<&RethrowError> {
+        self.parse_error.get()
     }
 
-    pub(crate) fn set_parse_error(&self, parse_error: RethrowError) {
-        *self.parse_error.borrow_mut() = Some(parse_error);
+    fn set_parse_error(&self, parse_error: RethrowError) {
+        if self.parse_error.set(parse_error).is_err() {
+            unreachable!("Parse error should never be set more than once");
+        }
     }
 
     pub(crate) fn get_rethrow_error(&self) -> &DomRefCell<Option<RethrowError>> {
@@ -216,15 +221,17 @@ impl ModuleTree {
         *self.rethrow_error.borrow_mut() = Some(rethrow_error);
     }
 
-    pub(crate) fn get_network_error(&self) -> &DomRefCell<Option<NetworkError>> {
-        &self.network_error
+    pub(crate) fn get_network_error(&self) -> Option<&NetworkError> {
+        self.network_error.get()
     }
 
-    pub(crate) fn set_network_error(&self, network_error: NetworkError) {
-        *self.network_error.borrow_mut() = Some(network_error);
+    fn set_network_error(&self, network_error: NetworkError) {
+        if self.network_error.set(network_error).is_err() {
+            unreachable!("Network error should never be set more than once");
+        }
     }
 
-    pub(crate) fn append_waiting_handler(
+    fn append_waiting_handler(
         &self,
         global: &GlobalScope,
         handler: &PromiseNativeHandler,
@@ -243,7 +250,7 @@ impl ModuleTree {
         *self.promise.borrow_mut() = Some(new_promise);
     }
 
-    pub(crate) fn resolve_with_network_error(&self, error: NetworkError, can_gc: CanGc) {
+    fn resolve_with_network_error(&self, error: NetworkError, can_gc: CanGc) {
         self.set_network_error(error);
 
         if let Some(promise) = self.promise.borrow().as_ref() {
@@ -251,7 +258,7 @@ impl ModuleTree {
         }
     }
 
-    pub(crate) fn resolve(&self, can_gc: CanGc) {
+    fn resolve(&self, can_gc: CanGc) {
         if let Some(promise) = self.promise.borrow().as_ref() {
             promise.resolve_native(&(), can_gc);
         }
@@ -968,13 +975,13 @@ unsafe extern "C" fn HostResolveImportedModule(
     // Step 9.
     assert!(module_tree.is_some());
 
-    let fetched_module_object = module_tree.unwrap().get_record().borrow();
+    let fetched_module_object = module_tree.unwrap().get_record();
 
     // Step 8.
     assert!(fetched_module_object.is_some());
 
     // Step 10.
-    if let Some(record) = &*fetched_module_object {
+    if let Some(record) = fetched_module_object {
         return record.handle().get();
     }
 
@@ -1041,7 +1048,7 @@ pub(crate) fn fetch_an_external_module_script(
         Some(IntroductionType::SRC_SCRIPT),
         move |_, module_tree| {
             // Step 1.1. If result is null, run onComplete given null, and abort these steps.
-            if module_tree.get_network_error().borrow().is_some() {
+            if module_tree.get_network_error().is_some() {
                 return owner.notify_owner_to_finish(None, can_gc);
             }
 
@@ -1093,8 +1100,8 @@ fn fetch_the_descendants_and_link_module_script(
 
     // Step 1. Let record be moduleScript's record.
     // Step 2. If record is null, then:
-    if module_script.get_record().borrow().is_none() {
-        let parse_error = module_script.get_parse_error().borrow().as_ref().cloned();
+    if module_script.get_record().is_none() {
+        let parse_error = module_script.get_parse_error().cloned();
 
         // Step 2.1. Set moduleScript's error to rethrow to moduleScript's parse error.
         module_script.set_rethrow_error(parse_error.unwrap());
@@ -1128,7 +1135,7 @@ fn fetch_the_descendants_and_link_module_script(
         task!(fulfilled_steps: |fulfillment_owner: ModuleOwner| {
             let global = fulfillment_owner.global();
 
-            if let Some(record) = fulfilled_module.get_record().borrow().as_ref() {
+            if let Some(record) = fulfilled_module.get_record() {
                 // Step 6.1. Perform record.Link().
                 let instantiated = ModuleTree::instantiate_module_tree(&global, record.handle());
 
@@ -1201,8 +1208,8 @@ pub(crate) fn fetch_a_single_module_script(
     // Step 4. Let moduleMap be settingsObject's module map.
     let has_pending_fetch = {
         if let Some(module_tree) = global.get_module_tree(&url) {
-            if module_tree.get_record().borrow().is_none() &&
-                module_tree.get_network_error().borrow().is_none() &&
+            if module_tree.get_record().is_none() &&
+                module_tree.get_network_error().is_none() &&
                 module_tree.get_rethrow_error().borrow().is_none()
             {
                 true

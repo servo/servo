@@ -120,12 +120,7 @@ fn inner_module_loading(
     // Step 1. Assert: state.[[IsLoading]] is true.
     assert!(state.is_loading.get());
 
-    let module_handle = module
-        .get_record()
-        .borrow()
-        .as_ref()
-        .map(|module| module.handle())
-        .unwrap();
+    let module_handle = module.get_record().map(|module| module.handle()).unwrap();
 
     let module_url = module.get_url();
     let visited_contains_module = state.visited.borrow().contains(&module_url);
@@ -298,12 +293,7 @@ fn continue_dynamic_import(
 
     // Step 2. Let module be moduleCompletion.[[Value]].
     let module = module_completion.unwrap();
-    let module_handle = module
-        .get_record()
-        .borrow()
-        .as_ref()
-        .map(|module| module.handle())
-        .unwrap();
+    let module_handle = module.get_record().map(|module| module.handle()).unwrap();
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
     let load_promise = load_requested_modules(global, module, None);
@@ -502,7 +492,7 @@ pub(crate) fn host_load_imported_module(
     let on_single_fetch_complete = move |global: &GlobalScope, module_tree: Rc<ModuleTree>| {
         // Step 1. Let completion be null.
         // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
-        let completion = if module_tree.get_network_error().borrow().is_some() {
+        let completion = if module_tree.get_network_error().is_some() {
             Err(gen_type_error(
                 global,
                 Error::Type("Module fetching failed".to_string()),
@@ -511,7 +501,7 @@ pub(crate) fn host_load_imported_module(
         } else {
             // Step 3. Otherwise, if moduleScript's parse error is not null, then:
             // Step 3.1 Let parseError be moduleScript's parse error.
-            if let Some(parse_error) = module_tree.get_parse_error().borrow().as_ref() {
+            if let Some(parse_error) = module_tree.get_parse_error() {
                 // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
                 // set loadState.[[ErrorToRethrow]] to parseError.
                 if let Some(load_state) = load_state {
@@ -527,8 +517,6 @@ pub(crate) fn host_load_imported_module(
                 assert!(
                     module_tree
                         .get_record()
-                        .borrow()
-                        .as_ref()
                         .is_some_and(|record| !record.handle().is_null())
                 );
                 // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
