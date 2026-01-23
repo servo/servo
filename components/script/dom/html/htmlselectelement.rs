@@ -833,7 +833,7 @@ impl Activatable for HTMLSelectElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        true
+        !self.upcast::<Element>().disabled_state()
     }
 
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
