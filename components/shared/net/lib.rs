@@ -1169,6 +1169,7 @@ pub enum NetworkError {
     ProtocolHandlerSubstitutionError,
     BlobURLStoreError(String),
     HttpError(String),
+    DecompressionError,
 }
 
 impl fmt::Debug for NetworkError {
@@ -1216,6 +1217,7 @@ impl fmt::Debug for NetworkError {
                 write!(f, "Websocket connection failure: {}", s)
             },
             NetworkError::HttpError(s) => write!(f, "HTTP failure: {}", s),
+            NetworkError::DecompressionError => write!(f, "Decompression error"),
         }
     }
 }
