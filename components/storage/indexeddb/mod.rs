@@ -347,6 +347,16 @@ struct VersionUpgrade {
     new: u64,
 }
 
+/// <https://w3c.github.io/IndexedDB/#connection>
+#[derive(Clone, Eq, Hash, PartialEq)]
+struct Connection {
+    /// <https://w3c.github.io/IndexedDB/#connection-version>
+    version: u64,
+
+    /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
+    close_pending: bool,
+}
+
 struct IndexedDBManager {
     port: GenericReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
@@ -361,6 +371,9 @@ struct IndexedDBManager {
 
     /// <https://w3c.github.io/IndexedDB/#connection-queue>
     connection_queues: HashMap<IndexedDBDescription, VecDeque<OpenRequest>>,
+
+    /// <https://w3c.github.io/IndexedDB/#connection>
+    connections: HashMap<IndexedDBDescription, HashSet<Connection>>,
 }
 
 impl IndexedDBManager {
@@ -382,6 +395,7 @@ impl IndexedDBManager {
             thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
             serial_number_counter: 0,
             connection_queues: Default::default(),
+            connections: Default::default(),
         }
     }
 }
@@ -849,15 +863,31 @@ impl IndexedDBManager {
             return;
         }
 
-        // Let connection be a new connection to db.
-        // Set connection’s version to version.
-        // TODO: track connections in the backend(each script `IDBDatabase` should have a matching connection).
+        // Step 8: Let connection be a new connection to db.
+        // Step 9: Set connection’s version to version.
+        let connection = Connection {
+            version,
+            close_pending: false,
+        };
+        let entry = self.connections.entry(idb_description.clone()).or_default();
+        let open_connections = entry.clone();
+        entry.insert(connection);
 
         // Step 10: If db’s version is less than version, then:
         if db_version < version {
             // Step 10.1: Let openConnections be the set of all connections,
             // except connection, associated with db.
+            // Note: done above with `open_connections`.
+
             // Step 10.2: For each entry of openConnections
+            for _conn in open_connections
+                .into_iter()
+                .filter(|conn| conn.close_pending)
+            {
+                // TODO: queue a database task to fire a version change event
+                // named versionchange at entry with db’s version and version.
+            }
+
             // that does not have its close pending flag set to true,
             // queue a database task to fire a version change event
             // named versionchange at entry with db’s version and version.
