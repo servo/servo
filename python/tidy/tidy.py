@@ -581,8 +581,15 @@ def check_shell(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]
             next_idx = dollar.end()
             if next_idx < len(stripped):
                 next_char = stripped[next_idx]
-                if not (next_char == "{" or next_char == "("):
-                    yield (idx + 1, 'variable substitutions should use the full "${VAR}" form')
+                # Variable substitutions should use the full "${VAR}" form, except for special parameters.
+                # See https://www.gnu.org/software/bash/manual/html_node/Special-Parameters.html
+                if next_char not in ["{", "(", "*", "@", "#", "?", "-", "$", "!"]:
+                    # Additionally, $0 - $9 are fine, but $10 needs braces.
+                    if next_char.isdigit():
+                        if next_idx + 1 < len(stripped) and stripped[next_idx + 1].isdigit():
+                            yield idx + 1, 'variable substitutions should use the full "${VAR}" form'
+                    else:
+                        yield idx + 1, 'variable substitutions should use the full "${VAR}" form'
 
 
 def check_rust(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
