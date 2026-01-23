@@ -24,6 +24,7 @@ fn unicode_script_to_iso15924_tag(script: unicode_script::Script) -> u32 {
     u32::from_be_bytes(bytes)
 }
 
+#[derive(Debug)]
 pub(crate) struct ShapedGlyph {
     /// The actual glyph to render for this [`ShapedGlyph`].
     pub glyph_id: GlyphId,
@@ -42,6 +43,8 @@ pub(crate) struct ShapedGlyph {
 pub(crate) trait GlyphShapingResult {
     /// The number of shaped glyphs
     fn len(&self) -> usize;
+    /// Whether or not the result is right-to-left.
+    fn is_rtl(&self) -> bool;
     /// An iterator of the shaped glyphs of this data.
     fn iter(&self) -> impl Iterator<Item = ShapedGlyph>;
 }

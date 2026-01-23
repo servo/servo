@@ -13,13 +13,14 @@ use euclid::default::Point2D;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.
 use harfbuzz_sys::{
-    HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY, HB_OT_LAYOUT_BASELINE_TAG_HANGING,
+    HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS, HB_DIRECTION_LTR, HB_DIRECTION_RTL,
+    HB_MEMORY_MODE_READONLY, HB_OT_LAYOUT_BASELINE_TAG_HANGING,
     HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT, HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
     hb_blob_create, hb_blob_t, hb_bool_t, hb_buffer_add_utf8, hb_buffer_create, hb_buffer_destroy,
     hb_buffer_get_glyph_infos, hb_buffer_get_glyph_positions, hb_buffer_get_length,
-    hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t, hb_codepoint_t,
-    hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t, hb_font_create,
-    hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
+    hb_buffer_set_cluster_level, hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t,
+    hb_codepoint_t, hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t,
+    hb_font_create, hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
     hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
     hb_font_set_scale, hb_font_set_variations, hb_font_t, hb_glyph_info_t, hb_glyph_position_t,
     hb_ot_layout_get_baseline, hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
@@ -145,6 +146,14 @@ impl GlyphShapingResult for HarfbuzzGlyphShapingResult {
             y_position: Au::zero(),
         }
     }
+
+    fn is_rtl(&self) -> bool {
+        unsafe {
+            let first_glyph_info = self.glyph_infos.add(0);
+            let last_glyph_info = self.glyph_infos.add(self.count - 1);
+            (*last_glyph_info).cluster < (*first_glyph_info).cluster
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -233,6 +242,7 @@ impl Shaper {
     ) -> HarfbuzzGlyphShapingResult {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
+            hb_buffer_set_cluster_level(hb_buffer, HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS);
             hb_buffer_set_direction(
                 hb_buffer,
                 if options.flags.contains(ShapingFlags::RTL_FLAG) {
@@ -289,8 +299,18 @@ impl Shaper {
         }
     }
 
-    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions) -> GlyphStore {
-        GlyphStore::with_shaped_glyph_data(text, options, &self.shaped_glyph_data(text, options))
+    pub(crate) fn shape_text(
+        &self,
+        font: &Font,
+        text: &str,
+        options: &ShapingOptions,
+    ) -> GlyphStore {
+        GlyphStore::with_shaped_glyph_data(
+            font,
+            text,
+            options,
+            &self.shaped_glyph_data(text, options),
+        )
     }
 
     pub(crate) fn baseline(&self) -> Option<FontBaseline> {

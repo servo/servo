@@ -425,6 +425,11 @@ impl Rope {
         let line = self.line_for_index(index);
         line[index.code_point..].chars().next()
     }
+
+    fn character_before(&self, index: RopeIndex) -> Option<char> {
+        let line = self.line_for_index(index);
+        line[..index.code_point].chars().next_back()
+    }
 }
 
 /// An index into a [`Rope`] data structure. Used to efficiently identify a particular
@@ -608,7 +613,7 @@ impl Iterator for RopeChars<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         self.movement_iterator
             .next()
-            .and_then(|index| self.movement_iterator.slice.rope.character_at(index))
+            .and_then(|index| self.movement_iterator.slice.rope.character_before(index))
     }
 }
 

@@ -9,10 +9,11 @@ use app_units::Au;
 use euclid::default::Point2D;
 use euclid::num::Zero;
 use itertools::Either;
+use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-use crate::{GlyphShapingResult, ShapedGlyph, ShapingFlags, ShapingOptions};
+use crate::{Font, GlyphShapingResult, ShapedGlyph, ShapingFlags, ShapingOptions};
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
@@ -273,12 +274,29 @@ impl GlyphStore {
         }
     }
 
+    /// This constructor turns shaping output from HarfBuzz into a glyph run to be
+    /// used by layout. The idea here is that we add each glyph to the [`GlyphStore`]
+    /// and track to which characters from the original string each glyph
+    /// corresponds. HarfBuzz will either give us glyphs that correspond to
+    /// characters left-to-right or right-to-left. Each character can produce
+    /// multiple glyphs and multiple characters can produce one glyph. HarfBuzz just
+    /// guarantees that the resulting character offsets are in monotone order.
     pub(crate) fn with_shaped_glyph_data(
+        font: &Font,
         text: &str,
         options: &ShapingOptions,
         shaped_glyph_data: &impl GlyphShapingResult,
     ) -> Self {
-        let mut characters = if !options.flags.contains(ShapingFlags::RTL_FLAG) {
+        debug!(
+            "Shaped: '{text:?}: {:?}",
+            shaped_glyph_data.iter().collect::<Vec<_>>()
+        );
+
+        // Note: Even if we set the `RTL_FLAG` in the options, Harfbuzz may still
+        // give us shaped glyphs in left-to-right order. We need to look at the
+        // actual cluster indices in the shaped run.
+        let shaped_run_is_rtl = shaped_glyph_data.is_rtl();
+        let mut characters = if !shaped_run_is_rtl {
             Either::Left(text.char_indices())
         } else {
             Either::Right(text.char_indices().rev())
@@ -286,24 +304,50 @@ impl GlyphStore {
 
         let mut previous_character_offset = None;
         let mut glyph_store = GlyphStore::new(text, shaped_glyph_data.len(), options);
-        for shaped_glyph in shaped_glyph_data.iter() {
+        for mut shaped_glyph in shaped_glyph_data.iter() {
             // The glyph "cluster" (HarfBuzz terminology) is the byte offset in the string that
             // this glyph corresponds to. More than one glyph can share a cluster.
             let glyph_cluster = shaped_glyph.string_byte_offset;
 
             if let Some(previous_character_offset) = previous_character_offset {
                 if previous_character_offset == glyph_cluster {
-                    glyph_store.add_glyph_for_current_character(&shaped_glyph)
+                    glyph_store.add_glyph_for_current_character(&shaped_glyph);
+                    continue;
                 }
             }
 
-            for (next_character_offset, next_character) in &mut characters {
-                if next_character_offset == glyph_cluster {
-                    previous_character_offset = Some(next_character_offset);
-                    glyph_store.add_glyph(next_character, &shaped_glyph);
-                    break;
+            previous_character_offset = Some(glyph_cluster);
+            let mut characters_skipped = 0;
+            let Some(character) = characters.find_map(|(character_offset, character)| {
+                if glyph_cluster == character_offset {
+                    Some(character)
+                } else {
+                    characters_skipped += 1;
+                    None
                 }
+            }) else {
+                error!("HarfBuzz shaping results extended past character count");
+                return glyph_store;
+            };
+
+            shaped_glyph.adjust_for_character(character, options, font);
+
+            // If the we are working from the end of the string to the start and
+            // characters were skipped to produce this glyph, they belong to this
+            // glyph.
+            if shaped_run_is_rtl {
+                glyph_store.add_glyph(character, &shaped_glyph);
+            }
+
+            for _ in 0..characters_skipped {
                 glyph_store.extend_previous_glyph_by_character()
+            }
+
+            // If the we are working from the estart of the string to the end and
+            // characters were skipped to produce this glyph, they belong to the
+            // previous glyph.
+            if !shaped_run_is_rtl {
+                glyph_store.add_glyph(character, &shaped_glyph);
             }
         }
 
@@ -373,46 +417,40 @@ impl GlyphStore {
 
     /// Adds glyph that corresponds to a single character (as far we know) in the originating string.
     #[inline]
-    pub(crate) fn add_glyph(&mut self, character: char, shaped_glyph_entry: &ShapedGlyph) {
-        if !shaped_glyph_entry.can_be_simple_glyph() {
-            self.add_detailed_glyph(shaped_glyph_entry, Some(character), 1);
+    pub(crate) fn add_glyph(&mut self, character: char, glyph: &ShapedGlyph) {
+        if !glyph.can_be_simple_glyph() {
+            self.add_detailed_glyph(glyph, Some(character), 1);
             return;
         }
 
-        let mut simple_glyph_entry =
-            GlyphEntry::simple(shaped_glyph_entry.glyph_id, shaped_glyph_entry.advance);
-
-        // This list is taken from the non-exhaustive list of word separator characters in
-        // the CSS Text Module Level 3 Spec:
-        // See https://drafts.csswg.org/css-text/#word-separator
+        let mut simple_glyph_entry = GlyphEntry::simple(glyph.glyph_id, glyph.advance);
         if character_is_word_separator(character) {
             self.total_word_separators += 1;
             simple_glyph_entry.set_char_is_word_separator();
         }
 
         self.total_characters += 1;
-        self.total_advance += shaped_glyph_entry.advance;
+        self.total_advance += glyph.advance;
         self.glyphs.push(simple_glyph_entry)
     }
 
     fn add_detailed_glyph(
         &mut self,
-        shaped_glyph_entry: &ShapedGlyph,
+        shaped_glyph: &ShapedGlyph,
         character: Option<char>,
         character_count: usize,
     ) {
-        self.total_advance += shaped_glyph_entry.advance;
-
         let is_word_separator = character.is_some_and(character_is_word_separator);
         if is_word_separator {
             self.total_word_separators += 1;
         }
 
         self.total_characters += character_count;
+        self.total_advance += shaped_glyph.advance;
         self.detailed_glyphs.push(DetailedGlyphEntry {
-            id: shaped_glyph_entry.glyph_id,
-            advance: shaped_glyph_entry.advance,
-            offset: shaped_glyph_entry.offset,
+            id: shaped_glyph.glyph_id,
+            advance: shaped_glyph.advance,
+            offset: shaped_glyph.offset,
             character_count,
             is_word_separator,
         });
@@ -428,10 +466,10 @@ impl GlyphStore {
         self.total_characters += 1;
     }
 
-    fn add_glyph_for_current_character(&mut self, shaped_glyph_entry: &ShapedGlyph) {
+    fn add_glyph_for_current_character(&mut self, shaped_glyph: &ShapedGlyph) {
         // Add a detailed glyph entry for this new glyph, but it corresponds to a character
         // we have already started processing. It should not contribute any character count.
-        self.add_detailed_glyph(shaped_glyph_entry, None, 0);
+        self.add_detailed_glyph(shaped_glyph, None, 0);
     }
 
     /// If the last glyph added to this [`GlyphStore`] was a simple glyph, convert it to a
@@ -477,9 +515,45 @@ impl ShapedGlyph {
             self.offset
                 .is_none_or(|offset| offset == Default::default())
     }
+
+    /// After shaping is complete, some glyphs need their spacing adjusted to take into
+    /// account `letter-spacing`, `word-spacing` and tabs.
+    ///
+    /// TODO: This should all likely move to layout. In particular, proper tab stops
+    /// are context sensitive and be based on the size of the space character in the
+    /// inline formatting context.
+    fn adjust_for_character(
+        &mut self,
+        character: char,
+        shaping_options: &ShapingOptions,
+        font: &Font,
+    ) {
+        // Treat tabs in pre-formatted text as a fixed number of spaces. The glyph id does
+        // not matter here as Servo doesn't render any glyphs for whitespace.
+        if character == '\t' {
+            self.glyph_id = font.glyph_index(' ').unwrap_or_default();
+            self.advance = font.metrics.space_advance * 8;
+        }
+
+        if let Some(letter_spacing) = shaping_options.letter_spacing {
+            self.advance += letter_spacing;
+        };
+
+        // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
+        // space (U+00A0) left in the text after the white space processing rules have been
+        // applied. The effect of the property on other word-separator characters is undefined."
+        // We elect to only space the two required code points.
+        if character == ' ' || character == '\u{a0}' {
+            // https://drafts.csswg.org/css-text-3/#word-spacing-property
+            self.advance += shaping_options.word_spacing;
+        }
+    }
 }
 
 fn character_is_word_separator(character: char) -> bool {
+    // This list is taken from the non-exhaustive list of word separator characters in
+    // the CSS Text Module Level 3 Spec:
+    // See https://drafts.csswg.org/css-text/#word-separator
     let is_word_separator = matches!(
         character,
         ' ' |
