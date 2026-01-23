@@ -742,9 +742,10 @@ pub enum SerializableImageData {
 }
 
 impl From<SerializableImageData> for ImageData {
+    #[servo_tracing::instrument(name="ImageData::from(SerializableImageData)", skip_all)]
     fn from(value: SerializableImageData) -> Self {
         match value {
-            SerializableImageData::Raw(shared_memory) => ImageData::new(shared_memory.to_vec()),
+            SerializableImageData::Raw(shared_memory) => ImageData::new(shared_memory.take().expect("Could not get data")),
             SerializableImageData::External(image) => ImageData::External(image),
         }
     }

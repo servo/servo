@@ -630,7 +630,7 @@ impl BodySink {
                 let sender = sender.clone();
                 spawn_task(async move {
                     let _ = sender
-                        .send(Ok(Frame::data(Bytes::copy_from_slice(&bytes))))
+                        .send(Ok(Frame::data(bytes.take().unwrap().into())))
                         .await;
                 });
             },
