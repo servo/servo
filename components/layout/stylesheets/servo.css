@@ -143,9 +143,7 @@ select::-servo-picker-icon {
   content: "▾";
   vertical-align: middle;
   line-height: 1;
-  margin: 4px;
-
-  font-size: 16px;
+  margin-inline-start: 5px;
 }
 
 input[type="file"]::before {

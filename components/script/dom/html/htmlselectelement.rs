@@ -60,7 +60,6 @@ const SELECT_BOX_STYLE: &str = "
     display: inline-flex;
     align-items: center;
     vertical-align: middle;
-    height: 100%;
 ";
 
 const TEXT_CONTAINER_STYLE: &str = "flex: 1;";
