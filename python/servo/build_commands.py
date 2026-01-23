@@ -143,6 +143,12 @@ class MachCommands(CommandBase):
         if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
 
+        if build_type.is_dev():
+            # Increase stylo thread stack size to 2 MiB for debug builds since the stack usage is higher
+            # and crashes have been reported. The default is 512 KiB.
+            # Note: This is placed after `build_sanitizer_env()` so that the higher stack size with ASAN takes
+            # priority over the debug build stack size, which matters for ASAN builds with the debug profile.
+            env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = env.get("SERVO_STYLE_THREAD_STACK_SIZE_KB", str(2 * 1024))
         build_start = time()
 
         if host != target_triple and "windows" in target_triple:
@@ -302,6 +308,10 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] += " -Zsanitizer=address"
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
+
+            # Set servo style thread stack size to 8 MB for ASAN builds since the stack usage is higher.
+            # We don't care about efficiency, we just want to avoid crashes.
+            env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = env.get("SERVO_STYLE_THREAD_STACK_SIZE_KB", str(1024 * 8))
 
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
