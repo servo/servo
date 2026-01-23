@@ -59,14 +59,17 @@ const DEFAULT_SELECT_SIZE: u32 = 0;
 const SELECT_BOX_STYLE: &str = "
     display: flex;
     align-items: center;
-    height: 100%;
 ";
 
 const TEXT_CONTAINER_STYLE: &str = "flex: 1;";
 
 const CHEVRON_CONTAINER_STYLE: &str = "
-    font-size: 16px;
-    margin: 4px;
+    width: 0;
+    height: 0;
+    margin-inline-start: 5px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid black;
 ";
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -307,9 +310,6 @@ impl HTMLSelectElement {
             CHEVRON_CONTAINER_STYLE.into(),
             can_gc,
         );
-        chevron_container
-            .upcast::<Node>()
-            .set_text_content_for_element(Some("▾".into()), can_gc);
         select_box
             .upcast::<Node>()
             .AppendChild(chevron_container.upcast::<Node>(), can_gc)
