@@ -46,7 +46,7 @@ use crate::http_loader::HttpState;
 /// and `Cookie` headers as appropriate.
 /// Returns an error if any header values are invalid or tungstenite cannot create
 /// the desired request.
-pub(crate) fn create_handshake_request(
+pub fn create_handshake_request(
     request: RequestBuilder,
     http_state: Arc<HttpState>,
 ) -> Result<net_traits::request::Request, Error> {
