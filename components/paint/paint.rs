@@ -333,7 +333,7 @@ impl Paint {
         while self.paint_receiver.try_recv().is_ok() {}
 
         let (webgl_exit_sender, webgl_exit_receiver) =
-            generic_channel::oneshot().expect("Failed to create IPC channel!");
+            generic_channel::channel().expect("Failed to create IPC channel!");
         if !self
             .webgl_threads
             .exit(webgl_exit_sender)
