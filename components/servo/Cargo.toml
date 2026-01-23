@@ -156,6 +156,10 @@ tracing = { workspace = true }
 winit = { workspace = true }
 
 [[test]]
+name = "largest_contentful_paint"
+path = "tests/largest_contentful_paint.rs"
+
+[[test]]
 name = "network_manager"
 
 [[test]]
