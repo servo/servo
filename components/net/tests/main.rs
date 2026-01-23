@@ -134,7 +134,7 @@ fn new_fetch_context(
     FetchContext {
         state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
-        devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+        devtools_chan: dc,
         filemanager: Arc::new(Mutex::new(FileManager::new(sender.clone()))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(sender))),

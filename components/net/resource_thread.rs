@@ -731,7 +731,7 @@ impl CoreResourceManager {
             let context = FetchContext {
                 state: http_state,
                 user_agent: servo_config::pref!(user_agent),
-                devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+                devtools_chan: dc,
                 filemanager: Arc::new(Mutex::new(filemanager)),
                 file_token,
                 request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
@@ -816,7 +816,7 @@ impl CoreResourceManager {
                     let context = FetchContext {
                         state: http_state,
                         user_agent: servo_config::pref!(user_agent),
-                        devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+                        devtools_chan: dc,
                         filemanager: Arc::new(Mutex::new(filemanager)),
                         file_token: FileTokenCheck::NotRequired,
                         request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
