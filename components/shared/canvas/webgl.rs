@@ -12,9 +12,9 @@ use base::Epoch;
 pub use base::generic_channel::GenericReceiver;
 /// Sender type used in WebGLCommands.
 pub use base::generic_channel::GenericSender;
+use base::generic_channel::GenericSharedMemory;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use base::generic_channel::SendResult as WebGLSendResult;
-use base::generic_channel::{GenericOneshotSender, GenericSharedMemory};
 use base::id::PainterId;
 use euclid::default::{Rect, Size2D};
 use glow::{
@@ -79,7 +79,7 @@ impl WebGLThreads {
     }
 
     /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
-    pub fn exit(&self, sender: GenericOneshotSender<()>) -> WebGLSendResult {
+    pub fn exit(&self, sender: GenericSender<()>) -> WebGLSendResult {
         self.0.send(WebGLMsg::Exit(sender))
     }
 
@@ -128,7 +128,7 @@ pub enum WebGLMsg {
     /// released in the WebGLThread while the contents are being rendered by WebRender.
     FinishedRenderingToContext(WebGLContextId),
     /// Frees all resources and closes the thread.
-    Exit(GenericOneshotSender<()>),
+    Exit(GenericSender<()>),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
