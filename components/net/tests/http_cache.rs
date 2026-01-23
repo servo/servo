@@ -36,7 +36,7 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         // First, store the 'normal' response.
         let mut resource = {
             let guard = cache.get_or_guard(CacheKey::new(&request)).await;
-            guard.insert(&request, &response).await;
+            guard.insert(&request, &response);
             cache.get_or_guard(CacheKey::new(&request)).await
         };
         // Second, mutate the response into a 304 response, and refresh the stored one.
@@ -48,8 +48,7 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
             response.clone(),
             &mut done_chan,
             resource.try_as_mut().unwrap(),
-        )
-        .await;
+        );
         // Ensure a resource was found, and refreshed.
         assert!(refreshed_response.is_some());
         match body {
