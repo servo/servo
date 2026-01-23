@@ -193,8 +193,10 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) {
         // Step 1
-        if let Some(promise) = self.pending_map.borrow_mut().take() {
+        let promise = self.pending_map.borrow_mut().take();
+        if let Some(promise) = promise {
             promise.reject_error(Error::Abort(None), CanGc::note());
+            *self.pending_map.borrow_mut() = Some(promise);
         }
         // Step 2
         let mut mapping = self.mapping.borrow_mut().take();
@@ -309,14 +311,18 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             self.size.saturating_sub(offset)
         };
         // Step 2: validation
-        let mut mapping = self.mapping.borrow_mut();
-        let mapping = mapping.as_mut().ok_or(Error::Operation(None))?;
+        let mut mapping = self
+            .mapping
+            .borrow_mut()
+            .take()
+            .ok_or(Error::Operation(None))?;
 
         let valid = offset % wgpu_types::MAP_ALIGNMENT == 0 &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;
         if !valid {
+            self.mapping.borrow_mut().replace(mapping);
             return Err(Error::Operation(None));
         }
 
@@ -324,11 +330,14 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         // only mapping.range is mapped with mapping.range.start at 0
         // so we need to rebase range to mapped.range
         let rebased_offset = (offset - mapping.range.start) as usize;
-        mapping
+        let result = mapping
             .data
             .view(rebased_offset..rebased_offset + range_size as usize, can_gc)
             .map(|view| view.array_buffer())
-            .map_err(|()| Error::Operation(None))
+            .map_err(|()| Error::Operation(None));
+
+        self.mapping.borrow_mut().replace(mapping);
+        result
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
@@ -366,18 +375,18 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
 
 impl GPUBuffer {
     fn map_failure(&self, p: &Rc<Promise>, can_gc: CanGc) {
-        let mut pending_map = self.pending_map.borrow_mut();
         // Step 1
-        if pending_map.as_ref() != Some(p) {
+        if self.pending_map.borrow().as_ref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }
         // Step 2
         assert!(p.is_pending());
         // Step 3
-        pending_map.take();
+        self.pending_map.borrow_mut().take();
         // Step 4
-        if self.device.is_lost() {
+        let is_lost = self.device.is_lost();
+        if is_lost {
             p.reject_error(Error::Abort(None), can_gc);
         } else {
             p.reject_error(Error::Operation(None), can_gc);
@@ -385,10 +394,8 @@ impl GPUBuffer {
     }
 
     fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
-        let mut pending_map = self.pending_map.borrow_mut();
-
         // Step 1
-        if pending_map.as_ref() != Some(p) {
+        if self.pending_map.borrow().as_ref() != Some(p) {
             assert!(p.is_rejected());
             return;
         }
@@ -407,7 +414,7 @@ impl GPUBuffer {
 
         match mapping {
             Err(error) => {
-                *pending_map = None;
+                *self.pending_map.borrow_mut() = None;
                 p.reject_error(error.clone(), can_gc);
             },
             Ok(mut mapping) => {
@@ -416,7 +423,7 @@ impl GPUBuffer {
                 // Step 6
                 self.mapping.borrow_mut().replace(mapping);
                 // Step 7
-                pending_map.take();
+                self.pending_map.borrow_mut().take();
                 p.resolve_native(&(), can_gc);
             },
         }
