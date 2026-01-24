@@ -55,6 +55,16 @@ pub enum NoSniffFlag {
     Off,
 }
 
+impl From<bool> for NoSniffFlag {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            NoSniffFlag::On
+        } else {
+            NoSniffFlag::Off
+        }
+    }
+}
+
 impl Default for MimeClassifier {
     fn default() -> Self {
         Self {
@@ -162,10 +172,13 @@ impl MimeClassifier {
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                match *supplied_type {
-                    None => mime::TEXT_CSS,
-                    _ => supplied_type_or_octet_stream,
-                }
+                supplied_type.clone().unwrap_or_else(|| {
+                    if no_sniff_flag == NoSniffFlag::On {
+                        mime::APPLICATION_OCTET_STREAM
+                    } else {
+                        mime::TEXT_CSS
+                    }
+                })
             },
             LoadContext::Script => {
                 // 8.6 Sniffing in a script context

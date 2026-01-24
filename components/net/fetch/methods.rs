@@ -20,7 +20,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::{debug, trace, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::{self, Mime};
-use net_traits::fetch::headers::extract_mime_type_as_mime;
+use net_traits::fetch::headers::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
@@ -49,7 +49,6 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::{
     ConsumePreloadedResources, FetchParams, SharedPreloadedResources,
 };
-use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{
     HttpState, determine_requests_referrer, http_fetch, send_early_httprequest_to_devtools,

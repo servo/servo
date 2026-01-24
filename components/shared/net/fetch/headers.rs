@@ -275,3 +275,10 @@ pub fn extract_mime_type_as_mime(headers: &HeaderMap) -> Option<mime::Mime> {
         mime_as_str.parse().ok()
     })
 }
+
+/// <https://fetch.spec.whatwg.org/#determine-nosniff>
+pub fn determine_nosniff(headers: &HeaderMap) -> bool {
+    let values = get_decode_and_split_header_name("x-content-type-options", headers);
+
+    values.is_some_and(|values| !values.is_empty() && values[0].eq_ignore_ascii_case("nosniff"))
+}
