@@ -31,6 +31,7 @@ ignore = [
     # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
     # See the comment above `bincode` entry in Cargo.toml.
     "RUSTSEC-2025-0141",
+    { crate = "kem", reason = "a new compatible version has not been released" },
 ]
 
 # This section is considered when running `cargo deny check licenses`
