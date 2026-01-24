@@ -484,7 +484,7 @@ pub fn send_response_values_to_devtools(
     body: Option<Vec<u8>>,
     cache_state: CacheState,
     request: &Request,
-    devtools_chan: Option<StdArc<Mutex<Sender<DevtoolsControlMsg>>>>,
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 ) {
     if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
         devtools_chan,
@@ -507,9 +507,7 @@ pub fn send_response_values_to_devtools(
         let msg =
             ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), net_event_response);
 
-        let _ = devtools_chan
-            .lock()
-            .send(DevtoolsControlMsg::FromChrome(msg));
+        let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
     }
 }
 
@@ -539,9 +537,7 @@ pub fn send_security_info_to_devtools(
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), update);
 
-        let _ = devtools_chan
-            .lock()
-            .send(DevtoolsControlMsg::FromChrome(msg));
+        let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
     }
 }
 
@@ -576,7 +572,7 @@ pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchCont
             NetworkEvent::HttpRequest(devtools_request),
         );
 
-        send_request_to_devtools(msg, &devtools_chan.lock());
+        send_request_to_devtools(msg, devtools_chan);
     }
 }
 
@@ -2229,9 +2225,8 @@ async fn http_network_fetch(
     let res_body2 = res_body.clone();
 
     if let Some(ref sender) = devtools_sender {
-        let sender = sender.lock();
         if let Some(m) = msg {
-            send_request_to_devtools(m, &sender);
+            send_request_to_devtools(m, sender);
         }
     }
 

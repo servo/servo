@@ -126,7 +126,7 @@ fn create_http_state(fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>) -> Http
 }
 
 fn new_fetch_context(
-    dc: Option<Sender<DevtoolsControlMsg>>,
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>,
 ) -> FetchContext {
     let sender = fc.unwrap_or_else(|| create_generic_embedder_proxy());
@@ -134,7 +134,7 @@ fn new_fetch_context(
     FetchContext {
         state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
-        devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+        devtools_chan,
         filemanager: Arc::new(Mutex::new(FileManager::new(sender.clone()))),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(sender))),
