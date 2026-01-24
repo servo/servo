@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
 use std::ptr::{self, NonNull};
 use std::slice;
@@ -294,14 +294,13 @@ pub unsafe fn get_dictionary_property(
 pub fn set_dictionary_property(
     cx: SafeJSContext,
     object: HandleObject,
-    property: &str,
+    property: &CStr,
     value: HandleValue,
 ) -> Result<(), ()> {
     if object.get().is_null() {
         return Err(());
     }
 
-    let property = CString::new(property).unwrap();
     unsafe {
         if !JS_SetProperty(*cx, object, property.as_ptr(), value) {
             return Err(());
