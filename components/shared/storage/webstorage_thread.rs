@@ -9,7 +9,7 @@ use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize)]
 pub enum WebStorageType {
     Session,
     Local,
