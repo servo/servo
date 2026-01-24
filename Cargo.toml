@@ -30,7 +30,7 @@ aes-gcm = "0.10.3"
 aes-kw = { version = "0.2.1", features = ["alloc"] }
 app_units = "0.7"
 arboard = "3"
-argon2 = { version = "0.5", features = ["alloc"] }
+argon2 = { version = "0.6.0-rc.6", features = ["alloc"] }
 arrayvec = "0.7"
 async-tungstenite = { version = "0.32", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
@@ -66,13 +66,13 @@ crossbeam-channel = "0.5"
 cssparser = { version = "0.36", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
-der = { version = "0.7", features = ["alloc", "derive"] }
+der = { version = "0.8.0-rc.10", features = ["alloc", "derive"] }
 devtools_traits = { path = "components/shared/devtools" }
-digest = "0.10"
+digest = "0.11.0-rc.7"
 dpi = "0.1"
 dwrote = "0.11.5"
-ecdsa = "0.16"
-elliptic-curve = "0.13"
+ecdsa = "0.17.0-rc.13"
+elliptic-curve = "0.14.0-rc.23"
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = { version = "0.8", features = ["serde"] }
 env_logger = "0.11"
@@ -91,7 +91,7 @@ gstreamer-video = "0.24"
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.6"
-hkdf = "0.12"
+hkdf = "0.13.0-rc.3"
 html5ever = "0.38"
 http = "1.4"
 http-body-util = "0.1"
@@ -119,8 +119,8 @@ markup5ever = "0.38"
 memmap2 = "0.9.9"
 mime = "0.3.13"
 mime_guess = "2.0.5"
-ml-dsa = "0.0.4"
-ml-kem = { version = "0.2", features = ["deterministic"] }
+ml-dsa = "0.1.0-rc.3"
+ml-kem = { version = "0.3.0-pre.4", features = ["deterministic"] }
 mozangle = "0.5.3"
 net_traits = { path = "components/shared/net" }
 nix = "0.30"
@@ -132,13 +132,13 @@ num-traits = "0.2"
 num_cpus = "1.17.0"
 ocb3 = "0.1.0"
 openxr = "0.20"
-p256 = { version = "0.13", features = ["ecdh"] }
-p384 = { version = "0.13", features = ["ecdh"] }
-p521 = { version = "0.13", features = ["ecdh"] }
+p256 = { version = "0.14.0-rc.5", features = ["ecdh"] }
+p384 = { version = "0.14.0-rc.5", features = ["ecdh"] }
+p521 = { version = "0.14.0-rc.5", features = ["ecdh"] }
 parking_lot = { version = "0.12", features = ["serde"] }
 peniko = "0.5"
 percent-encoding = "2.3"
-pkcs8 = { version = "0.10", features = ["rand_core"] }
+pkcs8 = { version = "0.11.0-rc.9", features = ["rand_core"] }
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
 quote = "1"
@@ -156,7 +156,7 @@ rustls-platform-verifier = "0.6.2"
 script_traits = { path = "components/shared/script" }
 sea-query = { version = "1.0.0-rc.29", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
-sec1 = "0.7"
+sec1 = "0.8.0-rc.13"
 selectors = { git = "https://github.com/servo/stylo", rev = "44bf70c4215dde5997aa835081d7320c1f533c95" }
 serde = "1.0.228"
 serde_bytes = "0.11"
