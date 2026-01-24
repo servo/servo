@@ -390,7 +390,7 @@ pub(crate) fn evaluate_key_path_on_value(
                             get_property_jsval(
                                 cx.into(),
                                 object.handle(),
-                                "length",
+                                c"length",
                                 current_value.handle_mut(),
                             )?;
 

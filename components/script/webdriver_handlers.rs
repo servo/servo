@@ -509,7 +509,7 @@ fn clone_an_object(
         let mut result: Vec<JSValue> = Vec::new();
 
         let get_property_result =
-            get_property::<u32>(cx, object_handle, "length", ConversionBehavior::Default);
+            get_property::<u32>(cx, object_handle, c"length", ConversionBehavior::Default);
         let length = match get_property_result {
             Ok(length) => match length {
                 Some(length) => length,
@@ -529,8 +529,9 @@ fn clone_an_object(
         // Step 4. For each enumerable property in value, run the following substeps:
         for i in 0..length {
             rooted!(in(*cx) let mut item = UndefinedValue());
+            let cname = CString::new(i.to_string()).unwrap();
             let get_property_result =
-                get_property_jsval(cx, object_handle, &i.to_string(), item.handle_mut());
+                get_property_jsval(cx, object_handle, &cname, item.handle_mut());
             match get_property_result {
                 Ok(_) => {
                     let conversion_result =
@@ -1700,12 +1701,15 @@ pub(crate) fn handle_get_property(
                 let document = documents.find_document(pipeline).unwrap();
                 let realm = enter_realm(&*document);
                 let cx = document.window().get_cx();
+                let Ok(cname) = CString::new(name) else {
+                    return JSValue::Undefined;
+                };
 
                 rooted!(in(*cx) let mut property = UndefinedValue());
                 match get_property_jsval(
                     cx,
                     element.reflector().get_jsobject(),
-                    &name,
+                    &cname,
                     property.handle_mut(),
                 ) {
                     Ok(_) => {

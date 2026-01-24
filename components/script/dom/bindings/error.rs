@@ -4,7 +4,6 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
-use std::ffi::CString;
 use std::ptr::NonNull;
 use std::slice::from_raw_parts;
 
@@ -429,13 +428,12 @@ pub(crate) fn javascript_error_info_from_error_info(
         }
 
         rooted!(in(*cx) let object = value.to_object());
-        let stack_name = CString::new("stack").unwrap();
         rooted!(in(*cx) let mut stack_value = UndefinedValue());
         if unsafe {
             !JS_GetProperty(
                 *cx,
                 object.handle().into(),
-                stack_name.as_ptr(),
+                c"stack".as_ptr(),
                 stack_value.handle_mut().into(),
             )
         } {
