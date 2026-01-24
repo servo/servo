@@ -5,8 +5,8 @@
 use pkcs8::PrivateKeyInfo;
 use pkcs8::der::asn1::{BitStringRef, OctetString, OctetStringRef};
 use pkcs8::der::{AnyRef, Decode, Encode};
-use pkcs8::rand_core::OsRng;
 use pkcs8::spki::{AlgorithmIdentifier, ObjectIdentifier, SubjectPublicKeyInfo};
+use rand::rngs::OsRng;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{

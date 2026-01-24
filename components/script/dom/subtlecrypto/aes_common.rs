@@ -4,7 +4,8 @@
 
 use aes::cipher::crypto_common::Key;
 use aes::{Aes128, Aes192, Aes256};
-use pkcs8::rand_core::{OsRng, RngCore};
+use pkcs8::rand_core::RngCore;
+use rand::rngs::OsRng;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,

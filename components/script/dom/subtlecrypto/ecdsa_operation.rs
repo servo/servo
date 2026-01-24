@@ -6,7 +6,7 @@ use digest::Digest;
 use ecdsa::signature::hazmat::{PrehashVerifier, RandomizedPrehashSigner};
 use ecdsa::{Signature, SigningKey, VerifyingKey};
 use elliptic_curve::SecretKey;
-use elliptic_curve::rand_core::OsRng;
+use rand::rngs::OsRng;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint, ValidatePublicKey};
 use p256::NistP256;
 use p384::NistP384;

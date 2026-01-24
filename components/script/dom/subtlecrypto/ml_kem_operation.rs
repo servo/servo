@@ -9,9 +9,10 @@ use ml_kem::{
     B32, Encoded, EncodedSizeUser, KemCore, MlKem512, MlKem512Params, MlKem768, MlKem768Params,
     MlKem1024, MlKem1024Params,
 };
-use pkcs8::rand_core::{OsRng, RngCore};
+use pkcs8::rand_core::RngCore;
 use pkcs8::spki::AlgorithmIdentifier;
 use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
+use rand::rngs::OsRng;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,

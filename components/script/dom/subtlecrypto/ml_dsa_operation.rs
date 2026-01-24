@@ -7,9 +7,10 @@ use der::{AnyRef, Choice, Decode, Encode, Sequence};
 use ml_dsa::{
     B32, EncodedVerifyingKey, KeyGen, MlDsa44, MlDsa65, MlDsa87, Signature, VerifyingKey,
 };
-use pkcs8::rand_core::{OsRng, RngCore};
+use pkcs8::rand_core::RngCore;
 use pkcs8::spki::AlgorithmIdentifier;
 use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
+use rand::rngs::OsRng;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,

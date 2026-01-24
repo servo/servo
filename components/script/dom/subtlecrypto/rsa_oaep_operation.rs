@@ -4,8 +4,8 @@
 
 use pkcs8::der::asn1::BitString;
 use pkcs8::der::{AnyRef, Decode};
-use pkcs8::rand_core::OsRng;
 use pkcs8::{PrivateKeyInfo, SubjectPublicKeyInfo};
+use rand::rngs::OsRng;
 use rsa::pkcs1::{self, DecodeRsaPrivateKey};
 use rsa::traits::PublicKeyParts;
 use rsa::{BigUint, Oaep, RsaPrivateKey, RsaPublicKey};
