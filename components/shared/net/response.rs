@@ -218,8 +218,8 @@ impl Response {
         }
     }
 
-    pub fn set_network_error(&mut self, e: NetworkError) {
-        self.response_type = ResponseType::Error(e);
+    pub fn set_network_error(&mut self, network_error: NetworkError) {
+        self.response_type = ResponseType::Error(network_error);
     }
 
     pub fn actual_response(&self) -> &Response {

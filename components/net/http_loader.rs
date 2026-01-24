@@ -2288,8 +2288,8 @@ async fn http_network_fetch(
                 let _ = done_sender2.send(Data::Done);
                 future::ready(Ok(()))
             })
-            .map_err(move |e| {
-                if let std::io::ErrorKind::InvalidData = e.kind() {
+            .map_err(move |error| {
+                if let std::io::ErrorKind::InvalidData = error.kind() {
                     debug!("Content decompression error for {:?}", url2);
                     let _ = done_sender3.send(Data::Error(NetworkError::DecompressionError));
                     let mut body = res_body2.lock();
