@@ -42,7 +42,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::NoTrace;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
@@ -292,7 +291,7 @@ fn finish_fetching_a_classic_script(
     document.finish_load(LoadType::Script(url), can_gc);
 }
 
-pub(crate) type ScriptResult = Result<Script, NoTrace<NetworkError>>;
+pub(crate) type ScriptResult = Result<Script, ()>;
 
 // TODO merge classic and module scripts
 #[derive(JSTraceable, MallocSizeOf)]
@@ -380,12 +379,13 @@ impl FetchResponseListener for ClassicContext {
     ) {
         match (response.as_ref(), self.status.as_ref()) {
             (Err(error), _) | (_, Err(error)) => {
+                error!("Fetching classic script failed {:?}", error);
                 // Step 6, response is an error.
                 finish_fetching_a_classic_script(
                     &self.elem.root(),
                     self.kind,
                     self.url.clone(),
-                    Err(NoTrace(error.clone())),
+                    Err(()),
                     CanGc::note(),
                 );
 
@@ -956,8 +956,7 @@ impl HTMLScriptElement {
         // TODO: Step 3. Unblock rendering on el.
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
-            Err(e) => {
-                warn!("error loading script {:?}", e);
+            Err(_) => {
                 self.dispatch_error_event(can_gc);
                 return;
             },

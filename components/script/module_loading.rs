@@ -488,41 +488,46 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
-    let on_single_fetch_complete =
-        move |global: &GlobalScope, module_tree: Option<Rc<ModuleTree>>| {
-            // Step 1. Let completion be null.
-            let completion = match module_tree {
-                // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
-                None => Err(gen_type_error(
-                    global,
-                    Error::Type("Module fetching failed".to_string()),
-                    CanGc::note(),
-                )),
-                Some(module_tree) => {
-                    // Step 3. Otherwise, if moduleScript's parse error is not null, then:
-                    // Step 3.1 Let parseError be moduleScript's parse error.
-                    if let Some(parse_error) = module_tree.get_parse_error() {
-                        // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
-                        // set loadState.[[ErrorToRethrow]] to parseError.
-                        load_state.as_ref().inspect(|load_state| {
-                            load_state
-                                .error_to_rethrow
-                                .borrow_mut()
-                                .get_or_insert(parse_error.clone());
-                        });
+    let on_single_fetch_complete = move |module_tree: Option<Rc<ModuleTree>>| {
+        // Step 1. Let completion be null.
+        let completion = match module_tree {
+            // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
+            None => Err(gen_type_error(
+                &global_scope,
+                Error::Type("Module fetching failed".to_string()),
+                CanGc::note(),
+            )),
+            Some(module_tree) => {
+                // Step 3. Otherwise, if moduleScript's parse error is not null, then:
+                // Step 3.1 Let parseError be moduleScript's parse error.
+                if let Some(parse_error) = module_tree.get_parse_error() {
+                    // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
+                    // set loadState.[[ErrorToRethrow]] to parseError.
+                    load_state.as_ref().inspect(|load_state| {
+                        load_state
+                            .error_to_rethrow
+                            .borrow_mut()
+                            .get_or_insert(parse_error.clone());
+                    });
 
-                        // Step 3.2 Set completion to ThrowCompletion(parseError).
-                        Err(parse_error.clone())
-                    } else {
-                        // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
-                        Ok(module_tree)
-                    }
-                },
-            };
-
-            // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-            finish_loading_imported_module(global, referrer_module, specifier, payload, completion);
+                    // Step 3.2 Set completion to ThrowCompletion(parseError).
+                    Err(parse_error.clone())
+                } else {
+                    // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
+                    Ok(module_tree)
+                }
+            },
         };
+
+        // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
+        finish_loading_imported_module(
+            &global_scope,
+            referrer_module,
+            specifier,
+            payload,
+            completion,
+        );
+    };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
     // fetchReferrer, moduleRequest, and onSingleFetchComplete as defined below.
@@ -544,7 +549,7 @@ fn fetch_a_single_imported_module_script(
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
-    on_complete: impl FnOnce(&GlobalScope, Option<Rc<ModuleTree>>) + 'static,
+    on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
     // because we only asked for "type" attributes in HostGetSupportedImportAttributes.

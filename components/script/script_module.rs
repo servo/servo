@@ -606,7 +606,7 @@ impl ModuleOwner {
 
                 let load = match module_tree {
                     Some(module_tree) => Ok(Script::Module(module_tree)),
-                    None => Err(NetworkError::ResourceLoadError("Fetch failed".to_owned()).into()),
+                    None => Err(()),
                 };
 
                 let asynch = script
@@ -1008,7 +1008,7 @@ pub(crate) fn fetch_an_external_module_script(
         referrer,
         true,
         Some(IntroductionType::SRC_SCRIPT),
-        move |_, module_tree| {
+        move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
                 return owner.notify_owner_to_finish(None, can_gc);
@@ -1153,7 +1153,7 @@ pub(crate) fn fetch_a_single_module_script(
     referrer: Referrer,
     is_top_level: bool,
     introduction_type: Option<&'static CStr>,
-    on_complete: impl FnOnce(&GlobalScope, Option<Rc<ModuleTree>>) + 'static,
+    on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     let global = owner.global();
 
@@ -1173,7 +1173,7 @@ pub(crate) fn fetch_a_single_module_script(
         Some(ModuleStatus::Fetching(pending)) => pending,
         // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
         Some(ModuleStatus::Loaded(module_tree)) => {
-            return on_complete(&global, module_tree);
+            return on_complete(module_tree);
         },
         None => DomRefCell::new(None),
     };
@@ -1186,7 +1186,7 @@ pub(crate) fn fetch_a_single_module_script(
             let module = global_scope.get_module_map().borrow().get(&url).cloned();
 
             if let Some(ModuleStatus::Loaded(module_tree)) = module {
-                on_complete(&global_scope, module_tree);
+                on_complete(module_tree);
             }
         }),
     ));
