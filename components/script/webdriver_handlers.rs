@@ -1868,8 +1868,7 @@ pub(crate) fn handle_element_clear(
                 // TODO: Step 6 - 9: Implicit wait. In another PR.
                 // Wait until element become interactable and check.
 
-                // Step 10. If element is not interactable (neither keyboard-interactable nor
-                // pointer-interactable),
+                // Step 10. If element is not keyboard-interactable or not pointer-interactable,
                 // return error with error code element not interactable.
                 if !is_keyboard_interactable(&element) {
                     return Err(ErrorStatus::ElementNotInteractable);
