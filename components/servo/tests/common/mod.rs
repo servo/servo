@@ -145,7 +145,9 @@ impl WebViewDelegate for WebViewDelegateImpl {
     }
 }
 
-#[allow(dead_code)] // Used by some tests and not others
+// Used by some unit tests only. Since they compile into different binaries,
+// it will be flagged as unused for certain unit tests.
+#[allow(dead_code)]
 pub(crate) fn evaluate_javascript(
     servo_test: &ServoTest,
     webview: WebView,
@@ -166,4 +168,33 @@ pub(crate) fn evaluate_javascript(
     (*saved_result.borrow())
         .clone()
         .expect("Should have waited until value available")
+}
+
+// Used by some unit tests only. Since they compile into different binaries,
+// it will be flagged as unused for certain unit tests.
+#[allow(dead_code)]
+pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
+    servo_test: &ServoTest,
+    webview: &WebView,
+    delegate: &Rc<WebViewDelegateImpl>,
+) {
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    delegate.reset();
+
+    // Trigger a change to the display of the document, so that we get at last one
+    // new frame after load is complete.
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "requestAnimationFrame(() => { \
+           document.body.style.background = 'red'; \
+           document.body.style.background = 'green'; \
+        });",
+    );
+
+    // Wait for at least one frame after the load completes.
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
 }

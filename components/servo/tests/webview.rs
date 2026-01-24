@@ -27,7 +27,10 @@ use servo_url::ServoUrl;
 use url::Url;
 use webrender_api::units::{DeviceIntSize, DevicePoint};
 
-use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
+use crate::common::{
+    ServoTest, WebViewDelegateImpl, evaluate_javascript,
+    show_webview_and_wait_for_rendering_to_be_ready,
+};
 
 /// Wait for the WebRender scene to reflect the current state of the WebView
 /// by triggering a screenshot, waiting for it to be ready, and then throwing
@@ -40,32 +43,6 @@ fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &Web
         callback_waiting.set(false);
     });
     servo_test.spin(move || waiting.get());
-}
-
-fn show_webview_and_wait_for_rendering_to_be_ready(
-    servo_test: &ServoTest,
-    webview: &WebView,
-    delegate: &Rc<WebViewDelegateImpl>,
-) {
-    let load_webview = webview.clone();
-    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-
-    delegate.reset();
-
-    // Trigger a change to the display of the document, so that we get at last one
-    // new frame after load is complete.
-    let _ = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "requestAnimationFrame(() => { \
-           document.body.style.background = 'red'; \
-           document.body.style.background = 'green'; \
-        });",
-    );
-
-    // Wait for at least one frame after the load completes.
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
 }
 
 fn click_at_point(webview: &WebView, point: DevicePoint) {

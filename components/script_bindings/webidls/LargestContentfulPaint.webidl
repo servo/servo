@@ -6,10 +6,11 @@
  * https://w3c.github.io/largest-contentful-paint/#sec-largest-contentful-paint-interface
  */
 
-[Exposed=Window]
+[Exposed=Window, Pref="largest_contentful_paint_enabled"]
 interface LargestContentfulPaint : PerformanceEntry {
     readonly attribute DOMHighResTimeStamp loadTime;
     readonly attribute DOMHighResTimeStamp renderTime;
     readonly attribute unsigned long size;
     readonly attribute Element? element;
+    [Default] object toJSON();
 };

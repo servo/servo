@@ -253,6 +253,7 @@ pub struct Preferences {
     pub js_wasm_enabled: bool,
     pub js_wasm_ion_enabled: bool,
     pub js_werror_enabled: bool,
+    // feature: Largest Contentful Paint | #42000 | Web/API/LargestContentfulPaint
     pub largest_contentful_paint_enabled: bool,
     pub layout_animations_test_enabled: bool,
     // feature: CSS Multicol | #22397 | Web/CSS/Guides/Multicol_layout
