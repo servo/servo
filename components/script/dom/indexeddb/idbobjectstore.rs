@@ -4,11 +4,12 @@
 
 use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
 use profile_traits::generic_channel::channel;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::ErrorResult;
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
@@ -39,7 +40,7 @@ use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::{
     ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
 };
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum KeyPath {
@@ -184,11 +185,10 @@ impl IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put>
     fn put(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         value: HandleValue,
         key: HandleValue,
         overwrite: bool,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be handle’s transaction.
         // Step 2: Let store be this object store handle's object store.
@@ -251,7 +251,7 @@ impl IDBObjectStore {
         }
 
         // Step 10. Let clone be a clone of value in targetRealm during transaction. Rethrow any exceptions.
-        let cloned_value = structuredclone::write(cx, value, None)?;
+        let cloned_value = structuredclone::write(cx.into(), value, None)?;
         let Ok(serialized_value) = bincode::serialize(&cloned_value) else {
             return Err(Error::InvalidState(None));
         };
@@ -269,7 +269,7 @@ impl IDBObjectStore {
             },
             None,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
@@ -277,11 +277,10 @@ impl IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-openkeycursor>
     fn open_cursor(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         query: HandleValue,
         direction: IDBCursorDirection,
         key_only: bool,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this object store handle's transaction.
         // Step 2. Let store be this object store handle's object store.
@@ -314,7 +313,7 @@ impl IDBObjectStore {
                 ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
                 range.clone(),
                 key_only,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         } else {
             DomRoot::upcast(IDBCursorWithValue::new(
@@ -325,7 +324,7 @@ impl IDBObjectStore {
                 ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
                 range.clone(),
                 key_only,
-                can_gc,
+                CanGc::from_cx(cx),
             ))
         };
 
@@ -350,7 +349,7 @@ impl IDBObjectStore {
             },
             None,
             Some(iteration_param),
-            can_gc,
+            CanGc::from_cx(cx),
         )
         .inspect(|request| cursor.set_request(request))
     }
@@ -360,25 +359,25 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put>
     fn Put(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         value: HandleValue,
         key: HandleValue,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.put(cx, value, key, true, CanGc::note())
+        self.put(cx, value, key, true)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-add>
     fn Add(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         value: HandleValue,
         key: HandleValue,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.put(cx, value, key, false, CanGc::note())
+        self.put(cx, value, key, false)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete>
-    fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
+    fn Delete(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -403,13 +402,13 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             )
         })
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear>
-    fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
+    fn Clear(&self, cx: &mut JSContext) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -426,12 +425,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             |callback| AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(callback)),
             None,
             None,
-            CanGc::note(),
+            CanGc::from_cx(cx),
         )
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get>
-    fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
+    fn Get(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -456,13 +455,13 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             )
         })
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey>
-    fn GetKey(&self, cx: SafeJSContext, query: HandleValue) -> Result<DomRoot<IDBRequest>, Error> {
+    fn GetKey(&self, cx: &mut JSContext, query: HandleValue) -> Result<DomRoot<IDBRequest>, Error> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -488,7 +487,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             )
         })
     }
@@ -496,7 +495,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall>
     fn GetAll(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         query: HandleValue,
         count: Option<u32>,
     ) -> Fallible<DomRoot<IDBRequest>> {
@@ -526,7 +525,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             )
         })
     }
@@ -534,7 +533,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys>
     fn GetAllKeys(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         query: HandleValue,
         count: Option<u32>,
     ) -> Fallible<DomRoot<IDBRequest>> {
@@ -564,13 +563,13 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             )
         })
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count>
-    fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
+    fn Count(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
@@ -595,7 +594,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             )
         })
     }
@@ -603,21 +602,21 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-opencursor>
     fn OpenCursor(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         query: HandleValue,
         direction: IDBCursorDirection,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.open_cursor(cx, query, direction, false, CanGc::note())
+        self.open_cursor(cx, query, direction, false)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-openkeycursor>
     fn OpenKeyCursor(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         query: HandleValue,
         direction: IDBCursorDirection,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.open_cursor(cx, query, direction, true, CanGc::note())
+        self.open_cursor(cx, query, direction, true)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name>
@@ -646,10 +645,10 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath>
-    fn KeyPath(&self, cx: SafeJSContext, mut ret_val: MutableHandleValue) {
+    fn KeyPath(&self, cx: &mut JSContext, mut ret_val: MutableHandleValue) {
         match &self.key_path {
-            Some(KeyPath::String(path)) => path.safe_to_jsval(cx, ret_val, CanGc::note()),
-            Some(KeyPath::StringSequence(paths)) => paths.safe_to_jsval(cx, ret_val, CanGc::note()),
+            Some(KeyPath::String(path)) => path.safe_to_jsval(cx, ret_val),
+            Some(KeyPath::StringSequence(paths)) => paths.safe_to_jsval(cx, ret_val),
             None => ret_val.set(NullValue()),
         }
     }

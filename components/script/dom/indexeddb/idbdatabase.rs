@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use profile_traits::generic_channel::channel;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
@@ -191,6 +192,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-createobjectstore>
     fn CreateObjectStore(
         &self,
+        cx: &mut JSContext,
         name: DOMString,
         options: &IDBObjectStoreParameters,
     ) -> Fallible<DomRoot<IDBObjectStore>> {
@@ -210,7 +212,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // Step 5
         if let Some(path) = key_path {
-            if !is_valid_key_path(path)? {
+            if !is_valid_key_path(cx, path)? {
                 return Err(Error::Syntax(None));
             }
         }
@@ -244,7 +246,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             self.name.clone(),
             name.clone(),
             Some(options),
-            CanGc::note(),
+            CanGc::from_cx(cx),
             &upgrade_transaction,
         );
 
