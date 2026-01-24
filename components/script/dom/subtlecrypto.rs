@@ -3879,7 +3879,7 @@ fn normalize_algorithm(
             alg_name
                 .as_str()
                 .safe_to_jsval(cx, alg_name_ptr.handle_mut(), can_gc);
-            set_dictionary_property(cx, obj.handle(), "name", alg_name_ptr.handle())
+            set_dictionary_property(cx, obj.handle(), c"name", alg_name_ptr.handle())
                 .map_err(|_| Error::JSFailed)?;
             let normalized_algorithm =
                 NormalizedAlgorithm::from_object_value(cx, value.handle(), desired_type, can_gc)?;

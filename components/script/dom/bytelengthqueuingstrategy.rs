@@ -124,7 +124,7 @@ pub(crate) unsafe fn byte_length_queuing_strategy_size(
         get_dictionary_property(
             cx,
             object.handle(),
-            "byteLength",
+            c"byteLength",
             MutableHandleValue::from_raw(args.rval()),
             CanGc::note(),
         )
