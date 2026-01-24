@@ -12,10 +12,10 @@ name = "media"
 path = "lib.rs"
 
 [dependencies]
-compositing_traits = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
+paint_api = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }

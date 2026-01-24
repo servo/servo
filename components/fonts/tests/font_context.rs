@@ -15,7 +15,6 @@ mod font_context {
 
     use app_units::Au;
     use base::generic_channel::{self, GenericReceiver};
-    use compositing_traits::CrossProcessPaintApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
@@ -24,6 +23,7 @@ mod font_context {
         SystemFontServiceProxySender, fallback_font_families,
     };
     use net_traits::{ResourceThreads, start_fetch_thread};
+    use paint_api::CrossProcessPaintApi;
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
     use style::ArcSlice;

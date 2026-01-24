@@ -58,7 +58,6 @@ chacha20poly1305 = "0.10"
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
-compositing_traits = { path = "components/shared/compositing" }
 constellation_traits = { path = "components/shared/constellation" }
 content-security-policy = { version = "0.6.0", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
@@ -132,6 +131,7 @@ num-traits = "0.2"
 num_cpus = "1.17.0"
 ocb3 = "0.1.0"
 openxr = "0.20"
+paint_api = { path = "components/shared/paint" }
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }

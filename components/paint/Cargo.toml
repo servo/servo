@@ -1,5 +1,5 @@
 [package]
-name = "compositing"
+name = "paint"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ publish.workspace = true
 rust-version.workspace = true
 
 [lib]
-name = "compositing"
+name = "paint"
 path = "lib.rs"
 
 [features]
@@ -26,7 +26,6 @@ base = { workspace = true }
 bincode = { workspace = true }
 bitflags = { workspace = true }
 canvas_traits = { workspace = true }
-compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
@@ -38,6 +37,7 @@ ipc-channel = { workspace = true }
 log = { workspace = true }
 media = { path = "../media" }
 malloc_size_of = { workspace = true }
+paint_api = { workspace = true }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }

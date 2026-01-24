@@ -10,11 +10,11 @@ use std::sync::{Arc, Mutex};
 use arrayvec::ArrayVec;
 use base::Epoch;
 use base::generic_channel::GenericSender;
-use compositing_traits::{
-    CrossProcessPaintApi, ExternalImageSource, SerializableImageData, WebRenderExternalImageApi,
-};
 use euclid::default::Size2D;
 use log::warn;
+use paint_api::{
+    CrossProcessPaintApi, ExternalImageSource, SerializableImageData, WebRenderExternalImageApi,
+};
 use pixels::{SharedSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use webgpu_traits::{

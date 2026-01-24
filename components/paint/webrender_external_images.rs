@@ -5,10 +5,10 @@
 use std::rc::Rc;
 
 use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
-use compositing_traits::rendering_context::RenderingContext;
-use compositing_traits::{ExternalImageSource, WebRenderExternalImageApi};
 use euclid::default::Size2D;
 use log::debug;
+use paint_api::rendering_context::RenderingContext;
+use paint_api::{ExternalImageSource, WebRenderExternalImageApi};
 use rustc_hash::FxHashMap;
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceTexture};

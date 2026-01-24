@@ -20,8 +20,6 @@ use base::id::{
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use compositing_traits::CrossProcessPaintApi;
-use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
     StructuredSerializedData, WindowSizeType,
@@ -40,6 +38,8 @@ use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
+use paint_api::CrossProcessPaintApi;
+use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use pixels::PixelFormat;
 use profile_traits::mem;
 use rustc_hash::FxHashMap;

@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
-use compositing_traits::{
-    CrossProcessPaintApi, PainterSurfmanDetailsMap, WebRenderExternalImageIdManager,
-};
 use log::debug;
+use paint_api::{CrossProcessPaintApi, PainterSurfmanDetailsMap, WebRenderExternalImageIdManager};
 use surfman::Device;
 use surfman::chains::SwapChains;
 #[cfg(feature = "webxr")]

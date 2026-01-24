@@ -21,7 +21,6 @@ background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
-compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -35,6 +34,7 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 media = { path = "../../media" }
 net_traits = { workspace = true }
+paint_api = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }

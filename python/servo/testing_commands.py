@@ -210,8 +210,6 @@ class MachCommands(CommandBase):
         self_contained_tests = [
             "background_hang_monitor",
             "base",
-            "compositing",
-            "compositing_traits",
             "constellation",
             "devtools",
             "fonts",
@@ -222,6 +220,8 @@ class MachCommands(CommandBase):
             "metrics",
             "net",
             "net_traits",
+            "paint",
+            "paint_api",
             "pixels",
             "script_traits",
             "script_bindings",

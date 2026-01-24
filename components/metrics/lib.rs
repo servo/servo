@@ -7,8 +7,8 @@ use std::cmp::Ordering;
 use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
-use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use malloc_size_of_derive::MallocSizeOf;
+use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
     send_profile_data,

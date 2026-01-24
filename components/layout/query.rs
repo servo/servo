@@ -6,7 +6,6 @@
 use std::rc::Rc;
 
 use app_units::Au;
-use compositing_traits::display_list::ScrollTree;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
@@ -14,6 +13,7 @@ use layout_api::{
     AxesOverflow, BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse,
     PhysicalSides, ScrollContainerQueryFlags, ScrollContainerResponse,
 };
+use paint_api::display_list::ScrollTree;
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};

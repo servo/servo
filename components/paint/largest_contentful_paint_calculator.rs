@@ -4,9 +4,7 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
-use compositing_traits::largest_contentful_paint_candidate::{
-    LCPCandidate, LargestContentfulPaint,
-};
+use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LargestContentfulPaint};
 use rustc_hash::{FxHashMap, FxHashSet};
 use webrender_api::PipelineId;
 

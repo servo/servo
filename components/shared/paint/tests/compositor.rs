@@ -5,10 +5,10 @@
 use std::cell::Cell;
 
 use base::id::ScrollTreeNodeId;
-use compositing_traits::display_list::{
+use euclid::Size2D;
+use paint_api::display_list::{
     AxesScrollSensitivity, ScrollTree, ScrollType, ScrollableNodeInfo, SpatialTreeNodeInfo,
 };
-use euclid::Size2D;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation};
 

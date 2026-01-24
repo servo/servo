@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::PainterId;
-use compositing_traits::{PaintMessage, PaintProxy};
+use paint_api::{PaintMessage, PaintProxy};
 use webrender_api::{DocumentId, FramePublishId, FrameReadyParams};
 
 #[derive(Clone)]

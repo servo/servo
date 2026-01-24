@@ -4,9 +4,9 @@
 
 use std::thread;
 
-use compositing_traits::{WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use ipc_channel::ipc::{IpcSender, channel};
 use log::{trace, warn};
+use paint_api::{WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use rustc_hash::FxHashMap;
 use webrender_api::ExternalImageId;
 

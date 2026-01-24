@@ -10,7 +10,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
 use base::id::{PainterId, WebViewId};
-use compositing_traits::CrossProcessPaintApi;
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
@@ -26,6 +25,7 @@ use net_traits::request::{
 use net_traits::{
     CoreResourceThread, FetchResponseMsg, ResourceFetchTiming, ResourceThreads, fetch_async,
 };
+use paint_api::CrossProcessPaintApi;
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;

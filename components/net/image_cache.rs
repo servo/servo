@@ -11,7 +11,6 @@ use std::{mem, thread};
 
 use base::id::{PipelineId, WebViewId};
 use base::threadpool::ThreadPool;
-use compositing_traits::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use imsz::imsz_from_reader;
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
@@ -24,6 +23,7 @@ use net_traits::image_cache::{
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
+use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use parking_lot::Mutex;
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
 use profile_traits::mem::{Report, ReportKind};

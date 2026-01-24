@@ -6,9 +6,9 @@ use std::cell::Cell;
 use std::sync::Arc;
 use std::time::Duration;
 
-use compositing_traits::{ImageUpdate, SerializableImageData};
 use layout_api::AnimatingImages;
 use malloc_size_of::MallocSizeOf;
+use paint_api::{ImageUpdate, SerializableImageData};
 use parking_lot::RwLock;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use timers::{TimerEventRequest, TimerId};

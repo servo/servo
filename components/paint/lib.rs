@@ -8,10 +8,10 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use base::generic_channel::RoutedReceiver;
-use compositing_traits::{PaintMessage, PaintProxy};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use embedder_traits::{EventLoopWaker, ShutdownState};
+use paint_api::{PaintMessage, PaintProxy};
 use profile_traits::{mem, time};
 #[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;

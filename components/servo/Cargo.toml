@@ -39,13 +39,13 @@ js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
-no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "compositing_traits/no-wgl"]
+no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
 testbinding = ["script/testbinding"]
 tracing = [
     "dep:tracing",
-    "compositing/tracing",
+    "paint/tracing",
     "constellation/tracing",
     "fonts/tracing",
     "layout/tracing",
@@ -60,14 +60,14 @@ webgl_backtrace = [
 ]
 webgpu = [
     "script/webgpu",
-    "compositing/webgpu",
+    "paint/webgpu",
     "constellation/webgpu",
     "constellation_traits/webgpu",
 ]
 webxr = [
     "dep:webxr",
     "dep:webxr-api",
-    "compositing/webxr",
+    "paint/webxr",
     "webgl/webxr",
     "script/webxr",
 ]
@@ -80,8 +80,6 @@ bitflags = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
-compositing = { path = "../compositing" }
-compositing_traits = { workspace = true }
 constellation = { path = "../constellation" }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -103,6 +101,8 @@ media = { path = "../media" }
 mozangle = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
+paint = { path = "../paint" }
+paint_api = { workspace = true }
 parking_lot = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }

@@ -11,14 +11,6 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::GenericSharedMemory;
 use base::id::{PainterId, PipelineId, WebViewId};
-use compositing_traits::display_list::{PaintDisplayListInfo, ScrollType};
-use compositing_traits::largest_contentful_paint_candidate::LCPCandidate;
-use compositing_traits::rendering_context::RenderingContext;
-use compositing_traits::viewport_description::ViewportDescription;
-use compositing_traits::{
-    ImageUpdate, PipelineExitSource, SendableFrameTree, WebRenderExternalImageHandlers,
-    WebRenderImageHandlerType, WebViewTrait,
-};
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
@@ -32,6 +24,14 @@ use image::RgbaImage;
 use ipc_channel::ipc::IpcBytesReceiver;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
+use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
+use paint_api::largest_contentful_paint_candidate::LCPCandidate;
+use paint_api::rendering_context::RenderingContext;
+use paint_api::viewport_description::ViewportDescription;
+use paint_api::{
+    ImageUpdate, PipelineExitSource, SendableFrameTree, WebRenderExternalImageHandlers,
+    WebRenderImageHandlerType, WebViewTrait,
+};
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};

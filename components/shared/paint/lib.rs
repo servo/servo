@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! The interface to the `compositing` crate.
+//! The interface to the `paint` crate, which helps to break dependency cycles.
 
 use std::collections::HashMap;
 use std::fmt::{Debug, Error, Formatter};

@@ -21,10 +21,10 @@ use canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
 };
-use compositing_traits::SerializableImageData;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts::FontIdentifier;
 use kurbo::Shape as _;
+use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use vello::wgpu::{
     BackendOptions, Backends, Buffer, BufferDescriptor, BufferUsages, COPY_BYTES_PER_ROW_ALIGNMENT,

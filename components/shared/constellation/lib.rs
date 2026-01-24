@@ -18,7 +18,6 @@ use std::time::Duration;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::GenericCallback;
 use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
-use compositing_traits::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use embedder_traits::user_contents::{UserContentManagerId, UserScript};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
@@ -27,6 +26,7 @@ use embedder_traits::{
 };
 pub use from_script_message::*;
 use malloc_size_of_derive::MallocSizeOf;
+use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};

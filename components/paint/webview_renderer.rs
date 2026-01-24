@@ -7,11 +7,6 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::display_list::ScrollType;
-use compositing_traits::viewport_description::{
-    DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
-};
-use compositing_traits::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
 use crossbeam_channel::Sender;
 use embedder_traits::{
@@ -23,6 +18,11 @@ use embedder_traits::{
 use euclid::{Scale, Vector2D};
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
+use paint_api::display_list::ScrollType;
+use paint_api::viewport_description::{
+    DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
+};
+use paint_api::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use rustc_hash::FxHashMap;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;

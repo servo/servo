@@ -15,8 +15,6 @@ use app_units::Au;
 use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
-use compositing_traits::CrossProcessPaintApi;
-use compositing_traits::display_list::ScrollType;
 use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -32,6 +30,8 @@ use layout_api::{
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::ImageCache;
+use paint_api::CrossProcessPaintApi;
+use paint_api::display_list::ScrollType;
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::{

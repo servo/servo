@@ -4,12 +4,12 @@
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
-use compositing_traits::display_list::AxesScrollSensitivity;
 use euclid::Rect;
 use euclid::default::Size2D as UntypedSize2D;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{AxesOverflow, LayoutElementType, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
+use paint_api::display_list::AxesScrollSensitivity;
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use servo_arc::Arc;
 use style::dom::{NodeInfo, TNode};

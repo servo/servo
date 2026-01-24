@@ -10,14 +10,14 @@ use std::sync::Arc;
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
-use compositing_traits::display_list::{
-    AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
-    SpatialTreeNodeInfo, StickyNodeInfo,
-};
 use embedder_traits::ViewportDetails;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
+use paint_api::display_list::{
+    AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
+    SpatialTreeNodeInfo, StickyNodeInfo,
+};
 use servo_config::opts::DiagnosticsLogging;
 use style::Zero;
 use style::color::AbsoluteColor;

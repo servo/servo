@@ -16,9 +16,6 @@ use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use compositing::{InitialPaintState, Paint};
-pub use compositing_traits::rendering_context::RenderingContext;
-use compositing_traits::{CrossProcessPaintApi, PaintMessage, PaintProxy};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -56,6 +53,9 @@ use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use net_traits::{ResourceThreads, exit_fetch_thread, start_fetch_thread};
+use paint::{InitialPaintState, Paint};
+pub use paint_api::rendering_context::RenderingContext;
+use paint_api::{CrossProcessPaintApi, PaintMessage, PaintProxy};
 use profile::{mem as profile_mem, system_reporter, time as profile_time};
 use profile_traits::mem::{MemoryReportResult, ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
