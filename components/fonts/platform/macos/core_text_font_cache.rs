@@ -3,17 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock};
+use std::path::Path;
+use std::sync::OnceLock;
 
 use app_units::Au;
-use core_foundation::base::TCFType;
-use core_foundation::data::CFData;
-use core_foundation::number::CFNumber;
-use core_foundation::string::{CFString, CFStringRef};
-use core_foundation::url::{CFURL, kCFURLPOSIXPathStyle};
-use core_graphics::display::CFDictionary;
-use core_text::font_descriptor::{kCTFontURLAttribute, kCTFontVariationAttribute};
 use fonts_traits::FontIdentifier;
+use objc2_core_foundation::{
+    CFData, CFDictionary, CFNumber, CFRetained, CFString, CFType, CFURL, CGFloat,
+};
+use objc2_core_text::{
+    CTFont, CTFontDescriptor, CTFontManagerCreateFontDescriptorFromData, kCTFontURLAttribute,
+    kCTFontVariationAttribute, kCTFontVariationAxisDefaultValueKey,
+    kCTFontVariationAxisIdentifierKey, kCTFontVariationAxisMaximumValueKey,
+    kCTFontVariationAxisMinimumValueKey,
+};
 use parking_lot::RwLock;
 use webrender_api::FontVariation;
 
@@ -130,28 +133,31 @@ impl CoreTextFontCache {
                 // The only way to reliably load the correct font from a TTC bundle on
                 // macOS is to create the font using a descriptor with both the PostScript
                 // name and path.
-                let cf_name = CFString::new(&local_font_identifier.postscript_name);
-                let descriptor = core_text::font_descriptor::new_from_postscript_name(&cf_name);
+                let postscript_name = CFString::from_str(&local_font_identifier.postscript_name);
+                let descriptor =
+                    unsafe { CTFontDescriptor::with_name_and_size(&postscript_name, 0.0) };
 
-                let cf_path = CFString::new(&local_font_identifier.path);
-                let url_attribute = unsafe { CFString::wrap_under_get_rule(kCTFontURLAttribute) };
-                let attributes = CFDictionary::from_CFType_pairs(&[(
-                    url_attribute,
-                    CFURL::from_file_system_path(cf_path, kCFURLPOSIXPathStyle, false),
-                )]);
-
-                descriptor.create_copy_with_attributes(attributes.to_untyped())
+                let cf_url =
+                    CFURL::from_file_path(Path::new(&local_font_identifier.path.to_string()))?;
+                let attributes: CFRetained<CFDictionary<CFString, CFType>> =
+                    CFDictionary::from_slices(
+                        &[unsafe { kCTFontURLAttribute }],
+                        &[cf_url.as_ref()],
+                    );
+                unsafe { descriptor.copy_with_attributes(attributes.as_opaque()) }
             },
             FontIdentifier::Web(_) => {
                 let data = data
                     .expect("Should always have FontData for web fonts")
                     .clone();
-                let cf_data = CFData::from_arc(Arc::new(data));
-                core_text::font_manager::create_font_descriptor_with_data(cf_data)
+                let data = CFData::from_bytes(data.as_ref());
+                unsafe { CTFontManagerCreateFontDescriptorFromData(&data)? }
             },
         };
 
-        let ctfont = core_text::font::new_from_descriptor(&descriptor.ok()?, clamped_pt_size);
+        let ctfont = unsafe {
+            CTFont::with_font_descriptor(&descriptor, clamped_pt_size as CGFloat, std::ptr::null())
+        };
         Some(PlatformFont::new_with_ctfont(ctfont, synthetic_bold))
     }
 
@@ -197,52 +203,61 @@ impl CoreTextFontCache {
             return platform_font;
         }
 
-        let cftype_variations: Vec<_> = variations
+        let variation_keys: Vec<_> = variations
             .iter()
-            .map(|variation| {
-                (
-                    CFNumber::from(variation.tag as i64),
-                    CFNumber::from(variation.value as f64),
-                )
-            })
+            .map(|variation| CFNumber::new_i64(variation.tag as i64))
             .collect();
-        let values_dict = CFDictionary::from_CFType_pairs(&cftype_variations);
+        let variation_values: Vec<_> = variations
+            .iter()
+            .map(|variation| CFNumber::new_f32(variation.value))
+            .collect();
+        let values_dict = CFDictionary::<CFNumber, CFNumber>::from_slices(
+            &variation_keys
+                .iter()
+                .map(CFRetained::as_ref)
+                .collect::<Vec<_>>(),
+            &variation_values
+                .iter()
+                .map(CFRetained::as_ref)
+                .collect::<Vec<_>>(),
+        );
 
-        let variation_attribute =
-            unsafe { CFString::wrap_under_get_rule(kCTFontVariationAttribute) };
-        let attrs_dict = CFDictionary::from_CFType_pairs(&[(variation_attribute, values_dict)]);
-        let ct_var_font_desc = platform_font
-            .ctfont
-            .copy_descriptor()
-            .create_copy_with_attributes(attrs_dict.to_untyped())
-            .unwrap();
+        let attributes = CFDictionary::<CFString, CFType>::from_slices(
+            &[unsafe { kCTFontVariationAttribute }],
+            &[values_dict.as_ref()],
+        );
+        let descriptor_with_variations = unsafe {
+            platform_font
+                .ctfont
+                .font_descriptor()
+                .copy_with_attributes(attributes.as_opaque())
+        };
 
-        let ctfont = core_text::font::new_from_descriptor(&ct_var_font_desc, pt_size);
+        let ctfont = unsafe {
+            CTFont::with_font_descriptor(&descriptor_with_variations, pt_size, std::ptr::null())
+        };
         PlatformFont::new_with_ctfont_and_variations(ctfont, variations, synthetic_bold)
     }
 
     fn get_variation_axis_information(
         platform_font: &PlatformFont,
     ) -> Option<Vec<VariationAxisInformation>> {
+        let variation_axes = unsafe { platform_font.ctfont.variation_axes()? };
+        let traits = unsafe { variation_axes.cast_unchecked::<CFDictionary<CFString, CFNumber>>() };
+
         Some(
-            platform_font
-                .ctfont
-                .get_variation_axes()?
+            traits
                 .iter()
                 .filter_map(|axes| {
-                    let tag = unsafe { axes.find(kCTFontVariationAxisIdentifierKey) }
-                        .and_then(|tag| tag.downcast::<CFNumber>())?;
-                    let max_value = unsafe { axes.find(kCTFontVariationAxisMaximumValueKey) }
-                        .and_then(|tag| tag.downcast::<CFNumber>())?;
-                    let min_value = unsafe { axes.find(kCTFontVariationAxisMinimumValueKey) }
-                        .and_then(|tag| tag.downcast::<CFNumber>())?;
-                    let default_value = unsafe { axes.find(kCTFontVariationAxisDefaultValueKey) }
-                        .and_then(|tag| tag.downcast::<CFNumber>())?;
+                    let tag = unsafe { axes.get(kCTFontVariationAxisIdentifierKey) }?;
+                    let max_value = unsafe { axes.get(kCTFontVariationAxisMaximumValueKey) }?;
+                    let min_value = unsafe { axes.get(kCTFontVariationAxisMinimumValueKey) }?;
+                    let default_value = unsafe { axes.get(kCTFontVariationAxisDefaultValueKey) }?;
                     Some(VariationAxisInformation {
-                        tag: tag.to_i64()?,
-                        max_value: max_value.to_f64()?,
-                        min_value: min_value.to_f64()?,
-                        default_value: default_value.to_f64()?,
+                        tag: tag.as_i64()?,
+                        max_value: max_value.as_f64()?,
+                        min_value: min_value.as_f64()?,
+                        default_value: default_value.as_f64()?,
                     })
                 })
                 .collect(),
@@ -256,11 +271,4 @@ struct VariationAxisInformation {
     max_value: f64,
     min_value: f64,
     default_value: f64,
-}
-
-unsafe extern "C" {
-    static kCTFontVariationAxisDefaultValueKey: CFStringRef;
-    static kCTFontVariationAxisIdentifierKey: CFStringRef;
-    static kCTFontVariationAxisMaximumValueKey: CFStringRef;
-    static kCTFontVariationAxisMinimumValueKey: CFStringRef;
 }
