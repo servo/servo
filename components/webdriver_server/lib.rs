@@ -2267,7 +2267,7 @@ impl Handler {
         // Step 2. Try to handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        // Step 3-11 handled in script thread.
+        // Step 3 - 11. Clear element with implicit wait.
         self.implicit_wait(|| {
             let (sender, receiver) = generic_channel::channel().unwrap();
             let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
