@@ -1865,8 +1865,26 @@ pub(crate) fn handle_element_clear(
                 // Step 5. Scroll Into View
                 scroll_into_view(&element, documents, &pipeline, can_gc);
 
-                // TODO: Step 6 - 10
+                // TODO: Step 6 - 9: Implicit wait. In another PR.
                 // Wait until element become interactable and check.
+
+                // Step 10. If element is not interactable (neither keyboard-interactable nor
+                // pointer-interactable),
+                // return error with error code element not interactable.
+                if !is_keyboard_interactable(&element) {
+                    return Err(ErrorStatus::ElementNotInteractable);
+                }
+
+                let paint_tree = get_element_pointer_interactable_paint_tree(
+                    &element,
+                    &documents
+                        .find_document(pipeline)
+                        .expect("Document existence guaranteed by `get_known_element`"),
+                    can_gc,
+                );
+                if !is_element_in_view(&element, &paint_tree) {
+                    return Err(ErrorStatus::ElementNotInteractable);
+                }
 
                 // Step 11
                 // TODO: Clear content editable elements
