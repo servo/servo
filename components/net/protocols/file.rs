@@ -25,12 +25,12 @@ use crate::protocols::{
 pub struct FileProtocolHander {}
 
 impl ProtocolHandler for FileProtocolHander {
-    fn load(
-        &self,
-        request: &mut Request,
+    fn load<'a>(
+        &'a self,
+        request: &'a mut Request,
         done_chan: &mut DoneChannel,
         context: &FetchContext,
-    ) -> Pin<Box<dyn Future<Output = Response> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Response> + Send + 'a>> {
         let url = request.current_url();
 
         if request.method != Method::GET {
@@ -38,9 +38,9 @@ impl ProtocolHandler for FileProtocolHander {
         }
         let response = if let Ok(file_path) = url.to_file_path() {
             if file_path.is_dir() {
-                return Box::pin(ready(local_directory_listing::fetch(
-                    request, url, file_path,
-                )));
+                return Box::pin(async move {
+                    local_directory_listing::fetch(request, url, file_path).await
+                });
             }
 
             if let Ok(file) = File::open(file_path.clone()) {
