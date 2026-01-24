@@ -12,7 +12,7 @@ use crossbeam_channel::Select;
 use embedder_traits::{
     InputEvent, KeyboardEvent, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, TouchEvent,
     TouchEventType, TouchId, WebDriverCommandMsg, WebDriverScriptCommand, WebViewPoint, WheelDelta,
-    WheelEvent, WheelMode,
+    WheelEvent, WheelMode, WheelPhase,
 };
 use euclid::Point2D;
 use keyboard_types::webdriver::KeyInputState;
@@ -761,7 +761,8 @@ impl Handler {
                     mode: WheelMode::DeltaPixel,
                 };
                 let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
-                let input_event = InputEvent::Wheel(WheelEvent::new(delta, point));
+                let input_event =
+                    InputEvent::Wheel(WheelEvent::new(delta, point, WheelPhase::Moved));
                 if last {
                     self.send_blocking_input_event_to_embedder(input_event);
                 } else {

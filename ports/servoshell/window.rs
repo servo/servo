@@ -23,6 +23,8 @@ use crate::running_app_state::{RunningAppState, UserInterfaceCommand, WebViewCol
 pub(crate) const LINE_HEIGHT: f32 = 76.0;
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) const LINE_WIDTH: f32 = 76.0;
+#[cfg(feature = "wheel_fling")]
+pub(crate) const SCROLL_FACTOR: f64 = 6.0;
 
 /// <https://github.com/web-platform-tests/wpt/blob/9320b1f724632c52929a3fdb11bdaf65eafc7611/webdriver/tests/classic/set_window_rect/set.py#L287-L290>
 /// "A window size of 10x10px shouldn't be supported by any browser."

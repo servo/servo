@@ -32,6 +32,8 @@ mod screenshot;
 mod touch;
 mod webrender_external_images;
 mod webview_renderer;
+#[cfg(feature = "wheel_fling")]
+mod wheel_fling;
 
 /// Data used to initialize the `Paint` subsystem.
 pub struct InitialPaintState {

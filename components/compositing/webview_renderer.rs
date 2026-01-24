@@ -36,6 +36,8 @@ use crate::pinch_zoom::PinchZoom;
 use crate::pipeline_details::PipelineDetails;
 use crate::refresh_driver::BaseRefreshDriver;
 use crate::touch::{PendingTouchInputEvent, TouchHandler, TouchMoveAllowed, TouchSequenceState};
+#[cfg(feature = "wheel_fling")]
+use crate::wheel_fling::WheelFlingHandler;
 
 #[derive(Clone, Copy)]
 pub(crate) struct ScrollEvent {
@@ -98,6 +100,9 @@ pub(crate) struct WebViewRenderer {
     pending_wheel_events: FxHashMap<InputEventId, WheelEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
+    /// Wheel fling handler for platforms without native momentum scrolling (e.g., Linux).
+    #[cfg(feature = "wheel_fling")]
+    wheel_fling_handler: WheelFlingHandler,
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
     /// "Mobile-style" zoom that does not reflow the page. When there is no [`PinchZoom`] a
@@ -145,6 +150,8 @@ impl WebViewRenderer {
             rect,
             pipelines: Default::default(),
             touch_handler: TouchHandler::new(webview_id),
+            #[cfg(feature = "wheel_fling")]
+            wheel_fling_handler: WheelFlingHandler::new(webview_id),
             pending_scroll_zoom_events: Default::default(),
             pending_wheel_events: Default::default(),
             page_zoom: DEFAULT_PAGE_ZOOM,
@@ -1055,8 +1062,44 @@ impl WebViewRenderer {
                 let scroll_delta =
                     DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
                 self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
+
+                #[cfg(feature = "wheel_fling")]
+                {
+                    let device_point = wheel_event
+                        .point
+                        .as_device_point(self.device_pixels_per_page_pixel());
+                    if self.wheel_fling_handler.on_wheel_event(
+                        scroll_delta,
+                        device_point,
+                        wheel_event.phase,
+                    ) {
+                        self.wheel_fling_handler
+                            .add_fling_refresh_observer_if_necessary(
+                                self.refresh_driver.clone(),
+                                repaint_reason,
+                            );
+                    }
+                }
             }
         }
+    }
+
+    /// Update wheel-based fling animations during a `RefreshDriver`-based
+    /// frame tick. Returns `true` if we should continue observing frames (the fling is ongoing)
+    /// or `false` if we should stop observing.
+    #[cfg(feature = "wheel_fling")]
+    pub(crate) fn update_wheel_fling_at_new_frame_start(&mut self) -> bool {
+        // If we're flinging, apply the fling action
+        if let Some(fling_action) = self.wheel_fling_handler.notify_new_frame_start() {
+            self.on_scroll_window_event(
+                Scroll::Delta(fling_action.delta.into()),
+                fling_action.cursor,
+            );
+            return true;
+        }
+
+        // Fling has ended
+        false
     }
 }
 

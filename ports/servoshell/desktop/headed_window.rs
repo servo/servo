@@ -25,7 +25,7 @@ use servo::{
     MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
     OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
     TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WebViewId, WheelDelta,
-    WheelEvent, WheelMode, WindowRenderingContext, convert_rect_to_css_pixel,
+    WheelEvent, WheelMode, WheelPhase, WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -53,6 +53,8 @@ use crate::desktop::gui::Gui;
 use crate::desktop::keyutils::CMD_OR_CONTROL;
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
+#[cfg(feature = "wheel_fling")]
+use crate::window::SCROLL_FACTOR;
 use crate::window::{
     LINE_HEIGHT, LINE_WIDTH, MIN_WINDOW_INNER_SIZE, PlatformWindow, ServoShellWindow,
     ServoShellWindowId,
@@ -676,7 +678,7 @@ impl HeadedWindow {
                             ));
                         }
                     },
-                    WindowEvent::MouseWheel { delta, .. } => {
+                    WindowEvent::MouseWheel { delta, phase, .. } => {
                         let (delta_x, delta_y, mode) = match delta {
                             MouseScrollDelta::LineDelta(delta_x, delta_y) => (
                                 (delta_x * LINE_WIDTH) as f64,
@@ -684,7 +686,16 @@ impl HeadedWindow {
                                 WheelMode::DeltaPixel,
                             ),
                             MouseScrollDelta::PixelDelta(delta) => {
-                                (delta.x, delta.y, WheelMode::DeltaPixel)
+                                #[cfg(not(feature = "wheel_fling"))]
+                                let scroll_factor = 1.0;
+                                #[cfg(feature = "wheel_fling")]
+                                let scroll_factor = SCROLL_FACTOR;
+
+                                (
+                                    delta.x * scroll_factor,
+                                    delta.y * scroll_factor,
+                                    WheelMode::DeltaPixel,
+                                )
                             },
                         };
 
@@ -696,9 +707,11 @@ impl HeadedWindow {
                             mode,
                         };
                         let point = self.webview_relative_mouse_point.get();
+                        let wheel_phase = winit_phase_to_wheel_phase(phase);
                         webview.notify_input_event(InputEvent::Wheel(WheelEvent::new(
                             delta,
                             point.into(),
+                            wheel_phase,
                         )));
                     },
                     WindowEvent::Touch(touch) => {
@@ -1154,6 +1167,15 @@ fn winit_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
         TouchPhase::Moved => TouchEventType::Move,
         TouchPhase::Ended => TouchEventType::Up,
         TouchPhase::Cancelled => TouchEventType::Cancel,
+    }
+}
+
+fn winit_phase_to_wheel_phase(phase: TouchPhase) -> WheelPhase {
+    match phase {
+        TouchPhase::Started => WheelPhase::Started,
+        TouchPhase::Moved => WheelPhase::Moved,
+        TouchPhase::Ended => WheelPhase::Ended,
+        TouchPhase::Cancelled => WheelPhase::Cancelled,
     }
 }
 
