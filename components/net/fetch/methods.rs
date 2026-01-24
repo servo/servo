@@ -66,6 +66,7 @@ pub enum Data {
     Payload(Vec<u8>),
     Done,
     Cancelled,
+    Error(NetworkError),
 }
 
 pub struct WebSocketChannel {
@@ -839,6 +840,10 @@ async fn wait_for_response(
                         body.extend(&vec);
                     }
                     target.process_response_chunk(request, vec);
+                },
+                Some(Data::Error(e)) => {
+                    response.set_network_error(e);
+                    break;
                 },
                 Some(Data::Done) => {
                     send_response_to_devtools(request, context, response, devtools_body);
