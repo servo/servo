@@ -280,8 +280,5 @@ pub fn extract_mime_type_as_mime(headers: &HeaderMap) -> Option<mime::Mime> {
 pub fn determine_nosniff(headers: &HeaderMap) -> bool {
     let values = get_decode_and_split_header_name("x-content-type-options", headers);
 
-    match values {
-        None => false,
-        Some(values) => !values.is_empty() && values[0].eq_ignore_ascii_case("nosniff"),
-    }
+    values.map_or(false, |values|  !values.is_empty() && values[0].eq_ignore_ascii_case("nosniff"))
 }

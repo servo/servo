@@ -289,7 +289,7 @@ impl StylesheetContext {
 
         match &self.source {
             StylesheetContextSource::LinkElement => {
-                let link = element.downcast::<HTMLLinkElement>().unwrap();
+                let link = element.downcast::<HTMLLinkElement>().expect("Should be HTMLinkElement due to StylesheetContextSource");
                 if link.is_effectively_disabled() {
                     stylesheet.set_disabled(true);
                 }
