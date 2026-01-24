@@ -208,7 +208,7 @@ impl ModuleTree {
         self.loaded_modules
             .borrow()
             .get(specifier)
-            .and_then(|url| global.get_module_map().borrow().get(url).cloned())
+            .and_then(|url| global.get_module_map_entry(url))
             .and_then(|status| match status {
                 ModuleStatus::Fetching(_) => None,
                 ModuleStatus::Loaded(module_tree) => module_tree,
@@ -324,7 +324,9 @@ impl ModuleTree {
             if module_script.is_null() {
                 warn!("fail to compile module script of {}", url);
 
-                module.parse_error.set(RethrowError::from_pending_exception(cx));
+                let _ = module
+                    .parse_error
+                    .set(RethrowError::from_pending_exception(cx));
                 return module;
             }
 
@@ -335,7 +337,7 @@ impl ModuleTree {
                 &PrivateValue(Rc::into_raw(module_script_data) as *const _),
             );
 
-            module.record.set(ModuleObject::new(module_script.handle()));
+            let _ = module.record.set(ModuleObject::new(module_script.handle()));
         }
 
         module
@@ -703,9 +705,7 @@ impl FetchResponseListener for ModuleContext {
 
         network_listener::submit_timing(&self, &response, &timing, CanGc::note());
 
-        let mut module_map = global.get_module_map().borrow_mut();
-
-        let Some(ModuleStatus::Fetching(pending)) = module_map.get(&self.url) else {
+        let Some(ModuleStatus::Fetching(pending)) = global.get_module_map_entry(&self.url) else {
             return error!("Processing response for a non pending module request");
         };
         let promise = pending
@@ -717,7 +717,7 @@ impl FetchResponseListener for ModuleContext {
         // then set moduleMap[(url, moduleType)] to null, run onComplete given null, and abort these steps.
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
-            module_map.insert(self.url.clone(), ModuleStatus::Loaded(None));
+            global.set_module_map(self.url.clone(), ModuleStatus::Loaded(None));
             return promise.resolve_native(&(), CanGc::note());
         }
 
@@ -768,7 +768,7 @@ impl FetchResponseListener for ModuleContext {
             ));
             module_script = Some(module_tree);
         }
-        module_map.insert(self.url.clone(), ModuleStatus::Loaded(module_script));
+        global.set_module_map(self.url.clone(), ModuleStatus::Loaded(module_script));
 
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
         promise.resolve_native(&(), CanGc::note());
@@ -924,16 +924,14 @@ unsafe extern "C" fn HostResolveImportedModule(
     let parsed_url = url.unwrap();
 
     // Step 4 & 7.
-    let module_map = global_scope.get_module_map().borrow();
-
-    let module_status = module_map.get(&parsed_url);
+    let module = global_scope.get_module_map_entry(&parsed_url);
 
     // Step 9.
-    assert!(module_status.is_some_and(
+    assert!(module.as_ref().is_some_and(
         |status| matches!(status, ModuleStatus::Loaded(module_tree) if module_tree.is_some())
     ));
 
-    let ModuleStatus::Loaded(Some(module_tree)) = module_status.unwrap() else {
+    let ModuleStatus::Loaded(Some(module_tree)) = module.unwrap() else {
         unreachable!()
     };
 
@@ -1167,7 +1165,7 @@ pub(crate) fn fetch_a_single_module_script(
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
     // Step 4. Let moduleMap be settingsObject's module map.
-    let entry = global.get_module_map().borrow().get(&url).cloned();
+    let entry = global.get_module_map_entry(&url);
 
     let pending = match entry {
         Some(ModuleStatus::Fetching(pending)) => pending,
@@ -1183,7 +1181,7 @@ pub(crate) fn fetch_a_single_module_script(
     let handler = ModuleHandler::new_boxed(Box::new(
         task!(fetch_completed: |global_scope: DomRoot<GlobalScope>| {
             let url = request_url;
-            let module = global_scope.get_module_map().borrow().get(&url).cloned();
+            let module = global_scope.get_module_map_entry(&url);
 
             if let Some(ModuleStatus::Loaded(module_tree)) = module {
                 on_complete(module_tree);
@@ -1210,10 +1208,7 @@ pub(crate) fn fetch_a_single_module_script(
     }
 
     // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-    global
-        .get_module_map()
-        .borrow_mut()
-        .insert(url.clone(), ModuleStatus::Fetching(pending));
+    global.set_module_map(url.clone(), ModuleStatus::Fetching(pending));
 
     let document: Option<DomRoot<Document>> = match &owner {
         ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,

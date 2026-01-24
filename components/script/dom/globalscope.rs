@@ -2401,10 +2401,12 @@ impl GlobalScope {
         &self.consumed_rejections
     }
 
-    pub(crate) fn get_module_map(
-        &self,
-    ) -> &DomRefCell<HashMapTracedValues<ServoUrl, ModuleStatus>> {
-        &self.module_map
+    pub(crate) fn set_module_map(&self, url: ServoUrl, module: ModuleStatus) {
+        self.module_map.borrow_mut().insert(url, module);
+    }
+
+    pub(crate) fn get_module_map_entry(&self, url: &ServoUrl) -> Option<ModuleStatus> {
+        self.module_map.borrow().get(url).cloned()
     }
 
     #[expect(unsafe_code)]
