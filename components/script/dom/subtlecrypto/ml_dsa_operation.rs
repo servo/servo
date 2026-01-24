@@ -306,7 +306,7 @@ pub(crate) fn generate_key(
     // parameter set indicated by the name member of normalizedAlgorithm.
     // Step 3. If the key generation step fails, then throw an OperationError.
     let mut seed_bytes = vec![0u8; 32];
-    OsRng.fill_bytes(&mut seed_bytes);
+    OsRng.try_fill_bytes(&mut seed_bytes);
     let (private_key_handle, public_key_handle) =
         convert_seed_to_handles(&normalized_algorithm.name, &seed_bytes, None, None)?;
 

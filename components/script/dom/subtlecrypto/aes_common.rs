@@ -4,7 +4,7 @@
 
 use aes::cipher::crypto_common::Key;
 use aes::{Aes128, Aes192, Aes256};
-use pkcs8::rand_core::RngCore;
+use rand::TryRngCore;
 use rand::rngs::OsRng;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -87,17 +87,17 @@ pub(crate) fn generate_key(
         match normalized_algorithm.length {
             128 => {
                 let mut key_bytes = vec![0; 16];
-                OsRng.fill_bytes(&mut key_bytes);
+                OsRng.try_fill_bytes(&mut key_bytes)?;
                 Handle::Aes128Key(Key::<Aes128>::clone_from_slice(&key_bytes))
             },
             192 => {
                 let mut key_bytes = vec![0; 24];
-                OsRng.fill_bytes(&mut key_bytes);
+                OsRng.try_fill_bytes(&mut key_bytes)?;
                 Handle::Aes192Key(Key::<Aes192>::clone_from_slice(&key_bytes))
             },
             256 => {
                 let mut key_bytes = vec![0; 32];
-                OsRng.fill_bytes(&mut key_bytes);
+                OsRng.try_fill_bytes(&mut key_bytes)?;
                 Handle::Aes256Key(Key::<Aes256>::clone_from_slice(&key_bytes))
             },
             _ => return Err(Error::Operation(Some(

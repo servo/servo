@@ -9,9 +9,9 @@ use ml_kem::{
     B32, Encoded, EncodedSizeUser, KemCore, MlKem512, MlKem512Params, MlKem768, MlKem768Params,
     MlKem1024, MlKem1024Params,
 };
-use pkcs8::rand_core::RngCore;
 use pkcs8::spki::AlgorithmIdentifier;
 use pkcs8::{ObjectIdentifier, PrivateKeyInfo, SubjectPublicKeyInfo};
+use rand::TryRngCore;
 use rand::rngs::OsRng;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -320,7 +320,7 @@ pub(crate) fn generate_key(
     // parameter set indicated by the name member of normalizedAlgorithm.
     // Step 3. If the key generation step fails, then throw an OperationError.
     let mut seed_bytes = vec![0u8; 64];
-    OsRng.fill_bytes(&mut seed_bytes);
+    OsRng.try_fill_bytes(&mut seed_bytes)?;
     let (private_key_handle, public_key_handle) =
         convert_seed_to_handles(&normalized_algorithm.name, &seed_bytes, None, None)?;
 
