@@ -432,7 +432,7 @@ impl PipeTo {
             rooted!(in(*cx) let object = chunk.to_object());
             rooted!(in(*cx) let mut bytes = UndefinedValue());
             let has_value = unsafe {
-                get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc)
+                get_dictionary_property(*cx, object.handle(), c"value", bytes.handle_mut(), can_gc)
                     .expect("Chunk should have a value.")
             };
             if has_value {
@@ -2352,7 +2352,7 @@ pub(crate) unsafe fn get_type_and_value_from_message(
         get_dictionary_property(
             *cx,
             data_object.handle(),
-            "type",
+            c"type",
             type_.handle_mut(),
             can_gc,
         )
@@ -2360,7 +2360,7 @@ pub(crate) unsafe fn get_type_and_value_from_message(
     .expect("Getting the type should not fail.");
 
     // Let value be ! Get(data, "value").
-    unsafe { get_dictionary_property(*cx, data_object.handle(), "value", value, can_gc) }
+    unsafe { get_dictionary_property(*cx, data_object.handle(), c"value", value, can_gc) }
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
@@ -2469,7 +2469,7 @@ pub(crate) fn get_read_promise_done(
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut done = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), "done", done.handle_mut(), can_gc) {
+        match get_dictionary_property(*cx, object.handle(), c"done", done.handle_mut(), can_gc) {
             Ok(true) => match bool::safe_from_jsval(cx, done.handle(), (), can_gc) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
@@ -2496,7 +2496,7 @@ pub(crate) fn get_read_promise_bytes(
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut bytes = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc) {
+        match get_dictionary_property(*cx, object.handle(), c"value", bytes.handle_mut(), can_gc) {
             Ok(true) => {
                 match Vec::<u8>::safe_from_jsval(
                     cx,

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use std::ptr::{self, NonNull};
 use std::slice;
@@ -245,14 +245,14 @@ pub(crate) unsafe fn find_enum_value<'a, T>(
 pub unsafe fn get_dictionary_property(
     cx: *mut JSContext,
     object: HandleObject,
-    property: &str,
+    property: &CStr,
     rval: MutableHandleValue,
     _can_gc: CanGc,
 ) -> Result<bool, ()> {
     unsafe fn has_property(
         cx: *mut JSContext,
         object: HandleObject,
-        property: &CString,
+        property: &CStr,
         found: &mut bool,
     ) -> bool {
         JS_HasProperty(cx, object, property.as_ptr(), found)
@@ -260,19 +260,18 @@ pub unsafe fn get_dictionary_property(
     unsafe fn get_property(
         cx: *mut JSContext,
         object: HandleObject,
-        property: &CString,
+        property: &CStr,
         value: MutableHandleValue,
     ) -> bool {
         JS_GetProperty(cx, object, property.as_ptr(), value)
     }
 
-    let property = CString::new(property).unwrap();
     if object.get().is_null() {
         return Ok(false);
     }
 
     let mut found = false;
-    if !has_property(cx, object, &property, &mut found) {
+    if !has_property(cx, object, property, &mut found) {
         return Err(());
     }
 
@@ -280,7 +279,7 @@ pub unsafe fn get_dictionary_property(
         return Ok(false);
     }
 
-    if !get_property(cx, object, &property, rval) {
+    if !get_property(cx, object, property, rval) {
         return Err(());
     }
 
