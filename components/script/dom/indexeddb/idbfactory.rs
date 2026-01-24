@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
@@ -23,7 +24,6 @@ use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::{
     IDBDatabaseInfo, IDBFactoryMethods,
 };
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
-use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -357,7 +357,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases>
-    fn Databases(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn Databases(&self, cx: &mut JSContext) -> Rc<Promise> {
         // Step 1: Let environment be this’s relevant settings object
         let global = self.global();
 
@@ -366,7 +366,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         // TODO: implement storage keys.
 
         // Step 3: Let p be a new promise.
-        let p = Promise::new(&global, can_gc);
+        let p = Promise::new(&global, CanGc::from_cx(cx));
 
         // Note: the option is required to pass the promise to a task from within the generic callback,
         // see #41356
@@ -385,18 +385,16 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             };
 
             // Step 3.5: Queue a database task to resolve p with result.
-            task_source.queue(task!(set_request_result_to_database: move || {
-                let can_gc = CanGc::note();
+            task_source.queue(task!(set_request_result_to_database: move |cx| {
                 let promise = trusted_promise.root();
                 match result {
                     Err(err) => {
                         let error = map_backend_error_to_dom_error(err);
-                        let cx = GlobalScope::get_cx();
-                        rooted!(in(*cx) let mut rval = UndefinedValue());
+                        rooted!(&in(cx) let mut rval = UndefinedValue());
                         error
                             .clone()
-                            .to_jsval(cx, &promise.global(), rval.handle_mut(), can_gc);
-                        promise.reject_native(&rval.handle(), can_gc);
+                            .to_jsval(cx.into(), &promise.global(), rval.handle_mut(), CanGc::from_cx(cx));
+                        promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
                     },
                     Ok(info_list) => {
                         let info_list: Vec<IDBDatabaseInfo> = info_list
@@ -406,7 +404,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                                 version: Some(info.version),
                         })
                         .collect();
-                        promise.resolve_native(&info_list, can_gc);
+                        promise.resolve_native(&info_list, CanGc::from_cx(cx));
                 },
             }
             }));
@@ -428,7 +426,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp>
-    fn Cmp(&self, cx: SafeJSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
+    fn Cmp(&self, cx: &mut JSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
         let first_key = convert_value_to_key(cx, first, None)?.into_result()?;
         let second_key = convert_value_to_key(cx, second, None)?.into_result()?;
         let cmp = first_key.partial_cmp(&second_key);

@@ -6,11 +6,12 @@ use std::cell::Cell;
 
 use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
-use script_bindings::conversions::SafeToJSValConvertible;
 use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
@@ -37,7 +38,7 @@ use crate::dom::indexeddb::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::key_type_to_jsval;
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(Clone)]
@@ -123,39 +124,37 @@ impl From<u64> for IdbResult {
 impl RequestListener {
     // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
     // Implements Step 5.4
-    fn handle_async_request_finished(&self, result: BackendResult<IdbResult>, can_gc: CanGc) {
+    fn handle_async_request_finished(&self, cx: &mut JSContext, result: BackendResult<IdbResult>) {
         let request = self.request.root();
         let global = request.global();
-        let cx = GlobalScope::get_cx();
 
         // Substep 1: Set the result of request to result.
         request.set_ready_state_done();
 
-        let _ac = enter_realm(&*request);
-        rooted!(in(*cx) let mut answer = UndefinedValue());
+        let mut realm = enter_auto_realm(cx, &*request);
+        let cx: &mut JSContext = &mut realm;
+        rooted!(&in(cx) let mut answer = UndefinedValue());
 
         if let Ok(data) = result {
             match data {
-                IdbResult::Key(key) => {
-                    key_type_to_jsval(GlobalScope::get_cx(), &key, answer.handle_mut(), can_gc)
-                },
+                IdbResult::Key(key) => key_type_to_jsval(cx, &key, answer.handle_mut()),
                 IdbResult::Keys(keys) => {
-                    rooted!(in(*cx) let mut array = vec![JSVal::default(); keys.len()]);
+                    rooted!(&in(cx) let mut array = vec![JSVal::default(); keys.len()]);
                     for (i, key) in keys.into_iter().enumerate() {
-                        key_type_to_jsval(
-                            GlobalScope::get_cx(),
-                            &key,
-                            array.handle_mut_at(i),
-                            can_gc,
-                        );
+                        key_type_to_jsval(cx, &key, array.handle_mut_at(i));
                     }
-                    array.safe_to_jsval(cx, answer.handle_mut(), can_gc);
+                    array.safe_to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Value(serialized_data) => {
                     let result = bincode::deserialize(&serialized_data)
                         .map_err(|_| Error::Data(None))
                         .and_then(|data| {
-                            structuredclone::read(&global, data, answer.handle_mut(), can_gc)
+                            structuredclone::read(
+                                &global,
+                                data,
+                                answer.handle_mut(),
+                                CanGc::from_cx(cx),
+                            )
                         });
                     if let Err(e) = result {
                         warn!("Error reading structuredclone data");
@@ -164,7 +163,7 @@ impl RequestListener {
                     };
                 },
                 IdbResult::Values(serialized_values) => {
-                    rooted!(in(*cx) let mut values = vec![JSVal::default(); serialized_values.len()]);
+                    rooted!(&in(cx) let mut values = vec![JSVal::default(); serialized_values.len()]);
                     for (i, serialized_data) in serialized_values.into_iter().enumerate() {
                         let result = bincode::deserialize(&serialized_data)
                             .map_err(|_| Error::Data(None))
@@ -173,7 +172,7 @@ impl RequestListener {
                                     &global,
                                     data,
                                     values.handle_mut_at(i),
-                                    can_gc,
+                                    CanGc::from_cx(cx),
                                 )
                             });
                         if let Err(e) = result {
@@ -182,7 +181,7 @@ impl RequestListener {
                             return;
                         };
                     }
-                    values.safe_to_jsval(cx, answer.handle_mut(), can_gc);
+                    values.safe_to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));
@@ -191,7 +190,7 @@ impl RequestListener {
                     let param = self.iteration_param.as_ref().expect(
                         "iteration_param must be provided by IDBRequest::execute_async for Iterate",
                     );
-                    let cursor = match iterate_cursor(&global, cx, param, records, can_gc) {
+                    let cursor = match iterate_cursor(&global, cx, param, records) {
                         Ok(cursor) => cursor,
                         Err(e) => {
                             warn!("Error reading structuredclone data");
@@ -228,7 +227,7 @@ impl RequestListener {
             request.set_result(answer.handle());
 
             // Substep 3.2: Set the error of request to undefined
-            request.set_error(None, CanGc::note());
+            request.set_error(None, CanGc::from_cx(cx));
 
             // Substep 3.3: Fire a success event at request.
             // TODO: follow spec here
@@ -242,13 +241,13 @@ impl RequestListener {
                 Atom::from("success"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             );
 
             transaction.set_active_flag(true);
             event
                 .upcast::<Event>()
-                .fire(request.upcast(), CanGc::note());
+                .fire(request.upcast(), CanGc::from_cx(cx));
             transaction.set_active_flag(false);
             // Notify the transaction that this request has finished.
             transaction.request_finished();
@@ -263,16 +262,16 @@ impl RequestListener {
     // Implements Step 5.4.2
     fn handle_async_request_error(
         global: &GlobalScope,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         request: DomRoot<IDBRequest>,
         error: Error,
     ) {
         // Substep 1: Set the result of request to undefined.
-        rooted!(in(*cx) let undefined = UndefinedValue());
+        rooted!(&in(cx) let undefined = UndefinedValue());
         request.set_result(undefined.handle());
 
         // Substep 2: Set the error of request to result.
-        request.set_error(Some(error), CanGc::note());
+        request.set_error(Some(error), CanGc::from_cx(cx));
 
         // Substep 3: Fire an error event at request.
         // TODO: follow the spec here
@@ -286,14 +285,14 @@ impl RequestListener {
             Atom::from("error"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            CanGc::note(),
+            CanGc::from_cx(cx),
         );
 
         // TODO: why does the transaction need to be active?
         transaction.set_active_flag(true);
         event
             .upcast::<Event>()
-            .fire(request.upcast(), CanGc::note());
+            .fire(request.upcast(), CanGc::from_cx(cx));
         transaction.set_active_flag(false);
         // Notify the transaction that this request has finished.
         transaction.request_finished();
@@ -406,13 +405,14 @@ impl IDBRequest {
 
         let closure = move |message: Result<BackendResult<T>, ipc_channel::Error>| {
             let response_listener = response_listener.clone();
-            task_source.queue(task!(request_callback: move || {
+            task_source.queue(task!(request_callback: move |cx| {
                 response_listener.handle_async_request_finished(
+                    cx,
                     message.expect("Could not unwrap message").inspect_err(|e| {
                         if let BackendError::DbErr(e) = e {
                             error!("Error in IndexedDB operation: {}", e);
                         }
-                    }).map(|t| t.into()), CanGc::note());
+                    }).map(|t| t.into()));
             }));
         };
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), closure)

@@ -5,9 +5,11 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
+use script_bindings::script_runtime::CanGc;
 use storage_traits::indexeddb::{IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -26,7 +28,6 @@ use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::key_type_to_jsval;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[expect(unused)]
@@ -170,17 +171,17 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursor-key>
-    fn Key(&self, cx: SafeJSContext, can_gc: CanGc, mut value: MutableHandleValue) {
+    fn Key(&self, cx: &mut JSContext, mut value: MutableHandleValue) {
         match self.key.borrow().as_ref() {
-            Some(key) => key_type_to_jsval(cx, key, value, can_gc),
+            Some(key) => key_type_to_jsval(cx, key, value),
             None => value.set(UndefinedValue()),
         }
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbcursor-primarykey>
-    fn PrimaryKey(&self, cx: SafeJSContext, can_gc: CanGc, mut value: MutableHandleValue) {
+    fn PrimaryKey(&self, cx: &mut JSContext, mut value: MutableHandleValue) {
         match self.effective_key() {
-            Some(effective_key) => key_type_to_jsval(cx, &effective_key, value, can_gc),
+            Some(effective_key) => key_type_to_jsval(cx, &effective_key, value),
             None => value.set(UndefinedValue()),
         }
     }
@@ -212,10 +213,9 @@ pub(crate) struct IterationParam {
 ///   "record’s referenced value" means the value of the record.
 pub(crate) fn iterate_cursor(
     global: &GlobalScope,
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     param: &IterationParam,
     records: Vec<IndexedDBRecord>,
-    can_gc: CanGc,
 ) -> Result<Option<DomRoot<IDBCursor>>, Error> {
     // Unpack IterationParam
     let cursor = param.cursor.root();
@@ -483,11 +483,16 @@ pub(crate) fn iterate_cursor(
     if !cursor.key_only {
         // Step 13.1. Let serialized be found record’s referenced value.
         // Step 13.2. Set cursor’s value to ! StructuredDeserialize(serialized, targetRealm)
-        rooted!(in(*cx) let mut new_cursor_value = UndefinedValue());
+        rooted!(&in(cx) let mut new_cursor_value = UndefinedValue());
         bincode::deserialize(&found_record.value)
             .map_err(|_| Error::Data(None))
             .and_then(|data| {
-                structuredclone::read(global, data, new_cursor_value.handle_mut(), can_gc)
+                structuredclone::read(
+                    global,
+                    data,
+                    new_cursor_value.handle_mut(),
+                    CanGc::from_cx(cx),
+                )
             })?;
         cursor.value.set(new_cursor_value.get());
     }

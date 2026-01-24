@@ -6,75 +6,76 @@ use std::ffi::CString;
 use std::ptr;
 
 use itertools::Itertools;
-use js::conversions::jsstr_to_string;
+use js::context::JSContext;
+use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::jsapi::{
-    ClippedTime, ESClass, GetArrayLength, GetBuiltinClass, IsArrayBufferObject, JS_GetStringLength,
-    JS_HasOwnPropertyById, JS_IndexToId, JS_IsArrayBufferViewObject, JS_NewObject, NewDateObject,
+    ClippedTime, ESClass, IsArrayBufferObject, JS_GetStringLength, JS_IsArrayBufferViewObject,
     PropertyKey,
 };
 use js::jsval::{DoubleValue, JSVal, UndefinedValue};
-use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasOwnProperty, JS_IsIdentifier};
-use js::rust::{HandleValue, IntoHandle, IntoMutableHandle, MutableHandleValue};
-use script_bindings::script_runtime::CanGc;
+use js::rust::wrappers2::{
+    GetArrayLength, GetBuiltinClass, IsArrayObject, JS_GetProperty, JS_HasOwnProperty,
+    JS_HasOwnPropertyById, JS_IndexToId, JS_IsIdentifier, JS_NewObject, NewDateObject,
+};
+use js::rust::{HandleValue, MutableHandleValue};
 use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::conversions::{
-    SafeToJSValConvertible, get_property_jsval, root_from_handlevalue, root_from_object,
+    get_property_jsval, root_from_handlevalue, root_from_object,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
 #[expect(unsafe_code)]
 pub fn key_type_to_jsval(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     key: &IndexedDBKeyType,
     mut result: MutableHandleValue,
-    can_gc: CanGc,
 ) {
     match key {
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
-        IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result, can_gc),
-        IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result, can_gc),
+        IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result),
+        IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result),
         IndexedDBKeyType::Date(d) => {
             let time = js::jsapi::ClippedTime { t: *d };
-            let date = unsafe { js::jsapi::NewDateObject(*cx, time) };
-            date.safe_to_jsval(cx, result, can_gc);
+            let date = unsafe { js::rust::wrappers2::NewDateObject(cx, time) };
+            date.safe_to_jsval(cx, result);
         },
         IndexedDBKeyType::Array(a) => {
-            rooted!(in(*cx) let mut values = vec![JSVal::default(); a.len()]);
+            rooted!(&in(cx) let mut values = vec![JSVal::default(); a.len()]);
             for (i, key) in a.iter().enumerate() {
-                key_type_to_jsval(cx, key, values.handle_mut_at(i), can_gc);
+                key_type_to_jsval(cx, key, values.handle_mut_at(i));
             }
-            values.safe_to_jsval(cx, result, can_gc);
+            values.safe_to_jsval(cx, result);
         },
     }
 }
 
 /// <https://www.w3.org/TR/IndexedDB-2/#valid-key-path>
-pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, Error> {
+pub(crate) fn is_valid_key_path(
+    cx: &mut JSContext,
+    key_path: &StrOrStringSequence,
+) -> Result<bool, Error> {
     // <https://tc39.es/ecma262/#prod-IdentifierName>
     #[expect(unsafe_code)]
-    let is_identifier_name = |name: &str| -> Result<bool, Error> {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut value = UndefinedValue());
-        name.safe_to_jsval(cx, value.handle_mut(), CanGc::note());
-        rooted!(in(*cx) let string = value.to_string());
+    let is_identifier_name = |cx: &mut JSContext, name: &str| -> Result<bool, Error> {
+        rooted!(&in(cx) let mut value = UndefinedValue());
+        name.safe_to_jsval(cx, value.handle_mut());
+        rooted!(&in(cx) let string = value.to_string());
 
         unsafe {
             let mut is_identifier = false;
-            if !JS_IsIdentifier(*cx, string.handle(), &mut is_identifier) {
+            if !JS_IsIdentifier(cx, string.handle(), &mut is_identifier) {
                 return Err(Error::JSFailed);
             }
             Ok(is_identifier)
@@ -82,19 +83,19 @@ pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, 
     };
 
     // A valid key path is one of:
-    let is_valid = |path: &DOMString| -> Result<bool, Error> {
+    let is_valid = |cx: &mut JSContext, path: &DOMString| -> Result<bool, Error> {
         // An empty string.
         let is_empty_string = path.is_empty();
 
         // An identifier, which is a string matching the IdentifierName production from the
         // ECMAScript Language Specification [ECMA-262].
-        let is_identifier = is_identifier_name(&path.str())?;
+        let is_identifier = is_identifier_name(cx, &path.str())?;
 
         // A string consisting of two or more identifiers separated by periods (U+002E FULL STOP).
         let is_identifier_list = path
             .str()
             .split('.')
-            .map(is_identifier_name)
+            .map(|s| is_identifier_name(cx, s))
             .try_collect::<bool, Vec<bool>, Error>()?
             .iter()
             .all(|&value| value);
@@ -110,13 +111,13 @@ pub(crate) fn is_valid_key_path(key_path: &StrOrStringSequence) -> Result<bool, 
             } else {
                 Ok(paths
                     .iter()
-                    .map(is_valid)
+                    .map(|s| is_valid(cx, s))
                     .try_collect::<bool, Vec<bool>, Error>()?
                     .iter()
                     .all(|&value| value))
             }
         },
-        StrOrStringSequence::String(path) => is_valid(path),
+        StrOrStringSequence::String(path) => is_valid(cx, path),
     }
 }
 
@@ -137,7 +138,7 @@ impl ConversionResult {
 // https://www.w3.org/TR/IndexedDB-2/#convert-value-to-key
 #[expect(unsafe_code)]
 pub fn convert_value_to_key(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     input: HandleValue,
     seen: Option<Vec<HandleValue>>,
 ) -> Result<ConversionResult, Error> {
@@ -163,22 +164,22 @@ pub fn convert_value_to_key(
 
     if input.is_string() {
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
-        let key = unsafe { jsstr_to_string(*cx, string_ptr) };
+        let key = unsafe { jsstr_to_string(cx.raw_cx(), string_ptr) };
         return Ok(ConversionResult::Valid(IndexedDBKeyType::String(key)));
     }
 
     if input.is_object() {
-        rooted!(in(*cx) let object = input.to_object());
+        rooted!(&in(cx) let object = input.to_object());
         unsafe {
             let mut built_in_class = ESClass::Other;
 
-            if !GetBuiltinClass(*cx, object.handle().into(), &mut built_in_class) {
+            if !GetBuiltinClass(cx, object.handle(), &mut built_in_class) {
                 return Err(Error::JSFailed);
             }
 
             if let ESClass::Date = built_in_class {
                 let mut f = f64::NAN;
-                if !js::jsapi::DateGetMsecSinceEpoch(*cx, object.handle().into(), &mut f) {
+                if !js::rust::wrappers2::DateGetMsecSinceEpoch(cx, object.handle(), &mut f) {
                     return Err(Error::JSFailed);
                 }
                 if f.is_nan() {
@@ -189,7 +190,7 @@ pub fn convert_value_to_key(
 
             if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
                 // FIXME:(arihant2math) implement it the correct way (is this correct?)
-                let key = structuredclone::write(cx, input, None)?;
+                let key = structuredclone::write(cx.into(), input, None)?;
                 return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(
                     key.serialized.clone(),
                 )));
@@ -197,34 +198,29 @@ pub fn convert_value_to_key(
 
             if let ESClass::Array = built_in_class {
                 let mut len = 0;
-                if !GetArrayLength(*cx, object.handle().into_handle(), &mut len) {
+                if !GetArrayLength(cx, object.handle(), &mut len) {
                     return Err(Error::JSFailed);
                 }
                 seen.push(input);
                 let mut values = vec![];
                 for i in 0..len {
-                    rooted!(in(*cx) let mut id: PropertyKey);
-                    if !JS_IndexToId(*cx, i, js::jsapi::MutableHandleId::from(id.handle_mut())) {
+                    rooted!(&in(cx) let mut id: PropertyKey);
+                    if !JS_IndexToId(cx, i, id.handle_mut()) {
                         return Err(Error::JSFailed);
                     }
                     let mut has_own = false;
-                    if !JS_HasOwnPropertyById(
-                        *cx,
-                        object.handle().into_handle(),
-                        id.handle().into_handle(),
-                        &mut has_own,
-                    ) {
+                    if !JS_HasOwnPropertyById(cx, object.handle(), id.handle(), &mut has_own) {
                         return Err(Error::JSFailed);
                     }
                     if !has_own {
                         return Ok(ConversionResult::Invalid);
                     }
-                    rooted!(in(*cx) let mut item = UndefinedValue());
-                    if !js::jsapi::JS_GetPropertyById(
-                        *cx,
-                        object.handle().into_handle(),
-                        id.handle().into_handle(),
-                        item.handle_mut().into_handle_mut(),
+                    rooted!(&in(cx) let mut item = UndefinedValue());
+                    if !js::rust::wrappers2::JS_GetPropertyById(
+                        cx,
+                        object.handle(),
+                        id.handle(),
+                        item.handle_mut(),
                     ) {
                         return Err(Error::JSFailed);
                     }
@@ -245,15 +241,15 @@ pub fn convert_value_to_key(
 /// <https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range>
 #[expect(unsafe_code)]
 pub fn convert_value_to_key_range(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     input: HandleValue,
     null_disallowed: Option<bool>,
 ) -> Result<IndexedDBKeyRange, Error> {
     // Step 1. If value is a key range, return value.
     if input.is_object() {
-        rooted!(in(*cx) let object = input.to_object());
+        rooted!(&in(cx) let object = input.to_object());
         unsafe {
-            if let Ok(obj) = root_from_object::<IDBKeyRange>(object.get(), *cx) {
+            if let Ok(obj) = root_from_object::<IDBKeyRange>(object.get(), cx.raw_cx()) {
                 let obj = obj.inner().clone();
                 return Ok(obj);
             }
@@ -309,7 +305,7 @@ pub(crate) enum EvaluationResult {
 /// <https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value>
 #[expect(unsafe_code)]
 pub(crate) fn evaluate_key_path_on_value(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     value: HandleValue,
     key_path: &KeyPath,
     mut return_val: MutableHandleValue,
@@ -318,7 +314,7 @@ pub(crate) fn evaluate_key_path_on_value(
         // Step 1. If keyPath is a list of strings, then:
         KeyPath::StringSequence(key_path) => {
             // Step 1.1. Let result be a new Array object created as if by the expression [].
-            rooted!(in(*cx) let mut result = unsafe { JS_NewObject(*cx, ptr::null()) });
+            rooted!(&in(cx) let mut result = unsafe { JS_NewObject(cx, ptr::null()) });
 
             // Step 1.2. Let i be 0.
             // Step 1.3. For each item in keyPath:
@@ -327,7 +323,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 // path on a value using item as keyPath and value as value.
                 // Step 1.3.2. Assert: key is not an abrupt completion.
                 // Step 1.3.3. If key is failure, abort the overall algorithm and return failure.
-                rooted!(in(*cx) let mut key = UndefinedValue());
+                rooted!(&in(cx) let mut key = UndefinedValue());
                 if let EvaluationResult::Failure = evaluate_key_path_on_value(
                     cx,
                     value,
@@ -340,7 +336,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 // Step 1.3.4. Let p be ! ToString(i).
                 // Step 1.3.5. Let status be CreateDataProperty(result, p, key).
                 // Step 1.3.6. Assert: status is true.
-                set_dictionary_property(cx, result.handle(), &i.to_string(), key.handle())
+                set_dictionary_property(cx.into(), result.handle(), &i.to_string(), key.handle())
                     .map_err(|_| Error::JSFailed)?;
 
                 // Step 1.3.7. Increase i by 1.
@@ -348,7 +344,7 @@ pub(crate) fn evaluate_key_path_on_value(
             }
 
             // Step 1.4. Return result.
-            result.safe_to_jsval(cx, return_val, CanGc::note());
+            result.safe_to_jsval(cx, return_val);
         },
         KeyPath::String(key_path) => {
             // Step 2. If keyPath is the empty string, return value and skip the remaining steps.
@@ -358,7 +354,7 @@ pub(crate) fn evaluate_key_path_on_value(
             }
 
             // NOTE: Use current_value, instead of value described in spec, in the following steps.
-            rooted!(in(*cx) let mut current_value = *value);
+            rooted!(&in(cx) let mut current_value = *value);
 
             // Step 3. Let identifiers be the result of strictly splitting keyPath on U+002E
             // FULL STOP characters (.).
@@ -367,10 +363,10 @@ pub(crate) fn evaluate_key_path_on_value(
                 // If Type(value) is String, and identifier is "length"
                 if identifier == "length" && current_value.is_string() {
                     // Let value be a Number equal to the number of elements in value.
-                    rooted!(in(*cx) let string_value = current_value.to_string());
+                    rooted!(&in(cx) let string_value = current_value.to_string());
                     unsafe {
                         let string_length = JS_GetStringLength(*string_value) as u64;
-                        string_length.safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
+                        string_length.safe_to_jsval(cx, current_value.handle_mut());
                     }
                     continue;
                 }
@@ -379,14 +375,14 @@ pub(crate) fn evaluate_key_path_on_value(
                 if identifier == "length" {
                     unsafe {
                         let mut is_array = false;
-                        if !IsArrayObject(*cx, current_value.handle(), &mut is_array) {
+                        if !IsArrayObject(cx, current_value.handle(), &mut is_array) {
                             return Err(Error::JSFailed);
                         }
                         if is_array {
                             // Let value be ! ToLength(! Get(value, "length")).
-                            rooted!(in(*cx) let object = current_value.to_object());
+                            rooted!(&in(cx) let object = current_value.to_object());
                             get_property_jsval(
-                                cx,
+                                cx.into(),
                                 object.handle(),
                                 "length",
                                 current_value.handle_mut(),
@@ -399,10 +395,11 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is a Blob and identifier is "size"
                 if identifier == "size" {
-                    if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), cx) {
+                    if let Ok(blob) =
+                        root_from_handlevalue::<Blob>(current_value.handle(), cx.into())
+                    {
                         // Let value be a Number equal to value’s size.
-                        blob.Size()
-                            .safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
+                        blob.Size().safe_to_jsval(cx, current_value.handle_mut());
 
                         continue;
                     }
@@ -410,10 +407,11 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is a Blob and identifier is "type"
                 if identifier == "type" {
-                    if let Ok(blob) = root_from_handlevalue::<Blob>(current_value.handle(), cx) {
+                    if let Ok(blob) =
+                        root_from_handlevalue::<Blob>(current_value.handle(), cx.into())
+                    {
                         // Let value be a String equal to value’s type.
-                        blob.Type()
-                            .safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
+                        blob.Type().safe_to_jsval(cx, current_value.handle_mut());
 
                         continue;
                     }
@@ -421,10 +419,11 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is a File and identifier is "name"
                 if identifier == "name" {
-                    if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), cx) {
+                    if let Ok(file) =
+                        root_from_handlevalue::<File>(current_value.handle(), cx.into())
+                    {
                         // Let value be a String equal to value’s name.
-                        file.name()
-                            .safe_to_jsval(cx, current_value.handle_mut(), CanGc::note());
+                        file.name().safe_to_jsval(cx, current_value.handle_mut());
 
                         continue;
                     }
@@ -432,13 +431,12 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is a File and identifier is "lastModified"
                 if identifier == "lastModified" {
-                    if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), cx) {
+                    if let Ok(file) =
+                        root_from_handlevalue::<File>(current_value.handle(), cx.into())
+                    {
                         // Let value be a Number equal to value’s lastModified.
-                        file.LastModified().safe_to_jsval(
-                            cx,
-                            current_value.handle_mut(),
-                            CanGc::note(),
-                        );
+                        file.LastModified()
+                            .safe_to_jsval(cx, current_value.handle_mut());
 
                         continue;
                     }
@@ -446,17 +444,15 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is a File and identifier is "lastModifiedDate"
                 if identifier == "lastModifiedDate" {
-                    if let Ok(file) = root_from_handlevalue::<File>(current_value.handle(), cx) {
+                    if let Ok(file) =
+                        root_from_handlevalue::<File>(current_value.handle(), cx.into())
+                    {
                         // Let value be a new Date object with [[DateValue]] internal slot equal to value’s lastModified.
                         let time = ClippedTime {
                             t: file.LastModified() as f64,
                         };
                         unsafe {
-                            NewDateObject(*cx, time).safe_to_jsval(
-                                cx,
-                                current_value.handle_mut(),
-                                CanGc::note(),
-                            );
+                            NewDateObject(cx, time).safe_to_jsval(cx, current_value.handle_mut());
                         }
 
                         continue;
@@ -470,14 +466,13 @@ pub(crate) fn evaluate_key_path_on_value(
                         return Ok(EvaluationResult::Failure);
                     }
 
-                    rooted!(in(*cx) let object = current_value.to_object());
+                    rooted!(&in(cx) let object = current_value.to_object());
                     let identifier_name =
                         CString::new(identifier).expect("Failed to convert str to CString");
 
                     // Let hop be ! HasOwnProperty(value, identifier).
                     let mut hop = false;
-                    if !JS_HasOwnProperty(*cx, object.handle(), identifier_name.as_ptr(), &mut hop)
-                    {
+                    if !JS_HasOwnProperty(cx, object.handle(), identifier_name.as_ptr(), &mut hop) {
                         return Err(Error::JSFailed);
                     }
 
@@ -488,7 +483,7 @@ pub(crate) fn evaluate_key_path_on_value(
 
                     // Let value be ! Get(value, identifier).
                     if !JS_GetProperty(
-                        *cx,
+                        cx,
                         object.handle(),
                         identifier_name.as_ptr(),
                         current_value.handle_mut(),
@@ -523,7 +518,7 @@ pub(crate) enum ExtractionResult {
 
 /// <https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path>
 pub(crate) fn extract_key(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     value: HandleValue,
     key_path: &KeyPath,
     multi_entry: Option<bool>,
@@ -531,7 +526,7 @@ pub(crate) fn extract_key(
     // Step 1. Let r be the result of running the steps to evaluate a key path on a value with
     // value and keyPath. Rethrow any exceptions.
     // Step 2. If r is failure, return failure.
-    rooted!(in(*cx) let mut r = UndefinedValue());
+    rooted!(&in(cx) let mut r = UndefinedValue());
     if let EvaluationResult::Failure =
         evaluate_key_path_on_value(cx, value, key_path, r.handle_mut())?
     {
