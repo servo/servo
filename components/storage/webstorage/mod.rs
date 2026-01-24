@@ -523,7 +523,7 @@ impl WebStorageManager {
                             Ok((true, Some(old)))
                         }
                     });
-            if storage_type == StorageType::Local {
+            if storage_type == WebStorageType::Local {
                 let env = self.get_environment_mut(&url.origin());
                 env.set(&name, &value);
             }
@@ -558,7 +558,7 @@ impl WebStorageManager {
         let data = self.select_data_mut(storage_type, webview_id, url.origin());
         let old_value = data.and_then(|entry| entry.remove(&name));
         sender.send(old_value).unwrap();
-        if storage_type == StorageType::Local {
+        if storage_type == WebStorageType::Local {
             let env = self.get_environment_mut(&url.origin());
             env.delete(&name);
         }
@@ -582,7 +582,7 @@ impl WebStorageManager {
                 }
             }))
             .unwrap();
-        if storage_type == StorageType::Local {
+        if storage_type == WebStorageType::Local {
             let env = self.get_environment_mut(&url.origin());
             env.clear();
         }
